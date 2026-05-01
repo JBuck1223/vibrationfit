@@ -3,7 +3,7 @@
 import {
   Headphones, Wand2,
   Target, Library, Music2,
-  AudioLines, Mic, Music, Clock,
+  AudioLines, Mic, Sliders, Clock,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
@@ -19,7 +19,7 @@ const CREATE_AREA_ROUTES = ['/audio/create', '/audio/generate', '/audio/mix', '/
 const SECONDARY_TABS = [
   { label: 'Generate', path: '/audio/generate', icon: AudioLines },
   { label: 'Record', path: '/audio/record', icon: Mic },
-  { label: 'Mix', path: '/audio/mix', icon: Music },
+  { label: 'Mix', path: '/audio/mix', icon: Sliders },
   { label: 'Queue', path: '/audio/queue', icon: Clock },
 ]
 
@@ -144,7 +144,9 @@ export function AudioAreaBar() {
     const activeCreateTool = SECONDARY_TABS.find(
       t => pathname === t.path || pathname.startsWith(t.path + '/')
     )
-    if (activeCreateTool) {
+    if (pathname === '/audio/create' || pathname === '/audio/create/') {
+      contextText = 'Choose a creation flow to get started.'
+    } else if (activeCreateTool) {
       contextText = CREATE_TOOL_SUBTEXT[activeCreateTool.path]
     }
   }

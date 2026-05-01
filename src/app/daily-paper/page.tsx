@@ -461,35 +461,53 @@ export default function DailyPaperIndexPage() {
                         </div>
                       </div>
                     ) : (
-                      /* Expanded: inline date + full content below */
-                      <div className="animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between mb-4">
-                          <p className="text-sm font-medium text-white">
-                            {dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                          <div className="flex items-center gap-3">
+                      <div className="animate-in fade-in duration-200 space-y-5">
+                        <div className="flex items-start justify-between gap-2 border-b border-[#252525] pb-2">
+                          <time className="text-sm font-medium text-white" dateTime={entry.entry_date}>
+                            {dateObj.toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </time>
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); setDeleteConfirmId(entry.id) }}
-                              className="text-red-500 hover:text-red-400 transition-colors"
+                              type="button"
+                              className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-500/10"
                               aria-label="Delete entry"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteConfirmId(entry.id)
+                              }}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={(e: React.MouseEvent) => {
+                              type="button"
+                              className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/10 hover:text-white"
+                              aria-label="Edit entry"
+                              onClick={(e) => {
                                 e.stopPropagation()
                                 setEditEntry(entry)
                               }}
-                              className="text-neutral-500 hover:text-white transition-colors"
-                              aria-label="Edit entry"
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="h-4 w-4" />
                             </button>
-                            <ChevronDown className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-all duration-200 rotate-180 flex-shrink-0" />
+                            <button
+                              type="button"
+                              className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/10 hover:text-white"
+                              aria-label="Collapse"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setExpandedId(null)
+                              }}
+                            >
+                              <ChevronDown className="h-4 w-4 rotate-180" />
+                            </button>
                           </div>
                         </div>
 
-                        <div className="space-y-5">
                         <section className="space-y-2">
                           <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Gratitude</p>
                           <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line">
@@ -553,8 +571,6 @@ export default function DailyPaperIndexPage() {
                             )}
                           </section>
                         )}
-
-                      </div>
                       </div>
                     )}
                   </div>

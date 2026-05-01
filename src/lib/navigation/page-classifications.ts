@@ -355,6 +355,7 @@ export function getPagesByType(type: PageType): readonly string[] {
  * GlobalLayout reads this to strip PageLayout's mobile padding on these routes.
  */
 export const STUDIO_ROUTE_PREFIXES = [
+  '/abundance-tracker',
   '/audio',
   '/daily-paper',
   '/life-vision',

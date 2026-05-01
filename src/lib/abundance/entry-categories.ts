@@ -19,6 +19,7 @@ import {
   Settings,
   Tag,
   Coins,
+  Ticket,
 } from 'lucide-react'
 
 export interface EntryCategoryOption {
@@ -27,12 +28,13 @@ export interface EntryCategoryOption {
   icon: LucideIcon
 }
 
-/** Ordered list for form dropdowns (11 categories). */
+/** Ordered list for form dropdowns (12 categories). */
 export const ABUNDANCE_ENTRY_CATEGORIES: EntryCategoryOption[] = [
   { value: 'salary', label: 'Salary', icon: Landmark },
   { value: 'business_income', label: 'Business Income', icon: Briefcase },
   { value: 'tips', label: 'Tips', icon: Feather },
   { value: 'gifts', label: 'Gifts', icon: Gift },
+  { value: 'coupon_voucher', label: 'Coupon / Voucher', icon: Ticket },
   { value: 'unexpected_income', label: 'Unexpected Income', icon: Sparkles },
   { value: 'free_stuff', label: 'Free Stuff', icon: Shirt },
   { value: 'e_course', label: 'E-Course / Digital', icon: PlayCircle },
@@ -48,6 +50,7 @@ export const ENTRY_LABELS: Record<string, { label: string; icon: LucideIcon }> =
   business_income: { label: 'Business Income', icon: Briefcase },
   tips: { label: 'Tips', icon: Feather },
   gifts: { label: 'Gifts', icon: Gift },
+  coupon_voucher: { label: 'Coupon / Voucher', icon: Ticket },
   unexpected_income: { label: 'Unexpected Income', icon: Sparkles },
   free_stuff: { label: 'Free Stuff', icon: Shirt },
   e_course: { label: 'E-Course / Digital', icon: PlayCircle },

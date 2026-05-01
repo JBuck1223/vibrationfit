@@ -1375,8 +1375,8 @@ export default function AudioMixPage() {
                       label="Output format"
                       value={
                         mixOutputFormat === 'individual'
-                          ? 'Individual sections'
-                          : 'Combined full track'
+                          ? `${effectiveSectionCountForMix} ${effectiveSectionCountForMix === 1 ? 'track' : 'tracks'}`
+                          : 'Single combined track'
                       }
                       onChange={() => {
                         setCustomMixStep('output')

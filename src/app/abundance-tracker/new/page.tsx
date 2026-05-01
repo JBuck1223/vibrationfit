@@ -1,9 +1,8 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { HelpCircle, Upload, Sparkles, Save, ChevronDown, ChevronRight } from 'lucide-react'
+import { HelpCircle, Upload, Sparkles, Save } from 'lucide-react'
 import {
   Container,
   Card,
@@ -11,12 +10,12 @@ import {
   Input,
   Select,
   Stack,
-  Text,
   DatePicker,
-  PageHero,
   Modal,
   CategoryGrid,
+  Toggle,
 } from '@/lib/design-system/components'
+import { cn } from '@/lib/utils'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ABUNDANCE_ENTRY_CATEGORIES } from '@/lib/abundance/entry-categories'
 import { FileUpload } from '@/components/FileUpload'
@@ -66,8 +65,6 @@ export default function AbundanceNewEntryPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [noteError, setNoteError] = useState<string | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
-  const [visionCategoriesOpen, setVisionCategoriesOpen] = useState(false)
-  const [imageSectionOpen, setImageSectionOpen] = useState(false)
   const [imageSource, setImageSource] = useState<'upload' | 'ai' | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
@@ -75,6 +72,8 @@ export default function AbundanceNewEntryPage() {
   const router = useRouter()
 
   const ACCEPT_IMAGES = 'image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif'
+
+  const selectTriggerMatch = '[&_button]:!bg-[#1A1A1A] [&_button]:!border-[#282828]'
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -148,78 +147,66 @@ export default function AbundanceNewEntryPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="md">
-        <PageHero
-          title="Log Abundance Moment"
-          subtitle="Capture gifts, synchronicities, and abundance flowing to you right now."
-        >
-          <div className="flex justify-center">
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Link href="/abundance-tracker">
-                Abundance Dashboard
-              </Link>
-            </Button>
-          </div>
-        </PageHero>
+      <Stack gap="lg">
+        <h1 className="sr-only">Log abundance moment</h1>
 
-        <Card variant="outlined" className="w-full md:w-2/3 md:mx-auto bg-[#101010] border-[#1F1F1F] p-4 md:p-5">
+        <Card
+          variant="outlined"
+          className="w-full !p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]"
+        >
+          <div className="px-3 pt-2 pb-8 md:p-0">
           <form onSubmit={handleSubmit}>
-            <Stack gap="sm">
-              {/* Track as - box */}
-              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
-                <div className="flex items-center gap-3 md:justify-between">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em]">
-                      Track as
-                    </Text>
-<button
-                    type="button"
-                    onClick={() => setHelpOpen(true)}
-                    className="p-0.5 rounded-full text-neutral-400 hover:text-white transition-colors focus:outline-none shrink-0"
-                    aria-label="Help: Money vs Value"
+            <Stack gap="lg">
+              {/* Date + top fields: single column so Stack gap-lg is not inserted between date and toggles */}
+              <div className="flex flex-col gap-4 md:gap-5">
+                <div className="flex justify-end">
+                  <div
+                    className="[&_input]:!w-auto [&_input]:!min-w-[140px] [&_input]:!bg-transparent [&_input]:!border-0 [&_input]:!rounded-none [&_input]:!px-0 [&_input]:!py-0 [&_input]:!pr-8 [&_input]:!text-right [&_input]:!text-[11px] [&_input]:!font-medium [&_input]:!uppercase [&_input]:!leading-none [&_input]:!tracking-[0.2em] [&_input]:!text-neutral-500 [&_input]:placeholder:!text-neutral-500 [&_input]:focus:!ring-0 [&_svg]:!right-2 [&_svg]:!h-4 [&_svg]:!w-4 [&_svg]:!text-neutral-400"
                   >
-                    <HelpCircle className="w-4 h-4" />
-                  </button>
-                  </div>
-                  <div className="inline-flex rounded-lg border-2 border-[#333] bg-[#0D0D0D] p-0.5 ml-auto">
-                    <button
-                      type="button"
-                      onClick={() => setValueType('money')}
-                      className={`rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
-                        valueType === 'money'
-                          ? 'bg-[#39FF14] text-black'
-                          : 'bg-transparent text-[#39FF14] hover:bg-[#39FF14]/10'
-                      }`}
-                    >
-                      Money
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setValueType('value')}
-                      className={`rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
-                        valueType === 'value'
-                          ? 'bg-[#39FF14] text-black'
-                          : 'bg-transparent text-[#39FF14] hover:bg-[#39FF14]/10'
-                      }`}
-                    >
-                      Value
-                    </button>
+                    <DatePicker
+                      value={date}
+                      maxDate={today}
+                      onChange={(dateString: string) => setDate(dateString)}
+                      className="w-auto"
+                      popoverAlign="end"
+                    />
                   </div>
                 </div>
-              </div>
 
-              {/* Amount - box */}
-              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
-                <div className="flex items-center gap-3 md:justify-between">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
-                    Amount
-                  </Text>
-                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&>div]:min-w-0 [&>div]:w-full [&_input]:min-w-0">
+                {/* Mobile */}
+                <div className="flex flex-col gap-6 md:hidden">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <p className="text-[11px] uppercase leading-none tracking-[0.2em] text-neutral-500">
+                        Money or Value
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setHelpOpen(true)}
+                        className="inline-flex shrink-0 items-center justify-center rounded-full p-0.5 text-neutral-400 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        aria-label="Help: Money vs Value"
+                      >
+                        <HelpCircle className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    </div>
+                    <Toggle
+                      variant="segmented"
+                      size="sm"
+                      fullWidth
+                      segmentedField
+                      value={valueType}
+                      onChange={(v) => setValueType(v)}
+                      options={[
+                        { value: 'money', label: 'Money' },
+                        { value: 'value', label: 'Value' },
+                      ]}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                      Amount
+                    </p>
                     <Input
                       type="text"
                       inputMode="decimal"
@@ -228,127 +215,152 @@ export default function AbundanceNewEntryPage() {
                       onChange={(event) => setAmount(parseAmountInput(event.target.value))}
                       required={valueType === 'money'}
                       prefix="$"
-                      className="!bg-[#404040] !border-[#333] !w-full !min-w-0 !max-w-none"
+                      className="!bg-[#1A1A1A] !border-[#282828]"
                     />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <p className="text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                      Type{' '}
+                      <span className="normal-case tracking-normal text-neutral-600">— optional</span>
+                    </p>
+                    <div className={cn('w-full min-w-0', selectTriggerMatch)}>
+                      <Select
+                        value={entryCategory}
+                        onChange={(value) => setEntryCategory(value)}
+                        options={ABUNDANCE_ENTRY_CATEGORIES.map(({ value, label }) => ({ value, label }))}
+                        placeholder="Abundance type (optional)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop */}
+                <div className="hidden md:block md:space-y-3">
+                  <div className="grid grid-cols-3 gap-4 lg:gap-6 items-start">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <p className="text-center text-[11px] uppercase leading-none tracking-[0.2em] text-neutral-500">
+                        Money or Value
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setHelpOpen(true)}
+                        className="inline-flex shrink-0 items-center justify-center rounded-full p-0.5 text-neutral-400 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        aria-label="Help: Money vs Value"
+                      >
+                        <HelpCircle className="h-3.5 w-3.5" aria-hidden />
+                      </button>
+                    </div>
+                    <p className="text-center text-[11px] uppercase leading-none tracking-[0.2em] text-neutral-500">
+                      Amount
+                    </p>
+                    <p className="text-center text-[11px] uppercase leading-none tracking-[0.2em] text-neutral-500">
+                      Type{' '}
+                      <span className="normal-case tracking-normal text-neutral-600">— optional</span>
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 items-stretch gap-4 lg:gap-6">
+                    <Toggle
+                      variant="segmented"
+                      size="sm"
+                      fullWidth
+                      segmentedField
+                      value={valueType}
+                      onChange={(v) => setValueType(v)}
+                      options={[
+                        { value: 'money', label: 'Money' },
+                        { value: 'value', label: 'Value' },
+                      ]}
+                      className="h-full min-h-0 w-full min-w-0"
+                    />
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={valueType === 'money' ? '$' : 'Optional amount'}
+                      value={formatAmountWithCommas(amount)}
+                      onChange={(event) => setAmount(parseAmountInput(event.target.value))}
+                      required={valueType === 'money'}
+                      prefix="$"
+                      className="!bg-[#1A1A1A] !border-[#282828]"
+                    />
+                    <div className={cn('min-w-0 w-full', selectTriggerMatch)}>
+                      <Select
+                        value={entryCategory}
+                        onChange={(value) => setEntryCategory(value)}
+                        options={ABUNDANCE_ENTRY_CATEGORIES.map(({ value, label }) => ({ value, label }))}
+                        placeholder="Abundance type (optional)"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Date - box */}
-              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
-                <div className="flex items-center gap-3 md:justify-between">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
-                    Date
-                  </Text>
-                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&_input]:!border-[#333] [&_input]:!bg-[#404040]">
-                    <DatePicker
-                      value={date}
-                      maxDate={today}
-                      onChange={(dateString: string) => setDate(dateString)}
-                      className="w-full"
-                    />
-                  </div>
+              <section className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <p
+                    className={cn(
+                      'text-[11px] uppercase tracking-[0.22em]',
+                      noteError ? 'text-red-400' : 'text-neutral-500'
+                    )}
+                  >
+                    Note
+                  </p>
+                  <div className="h-px flex-1 bg-[#2A2A2A]" />
                 </div>
-              </div>
-
-              {/* Kind - box */}
-              <div className="rounded-xl border border-[#333] bg-[#161616] p-3 pl-4">
-                <div className="flex items-center gap-3 md:justify-between">
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] shrink-0 w-[5rem]">
-                    Kind
-                  </Text>
-                  <div className="flex-1 min-w-0 md:flex-none md:w-80 [&_button]:!border-[#333] [&_button]:!bg-[#404040]">
-                    <Select
-                      value={entryCategory}
-                      onChange={(value) => setEntryCategory(value)}
-                      options={ABUNDANCE_ENTRY_CATEGORIES.map(({ value, label }) => ({ value, label }))}
-                      placeholder="Abundance type (optional)"
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Note - same layout, in card like others, with voice record/transcribe */}
-              <div className={`rounded-xl border ${noteError ? 'border-red-500/40' : 'border-[#333]'} bg-[#161616] p-3 pl-4`}>
-                <section className="space-y-1.5">
-                  <Text size="sm" className={`uppercase tracking-[0.25em] underline underline-offset-2 ${noteError ? 'text-red-400 decoration-red-400/40' : 'text-neutral-400 decoration-[#333]'}`}>
-                    Note {noteError ? `-- ${noteError}` : ''}
-                  </Text>
-                  <RecordingTextarea
-                    value={note}
-                    onChange={(value) => { setNote(value); if (noteError) setNoteError(null) }}
-                    placeholder="Describe this abundance moment in present-tense appreciation. Type or use the microphone to turn your voice into text."
-                    rows={3}
-                    storageFolder="profile"
-                    instanceId="abundance-note"
-                    recordingPurpose="quick"
-                    category="abundance"
-                    className="!bg-[#404040] !border-[#333]"
-                    onAudioSaved={(audioUrl, transcript) => {
-                      setAudioRecordings(prev => [...prev, {
+                {noteError && (
+                  <p className="text-center text-sm text-red-400" role="alert">
+                    {noteError}
+                  </p>
+                )}
+                <RecordingTextarea
+                  value={note}
+                  onChange={(value) => {
+                    setNote(value)
+                    if (noteError) setNoteError(null)
+                  }}
+                  placeholder="Describe this abundance moment in present-tense appreciation. Type or use the microphone to turn your voice into text."
+                  rows={5}
+                  storageFolder="profile"
+                  instanceId="abundance-note"
+                  recordingPurpose="quick"
+                  category="abundance"
+                  className="!bg-[#1A1A1A] !border-[#282828]"
+                  onAudioSaved={(audioUrl, transcript) => {
+                    setAudioRecordings((prev) => [
+                      ...prev,
+                      {
                         url: audioUrl,
                         transcript,
                         type: 'audio' as const,
                         category: 'abundance',
                         created_at: new Date().toISOString(),
-                      }])
-                    }}
-                  />
-                </section>
-              </div>
-
-              {/* Vision categories - collapsible */}
-              <section className="space-y-1.5">
-                <button
-                  type="button"
-                  onClick={() => setVisionCategoriesOpen((o) => !o)}
-                  className="flex items-center gap-2 w-full text-left focus:outline-none rounded-lg p-1 -m-1"
-                  aria-expanded={visionCategoriesOpen}
-                >
-                  {visionCategoriesOpen ? (
-                    <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
-                  )}
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
-                    Vision categories (optional)
-                  </Text>
-                </button>
-                {visionCategoriesOpen && (
-                  <CategoryGrid
-                    categories={visionCategoriesForAbundance}
-                    selectedCategories={visionCategories}
-                    onCategoryClick={(key) => {
-                      setVisionCategories((prev) =>
-                        prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-                      )
-                    }}
-                    lifeVisionCategoryStrip
-                  />
-                )}
+                      },
+                    ])
+                  }}
+                />
               </section>
 
-              {/* Image (optional) - collapsible */}
-              <section className="space-y-1.5">
-                <button
-                  type="button"
-                  onClick={() => setImageSectionOpen((o) => !o)}
-                  className="flex items-center gap-2 w-full text-left focus:outline-none rounded-lg p-1 -m-1"
-                  aria-expanded={imageSectionOpen}
-                >
-                  {imageSectionOpen ? (
-                    <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
-                  )}
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.25em] underline underline-offset-2 decoration-[#333]">
-                    Image (optional)
-                  </Text>
-                </button>
-                {imageSectionOpen && (
-                  <div className="rounded-xl border border-dashed border-[#333] bg-[#131313] p-3 md:p-4 flex flex-col gap-3 mt-1">
-                  <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
+              <CategoryGrid
+                title="Vision categories"
+                pillLabel="Vision categories"
+                categories={visionCategoriesForAbundance}
+                selectedCategories={visionCategories}
+                onCategoryClick={(key) => {
+                  setVisionCategories((prev) =>
+                    prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+                  )
+                }}
+                lifeVisionCategoryStrip
+                desktopColumnCount={6}
+                bleedClassName="-mx-3 md:mx-0"
+              />
+
+              <section className="space-y-3">
+                <p className="text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+                  Image <span className="normal-case tracking-normal text-neutral-600">— optional</span>
+                </p>
+                <div className="flex flex-col gap-3 rounded-xl border border-dashed border-[#282828] bg-[#131313] p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center">
                     <Button
                       type="button"
                       variant={imageSource === 'upload' ? 'primary' : 'outline'}
@@ -358,10 +370,10 @@ export default function AbundanceNewEntryPage() {
                         setAiGeneratedImageUrl(null)
                         fileInputRef.current?.click()
                       }}
-                      className="w-full sm:flex-1 sm:max-w-[200px]"
+                      className="w-full sm:flex-1 sm:max-w-[220px]"
                     >
-                      <Upload className="w-5 h-5 mr-2 flex-shrink-0" />
-                      Upload Image
+                      <Upload className="mr-2 h-5 w-5 shrink-0" />
+                      Upload image
                     </Button>
                     <Button
                       type="button"
@@ -371,9 +383,9 @@ export default function AbundanceNewEntryPage() {
                         setImageSource('ai')
                         setFile(null)
                       }}
-                      className="w-full sm:flex-1 sm:max-w-[200px]"
+                      className="w-full sm:flex-1 sm:max-w-[220px]"
                     >
-                      <Sparkles className="w-5 h-5 mr-2 flex-shrink-0" />
+                      <Sparkles className="mr-2 h-5 w-5 shrink-0" />
                       Generate with VIVA
                     </Button>
                   </div>
@@ -418,56 +430,52 @@ export default function AbundanceNewEntryPage() {
                         visionText={note || 'An abundance moment to celebrate.'}
                       />
                       {aiGeneratedImageUrl && (
-                        <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-800 mt-2">
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                            <img
-                              src={aiGeneratedImageUrl}
-                              alt="VIVA generated"
-                              className="w-20 h-20 object-cover rounded-lg mx-auto sm:mx-0"
-                            />
-                            <div className="flex-1 text-center sm:text-left">
-                              <p className="text-sm font-medium text-white">Generated with VIVA</p>
-                              <p className="text-xs text-neutral-400">
-                                <span className="text-green-400">Auto-selected for this entry</span>
-                              </p>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setAiGeneratedImageUrl(null)}
-                              className="w-full sm:w-auto"
-                            >
-                              Remove
-                            </Button>
+                        <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:flex-row sm:items-center">
+                          <img
+                            src={aiGeneratedImageUrl}
+                            alt=""
+                            className="mx-auto h-20 w-20 rounded-lg object-cover sm:mx-0"
+                          />
+                          <div className="flex-1 text-center sm:text-left">
+                            <p className="text-sm font-medium text-white">Generated with VIVA</p>
+                            <p className="text-xs text-neutral-400">Used when you save this entry.</p>
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAiGeneratedImageUrl(null)}
+                            className="w-full sm:w-auto"
+                          >
+                            Remove
+                          </Button>
                         </div>
                       )}
                     </>
                   )}
                 </div>
-                )}
               </section>
 
               {successMessage && (
-                <div className="rounded-lg border border-[#199D67]/40 bg-[#199D67]/10 px-3 py-2 text-sm text-[#A8E5CE]">
+                <div className="rounded-xl border border-[#199D67]/40 bg-[#199D67]/10 px-4 py-3 text-sm text-[#A8E5CE]">
                   {successMessage}
                 </div>
               )}
 
               {errorMessage && (
-                <div className="rounded-lg border border-[#D03739]/40 bg-[#D03739]/10 px-3 py-2 text-sm text-[#FFB4B4]">
+                <div className="rounded-xl border border-[#D03739]/40 bg-[#D03739]/10 px-4 py-3 text-sm text-[#FFB4B4]">
                   {errorMessage}
                 </div>
               )}
 
-              <div className="flex flex-row gap-2 justify-end pt-1">
+              <div className="flex flex-row items-center justify-center gap-2 pt-2 sm:gap-3">
                 <Button
                   type="button"
                   variant="danger"
                   size="sm"
                   onClick={() => router.push('/abundance-tracker')}
-                  className="flex-1 sm:flex-none sm:w-auto"
+                  disabled={isSubmitting}
+                  className="max-w-[180px] flex-1"
                 >
                   Cancel
                 </Button>
@@ -476,14 +484,15 @@ export default function AbundanceNewEntryPage() {
                   size="sm"
                   loading={isSubmitting}
                   disabled={isSubmitting}
-                  className="flex-1 sm:flex-none sm:w-auto"
+                  className="max-w-[180px] flex-1"
                 >
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className="mr-2 h-4 w-4" />
                   {isSubmitting ? 'Saving...' : 'Save'}
                 </Button>
               </div>
             </Stack>
           </form>
+          </div>
 
           <Modal
             isOpen={helpOpen}

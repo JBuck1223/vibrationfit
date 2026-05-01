@@ -31,9 +31,11 @@ export async function GET() {
     startOfWeek.setDate(now.getDate() - now.getDay())
     startOfWeek.setHours(0, 0, 0, 0)
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfYear = new Date(now.getFullYear(), 0, 1)
 
     const weekStr = startOfWeek.toISOString().split('T')[0]
     const monthStr = startOfMonth.toISOString().split('T')[0]
+    const yearStr = startOfYear.toISOString().split('T')[0]
 
     let totalAmount = 0
     let moneyCount = 0
@@ -42,6 +44,8 @@ export async function GET() {
     let weekCount = 0
     let monthAmount = 0
     let monthCount = 0
+    let yearAmount = 0
+    let yearCount = 0
 
     const entryBreakdown: Record<string, { count: number; amount: number }> = {}
     const visionBreakdown: Record<string, { count: number; amount: number }> = {}
@@ -60,6 +64,10 @@ export async function GET() {
       if (ev.date >= monthStr) {
         monthAmount += amt
         monthCount++
+      }
+      if (ev.date >= yearStr) {
+        yearAmount += amt
+        yearCount++
       }
 
       const eCat = ev.entry_category || 'uncategorized'
@@ -88,6 +96,7 @@ export async function GET() {
       timePeriods: {
         week: { amount: weekAmount, count: weekCount },
         month: { amount: monthAmount, count: monthCount },
+        year: { amount: yearAmount, count: yearCount },
         allTime: { amount: totalAmount, count: allEvents.length },
       },
       entryBreakdown,

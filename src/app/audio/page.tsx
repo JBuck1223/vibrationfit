@@ -205,12 +205,29 @@ export default function AudioListenPage() {
 
   useEffect(() => { loadTotalPlays() }, [])
 
+  // Deep link ?audioSetId= — refresh catalog then load this set (fixes stale list right after generation).
   useEffect(() => {
-    if (audioSetsLoading || audioSets.length === 0) return
-    if (urlAudioSetId) {
-      const urlTarget = audioSets.find(s => s.id === urlAudioSetId && s.isReady)
-      if (urlTarget) { setSelectedAudioSetId(urlTarget.id); loadAudioTracks(urlTarget.id); return }
+    if (!urlAudioSetId) return
+
+    let cancelled = false
+    ;(async () => {
+      await refreshAudioSets()
+      if (cancelled) return
+      setSelectedAudioSetId(urlAudioSetId)
+      await loadAudioTracks(urlAudioSetId)
+      if (cancelled) return
+      if (visionId) localStorage.setItem(`audioSetSelection_${visionId}`, urlAudioSetId)
+    })()
+
+    return () => {
+      cancelled = true
     }
+  }, [urlAudioSetId, visionId])
+
+  useEffect(() => {
+    if (urlAudioSetId) return
+
+    if (audioSetsLoading || audioSets.length === 0) return
     const saved = visionId ? localStorage.getItem(`audioSetSelection_${visionId}`) : null
     let target = saved ? audioSets.find(s => s.id === saved && s.isReady) : null
     if (!target) target = audioSets.find(s => s.isReady) || null

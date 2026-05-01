@@ -616,6 +616,9 @@ export function AreaBar({
   }
 
   const hasTopRight = topRightSelectors.length > 0
+  const hasMobileTitleActions = hasTopRight || !!menuItems
+
+  const mobileTitlePaddingTop = { paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' } as const
 
   // ─── Tab link rendering (shared between mobile hero/default) ───
   const renderTabLinks = (size: 'compact' | 'default') =>
@@ -682,24 +685,33 @@ export function AreaBar({
           </div>
         ) : (
           <div className="sticky top-0 z-30 w-full min-w-0 border-b border-neutral-800/60 bg-[#0A0A0A]">
-            {/* Title row */}
-            <div
-              className="relative flex items-center justify-center px-4 pb-2.5"
-              style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-[#39FF14]/10 flex items-center justify-center">
-                  <AreaIcon className="w-4 h-4 text-[#39FF14]" />
+            {/* Title row — centered when no right-side actions; split layout when selectors/menuItems exist */}
+            {hasMobileTitleActions ? (
+              <div className="flex min-w-0 items-center gap-2 px-4 pb-2.5" style={mobileTitlePaddingTop}>
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                    <AreaIcon className="h-4 w-4 text-[#39FF14]" />
+                  </div>
+                  <span className="min-w-0 truncate text-base font-bold tracking-tight text-white">{area.name}</span>
                 </div>
-                <span className="text-base font-bold text-white tracking-tight">{area.name}</span>
-              </div>
-              {(hasTopRight || menuItems) && (
-                <div className="absolute right-4 flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   {topRightSelectors.map(sel => renderMobileTopRightTrigger(sel))}
                   {menuItems}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div
+                className="flex items-center justify-center gap-2.5 px-4 pb-2.5"
+                style={mobileTitlePaddingTop}
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                  <AreaIcon className="h-4 w-4 text-[#39FF14]" />
+                </div>
+                <span className="max-w-[min(72vw,18rem)] truncate text-base font-bold tracking-tight text-white">
+                  {area.name}
+                </span>
+              </div>
+            )}
             {/* Tabs */}
             <div className="w-full min-w-0 px-3 pb-2.5">
               <nav className={appLikePrimaryTabs ? `${APP_LIKE_TAB_NAV} ${tabGridCols}` : `grid ${tabGridCols} w-full p-1 gap-1 rounded-xl bg-neutral-900/60`}>

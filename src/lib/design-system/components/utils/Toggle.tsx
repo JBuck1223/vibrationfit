@@ -20,6 +20,10 @@ interface ToggleProps<T extends string> extends Omit<React.HTMLAttributes<HTMLDi
   onChange: (value: T) => void
   /** `pill` = default lime active chip; `segmented` = zinc inset ring (e.g. life-vision new category) */
   variant?: 'pill' | 'segmented'
+  /** Segmented only: fill container width with equal-width segments */
+  fullWidth?: boolean
+  /** Segmented only: match form control look (border, height) next to inputs/selects */
+  segmentedField?: boolean
   activeColor?: string
   inactiveColor?: string
   size?: 'sm' | 'md' | 'lg'
@@ -30,6 +34,8 @@ export function Toggle<T extends string>({
   value,
   onChange,
   variant = 'pill',
+  fullWidth = false,
+  segmentedField = false,
   activeColor = '#39FF14',
   inactiveColor = 'neutral',
   size = 'md',
@@ -60,7 +66,17 @@ export function Toggle<T extends string>({
     <div
       className={cn(
         variant === 'segmented'
-          ? 'inline-flex items-stretch gap-0 rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]'
+          ? cn(
+              segmentedField
+                ? cn(
+                    'items-stretch gap-0 rounded-xl border-2 border-[#282828] bg-[#1A1A1A] p-0.5',
+                    fullWidth ? 'flex h-full min-h-0 w-full' : 'inline-flex'
+                  )
+                : cn(
+                    'items-stretch gap-0 rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]',
+                    fullWidth ? 'flex w-full' : 'inline-flex'
+                  )
+            )
           : 'inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-800/80 p-2 backdrop-blur-sm',
         className
       )}
@@ -77,11 +93,19 @@ export function Toggle<T extends string>({
               variant === 'segmented' &&
                 cn(
                   'inline-flex items-center justify-center font-medium transition-all duration-200',
-                  segmentedSizes[size],
+                  segmentedField
+                    ? 'min-h-[44px] flex-1 px-3 py-2 text-sm sm:min-h-[46px] sm:py-2.5'
+                    : segmentedSizes[size],
                   'rounded-lg',
-                  isActive
-                    ? 'bg-zinc-900/85 font-semibold text-white'
-                    : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+                  fullWidth && 'min-w-0 flex-1',
+                  segmentedField &&
+                    (isActive
+                      ? 'bg-[#2d2d2d] font-semibold text-white shadow-inner'
+                      : 'text-neutral-400 hover:bg-white/[0.06] hover:text-neutral-200'),
+                  !segmentedField &&
+                    (isActive
+                      ? 'bg-zinc-900/85 font-semibold text-white'
+                      : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200')
                 ),
               variant === 'pill' &&
                 cn(
