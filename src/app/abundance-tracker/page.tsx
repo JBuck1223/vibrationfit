@@ -381,10 +381,12 @@ export default function AbundanceDashboardPage() {
                   aria-label="Total abundance time range"
                 >
                   <div className="grid grid-cols-4 gap-0 overflow-hidden rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]">
-                    {(['all', 'week', 'month', 'year'] as const).map((key) => {
+                    {(['all', 'week', 'month', 'year'] as const).map((key, index, arr) => {
                       const label =
                         key === 'all' ? 'All' : key === 'week' ? 'Week' : key === 'month' ? 'Month' : 'Year'
                       const selected = totalsPeriod === key
+                      const endCaps =
+                        index === 0 ? 'rounded-l-lg' : index === arr.length - 1 ? 'rounded-r-lg' : ''
                       return (
                         <button
                           key={key}
@@ -400,10 +402,10 @@ export default function AbundanceDashboardPage() {
                                   ? 'This month'
                                   : 'This year'
                           }
-                          className={`min-h-[2.75rem] rounded-none px-1 py-2 text-center text-[11px] font-medium leading-tight transition-colors first:rounded-l-lg last:rounded-r-lg sm:min-h-11 sm:px-2 sm:text-sm ${
+                          className={`min-h-[2.75rem] overflow-hidden px-1 py-2 text-center text-[11px] font-medium leading-tight transition-colors sm:min-h-11 sm:px-2 sm:text-sm ${endCaps} ${
                             selected
-                              ? 'border-b-2 border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
-                              : 'border-b-2 border-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+                              ? 'bg-zinc-900/85 font-semibold text-primary-400'
+                              : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
                           }`}
                         >
                           <span className="hidden sm:inline">
