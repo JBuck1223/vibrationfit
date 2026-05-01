@@ -242,7 +242,8 @@ export function buildIndividualCategoryPrompt(
   getMeStartedText: string,
   imaginationText: string,
   currentStateText: string,
-  perspective: 'singular' | 'plural' = 'singular'
+  perspective: 'singular' | 'plural' = 'singular',
+  profileStoryText: string = ''
 ): string {
   const categoryMicroTuning = CATEGORY_MICRO_TUNING[categoryKey] || ''
   const pronoun = perspective === 'plural' ? 'we/our' : 'I/my'
@@ -299,6 +300,10 @@ ${currentStateText}
 
 Use this to: Ground the vision in reality, inform tone.
 DO NOT: Copy this text directly. Let it invisibly shape the output.
+` : ''}${profileStoryText?.trim() ? `
+
+STORY / NARRATIVE (from their profile — shape tone, do not quote):
+${profileStoryText.trim()}
 ` : ''}
 ═══════════════════════════════════════════════════════════════
 PHASE 1: CLEANSE
