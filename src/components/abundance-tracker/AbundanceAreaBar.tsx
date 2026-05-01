@@ -14,8 +14,7 @@ const CONTEXT_TRACK_OVERVIEW = 'Your abundance at a glance.'
 const CONTEXT_TRACK_NEW_ENTRY = 'Acknowledge what is flowing to you.'
 const CONTEXT_INSIGHTS =
   'View abundance by period: money vs value and by category.'
-const CONTEXT_GOALS_OVERVIEW =
-  'See progress for any period and every goal you have saved.'
+const CONTEXT_GOALS_OVERVIEW = 'See progress for any goal you have saved.'
 const CONTEXT_GOALS_NEW = 'Choose a period and amount, then save your goal.'
 
 export function AbundanceAreaBar() {

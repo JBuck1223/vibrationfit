@@ -60,10 +60,6 @@ export function SetGoalForm() {
 
   return (
     <div className={shellCard}>
-      <div className="border-b border-[#252525] px-4 py-4 text-center md:px-6 md:py-5">
-        <h2 className="text-sm font-semibold tracking-wide text-white md:text-base">Set your money goal</h2>
-      </div>
-
       <GoalPeriodPicker
         now={now}
         periodType={periodType}
