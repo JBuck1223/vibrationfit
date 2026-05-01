@@ -1,17 +1,62 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Badge, Spinner, Stack, PageHero } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, Spinner, Stack } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import {
-  CheckCircle, Clock, AlertCircle, ArrowLeft, Play, RefreshCw,
-  Target, BookOpen,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  ArrowLeft,
+  Play,
+  RefreshCw,
+  Target,
+  BookOpen,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryLabel, isValidVisionCategory } from '@/lib/design-system/vision-categories'
 
 type BatchStatus = 'pending' | 'processing' | 'completed' | 'partial_success' | 'failed'
+
+/** Matches /audio/queue list cards for consistent status treatment */
+const STATUS_META: Record<
+  BatchStatus,
+  { label: string; icon: React.ElementType; color: string; bg: string }
+> = {
+  pending: {
+    label: 'Pending',
+    icon: Clock,
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/15',
+  },
+  processing: {
+    label: 'Processing',
+    icon: Loader2,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/15',
+  },
+  completed: {
+    label: 'Complete',
+    icon: CheckCircle,
+    color: 'text-[#39FF14]',
+    bg: 'bg-[#39FF14]/15',
+  },
+  partial_success: {
+    label: 'Partial',
+    icon: AlertCircle,
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/15',
+  },
+  failed: {
+    label: 'Failed',
+    icon: AlertCircle,
+    color: 'text-red-400',
+    bg: 'bg-red-500/15',
+  },
+}
 
 interface Batch {
   id: string
@@ -61,7 +106,6 @@ export default function AudioQueueBatchPage({
 }: {
   params: Promise<{ batchId: string }>
 }) {
-  const router = useRouter()
   const [batchId, setBatchId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [batch, setBatch] = useState<Batch | null>(null)
@@ -376,57 +420,28 @@ export default function AudioQueueBatchPage({
   }
 
   const getStatusBadge = (status: BatchStatus) => {
-    switch (status) {
-      case 'processing':
-        return (
-          <Badge variant="info" className="text-sm flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />
-            In Progress
-          </Badge>
-        )
-      case 'completed':
-        return (
-          <Badge variant="success" className="text-sm flex items-center gap-1.5">
-            <CheckCircle className="w-3.5 h-3.5" />
-            Complete
-          </Badge>
-        )
-      case 'partial_success':
-        return (
-          <Badge variant="warning" className="text-sm flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5" />
-            Partial Success
-          </Badge>
-        )
-      case 'failed':
-        return (
-          <Badge variant="error" className="text-sm flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5" />
-            Failed
-          </Badge>
-        )
-      default:
-        return (
-          <Badge variant="info" className="text-sm">
-            Pending
-          </Badge>
-        )
-    }
-  }
-
-  const getStatusIcon = (status: BatchStatus) => {
-    switch (status) {
-      case 'processing':
-        return <Spinner size="md" />
-      case 'completed':
-        return <CheckCircle className="w-12 h-12" style={{ color: '#39FF14' }} />
-      case 'partial_success':
-        return <AlertCircle className="w-12 h-12 text-yellow-400" />
-      case 'failed':
-        return <AlertCircle className="w-12 h-12 text-red-400" />
-      default:
-        return <Clock className="w-12 h-12 text-neutral-400" />
-    }
+    const m = STATUS_META[status]
+    const Icon = m.icon
+    const variant =
+      status === 'completed'
+        ? 'success'
+        : status === 'failed'
+          ? 'error'
+          : status === 'partial_success'
+            ? 'warning'
+            : 'info'
+    const label =
+      status === 'processing'
+        ? 'In Progress'
+        : status === 'partial_success'
+          ? 'Partial Success'
+          : m.label
+    return (
+      <Badge variant={variant} className="text-xs flex items-center gap-1.5 font-medium">
+        <Icon className={`w-3.5 h-3.5 ${status === 'processing' ? 'animate-spin' : ''}`} />
+        {label}
+      </Badge>
+    )
   }
 
   const completedTracks = tracks.filter(
@@ -467,16 +482,18 @@ export default function AudioQueueBatchPage({
 
   if (loading) {
     return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
+      <Container size="xl" className="mx-auto max-w-2xl pt-2 pb-4">
+        <div className="flex min-h-[calc(100vh-16rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
       </Container>
     )
   }
 
   if (!batch) {
     return (
-      <Container size="xl" className="py-6">
-        <Card variant="elevated" className="text-center py-12">
+      <Container size="xl" className="mx-auto max-w-2xl pt-2 pb-4">
+        <Card variant="outlined" className="border-[#1F1F1F] bg-[#101010] text-center py-12">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">Batch Not Found</h2>
           <p className="text-neutral-400 mb-6">
@@ -493,70 +510,63 @@ export default function AudioQueueBatchPage({
     )
   }
 
+  const progressBarFill =
+    batch.status === 'failed'
+      ? 'bg-[#FF0040]'
+      : batch.status === 'completed'
+        ? 'bg-[#39FF14]'
+        : 'bg-blue-500'
+
+  const createdAtFormatted = new Date(batch.created_at).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+
   return (
-    <Container size="xl" className="py-6">
-      <Stack gap="lg">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/audio/queue">
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Queue
-            </Link>
-          </Button>
-          {isStory ? (
-            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-400">
-              <BookOpen className="w-3 h-3" />
-              Story
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400">
-              <Target className="w-3 h-3" />
-              Life Vision
-            </span>
-          )}
-        </div>
+    <Container size="xl" className="mx-auto max-w-2xl pt-2 pb-3 sm:pb-4">
+      <Stack gap="md">
+        <h1 className="sr-only">Audio generation job</h1>
 
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          <div className="relative p-4 md:p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="text-center">
-              <div className="mb-4 flex justify-center">
-                {getStatusIcon(batch.status)}
+        <Card
+          variant="outlined"
+          className="rounded-2xl border-[#1F1F1F] bg-[#101010] p-4 sm:p-5"
+        >
+          <div className="space-y-5">
+            <div className="flex flex-col gap-2 border-b border-[#1F1F1F] pb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-snug">
+                <time dateTime={batch.created_at} className="tabular-nums text-neutral-400">
+                  {createdAtFormatted}
+                </time>
+                {isStory ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-teal-500/15 px-1.5 py-0.5 text-[10px] font-medium text-teal-400">
+                    <BookOpen className="h-2.5 w-2.5" />
+                    Story
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[10px] font-medium text-purple-400">
+                    <Target className="h-2.5 w-2.5" />
+                    Life Vision
+                  </span>
+                )}
               </div>
-              <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
-                Audio Generation Queue
-              </h1>
-              <div className="text-sm text-neutral-400 mb-3">
-                {new Date(batch.created_at).toLocaleString('en-US', {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })}
-              </div>
-              <div className="flex justify-center">
-                {getStatusBadge(batch.status)}
-              </div>
+              <div className="flex shrink-0 sm:justify-end">{getStatusBadge(batch.status)}</div>
             </div>
-          </div>
-        </div>
 
-        <Card variant="elevated" className="!p-6 md:!p-8">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <h2 className="text-xl md:text-2xl font-semibold text-white mb-1">
-                  Generation Progress
-                </h2>
-                <p className="text-sm md:text-base text-neutral-400">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-xs font-medium text-neutral-500">Progress</h2>
+                <p className="mt-0.5 text-sm text-neutral-300">
                   {isCombinedOnlyBatch
                     ? actuallyCompleted > 0
                       ? 'Combined track ready'
                       : 'Creating combined track...'
                     : `${actuallyCompleted} of ${totalTracks} tracks completed`}
                   {failedTracks.length > 0 && (
-                    <span className="text-red-400 ml-2">
+                    <span className="ml-1.5 text-red-400/95">
                       ({failedTracks.length} failed)
                     </span>
                   )}
@@ -566,13 +576,14 @@ export default function AudioQueueBatchPage({
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="shrink-0 text-neutral-400"
                   onClick={() => {
                     setAutoRefreshEnabled(!autoRefreshEnabled)
                     if (!autoRefreshEnabled) loadBatchStatus()
                   }}
                 >
                   <RefreshCw
-                    className={`w-4 h-4 mr-2 ${autoRefreshEnabled ? 'animate-spin' : ''}`}
+                    className={`mr-1.5 h-3.5 w-3.5 ${autoRefreshEnabled ? 'animate-spin' : ''}`}
                   />
                   {autoRefreshEnabled ? 'Auto-refreshing' : 'Auto-refresh off'}
                 </Button>
@@ -580,62 +591,63 @@ export default function AudioQueueBatchPage({
             </div>
 
             <div className="relative">
-              <div className="w-full h-4 bg-neutral-800 rounded-full overflow-hidden">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
                 <div
-                  className="h-full bg-primary-500 transition-all duration-500 ease-out"
+                  className={`h-1.5 rounded-full transition-all duration-500 ease-out ${progressBarFill}`}
                   style={{ width: `${Math.min(100, progressPercentage)}%` }}
                 />
               </div>
             </div>
 
-            <div className="pt-4 border-t border-neutral-700">
+            <div className="border-t border-[#1F1F1F] pt-4">
               {batch.metadata?.custom_mix ? (
                 <>
-                  <h3 className="text-sm font-medium text-neutral-400 mb-3">
-                    Custom Mix Details:
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
+                  <h3 className="mb-2.5 text-xs font-medium text-neutral-500">Mix</h3>
+                  <div className="divide-y divide-[#333333] rounded-lg border border-[#333333] bg-[#0a0a0a]">
                     {mixDetails.backgroundTrack && (
-                      <Badge variant="info" className="text-xs">
-                        Background: {mixDetails.backgroundTrack}
-                      </Badge>
+                      <div className="flex items-baseline justify-between gap-4 px-3 py-2.5 text-sm">
+                        <span className="text-neutral-500">Background</span>
+                        <span className="truncate text-right text-neutral-200">
+                          {mixDetails.backgroundTrack}
+                        </span>
+                      </div>
                     )}
                     {mixDetails.mixRatio && (
-                      <Badge variant="info" className="text-xs">
-                        Ratio: {mixDetails.mixRatio}
-                      </Badge>
+                      <div className="flex items-baseline justify-between gap-4 px-3 py-2.5 text-sm">
+                        <span className="text-neutral-500">Ratio</span>
+                        <span className="text-neutral-200">{mixDetails.mixRatio}</span>
+                      </div>
                     )}
                     {mixDetails.binauralTrack && (
-                      <Badge variant="accent" className="text-xs">
-                        Binaural: {mixDetails.binauralTrack}
-                        {mixDetails.binauralVolume
-                          ? ` (${mixDetails.binauralVolume}%)`
-                          : ''}
-                      </Badge>
+                      <div className="flex items-baseline justify-between gap-4 px-3 py-2.5 text-sm">
+                        <span className="text-neutral-500">Binaural</span>
+                        <span className="truncate text-right text-neutral-200">
+                          {mixDetails.binauralTrack}
+                          {mixDetails.binauralVolume != null
+                            ? ` (${mixDetails.binauralVolume}%)`
+                            : ''}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </>
               ) : (
                 <>
-                  <h3 className="text-sm font-medium text-neutral-400 mb-3">
-                    Generation Details:
-                  </h3>
-                  <div className="space-y-3">
+                  <h3 className="mb-2.5 text-xs font-medium text-neutral-500">Details</h3>
+                  <div className="divide-y divide-[#333333] rounded-lg border border-[#333333] bg-[#0a0a0a]">
                     {voiceName && (
-                      <div>
-                        <span className="text-xs text-neutral-500">Voice:</span>
-                        <div className="text-sm text-white mt-1">{voiceName}</div>
+                      <div className="flex items-baseline justify-between gap-4 px-3 py-2.5 text-sm">
+                        <span className="text-neutral-500">Voice</span>
+                        <span className="truncate text-right text-neutral-200">{voiceName}</span>
                       </div>
                     )}
-                    <div>
-                      <span className="text-xs text-neutral-500">Tracks:</span>
-                      <div className="text-sm text-white mt-1">
-                        {batch.total_tracks_expected} tracks
-                      </div>
+                    <div className="flex items-baseline justify-between gap-4 px-3 py-2.5 text-sm">
+                      <span className="text-neutral-500">Tracks</span>
+                      <span className="text-neutral-200">{batch.total_tracks_expected}</span>
                     </div>
-                    <div>
-                      <span className="text-xs text-neutral-500">Variants:</span>
-                      <div className="flex flex-wrap gap-2 mt-1">
+                    <div className="px-3 py-2.5">
+                      <span className="text-xs text-neutral-500">Variants</span>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {batch.variant_ids.map(variant => {
                           const variantName =
                             variant === 'standard'
@@ -648,9 +660,12 @@ export default function AudioQueueBatchPage({
                                     ? 'Meditation'
                                     : variant
                           return (
-                            <Badge key={variant} variant="info" className="text-xs">
+                            <span
+                              key={variant}
+                              className="rounded-md border border-[#333333] bg-[#101010] px-2 py-0.5 text-[11px] text-neutral-300"
+                            >
                               {variantName}
-                            </Badge>
+                            </span>
                           )
                         })}
                       </div>
@@ -660,30 +675,14 @@ export default function AudioQueueBatchPage({
               )}
             </div>
 
-            {((batch.status === 'completed' &&
-              actuallyCompleted >= totalTracks &&
-              failedTracks.length === 0) ||
-              (isCombinedOnlyBatch &&
-                completedTracks.some(t => t.sectionKey === 'full'))) && (
-              <div className="pt-4 border-t border-neutral-700">
-                <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-                  <p className="text-green-400 font-medium text-center flex flex-col sm:flex-row items-center justify-center gap-2">
-                    <CheckCircle className="w-5 h-5" />
-                    All tracks generated successfully!
-                  </p>
-                </div>
-              </div>
-            )}
-
             {batch.status === 'partial_success' && (
-              <div className="pt-4 border-t border-neutral-700">
-                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                  <p className="text-yellow-400 font-medium text-center flex flex-col sm:flex-row items-center justify-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
-                    {actuallyCompleted} of {batch.total_tracks_expected} tracks
-                    completed successfully
+              <div className="border-t border-[#1F1F1F] pt-4">
+                <div className="rounded-lg border border-orange-500/25 bg-orange-500/[0.06] px-3 py-2.5 text-sm">
+                  <p className="flex items-center gap-2 font-medium text-orange-400">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {actuallyCompleted} of {batch.total_tracks_expected} tracks completed
                   </p>
-                  <p className="text-yellow-300 text-sm text-center mt-1">
+                  <p className="mt-1 text-xs text-orange-300/85">
                     {failedTracks.length} track
                     {failedTracks.length !== 1 ? 's' : ''} failed
                   </p>
@@ -692,12 +691,10 @@ export default function AudioQueueBatchPage({
             )}
 
             {batch.status === 'failed' && batch.error_message && (
-              <div className="pt-4 border-t border-neutral-700">
-                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <p className="text-red-400 font-medium">Error:</p>
-                  <p className="text-red-300 text-sm mt-1">
-                    {batch.error_message}
-                  </p>
+              <div className="border-t border-[#1F1F1F] pt-4">
+                <div className="rounded-lg border border-[#FF0040]/25 bg-[#FF0040]/[0.06] px-3 py-2.5">
+                  <p className="text-sm font-medium text-[#FF0040]">Could not complete</p>
+                  <p className="mt-1 text-sm text-red-300/90">{batch.error_message}</p>
                 </div>
               </div>
             )}
@@ -705,15 +702,17 @@ export default function AudioQueueBatchPage({
         </Card>
 
         {tracks.length > 0 && (
-          <Card variant="default" className="!p-4 md:!p-6">
+          <Card
+            variant="outlined"
+            className="rounded-2xl border-[#1F1F1F] bg-[#101010] !p-3 sm:!p-4 md:!p-5"
+          >
             <button
+              type="button"
               onClick={() => setShowTrackDetails(!showTrackDetails)}
-              className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+              className="flex w-full items-center justify-between gap-3 rounded-xl px-1 py-1 text-left transition-colors hover:bg-white/[0.03]"
             >
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-base md:text-lg font-medium text-white">
-                  Track Details
-                </span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-xs font-medium text-neutral-500">Tracks</span>
                 <div className="flex gap-2">
                   {completedTracks.length > 0 && (
                     <Badge
@@ -743,13 +742,15 @@ export default function AudioQueueBatchPage({
                   )}
                 </div>
               </div>
-              <span className="text-neutral-400">
-                {showTrackDetails ? '\u25B2' : '\u25BC'}
-              </span>
+              {showTrackDetails ? (
+                <ChevronUp className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden />
+              ) : (
+                <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden />
+              )}
             </button>
 
             {showTrackDetails && (
-              <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+              <div className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-0.5">
                 {tracks.map(track => {
                   const isProcessing =
                     track.status === 'processing' || track.status === 'pending'
@@ -767,17 +768,17 @@ export default function AudioQueueBatchPage({
                   return (
                     <div
                       key={track.id}
-                      className={`p-3 md:p-4 rounded-lg border-2 transition-colors ${
+                      className={`rounded-xl border p-2.5 transition-colors md:p-3 ${
                         isFailed
-                          ? 'border-red-700 bg-red-900/20'
+                          ? 'border-[#FF0040]/25 bg-[#FF0040]/[0.06]'
                           : isComplete
-                            ? 'border-green-700 bg-green-900/20'
-                            : 'border-neutral-700 bg-neutral-900/50'
+                            ? 'border-[#39FF14]/20 bg-[#39FF14]/[0.04]'
+                            : 'border-[#1F1F1F] bg-[#0a0a0a] hover:border-neutral-700'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm md:text-base font-medium text-white truncate">
+                          <div className="truncate text-sm font-medium text-neutral-100 md:text-[15px]">
                             {track.title}
                           </div>
                         </div>
@@ -837,7 +838,7 @@ export default function AudioQueueBatchPage({
           </Card>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-4">
           {['pending', 'processing'].includes(batch.status) && (
             <Button
               variant="danger"
@@ -876,12 +877,15 @@ export default function AudioQueueBatchPage({
       </Stack>
 
       {showCancelDialog && (
-        <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 pt-6 pb-20 md:pb-4">
-            <Card className="max-w-md w-full my-auto">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/60 backdrop-blur-sm">
+          <div className="flex min-h-full items-center justify-center p-4 pb-20 pt-6 md:pb-4">
+            <Card
+              variant="outlined"
+              className="my-auto w-full max-w-md rounded-2xl border-[#1F1F1F] bg-[#101010] p-6"
+            >
               <div className="text-center">
-                <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle className="w-8 h-8 text-yellow-400" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-yellow-500/15">
+                  <AlertCircle className="h-7 w-7 text-yellow-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">
                   Cancel Generation?

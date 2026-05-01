@@ -188,7 +188,12 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pageType = getPageType(pathname)
 
   const studioRoute = isStudioRoute(pathname)
-  const audioPageLayoutClass = studioRoute ? 'max-md:!pt-0 max-md:!px-0' : undefined
+  const audioPageLayoutClass = studioRoute
+    ? cn(
+        'max-md:!pt-0 max-md:!px-0',
+        pathname?.startsWith('/audio') && 'max-md:!pb-6',
+      )
+    : undefined
   
   // Authenticated users on public pages (except /auth/*) see the sidebar layout
   const effectivePageType = (pageType === 'PUBLIC' && isAuthenticated && !pathname?.startsWith('/auth'))

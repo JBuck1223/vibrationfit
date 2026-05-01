@@ -326,6 +326,7 @@ export function JournalEditForm({
               onCategoryClick={handleCategoryToggle}
               pillLabel="Tag life categories"
               lifeVisionCategoryStrip
+              desktopColumnCount={6}
               bleedClassName={categoryGridBleedClass}
             />
 

@@ -13,10 +13,26 @@ interface DatePickerProps extends Omit<React.InputHTMLAttributes<HTMLInputElemen
   onChange?: (date: string) => void
   minDate?: string // ISO date string
   maxDate?: string // ISO date string
+  /** Align calendar to trigger start (default) or end — use `end` for right-aligned controls so the popup stays inside narrow modals. */
+  popoverAlign?: 'start' | 'end'
 }
 
 export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
-  ({ label, error, helperText, value, onChange, minDate, maxDate, className = '', ...props }, ref) => {
+  (
+    {
+      label,
+      error,
+      helperText,
+      value,
+      onChange,
+      minDate,
+      maxDate,
+      popoverAlign = 'start',
+      className = '',
+      ...props
+    },
+    ref
+  ) => {
     // Parse ISO date string (YYYY-MM-DD) as local date, not UTC
     const parseLocalDate = (dateStr: string): Date => {
       const [year, month, day] = dateStr.split('-').map(Number)
@@ -75,12 +91,13 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
 
       top = Math.max(padding, Math.min(top, viewportHeight - estimatedHeight - padding))
 
-      let left = rect.left
       const dropdownWidth = Math.min(viewportWidth - 32, 360)
+      let left =
+        popoverAlign === 'end' ? rect.right - dropdownWidth : rect.left
       left = Math.max(16, Math.min(left, viewportWidth - dropdownWidth - 16))
 
       setDropdownPosition({ top, left })
-    }, [isOpen])
+    }, [isOpen, popoverAlign])
 
     // Re-adjust after the dropdown actually renders and we can measure it
     useLayoutEffect(() => {
@@ -109,7 +126,9 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
         }
 
         const dropdownWidth = Math.min(viewportWidth - 32, 360)
-        left = Math.max(16, Math.min(left, viewportWidth - dropdownWidth - 16))
+        const alignLeft =
+          popoverAlign === 'end' ? triggerRect.right - dropdownWidth : triggerRect.left
+        left = Math.max(16, Math.min(alignLeft, viewportWidth - dropdownWidth - 16))
 
         if (top !== dropdownPosition.top || left !== dropdownPosition.left) {
           setDropdownPosition({ top, left })
@@ -117,7 +136,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       })
       return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen])
+    }, [isOpen, popoverAlign])
 
     // Sync internal state when value prop changes (e.g., from parent useEffect)
     useEffect(() => {

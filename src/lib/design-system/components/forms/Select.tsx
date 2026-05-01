@@ -120,14 +120,14 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
         {isOpen && !disabled && typeof document !== 'undefined' && createPortal(
           <>
             <div
-              className="fixed inset-0 z-[60]"
+              className="fixed inset-0 z-[220]"
               onClick={() => setIsOpen(false)}
               aria-hidden
             />
             {dropdownRect && (
               <div
                 ref={dropdownRef}
-                className="fixed z-[60] py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain"
+                className="fixed z-[221] py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain"
                 style={{
                   top: dropdownRect.top,
                   left: dropdownRect.left,

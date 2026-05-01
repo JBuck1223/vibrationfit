@@ -1501,7 +1501,9 @@ export default function AudioMixPage({ params }: { params: Promise<{ id: string 
                       <h3 className="text-base font-semibold text-white">Output Format</h3>
                       {!showOutputFormatSection && (
                         <p className="text-xs text-neutral-400 mt-1">
-                          {mixOutputFormat === 'individual' ? 'Individual Sections' : 'Combined Full Track'}
+                          {mixOutputFormat === 'individual'
+                            ? `${effectiveSectionCount} ${effectiveSectionCount === 1 ? 'track' : 'tracks'}`
+                            : 'Single combined track'}
                         </p>
                       )}
                       <div className="absolute right-0 top-1/2 -translate-y-1/2">

@@ -12,6 +12,8 @@ import {
   Spinner,
   DeleteConfirmationDialog,
   Text,
+  categoryGridLifeVisionIconClassName,
+  categoryGridReadOnlySelectedClassName,
 } from '@/lib/design-system/components'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
@@ -192,10 +194,10 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
               </p>
             </section>
 
-            {/* Kind of abundance */}
+            {/* Type (category) */}
             <section className="space-y-2">
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Kind of abundance
+                Type
               </Text>
               <p className="text-lg font-semibold text-white inline-flex items-center gap-2">
                 {entryLabel ? (
@@ -229,10 +231,10 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
                     return (
                       <span
                         key={catKey}
-                        className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-full bg-[#161616] border border-[#1F1F1F] text-neutral-300"
+                        className={categoryGridReadOnlySelectedClassName()}
                       >
-                        <VisionIcon className="w-4 h-4" />
-                        {getVisionLabel(catKey)}
+                        <VisionIcon className={categoryGridLifeVisionIconClassName} aria-hidden />
+                        <span className="text-primary-400">{getVisionLabel(catKey)}</span>
                       </span>
                     )
                   })}

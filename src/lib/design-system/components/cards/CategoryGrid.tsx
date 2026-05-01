@@ -48,12 +48,25 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
    * `brandGreenIcons`, and `wrapOnDesktop` when true.
    */
   lifeVisionCategoryStrip?: boolean
+  /** With `lifeVisionCategoryStrip` desktop grid: 6 or 7 columns (default 7). */
+  desktopColumnCount?: 6 | 7
 }
 
 const pillBase = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer'
 const pillSelected = 'bg-primary-500/20 border-primary-500/50 text-primary-400'
 const pillUnselected = 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
 const allPillUnselected = 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-500'
+
+/** Icon treatment when `lifeVisionCategoryStrip` / `brandGreenIcons` is on (matches interactive CategoryGrid). */
+export const categoryGridLifeVisionIconClassName = 'w-3.5 h-3.5 shrink-0 text-[#39FF14]'
+
+/**
+ * Read-only chip classes matching a **selected** pill from CategoryGrid (`lifeVisionCategoryStrip`).
+ * Use on dashboards/cards so vision tags match the picker styling.
+ */
+export function categoryGridReadOnlySelectedClassName(extra?: string) {
+  return cn(pillBase.replace(' cursor-pointer', ''), pillSelected, 'cursor-default max-w-full min-w-0', extra)
+}
 
 export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
   ({
@@ -79,6 +92,7 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
     bleedClassName,
     brandGreenIcons = false,
     lifeVisionCategoryStrip = false,
+    desktopColumnCount = 7,
     className,
     ...props
   }, ref) => {
@@ -213,7 +227,10 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
                 className={cn(
                   'gap-2 pb-1 max-md:px-4 md:min-w-0 md:w-full md:px-0',
                   gridDesktop
-                    ? 'flex min-w-max items-center max-md:overflow-x-auto md:grid md:grid-cols-7 md:gap-2'
+                    ? cn(
+                        'flex min-w-max items-center max-md:overflow-x-auto md:grid md:gap-2',
+                        desktopColumnCount === 6 ? 'md:grid-cols-6' : 'md:grid-cols-7'
+                      )
                     : 'flex min-w-max items-center md:flex-wrap md:justify-center',
                 )}
               >

@@ -347,6 +347,7 @@ export default function NewJournalEntryPage() {
                 onCategoryClick={handleCategoryToggle}
                 pillLabel="Tag life categories"
                 lifeVisionCategoryStrip
+                desktopColumnCount={6}
               />
 
               {/* Journal Content */}
