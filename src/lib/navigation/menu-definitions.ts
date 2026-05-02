@@ -74,6 +74,9 @@ import {
   Share2,
   Lightbulb,
   Library,
+  Film,
+  Music2,
+  Mic,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -376,6 +379,9 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
       { name: 'Inbox', href: '/admin/inbox', icon: Inbox, description: 'Unified email and SMS inbox' },
+      { name: 'Inbox – All', href: '/admin/inbox/all', icon: Inbox, description: 'All channels in one stream' },
+      { name: 'Inbox – Email', href: '/admin/inbox/email', icon: Mail, description: 'Email threads only' },
+      { name: 'Inbox – SMS', href: '/admin/inbox/sms', icon: MessageSquare, description: 'SMS threads only' },
       { name: 'Notifications', href: '/admin/notifications', icon: Bell, description: 'Purchase alerts, lead notifications' },
       { name: 'Notification Settings', href: '/admin/notification-settings', icon: Settings, description: 'Configure notification templates & channels' },
     ]
@@ -424,6 +430,7 @@ export const adminNavigation: NavItem[] = [
       { name: 'Automation Rules', href: '/admin/automations', icon: Radio, description: 'Event-driven single-fire triggers' },
       { name: 'Messaging Hub', href: '/admin/emails', icon: Mail, description: 'Messaging overview and stats' },
       { name: 'Sent Email Log', href: '/admin/emails/sent', icon: FileText, description: 'Email delivery history' },
+      { name: 'SMS Dashboard', href: '/admin/texts', icon: MessageSquare, description: 'SMS hub and template shortcuts' },
       { name: 'Sent SMS Log', href: '/admin/texts/sent', icon: MessageSquare, description: 'SMS delivery history' },
     ]
   },
@@ -485,6 +492,26 @@ export const adminNavigation: NavItem[] = [
       { name: 'Audio Mixer', href: '/admin/audio-mixer', icon: Headphones, description: 'Manage audio tracks and mixing' },
       { name: 'Audio Generator', href: '/admin/audio-generator', icon: Wand2, description: 'Generate Solfeggio & Binaural tracks' },
       { name: 'Ambient Designer', href: '/admin/audio-designer', icon: Music, description: 'Create custom rain, ocean, waterfall sounds' },
+      { name: 'Music Catalog', href: '/admin/music', icon: Music2, description: 'Tracks, lyrics, life tags, streaming links' },
+      { name: 'Voice Audition Studio', href: '/admin/audio', icon: Mic, description: 'Compare TTS voices for production' },
+    ]
+  },
+
+  // ============================================================================
+  // CINEMATIC PRODUCTION
+  // ============================================================================
+  {
+    name: 'Cinematic',
+    href: '/admin/cinematic',
+    icon: Film,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Series, studio, schedule, and characters',
+    children: [
+      { name: 'Series', href: '/admin/cinematic', icon: Film, description: 'Manage cinematic series' },
+      { name: 'Studio', href: '/admin/cinematic/studio', icon: Video, description: 'Production studio' },
+      { name: 'Schedule', href: '/admin/cinematic/schedule', icon: Calendar, description: 'Release and shoot schedule' },
+      { name: 'Characters', href: '/admin/cinematic/characters', icon: Users, description: 'Character catalog' },
     ]
   },
 
@@ -545,6 +572,8 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'Design System', href: '/design-system', icon: Palette, description: 'Component library showcase' },
       { name: 'Sitemap', href: '/sitemap', icon: Layers, description: 'Complete site navigation map' },
+      { name: 'Email Test', href: '/admin/emails/test', icon: Mail, description: 'Send test emails from admin' },
+      { name: 'Recording Recovery', href: '/admin/recording-recovery', icon: HardDrive, description: 'Recover local IndexedDB recordings' },
     ]
   },
 ]
