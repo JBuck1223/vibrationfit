@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import Link from 'next/link'
 import { 
@@ -161,7 +162,8 @@ export default function ActivationProtocolPage() {
         .eq('intensive_id', intensiveId)
 
       // Redirect to Step 14: Unlock Platform
-      router.push('/intensive/intake/unlock')
+      invalidateIntensiveSnapshot()
+      router.push('/intensive/unlock')
       
     } catch (error) {
       console.error('Error completing:', error)
@@ -176,7 +178,7 @@ export default function ActivationProtocolPage() {
     if (activeVisionId) {
       return `/life-vision/${activeVisionId}${path}`
     }
-    return '/life-vision/active'
+    return '/life-vision'
   }
 
   if (loading) {

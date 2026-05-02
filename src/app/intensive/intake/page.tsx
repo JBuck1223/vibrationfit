@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 import { 
@@ -337,6 +338,7 @@ export default function IntensiveIntake() {
         console.error('Error updating checklist:', checklistError)
       }
 
+      invalidateIntensiveSnapshot()
       setShowStepCompleteModal(true)
 
     } catch (error) {

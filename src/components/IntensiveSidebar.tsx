@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { getActiveProfileClient } from '@/lib/supabase/profile-client'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { Button } from '@/lib/design-system/components'
 import { 
   LayoutDashboard,
@@ -212,6 +214,7 @@ export function IntensiveSidebar() {
 
             // Update local checklist object for step rendering
             checklist.vision_board_completed = true
+            invalidateIntensiveSnapshot()
           }
         }
       }
@@ -237,6 +240,7 @@ export function IntensiveSidebar() {
 
           // Update local checklist object for step rendering
           checklist.first_journal_entry = true
+          invalidateIntensiveSnapshot()
         }
       }
 
@@ -257,11 +261,11 @@ export function IntensiveSidebar() {
           id: 'settings', 
           stepNumber: 1,
           title: 'Settings', 
-          href: '/account/settings', 
+          href: '/intensive/account/settings', 
           icon: Settings,
           phase: 'Setup',
           completed: hasSettings,
-          locked: !checklist.started_at // Locked until intensive is started
+          locked: !checklist.started_at
         },
         { 
           id: 'intake', 
@@ -279,7 +283,7 @@ export function IntensiveSidebar() {
           id: 'profile', 
           stepNumber: 3,
           title: 'Profile', 
-          href: '/profile/new', 
+          href: '/intensive/profile/new', 
           icon: User,
           phase: 'Foundation',
           completed: !!checklist.profile_completed,
@@ -289,7 +293,7 @@ export function IntensiveSidebar() {
           id: 'assessment', 
           stepNumber: 4,
           title: 'Assessment', 
-          href: '/assessment/new',
+          href: '/intensive/assessment/new',
           icon: ClipboardCheck,
           phase: 'Foundation',
           completed: !!checklist.assessment_completed,
@@ -301,7 +305,7 @@ export function IntensiveSidebar() {
           id: 'vision', 
           stepNumber: 5,
           title: 'Life Vision', 
-          href: '/life-vision/new', 
+          href: '/intensive/life-vision/new', 
           icon: Sparkles,
           phase: 'Vision',
           completed: !!checklist.vision_built,
@@ -311,7 +315,7 @@ export function IntensiveSidebar() {
           id: 'refine', 
           stepNumber: 6,
           title: 'Refine Vision', 
-          href: '/life-vision/refine/new', 
+          href: '/intensive/life-vision/new', 
           icon: Wand2,
           phase: 'Vision',
           completed: !!checklist.vision_refined,
@@ -323,7 +327,7 @@ export function IntensiveSidebar() {
           id: 'generate_audio', 
           stepNumber: 7,
           title: 'Generate Audio', 
-          href: '/life-vision/audio/generate/new', 
+          href: '/intensive/audio/generate', 
           icon: Music,
           phase: 'Audio',
           completed: !!checklist.audio_generated,
@@ -333,7 +337,7 @@ export function IntensiveSidebar() {
           id: 'record_audio', 
           stepNumber: 8,
           title: 'Record Voice', 
-          href: '/life-vision/audio/record/new', 
+          href: '/intensive/audio/record', 
           icon: Mic,
           phase: 'Audio',
           completed: voiceRecordingDone,
@@ -344,7 +348,7 @@ export function IntensiveSidebar() {
           id: 'mix_audio', 
           stepNumber: 9,
           title: 'Audio Mix', 
-          href: '/life-vision/audio/mix/new', 
+          href: '/intensive/audio/mix', 
           icon: Sliders,
           phase: 'Audio',
           completed: !!checklist.audios_generated,
@@ -356,17 +360,17 @@ export function IntensiveSidebar() {
           id: 'vision_board', 
           stepNumber: 10,
           title: 'Vision Board', 
-          href: '/vision-board/resources', 
+          href: '/intensive/vision-board/about', 
           icon: ImageIcon,
           phase: 'Activation',
           completed: !!checklist.vision_board_completed,
-          locked: !checklist.audios_generated // Requires Audio Mix (Step 9) to be complete
+          locked: !checklist.audios_generated
         },
         { 
           id: 'journal', 
           stepNumber: 11,
           title: 'Journal', 
-          href: '/journal/resources', 
+          href: '/intensive/journal/about', 
           icon: BookOpen,
           phase: 'Activation',
           completed: !!checklist.first_journal_entry,
@@ -388,7 +392,7 @@ export function IntensiveSidebar() {
           id: 'activation', 
           stepNumber: 13,
           title: 'My Activation Plan', 
-          href: '/map?intensive=true', 
+          href: '/intensive/map', 
           icon: Rocket,
           phase: 'Completion',
           completed: !!checklist.activation_protocol_completed,
@@ -398,7 +402,7 @@ export function IntensiveSidebar() {
           id: 'unlock', 
           stepNumber: 14,
           title: 'Unlock Platform', 
-          href: '/intensive/intake/unlock', 
+          href: '/intensive/unlock', 
           icon: Unlock,
           phase: 'Completion',
           completed: !!checklist.unlock_completed,
@@ -412,11 +416,23 @@ export function IntensiveSidebar() {
     }
   }
 
-  const isActive = (href: string) => {
-    if (href === '/intensive/dashboard') {
-      return pathname === href
+  const isActive = (step: Step) => {
+    if (step.href === '/intensive/dashboard') {
+      return pathname === step.href
     }
-    return pathname.startsWith(href)
+    if (!pathname.startsWith(step.href)) return false
+
+    // When multiple steps share the same href (e.g. vision build + refine),
+    // only highlight the one that matches current progress:
+    // - If this step is incomplete but the previous one with the same href is also incomplete, highlight this one only if it's the first
+    // - If this step is complete, highlight only if the next step with the same href is also complete or doesn't exist
+    const stepsWithSameHref = steps.filter(s => s.href === step.href)
+    if (stepsWithSameHref.length <= 1) return true
+
+    // Highlight the first incomplete step, or the last completed one if all are done
+    const firstIncomplete = stepsWithSameHref.find(s => !s.completed)
+    if (firstIncomplete) return step.id === firstIncomplete.id
+    return step.id === stepsWithSameHref[stepsWithSameHref.length - 1].id
   }
 
   // Group steps by phase
@@ -443,12 +459,18 @@ export function IntensiveSidebar() {
         {/* User Info */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <img
+            <ProfilePictureClickable
               src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
               alt={profile?.first_name || 'Profile'}
-              className="w-8 h-8 rounded-full object-cover border-2 border-primary-500 flex-shrink-0"
-              loading="eager"
-            />
+              className="h-8 w-8 shrink-0 rounded-full"
+            >
+              <img
+                src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                alt=""
+                className="h-8 w-8 rounded-full border-2 border-primary-500 object-cover"
+                loading="eager"
+              />
+            </ProfilePictureClickable>
             {profile?.first_name ? (
               <span className="text-white font-medium truncate">
                 {profile.first_name}
@@ -611,7 +633,7 @@ export function IntensiveSidebar() {
                     className={`
                       w-full flex items-center gap-2 px-3 py-2 rounded-lg
                       transition-all duration-200 text-left group
-                      ${isActive(step.href)
+                      ${isActive(step)
                         ? 'bg-primary-500/10 border border-primary-500/50 text-white'
                         : step.locked
                           ? 'bg-neutral-800/30 border border-neutral-800 text-neutral-600 cursor-not-allowed pointer-events-none'
@@ -709,7 +731,7 @@ export function IntensiveSidebar() {
       {/* Mobile Sidebar */}
       <aside
         className={`
-          md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-[#1F1F1F] border-r-2 border-neutral-800 z-50
+          md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-800 border-r-2 border-neutral-800 z-50
           transform transition-transform duration-300
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
@@ -718,7 +740,7 @@ export function IntensiveSidebar() {
       </aside>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:block fixed top-0 left-0 bottom-0 w-[280px] bg-[#1F1F1F] border-r-2 border-neutral-800 z-30">
+      <aside className="hidden md:block fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-800 border-r-2 border-neutral-800 z-30">
         {sidebarContent}
       </aside>
     </>

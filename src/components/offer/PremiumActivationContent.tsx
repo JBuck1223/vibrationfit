@@ -934,7 +934,7 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                             </div>
                             <div className="flex-1 p-2 flex items-center justify-between">
                               <div>
-                                <Text size="xs" className="font-semibold text-neutral-400">Build Your Life Vision</Text>
+                                <Text size="xs" className="font-semibold text-neutral-400">Create Your Life Vision</Text>
                                 <Text size="xs" className="text-neutral-600">12-category vision with VIVA</Text>
                               </div>
                               <div className="flex items-center gap-1 text-neutral-500">

@@ -95,7 +95,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
     
     const buttonClasses = cn(
-      'inline-flex items-center justify-center',
+      'inline-flex items-center justify-center antialiased',
       'rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
       variants[variant],
       sizes[size],

@@ -2,8 +2,9 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Container, Stack, Card, PageHero } from '@/lib/design-system/components'
-import { AudioLines, ArrowRight, Mic, Sliders, Clock } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Container, Stack, Card } from '@/lib/design-system/components'
+import { AudioLines, ChevronRight, Mic, Sliders, Clock } from 'lucide-react'
 
 interface CreateTile {
   title: string
@@ -11,8 +12,8 @@ interface CreateTile {
   icon: React.ElementType
   iconColor: string
   iconBg: string
-  href: string
-  primary?: boolean
+  hoverBg: string
+  path: string
 }
 
 const CREATE_TILES: CreateTile[] = [
@@ -22,8 +23,8 @@ const CREATE_TILES: CreateTile[] = [
     icon: AudioLines,
     iconColor: 'text-[#39FF14]',
     iconBg: 'bg-[#39FF14]/15',
-    href: '/audio/generate',
-    primary: true,
+    hoverBg: 'hover:bg-[#39FF14]/[0.11]',
+    path: '/audio/generate',
   },
   {
     title: 'Record in Your Voice',
@@ -31,7 +32,8 @@ const CREATE_TILES: CreateTile[] = [
     icon: Mic,
     iconColor: 'text-cyan-400',
     iconBg: 'bg-cyan-500/15',
-    href: '/audio/record',
+    hoverBg: 'hover:bg-cyan-500/[0.11]',
+    path: '/audio/record',
   },
   {
     title: 'Mix Audio',
@@ -39,7 +41,8 @@ const CREATE_TILES: CreateTile[] = [
     icon: Sliders,
     iconColor: 'text-teal-400',
     iconBg: 'bg-teal-500/15',
-    href: '/audio/mix',
+    hoverBg: 'hover:bg-teal-500/[0.11]',
+    path: '/audio/mix',
   },
   {
     title: 'Generation Queue',
@@ -47,43 +50,48 @@ const CREATE_TILES: CreateTile[] = [
     icon: Clock,
     iconColor: 'text-purple-400',
     iconBg: 'bg-purple-500/15',
-    href: '/audio/queue',
+    hoverBg: 'hover:bg-purple-500/[0.11]',
+    path: '/audio/queue',
   },
 ]
 
 export default function CreatePage() {
-  return (
-    <Container size="xl" className="py-6">
-      <Stack gap="lg">
-        <PageHero
-          title="Create Audio"
-          subtitle="Choose a creation flow to get started."
-        />
+  const pathname = usePathname()
+  const pathPrefix = pathname.startsWith('/intensive/') ? '/intensive' : ''
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  return (
+    <Container size="xl" className="pt-2 pb-6 sm:pb-8">
+      <Stack gap="md">
+        <h1 className="sr-only">Create Audio</h1>
+
+        <div className="grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-3">
           {CREATE_TILES.map(tile => {
             const TileIcon = tile.icon
             return (
-              <Link key={tile.title} href={tile.href} className="block">
+              <Link
+                key={tile.title}
+                href={`${pathPrefix}${tile.path}`}
+                className="group block min-w-0 touch-manipulation"
+              >
                 <Card
-                  variant="elevated"
-                  hover
-                  className={`p-6 transition-all ${
-                    tile.primary
-                      ? 'border-[#39FF14]/30 bg-gradient-to-br from-[#39FF14]/[0.06] to-transparent'
-                      : ''
-                  }`}
+                  variant="glass"
+                  className={`flex h-full min-h-[5.5rem] items-center gap-3 p-3.5 shadow-none transition-[border-color,background-color,transform] duration-200 sm:min-h-0 sm:p-4 md:p-4 lg:p-4 hover:border-neutral-500 ${tile.hoverBg} active:scale-[0.99]`}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${tile.iconBg}`}>
-                      <TileIcon className={`w-6 h-6 ${tile.iconColor}`} />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-base font-semibold text-white mb-1">{tile.title}</h3>
-                      <p className="text-sm text-neutral-400 leading-relaxed">{tile.description}</p>
-                    </div>
-                    <ArrowRight className="w-5 h-5 text-neutral-600 flex-shrink-0 mt-1" />
+                  <div
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${tile.iconBg}`}
+                  >
+                    <TileIcon className={`h-5 w-5 ${tile.iconColor}`} aria-hidden />
                   </div>
+                  <div className="min-w-0 flex-1 py-0.5">
+                    <h3 className="text-sm font-semibold leading-snug text-white">{tile.title}</h3>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-neutral-500">
+                      {tile.description}
+                    </p>
+                  </div>
+                  <ChevronRight
+                    className="h-5 w-5 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400"
+                    aria-hidden
+                  />
                 </Card>
               </Link>
             )

@@ -7,5 +7,6 @@ export { Switcher } from './Switcher'
 export { Cover } from './Cover'
 export { Frame } from './Frame'
 export { Container } from './Container'
+export { FullBleed } from './FullBleed'
 export { Section } from './Section'
 

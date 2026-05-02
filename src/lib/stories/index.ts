@@ -1,5 +1,6 @@
 // Types
 export * from './types'
+export { isStoryEntityTypeKey, getStoryEntityArtworkIcon } from './story-entity-artwork-icon'
 
 // Hooks
 export { useStories, useStory } from './hooks'

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { normalizeProfileVersionFromRpc } from '@/lib/profile/profile-version-from-rpc'
 
 // ============================================================================
 // Profile Version Comparison API
@@ -276,7 +277,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       version1: {
         id: version1Result.data.id,
-        version_number: v1Number || version1Result.data.version_number || 1,
+        version_number: normalizeProfileVersionFromRpc(v1Number),
         is_draft: version1Result.data.is_draft,
         is_active: version1Result.data.is_active,
         created_at: version1Result.data.created_at,
@@ -284,7 +285,7 @@ export async function GET(request: NextRequest) {
       },
       version2: {
         id: version2Result.data.id,
-        version_number: v2Number || version2Result.data.version_number || 1,
+        version_number: normalizeProfileVersionFromRpc(v2Number),
         is_draft: version2Result.data.is_draft,
         is_active: version2Result.data.is_active,
         created_at: version2Result.data.created_at,

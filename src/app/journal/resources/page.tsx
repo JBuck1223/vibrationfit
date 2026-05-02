@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
-  Container,
   Card,
   Button,
+  Container,
   Stack,
   Inline,
   Text,
@@ -33,7 +33,8 @@ export default function JournalResourcesPage() {
   const checkIntensiveMode = async () => {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const { data: checklist } = await supabase

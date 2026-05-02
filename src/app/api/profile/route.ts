@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { calculateProfileCompletion } from '@/lib/utils/profile-completion'
 import { toTitleCase } from '@/lib/utils'
+import { normalizeProfileVersionFromRpc } from '@/lib/profile/profile-version-from-rpc'
 
 // Account-level fields that should be stored in user_accounts table (or computed from it)
 // Note: full_name is excluded because it's a generated column in user_accounts (computed from first_name + last_name)
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
         const { data: calculatedVersionNumber } = await supabase
           .rpc('get_profile_version_number', { p_profile_id: version.id })
         
-        const versionNumber = calculatedVersionNumber || version.version_number || 1
+        const versionNumber = normalizeProfileVersionFromRpc(calculatedVersionNumber)
 
         // Always recalculate completion to ensure accuracy
         const calculatedCompletion = calculateProfileCompletion(version)
@@ -262,7 +263,7 @@ export async function GET(request: NextRequest) {
         console.log('🔍 PROFILE API: Fetching versions for user:', user.id)
         const { data: allVersions, error: versionsError } = await supabase
           .from('user_profiles')
-          .select('id, is_draft, is_active, version_notes, created_at, updated_at')
+          .select('id, is_draft, is_active, parent_id, version_notes, created_at, updated_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
         
@@ -295,7 +296,7 @@ export async function GET(request: NextRequest) {
               // Re-fetch versions after setting active
               const { data: refreshedVersions } = await supabase
                 .from('user_profiles')
-                .select('id, is_draft, is_active, version_notes, created_at, updated_at')
+                .select('id, is_draft, is_active, parent_id, version_notes, created_at, updated_at')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
               if (refreshedVersions) {
@@ -324,7 +325,7 @@ export async function GET(request: NextRequest) {
             
             const versionWithNumber = {
               ...version,
-              version_number: calculatedVersion || version.version_number || 1
+              version_number: normalizeProfileVersionFromRpc(calculatedVersion)
               // Note: completion_percentage is calculated on-the-fly but not included in version cards
             }
             console.log(`📊 PROFILE API: Version ${version.id} - calculated completion: ${accurateCompletion}%`)
@@ -511,7 +512,7 @@ export async function POST(request: NextRequest) {
             // Calculate version number based on chronological order
             const { data: calculatedVersionNumber } = await supabase
               .rpc('get_profile_version_number', { p_profile_id: updatedDraft.id })
-            const versionNumber = calculatedVersionNumber || updatedDraft.version_number || 1
+            const versionNumber = normalizeProfileVersionFromRpc(calculatedVersionNumber)
 
             return NextResponse.json({
               success: true,
@@ -666,7 +667,7 @@ export async function POST(request: NextRequest) {
           // Calculate version number based on chronological order
           const { data: calculatedVersionNumber } = await supabase
             .rpc('get_profile_version_number', { p_profile_id: committedVersion.id })
-          const versionNumber = calculatedVersionNumber || committedVersion.version_number || 1
+          const versionNumber = normalizeProfileVersionFromRpc(calculatedVersionNumber)
 
           // Calculate completion (for response, not stored)
           const recalculatedCompletion = calculateProfileCompletion(committedVersion)
@@ -690,7 +691,7 @@ export async function POST(request: NextRequest) {
         // Calculate version number based on chronological order
         const { data: calculatedVersionNumber } = await supabase
           .rpc('get_profile_version_number', { p_profile_id: updatedVersion.id })
-        const versionNumber = calculatedVersionNumber || updatedVersion.version_number || 1
+        const versionNumber = normalizeProfileVersionFromRpc(calculatedVersionNumber)
 
         // Calculate completion (for response, not stored)
         const recalculatedCompletion = calculateProfileCompletion(updatedVersion)

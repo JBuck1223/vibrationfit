@@ -213,7 +213,8 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
 
   async function loadActiveVision() {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) {
       setVisionLoading(false)
       return
@@ -365,7 +366,8 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
   async function loadStoriesWithAudio() {
     setStoriesWithAudioLoading(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) { setStoriesWithAudioLoading(false); return }
 
     // Get stories with direct audio links
@@ -427,7 +429,8 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
   async function loadAllStories() {
     setAllStoriesLoading(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) { setAllStoriesLoading(false); return }
     const { data } = await supabase
       .from('stories')
@@ -443,7 +446,8 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
   async function loadAllBatches() {
     setAllBatchesLoading(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
     if (!user) { setAllBatchesLoading(false); return }
     const { data: batches } = await supabase
       .from('audio_generation_batches')

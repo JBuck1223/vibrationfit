@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { PeriodType } from '@/lib/abundance/period-utils'
+import { loadGoalSummaryPayload } from '@/lib/abundance/goal-summary-data'
 
 const PERIOD_TYPES = ['week', 'month', 'quarter', 'year', 'custom'] as const
+
+/** Avoid cached responses — summary depends on auth + live DB */
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
@@ -17,6 +21,31 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
+
+    /** Goal vs actual summary — same payload as /goals/summary (some setups 404 on nested segment). */
+    if (searchParams.get('summary') === '1') {
+      const periodTypeRaw = searchParams.get('period_type')
+      const periodKey = searchParams.get('period_key')
+      if (!periodTypeRaw || !periodKey) {
+        return NextResponse.json(
+          { error: 'period_type and period_key are required.' },
+          { status: 400 }
+        )
+      }
+      if (!PERIOD_TYPES.includes(periodTypeRaw as (typeof PERIOD_TYPES)[number])) {
+        return NextResponse.json(
+          { error: `Invalid period_type: ${periodTypeRaw}` },
+          { status: 400 }
+        )
+      }
+      const periodType = periodTypeRaw as PeriodType
+      const result = await loadGoalSummaryPayload(supabase, user.id, periodType, periodKey)
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 })
+      }
+      return NextResponse.json(result.data)
+    }
+
     const periodType = searchParams.get('period_type') as PeriodType | null
     const periodKey = searchParams.get('period_key')
 

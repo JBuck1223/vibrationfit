@@ -94,7 +94,7 @@ export default function InboxList({ channel }: InboxListProps) {
   const channelLabel = channel === 'all' ? '' : channel === 'email' ? 'Email ' : 'SMS '
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-[#0A0A0A]">
+    <div className="flex-1 flex flex-col min-w-0 bg-neutral-850">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[#222]">
         <FilterLabelIcon className="w-4 h-4 text-neutral-400 shrink-0" />

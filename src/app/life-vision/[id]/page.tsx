@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, VolumeX, Gem, Check, Eye, FileText, ArrowUp, CalendarDays, Headphones, Moon, Zap, Music, Mic } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, Gem, Eye, FileText, ArrowUp, Headphones, Moon, Zap, Music, Mic } from 'lucide-react'
 import { commitDraft, getRefinedCategories } from '@/lib/life-vision/draft-helpers'
 import { 
   Button, 
@@ -20,22 +20,20 @@ import {
   Container,
   Stack,
   Inline,
-  StatusBadge,
-  VersionBadge,
   Heading,
   Text,
-  PageTitles,
-  CategoryGrid,
-  PageHero,
-  WarningConfirmationDialog
+  WarningConfirmationDialog,
+  FullBleed
 } from '@/lib/design-system/components'
 import { VersionCard } from '@/app/profile/components/VersionCard'
 import { VisionVersionCard } from '../components/VisionVersionCard'
 import { VisionCategoryCard } from '../components/VisionCategoryCard'
-import { CategoryCard } from '@/lib/design-system'
+import { CategoryGrid } from '@/lib/design-system'
 import { VISION_CATEGORIES, assessmentToVisionKey } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
 import { generateVisionPDF } from '@/lib/pdf'
+import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
+import { VersionActionToolbar } from '@/components/VersionActionToolbar'
 
 interface VisionData {
   id: string
@@ -93,7 +91,7 @@ const VISION_SECTIONS = VISION_CATEGORIES
 
 export default function VisionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const supabase = createClient()
+  const { setAudioSets: setContextAudioSets, selectedAudioSetId, setSelectedAudioSetId } = useLifeVisionStudio()
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -113,19 +111,24 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [editingContent, setEditingContent] = useState('')
   const [audioTracks, setAudioTracks] = useState<Record<string, { id: string; url: string; title: string; setName?: string; voiceName?: string }>>({})
   const [availableAudioSets, setAvailableAudioSets] = useState<AudioSetOption[]>([])
-  const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null) // null = "best per section"
-  const [isAudioDropdownOpen, setIsAudioDropdownOpen] = useState(false)
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
-  const [isCommitting, setIsCommitting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [versionToolbarLoading, setVersionToolbarLoading] = useState(false)
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryKey) 
+    setSelectedCategories(prev => {
+      const isAllSelected = prev.length === VISION_SECTIONS.length
+
+      // If all are selected, clicking one category isolates that category.
+      if (isAllSelected) {
+        return [categoryKey]
+      }
+
+      return prev.includes(categoryKey)
         ? prev.filter(key => key !== categoryKey)
         : [...prev, categoryKey]
-    )
+    })
   }
 
   const handleSelectAll = () => {
@@ -152,6 +155,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
     setSaving(true)
     try {
+      const supabase = createClient()
       const { error } = await supabase
         .from('vision_versions')
         .update({ 
@@ -222,9 +226,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }
 
   // Load available audio sets for the dropdown
-  const loadAvailableAudioSets = async (visionId: string) => {
+  const loadAvailableAudioSets = async (visionId: string, supabase?: ReturnType<typeof createClient>) => {
     try {
-      const { data: sets } = await supabase
+      const sb = supabase ?? createClient()
+      const { data: sets } = await sb
         .from('audio_sets')
         .select(`*, audio_tracks(count)`)
         .eq('vision_id', visionId)
@@ -232,12 +237,13 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
       if (!sets || sets.length === 0) {
         setAvailableAudioSets([])
+        setContextAudioSets([])
         return
       }
 
       // Check which sets have completed tracks
       const setsWithCounts = await Promise.all(sets.map(async (set: any) => {
-        const { count } = await supabase
+        const { count } = await sb
           .from('audio_tracks')
           .select('*', { count: 'exact', head: true })
           .eq('audio_set_id', set.id)
@@ -268,20 +274,23 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         } as AudioSetOption
       }))
 
-      setAvailableAudioSets(setsWithCounts.filter(s => s.track_count > 0))
+      const filtered = setsWithCounts.filter(s => s.track_count > 0)
+      setAvailableAudioSets(filtered)
+      setContextAudioSets(filtered)
     } catch (error) {
       console.error('Error loading audio sets:', error)
     }
   }
 
   // Load audio tracks - either from a specific set or best-per-section across all standard sets
-  const loadAudioTracks = async (visionId: string, audioSetId?: string | null) => {
+  const loadAudioTracks = async (visionId: string, audioSetId?: string | null, supabase?: ReturnType<typeof createClient>) => {
     try {
+      const sb = supabase ?? createClient()
       let tracks: any[] | null = null
 
       if (audioSetId) {
         // Load from a specific audio set - query the set's variant directly
-        const { data: setData } = await supabase
+        const { data: setData } = await sb
           .from('audio_sets')
           .select('variant, name, voice_id')
           .eq('id', audioSetId)
@@ -290,7 +299,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         const setName = setData?.name || 'Audio Set'
         const voiceName = setData?.variant === 'personal' ? 'Personal Recording' : (VOICE_DISPLAY_NAMES[setData?.voice_id || ''] || setData?.voice_id || '')
 
-        const { data } = await supabase
+        const { data } = await sb
           .from('audio_tracks')
           .select('id, section_key, audio_url, mixed_audio_url, mix_status, created_at')
           .eq('audio_set_id', audioSetId)
@@ -310,7 +319,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         }
       } else {
         // Best-per-section across all standard sets
-        const { data: audioSets } = await supabase
+        const { data: audioSets } = await sb
           .from('audio_sets')
           .select('id, name, voice_id')
           .eq('vision_id', visionId)
@@ -324,7 +333,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
         const setLookup = new Map(audioSets.map(s => [s.id, s]))
 
-        const { data } = await supabase
+        const { data } = await sb
           .from('audio_tracks')
           .select('id, section_key, audio_url, audio_set_id, created_at')
           .in('audio_set_id', audioSets.map(s => s.id))
@@ -373,61 +382,16 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     }
   }
 
-  const handleAudioSetChange = async (audioSetId: string | null) => {
-    setSelectedAudioSetId(audioSetId)
-    setIsAudioDropdownOpen(false)
-    if (vision) {
-      await loadAudioTracks(vision.id, audioSetId)
-    }
-  }
-
-  const getSetIcon = (set: AudioSetOption) => {
-    if (set.variant === 'personal') return <Mic className="w-5 h-5" />
-
-    let voiceVolume = 100
-    let bgVolume = 0
-    if (set.mixRatio) {
-      const m = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
-      if (m) { voiceVolume = parseInt(m[1]); bgVolume = parseInt(m[2]) }
-    }
-
-    if (bgVolume === 0 || set.variant === 'standard') return <Headphones className="w-5 h-5" />
-    if (voiceVolume <= 30) return <Moon className="w-5 h-5" />
-    if (voiceVolume >= 40 && voiceVolume <= 60) return <Sparkles className="w-5 h-5" />
-    return <Zap className="w-5 h-5" />
-  }
-
-  const getSetColor = (set: AudioSetOption) => {
-    if (set.variant === 'personal') return 'bg-secondary-500/20 text-secondary-500'
-
-    let voiceVolume = 100
-    let bgVolume = 0
-    if (set.mixRatio) {
-      const m = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/)
-      if (m) { voiceVolume = parseInt(m[1]); bgVolume = parseInt(m[2]) }
-    }
-
-    if (bgVolume === 0 || set.variant === 'standard') return 'bg-primary-500/20 text-primary-500'
-    if (voiceVolume <= 30) return 'bg-blue-500/20 text-blue-400'
-    if (voiceVolume >= 40 && voiceVolume <= 60) return 'bg-purple-500/20 text-purple-400'
-    return 'bg-yellow-500/20 text-yellow-400'
-  }
-
   // Load vision data
   useEffect(() => {
     let isMounted = true
-    let hasLoaded = false
     
     const loadData = async () => {
-      // Prevent duplicate calls
-      if (hasLoaded) {
-        console.log('[Vision Detail] Skipping duplicate load')
-        return
-      }
-      hasLoaded = true
+      const supabase = createClient()
       
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) {
           console.error('No authenticated user found')
           router.push('/auth/login')
@@ -455,11 +419,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           throw new Error('Vision not found')
         }
 
-        // Redirect drafts to the draft route
-        if (vision.is_draft === true) {
-          router.push(`/life-vision/${vision.id}/draft`)
-          return
-        }
+        // Drafts are now displayed inline with commit/delete toolbar
 
         const actualCompletion = calculateCompletion(vision)
         const completed = getCompletedSections(vision)
@@ -504,8 +464,8 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
         
         // Load audio sets and tracks for this vision
-        await loadAvailableAudioSets(vision.id)
-        await loadAudioTracks(vision.id)
+        await loadAvailableAudioSets(vision.id, supabase)
+        await loadAudioTracks(vision.id, undefined, supabase)
       } catch (error) {
         console.error('Error loading vision:', error)
         console.error('Error details:', {
@@ -541,12 +501,27 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     return () => {
       isMounted = false
     }
-  }, [params, router, supabase, calculateCompletion, getCompletedSections])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Reload audio tracks when the AreaBar audio set selector changes
+  useEffect(() => {
+    if (!vision) return
+    const effectiveId = selectedAudioSetId === 'none' ? undefined : (selectedAudioSetId ?? undefined)
+    if (selectedAudioSetId === 'none') {
+      setAudioTracks({})
+    } else {
+      loadAudioTracks(vision.id, effectiveId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAudioSetId, vision?.id])
 
   // Fetch specific version (kept for backwards compatibility, but versions now navigate directly)
   const fetchVisionVersion = async (versionId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
 
       const { data: version, error } = await supabase
@@ -662,10 +637,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
     setSaving(true)
     try {
+      const supabase = createClient()
       const completionPercentage = calculateCompletion(vision)
       
-      // Get user ID
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         alert('Please log in to save a version')
         return
@@ -745,39 +721,34 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     } finally {
       setSaving(false)
     }
-  }, [vision, supabase, calculateCompletion])
+  }, [vision, calculateCompletion])
 
   // Commit draft vision as active version
-  const commitDraftAsActive = async () => {
-    if (!vision) {
-      alert('No draft vision to commit')
-      return
-    }
-
-    const refinedCount = getRefinedCategories(vision).length
-    if (refinedCount === 0) {
-      alert('No refined categories to commit')
-      return
-    }
-
-    if (!confirm(`Are you sure you want to commit this draft vision with ${refinedCount} refined ${refinedCount === 1 ? 'category' : 'categories'} as your active vision? This will create a new version.`)) {
-      return
-    }
-
-    setIsCommitting(true)
+  const handleToolbarCommitDraft = async () => {
+    if (!vision) return
+    setVersionToolbarLoading(true)
     try {
-      // Use the commitDraft helper
       const newActive = await commitDraft(vision.id)
-      
-      console.log('Draft committed successfully:', newActive.id)
-      
-      // Redirect to the new active vision
       router.push(`/life-vision/${newActive.id}`)
     } catch (error) {
       console.error('Error committing draft:', error)
-      alert(`Failed to commit draft: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setError(error instanceof Error ? error.message : 'Failed to commit draft')
     } finally {
-      setIsCommitting(false)
+      setVersionToolbarLoading(false)
+    }
+  }
+
+  const handleToolbarDeleteDraft = async () => {
+    if (!vision) return
+    setVersionToolbarLoading(true)
+    try {
+      await fetch(`/api/vision/draft?draftId=${vision.id}`, { method: 'DELETE' })
+      router.push('/life-vision')
+    } catch (error) {
+      console.error('Error deleting draft:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete draft')
+    } finally {
+      setVersionToolbarLoading(false)
     }
   }
 
@@ -871,146 +842,23 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const displayStatus = getDisplayStatus()
 
   return (
-    <Container size="xl">
-      <Stack gap="lg">
-        {/* Header */}
-        <PageHero
-          eyebrow={vision.household_id ? "THE LIFE WE CHOOSE" : "THE LIFE I CHOOSE"}
-          title={displayStatus === 'draft' ? 'Refine Life Vision' : (vision.household_id ? 'The Life We Choose' : 'The Life I Choose')}
-          subtitle={displayStatus === 'draft' ? 'Refined categories will show in yellow. Once you are happy with your refinement(s), click "Commit as Active Vision".' : undefined}
-        >
-          {/* Version Info Badges */}
-          <div className="text-center">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-              <VersionBadge 
-                versionNumber={vision.version_number} 
-                status={displayStatus}
-                isHouseholdVision={!!vision.household_id}
+    <div className="pb-6">
+      <Stack gap="md">
+        {displayStatus === 'draft' && vision && (
+          <Container size="xl">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <VersionActionToolbar
+                versionId={vision.id}
+                versionNumber={vision.version_number ?? 1}
+                isActive={false}
+                isDraft={true}
+                onCommitAsActive={handleToolbarCommitDraft}
+                onDelete={handleToolbarDeleteDraft}
+                isLoading={versionToolbarLoading}
               />
-              <StatusBadge status={displayStatus} subtle={displayStatus !== 'active'} className="uppercase tracking-[0.25em]" />
-              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                <CalendarDays className="w-4 h-4 text-neutral-500" />
-                <span className="font-medium">Created:</span>
-                <span>{new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              </div>
             </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-                  {displayStatus === 'draft' ? (
-                    <>
-                      <Button
-                        onClick={() => router.push('/life-vision/active')}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                      >
-                        <Icon icon={Eye} size="sm" className="shrink-0" />
-                        <span>View Active</span>
-                      </Button>
-                      <Button
-                        onClick={() => router.push(`/life-vision/${vision.id}/refine`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm bg-[#FFFF00]/20 text-[#FFFF00] hover:bg-[#FFFF00]/30"
-                      >
-                        <Icon icon={Gem} size="sm" className="shrink-0" />
-                        <span>Continue Refining</span>
-                      </Button>
-                      <Button
-                        onClick={commitDraftAsActive}
-                        disabled={isCommitting || getRefinedCategories(vision).length === 0}
-                        variant="primary"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                      >
-                        {isCommitting ? (
-                          <>
-                            <Spinner variant="primary" size="sm" />
-                            <span>Committing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Icon icon={CheckCircle} size="sm" className="shrink-0" />
-                            <span>Commit as Active Vision</span>
-                          </>
-                        )}
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={() => router.push(`/life-vision/${vision.id}/audio`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                      >
-                        <Icon icon={VolumeX} size="sm" className="shrink-0" />
-                        <span>Audio Tracks</span>
-                      </Button>
-                      <Button
-                        onClick={() => router.push('/story/new')}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                      >
-                        <Icon icon={FileText} size="sm" className="shrink-0" />
-                        <span>Stories</span>
-                      </Button>
-                      <Button
-                        onClick={() => router.push(`/life-vision/${vision.id}/print`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                      >
-                        <Icon icon={Download} size="sm" className="shrink-0" />
-                        <span>Download PDF</span>
-                      </Button>
-                      {/* Only show Refine button if not a complete, inactive, non-draft vision */}
-                      {!(displayStatus === 'complete' && vision.is_active === false && vision.is_draft === false) && (
-                        <Button
-                          onClick={async () => {
-                            // Check if a draft already exists for this vision
-                            const { data: existingDraft } = await supabase
-                              .from('vision_versions')
-                              .select('id')
-                              .eq('parent_id', vision.id)
-                              .eq('is_draft', true)
-                              .eq('is_active', false)
-                              .maybeSingle()
-                            
-                            if (existingDraft) {
-                              // Open existing draft
-                              router.push(`/life-vision/${existingDraft.id}/refine`)
-                            } else {
-                              // Create new draft
-                              router.push(`/life-vision/${vision.id}/refine`)
-                            }
-                          }}
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                        >
-                          <Icon icon={Gem} size="sm" className="shrink-0" />
-                          <span>Refine</span>
-                        </Button>
-                      )}
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                      >
-                        <Link href="/life-vision">
-                          <Icon icon={Eye} size="sm" className="shrink-0" />
-                          <span>All Visions</span>
-                        </Link>
-                      </Button>
-                    </>
-                  )}
-          </div>
-        </PageHero>
+          </Container>
+        )}
 
         {/* Versions Dropdown */}
         {showVersions && (
@@ -1105,156 +953,19 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             </Card>
           )}
 
-        {/* Compact Category Selection */}
-        <Card className="p-4">
-                <div className="text-center mb-4">
-                    <h3 className="text-lg font-semibold text-white">Select Life Areas</h3>
-                    <p className="text-sm text-neutral-400">
-                      Showing {selectedCategories.length} of {VISION_SECTIONS.length}
-                    </p>
-                </div>
+        {/* Category Filter Strip */}
+        <FullBleed>
+          <CategoryGrid
+            categories={VISION_SECTIONS}
+            selectedCategories={selectedCategories}
+            onCategoryClick={handleCategoryToggle}
+            showSelectAll
+            onSelectAll={handleSelectAll}
+            lifeVisionCategoryStrip
+            pillLabel="Life Areas"
+          />
+        </FullBleed>
 
-                {/* Category Grid */}
-                <CategoryGrid
-                  categories={VISION_SECTIONS}
-                  selectedCategories={selectedCategories}
-                  onCategoryClick={handleCategoryToggle}
-                  layout="14-column"
-                  mode="selection"
-                  showSelectAll
-                  onSelectAll={handleSelectAll}
-                  variant="outlined"
-                  withCard={false}
-                />
-        </Card>
-
-        {/* Audio Set Selector */}
-        {availableAudioSets.length > 0 && (
-          <Card className="p-4">
-            <div className="text-center mb-3">
-              <h3 className="text-lg font-semibold text-white">Attached Audio</h3>
-              <p className="text-sm text-neutral-400">{availableAudioSets.length} {availableAudioSets.length === 1 ? 'set' : 'sets'} available</p>
-            </div>
-
-            <div className="relative max-w-xl mx-auto">
-              <button
-                type="button"
-                onClick={() => setIsAudioDropdownOpen(!isAudioDropdownOpen)}
-                className="w-full px-4 py-2.5 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {selectedAudioSetId === null ? (
-                    <>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
-                        <Music className="w-4 h-4" />
-                      </div>
-                      <div className="text-left flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">Newest Per Section</div>
-                        <div className="text-xs text-neutral-500">Most recent track for each category</div>
-                      </div>
-                    </>
-                  ) : (
-                    (() => {
-                      const set = availableAudioSets.find(s => s.id === selectedAudioSetId)
-                      if (!set) return <span className="text-neutral-400">Select audio set...</span>
-                      return (
-                        <>
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getSetColor(set)}`}>
-                            {getSetIcon(set)}
-                          </div>
-                          <div className="text-left flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{set.name}</div>
-                            <div className="text-xs text-neutral-500">{set.track_count} tracks</div>
-                          </div>
-                        </>
-                      )
-                    })()
-                  )}
-                </div>
-                <svg className={`w-4 h-4 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${isAudioDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {isAudioDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsAudioDropdownOpen(false)} />
-                  <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[50vh] overflow-y-auto">
-                    {/* Best Per Section option */}
-                    <div
-                      onClick={() => handleAudioSetChange(null)}
-                      className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] ${selectedAudioSetId === null ? 'bg-primary-500/10' : ''}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-500/20 text-primary-500">
-                          <Music className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-white">Newest Per Section</div>
-                          <div className="text-xs text-neutral-500">Most recent track for each category across all voice sets</div>
-                        </div>
-                        {selectedAudioSetId === null && (
-                          <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Individual audio sets */}
-                    {availableAudioSets.map((set) => (
-                      <div
-                        key={set.id}
-                        onClick={() => handleAudioSetChange(set.id)}
-                        className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] last:border-b-0 ${selectedAudioSetId === set.id ? 'bg-primary-500/10' : ''}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getSetColor(set)}`}>
-                            {getSetIcon(set)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-white truncate">{set.name}</div>
-                            <div className="text-xs text-neutral-500 space-x-2">
-                              <span>{set.track_count} tracks</span>
-                              <span>·</span>
-                              <span>{set.variant === 'personal' ? 'Personal Recording' : VOICE_DISPLAY_NAMES[set.voice_id] || set.voice_id}</span>
-                              {set.backgroundTrack && (
-                                <>
-                                  <span>·</span>
-                                  <span>{set.backgroundTrack}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          {selectedAudioSetId === set.id && (
-                            <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* No audio link */}
-                    <div
-                      onClick={() => { setAudioTracks({}); setSelectedAudioSetId('none'); setIsAudioDropdownOpen(false) }}
-                      className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors ${selectedAudioSetId === 'none' ? 'bg-primary-500/10' : ''}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-neutral-700/50 text-neutral-500">
-                          <VolumeX className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-neutral-400">No Audio</div>
-                          <div className="text-xs text-neutral-600">Hide audio players from categories</div>
-                        </div>
-                        {selectedAudioSetId === 'none' && (
-                          <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </Card>
-        )}
 
         {/* Vision Cards */}
         {selectedCategories.length > 0 ? (
@@ -1281,19 +992,16 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                   onEditCategory={handleEditCategory}
                   vision={vision}
                   audioTrack={audioTracks[categoryKey]}
-                  editable={!isViewingVersion}
+                  editable={false}
                   isRefined={isRefined}
                 />
               )
             })}
           </>
         ) : (
-          <Card className="p-8 text-center">
-            <p className="text-neutral-400 mb-4">Select categories above to view your life vision</p>
-            <Button onClick={handleSelectAll} variant="primary">
-              Select All Categories
-            </Button>
-          </Card>
+          <div className="text-center py-8 text-neutral-500 text-sm">
+            Tap a category above to view it.
+          </div>
         )}
 
         {/* Navigation */}
@@ -1334,6 +1042,6 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           isLoading={!!deletingVersion}
         />
       </Stack>
-    </Container>
+    </div>
   )
 }

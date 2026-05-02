@@ -1,8 +1,8 @@
 'use client'
 
-import { ListMusic, Music2, Layers } from 'lucide-react'
+import { ListMusic, Music2 } from 'lucide-react'
 
-export type OutputFormat = 'individual' | 'combined' | 'both'
+export type OutputFormat = 'individual' | 'combined'
 
 interface FormatSelectorProps {
   value: OutputFormat
@@ -23,12 +23,6 @@ const FORMAT_OPTIONS = [
     label: 'Combined Full Track',
     description: 'One continuous track with all sections',
     icon: Music2
-  },
-  {
-    value: 'both' as const,
-    label: 'Both',
-    description: 'Individual tracks + full combined track',
-    icon: Layers
   }
 ]
 
@@ -40,7 +34,7 @@ export function FormatSelector({
 }: FormatSelectorProps) {
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {FORMAT_OPTIONS.map(option => {
           const isSelected = value === option.value
           const Icon = option.icon

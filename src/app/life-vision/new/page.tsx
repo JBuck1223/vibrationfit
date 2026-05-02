@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   Container,
   Card,
@@ -15,8 +15,8 @@ import {
   CategoryGrid,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, RotateCcw, CheckCircle } from 'lucide-react'
-import { VISION_CATEGORIES, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, CheckCircle } from 'lucide-react'
+import { VISION_CATEGORIES, ORDERED_VISION_CATEGORIES, LIFE_CATEGORY_KEYS, META_CATEGORY_KEYS, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
 const VISION_INTRO_VIDEO =
@@ -34,6 +34,9 @@ interface CategoryProgress {
 
 export default function VIVALifeVisionLandingPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const isIntensive = pathname.startsWith('/intensive/')
+  const pathPrefix = isIntensive ? '/intensive' : ''
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<CategoryProgress>({})
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
@@ -43,13 +46,10 @@ export default function VIVALifeVisionLandingPage() {
   const [visionStatus, setVisionStatus] = useState<'none' | 'in_progress' | 'completed'>('none')
   // Track completed categories for the CategoryGrid
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
-  const [hasExistingVision, setHasExistingVision] = useState(false)
-  const [isStartingFresh, setIsStartingFresh] = useState(false)
-  const [showStartFreshConfirm, setShowStartFreshConfirm] = useState(false)
   
-  // Categories without forward and conclusion for the grid
-  const categoriesWithout = VISION_CATEGORIES.filter(
-    c => c.key !== 'forward' && c.key !== 'conclusion'
+  // 12 life categories only (Forward/Conclusion handled at assembly)
+  const allCategories = ORDERED_VISION_CATEGORIES.filter(
+    c => !(META_CATEGORY_KEYS as readonly string[]).includes(c.key)
   )
 
   useEffect(() => {
@@ -59,7 +59,8 @@ export default function VIVALifeVisionLandingPage() {
   async function loadProgress() {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       
       if (!user) {
         setLoading(false)
@@ -86,7 +87,7 @@ export default function VIVALifeVisionLandingPage() {
       // Get all category states
       const { data: categoryStates } = await supabase
         .from('vision_new_category_state')
-        .select('category, clarity_keys, get_me_started_text')
+        .select('category, clarity_keys, get_me_started_text, category_vision_text')
         .eq('user_id', user.id)
 
       // Also get user profile to check for profile state as fallback
@@ -132,10 +133,21 @@ export default function VIVALifeVisionLandingPage() {
       setProgress(progressMap)
       
       // Set completed category keys for the CategoryGrid
-      // Match category page logic: completed = has get_me_started_text (hasImagination)
-      const completed = Object.entries(progressMap)
-        .filter(([_, prog]) => prog.hasImagination)
-        .map(([key]) => key)
+      // Life categories: completed when category_vision_text exists
+      // Meta categories (forward/conclusion): completed when prompts exist
+      const completed: string[] = []
+      categoryStates?.forEach(state => {
+        const isMeta = (META_CATEGORY_KEYS as readonly string[]).includes(state.category)
+        if (isMeta) {
+          if (state.get_me_started_text && state.get_me_started_text.trim().length > 0) {
+            completed.push(state.category)
+          }
+        } else {
+          if (state.category_vision_text && state.category_vision_text.trim().length > 50) {
+            completed.push(state.category)
+          }
+        }
+      })
       setCompletedCategoryKeys(completed)
       
       // Check if a completed vision exists in vision_versions
@@ -146,8 +158,6 @@ export default function VIVALifeVisionLandingPage() {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-
-      setHasExistingVision(!!existingVision)
 
       // Determine vision status based on actual vision work
       // Only count vision_new_category_state entries (not profile state fallback)
@@ -169,70 +179,18 @@ export default function VIVALifeVisionLandingPage() {
     }
   }
 
-  const allCategoriesCompleted = completedCategoryKeys.length === 12
+  const allCategoriesCompleted = LIFE_CATEGORY_KEYS.every(key => completedCategoryKeys.includes(key))
 
-  const handleStartFresh = async () => {
-    setIsStartingFresh(true)
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Clear all vision_new_category_state rows for this user
-      await supabase
-        .from('vision_new_category_state')
-        .delete()
-        .eq('user_id', user.id)
-
-      // Cancel any active vision_generation_batches
-      await supabase
-        .from('vision_generation_batches')
-        .update({ 
-          status: 'cancelled', 
-          error_message: 'User started fresh',
-          completed_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'processing', 'retrying'])
-
-      // Clear all localStorage drafts
-      const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
-      categories.forEach(cat => {
-        try {
-          window.localStorage.removeItem(`life-vision-new-draft-${cat.key}`)
-        } catch (_) { /* ignore */ }
-      })
-
-      // Reset local state
-      setProgress({})
-      setCompletedCategoryKeys([])
-      setVisionStatus('none')
-      setHasExistingVision(false)
-      setShowStartFreshConfirm(false)
-
-      // Navigate to first category
-      router.push('/life-vision/new/category/fun')
-    } catch (err) {
-      console.error('Error starting fresh:', err)
-    } finally {
-      setIsStartingFresh(false)
-    }
-  }
 
   const handleGetStarted = async () => {
-    // Find first incomplete category
-    // Match category page logic: completed = has get_me_started_text (hasImagination)
-    const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
-    const firstIncomplete = categories.find(cat => {
-      const prog = progress[cat.key]
-      return !prog?.hasImagination
-    })
+    // Find first life category without generated vision text
+    const lifeCategories = VISION_CATEGORIES.filter(c => c.order > 0 && c.order < 13)
+    const firstIncomplete = lifeCategories.find(cat => !completedCategoryKeys.includes(cat.key))
     
     if (firstIncomplete) {
-      router.push(`/life-vision/new/category/${firstIncomplete.key}`)
+      router.push(`${pathPrefix}/life-vision/new/${firstIncomplete.key}`)
     } else {
-      // All complete, go to assembly
-      router.push('/life-vision/new/assembly')
+      router.push(`${pathPrefix}/life-vision/new/assembly`)
     }
   }
 
@@ -251,16 +209,16 @@ export default function VIVALifeVisionLandingPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Ready to Assemble Banner */}
-        {allCategoriesCompleted && (
+        {/* Ready to Assemble Banner — only shown during intensive flow */}
+        {isIntensiveMode && allCategoriesCompleted && (
           <button
-            onClick={() => router.push('/life-vision/new/assembly')}
+            onClick={() => router.push(`${pathPrefix}/life-vision/new/assembly`)}
             className="w-full flex items-center justify-between gap-3 px-5 py-3 rounded-xl bg-primary-500/15 border border-primary-500/40 hover:bg-primary-500/25 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
               <span className="text-sm font-semibold text-primary-400">
-                All 12 categories are ready. Create your vision now.
+                All categories are ready. Create your vision now.
               </span>
             </div>
             <ArrowRight className="w-4 h-4 text-primary-500 group-hover:translate-x-0.5 transition-transform" />
@@ -270,44 +228,38 @@ export default function VIVALifeVisionLandingPage() {
         {/* Completion Banner - Shows above PageHero when step is already complete */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (
           <IntensiveCompletionBanner 
-            stepTitle="Build Your Life Vision"
+            stepTitle="Create Your Life Vision"
             completedAt={completedAt}
           />
         )}
 
-        {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}
-        <PageHero
-          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 5 OF 14" : undefined}
-          title="Welcome to Your Life Vision"
-          subtitle="Your Life Vision is the blueprint for the life you choose to create."
-        >
-          {/* Video */}
-          <div className="mx-auto w-full max-w-3xl">
-            <OptimizedVideo
-              url={VISION_INTRO_VIDEO}
-              thumbnailUrl={VISION_INTRO_POSTER}
-              context="single"
-              className="w-full"
-            />
-          </div>
+        {isIntensiveMode ? (
+          <PageHero
+            eyebrow="ACTIVATION INTENSIVE • STEP 5 OF 14"
+            title="Welcome to Your Life Vision"
+            subtitle="Your Life Vision is the blueprint for the life you choose to create."
+          >
+            <div className="mx-auto w-full max-w-3xl">
+              <OptimizedVideo
+                url={VISION_INTRO_VIDEO}
+                thumbnailUrl={VISION_INTRO_POSTER}
+                context="single"
+                className="w-full"
+              />
+            </div>
 
-          {/* Action Button - Different for intensive vs non-intensive */}
-          <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            {isIntensiveMode ? (
-              // Intensive mode: 3-state button
-              visionStatus === 'completed' ? (
-                // State 3: View Vision (completed)
+            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+              {visionStatus === 'completed' ? (
                 <Button 
                   variant="primary" 
                   size="sm" 
-                  onClick={() => router.push('/life-vision')}
+                  onClick={() => router.push(`${pathPrefix}/life-vision`)}
                   className="w-full md:w-auto"
                 >
                   View Life Vision
                   <Eye className="ml-2 h-4 w-4" />
                 </Button>
               ) : visionStatus === 'in_progress' ? (
-                // State 2: Continue Vision (in progress)
                 <Button 
                   variant="primary" 
                   size="sm" 
@@ -318,7 +270,6 @@ export default function VIVALifeVisionLandingPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (
-                // State 1: Start Vision (no progress)
                 <Button 
                   variant="primary" 
                   size="sm" 
@@ -328,44 +279,32 @@ export default function VIVALifeVisionLandingPage() {
                   Start Your Vision
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              )
-            ) : (
-              // Non-intensive mode: Just show Life Vision Hub button
-              <Button 
-                variant="primary" 
-                size="sm" 
-                onClick={() => router.push('/life-vision')}
-                className="w-full md:w-auto"
-              >
-                <ArrowRight className="mr-2 h-4 w-4" />
-                Life Vision Hub
-              </Button>
-            )}
-
-            {/* Start Fresh - available when a vision has been generated */}
-            {hasExistingVision && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowStartFreshConfirm(true)}
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Start Fresh
-              </Button>
-            )}
+              )}
+            </div>
+          </PageHero>
+        ) : (
+          <div className="mx-auto w-full max-w-3xl">
+            <OptimizedVideo
+              url={VISION_INTRO_VIDEO}
+              thumbnailUrl={VISION_INTRO_POSTER}
+              context="single"
+              className="w-full"
+            />
           </div>
-        </PageHero>
+        )}
 
         {/* Categories bar - progress tracker under hero */}
         <CategoryGrid
-          categories={categoriesWithout}
+          title="Life Vision Categories"
+          categories={allCategories}
           selectedCategories={[]}
           completedCategories={completedCategoryKeys}
-          onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
+          onCategoryClick={(key: string) => router.push(`${pathPrefix}/life-vision/new/${key}`)}
           mode="completion"
-          layout="12-column"
-          withCard={true}
-          className="!bg-black/40 backdrop-blur-sm w-full"
+          lifeVisionCategoryStrip
+          desktopColumnCount={6}
+          pillLabel="Create"
+          bleedClassName="max-md:-mx-[var(--content-px,0px)]"
         />
 
         {/* What is a Life Vision? */}
@@ -473,52 +412,6 @@ export default function VIVALifeVisionLandingPage() {
 
       </Stack>
 
-      {/* Start Fresh Confirmation Dialog */}
-      {showStartFreshConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <Card variant="elevated" className="max-w-md w-full border-2 border-neutral-600">
-            <Stack gap="md">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <RotateCcw className="w-5 h-5 text-red-400" />
-                </div>
-                <h3 className="text-lg font-bold text-white">Start Fresh?</h3>
-              </div>
-              <p className="text-sm text-neutral-300 leading-relaxed">
-                This will clear all your imagination text across all 12 categories so you can go through the process again with fresh input. Your previous Life Vision document will still be available.
-              </p>
-              <div className="flex gap-3 justify-end pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowStartFreshConfirm(false)}
-                  disabled={isStartingFresh}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={handleStartFresh}
-                  disabled={isStartingFresh}
-                >
-                  {isStartingFresh ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Clearing...
-                    </>
-                  ) : (
-                    <>
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Start Fresh
-                    </>
-                  )}
-                </Button>
-              </div>
-            </Stack>
-          </Card>
-        </div>
-      )}
     </Container>
   )
 }

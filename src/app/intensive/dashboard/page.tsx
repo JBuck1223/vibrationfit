@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 // completeIntensive no longer needed; step 14 marks the intensive as completed
 import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
@@ -409,6 +410,7 @@ function IntensiveDashboardContent() {
             // Update local state
             checklistData.vision_board_completed = true
             checklistData.vision_board_completed_at = now
+            invalidateIntensiveSnapshot()
           }
         }
       }
@@ -435,6 +437,7 @@ function IntensiveDashboardContent() {
           // Update local state
           checklistData.first_journal_entry = true
           checklistData.first_journal_entry_at = now
+          invalidateIntensiveSnapshot()
         }
       }
 
@@ -505,8 +508,8 @@ function IntensiveDashboardContent() {
         phase: 'Setup',
         completed: settingsComplete,
         completedAt: settingsCompletedAt,
-        href: '/account/settings',
-        viewHref: '/account/settings',
+        href: '/intensive/account/settings',
+        viewHref: '/intensive/account/settings',
         locked: false
       },
       {
@@ -533,8 +536,8 @@ function IntensiveDashboardContent() {
         phase: 'Foundation',
         completed: checklist.profile_completed,
         completedAt: checklist.profile_completed_at,
-        href: '/profile/new',
-        viewHref: '/profile/new',
+        href: '/intensive/profile/new',
+        viewHref: '/intensive/profile/new',
         locked: !(checklist.intake_completed || false)
       },
       {
@@ -546,14 +549,8 @@ function IntensiveDashboardContent() {
         phase: 'Foundation',
         completed: checklist.assessment_completed,
         completedAt: checklist.assessment_completed_at,
-        href: checklist.assessment_completed && assessmentLatestCompletedId
-          ? `/assessment/${assessmentLatestCompletedId}/results`
-          : assessmentInProgressId
-            ? `/assessment/${assessmentInProgressId}/in-progress`
-            : '/assessment/new',
-        viewHref: assessmentLatestCompletedId
-          ? `/assessment/${assessmentLatestCompletedId}/results`
-          : '/assessment/new',
+        href: '/intensive/assessment/new',
+        viewHref: '/intensive/assessment/new',
         locked: !checklist.profile_completed,
         actionLabel: assessmentInProgressId ? 'Continue Assessment' : 'Start Assessment',
         viewLabel: 'View Results'
@@ -563,14 +560,14 @@ function IntensiveDashboardContent() {
       {
         id: 'build_vision',
         stepNumber: 5,
-        title: 'Build Your Life Vision',
+        title: 'Create Your Life Vision',
         description: 'Create your comprehensive vision across all 12 life categories',
         icon: Sparkles,
         phase: 'Vision Creation',
         completed: checklist.vision_built,
         completedAt: checklist.vision_built_at,
-        href: '/life-vision/new',
-        viewHref: '/life-vision',
+        href: '/intensive/life-vision/new',
+        viewHref: '/intensive/life-vision/new',
         locked: !checklist.assessment_completed
       },
       {
@@ -582,8 +579,8 @@ function IntensiveDashboardContent() {
         phase: 'Vision Creation',
         completed: checklist.vision_refined,
         completedAt: checklist.vision_refined_at,
-        href: '/life-vision/refine/new',
-        viewHref: '/life-vision',
+        href: '/intensive/life-vision/new',
+        viewHref: '/intensive/life-vision/new',
         locked: !checklist.vision_built
       },
       
@@ -597,8 +594,8 @@ function IntensiveDashboardContent() {
         phase: 'Audio',
         completed: checklist.audio_generated,
         completedAt: checklist.audio_generated_at,
-        href: '/life-vision/audio/generate/new',
-        viewHref: activeVisionId ? `/life-vision/${activeVisionId}/audio/sets` : '/life-vision',
+        href: '/intensive/audio/generate',
+        viewHref: '/intensive/audio/generate',
         locked: !checklist.vision_refined
       },
       {
@@ -610,8 +607,8 @@ function IntensiveDashboardContent() {
         phase: 'Audio',
         completed: checklist.voice_recording_completed || checklist.voice_recording_skipped || checklist.audios_generated,
         completedAt: checklist.voice_recording_completed_at || checklist.voice_recording_skipped_at,
-        href: '/life-vision/audio/record/new',
-        viewHref: '/life-vision',
+        href: '/intensive/audio/record',
+        viewHref: '/intensive/audio/record',
         locked: !checklist.audio_generated,
         canSkip: true
       },
@@ -624,8 +621,8 @@ function IntensiveDashboardContent() {
         phase: 'Audio',
         completed: checklist.audios_generated || false,
         completedAt: checklist.audios_generated_at,
-        href: '/life-vision/audio/mix/new',
-        viewHref: '/life-vision',
+        href: '/intensive/audio/mix',
+        viewHref: '/intensive/audio/mix',
         locked: !checklist.audio_generated || !(checklist.voice_recording_completed || checklist.voice_recording_skipped)
       },
       
@@ -639,9 +636,9 @@ function IntensiveDashboardContent() {
         phase: 'Activation',
         completed: checklist.vision_board_completed,
         completedAt: checklist.vision_board_completed_at,
-        href: '/vision-board/resources',
-        viewHref: '/vision-board',
-        locked: !checklist.audios_generated // Requires Audio Mix (Step 9) to be complete
+        href: '/intensive/vision-board/about',
+        viewHref: '/intensive/vision-board/about',
+        locked: !checklist.audios_generated
       },
       {
         id: 'journal',
@@ -652,8 +649,8 @@ function IntensiveDashboardContent() {
         phase: 'Activation',
         completed: checklist.first_journal_entry,
         completedAt: checklist.first_journal_entry_at,
-        href: '/journal/resources',
-        viewHref: '/journal',
+        href: '/intensive/journal/about',
+        viewHref: '/intensive/journal/about',
         locked: !checklist.vision_board_completed
       },
       {
@@ -680,8 +677,8 @@ function IntensiveDashboardContent() {
         phase: 'Completion',
         completed: checklist.activation_protocol_completed,
         completedAt: checklist.activation_protocol_completed_at,
-        href: '/map?intensive=true',
-        viewHref: '/map',
+        href: '/intensive/map',
+        viewHref: '/intensive/map',
         locked: !checklist.call_scheduled
       },
       {
@@ -693,7 +690,7 @@ function IntensiveDashboardContent() {
         phase: 'Completion',
         completed: checklist.unlock_completed || false,
         completedAt: checklist.unlock_completed_at,
-        href: '/intensive/intake/unlock',
+        href: '/intensive/unlock',
         viewHref: '/dashboard',
         locked: !checklist.activation_protocol_completed
       }

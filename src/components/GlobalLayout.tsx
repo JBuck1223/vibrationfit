@@ -3,16 +3,29 @@
 import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
-import { Spinner } from '@/lib/design-system/components'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { SidebarLayout, UserSidebar } from '@/components/Sidebar'
 import { IntensiveSidebar } from '@/components/IntensiveSidebar'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
-import { getPageType } from '@/lib/navigation'
-import { getActiveIntensiveClient, IntensiveData } from '@/lib/intensive/utils-client'
-import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
+import { cn } from '@/lib/utils'
+import { getPageType, isStudioRoute } from '@/lib/navigation'
+import type { IntensiveData } from '@/lib/intensive/utils-client'
 import { createClient } from '@/lib/supabase/client'
+import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
+import {
+  loadIntensiveSnapshot,
+  peekIntensiveSnapshot,
+  invalidateIntensiveSnapshot,
+  type IntensiveSnapshot,
+} from '@/lib/intensive/intensive-snapshot'
+
+function PlayerSpacer() {
+  const hasActive = useGlobalAudioStore(s => s.tracks.length > 0)
+  if (!hasActive) return null
+  return <div className="h-20" />
+}
+
 
 interface GlobalLayoutProps {
   children: React.ReactNode
@@ -24,9 +37,11 @@ function isPathAccessibleForIntensive(
   intensive: IntensiveData | null, 
   settingsComplete: boolean
 ): boolean {
-  // Always accessible during intensive (no progress check needed)
   const alwaysAllowed = [
     '/intensive/start',
+    '/intensive/welcome',
+    '/intensive/journey',
+    '/intensive/check-email',
     '/viva',
     '/support',
     '/referral',
@@ -38,65 +53,79 @@ function isPathAccessibleForIntensive(
   
   if (!intensive) return false
 
-  // Dashboard - accessible after intensive is started
   if (pathname === '/intensive/dashboard' || pathname.startsWith('/intensive/dashboard/')) {
     return !!intensive.started_at
   }
 
-  // Step 1: Settings - accessible only after intensive is started
-  if (pathname.startsWith('/account')) {
+  // Step 1: Account Settings
+  if (pathname.startsWith('/intensive/account')) {
     return !!intensive.started_at
   }
   
-  // Step 2: Intake - accessible after settings
+  // Step 2: Intake (but not /intensive/intake/unlock which is Step 14)
+  if (pathname === '/intensive/intake/unlock') {
+    return intensive.activation_protocol_completed
+  }
   if (pathname === '/intensive/intake' || pathname.startsWith('/intensive/intake/')) {
-    // But NOT /intensive/intake/unlock until step 14
-    if (pathname.startsWith('/intensive/intake/unlock')) {
-      return intensive.activation_protocol_completed
-    }
     return settingsComplete
   }
   
-  // Step 3: Profile - accessible after intake
-  if (pathname.startsWith('/profile')) {
+  // Step 3: Profile
+  if (pathname.startsWith('/intensive/profile')) {
     return intensive.intake_completed
   }
   
-  // Step 4: Assessment - accessible after profile
-  if (pathname.startsWith('/assessment')) {
+  // Step 4: Assessment
+  if (pathname.startsWith('/intensive/assessment')) {
     return intensive.profile_completed
   }
   
-  // Steps 7-9: Audio - must check BEFORE general life-vision
-  // Audio requires vision to be refined (step 6 complete)
-  if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) {
-    return intensive.vision_refined
-  }
-  
-  // Steps 5-6: Vision building & refining - accessible after assessment
-  if (pathname.startsWith('/life-vision')) {
+  // Steps 5-6: Life Vision (build + refine)
+  if (pathname.startsWith('/intensive/life-vision')) {
     return intensive.assessment_completed
   }
   
-  // Step 10: Vision Board - accessible after audio generated
-  if (pathname.startsWith('/vision-board')) {
+  // Steps 7-9: Audio
+  if (pathname.startsWith('/intensive/audio')) {
+    return intensive.vision_refined
+  }
+  
+  // Step 10: Vision Board
+  if (pathname.startsWith('/intensive/vision-board')) {
     return intensive.audio_generated || intensive.audios_generated
   }
   
-  // Step 11: Journal - accessible after vision board
-  if (pathname.startsWith('/journal')) {
+  // Step 11: Journal
+  if (pathname.startsWith('/intensive/journal')) {
     return intensive.vision_board_completed
   }
   
-  // Step 12: Schedule Call & Call Prep - accessible after journal
+  // Step 12: Schedule Call & Call Prep
   if (pathname.startsWith('/intensive/schedule-call') || pathname.startsWith('/intensive/call-prep')) {
     return intensive.first_journal_entry
   }
   
-  // Step 13: My Activation Plan & Calibration - accessible after call scheduled
-  if (pathname.startsWith('/map') || pathname.startsWith('/intensive/calibration')) {
+  // Step 13: My Activation Plan & Calibration
+  if (pathname.startsWith('/intensive/map') || pathname.startsWith('/intensive/calibration')) {
     return intensive.call_scheduled
   }
+
+  // Step 14: Unlock
+  if (pathname.startsWith('/intensive/unlock')) {
+    return intensive.activation_protocol_completed
+  }
+
+  // Legacy paths outside /intensive/ — still allow for backwards compatibility
+  if (pathname.startsWith('/account')) return !!intensive.started_at
+  if (pathname.startsWith('/profile')) return intensive.intake_completed
+  if (pathname.startsWith('/assessment')) return intensive.profile_completed
+  if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) return intensive.vision_refined
+  if (pathname.startsWith('/life-vision')) return intensive.assessment_completed
+  if (pathname.startsWith('/vision-board')) return intensive.audio_generated || intensive.audios_generated
+  if (pathname.startsWith('/journal')) return intensive.vision_board_completed
+  if (pathname.startsWith('/map')) return intensive.call_scheduled
+  if (pathname.startsWith('/activation-protocol')) return intensive.call_scheduled
+  if (pathname.startsWith('/audio')) return intensive.vision_refined
   
   // Main Dashboard - accessible after intensive is fully complete (unlock step done)
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
@@ -109,68 +138,77 @@ function isPathAccessibleForIntensive(
 
 export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
-  const [intensiveMode, setIntensiveMode] = useState(false)
-  const [intensiveData, setIntensiveData] = useState<IntensiveData | null>(null)
-  const [settingsComplete, setSettingsComplete] = useState(false)
-  const [loadingIntensive, setLoadingIntensive] = useState(true)
+  // Render tree is driven entirely by the session-level snapshot below.
+  // We intentionally start with `null` (matches SSR) and fill in synchronously
+  // from sessionStorage during the first mount effect, so subsequent navigations
+  // inside the same session never re-query the database.
+  const [snapshot, setSnapshot] = useState<IntensiveSnapshot | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  
-  // Listen for auth state changes (login/logout)
+
   useEffect(() => {
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-  
-  // Check for active intensive on mount and route changes
-  useEffect(() => {
-    const checkIntensive = async () => {
-      try {
-        const supabase = createClient()
-        
-        // Check auth state (getSession reads from cookie - no network call to Supabase Auth)
-        const { data: { session } } = await supabase.auth.getSession()
-        setIsAuthenticated(!!session)
-        
-        // Check super admin status — super admins bypass all intensive locking
-        if (session?.user) {
-          const { isSuperAdmin: superAdmin } = await checkSuperAdminAccess(supabase)
-          setIsSuperAdmin(superAdmin)
-        }
-        
-        const intensive = await getActiveIntensiveClient()
-        setIntensiveMode(!!intensive)
-        setIntensiveData(intensive)
-        
-        // Check settings completion if in intensive mode
-        if (intensive && session?.user) {
-          const user = session.user
-          const { data: accountData } = await supabase
-            .from('user_accounts')
-            .select('first_name, last_name, email, phone')
-            .eq('id', user.id)
-            .single()
-          
-          const hasSettings = !!(accountData && 
-            accountData.first_name?.trim() && 
-            accountData.last_name?.trim() && 
-            accountData.email?.trim() && 
-            accountData.phone?.trim())
-          setSettingsComplete(hasSettings)
-        }
-      } catch (error) {
-        console.error('Error checking intensive mode:', error)
-        setIntensiveMode(false)
-      } finally {
-        setLoadingIntensive(false)
-      }
-    }
-    
-    checkIntensive()
+    window.scrollTo(0, 0)
   }, [pathname])
+
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+
+    const hydrate = async () => {
+      // getSession reads from the cookie-backed session — no Auth API call.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (cancelled) return
+      setIsAuthenticated(!!session)
+      if (!session?.user) return
+
+      // Peek first: if we already have a fresh snapshot for this user in
+      // sessionStorage, paint with it immediately and skip the network round-trip.
+      const cached = peekIntensiveSnapshot(session.user.id)
+      if (cached) {
+        setSnapshot(cached)
+        return
+      }
+      const fetched = await loadIntensiveSnapshot(session.user.id)
+      if (!cancelled) setSnapshot(fetched)
+    }
+
+    hydrate()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return
+      setIsAuthenticated(!!session)
+      if (event === 'SIGNED_OUT') {
+        invalidateIntensiveSnapshot()
+        setSnapshot(null)
+      }
+      if (event === 'SIGNED_IN' && session?.user) {
+        // New session — snapshot tied to a prior user (or none) is stale.
+        invalidateIntensiveSnapshot()
+        loadIntensiveSnapshot(session.user.id).then((snap) => {
+          if (!cancelled) setSnapshot(snap)
+        })
+      }
+    })
+
+    const handleSnapshotInvalidation = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user || cancelled) return
+      const fetched = await loadIntensiveSnapshot(session.user.id, { forceRefresh: true })
+      if (!cancelled) setSnapshot(fetched)
+    }
+
+    window.addEventListener('intensive-snapshot-invalidated', handleSnapshotInvalidation)
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+      window.removeEventListener('intensive-snapshot-invalidated', handleSnapshotInvalidation)
+    }
+  }, [])
+
+  const intensiveMode = !!snapshot?.hasActiveIntensive
+  const intensiveData: IntensiveData | null = snapshot?.intensive ?? null
+  const settingsComplete = snapshot?.settingsComplete ?? false
+  const isSuperAdmin = snapshot?.isSuperAdmin ?? false
   
   // Only exclude the /html route from layout (for clean PDF generation)
   if (pathname?.endsWith('/html')) {
@@ -178,6 +216,14 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   }
   
   const pageType = getPageType(pathname)
+
+  const studioRoute = isStudioRoute(pathname)
+  const audioPageLayoutClass = studioRoute
+    ? cn(
+        'max-md:!pt-0 max-md:!px-0',
+        pathname?.startsWith('/audio') && 'max-md:!pb-6',
+      )
+    : undefined
   
   // Authenticated users on public pages (except /auth/*) see the sidebar layout
   const effectivePageType = (pageType === 'PUBLIC' && isAuthenticated && !pathname?.startsWith('/auth'))
@@ -187,7 +233,8 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   // Render based on effective page type
   if (effectivePageType === 'USER' || effectivePageType === 'ADMIN') {
     // Print pages: No sidebar, no padding (full-screen interface)
-    if (pathname?.includes('/print') && !pathname?.endsWith('/html')) {
+    // Exception: life-vision print pages use their own studio layout with AreaBar
+    if (pathname?.includes('/print') && !pathname?.endsWith('/html') && !pathname?.startsWith('/life-vision')) {
       return <>{children}</>
     }
     
@@ -212,40 +259,34 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       )
     }
     
-    // USER pages: Use IntensiveSidebar if in intensive mode, otherwise regular SidebarLayout
+    // USER pages: Use IntensiveSidebar if in intensive mode, otherwise regular SidebarLayout.
+    // We always render children — no blocking spinner — so client-side navigations
+    // don't unmount the page tree. On the very first load of a new session we may
+    // optimistically render the non-intensive layout for a moment before the snapshot
+    // arrives; thereafter the layout is stable because the snapshot is cached.
     if (effectivePageType === 'USER') {
-      // Show loading state briefly
-      if (loadingIntensive) {
-        return (
-          <div className="min-h-screen bg-black flex items-center justify-center">
-            <Spinner size="lg" />
-          </div>
-        )
-      }
-      
-      // Intensive mode: Simplified sidebar + mobile nav + locked overlay on non-accessible pages
       if (intensiveMode) {
-        // Check if current path is accessible based on user's progress
         const isAccessible = isPathAccessibleForIntensive(pathname, intensiveData, settingsComplete)
-        
+
         return (
           <div className="min-h-screen bg-black text-white">
             <IntensiveSidebar />
-            <div className="md:ml-[280px]">
-              <PageLayout>
+            <div className="min-w-0 md:ml-[280px]">
+              <PageLayout className={audioPageLayoutClass}>
                 {children}
+                <PlayerSpacer />
               </PageLayout>
               {!isAccessible && !isSuperAdmin && <IntensiveLockedOverlay />}
             </div>
           </div>
         )
       }
-      
-      // Regular mode: Full sidebar
+
       return (
         <SidebarLayout isAdmin={false}>
-          <PageLayout>
+          <PageLayout className={audioPageLayoutClass}>
             {children}
+            <PlayerSpacer />
           </PageLayout>
         </SidebarLayout>
       )
@@ -255,8 +296,9 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     if (effectivePageType === 'ADMIN') {
       return (
         <SidebarLayout isAdmin={true}>
-          <PageLayout>
+          <PageLayout className={audioPageLayoutClass}>
             {children}
+            <PlayerSpacer />
           </PageLayout>
         </SidebarLayout>
       )
@@ -277,8 +319,9 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   return (
     <div className="min-h-screen bg-black text-white">
       {!hideHeaderFooter && <Header />}
-      <PageLayout className={pageLayoutClass}>
+      <PageLayout className={cn(pageLayoutClass, audioPageLayoutClass)}>
         {children}
+        <PlayerSpacer />
       </PageLayout>
       {!hideHeaderFooter && <Footer />}
     </div>

@@ -258,8 +258,8 @@ export function StoryDropdown({
   const ActiveTypeIcon = activeTypeObj.icon
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {/* Left: Source type dropdown */}
+    <div className="flex flex-col gap-2">
+      {/* Source type dropdown */}
       <div className="relative" ref={typeRef}>
         <button
           type="button"
@@ -296,7 +296,7 @@ export function StoryDropdown({
         )}
       </div>
 
-      {/* Right: Story selector dropdown */}
+      {/* Story selector dropdown */}
       <div className="relative min-w-0" ref={storyRef}>
         <button
           type="button"
@@ -387,15 +387,15 @@ const DEFAULT_SOURCE_TYPES: SourceTypeOption[] = [
   {
     type: 'life_vision',
     label: 'Life Vision',
-    description: 'Use your life vision sections as audio source.',
+    description: 'Let VIVA narrate your Life Vision.',
     icon: Target,
     color: 'text-purple-400 bg-purple-500/20 border-purple-500/30',
   },
   {
     type: 'story',
     label: 'Story',
-    description: 'Use a completed story as audio source.',
-    icon: BookOpen,
+    description: 'Let VIVA narrate your story.',
+    icon: Library,
     color: 'text-teal-400 bg-teal-500/20 border-teal-500/30',
   },
 ]
@@ -414,6 +414,9 @@ interface AudioSourceSelectorProps {
   filterVisions?: (vision: VisionData) => boolean
   initialSourceType?: AudioSourceType
   initialSourceId?: string | null
+  stepNumber?: number
+  /** Override subtext under Life Vision / Story cards (e.g. personal recording vs VIVA narration). */
+  sourceTypeDescriptions?: Partial<Record<'life_vision' | 'story', string>>
 }
 
 export function AudioSourceSelector({
@@ -423,6 +426,8 @@ export function AudioSourceSelector({
   filterVisions,
   initialSourceType,
   initialSourceId,
+  stepNumber,
+  sourceTypeDescriptions,
 }: AudioSourceSelectorProps) {
   const {
     allVisions,
@@ -480,69 +485,83 @@ export function AudioSourceSelector({
   }
 
   return (
-    <Card variant="glass" className="p-4 md:p-6">
+    <Card variant="glass" className="p-4 md:p-6 relative z-10">
       <div className="flex flex-col items-center text-center mb-4">
-        <h3 className="text-lg font-semibold text-white">Select Source</h3>
+        <div className="flex items-center justify-center gap-2">
+          {stepNumber !== undefined && (
+            <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center flex-shrink-0">
+              {stepNumber}
+            </span>
+          )}
+          <h3 className="text-lg font-semibold text-white">Select Source</h3>
+        </div>
         <p className="text-sm text-neutral-400">Choose what content to use for your audio.</p>
       </div>
 
-      {/* Source Type Cards */}
-      <div className={`grid gap-3 mb-4 ${sourceTypes.length === 1 ? 'grid-cols-1 max-w-sm mx-auto' : 'grid-cols-2'}`}>
+      {/* Source Type Cards — each owns its dropdown so the selector only appears on the side it belongs to */}
+      <div
+        className={`grid gap-3 items-start ${
+          sourceTypes.length === 1
+            ? 'grid-cols-1 max-w-sm mx-auto'
+            : 'grid-cols-1 md:grid-cols-2'
+        }`}
+      >
         {sourceTypes.map(st => {
           const Icon = st.icon
           const isSelected = selectedType === st.type
+          const description = (st.type && sourceTypeDescriptions?.[st.type]) ?? st.description
           return (
-            <button
+            <div
               key={st.type}
-              type="button"
-              onClick={() => handleTypeSelect(st.type)}
-              className={`flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
+              className={`flex flex-col gap-3 p-4 rounded-xl border transition-all ${
                 isSelected
                   ? 'border-primary-500 bg-primary-500/10'
                   : 'border-neutral-700/50 bg-neutral-900/40 hover:border-neutral-600'
               }`}
             >
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${st.color.split(' ').slice(1).join(' ')}`}>
-                <Icon className={`w-5 h-5 ${st.color.split(' ')[0]}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">{st.label}</p>
-                <p className="text-xs text-neutral-400">{st.description}</p>
-              </div>
-              {isSelected && <Check className="w-5 h-5 text-primary-500 flex-shrink-0" />}
-            </button>
+              <button
+                type="button"
+                onClick={() => handleTypeSelect(st.type)}
+                className="flex w-full items-center gap-3 text-left"
+              >
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${st.color.split(' ').slice(1).join(' ')}`}>
+                  <Icon className={`w-5 h-5 ${st.color.split(' ')[0]}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">{st.label}</p>
+                  <p className="text-xs text-neutral-400">{description}</p>
+                </div>
+                {isSelected && <Check className="w-5 h-5 text-primary-500 flex-shrink-0" />}
+              </button>
+
+              {isSelected && st.type === 'life_vision' && (
+                <VisionDropdown
+                  visions={filteredVisions}
+                  selectedId={selectedEntityId}
+                  onSelect={(id, vision) => {
+                    setSelectedEntityId(id)
+                    onSourceSelected({ sourceType: 'life_vision', sourceId: id, vision })
+                  }}
+                  loading={visionLoading}
+                />
+              )}
+
+              {isSelected && st.type === 'story' && (
+                <StoryDropdown
+                  stories={allStories}
+                  selectedId={selectedEntityId}
+                  onSelect={(id, story) => {
+                    setSelectedEntityId(id)
+                    onSourceSelected({ sourceType: 'story', sourceId: id, story })
+                  }}
+                  loading={allStoriesLoading}
+                  filterFn={filterStories}
+                />
+              )}
+            </div>
           )
         })}
       </div>
-
-      {/* Entity Selector */}
-      {selectedType && (
-        <div className="mx-auto">
-          {selectedType === 'life_vision' && (
-            <VisionDropdown
-              visions={filteredVisions}
-              selectedId={selectedEntityId}
-              onSelect={(id, vision) => {
-                setSelectedEntityId(id)
-                onSourceSelected({ sourceType: 'life_vision', sourceId: id, vision })
-              }}
-              loading={visionLoading}
-            />
-          )}
-          {selectedType === 'story' && (
-            <StoryDropdown
-              stories={allStories}
-              selectedId={selectedEntityId}
-              onSelect={(id, story) => {
-                setSelectedEntityId(id)
-                onSourceSelected({ sourceType: 'story', sourceId: id, story })
-              }}
-              loading={allStoriesLoading}
-              filterFn={filterStories}
-            />
-          )}
-        </div>
-      )}
     </Card>
   )
 }

@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       getMeStartedText = '',
       imaginationText = '',
       currentStateText = '',
+      profileStoryText = '',
       perspective = 'singular'
     } = body
 
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[CategoryVision] Starting ${categoryKey} (streaming)`)
-    console.log(`[CategoryVision] Input sizes: getMeStarted=${getMeStartedText?.length || 0}, imagination=${imaginationText?.length || 0}, state=${currentStateText?.length || 0}`)
+    console.log(`[CategoryVision] Input sizes: getMeStarted=${getMeStartedText?.length || 0}, imagination=${imaginationText?.length || 0}, state=${currentStateText?.length || 0}, story=${profileStoryText?.length || 0}`)
 
     // Build the prompt
     const prompt = buildIndividualCategoryPrompt(
@@ -72,7 +73,8 @@ export async function POST(request: NextRequest) {
       getMeStartedText,
       imaginationText,
       currentStateText,
-      perspective as 'singular' | 'plural'
+      perspective as 'singular' | 'plural',
+      typeof profileStoryText === 'string' ? profileStoryText : ''
     )
 
     console.log(`[CategoryVision] Prompt length: ${prompt.length} chars`)
@@ -138,15 +140,15 @@ export async function POST(request: NextRequest) {
           }).catch(err => console.error('[CategoryVision] Token tracking failed:', err))
         }
 
-        // Save generated text to category_state
+        // Save generated text to category_state (upsert to create row if needed)
         const { error: updateError } = await supabase
           .from('vision_new_category_state')
-          .update({
+          .upsert({
+            user_id: user.id,
+            category: categoryKey,
             category_vision_text: finalOutput,
             updated_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id)
-          .eq('category', categoryKey)
+          }, { onConflict: 'user_id,category' })
 
         if (updateError) {
           console.error(`[CategoryVision] Failed to save ${categoryKey}:`, updateError)

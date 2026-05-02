@@ -1,6 +1,6 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** December 10, 2024  
+**Last Updated:** April 23, 2026  
 **Purpose:** Single source of truth for all features, their versions, and status
 
 > ⚠️ **FOR AI AGENTS:** Before modifying ANY feature, check this registry first. Features marked 🔒 LOCKED should NOT be modified without explicit user permission.
@@ -95,6 +95,21 @@
 - IndexedDB has size limits (recordings auto-cleared after 24h)
 - S3 upload runs in parallel with transcription for speed
 - Different recording purposes have different cleanup logic
+
+---
+
+### Global playlist audio (design system UI)
+**Version:** `v1.0.0`  
+**Status:** STABLE  
+**Last Modified:** April 23, 2026  
+**Doc:** `docs/design-system/global-playlist-audio.md`  
+**Code:** `src/lib/design-system/components/media/global-audio/*`, shell in root `layout`  
+**State:** `src/lib/stores/global-audio-store`  
+**Used By:** `/audio`, any route that dispatches to the global player  
+
+**What it does:** Embedded player, inline list, bottom mini bar, and drawer; styling uses design tokens and `@/lib/design-system/components` exports.
+
+**Note:** The legacy in-place `AudioPlayer` in the design system media folder is a different model (single track). See the doc above.
 
 ---
 

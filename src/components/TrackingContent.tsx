@@ -237,7 +237,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
               </div>
               <div className="flex gap-2 w-full md:w-auto justify-center">
                 <Button variant="ghost" size="sm" asChild className="w-full md:w-auto">
-                  <Link href="/profile/active">View</Link>
+                  <Link href="/profile">View</Link>
                 </Button>
               </div>
             </div>

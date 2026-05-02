@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, Button, DeleteConfirmationDialog, CategoryCard } from '@/lib/design-system'
+import { Card, Button, DeleteConfirmationDialog, CategoryGrid } from '@/lib/design-system'
 import { Heart, MessageCircle, Trash2, MoreHorizontal, Play, Pencil, Pin, X, Trophy, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import { VibePost, VibeTag, VIBE_TAG_CONFIG, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
@@ -12,6 +12,7 @@ import { VibeTagBadge } from './VibeTagBadge'
 import { CommentSection } from './CommentSection'
 import { format, isToday, isYesterday } from 'date-fns'
 import { renderContentWithMentions, MentionedUser } from '@/lib/vibe-tribe/render-mentions'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 const EDIT_ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -255,24 +256,31 @@ export function PostCard({
       <Link href={`/vibe-tribe/posts/${post.id}`}>
         <Card className="p-4 hover:border-neutral-500 transition-all cursor-pointer h-full">
           <div className="flex items-start gap-3 mb-3">
-          {/* Avatar - Links to user snapshot */}
-          <Link 
-            href={`/snapshot/${post.user_id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="w-8 h-8 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
-          >
-            {post.user?.profile_picture_url ? (
+          {/* Avatar — tap photo to enlarge (span trigger: inside post Link) */}
+          {post.user?.profile_picture_url ? (
+            <ProfilePictureClickable
+              src={post.user.profile_picture_url}
+              alt={post.user.full_name || 'User'}
+              avoidNestedButton
+              className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500"
+            >
               <img
                 src={post.user.profile_picture_url}
-                alt={post.user.full_name || 'User'}
-                className="w-full h-full object-cover"
+                alt=""
+                className="h-full w-full object-cover"
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
+            </ProfilePictureClickable>
+          ) : (
+            <Link
+              href={`/snapshot/${post.user_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500"
+            >
+              <span className="text-sm font-medium text-neutral-400">
                 {post.user?.full_name?.[0] || '?'}
-              </div>
-            )}
-          </Link>
+              </span>
+            </Link>
+          )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <Link 
@@ -295,7 +303,7 @@ export function PostCard({
           </div>
           
           {post.content && (
-            <p className="text-sm text-neutral-300 line-clamp-2 mb-2">
+            <p className="text-sm text-neutral-300 line-clamp-2 mb-2 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
               {renderContentWithMentions(post.content, mentionedUsers)}
             </p>
           )}
@@ -319,23 +327,29 @@ export function PostCard({
     <div className="py-4">
       {/* Post Row */}
       <div className="flex items-start gap-3">
-        {/* Avatar - Links to user snapshot */}
-        <Link 
-          href={`/snapshot/${post.user_id}`}
-          className="w-10 h-10 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-primary-500 transition-all"
-        >
-          {post.user?.profile_picture_url ? (
+        {/* Avatar — tap photo to enlarge */}
+        {post.user?.profile_picture_url ? (
+          <ProfilePictureClickable
+            src={post.user.profile_picture_url}
+            alt={post.user.full_name || 'User'}
+            className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500"
+          >
             <img
               src={post.user.profile_picture_url}
-              alt={post.user.full_name || 'User'}
-              className="w-full h-full object-cover"
+              alt=""
+              className="h-full w-full object-cover"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm font-medium">
+          </ProfilePictureClickable>
+        ) : (
+          <Link
+            href={`/snapshot/${post.user_id}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-700 transition-all hover:ring-2 hover:ring-primary-500"
+          >
+            <span className="text-sm font-medium text-neutral-400">
               {post.user?.full_name?.[0] || '?'}
-            </div>
-          )}
-        </Link>
+            </span>
+          </Link>
+        )}
         
         {/* Content Column */}
         <div className="flex-1 min-w-0">
@@ -479,23 +493,13 @@ export function PostCard({
                   )}
                 </button>
                 {showEditCategories && (
-                  <div className="mt-2 grid grid-cols-4 md:grid-cols-6 gap-1.5">
-                    {VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion').map((category) => {
-                      const isCatSelected = editCategories.includes(category.key)
-                      return (
-                        <CategoryCard
-                          key={category.key}
-                          category={category}
-                          selected={isCatSelected}
-                          onClick={() => handleEditCategoryToggle(category.key)}
-                          variant="outlined"
-                          selectionStyle="border"
-                          iconColor={isCatSelected ? "#39FF14" : "#FFFFFF"}
-                          selectedIconColor="#39FF14"
-                          className={`!p-2 ${isCatSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.5)]' : '!bg-transparent !border-[#333]'}`}
-                        />
-                      )
-                    })}
+                  <div className="mt-2">
+                    <CategoryGrid
+                      categories={VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')}
+                      selectedCategories={editCategories}
+                      onCategoryClick={handleEditCategoryToggle}
+                      lifeVisionCategoryStrip
+                    />
                   </div>
                 )}
               </div>
@@ -519,7 +523,7 @@ export function PostCard({
             </div>
           ) : (
             post.content && (
-              <p className="text-sm md:text-base text-white whitespace-pre-wrap leading-normal mt-1.5">
+              <p className="text-sm md:text-base text-white whitespace-pre-wrap leading-normal mt-1.5 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
                 {renderContentWithMentions(post.content, mentionedUsers)}
               </p>
             )

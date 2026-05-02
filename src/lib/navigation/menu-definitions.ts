@@ -127,19 +127,19 @@ export const userNavigation: (NavItem | NavGroup)[] = [
   },
   {
     name: 'Profile',
-    href: '/profile/active',
+    href: '/profile',
     icon: User,
     description: 'Your active profile',
   },
   {
     name: 'Life Vision',
-    href: '/life-vision/active',
+    href: '/life-vision',
     icon: Target,
     description: 'My Active Vision',
   },
   {
     name: 'Audio',
-    href: '/life-vision/audio',
+    href: '/audio',
     icon: Headphones,
     description: 'Key AM/PM/Sleep audio sets',
   },
@@ -240,7 +240,7 @@ export const userNavigationGroups: NavGroup[] = [
         icon: User,
         hasDropdown: true,
         children: [
-          { name: 'My Active Profile', href: '/profile/active', icon: CheckCircle },
+          { name: 'My Active Profile', href: '/profile', icon: CheckCircle },
           { name: 'Assessment', href: '/assessment', icon: Brain },
         ],
       },
@@ -257,11 +257,12 @@ export const userNavigationGroups: NavGroup[] = [
       },
       {
         name: 'Audio Studio',
-        href: '/life-vision/audio',
+        href: '/audio',
         icon: Headphones,
         hasDropdown: true,
         children: [
-          { name: 'All Vision Audios', href: '/life-vision/audio', icon: Music },
+          { name: 'Listen', href: '/audio', icon: Music },
+          { name: 'Create', href: '/audio/create', icon: Wand2 },
         ],
       },
       {
@@ -389,18 +390,18 @@ export const adminNavigation: NavItem[] = [
     icon: UserCheck,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Member management, tiers, and programs',
+    description: 'User directory, subscriptions, orders, and programs',
     children: [
-      { name: 'Members List', href: '/admin/crm/members', icon: UserCheck, description: 'Platform members management' },
+      { name: 'Members List', href: '/admin/crm/members', icon: UserCheck, description: 'All users with engagement, revenue, and actions' },
       { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
-      { name: 'All Users', href: '/admin/users', icon: Users, description: 'View and manage all users' },
-      { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, description: 'Order status & email delivery' },
-      { name: 'Member Storage', href: '/admin/member-storage', icon: HardDrive, description: 'Browse member uploaded files and storage' },
+      { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, description: 'Order status & email delivery pipeline' },
       { name: 'Membership Tiers', href: '/admin/membership-tiers', icon: Layers, description: 'Token grants & storage quotas' },
       { name: 'Token Analytics', href: '/admin/token-usage', icon: BarChart3, description: 'User token usage analytics' },
+      { name: 'Member Storage', href: '/admin/member-storage', icon: HardDrive, description: 'Browse member uploaded files and storage' },
       { name: 'Badges', href: '/admin/badges', icon: Award, description: 'Award and manage badges' },
       { name: 'Intensive Dashboard', href: '/admin/intensive/dashboard', icon: Rocket, description: 'Enrollment status and step progress' },
       { name: 'Intensive Tester', href: '/admin/intensive/tester', icon: Wrench, description: 'Test intensive flows' },
+      { name: 'All Users (Legacy)', href: '/admin/users', icon: Users, description: 'Technical user list with admin tools' },
     ]
   },
 
@@ -563,9 +564,9 @@ export const mobileNavigation: NavItem[] = [
   },
   {
     name: 'Audio',
-    href: '/life-vision/active/audio/sets',
+    href: '/audio',
     icon: Headphones,
-    description: 'Vision Audio Sets',
+    description: 'Audio Studio',
   },
   {
     name: 'Board',
@@ -714,15 +715,15 @@ export function isNavItemActive(
   // RULE 3: For children of dropdowns, ONLY exact matches count
   // This prevents "/life-vision" from matching when on "/life-vision/household"
   if (isChildOfDropdown) {
-    // Special case: /life-vision/active should match /life-vision/[uuid]
-    if (item.href === '/life-vision/active') {
+    // /life-vision links should highlight when on any /life-vision/[uuid] page
+    if (item.href === '/life-vision') {
       if (pathname.match(/^\/life-vision\/[a-f0-9-]{36}(\/|$)/)) {
         return true
       }
     }
     
-    // Special case: /profile/active should match /profile/[uuid] if it's the active profile
-    if (item.href === '/profile/active') {
+    // /profile links should highlight when on the active profile page
+    if (item.href === '/profile') {
       const uuidMatch = pathname.match(/^\/profile\/([a-f0-9-]{36})(\/|$)/)
       if (uuidMatch) {
         return uuidMatch[1] === activeProfileId
@@ -777,17 +778,23 @@ export function isNavItemActive(
       }
     }
     
-    // Special handling for dynamic Audio link (mobile nav)
-    // Match /life-vision/[uuid]/audio/sets or /life-vision/[uuid]/audio/*
-    if (item.href.match(/^\/life-vision\/[a-f0-9-]{36}\/audio\/sets$/)) {
-      if (pathname.match(/^\/life-vision\/[a-f0-9-]{36}\/audio/)) {
+    // Audio hub: /audio matches all audio sub-routes
+    if (item.href === '/audio') {
+      if (pathname.startsWith('/audio/')) {
         return true
       }
     }
     
-    // Special handling for /profile/active - match any profile route
-    if (item.href === '/profile/active') {
-      if (pathname.startsWith('/profile')) {
+    // /profile top-level matches any profile route
+    if (item.href === '/profile') {
+      if (pathname.startsWith('/profile/')) {
+        return true
+      }
+    }
+    
+    // /life-vision top-level matches any life-vision route
+    if (item.href === '/life-vision') {
+      if (pathname.startsWith('/life-vision/')) {
         return true
       }
     }

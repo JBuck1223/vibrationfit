@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, SaveButton, Checkbox } from '@/lib/design-system/components'
+import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -92,12 +93,12 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
   
   return (
     <Card className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <SpiritualityIcon className="w-6 h-6 text-white" />
-        <h3 className="text-xl font-bold text-white">Spirituality</h3>
-      </div>
-      
-      <div className="space-y-6">
+      <ProfileSectionCardHeading
+        icon={SpiritualityIcon}
+        title={getVisionCategoryLabel('spirituality')}
+      />
+
+      <div className="space-y-4">
         {/* Spiritual Practice */}
         <div>
           <label className="block text-sm font-medium text-neutral-200 mb-2">
@@ -235,7 +236,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="mt-6">
+        <div className="border-t border-neutral-800/50 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

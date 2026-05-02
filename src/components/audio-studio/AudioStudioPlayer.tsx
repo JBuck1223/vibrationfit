@@ -39,70 +39,83 @@ export function AudioStudioPlayer() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#111] border-t border-neutral-800 backdrop-blur-xl safe-area-bottom">
-      {/* Progress bar (clickable) */}
-      <div
-        className="h-1 bg-neutral-800 cursor-pointer group"
-        onClick={handleProgressClick}
-      >
-        <div
-          className="h-full bg-[#39FF14] transition-all duration-150 group-hover:h-1.5"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
-      <div className="flex items-center gap-3 px-4 py-2.5 md:px-6 md:py-3">
-        {/* Track info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">
-            {currentTrack.title}
-          </p>
-          <p className="text-xs text-neutral-500 truncate">
-            {player.setName && <span>{player.setName} &middot; </span>}
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </p>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={skipPrev}
-            className="p-2 text-neutral-400 hover:text-white transition-colors"
-            disabled={player.currentIndex === 0 && currentTime < 3}
+    <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
+      <div className="pointer-events-auto mx-auto max-w-2xl px-3 pb-3 sm:px-4">
+        <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1F1F1F]/55 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-inset ring-white/[0.06] backdrop-blur-lg">
+          <div
+            className="h-0.5 cursor-pointer bg-black/30 group"
+            onClick={handleProgressClick}
           >
-            <SkipBack className="w-4 h-4" />
-          </button>
+            <div
+              className="h-full bg-primary-500 transition-all duration-150 group-hover:brightness-110"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
 
-          <button
-            onClick={player.isPlaying ? pausePlayer : resumePlayer}
-            className="p-2.5 bg-white rounded-full text-black hover:bg-neutral-200 transition-colors"
-          >
-            {player.isPlaying ? (
-              <Pause className="w-4 h-4" fill="currentColor" />
-            ) : (
-              <Play className="w-4 h-4" fill="currentColor" />
-            )}
-          </button>
+          <div className="flex items-center gap-2 px-3 py-2 md:gap-3 md:px-4 md:py-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium leading-tight text-white">
+                {currentTrack.title}
+              </p>
+              <p className="mt-0.5 truncate text-[11px] leading-tight text-neutral-500">
+                {player.setName && (
+                  <>
+                    {player.setName}
+                    <span className="text-neutral-600"> · </span>
+                  </>
+                )}
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </p>
+            </div>
 
-          <button
-            onClick={skipNext}
-            className="p-2 text-neutral-400 hover:text-white transition-colors"
-            disabled={player.currentIndex >= player.tracks.length - 1}
-          >
-            <SkipForward className="w-4 h-4" />
-          </button>
+            <div className="flex flex-shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                onClick={skipPrev}
+                className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
+                disabled={player.currentIndex === 0 && currentTime < 3}
+                aria-label="Previous track"
+              >
+                <SkipBack className="h-3.5 w-3.5" strokeWidth={2.25} />
+              </button>
 
-          <button
-            onClick={stopPlayer}
-            className="p-2 text-neutral-500 hover:text-neutral-300 transition-colors ml-1"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+              <button
+                type="button"
+                onClick={player.isPlaying ? pausePlayer : resumePlayer}
+                className="mx-0.5 rounded-full bg-primary-500 p-2 text-black transition-colors hover:bg-primary-400"
+                aria-label={player.isPlaying ? 'Pause' : 'Play'}
+              >
+                {player.isPlaying ? (
+                  <Pause className="h-3.5 w-3.5" fill="currentColor" />
+                ) : (
+                  <Play className="h-3.5 w-3.5 pl-0.5" fill="currentColor" />
+                )}
+              </button>
 
-        {/* Track counter (desktop) */}
-        <div className="hidden md:block text-xs text-neutral-500 w-16 text-right">
-          {player.currentIndex + 1} / {player.tracks.length}
+              <button
+                type="button"
+                onClick={skipNext}
+                className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
+                disabled={player.currentIndex >= player.tracks.length - 1}
+                aria-label="Next track"
+              >
+                <SkipForward className="h-3.5 w-3.5" strokeWidth={2.25} />
+              </button>
+
+              <button
+                type="button"
+                onClick={stopPlayer}
+                className="ml-0.5 rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/[0.06] hover:text-neutral-300"
+                aria-label="Stop and close"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="hidden w-11 flex-shrink-0 text-right text-[10px] tabular-nums text-neutral-500 md:block">
+              {player.currentIndex + 1}/{player.tracks.length}
+            </div>
+          </div>
         </div>
       </div>
     </div>

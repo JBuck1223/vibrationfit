@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { normalizeProfileVersionFromRpc } from '@/lib/profile/profile-version-from-rpc'
 
 // ============================================================================
 // Profile Versioning API Endpoints
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
         .rpc('get_profile_version_number', { p_profile_id: profile.id })
       return {
         ...profile,
-        version_number: calculatedVersion || profile.version_number || 1
+        version_number: normalizeProfileVersionFromRpc(calculatedVersion)
       }
     }))
     
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
       .rpc('get_profile_version_number', { p_profile_id: draft.id })
     const draftWithVersion = {
       ...draft,
-      version_number: calculatedVersion || draft.version_number || 1
+      version_number: normalizeProfileVersionFromRpc(calculatedVersion)
     }
 
     return NextResponse.json({ 
@@ -227,7 +228,7 @@ export async function PUT(request: NextRequest) {
       .rpc('get_profile_version_number', { p_profile_id: updatedProfile.id })
     const profileWithVersion = {
       ...updatedProfile,
-      version_number: calculatedVersion || updatedProfile.version_number || 1
+      version_number: normalizeProfileVersionFromRpc(calculatedVersion)
     }
 
     return NextResponse.json({ 
@@ -315,7 +316,7 @@ export async function PATCH(request: NextRequest) {
       .rpc('get_profile_version_number', { p_profile_id: updatedProfile.id })
     const profileWithVersion = {
       ...updatedProfile,
-      version_number: calculatedVersion || updatedProfile.version_number || 1
+      version_number: normalizeProfileVersionFromRpc(calculatedVersion)
     }
 
     return NextResponse.json({ 

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import TrackingContent from '@/components/TrackingContent'
+import { normalizeProfileVersionFromRpc } from '@/lib/profile/profile-version-from-rpc'
 
 export default async function TrackingPage() {
   const supabase = await createClient()
@@ -36,9 +37,9 @@ export default async function TrackingPage() {
     
     console.log('Profile version number from RPC:', versionNumber, 'for profile ID:', profileData.id)
     
-    profileWithVersion = { 
-      ...profileData, 
-      version_number: versionNumber ?? 1 
+    profileWithVersion = {
+      ...profileData,
+      version_number: normalizeProfileVersionFromRpc(versionNumber),
     }
   }
 

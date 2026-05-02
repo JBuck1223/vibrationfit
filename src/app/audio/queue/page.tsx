@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog, PageHero } from '@/lib/design-system/components'
+import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 import { useAudioStudio } from '@/components/audio-studio'
@@ -82,7 +82,8 @@ function sectionKeyLabel(key: string): string {
 }
 
 /**
- * Custom-mix summary: Voice, then Background, then Frequency (if any); then · then scope (e.g. All vision sections & Combined Full Track).
+ * Custom-mix summary: Voice, then Background, then Frequency (if any); then · then scope
+ * (which categories are included, plus track count or single combined track when relevant).
  */
 function formatCustomMixDetailLine(
   meta: Record<string, unknown>,
@@ -121,17 +122,17 @@ function formatCustomMixDetailLine(
   if (isStoryScope) {
     scopeChunks.push('Full story')
   } else if (meta.mix_all_sections === true) {
-    scopeChunks.push('All vision sections')
+    scopeChunks.push('All vision categories')
   } else {
     const sel = meta.selected_sections as string[] | null | undefined
     if (Array.isArray(sel) && sel.length > 0) {
-      scopeChunks.push(`Sections: ${sel.map(sectionKeyLabel).join(', ')}`)
+      scopeChunks.push(`Includes: ${sel.map(sectionKeyLabel).join(', ')}`)
     } else if (sectionsRequested?.length) {
       const keys = sectionsRequested.map(s => s.sectionKey)
       if (keys.length === 1 && keys[0] === 'full') {
         scopeChunks.push('Full narrative')
       } else {
-        scopeChunks.push(`Sections: ${keys.map(sectionKeyLabel).join(', ')}`)
+        scopeChunks.push(`Includes: ${keys.map(sectionKeyLabel).join(', ')}`)
       }
     }
   }
@@ -139,15 +140,16 @@ function formatCustomMixDetailLine(
   const fmt = meta.output_format as string | undefined
   const multiSection = !!(sectionsRequested && sectionsRequested.length > 1)
   if (fmt === 'combined') {
-    scopeChunks.push('Combined Full Track')
+    scopeChunks.push('Single combined track')
   } else if (fmt === 'both' && multiSection) {
-    scopeChunks.push('Combined Full Track')
-  } else if (fmt === 'individual' && multiSection) {
-    scopeChunks.push('Individual sections')
+    scopeChunks.push('Single combined track')
+  } else if (fmt === 'individual' && multiSection && sectionsRequested?.length) {
+    const n = sectionsRequested.length
+    scopeChunks.push(`${n} ${n === 1 ? 'track' : 'tracks'}`)
   }
 
   const mixStr = mixChunks.join(' + ')
-  const scopeStr = scopeChunks.join(' & ')
+  const scopeStr = scopeChunks.join(' · ')
   if (mixStr && scopeStr) return `${mixStr} · ${scopeStr}`
   if (mixStr) return mixStr
   return scopeStr
@@ -276,13 +278,10 @@ export default function AudioQueuePage() {
   return (
     <Container size="xl" className="py-6">
       <Stack gap="lg">
-        <PageHero
-          title="Generation Queue"
-          subtitle="Track the progress of your audio generation and mixing jobs."
-        />
+        <h1 className="sr-only">Generation Queue</h1>
 
         {allBatches.length === 0 ? (
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center py-12">
+          <Card variant="glass" className="text-center px-4 py-12 sm:px-6 md:px-6 lg:px-8">
             <ListMusic className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
             <p className="text-neutral-400 text-sm">No generation jobs yet.</p>
             <p className="text-neutral-500 text-xs mt-1">Jobs will appear here when you generate or mix audio.</p>
@@ -326,7 +325,7 @@ export default function AudioQueuePage() {
             </div>
 
             {filteredBatches.length === 0 ? (
-              <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center py-8">
+              <Card variant="glass" className="text-center px-4 py-8 sm:px-6 md:px-6 lg:px-8">
                 <p className="text-neutral-400 text-sm">No jobs match the selected filters.</p>
               </Card>
             ) : (
@@ -412,7 +411,7 @@ function BatchCard({
       : ''
 
   return (
-    <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 hover:border-neutral-600 transition-colors cursor-pointer">
+    <Card variant="glass" className="cursor-pointer p-4 transition-colors md:p-4 lg:p-4 hover:border-neutral-500">
       <div className="flex items-start gap-3">
         <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${meta.bg}`}>
           <StatusIcon className={`w-4 h-4 ${meta.color} ${isActive && batch.status === 'processing' ? 'animate-spin' : ''}`} />

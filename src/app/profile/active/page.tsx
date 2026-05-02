@@ -1,46 +1,29 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Spinner, Container } from '@/lib/design-system/components'
+import { useProfileStudio } from '@/components/profile-studio/ProfileStudioContext'
 
-/**
- * Redirect page that fetches the active profile and redirects to it
- * Used for navigation menu items that need to link to the active profile
- */
 export default function ActiveProfileRedirectPage() {
   const router = useRouter()
+  const { activeProfileId, versions, loading } = useProfileStudio()
+  const redirected = useRef(false)
 
   useEffect(() => {
-    const fetchAndRedirect = async () => {
-      try {
-        // Fetch active profile from API
-        const response = await fetch('/api/profile')
-        
-        if (!response.ok) {
-          // If no profile found or error, redirect to profile list page
-          router.push('/profile')
-          return
-        }
+    if (loading || redirected.current) return
 
-        const data = await response.json()
-        
-        if (data.profile?.id) {
-          // Redirect to the active profile detail page
-          router.push(`/profile/${data.profile.id}`)
-        } else {
-          // No active profile found, redirect to list page
-          router.push('/profile')
-        }
-      } catch (error) {
-        console.error('Error fetching active profile:', error)
-        // On error, redirect to list page
-        router.push('/profile')
-      }
+    if (activeProfileId) {
+      redirected.current = true
+      router.replace(`/profile/${activeProfileId}`)
+    } else if (versions[0]?.id) {
+      redirected.current = true
+      router.replace(`/profile/${versions[0].id}`)
+    } else {
+      redirected.current = true
+      router.replace('/profile/create')
     }
-
-    fetchAndRedirect()
-  }, [router])
+  }, [loading, activeProfileId, versions, router])
 
   return (
     <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
@@ -48,4 +31,3 @@ export default function ActiveProfileRedirectPage() {
     </Container>
   )
 }
-

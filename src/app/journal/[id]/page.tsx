@@ -6,6 +6,7 @@ import { Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero, Spi
 import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { SavedRecordings } from '@/components/SavedRecordings'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -42,7 +43,8 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
       const resolvedParams = await params
       setEntryId(resolvedParams.id)
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         router.push('/auth/login')
@@ -360,11 +362,11 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
   if (!entry) {
     return (
-      <>
+      <Container>
         <div className="text-center py-16">
           <div className="text-neutral-400">Entry not found</div>
         </div>
-      </>
+      </Container>
     )
   }
 
@@ -511,14 +513,21 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                   Categories
                 </Text>
                 <div className="flex flex-wrap gap-2">
-                  {entry.categories.map((category: string, index: number) => (
-                    <span
-                      key={index}
-                      className="text-sm bg-primary-500/20 text-primary-500 px-3 py-1 rounded-full"
-                    >
-                      {category}
-                    </span>
-                  ))}
+                  {entry.categories.map((categoryKey: string) => {
+                    const categoryInfo = VISION_CATEGORIES.find((c) => c.key === categoryKey)
+                    const CategoryIcon = categoryInfo?.icon
+                    return (
+                      <span
+                        key={categoryKey}
+                        className="inline-flex max-w-full items-center gap-1.5 truncate rounded-full border border-[#39FF14]/35 bg-[#39FF14]/10 px-2 py-1 text-xs text-[#39FF14]"
+                      >
+                        {CategoryIcon ? (
+                          <CategoryIcon className="h-3.5 w-3.5 shrink-0 text-[#39FF14]" aria-hidden />
+                        ) : null}
+                        <span className="truncate">{categoryInfo ? categoryInfo.label : categoryKey}</span>
+                      </span>
+                    )
+                  })}
                 </div>
               </section>
             )}

@@ -4,11 +4,6 @@ import React from 'react'
 import { Check, RefreshCw } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Button } from '../forms/Button'
-import { Badge } from '../badges/Badge'
-import { Grid } from '../layout/Grid'
-import { Card } from './Card'
-import { CategoryCard } from './CategoryCard'
-import type { LucideIcon } from 'lucide-react'
 
 interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   categories: ReadonlyArray<{
@@ -21,124 +16,248 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   refinedCategories?: string[]
   activeCategory?: string
   onCategoryClick?: (categoryKey: string) => void
-  layout?: '14-column' | '12-column'
   mode?: 'selection' | 'completion' | 'draft' | 'record'
   showSelectAll?: boolean
   onSelectAll?: () => void
   selectAllLabel?: string
-  variant?: 'default' | 'elevated' | 'outlined'
-  withCard?: boolean
+  /**
+   * Where to render the select-all control when `showSelectAll` is true.
+   * `above` = compact button row above the pills (recommended with `lifeVisionCategoryStrip`).
+   * Default: `above` when both `lifeVisionCategoryStrip` and `showSelectAll` are set; otherwise `inline` (All as first pill).
+   */
+  selectAllPlacement?: 'inline' | 'above'
   completionBadgeColor?: string
   refinementBadgeColor?: string
+  /** When truthy, shows a mobile-only centered Scroll to see all hint below the pills (value not shown). */
+  pillLabel?: string
+  getPillClassName?: (categoryKey: string) => string | undefined
+  fillWidth?: boolean
+  /** With fillWidth: on md+ use a 7-column grid so 14 pills become two rows (e.g. Life Vision record). */
+  twoLineDesktop?: boolean
+  /** When true (without fillWidth), pills keep natural width and wrap to multiple centered rows on md+ */
+  wrapOnDesktop?: boolean
+  /** Optional centered uppercase label rendered above the pills (stays inside parent padding, does not bleed). */
+  title?: string
+  /** Optional className applied to the pill row wrapper (not the title). Use to bleed the pill strip out of a padded card on mobile, e.g. "-mx-3 md:-mx-4". */
+  bleedClassName?: string
+  /** Brand green (#39FF14) icons; labels keep selected/unselected text colors (e.g. audio record Life Vision). */
+  brandGreenIcons?: boolean
+  /**
+   * Life Vision category pill preset: sets `fillWidth`, `twoLineDesktop`, and `brandGreenIcons` for the standard
+   * full-category strip (mobile horizontal scroll, desktop two rows of seven). Ignores `fillWidth`, `twoLineDesktop`,
+   * `brandGreenIcons`, and `wrapOnDesktop` when true.
+   */
+  lifeVisionCategoryStrip?: boolean
+  /** With `lifeVisionCategoryStrip` desktop grid: 6 or 7 columns (default 7). */
+  desktopColumnCount?: 6 | 7
+}
+
+const pillBase = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer'
+const pillSelected = 'bg-primary-500/20 border-primary-500/50 text-primary-400'
+const pillUnselected = 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
+const allPillUnselected = 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-500'
+
+/** Icon treatment when `lifeVisionCategoryStrip` / `brandGreenIcons` is on (matches interactive CategoryGrid). */
+export const categoryGridLifeVisionIconClassName = 'w-3.5 h-3.5 shrink-0 text-[#39FF14]'
+
+/**
+ * Read-only chip classes matching a **selected** pill from CategoryGrid (`lifeVisionCategoryStrip`).
+ * Use on dashboards/cards so vision tags match the picker styling.
+ */
+export function categoryGridReadOnlySelectedClassName(extra?: string) {
+  return cn(pillBase.replace(' cursor-pointer', ''), pillSelected, 'cursor-default max-w-full min-w-0', extra)
 }
 
 export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
-  ({ 
+  ({
     categories,
     selectedCategories = [],
     completedCategories = [],
     refinedCategories = [],
     activeCategory,
     onCategoryClick,
-    layout = '14-column',
     mode = 'selection',
     showSelectAll = false,
     onSelectAll,
     selectAllLabel,
-    variant = 'outlined',
-    withCard = true,
+    selectAllPlacement,
     completionBadgeColor = '#39FF14',
     refinementBadgeColor = '#FFFF00',
-    className = '',
+    pillLabel,
+    getPillClassName,
+    fillWidth = false,
+    twoLineDesktop = false,
+    wrapOnDesktop = false,
+    title,
+    bleedClassName,
+    brandGreenIcons = false,
+    lifeVisionCategoryStrip = false,
+    desktopColumnCount = 7,
+    className,
     ...props
   }, ref) => {
-    // Determine grid class based on layout
-    const gridClass = layout === '14-column'
-      ? 'grid grid-cols-4 md:grid-cols-7 lg:[grid-template-columns:repeat(14,minmax(0,1fr))] gap-1'
-      : 'grid grid-cols-4 md:grid-cols-12 gap-3'
+    const useFillWidth = lifeVisionCategoryStrip ? true : fillWidth
+    const useTwoLineDesktop = lifeVisionCategoryStrip ? true : twoLineDesktop
+    const useBrandGreenIcons = lifeVisionCategoryStrip ? true : brandGreenIcons
+    const useWrapOnDesktop = lifeVisionCategoryStrip ? false : wrapOnDesktop
 
-    // Calculate if all are selected for "Select All" button
+    const useSelectAllAbove =
+      selectAllPlacement === 'above' ||
+      (selectAllPlacement === undefined && lifeVisionCategoryStrip && showSelectAll)
+
     const allSelected = selectedCategories.length === categories.length
+    const hasBadges = mode !== 'selection'
+    const gridDesktop = useFillWidth && useTwoLineDesktop
 
-    const gridContent = (
-      <div ref={ref} {...props}>
-        {/* Optional Select All Button */}
-        {showSelectAll && onSelectAll && (
-          <div className="flex justify-center mb-4">
-            <Button
-              onClick={onSelectAll}
-              variant="ghost"
-              size="sm"
-            >
-              {selectAllLabel || (allSelected ? 'Deselect All' : 'Select All')}
-            </Button>
-          </div>
+    const selectAllText = selectAllLabel ?? (allSelected ? 'Deselect all' : 'Select all')
+
+    const pills = (
+      <>
+        {showSelectAll && onSelectAll && !useSelectAllAbove && (
+          <button
+            type="button"
+            onClick={onSelectAll}
+            className={cn(pillBase, 'shrink-0', hasBadges && 'mt-2 mr-0.5', allSelected ? pillSelected : allPillUnselected)}
+          >
+            {selectAllText}
+          </button>
         )}
 
-        {/* Category Grid */}
-        <div className={gridClass}>
-          {categories.map((category) => {
-            const isActive = activeCategory === category.key
-            const isSelected = isActive || selectedCategories.includes(category.key)
-            const isCompleted = completedCategories.includes(category.key)
-            const isRefined = refinedCategories.includes(category.key)
-            
-            // In 'record' mode: green check for completed, amber icon for refined-but-not-completed
-            const needsReRecord = mode === 'record' && isRefined && !isCompleted
-            const showBadge = 
-              (mode === 'completion' && isCompleted) || 
-              (mode === 'draft' && isRefined) ||
-              (mode === 'record' && (isCompleted || needsReRecord))
-            
-            const badgeColor = needsReRecord 
-              ? refinementBadgeColor 
-              : mode === 'draft' 
-                ? refinementBadgeColor 
-                : completionBadgeColor
+        {categories.map((category) => {
+          const CatIcon = category.icon
+          const isActive = activeCategory === category.key
+          const isSelected = isActive || selectedCategories.includes(category.key)
+          const isCompleted = completedCategories.includes(category.key)
+          const isRefined = refinedCategories.includes(category.key)
 
-            return (
-              <div key={category.key} className="relative">
-                {showBadge && (
-                  <div
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#333] border-2 flex items-center justify-center z-10"
-                    style={{ borderColor: badgeColor }}
-                  >
-                    {needsReRecord ? (
-                      <RefreshCw className="w-3 h-3" style={{ color: badgeColor }} strokeWidth={3} />
-                    ) : (
-                      <Check className="w-3 h-3" style={{ color: badgeColor }} strokeWidth={3} />
-                    )}
-                  </div>
+          const needsReRecord = mode === 'record' && isRefined && !isCompleted
+          const showBadge =
+            (mode === 'completion' && isCompleted) ||
+            (mode === 'draft' && isRefined) ||
+            (mode === 'record' && (isCompleted || needsReRecord))
+
+          const badgeColor = needsReRecord
+            ? refinementBadgeColor
+            : mode === 'draft'
+              ? refinementBadgeColor
+              : completionBadgeColor
+
+          const extraClass = getPillClassName?.(category.key)
+
+          return (
+            <div key={category.key} className={cn(
+              'relative',
+              useFillWidth
+                ? gridDesktop
+                  ? 'shrink-0 md:w-full md:min-w-0'
+                  : 'shrink-0 md:flex-1 md:min-w-0'
+                : 'shrink-0',
+              hasBadges && 'pt-2 pr-2',
+            )}>
+              {showBadge && (
+                <div
+                  className="absolute top-0 right-0 w-4 h-4 rounded-full bg-[#333] border-2 flex items-center justify-center z-10"
+                  style={{ borderColor: badgeColor }}
+                >
+                  {needsReRecord ? (
+                    <RefreshCw className="w-2.5 h-2.5" style={{ color: badgeColor }} strokeWidth={3} />
+                  ) : (
+                    <Check className="w-2.5 h-2.5" style={{ color: badgeColor }} strokeWidth={3} />
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => onCategoryClick?.(category.key)}
+                className={cn(
+                  pillBase,
+                  useFillWidth ? 'shrink-0 md:w-full md:justify-center' : 'shrink-0',
+                  isSelected ? pillSelected : pillUnselected,
+                  extraClass,
                 )}
-
-                <CategoryCard
-                  category={category}
-                  selected={isSelected}
-                  onClick={() => onCategoryClick?.(category.key)}
-                  variant={variant}
-                  selectionStyle="border"
-                  iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                  selectedIconColor="#39FF14"
-                  className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : ''}
+              >
+                <CatIcon
+                  className={cn(
+                    'w-3.5 h-3.5 shrink-0',
+                    useBrandGreenIcons && 'text-[#39FF14]',
+                    useBrandGreenIcons && !isSelected && 'opacity-[0.72]',
+                  )}
                 />
+                {useBrandGreenIcons ? (
+                  <span className={isSelected ? 'text-primary-400' : 'text-neutral-400'}>{category.label}</span>
+                ) : (
+                  category.label
+                )}
+              </button>
+            </div>
+          )
+        })}
+      </>
+    )
+
+    return (
+      /* min-w-0: flex/grid children default to min-width:auto — without this, min-w-max pills expand the whole page horizontally */
+      <div ref={ref} className={cn('min-w-0 w-full max-w-full', className)} {...props}>
+        {title ? (
+          <p className="mb-2 text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+            {title}
+          </p>
+        ) : null}
+
+        <div className={cn(bleedClassName)}>
+          {showSelectAll && onSelectAll && useSelectAllAbove && (
+            <div className="mb-2 flex justify-center max-md:px-4 md:px-0">
+              <Button
+                type="button"
+                variant={allSelected ? 'primary' : 'outline'}
+                size="sm"
+                onClick={onSelectAll}
+                className="!h-auto min-h-0 !px-3 !py-1.5 !text-xs font-medium antialiased shrink-0 md:!px-3 md:!py-1.5"
+              >
+                {selectAllText}
+              </Button>
+            </div>
+          )}
+
+          {useFillWidth ? (
+            /* Scrollport must be width-bounded so pills scroll inside the card, not grow the viewport */
+            <div className="scrollbar-hide w-full min-w-0 max-w-full max-md:overflow-x-auto md:overflow-visible">
+              <div
+                className={cn(
+                  'gap-2 pb-1 max-md:px-4 md:min-w-0 md:w-full md:px-0',
+                  gridDesktop
+                    ? cn(
+                        'flex min-w-max items-center max-md:overflow-x-auto md:grid md:gap-2',
+                        desktopColumnCount === 6 ? 'md:grid-cols-6' : 'md:grid-cols-7'
+                      )
+                    : 'flex min-w-max items-center md:flex-wrap md:justify-center',
+                )}
+              >
+                {pills}
               </div>
-            )
-          })}
+            </div>
+          ) : (
+            <div
+              className={cn(
+                'flex w-full min-w-0 max-w-full items-center gap-2 pb-1 scrollbar-hide overflow-x-auto px-4 md:px-0',
+                useWrapOnDesktop
+                  ? 'md:overflow-x-visible md:flex-wrap md:justify-center'
+                  : 'md:justify-center',
+              )}
+            >
+              {pills}
+            </div>
+          )}
+
+          {pillLabel ? (
+            <p className="mt-2 text-center text-[10px] text-neutral-600 md:hidden">
+              Scroll to see all <span aria-hidden="true">&rarr;</span>
+            </p>
+          ) : null}
         </div>
       </div>
     )
-
-    // Optionally wrap in Card
-    if (withCard) {
-      return (
-        <Card className={cn('p-4', className)}>
-          {gridContent}
-        </Card>
-      )
-    }
-
-    return gridContent
   }
 )
 CategoryGrid.displayName = 'CategoryGrid'
-

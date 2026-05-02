@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, PageHero, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { CategoryGrid } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { CheckCircle, Headphones, Mic, Wand2, Clock, AudioLines, ListMusic, Eye, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
@@ -88,11 +89,10 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
     
     setVision(v)
 
-    // Extract refined categories (sections whose text changed from parent version)
+    // Sections whose text changed (vs baseline); we'll only show re-record UX if there was already a voice track for this vision.
     let refined: string[] = Array.isArray(v?.refined_categories)
       ? v.refined_categories
       : []
-    setRefinedCategories(refined)
 
     // Check for existing "Personal Recording" audio set
     const { data: existingSet } = await supabase
@@ -103,6 +103,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
       .maybeSingle()
 
     let recordingMap = new Map()
+    const sectionsWithPriorRecording = new Set<string>()
     
     if (existingSet) {
       setAudioSetId(existingSet.id)
@@ -121,6 +122,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           if (track.section_key === 'full') {
             fullTrackExists = true
           } else {
+            sectionsWithPriorRecording.add(track.section_key)
             recordingMap.set(track.section_key, {
               url: track.audio_url,
               duration: track.duration_seconds || 0
@@ -132,6 +134,8 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         setHasFullTrack(fullTrackExists)
       }
     }
+
+    refined = refined.filter(key => sectionsWithPriorRecording.has(key))
 
     // Recovery: if no personal recordings on this vision, look for them on previous versions
     if (recordingMap.size === 0 && user && v) {
@@ -229,7 +233,6 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
                 // If we detected changed sections, surface them as needing re-recording
                 if (changedSections.length > 0 && refined.length === 0) {
                   refined = changedSections
-                  setRefinedCategories(changedSections)
                 }
 
                 setRecordings(new Map(recordingMap))
@@ -242,6 +245,8 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
         console.warn('Personal recording recovery failed (non-blocking):', recoveryErr)
       }
     }
+
+    setRefinedCategories(refined)
     
     // Auto-select: prioritize sections needing re-recording, then first incomplete
     const firstNeedsReRecord = refined.length > 0
@@ -372,6 +377,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
             voice_recording_completed_at: new Date().toISOString()
           })
           .eq('intensive_id', intensiveId)
+        invalidateIntensiveSnapshot()
         setShowStepCompleteModal(true)
       }
 
@@ -622,10 +628,8 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
           completedCategories={Array.from(recordings.keys())}
           refinedCategories={refinedCategories}
           onCategoryClick={(key) => setActiveSection(key)}
-          layout="14-column"
           mode={refinedCategories.length > 0 ? 'record' : 'completion'}
-          variant="outlined"
-          withCard={true}
+          lifeVisionCategoryStrip
         />
       </div>
 

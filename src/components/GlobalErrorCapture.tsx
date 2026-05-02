@@ -6,6 +6,15 @@ import { logClientError } from '@/lib/logger/client'
 
 const LOG_PREFIX = '[VibrationFit Global Error]'
 
+function isBenignMediaRejection(reason: unknown): boolean {
+  if (reason == null || typeof reason !== 'object') return false
+  const name = (reason as DOMException).name ?? (reason as Error).name
+  if (name !== 'AbortError') return false
+  const msg = String((reason as Error).message ?? '')
+  // Common when a play() is interrupted by pause/seek/navigation (see goo.gl/LdLk22)
+  return /play\(\) request was interrupted|The operation was aborted/i.test(msg)
+}
+
 /** Last captured error for debugging (e.g. in console or copy-paste) */
 let lastGlobalError: { message: string; stack?: string; type: string } | null = null
 
@@ -32,6 +41,10 @@ export function GlobalErrorCapture() {
     }
 
     const handleRejection = (event: PromiseRejectionEvent) => {
+      if (isBenignMediaRejection(event.reason)) {
+        event.preventDefault()
+        return
+      }
       const err = event.reason
       const message = err?.message ?? (typeof err === 'string' ? err : 'Unhandled promise rejection')
       const detail = err?.stack

@@ -23,6 +23,7 @@ import {
 import { userNavigation, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 interface SidebarProps {
   className?: string
@@ -229,12 +230,18 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-neutral-700 animate-pulse flex-shrink-0" />
             ) : (
-              <img
+              <ProfilePictureClickable
                 src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
                 alt={profile?.first_name || 'Profile'}
-                className="w-8 h-8 rounded-full object-cover border-2 border-primary-500 flex-shrink-0"
-                loading="eager"
-              />
+                className="h-8 w-8 shrink-0 rounded-full"
+              >
+                <img
+                  src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+                  alt=""
+                  className="h-8 w-8 rounded-full border-2 border-primary-500 object-cover"
+                  loading="eager"
+                />
+              </ProfilePictureClickable>
             )}
             {loading ? (
               <div className="w-24 h-4 bg-neutral-700 rounded animate-pulse" />
@@ -288,9 +295,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       {/* Navigation */}
       <nav className="flex-1 min-h-0 p-4 space-y-2 overflow-y-auto">
         {navigation.map((item) => {
-          const itemHref = item.name === 'Audio' && activeVisionId 
-            ? `/life-vision/${activeVisionId}/audio/sets`
-            : item.href
+          const itemHref = item.href
           
           const isActive = isNavItemActive(item, pathname, profile?.id)
           const isExpanded = expandedItems.includes(item.name)
@@ -538,7 +543,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       {/* Mobile Sidebar */}
       <aside
         className={cn(
-          'md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-900 border-r border-neutral-800 z-50',
+          'md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-800 border-r border-neutral-800 z-50',
           'transform transition-transform duration-300',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
@@ -548,7 +553,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
 
       {/* Desktop Sidebar */}
       <div className={cn(
-        'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300',
+        'hidden md:flex flex-col bg-neutral-800 border-r border-neutral-800 transition-all duration-300',
         collapsed ? 'w-16' : 'w-64',
         className
       )}>
@@ -616,17 +621,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
     fetchActiveVision()
   }, [])
   
-  // Use centralized mobile navigation and resolve dynamic Audio link
   const mobileNavItems = mobileNavigation.map(item => {
-    // Dynamically resolve Audio link to active vision's audio sets page
-    if (item.name === 'Audio' && activeVisionId) {
-      return {
-        ...item,
-        href: `/life-vision/${activeVisionId}/audio/sets`,
-        isAction: false,
-      }
-    }
-    
     return {
       ...item,
       isAction: item.href === '#', // "More" button is an action
@@ -832,7 +827,7 @@ export function SidebarLayout({ children, className, isAdmin = false }: SidebarL
       ) : (
         <UserSidebar className={className} />
       )}
-      <main className={cn('flex-1 overflow-auto min-h-0', className)}>
+      <main className={cn('min-w-0 flex-1 overflow-auto min-h-0', className)}>
         <div className="w-full">
           {children}
         </div>

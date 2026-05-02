@@ -2,12 +2,13 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Button, CategoryCard, PageHero, Container, Stack, Spinner, DeleteConfirmationDialog, ImageLightbox } from '@/lib/design-system'
+import { Card, Button, CategoryGrid, Container, Stack, Spinner, DeleteConfirmationDialog, ImageLightbox } from '@/lib/design-system'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import { Plus, FileText, ChevronDown, Filter, BookOpen, Flame, Shield, Search, X, Edit, Trash2, ImageOff, Play } from 'lucide-react'
+import { JournalEditModal, type JournalEditEntry } from '@/components/journal'
 import { useEffect, useState, useRef, useMemo } from 'react'
 
 function JournalImage({ src, alt, className, onClick, loading }: {
@@ -49,14 +50,9 @@ interface JournalEntry {
   image_urls: string[]
   thumbnail_urls?: string[]
   audio_recordings: any[]
+  journal_tag?: string | null
   created_at: string
   updated_at: string
-}
-
-function truncate(text: string, length = 140) {
-  if (!text) return ''
-  if (text.length <= length) return text
-  return `${text.slice(0, length - 1)}…`
 }
 
 const isVideo = (url: string) => {
@@ -66,6 +62,85 @@ const isVideo = (url: string) => {
 const isImageUrl = (url: string) => {
   const ext = url.split('.').pop()?.toLowerCase()
   return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')
+}
+
+function JournalPracticeStatsRow({
+  practiceStats,
+  totalEntries,
+  statsExpanded,
+  setStatsExpanded,
+  freezeOpen,
+  setFreezeOpen,
+  freezeRef,
+}: {
+  practiceStats: ReturnType<typeof useAreaStats>['stats']
+  totalEntries: number
+  statsExpanded: boolean
+  setStatsExpanded: React.Dispatch<React.SetStateAction<boolean>>
+  freezeOpen: boolean
+  setFreezeOpen: React.Dispatch<React.SetStateAction<boolean>>
+  freezeRef: React.RefObject<HTMLDivElement | null>
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2 flex-wrap text-[11px] leading-none">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        <Flame className={`w-3 h-3 ${(practiceStats?.currentStreak ?? 0) >= 1 ? 'text-orange-400' : 'text-orange-400/40'}`} />
+        {practiceStats?.currentStreak ?? 0}
+        <span className="text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
+        <span className="relative ml-0.5" ref={freezeRef}>
+          <button
+            type="button"
+            onClick={() => setFreezeOpen(prev => !prev)}
+            className="inline-flex items-center"
+            aria-label="Streak freeze info"
+          >
+            <Shield className={`w-3 h-3 ${
+              practiceStats?.streakFreezeUsedThisWeek
+                ? 'text-blue-500/40'
+                : practiceStats?.streakFreezeAvailable
+                  ? 'text-blue-400'
+                  : 'text-blue-400/40'
+            }`} />
+          </button>
+          <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[400] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+            <p className="text-sm font-semibold text-blue-400 mb-1">
+              Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : practiceStats?.streakFreezeAvailable ? 'Available' : 'Not available yet'})</span>
+            </p>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              {practiceStats?.streakFreezeUsedThisWeek
+                ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
+                : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day does not wipe out your progress.'}
+            </p>
+          </div>
+        </span>
+      </span>
+      <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        {practiceStats?.countLast7 ?? 0}<span className="text-neutral-500 ml-1">/7 week</span>
+      </span>
+      <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+        {practiceStats?.countLast30 ?? 0}<span className="text-neutral-500 ml-1">/30 month</span>
+      </span>
+      {statsExpanded && (
+        <>
+          <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+            {(practiceStats?.countAllTime ?? 0).toLocaleString()} <span className="text-neutral-500 ml-1">total days</span>
+          </span>
+          <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-white font-medium">
+            {totalEntries.toLocaleString()} <span className="text-neutral-500 ml-1">entries</span>
+          </span>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={() => setStatsExpanded(prev => !prev)}
+        className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1.5 text-neutral-400 hover:text-neutral-300 transition-colors"
+        aria-expanded={statsExpanded}
+      >
+        {statsExpanded ? 'Less' : 'More'}
+        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
+      </button>
+    </div>
+  )
 }
 
 export default function JournalPage() {
@@ -91,6 +166,7 @@ export default function JournalPage() {
   const [lightboxImages, setLightboxImages] = useState<{ url: string; alt?: string }[]>([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [editEntry, setEditEntry] = useState<JournalEntry | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const freezeRef = useRef<HTMLDivElement>(null)
 
@@ -118,7 +194,8 @@ export default function JournalPage() {
       }
 
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         router.push('/auth/login')
@@ -173,6 +250,26 @@ export default function JournalPage() {
       }, 100)
     }
   }, [searchParams, entries.length, router])
+
+  const handleEditSuccess = async () => {
+    if (!user || !editEntry) return
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .eq('id', editEntry.id)
+      .single()
+    if (data) {
+      setEntries((prev) => {
+        const i = prev.findIndex((e) => e.id === data.id)
+        if (i < 0) return prev
+        const next = [...prev]
+        next[i] = data as JournalEntry
+        return next
+      })
+    }
+    setExpandedId(editEntry.id)
+  }
 
   const handleDelete = async (entryId: string) => {
     if (!user) return
@@ -258,99 +355,18 @@ export default function JournalPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="Conscious Creation Journal"
-          subtitle="Capture evidence of actualization in real time"
-        >
-          <div className="flex justify-center">
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Link href="/journal/new">
-                <Plus className="w-4 h-4 shrink-0" />
-                <span>New Entry</span>
-              </Link>
-            </Button>
-          </div>
-        </PageHero>
-
-        {/* Journal Stats */}
-        <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#FFFF00]/[0.04] via-[#111] to-[#111]">
-          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_rgba(255,255,0,0.08)_0%,_transparent_50%)] pointer-events-none" />
-          <div className="relative p-5 md:p-6">
-            <div className="flex items-center justify-center gap-2.5 mb-4">
-              <BookOpen className="w-4 h-4 text-[#FFFF00]" />
-              <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Journal</h3>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Current Streak</p>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-white font-semibold text-lg leading-none flex items-center gap-1.5">
-                    {(practiceStats?.currentStreak ?? 0) >= 1 && <Flame className="w-4 h-4 text-orange-400" />}
-                    {practiceStats?.currentStreak ?? 0}
-                    <span className="font-normal text-neutral-500">{(practiceStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}</span>
-                  </p>
-                  {(practiceStats?.streakFreezeAvailable || practiceStats?.streakFreezeUsedThisWeek) && (
-                    <div className="relative ml-auto flex items-center" ref={freezeRef}>
-                      <button type="button" className="flex items-center" onClick={() => setFreezeOpen(prev => !prev)}>
-                        <Shield className={`w-3.5 h-3.5 cursor-help ${practiceStats?.streakFreezeUsedThisWeek ? 'text-blue-500/40' : 'text-blue-400'}`} />
-                      </button>
-                      <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                        <p className="text-sm font-semibold text-blue-400 mb-1">
-                          Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : 'Available'})</span>
-                        </p>
-                        <p className="text-xs text-neutral-400 leading-relaxed">
-                          {practiceStats?.streakFreezeUsedThisWeek
-                            ? 'Your streak was saved this week. You get 1 free grace day per week for each habit.'
-                            : 'You get 1 free grace day per week. If you miss a day, your streak stays alive so one off-day doesn\'t wipe out your progress.'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3">
-                <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">Reps this Week</p>
-                <p className="text-white font-semibold text-lg leading-none">{practiceStats?.countLast7 ?? 0}<span className="font-normal text-neutral-500">/7</span></p>
-              </div>
-
-              {[
-                {
-                  label: 'Reps this Month',
-                  value: <>{practiceStats?.countLast30 ?? 0}<span className="font-normal text-neutral-500">/30</span></>,
-                },
-                {
-                  label: 'Total Rep Days',
-                  value: (practiceStats?.countAllTime ?? 0).toLocaleString(),
-                },
-                { label: 'Total Entries', value: totalEntries.toLocaleString() },
-              ].map((stat) => (
-                <div key={stat.label} className={`rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-3 ${statsExpanded ? '' : 'hidden'} sm:block`}>
-                  <p className="text-neutral-500 text-[11px] leading-tight mb-1.5">{stat.label}</p>
-                  <p className="text-white font-semibold text-lg leading-none">{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setStatsExpanded(prev => !prev)}
-              className="flex items-center justify-center gap-1.5 w-full mt-3 py-1.5 text-xs text-neutral-400 hover:text-neutral-300 transition-colors sm:hidden"
-            >
-              {statsExpanded ? 'Show less' : 'View all stats'}
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${statsExpanded ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-        </div>
-
         {/* Action Bar */}
         <div className="space-y-3">
+          <JournalPracticeStatsRow
+            practiceStats={practiceStats}
+            totalEntries={totalEntries}
+            statsExpanded={statsExpanded}
+            setStatsExpanded={setStatsExpanded}
+            freezeOpen={freezeOpen}
+            setFreezeOpen={setFreezeOpen}
+            freezeRef={freezeRef}
+          />
+
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-start gap-2">
               <button
@@ -434,33 +450,22 @@ export default function JournalPage() {
                   {selectedCategories.includes('all') ? 'Deselect All' : 'Select All'}
                 </Button>
               </div>
-              <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                  const isSelected = selectedCategories.includes(category.key) || selectedCategories.includes('all')
-                  return (
-                    <CategoryCard
-                      key={category.key}
-                      category={category}
-                      selected={isSelected}
-                      onClick={() => {
-                        if (selectedCategories.includes(category.key)) {
-                          setSelectedCategories(prev => prev.filter(cat => cat !== category.key))
-                        } else {
-                          setSelectedCategories(prev => {
-                            const filtered = prev.filter(cat => cat !== 'all')
-                            return [...filtered, category.key]
-                          })
-                        }
-                      }}
-                      variant="outlined"
-                      selectionStyle="border"
-                      iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                      selectedIconColor="#39FF14"
-                      className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                    />
-                  )
-                })}
-              </div>
+              <CategoryGrid
+                categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
+                selectedCategories={selectedCategories.includes('all') ? VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key) : selectedCategories}
+                onCategoryClick={(key) => {
+                  if (selectedCategories.includes(key)) {
+                    setSelectedCategories(prev => prev.filter(cat => cat !== key))
+                  } else {
+                    setSelectedCategories(prev => {
+                      const filtered = prev.filter(cat => cat !== 'all')
+                      return [...filtered, key]
+                    })
+                  }
+                }}
+                lifeVisionCategoryStrip
+                desktopColumnCount={6}
+              />
             </Card>
           </div>
         )}
@@ -489,7 +494,7 @@ export default function JournalPage() {
                 >
                   <div className="px-4 py-3.5 md:px-5 md:py-4">
                     {!isExpanded ? (
-                      <div className="flex items-center gap-4">
+                      <div className="flex w-full min-w-0 items-center gap-4">
                         <div className="flex-shrink-0 w-11 text-center">
                           <p className="text-[10px] uppercase tracking-wider text-neutral-500 leading-none">{weekday}</p>
                           <p className="text-xl font-semibold text-white leading-tight">{dayNum}</p>
@@ -498,10 +503,10 @@ export default function JournalPage() {
 
                         <div className="flex-1 min-w-0">
                           {entry.title && (
-                            <p className="text-sm font-medium text-white truncate mb-0.5">{entry.title}</p>
+                            <p className="text-base font-medium text-white truncate mb-0.5">{entry.title}</p>
                           )}
-                          <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line line-clamp-2 md:line-clamp-1">
-                            {truncate(entry.content, 140)}
+                          <p className="w-full min-w-0 text-[13px] text-neutral-300 leading-relaxed line-clamp-2 md:line-clamp-1">
+                            {entry.content || '\u2014'}
                           </p>
                         </div>
 
@@ -520,33 +525,55 @@ export default function JournalPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between mb-4">
-                          <p className="text-sm font-medium text-white">
-                            {dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                          <div className="flex items-center gap-3">
+                      <div className="animate-in fade-in duration-200 space-y-5">
+                        <div className="flex items-start justify-between gap-2 border-b border-[#252525] pb-2">
+                          <time className="text-sm font-medium text-white" dateTime={dateStr}>
+                            {dateObj.toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </time>
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); setDeleteConfirmId(entry.id) }}
-                              className="text-red-500 hover:text-red-400 transition-colors"
+                              type="button"
+                              className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-500/10"
                               aria-label="Delete entry"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteConfirmId(entry.id)
+                              }}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); router.push(`/journal/${entry.id}/edit`) }}
-                              className="text-neutral-500 hover:text-white transition-colors"
+                              type="button"
+                              className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/10 hover:text-white"
                               aria-label="Edit entry"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditEntry(entry)
+                              }}
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="h-4 w-4" />
                             </button>
-                            <ChevronDown className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-all duration-200 rotate-180 flex-shrink-0" />
+                            <button
+                              type="button"
+                              className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/10 hover:text-white"
+                              aria-label="Collapse"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setExpandedId(null)
+                              }}
+                            >
+                              <ChevronDown className="h-4 w-4 rotate-180" />
+                            </button>
                           </div>
                         </div>
 
-                        <div className="space-y-5">
                           {entry.title && (
-                            <h3 className="text-base md:text-lg font-semibold text-white">{entry.title}</h3>
+                            <h3 className="text-base font-medium text-white">{entry.title}</h3>
                           )}
 
                           <section className="space-y-2">
@@ -562,12 +589,16 @@ export default function JournalPage() {
                               <div className="flex flex-wrap gap-2">
                                 {entry.categories.map((categoryKey: string) => {
                                   const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                                  const CategoryIcon = categoryInfo?.icon
                                   return (
                                     <span
                                       key={categoryKey}
-                                      className="text-xs bg-primary-500/20 text-primary-500 px-2.5 py-1 rounded-full"
+                                      className="inline-flex max-w-full items-center gap-1.5 truncate rounded-full border border-[#39FF14]/35 bg-[#39FF14]/10 px-2 py-1 text-xs text-[#39FF14]"
                                     >
-                                      {categoryInfo ? categoryInfo.label : categoryKey}
+                                      {CategoryIcon ? (
+                                        <CategoryIcon className="h-3.5 w-3.5 shrink-0 text-[#39FF14]" aria-hidden />
+                                      ) : null}
+                                      <span className="truncate">{categoryInfo ? categoryInfo.label : categoryKey}</span>
                                     </span>
                                   )
                                 })}
@@ -614,7 +645,6 @@ export default function JournalPage() {
                               </div>
                             </section>
                           )}
-                        </div>
                       </div>
                     )}
                   </div>
@@ -687,6 +717,13 @@ export default function JournalPage() {
           onNavigate={setLightboxIndex}
           showCopyButton={false}
           showCounter={true}
+        />
+
+        <JournalEditModal
+          isOpen={editEntry !== null}
+          entry={editEntry as JournalEditEntry}
+          onClose={() => setEditEntry(null)}
+          onSuccess={handleEditSuccess}
         />
       </Stack>
     </Container>

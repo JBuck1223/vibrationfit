@@ -27,7 +27,7 @@ import {
   Info,
 } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
-import { type AreaBarTab, type AreaBarPill, type ContextOption } from '@/components/area-studio'
+import { type AreaBarTab, type AreaBarPill, type ContextOption } from '@/lib/design-system/components'
 
 // ─── Area configurations ───
 
@@ -292,7 +292,7 @@ function AreaBarDemo({ config }: { config: AreaConfig }) {
       </div>
 
       {/* ═══ DESKTOP DEMO (md and up) ═══ */}
-      <div className="hidden md:block rounded-2xl border border-neutral-800 bg-[#0A0A0A] overflow-hidden">
+      <div className="hidden md:block rounded-2xl border border-neutral-800 bg-neutral-850 overflow-hidden">
         <div className="relative px-6 pt-4 pb-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 flex-shrink-0">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { 
   ArrowLeft, 
   ArrowRight,
@@ -270,6 +271,8 @@ export default function IntensiveCalibration() {
         meeting_link: meetingLink
       } : null)
 
+      invalidateIntensiveSnapshot()
+
     } catch (error) {
       console.error('Error scheduling calibration:', error)
     } finally {
@@ -307,6 +310,7 @@ export default function IntensiveCalibration() {
         .eq('intensive_id', intensiveId!)
 
       // Redirect to activation
+      invalidateIntensiveSnapshot()
       router.push('/intensive/activate')
 
     } catch (error) {

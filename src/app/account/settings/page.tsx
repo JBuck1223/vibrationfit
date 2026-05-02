@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import { IntensiveCompletionBanner } from '@/lib/design-system/components'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 
 // Default profile picture URL to check against
 const DEFAULT_PROFILE_PICTURE = 'https://media.vibrationfit.com/site-assets/default-avatar.png'
@@ -135,6 +136,7 @@ export default function AccountSettingsPage() {
       if (error) {
         console.error('Error marking intensive settings complete:', error)
       } else {
+        invalidateIntensiveSnapshot()
         setJustCompletedStep(true)
         setShowStepCompleteModal(true)
       }

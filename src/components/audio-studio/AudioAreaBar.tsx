@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import Link from 'next/link'
 import {
-  Headphones, Wand2, ListMusic, Library,
-  Target, BookOpen, Music2, ChevronDown, Check, Search,
-  Image, Lightbulb, Clock, FileText, AudioLines, Mic, Music,
+  Headphones, Wand2,
+  Target, Library, Music2,
+  AudioLines, Mic, Sliders, Clock,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar } from '@/components/area-studio'
+import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAudioStudio } from './AudioStudioContext'
 
 const TABS = [
@@ -21,7 +19,7 @@ const CREATE_AREA_ROUTES = ['/audio/create', '/audio/generate', '/audio/mix', '/
 const SECONDARY_TABS = [
   { label: 'Generate', path: '/audio/generate', icon: AudioLines },
   { label: 'Record', path: '/audio/record', icon: Mic },
-  { label: 'Mix', path: '/audio/mix', icon: Music },
+  { label: 'Mix', path: '/audio/mix', icon: Sliders },
   { label: 'Queue', path: '/audio/queue', icon: Clock },
 ]
 
@@ -31,244 +29,139 @@ const CONTENT_TYPES = [
   { value: 'music', label: 'Music', icon: Music2 },
 ]
 
-const BTN = 'w-full h-9 md:h-8 px-3 rounded-xl md:rounded-lg bg-neutral-900/80 md:bg-black/40 border border-neutral-700/50 hover:border-neutral-600 active:bg-neutral-800 transition-colors flex items-center gap-2.5 text-left'
+const LISTEN_CONTENT_SUBTEXT: Record<string, string> = {
+  'life-vision': 'Play your Life Vision audio sets and voice recordings.',
+  'stories': 'Play narrated audio from your completed stories.',
+  'music': 'Stream VibrationFit original music on your favorite platform.',
+}
 
-function useClickOutside(ref: React.RefObject<HTMLDivElement | null>, onClose: () => void, active: boolean) {
-  useEffect(() => {
-    if (!active) return
-    function handler(e: MouseEvent | TouchEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener('mousedown', handler)
-    document.addEventListener('touchstart', handler)
-    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler) }
-  }, [active, ref, onClose])
+const CREATE_TOOL_SUBTEXT: Record<string, string> = {
+  '/audio/generate':
+    'Generate VIVA narration of your Life Vision or Story.',
+  '/audio/record':
+    'Read your Life Vision or Story aloud and create a personal voice recording.',
+  '/audio/mix':
+    'Add background music and binaural beats to your existing voice tracks.',
+  '/audio/queue':
+    'Track the progress of your audio generation and mixing jobs.',
 }
 
 const SOURCE_FILTERS = [
   { label: 'All Types', value: 'all', icon: Library },
   { label: 'Life Vision', value: 'life_vision', icon: Target },
-  { label: 'Vision Board', value: 'vision_board_item', icon: Image },
-  { label: 'Journal', value: 'journal_entry', icon: BookOpen },
-  { label: 'Custom', value: 'custom', icon: Lightbulb },
+  { label: 'Vision Board', value: 'vision_board_item' },
+  { label: 'Journal', value: 'journal_entry' },
+  { label: 'Custom', value: 'custom' },
 ]
 
-function ListenFilterBar() {
+export function AudioAreaBar() {
+  const pathname = usePathname()
   const {
     listenContentType, setListenContentType,
     listenStoryFilter, setListenStoryFilter,
     vision, allVisions, switchVision,
     storiesWithAudio,
+    activeBatchCount,
   } = useAudioStudio()
-
-  const [contentTypeOpen, setContentTypeOpen] = useState(false)
-  const [secondaryOpen, setSecondaryOpen] = useState(false)
-  const contentTypeRef = useRef<HTMLDivElement>(null)
-  const secondaryRef = useRef<HTMLDivElement>(null)
-
-  const closeContentType = useCallback(() => setContentTypeOpen(false), [])
-  const closeSecondary = useCallback(() => setSecondaryOpen(false), [])
-  useClickOutside(contentTypeRef, closeContentType, contentTypeOpen)
-  useClickOutside(secondaryRef, closeSecondary, secondaryOpen)
-
-  const closeAll = () => { setContentTypeOpen(false); setSecondaryOpen(false) }
-
-  const activeContentObj = CONTENT_TYPES.find(c => c.value === listenContentType) || CONTENT_TYPES[0]
-  const ActiveContentIcon = activeContentObj.icon
-
-  const currentVisionLabel = vision
-    ? `Version ${vision.version_number}`
-    : 'Select Vision'
-
-  const activeSourceObj = SOURCE_FILTERS.find(f => f.value === listenStoryFilter) || SOURCE_FILTERS[0]
-  const ActiveSourceIcon = activeSourceObj.icon
-
-  const filteredByType = listenStoryFilter === 'all'
-    ? storiesWithAudio
-    : storiesWithAudio.filter(s => s.entity_type === listenStoryFilter)
-
-  return (
-    <div className="flex flex-col gap-2 w-full md:flex-row md:items-center md:max-w-2xl md:mx-auto">
-      {/* Content type dropdown */}
-      <div className="relative md:flex-1 md:min-w-0" ref={contentTypeRef}>
-        <button
-          type="button"
-          onClick={() => { setContentTypeOpen(prev => !prev); setSecondaryOpen(false) }}
-          className={BTN}
-        >
-          <ActiveContentIcon className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />
-          <span className="text-xs text-white font-medium flex-1">{activeContentObj.label}</span>
-          <ChevronDown className={`w-3.5 h-3.5 md:w-3 md:h-3 text-neutral-400 transition-transform flex-shrink-0 ${contentTypeOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {contentTypeOpen && (
-          <div className="absolute z-50 right-0 left-0 mt-1.5 py-1 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl">
-            {CONTENT_TYPES.map(ct => {
-              const Icon = ct.icon
-              const isActive = listenContentType === ct.value
-              return (
-                <button
-                  key={ct.value}
-                  type="button"
-                  onClick={() => { setListenContentType(ct.value); closeAll() }}
-                  className={`w-full px-3.5 py-2.5 md:px-3 md:py-2 flex items-center gap-2.5 text-left transition-colors ${isActive ? 'bg-[#39FF14]/10' : 'hover:bg-neutral-800 active:bg-neutral-800'}`}
-                >
-                  <Icon className={`w-4 h-4 md:w-3.5 md:h-3.5 flex-shrink-0 ${isActive ? 'text-[#39FF14]' : 'text-neutral-500'}`} />
-                  <span className={`text-sm md:text-xs font-medium flex-1 ${isActive ? 'text-white' : 'text-neutral-300'}`}>{ct.label}</span>
-                  {isActive && <Check className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Vision version dropdown */}
-      {listenContentType === 'life-vision' && allVisions.length > 1 && (
-        <div className="relative md:flex-1 md:min-w-0" ref={secondaryRef}>
-          <button
-            type="button"
-            onClick={() => { setSecondaryOpen(prev => !prev); setContentTypeOpen(false) }}
-            className={BTN}
-          >
-            <span className="text-xs text-white font-medium flex-1 truncate">{currentVisionLabel}</span>
-            {vision?.is_active && (
-              <span className="text-[10px] font-semibold text-[#39FF14] bg-[#39FF14]/10 px-1.5 py-0.5 rounded flex-shrink-0">Active</span>
-            )}
-            <ChevronDown className={`w-3.5 h-3.5 md:w-3 md:h-3 text-neutral-400 transition-transform flex-shrink-0 ${secondaryOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {secondaryOpen && (
-            <div className="absolute z-50 right-0 left-0 mt-1.5 py-1 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
-              {allVisions.map(v => {
-                const isSelected = v.id === vision?.id
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => { switchVision(v.id); setSecondaryOpen(false) }}
-                    className={`w-full px-3.5 py-2.5 md:px-3 md:py-2 flex items-center gap-2.5 text-left transition-colors ${isSelected ? 'bg-[#39FF14]/10' : 'hover:bg-neutral-800 active:bg-neutral-800'}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm md:text-xs font-medium ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
-                        Version {v.version_number}
-                      </p>
-                      <p className="text-[10px] text-neutral-500">
-                        {new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </p>
-                    </div>
-                    {v.is_active && (
-                      <span className="text-[10px] font-semibold text-[#39FF14] bg-[#39FF14]/10 px-1.5 py-0.5 rounded flex-shrink-0">Active</span>
-                    )}
-                    {isSelected && <Check className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Story source type filter (when Stories selected) */}
-      {listenContentType === 'stories' && (
-        <div className="relative md:flex-1 md:min-w-0" ref={secondaryRef}>
-          <button
-            type="button"
-            onClick={() => { setSecondaryOpen(prev => !prev); setContentTypeOpen(false) }}
-            className={BTN}
-          >
-            <ActiveSourceIcon className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />
-            <span className="text-xs text-white font-medium flex-1">{activeSourceObj.label}</span>
-            <span className="text-[10px] text-neutral-500 flex-shrink-0">{filteredByType.length}</span>
-            <ChevronDown className={`w-3.5 h-3.5 md:w-3 md:h-3 text-neutral-400 transition-transform flex-shrink-0 ${secondaryOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          {secondaryOpen && (
-            <div className="absolute z-50 right-0 left-0 mt-1.5 py-1 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl">
-              {SOURCE_FILTERS.map(filter => {
-                const Icon = filter.icon
-                const isActive = listenStoryFilter === filter.value
-                const count = filter.value === 'all' ? storiesWithAudio.length : storiesWithAudio.filter(s => s.entity_type === filter.value).length
-                return (
-                  <button
-                    key={filter.value}
-                    type="button"
-                    onClick={() => { setListenStoryFilter(filter.value); setSecondaryOpen(false) }}
-                    className={`w-full px-3.5 py-2.5 md:px-3 md:py-2 flex items-center gap-2.5 text-left transition-colors ${isActive ? 'bg-[#39FF14]/10' : 'hover:bg-neutral-800 active:bg-neutral-800'}`}
-                  >
-                    <Icon className={`w-4 h-4 md:w-3.5 md:h-3.5 flex-shrink-0 ${isActive ? 'text-[#39FF14]' : 'text-neutral-500'}`} />
-                    <span className={`text-sm md:text-xs font-medium flex-1 ${isActive ? 'text-white' : 'text-neutral-300'}`}>{filter.label}</span>
-                    <span className="text-xs md:text-[10px] text-neutral-500">{count}</span>
-                    {isActive && <Check className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-    </div>
-  )
-}
-
-function CreateSecondaryNav() {
-  const pathname = usePathname()
-  const { activeBatchCount } = useAudioStudio()
-
-  return (
-    <div className="flex items-center justify-center gap-1 p-1 rounded-xl bg-neutral-900/60 mx-auto">
-      {SECONDARY_TABS.map(tab => {
-        const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
-        const TabIcon = tab.icon
-        const isQueue = tab.path === '/audio/queue'
-        return (
-          <Link
-            key={tab.path}
-            href={tab.path}
-            className={`flex items-center gap-1.5 px-3 md:px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              isActive
-                ? 'bg-primary-500/20 text-primary-500'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-            }`}
-          >
-            <TabIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{tab.label}</span>
-            {isQueue && activeBatchCount > 0 && (
-              <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#39FF14] text-black text-[9px] font-bold">
-                {activeBatchCount}
-              </span>
-            )}
-          </Link>
-        )
-      })}
-    </div>
-  )
-}
-
-export function AudioAreaBar() {
-  const pathname = usePathname()
 
   const isListen = pathname === '/audio' || pathname === '/audio/'
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
-
-  let contextBar: React.ReactNode = undefined
-  if (isListen) {
-    contextBar = <ListenFilterBar />
-  } else if (isCreateArea) {
-    contextBar = <CreateSecondaryNav />
-  }
-
   const isOnSecondaryPage = SECONDARY_TABS.some(t => pathname === t.path || pathname.startsWith(t.path + '/'))
+
+  let contextNav: AreaBarContextNavItem[] | undefined
+  let contextText: string | undefined
+  let versionSelectors: AreaBarVersionSelector[] | undefined
+
+  if (isListen) {
+    // Context Nav: content type tabs (buttons, not links)
+    contextNav = CONTENT_TYPES.map(ct => ({
+      label: ct.label,
+      icon: ct.icon,
+      isActive: listenContentType === ct.value,
+      onClick: () => setListenContentType(ct.value),
+    }))
+
+    contextText = LISTEN_CONTENT_SUBTEXT[listenContentType] ?? LISTEN_CONTENT_SUBTEXT['life-vision']
+
+    // Version selectors depend on content type
+    if (listenContentType === 'life-vision' && allVisions.length > 1) {
+      versionSelectors = [{
+        id: 'listen-vision',
+        label: 'Vision version',
+        position: 'contextRow',
+        options: allVisions.map(v => ({
+          id: v.id,
+          label: `Version ${v.version_number}`,
+          sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          badge: v.is_active ? 'Active' : undefined,
+          isActive: v.is_active,
+        })),
+        selectedId: vision?.id || '',
+        onSelect: (id: string) => switchVision(id),
+      }]
+    } else if (listenContentType === 'stories') {
+      const filteredByType = listenStoryFilter === 'all'
+        ? storiesWithAudio
+        : storiesWithAudio.filter(s => s.entity_type === listenStoryFilter)
+
+      versionSelectors = [{
+        id: 'listen-story-filter',
+        label: 'Type',
+        icon: SOURCE_FILTERS.find(f => f.value === listenStoryFilter)?.icon || Library,
+        position: 'contextRow',
+        options: SOURCE_FILTERS.map(filter => ({
+          id: filter.value,
+          label: filter.label,
+          icon: filter.icon,
+          count: filter.value === 'all'
+            ? storiesWithAudio.length
+            : storiesWithAudio.filter(s => s.entity_type === filter.value).length,
+        })),
+        selectedId: listenStoryFilter,
+        onSelect: (value: string) => setListenStoryFilter(value),
+      }]
+    }
+  } else if (isCreateArea) {
+    // Context Nav: create tool tabs (links)
+    contextNav = SECONDARY_TABS.map(tab => {
+      const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/')
+      return {
+        label: tab.label,
+        path: tab.path,
+        icon: tab.icon,
+        isActive,
+        badge: tab.path === '/audio/queue' && activeBatchCount > 0 ? (
+          <span
+            className="mt-0.5 flex h-3.5 min-w-[0.95rem] shrink-0 items-center justify-center rounded-full bg-primary-500 px-0.5 text-[9px] font-bold text-black sm:ml-0 sm:mt-0"
+            aria-label={`${activeBatchCount} in queue`}
+          >
+            {activeBatchCount}
+          </span>
+        ) : undefined,
+      }
+    })
+
+    const activeCreateTool = SECONDARY_TABS.find(
+      t => pathname === t.path || pathname.startsWith(t.path + '/')
+    )
+    if (pathname === '/audio/create' || pathname === '/audio/create/') {
+      contextText = 'Choose a creation flow to get started.'
+    } else if (activeCreateTool) {
+      contextText = CREATE_TOOL_SUBTEXT[activeCreateTool.path]
+    }
+  }
 
   return (
     <AreaBar
       area={{ name: 'Audio Studio', icon: Headphones }}
       tabs={TABS}
-      contextBar={contextBar}
+      contextNav={contextNav}
+      contextText={contextText}
+      versionSelectors={versionSelectors}
       keepTabActive={!isOnSecondaryPage}
       activeParentPath={isOnSecondaryPage ? '/audio/create' : undefined}
       variant="default"
+      appLikePrimaryTabs
     />
   )
 }

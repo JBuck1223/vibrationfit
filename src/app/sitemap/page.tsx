@@ -95,7 +95,7 @@ export default function SitemapPage() {
 
         // Life Vision
         { href: '/life-vision', label: 'All Life Visions', icon: Eye, description: 'All life visions list' },
-        { href: '/life-vision/active', label: 'Active Vision', icon: CheckCircle, description: 'Current active vision' },
+        { href: '/life-vision', label: 'Active Vision', icon: CheckCircle, description: 'Current active vision' },
         { href: '/life-vision/audio', label: 'All Vision Audios', icon: Headphones, description: 'All vision audio files' },
         { href: '/life-vision/new', label: 'Create Vision', icon: Plus, description: 'Create new life vision' },
         { href: '/life-vision/new/assembly', label: 'Vision Assembly', icon: Layers, description: 'Assemble vision sections' },
@@ -128,8 +128,7 @@ export default function SitemapPage() {
 
         // Profile & Account
         { href: '/profile', label: 'All Profiles', icon: Eye, description: 'All user profiles' },
-        { href: '/profile/active', label: 'Active Profile', icon: CheckCircle, description: 'Current active profile' },
-        { href: '/profile/active/edit', label: 'Edit Profile', icon: Settings, description: 'Edit active profile' },
+        { href: '/profile', label: 'Active Profile', icon: CheckCircle, description: 'Current active profile' },
         { href: '/profile/new', label: 'Create Profile', icon: Plus, description: 'Create new profile version' },
         { href: '/profile/compare', label: 'Compare Profiles', icon: BarChart3, description: 'Compare profile versions' },
         { href: '/profile/[id]', label: 'Profile Detail', icon: Eye, description: 'Individual profile view', isDynamic: true },

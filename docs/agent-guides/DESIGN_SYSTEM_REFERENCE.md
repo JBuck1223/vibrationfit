@@ -1,6 +1,6 @@
 # Design System Reference Guide
 
-**Last Updated:** January 18, 2025  
+**Last Updated:** April 23, 2026  
 **For:** AI Agents working on VibrationFit UI
 
 ## Core Principle
@@ -79,6 +79,31 @@ import {
   Footer 
 } from '@/lib/design-system/components'
 ```
+
+### Studio area bar
+**Import from:** `@/lib/design-system/components`
+
+```tsx
+import { AreaBar, type AreaBarTab, type ContextOption } from '@/lib/design-system/components'
+```
+
+`AreaBar` provides the shared studio header (title, primary tabs, optional context row). Use it for Audio, Journal, Life Vision, and other “studio” surfaces for consistent chrome.
+
+### Global playlist audio
+**Import from:** `@/lib/design-system/components` (media exports)
+
+```tsx
+import {
+  EmbeddedPlayer,
+  InlineTrackList,
+  PersistentMiniPlayer,
+  AudioDrawerPlayer,
+  GlobalAudioPlayerShell,
+  TrackArtwork,
+} from '@/lib/design-system/components'
+```
+
+These use `global-audio-store` and power the in-app playlist, mini bar, and drawer. The in-place `AudioPlayer` in `media/AudioPlayer.tsx` is a **separate, single-track** control with local progress; do not mix the two models in the same UI without a deliberate choice. See `docs/design-system/global-playlist-audio.md`.
 
 ## Color System
 

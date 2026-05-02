@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import {
   Container,
   Card,
@@ -122,6 +123,7 @@ export default function AudioRecordNewPage() {
       } catch (err) {
         console.error('Error marking step as skipped:', err)
       }
+      invalidateIntensiveSnapshot()
       setShowStepCompleteModal(true)
     } else {
       router.push('/life-vision')

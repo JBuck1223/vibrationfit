@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, CategoryCard, DatePicker, PageHero, Container, Stack, Text, Inline, IntensiveStepCompleteModal } from '@/lib/design-system'
+import { Card, Input, Button, DatePicker, Container, Stack, IntensiveStepCompleteModal, CategoryGrid } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
@@ -13,6 +13,7 @@ import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, Save } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { JOURNAL_TAGS, JOURNAL_TAG_CONFIG, type JournalTag } from '@/lib/journal/journal-tags'
 
 export default function NewJournalEntryPage() {
   const router = useRouter()
@@ -41,6 +42,7 @@ export default function NewJournalEntryPage() {
     date: '', // Will be set after mount to avoid hydration mismatch
     title: '',
     content: '',
+    journal_tag: null as JournalTag | null,
     categories: [] as string[]
   })
 
@@ -56,7 +58,8 @@ export default function NewJournalEntryPage() {
   useEffect(() => {
     const checkIntensiveMode = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
         if (!user) return
 
         // Check if user has an active intensive checklist
@@ -89,9 +92,10 @@ export default function NewJournalEntryPage() {
     // Reset form to create another entry
     setShowSuccess(false)
     setFormData({
-      date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD format - safe here as it's triggered by user action
+      date: new Date().toLocaleDateString('en-CA'),
       title: '',
       content: '',
+      journal_tag: null,
       categories: []
     })
     setFiles([])
@@ -155,7 +159,8 @@ export default function NewJournalEntryPage() {
     setLoading(true)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         setSubmitError('Please log in to create a journal entry.')
         return
@@ -226,6 +231,7 @@ export default function NewJournalEntryPage() {
           date: formData.date,
           title: formData.title,
           content: formData.content,
+          journal_tag: formData.journal_tag,
           categories: formData.categories,
           image_urls: imageUrls,
           audio_recordings: allRecordings
@@ -271,183 +277,177 @@ export default function NewJournalEntryPage() {
 
   return (
     <Container size="xl">
-        <Stack gap="lg">
-          <PageHero
-            title="New Journal Entry"
-            subtitle="Capture your thoughts, evidence, and insights"
-          />
-
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-            <form onSubmit={handleSubmit}>
-              <Stack gap="xl">
-              {/* Date - same layout as daily-paper/new */}
-              <div className="rounded-2xl border border-[#1F1F1F] bg-[#161616] p-4 md:p-5">
-                <Inline className="items-center gap-4 md:gap-6">
-                  <div className="space-y-1.5">
-                    <p className="text-xs uppercase tracking-[0.3em] text-neutral-500">
-                      Entry date
-                    </p>
-                    <p className="text-lg font-semibold text-white">
-                      {formData.date
-                        ? new Intl.DateTimeFormat(undefined, {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric',
-                          }).format(new Date(`${formData.date}T00:00:00`))
-                        : '—'}
-                    </p>
-                  </div>
-                  <div className="ml-auto w-full md:w-auto">
+      <form onSubmit={handleSubmit}>
+        <Stack gap="md">
+          {/* Unified Card — Full Entry Content */}
+          <Card variant="outlined" className="!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]">
+            <Stack gap="lg">
+              <div className="flex justify-end">
+                {/* Date control - top right */}
+                <div>
+                  <div className="[&_input]:!w-auto [&_input]:!min-w-[170px] [&_input]:!bg-transparent [&_input]:!border-0 [&_input]:!rounded-none [&_input]:!px-0 [&_input]:!py-0 [&_input]:!pr-10 [&_input]:!text-right [&_input]:!text-[11px] [&_input]:!font-medium [&_input]:!uppercase [&_input]:!tracking-[0.2em] [&_input]:!text-neutral-500 [&_input]:placeholder:!text-neutral-500 [&_input]:focus:!ring-0 [&_svg]:!text-neutral-400">
                     <DatePicker
                       value={formData.date}
                       onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
-                      className="w-full md:w-auto"
+                      className="w-auto"
                       required
                     />
                   </div>
-                </Inline>
+                </div>
               </div>
 
               {/* Title */}
-              <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                  Entry title
-                </Text>
+              <section className="space-y-3 text-center">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Entry title</p>
+                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                </div>
                 <Input
                   type="text"
-                  placeholder="What's on your mind today?"
+                  placeholder="Please enter journal entry title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="!bg-[#404040] !border-[#333]"
+                  className="!bg-[#1A1A1A] !border-[#282828] !text-base !font-medium !text-center"
                 />
               </section>
 
-              {/* Life Categories */}
-              <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                  Life categories
-                </Text>
-                <div className="grid grid-cols-4 md:grid-cols-12 gap-3">
-                  {VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion').map((category) => {
-                    const isSelected = formData.categories.includes(category.key)
+              {/* Entry Type — single-select tag pills */}
+              <section className="space-y-2">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Entry type <span className="normal-case tracking-normal text-neutral-600">-- optional</span></p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {JOURNAL_TAGS.map((tag) => {
+                    const config = JOURNAL_TAG_CONFIG[tag]
+                    const TagIcon = config.icon
+                    const isSelected = formData.journal_tag === tag
                     return (
-                      <CategoryCard 
-                        key={category.key} 
-                        category={category} 
-                        selected={isSelected} 
-                        onClick={() => handleCategoryToggle(category.key)}
-                        variant="outlined"
-                        selectionStyle="border"
-                        iconColor={isSelected ? "#39FF14" : "#FFFFFF"}
-                        selectedIconColor="#39FF14"
-                        className={isSelected ? '!bg-[rgba(57,255,20,0.2)] !border-[rgba(57,255,20,0.2)] hover:!bg-[rgba(57,255,20,0.1)]' : '!bg-transparent !border-[#333]'}
-                      />
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, journal_tag: isSelected ? null : tag })}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border-2 transition-all duration-200"
+                        style={{
+                          borderColor: config.color,
+                          backgroundColor: isSelected ? config.color : 'transparent',
+                          color: isSelected ? '#000' : config.color,
+                        }}
+                      >
+                        <TagIcon className="w-4 h-4" />
+                        {config.label}
+                      </button>
                     )
                   })}
                 </div>
               </section>
 
-              {/* Evidence / Images */}
-              <section className="space-y-4">
-                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                  Evidence / images (optional)
-                </Text>
-                <div className="rounded-2xl border border-dashed border-[#333] bg-[#131313] p-5 md:p-6 flex flex-col items-stretch justify-center gap-4">
-                {/* Toggle Buttons - centered in card */}
-                <div className="flex flex-col sm:flex-row gap-2 items-center justify-center self-center">
-                  <Button
-                    type="button"
-                    variant={imageSource === 'upload' ? 'primary' : 'outline'}
-                    size="sm"
-                    onClick={() => {
-                      setImageSource('upload')
-                      setAiGeneratedImageUrls([])
-                    }}
-                    className="w-full sm:flex-1 sm:max-w-[200px]"
-                  >
-                    <Upload className="w-5 h-5 mr-2 flex-shrink-0" />
-                    Upload Files
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={imageSource === 'ai' ? 'accent' : 'outline-purple'}
-                    size="sm"
-                    onClick={() => {
-                      setImageSource('ai')
-                      setFiles([])
-                    }}
-                    className="w-full sm:flex-1 sm:max-w-[200px]"
-                  >
-                    <Sparkles className="w-5 h-5 mr-2 flex-shrink-0" />
-                    Generate with VIVA
-                  </Button>
-                </div>
-
-                {/* Enhanced FileUpload Component */}
-                {imageSource === 'upload' && (
-                  <FileUpload
-                    dragDrop
-                    accept="image/*,video/*,audio/*"
-                    multiple
-                    maxFiles={5}
-                    maxSize={500}
-                    value={files}
-                    onChange={setFiles}
-                    onUpload={setFiles}
-                    dragDropText="Click to upload or drag and drop"
-                    dragDropSubtext="Images, videos, or audio (max 5 files, 500MB each)"
-                    previewSize="lg"
-                  />
-                )}
-
-                {imageSource === 'ai' && (
-                  <AIImageGenerator
-                    type="journal"
-                    onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
-                    journalText={
-                      formData.title && formData.content
-                        ? `${formData.title}. ${formData.content}`
-                        : formData.content || formData.title || ''
-                    }
-                  />
-                )}
-                </div>
-              </section>
-
-              {/* Journal Content */}
-              <section className="space-y-4">
-                <Text size="sm" className={`uppercase tracking-[0.3em] underline underline-offset-4 ${fieldErrors.content ? 'text-red-400 decoration-red-400/40' : 'text-neutral-400 decoration-[#333]'}`}>
-                  Journal entry {fieldErrors.content ? `-- ${fieldErrors.content}` : ''}
-                </Text>
-              <RecordingTextarea
-                label=""
-                value={formData.content}
-                onChange={(value) => setFormData({ ...formData, content: value })}
-                rows={10}
-                placeholder="Write your journal entry here... Or click the microphone to record and transcribe!"
-                storageFolder="journal"
-                recordingPurpose="quick"
-                category="journal"
-                onAudioSaved={(audioUrl, transcript) => {
-                  setAudioRecordings(prev => [...prev, {
-                    url: audioUrl,
-                    transcript,
-                    type: 'audio' as const,
-                    category: 'journal',
-                    created_at: new Date().toISOString(),
-                  }])
-                }}
+              <CategoryGrid
+                title="Tag life categories"
+                categories={VISION_CATEGORIES.filter(category => category.key !== 'forward' && category.key !== 'conclusion')}
+                selectedCategories={formData.categories}
+                onCategoryClick={handleCategoryToggle}
+                pillLabel="Tag life categories"
+                lifeVisionCategoryStrip
+                desktopColumnCount={6}
               />
 
-              {/* Display Saved Audio Recordings */}
-              {audioRecordings.length > 0 && (
-                <SavedRecordings
-                  key={`journal-recordings-${audioRecordings.length}`}
-                  recordings={audioRecordings}
-                  categoryFilter="journal"
-                  onDelete={handleDeleteRecording}
-                />
-              )}
+              {/* Journal Content */}
+              <section className="space-y-3">
+                <p className={`text-[11px] uppercase tracking-[0.2em] text-center ${fieldErrors.content ? 'text-red-400' : 'text-neutral-500'}`}>
+                  Journal entry {fieldErrors.content ? `-- ${fieldErrors.content}` : ''}
+                </p>
+                <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                  <RecordingTextarea
+                    label=""
+                    value={formData.content}
+                    onChange={(value) => setFormData({ ...formData, content: value })}
+                    rows={8}
+                    placeholder="Write your journal entry here... Or tap the mic to record."
+                    storageFolder="journal"
+                    recordingPurpose="quick"
+                    category="journal"
+                    onAudioSaved={(audioUrl, transcript) => {
+                      setAudioRecordings(prev => [...prev, {
+                        url: audioUrl,
+                        transcript,
+                        type: 'audio' as const,
+                        category: 'journal',
+                        created_at: new Date().toISOString(),
+                      }])
+                    }}
+                  />
+                </div>
+
+                {audioRecordings.length > 0 && (
+                  <SavedRecordings
+                    key={`journal-recordings-${audioRecordings.length}`}
+                    recordings={audioRecordings}
+                    categoryFilter="journal"
+                    onDelete={handleDeleteRecording}
+                  />
+                )}
+              </section>
+
+              {/* Evidence / Images */}
+              <section className="space-y-3">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Evidence / images</p>
+                <div className="rounded-xl border border-dashed border-[#282828] bg-[#131313] p-4 flex flex-col items-stretch gap-3">
+                  <div className="flex flex-row gap-2 items-center justify-center">
+                    <Button
+                      type="button"
+                      variant={imageSource === 'upload' ? 'primary' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setImageSource('upload')
+                        setAiGeneratedImageUrls([])
+                      }}
+                      className="flex-1 max-w-[180px]"
+                    >
+                      <Upload className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                      Upload
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={imageSource === 'ai' ? 'accent' : 'outline-purple'}
+                      size="sm"
+                      onClick={() => {
+                        setImageSource('ai')
+                        setFiles([])
+                      }}
+                      className="flex-1 max-w-[180px]"
+                    >
+                      <Sparkles className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                      VIVA Generate
+                    </Button>
+                  </div>
+
+                  {imageSource === 'upload' && (
+                    <FileUpload
+                      dragDrop
+                      accept="image/*,video/*,audio/*"
+                      multiple
+                      maxFiles={5}
+                      maxSize={500}
+                      value={files}
+                      onChange={setFiles}
+                      onUpload={setFiles}
+                      dragDropText="Click to upload or drag and drop"
+                      dragDropSubtext="Images, videos, or audio (max 5 files, 500MB each)"
+                      previewSize="lg"
+                    />
+                  )}
+
+                  {imageSource === 'ai' && (
+                    <AIImageGenerator
+                      type="journal"
+                      onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
+                      journalText={
+                        formData.title && formData.content
+                          ? `${formData.title}. ${formData.content}`
+                          : formData.content || formData.title || ''
+                      }
+                    />
+                  )}
+                </div>
               </section>
 
               {/* Upload Progress */}
@@ -465,8 +465,8 @@ export default function NewJournalEntryPage() {
                 </div>
               )}
 
-              {/* Submit */}
-              <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-2">
+              {/* Actions */}
+              <div className="flex flex-row gap-2 sm:gap-3 justify-end">
                 <Button
                   type="button"
                   variant="danger"
@@ -487,16 +487,16 @@ export default function NewJournalEntryPage() {
                   {loading ? 'Saving...' : 'Save'}
                 </Button>
               </div>
-              </Stack>
-            </form>
+            </Stack>
           </Card>
         </Stack>
+      </form>
 
-        <IntensiveStepCompleteModal
-          isOpen={showStepCompleteModal}
-          onClose={() => setShowStepCompleteModal(false)}
-          stepId="journal"
-        />
-      </Container>
+      <IntensiveStepCompleteModal
+        isOpen={showStepCompleteModal}
+        onClose={() => setShowStepCompleteModal(false)}
+        stepId="journal"
+      />
+    </Container>
   )
 }

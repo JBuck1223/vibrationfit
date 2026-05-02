@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, Input, SaveButton, DatePicker } from '@/lib/design-system/components'
+import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { ProfilePictureUpload } from './ProfilePictureUpload'
 import { UserProfile } from '@/lib/supabase/profile'
 import { User } from 'lucide-react'
@@ -87,14 +88,11 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Personal Information Form */}
       <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <User className="w-6 h-6 text-white" />
-          <h3 className="text-xl font-bold text-white">Personal Information</h3>
-        </div>
-        
+        <ProfileSectionCardHeading icon={User} title="Personal Information" />
+
         {/* Profile Picture */}
         <div className="mb-6">
           <ProfilePictureUpload
@@ -274,7 +272,7 @@ export function PersonalInfoSection({ profile, onProfileChange, onError, onSave,
 
         {/* Save Button - Bottom Right */}
         {onSave && (
-          <div className="mt-6">
+          <div className="border-t border-neutral-800/50 pt-2">
             {saveError && hasUnsavedChanges && (
               <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                 <span className="text-sm text-red-400">{saveError}</span>

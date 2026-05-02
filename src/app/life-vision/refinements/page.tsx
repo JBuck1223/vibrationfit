@@ -17,8 +17,7 @@ import {
   Spinner,
   Container,
   PageHero,
-  Stack,
-  CategoryCard
+  Stack
 } from '@/lib/design-system'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
@@ -49,7 +48,8 @@ export default function RefinementsPage() {
 
   const loadRefinements = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) {
         router.push('/login')
         return

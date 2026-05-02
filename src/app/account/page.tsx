@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import NextImage from 'next/image'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 interface AccountLink {
   title: string
@@ -106,10 +107,14 @@ export default function AccountDashboardPage() {
         <Card className="p-6">
           <div className="flex items-center gap-6">
             {/* Profile Picture */}
-            <div className="w-20 h-20 rounded-full overflow-hidden bg-neutral-800 border-2 border-neutral-700 flex-shrink-0">
+            <ProfilePictureClickable
+              src={account?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+              alt="Profile"
+              className="inline-flex h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+            >
               {imageLoadError ? (
-                <div className="w-full h-full flex items-center justify-center bg-neutral-700">
-                  <User className="w-8 h-8 text-neutral-400" />
+                <div className="flex h-full w-full items-center justify-center bg-neutral-700">
+                  <User className="h-8 w-8 text-neutral-400" />
                 </div>
               ) : (
                 <NextImage
@@ -117,12 +122,12 @@ export default function AccountDashboardPage() {
                   alt="Profile"
                   width={80}
                   height={80}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                   onError={() => setImageLoadError(true)}
                   unoptimized={!account?.profile_picture_url}
                 />
               )}
-            </div>
+            </ProfilePictureClickable>
 
             {/* Account Info */}
             <div className="flex-1 min-w-0">

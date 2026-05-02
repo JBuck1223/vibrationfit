@@ -42,7 +42,7 @@ const ITEMS: Array<{
     title: 'Create Your First Advanced Audio Mix',
     description: 'Add frequency enhancements to any of your vision audios to test the power of healing frequencies.',
     ctaLabel: 'Open Audio Studio',
-    ctaHref: '/life-vision/active',
+    ctaHref: '/life-vision',
     icon: Music,
     graduateUnlock: true,
   },

@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, Input, SaveButton } from '@/lib/design-system/components'
+import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
-import { PartyPopper, Plus, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
-import { getVisionCategoryLabel, visionToRecordingKey } from '@/lib/design-system/vision-categories'
+import { getVisionCategoryLabel, getVisionCategoryIcon, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 
 interface FunRecreationSectionProps {
   profile: Partial<UserProfile>
@@ -168,14 +169,13 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
     handleInputChange('hobbies', currentHobbies.filter((_, i) => i !== index))
   }
 
+  const FunIcon = getVisionCategoryIcon('fun')
+
   return (
     <Card className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <PartyPopper className="w-6 h-6 text-white" />
-        <h3 className="text-xl font-bold text-white">{getVisionCategoryLabel('fun')}</h3>
-      </div>
-      
-      <div className="space-y-6">
+      <ProfileSectionCardHeading icon={FunIcon} title={getVisionCategoryLabel('fun')} />
+
+      <div className="space-y-4">
         {/* Current Hobbies */}
         <div>
           <label className="block text-sm font-medium text-neutral-200 mb-2">
@@ -297,7 +297,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="mt-6">
+        <div className="border-t border-neutral-800/50 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

@@ -7,6 +7,7 @@ import { RetentionDashboard } from '@/components/retention'
 import { BadgeDisplay } from '@/components/badges'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
+import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { User, Calendar, ArrowLeft, Award, Pencil, Check, X, Quote, UsersRound, Flame, Shield, ChevronDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -260,13 +261,17 @@ export default function SnapshotPage() {
           )}
           {/* Profile picture */}
           <div className="flex flex-col items-center gap-4">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-neutral-700">
+            <ProfilePictureClickable
+              src={member.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
+              alt={displayName}
+              className="inline-flex h-24 w-24 overflow-hidden rounded-full border-2 border-neutral-700"
+            >
               <img
                 src={member.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
-                alt={displayName}
-                className="w-full h-full object-cover"
+                alt=""
+                className="h-full w-full object-cover"
               />
-            </div>
+            </ProfilePictureClickable>
             
             <Button 
               variant="outline"

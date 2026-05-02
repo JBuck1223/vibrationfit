@@ -11,13 +11,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get all conversation sessions for user, ordered by most recent
-    const { data: sessions, error } = await supabase
+    // Optional mode filter (e.g. ?mode=coach)
+    const { searchParams } = new URL(request.url)
+    const modeFilter = searchParams.get('mode')
+
+    // Get conversation sessions for user, ordered by most recent
+    let query = supabase
       .from('conversation_sessions')
       .select('*')
       .eq('user_id', user.id)
       .order('last_message_at', { ascending: false, nullsFirst: false })
       .order('updated_at', { ascending: false })
+
+    if (modeFilter) {
+      query = query.eq('mode', modeFilter)
+    }
+
+    const { data: sessions, error } = await query
 
     if (error) {
       console.error('Error fetching conversations:', error)
