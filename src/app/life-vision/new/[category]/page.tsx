@@ -609,6 +609,12 @@ export default function UnifiedCategoryPage() {
   const draftVersionLabel = `V${nonDraftVisions.length + 1}`
   const activeVersionLabel = `V${activeVisionVersion}`
 
+  // Resolve the version this draft was forked from so the "Continue Draft" banner
+  // can tell the user *which* version they're refining (e.g. "based on Version 2").
+  const draftParentVersion = draftVision?.parent_id
+    ? nonDraftVisions.find(v => v.id === draftVision.parent_id) ?? null
+    : null
+
   const useRefinePath = includeActiveVision && !!activeValue.trim()
   const profileHasData = !!(profileData?.state?.trim() || profileData?.story?.trim())
   const hasGenerateSignal =
@@ -628,7 +634,106 @@ export default function UnifiedCategoryPage() {
       ? 'Tap Get Me Started for a contrast-flip starter from your profile, then edit here.'
       : 'Your starter text will appear here...'
 
-  const vivaSteeringPlaceholder = 'Is anything missing? Add it here...'
+  const vivaSteeringPlaceholder = hasActiveContent
+    ? 'Tell VIVA how to refine this section...'
+    : 'Is anything missing? Add it here...'
+
+  // "What VIVA uses" / "Adjust what Viva uses" — extracted so it can live both
+  // inside Step 1 (fresh create flow) and above Update Notes (refine flow).
+  const whatVivaUsesPanel = !isMetaCategory ? (
+    <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 mb-4">
+      <button
+        type="button"
+        onClick={() => setShowContextAdjust(!showContextAdjust)}
+        className="w-full flex items-center justify-between gap-3"
+      >
+        <div className="flex items-center gap-3">
+          <SlidersHorizontal className="w-4 h-4 text-primary-500 shrink-0" />
+          <span className="text-sm font-medium text-neutral-300 text-left">{isFirstTime ? 'What VIVA uses' : 'Adjust what Viva uses'}</span>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-neutral-400 transition-transform shrink-0 ${showContextAdjust ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {showContextAdjust && (
+        <div className="pt-3 mt-3 border-t border-neutral-700 space-y-4">
+          {!isFirstTime && (
+            <div className="flex items-center justify-between gap-4 px-0.5">
+              <span className={`text-sm ${activeValue.trim() ? 'text-neutral-200' : 'text-neutral-500'}`}>
+                Include active vision text
+              </span>
+              <div
+                role="switch"
+                aria-checked={includeActiveVision}
+                onClick={() => activeValue.trim() && setIncludeActiveVision(!includeActiveVision)}
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+                  activeValue.trim() ? 'cursor-pointer' : 'opacity-40 pointer-events-none'
+                } ${includeActiveVision && activeValue.trim() ? 'bg-primary-500' : 'bg-neutral-600'}`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                    includeActiveVision && activeValue.trim() ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  }`}
+                />
+              </div>
+            </div>
+          )}
+
+          {!isFirstTime && (
+            <div className="flex items-center justify-between gap-4 px-0.5">
+              <span className="text-sm text-neutral-200">Include profile context</span>
+              <div
+                role="switch"
+                aria-checked={includeProfile}
+                aria-label="Include profile context"
+                onClick={() => setIncludeProfile(!includeProfile)}
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 cursor-pointer ${
+                  includeProfile ? 'bg-primary-500' : 'bg-neutral-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                    includeProfile ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  }`}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-xl border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5 p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 gap-y-2 mb-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-[#00FFFF] text-left">
+                Current state from profile
+                {fullProfile && profileVersionFromRpc != null ? (
+                  <span className="text-[#00FFFF]/95 normal-case font-medium tracking-normal">
+                    {' '}
+                    · Version {profileVersionFromRpc}
+                  </span>
+                ) : null}
+              </h4>
+              {fullProfile ? (
+                <Badge variant="secondary" className="!py-0.5 !px-2.5 text-[10px] shrink-0">
+                  Active
+                </Badge>
+              ) : (
+                <Badge variant="warning" className="!py-0.5 !px-2 text-[11px] shrink-0">
+                  No profile
+                </Badge>
+              )}
+            </div>
+
+            <p className="text-xs text-neutral-200 leading-relaxed whitespace-pre-wrap line-clamp-6 border-t border-[#00FFFF]/15 pt-3">
+              {profileData?.state?.trim()
+                ? profileData.state
+                : fullProfile
+                  ? `No current state recorded for ${category.label.toLowerCase()} yet.`
+                  : 'Complete your profile to see current state here.'}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  ) : null
 
   return (
     <Container size="xl">
@@ -669,7 +774,21 @@ export default function UnifiedCategoryPage() {
             <div className="mb-6 rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-4">
               <div className="flex flex-col items-center gap-3 text-center">
                 <p className="text-sm text-neutral-300">
-                  You have a draft in progress with <span className="font-semibold text-white">{refinedCategories.length} of {allCategories.length}</span> categories updated.
+                  You have a draft in progress
+                  {draftParentVersion && (
+                    <>
+                      {' '}based on{' '}
+                      <span className="font-semibold text-white">
+                        Version {draftParentVersion.version_number}
+                      </span>
+                      {draftParentVersion.is_active && (
+                        <span className="ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-500 bg-primary-500/10">
+                          Active
+                        </span>
+                      )}
+                    </>
+                  )}
+                  {' '}with <span className="font-semibold text-white">{refinedCategories.length} of {allCategories.length}</span> categories updated.
                 </p>
                 <div className="flex items-center gap-3">
                   <Button
@@ -705,8 +824,11 @@ export default function UnifiedCategoryPage() {
             <div className="h-px flex-1 bg-neutral-800" />
           </div>
 
-          {/* Edit Mode Toggle — Edit with VIVA / Edit Manually */}
-          {draftVision && (
+          {/* Edit Mode Toggle — only in fresh-create flow.
+              In refine mode (active content for this category) the page
+              collapses to "VIVA instructions box + Update button + Compare",
+              and manual editing happens directly in the Compare panel. */}
+          {draftVision && !hasActiveContent && (
             <div className="mb-6 flex justify-center">
               <div className="inline-flex rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-1">
                 <button
@@ -741,6 +863,11 @@ export default function UnifiedCategoryPage() {
           <section>
 
             <div>
+              {/* Step 1 — Starter Text. Hidden in refine mode, where the user
+                  already has active content for this category and is simply
+                  giving VIVA instructions to update it. */}
+              {!hasActiveContent && (
+              <>
               <div>
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">1</span>
@@ -754,101 +881,9 @@ export default function UnifiedCategoryPage() {
                     : `Tap Get Me Started and VIVA will generate the first draft of the ${category?.label.toLowerCase() || categoryKey} section of your Life Vision.`}
                 </p>
 
-                {/* What VIVA uses — context controls for life categories */}
-                {!isMetaCategory && (
-                <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 mb-4">
-              <button
-                type="button"
-                onClick={() => setShowContextAdjust(!showContextAdjust)}
-                className="w-full flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3">
-                  <SlidersHorizontal className="w-4 h-4 text-primary-500 shrink-0" />
-                  <span className="text-sm font-medium text-neutral-300 text-left">{isFirstTime ? 'What VIVA uses' : 'Adjust what Viva uses'}</span>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-neutral-400 transition-transform shrink-0 ${showContextAdjust ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {showContextAdjust && (
-                <div className="pt-3 mt-3 border-t border-neutral-700 space-y-4">
-                  {!isFirstTime && (
-                    <div className="flex items-center justify-between gap-4 px-0.5">
-                      <span className={`text-sm ${activeValue.trim() ? 'text-neutral-200' : 'text-neutral-500'}`}>
-                        Include active vision text
-                      </span>
-                      <div
-                        role="switch"
-                        aria-checked={includeActiveVision}
-                        onClick={() => activeValue.trim() && setIncludeActiveVision(!includeActiveVision)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
-                          activeValue.trim() ? 'cursor-pointer' : 'opacity-40 pointer-events-none'
-                        } ${includeActiveVision && activeValue.trim() ? 'bg-primary-500' : 'bg-neutral-600'}`}
-                      >
-                        <span
-                          className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
-                            includeActiveVision && activeValue.trim() ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {!isFirstTime && (
-                  <div className="flex items-center justify-between gap-4 px-0.5">
-                    <span className="text-sm text-neutral-200">Include profile context</span>
-                    <div
-                      role="switch"
-                      aria-checked={includeProfile}
-                      aria-label="Include profile context"
-                      onClick={() => setIncludeProfile(!includeProfile)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 cursor-pointer ${
-                        includeProfile ? 'bg-primary-500' : 'bg-neutral-600'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
-                          includeProfile ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                  )}
-
-                  <div className="rounded-xl border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5 p-3.5">
-                    <div className="flex flex-wrap items-center justify-between gap-2 gap-y-2 mb-3">
-                      <h4 className="text-xs font-semibold uppercase tracking-wide text-[#00FFFF] text-left">
-                        Current state from profile
-                        {fullProfile && profileVersionFromRpc != null ? (
-                          <span className="text-[#00FFFF]/95 normal-case font-medium tracking-normal">
-                            {' '}
-                            · Version {profileVersionFromRpc}
-                          </span>
-                        ) : null}
-                      </h4>
-                      {fullProfile ? (
-                        <Badge variant="secondary" className="!py-0.5 !px-2.5 text-[10px] shrink-0">
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge variant="warning" className="!py-0.5 !px-2 text-[11px] shrink-0">
-                          No profile
-                        </Badge>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-neutral-200 leading-relaxed whitespace-pre-wrap line-clamp-6 border-t border-[#00FFFF]/15 pt-3">
-                      {profileData?.state?.trim()
-                        ? profileData.state
-                        : fullProfile
-                          ? `No current state recorded for ${category.label.toLowerCase()} yet.`
-                          : 'Complete your profile to see current state here.'}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-            )}
+                {/* What VIVA uses — extracted to whatVivaUsesPanel above so it can
+                    also render in refine mode. */}
+                {whatVivaUsesPanel}
 
                 <div className="relative">
                   <VIVALoadingOverlay
@@ -893,16 +928,27 @@ export default function UnifiedCategoryPage() {
               </div>
 
               <div className="py-6"><div className="h-px bg-neutral-800" /></div>
+              </>
+              )}
+
+              {/* In refine mode, surface the "Adjust what Viva uses" controls
+                  above the Update Notes textarea (Step 1 is hidden so they'd
+                  otherwise disappear). */}
+              {hasActiveContent && whatVivaUsesPanel}
 
               <div>
                 <div className="flex items-center justify-center gap-2 mb-3">
-                  <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">2</span>
+                  {!hasActiveContent && (
+                    <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">2</span>
+                  )}
                   <h2 className="text-lg font-semibold text-white">
-                    Unleash Your Imagination
+                    {hasActiveContent ? 'Update Notes' : 'Unleash Your Imagination'}
                   </h2>
                 </div>
                 <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
-                  Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)
+                  {hasActiveContent
+                    ? `Tell VIVA how to refine this section. (Optional — VIVA can also refine without notes.)`
+                    : `Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)`}
                 </p>
 
                 {/* Inspiration Questions (collapsible) — only for life categories */}
@@ -982,17 +1028,23 @@ export default function UnifiedCategoryPage() {
               )}
 
               <div className="flex flex-col items-center gap-2 pt-2">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">3</span>
-                  <h2 className="text-lg font-semibold text-white">
-                    {useRefinePath ? `Update ${category.label}` : `Create ${category.label}`}
-                  </h2>
-                </div>
-                <p className="text-center text-sm text-neutral-400 mb-2 leading-relaxed">
-                  {useRefinePath
-                    ? `VIVA will refine your active vision text using your inputs above.`
-                    : `VIVA will combine your starter text, imagination, and profile to create the ${category.label.toLowerCase()} section of your Life Vision.`}
-                </p>
+                {/* In refine mode the section is just "Update Notes box → button → Compare",
+                    so we drop the numbered Step 3 heading and description for a cleaner UI. */}
+                {!hasActiveContent && (
+                  <>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">3</span>
+                      <h2 className="text-lg font-semibold text-white">
+                        {useRefinePath ? `Update ${category.label}` : `Create ${category.label}`}
+                      </h2>
+                    </div>
+                    <p className="text-center text-sm text-neutral-400 mb-2 leading-relaxed">
+                      {useRefinePath
+                        ? `VIVA will refine your active vision text using your inputs above.`
+                        : `VIVA will combine your starter text, imagination, and profile to create the ${category.label.toLowerCase()} section of your Life Vision.`}
+                    </p>
+                  </>
+                )}
 
                 {/* Output textbox — streams generation result */}
                 {(isGenerating || manualText.trim()) && (

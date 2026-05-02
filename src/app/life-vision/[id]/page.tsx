@@ -91,7 +91,7 @@ const VISION_SECTIONS = VISION_CATEGORIES
 
 export default function VisionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { setAudioSets: setContextAudioSets, selectedAudioSetId, setSelectedAudioSetId } = useLifeVisionStudio()
+  const { setAudioSets: setContextAudioSets, selectedAudioSetId, setSelectedAudioSetId, refreshVisions } = useLifeVisionStudio()
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -729,6 +729,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     setVersionToolbarLoading(true)
     try {
       const newActive = await commitDraft(vision.id)
+      await refreshVisions()
       router.push(`/life-vision/${newActive.id}`)
     } catch (error) {
       console.error('Error committing draft:', error)
@@ -743,6 +744,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     setVersionToolbarLoading(true)
     try {
       await fetch(`/api/vision/draft?draftId=${vision.id}`, { method: 'DELETE' })
+      await refreshVisions()
       router.push('/life-vision')
     } catch (error) {
       console.error('Error deleting draft:', error)
@@ -1004,31 +1006,48 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {/* Navigation */}
-        <div className="text-center space-y-4">
-          {/* Delete Button */}
-          <div>
-            <Button
-              onClick={handleDeleteVision}
-              variant="danger"
-              size="sm"
-              className="flex items-center gap-2 mx-auto"
-              disabled={deletingVersion === vision.id}
-            >
-              {deletingVersion === vision.id ? (
-                <>
-                  <Spinner variant="primary" size="sm" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4" />
-                  Delete Vision
-                </>
-              )}
-            </Button>
+        {/* Navigation — full delete hidden for drafts (VersionActionToolbar includes Delete Draft) */}
+        {displayStatus !== 'draft' && (
+          <div className="text-center space-y-4">
+            <div>
+              <Button
+                onClick={handleDeleteVision}
+                variant="danger"
+                size="sm"
+                className="flex items-center gap-2 mx-auto"
+                disabled={deletingVersion === vision.id}
+              >
+                {deletingVersion === vision.id ? (
+                  <>
+                    <Spinner variant="primary" size="sm" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete Vision
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {displayStatus === 'draft' && vision && (
+          <Container size="xl">
+            <div className="flex flex-wrap items-center justify-center gap-2 border-t border-neutral-800 pt-8 mt-2">
+              <VersionActionToolbar
+                versionId={vision.id}
+                versionNumber={vision.version_number ?? 1}
+                isActive={false}
+                isDraft={true}
+                onCommitAsActive={handleToolbarCommitDraft}
+                onDelete={handleToolbarDeleteDraft}
+                isLoading={versionToolbarLoading}
+              />
+            </div>
+          </Container>
+        )}
 
         {/* Delete Confirmation Dialog */}
         <WarningConfirmationDialog
