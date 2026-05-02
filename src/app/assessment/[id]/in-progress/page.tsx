@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import { Button, Spinner, Card, Container, Stack, PageHero, StatusBadge, CategoryGrid } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle, CalendarDays, Check, Circle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
@@ -23,6 +23,8 @@ import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 export default function AssessmentPage() {
   const router = useRouter()
   const params = useParams()
+  const currentPathname = usePathname()
+  const pathPrefix = currentPathname?.startsWith('/intensive') ? '/intensive' : ''
   const routeAssessmentId = Array.isArray(params?.id)
     ? params?.id[0]
     : (params?.id as string | undefined)
@@ -535,20 +537,18 @@ export default function AssessmentPage() {
       await completeAssessment(assessmentId)
       
       // Redirect to results page - intensive step will be marked there
-      router.push(`/assessment/${assessmentId}/results`)
+      router.push(`${pathPrefix}/assessment/${assessmentId}/results`)
     } catch (error) {
       console.error('Failed to complete assessment:', error)
     }
   }
 
-  // Generate vision from results
   const handleGenerateVision = () => {
-    router.push(`/life-vision/create?assessmentId=${assessmentId}`)
+    router.push(`${pathPrefix}/life-vision/create?assessmentId=${assessmentId}`)
   }
 
-  // View detailed results
   const handleViewDetails = () => {
-    router.push(`/assessment/${assessmentId}/results`)
+    router.push(`${pathPrefix}/assessment/${assessmentId}/results`)
   }
 
   if (isLoading) {
@@ -569,7 +569,7 @@ export default function AssessmentPage() {
           <p className="text-neutral-400 mb-6">
             {loadError}
           </p>
-          <Button variant="primary" onClick={() => router.push('/assessment')}>
+          <Button variant="primary" onClick={() => router.push(`${pathPrefix}/assessment`)}>
             Return to Assessment Hub
           </Button>
         </Card>
@@ -661,23 +661,6 @@ export default function AssessmentPage() {
         </div>
 
         {/* Category Selection Grid */}
-        <Card>
-          <div className="mb-4 text-center">
-            <h3 className="text-lg font-semibold text-white mb-1">Select Life Category</h3>
-            <p className="text-sm text-neutral-400">
-              {progress && `${progress.overall.answered} of ${progress.overall.total} questions answered`}
-              {progress && progress.overall.answered > 0 && (() => {
-                const completedCount = Object.values(progress.categories).filter(cat => cat.percentage === 100).length
-                return (
-                  <span className="ml-2 text-[#39FF14]">
-                    • {completedCount} complete
-                  </span>
-                )
-              })()}
-            </p>
-          </div>
-
-          {/* Category Grid */}
           <CategoryGrid
             categories={assessmentCategoriesOrder.map((categoryKey) => {
               const visionCat = VISION_CATEGORIES.find(v => v.key === categoryKey)
@@ -696,8 +679,11 @@ export default function AssessmentPage() {
             }}
             mode="completion"
             lifeVisionCategoryStrip
+            desktopColumnCount={6}
+            title={progress ? `${progress.overall.answered} of ${progress.overall.total} answered` : 'Life Categories'}
+            bleedClassName="max-md:-mx-4"
+            pillLabel="scroll"
           />
-        </Card>
 
         {/* Main Question Content - Full Width */}
         <Card ref={questionCardRef} variant="elevated" className="p-8">

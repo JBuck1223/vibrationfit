@@ -470,14 +470,16 @@ export default function ProfileRefinePage() {
 
       {/* Category Selection */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Section to Compare</h2>
         <CategoryGrid
           categories={PROFILE_CATEGORIES}
           activeCategory={selectedCategory || undefined}
           refinedCategories={Object.entries(changedSections).filter(([, fields]) => (fields?.length || 0) > 0).map(([key]) => key)}
           onCategoryClick={handleCategorySelect}
           mode="draft"
-          fillWidth
+          lifeVisionCategoryStrip
+          title="Choose a Section to Compare"
+          bleedClassName="max-md:-mx-4"
+          pillLabel="scroll"
         />
       </div>
 

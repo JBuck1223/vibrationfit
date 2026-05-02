@@ -47,7 +47,7 @@ export function AudioStudioHeader() {
   }, [visionDropdownOpen])
 
   return (
-    <div className="border-b border-neutral-800 bg-[#0A0A0A]">
+    <div className="border-b border-neutral-800 bg-neutral-850">
       <div className="px-4 md:px-6 pt-5 pb-3">
         <div className="flex flex-col items-center gap-3">
           <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">

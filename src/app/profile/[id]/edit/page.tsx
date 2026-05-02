@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import {  Button, Badge, Card, CategoryGrid, WarningConfirmationDialog, Icon, Container, Stack, Spinner, IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
@@ -29,6 +29,8 @@ export default function ProfileEditPage() {
   const router = useRouter()
   const params = useParams()
   const profileId = params.id as string
+  const currentPathname = usePathname()
+  const pathPrefix = currentPathname?.startsWith('/intensive') ? '/intensive' : ''
   const categoryGridRef = useRef<HTMLDivElement>(null)
   
   const [profile, setProfile] = useState<Partial<UserProfile>>({})
@@ -184,7 +186,7 @@ export default function ProfileEditPage() {
       if (hasUnsavedChanges) {
         await saveProfile(profileRef.current)
       }
-      router.push(`/profile/${profileId}`)
+      router.push(`${pathPrefix}/profile/${profileId}`)
     }
   }
 
@@ -505,7 +507,7 @@ export default function ProfileEditPage() {
 
   // Version management handlers
   const handleVersionSelect = (versionId: string) => {
-    router.push(`/profile/${versionId}/edit`)
+    router.push(`${pathPrefix}/profile/${versionId}/edit`)
   }
 
   const handleVersionCreate = async (sourceVersionId: string, isDraft: boolean) => {
@@ -542,7 +544,7 @@ export default function ProfileEditPage() {
       await fetchVersions()
       // If we deleted the current version, redirect to main profile
       if (versionId === currentVersionId) {
-        router.push('/profile')
+        router.push(`${pathPrefix}/profile`)
       }
     } catch (error) {
       console.error('Error deleting version:', error)
@@ -900,20 +902,6 @@ export default function ProfileEditPage() {
         )}
 
         {/* Life Areas Navigation */}
-        <Card>
-          <div className="mb-4 text-center">
-            <h3 className="text-lg font-semibold text-white mb-1">Select Life Areas</h3>
-            <p className="text-sm text-neutral-400">
-              Showing {selectedCategories.length} of {profileSections.length} areas
-              {completedSections.length > 0 && (
-                <span className="ml-2 text-[#39FF14]">
-                  • {completedSections.length} completed
-                </span>
-              )}
-            </p>
-          </div>
-
-            {/* Category Grid */}
             <CategoryGrid
               categories={profileSections.map((section) => {
                 const categoryInfo = getCategoryInfo(section.id)
@@ -923,10 +911,11 @@ export default function ProfileEditPage() {
               completedCategories={completedSections}
               onCategoryClick={handleSectionChange}
               mode="completion"
-              fillWidth
-              pillLabel="Life Areas"
+              lifeVisionCategoryStrip
+              title={`Life Areas — ${completedSections.length} of ${profileSections.length} complete`}
+              bleedClassName="max-md:-mx-4"
+              pillLabel="scroll"
             />
-        </Card>
 
         {/* Main Content - Full Width */}
         <div ref={categoryGridRef} className="w-full">

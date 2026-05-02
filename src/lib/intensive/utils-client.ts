@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 
 export interface IntensiveData {
   id: string
@@ -95,6 +96,7 @@ export async function startIntensive(checklistId: string): Promise<{ success: bo
     return { success: false, error: error.message }
   }
   
+  invalidateIntensiveSnapshot()
   return { success: true }
 }
 
@@ -119,6 +121,7 @@ export async function completeIntensive(checklistId: string): Promise<{ success:
     return { success: false, error: error.message }
   }
   
+  invalidateIntensiveSnapshot()
   return { success: true }
 }
 

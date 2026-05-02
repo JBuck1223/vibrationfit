@@ -140,15 +140,15 @@ export async function POST(request: NextRequest) {
           }).catch(err => console.error('[CategoryVision] Token tracking failed:', err))
         }
 
-        // Save generated text to category_state
+        // Save generated text to category_state (upsert to create row if needed)
         const { error: updateError } = await supabase
           .from('vision_new_category_state')
-          .update({
+          .upsert({
+            user_id: user.id,
+            category: categoryKey,
             category_vision_text: finalOutput,
             updated_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id)
-          .eq('category', categoryKey)
+          }, { onConflict: 'user_id,category' })
 
         if (updateError) {
           console.error(`[CategoryVision] Failed to save ${categoryKey}:`, updateError)

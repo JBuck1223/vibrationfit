@@ -114,6 +114,7 @@ export default function IntensiveTesterPage() {
   const [resetLoading, setResetLoading] = useState(false)
   const [createUserLoading, setCreateUserLoading] = useState(false)
   const [reenrollLoading, setReenrollLoading] = useState(false)
+  const [seedProfileLoading, setSeedProfileLoading] = useState(false)
   
   const [newUserEmail, setNewUserEmail] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
@@ -312,6 +313,34 @@ export default function IntensiveTesterPage() {
       setError(err instanceof Error ? err.message : 'Failed to re-enroll user')
     } finally {
       setReenrollLoading(false)
+    }
+  }
+
+  const handleSeedProfile = async () => {
+    if (!selectedUserId) return
+    setSeedProfileLoading(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      for (const step of [0, 1, 2, 3, 4]) {
+        if (isStepComplete(step)) continue
+        const response = await fetch('/api/admin/intensive/advance-step', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: selectedUserId, stepNumber: step })
+        })
+        if (!response.ok) {
+          const errData = await response.json()
+          throw new Error(errData.error || `Failed at step ${step}`)
+        }
+      }
+      setSuccessMessage('Seeded Steps 0–4: Start, Settings, Intake, Profile & Assessment')
+      await loadUserProgress(selectedUserId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to seed profile data')
+    } finally {
+      setSeedProfileLoading(false)
     }
   }
 
@@ -687,7 +716,20 @@ export default function IntensiveTesterPage() {
                 <div className="text-sm text-neutral-400">
                   Selected: {users.find(u => u.userId === selectedUserId)?.displayName}
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="accent"
+                    size="sm"
+                    onClick={handleSeedProfile}
+                    disabled={seedProfileLoading}
+                  >
+                    {seedProfileLoading ? (
+                      <Spinner size="sm" className="mr-2" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    Seed Profile & Assessment
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"

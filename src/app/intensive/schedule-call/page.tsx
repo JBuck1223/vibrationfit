@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import { Calendar, CheckCircle, Video, Loader2 } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
@@ -417,6 +418,7 @@ export default function ScheduleCallPage() {
         body: JSON.stringify({ booking_id: booking.id }),
       }).catch(err => console.error('Booking confirmation notify error:', err))
 
+      invalidateIntensiveSnapshot()
       setShowStepCompleteModal(true)
       
     } catch (error) {

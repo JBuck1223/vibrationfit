@@ -98,7 +98,7 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
       <div className="relative z-10 flex min-h-full items-start justify-center p-4 pt-6 pb-16 sm:pb-20 md:items-center md:py-8">
         {/* Modal */}
         <div className="w-full max-w-2xl shrink-0 animate-in fade-in zoom-in-95 duration-300">
-          <Card variant="elevated" className="bg-[#0A0A0A] border-[#333] overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col">
+          <Card variant="elevated" className="bg-neutral-850 border-[#333] overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col">
           {/* Close button - fixed in card so always visible */}
           <button
             onClick={onClose}

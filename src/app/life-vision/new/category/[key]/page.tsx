@@ -1,21 +1,38 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { ProfileStateCard } from '@/lib/design-system/profile-cards'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw, Trash2, CheckCircle } from 'lucide-react'
-import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS, getVisionCategory, getCategoryStateField, getCategoryStoryField, visionToRecordingKey, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw, Trash2, CheckCircle, AlertCircle } from 'lucide-react'
+import {
+  ORDERED_VISION_CATEGORIES,
+  LIFE_CATEGORY_KEYS,
+  getVisionCategory,
+  visionToRecordingKey,
+  META_CATEGORY_KEYS,
+  type LifeCategoryKey,
+  type VisionCategoryKey,
+} from '@/lib/design-system/vision-categories'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 import { Modal } from '@/lib/design-system/components/overlays'
+
+/** Recording storage keys are life-category only; meta slots reuse a stable bucket */
+function recordingKeyForVisionCategory(key: VisionCategoryKey): LifeCategoryKey {
+  return (META_CATEGORY_KEYS as readonly string[]).includes(key) ? 'fun' : (key as LifeCategoryKey)
+}
 
 export default function CategoryPage() {
   const router = useRouter()
   const params = useParams()
-  const categoryKey = params.key as LifeCategoryKey
+  const pathname = usePathname()
+  const categoryKey = params.key as VisionCategoryKey
   const supabase = createClient()
+  const isIntensive = pathname.startsWith('/intensive/')
+  const pathPrefix = isIntensive ? '/intensive' : ''
+  const isMetaCategory = (META_CATEGORY_KEYS as readonly string[]).includes(categoryKey)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -38,6 +55,13 @@ export default function CategoryPage() {
   const [showInsufficientTokens, setShowInsufficientTokens] = useState(false)
   const [tokenErrorInfo, setTokenErrorInfo] = useState<{ tokensRemaining?: number }>({})
   
+  // VIVA generation state
+  const [generatedVisionText, setGeneratedVisionText] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationComplete, setGenerationComplete] = useState(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
+  const generationRef = useRef<HTMLDivElement>(null)
+  
   // Track completion across all categories for the grid
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -52,18 +76,25 @@ export default function CategoryPage() {
     return <div>Invalid category</div>
   }
 
-  // Get all categories excluding forward and conclusion
-  const allCategories = VISION_CATEGORIES.filter(c => c.order > 0 && c.order < 13)
+  // Forward/Conclusion are handled at assembly, not here
+  if (isMetaCategory) {
+    router.push(`${pathPrefix}/life-vision/new/assembly`)
+    return null
+  }
+
+  // 12 life categories only (no Forward/Conclusion — those are added at assembly)
+  const allCategories = ORDERED_VISION_CATEGORIES.filter(
+    c => !(META_CATEGORY_KEYS as readonly string[]).includes(c.key)
+  )
   const currentIndex = allCategories.findIndex(c => c.key === categoryKey)
   const nextCategory = currentIndex < allCategories.length - 1 ? allCategories[currentIndex + 1] : null
   const prevCategory = currentIndex > 0 ? allCategories[currentIndex - 1] : null
 
-  // Categories without forward and conclusion for the grid
-  const categoriesWithout = VISION_CATEGORIES.filter(
-    c => c.key !== 'forward' && c.key !== 'conclusion'
-  )
-
   useEffect(() => {
+    setGeneratedVisionText('')
+    setIsGenerating(false)
+    setGenerationComplete(false)
+    setGenerationError(null)
     loadExistingData()
   }, [categoryKey])
 
@@ -116,12 +147,12 @@ export default function CategoryPage() {
       const profile = activeProfile || fallbackProfile
       setFullProfile(profile)
 
-      // Set profile data for display
-      const storyField = getCategoryStoryField(categoryKey)
+      // Set profile data for display (includes forward / conclusion: e.g. forward_story, state_forward)
+      const storyField = `${categoryKey}_story`
       const profileStory = profile?.[storyField] || ''
 
       // Load state profile field for this category
-      const stateField = getCategoryStateField(categoryKey)
+      const stateField = `state_${categoryKey}`
       const stateValue = profile?.[stateField] || ''
 
       setProfileData({
@@ -138,7 +169,7 @@ export default function CategoryPage() {
       // Load existing data from vision_new_category_state table
       const { data: categoryState } = await supabase
         .from('vision_new_category_state')
-        .select('get_me_started_text, imagination_text')
+        .select('get_me_started_text, imagination_text, category_vision_text')
         .eq('user_id', user.id)
         .eq('category', categoryKey)
         .maybeSingle()
@@ -148,6 +179,10 @@ export default function CategoryPage() {
       }
       if (categoryState?.imagination_text) {
         setImaginationText(categoryState.imagination_text)
+      }
+      if (categoryState?.category_vision_text && categoryState.category_vision_text.trim().length > 50) {
+        setGeneratedVisionText(categoryState.category_vision_text)
+        setGenerationComplete(true)
       }
 
       // Restore unsaved drafts from localStorage if present (e.g. after refresh or tab recovery)
@@ -167,14 +202,18 @@ export default function CategoryPage() {
       // Load completion status for all categories for the grid
       const { data: allCategoryStates } = await supabase
         .from('vision_new_category_state')
-        .select('category, get_me_started_text, imagination_text')
+        .select('category, get_me_started_text, imagination_text, category_vision_text')
         .eq('user_id', user.id)
       
       const completed = allCategoryStates
-        ?.filter(state => 
-          (state.get_me_started_text && state.get_me_started_text.trim().length > 0) ||
-          (state.imagination_text && state.imagination_text.trim().length > 0)
-        )
+        ?.filter(state => {
+          const isMeta = (META_CATEGORY_KEYS as readonly string[]).includes(state.category)
+          if (isMeta) {
+            return (state.get_me_started_text && state.get_me_started_text.trim().length > 0) ||
+                   (state.imagination_text && state.imagination_text.trim().length > 0)
+          }
+          return state.category_vision_text && state.category_vision_text.trim().length > 50
+        })
         .map(state => state.category) || []
       
       setCompletedCategoryKeys(completed)
@@ -253,13 +292,13 @@ export default function CategoryPage() {
 
     setIsSaving(true)
     setError(null)
+    setGenerationError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const user = session?.user
       if (!user) throw new Error('Unauthorized')
 
-      // Save to database - both fields + clarity_keys from profile
-      const stateField = getCategoryStateField(categoryKey)
+      const stateField = `state_${categoryKey}`
       const stateValue = fullProfile?.[stateField] || ''
       
       const { error: updateError } = await supabase
@@ -270,7 +309,6 @@ export default function CategoryPage() {
           get_me_started_text: getMeStartedText.trim() || null,
           imagination_text: imaginationText.trim() || null,
           clarity_keys: stateValue ? [stateValue] : [],
-          category_vision_text: null,
           source_profile_id: fullProfile?.id || null,
         }, {
           onConflict: 'user_id,category'
@@ -278,7 +316,6 @@ export default function CategoryPage() {
 
       if (updateError) throw updateError
 
-      // Clear drafts from localStorage after successful save
       try {
         if (typeof window !== 'undefined') {
           window.localStorage.removeItem(DRAFT_STARTER_KEY)
@@ -286,26 +323,180 @@ export default function CategoryPage() {
         }
       } catch (_) { /* ignore */ }
 
-      // Update local completion state with this category
+      setIsSaving(false)
+
+      // Trigger VIVA generation
+      setIsGenerating(true)
+      setGeneratedVisionText('')
+      setGenerationComplete(false)
+
+      setTimeout(() => {
+        generationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+
+      const response = await fetch('/api/viva/category-vision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryKey,
+          getMeStartedText: getMeStartedText.trim(),
+          imaginationText: imaginationText.trim(),
+          currentStateText: stateValue,
+          perspective: 'singular'
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        if (response.status === 402) {
+          setTokenErrorInfo({ tokensRemaining: errorData.tokensRemaining })
+          setShowInsufficientTokens(true)
+          setIsGenerating(false)
+          return
+        }
+        throw new Error(errorData.error || `Generation failed (${response.status})`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const chunk = decoder.decode(value, { stream: true })
+          fullText += chunk
+          setGeneratedVisionText(fullText)
+        }
+      }
+
+      const finalChunk = decoder.decode()
+      if (finalChunk) {
+        fullText += finalChunk
+        setGeneratedVisionText(fullText)
+      }
+
+      setIsGenerating(false)
+      setGenerationComplete(true)
+
       const updatedCompleted = completedCategoryKeys.includes(categoryKey)
         ? completedCategoryKeys
         : [...completedCategoryKeys, categoryKey]
       setCompletedCategoryKeys(updatedCompleted)
 
-      // Check if all 12 life categories are now complete
       const allReady = LIFE_CATEGORY_KEYS.every(key => updatedCompleted.includes(key))
-
-      if (allReady && !completedCategoryKeys.includes(categoryKey)) {
-        // This save just completed all 12 — show the modal
+      if (allReady) {
         setShowAllReadyModal(true)
-      } else if (nextCategory) {
-        router.push(`/life-vision/new/category/${nextCategory.key}`)
       }
     } catch (err) {
-      console.error('Error saving ideal state:', err)
-      setError('Failed to save your vision. Try again or refresh and save again.')
-    } finally {
+      console.error('Error:', err)
+      if (isGenerating) {
+        setGenerationError(err instanceof Error ? err.message : 'Generation failed')
+        setIsGenerating(false)
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to save your vision. Try again.')
+      }
       setIsSaving(false)
+    }
+  }
+
+  const handleRetryGeneration = async () => {
+    setGenerationError(null)
+    setIsGenerating(true)
+    setGeneratedVisionText('')
+
+    try {
+      const stateField = `state_${categoryKey}`
+      const stateValue = fullProfile?.[stateField] || ''
+
+      const response = await fetch('/api/viva/category-vision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryKey,
+          getMeStartedText: getMeStartedText.trim(),
+          imaginationText: imaginationText.trim(),
+          currentStateText: stateValue,
+          perspective: 'singular'
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        if (response.status === 402) {
+          setTokenErrorInfo({ tokensRemaining: errorData.tokensRemaining })
+          setShowInsufficientTokens(true)
+          setIsGenerating(false)
+          return
+        }
+        throw new Error(errorData.error || `Generation failed (${response.status})`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const chunk = decoder.decode(value, { stream: true })
+          fullText += chunk
+          setGeneratedVisionText(fullText)
+        }
+      }
+
+      const finalChunk = decoder.decode()
+      if (finalChunk) {
+        fullText += finalChunk
+        setGeneratedVisionText(fullText)
+      }
+
+      setIsGenerating(false)
+      setGenerationComplete(true)
+
+      const updatedCompleted = completedCategoryKeys.includes(categoryKey)
+        ? completedCategoryKeys
+        : [...completedCategoryKeys, categoryKey]
+      setCompletedCategoryKeys(updatedCompleted)
+
+      const allReady = LIFE_CATEGORY_KEYS.every(key => updatedCompleted.includes(key))
+      if (allReady) {
+        setShowAllReadyModal(true)
+      }
+    } catch (err) {
+      console.error('Error retrying generation:', err)
+      setGenerationError(err instanceof Error ? err.message : 'Generation failed')
+      setIsGenerating(false)
+    }
+  }
+
+  const handleContinueToNext = async () => {
+    // Save any user edits to the generated vision text
+    if (generatedVisionText.trim()) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
+        if (user) {
+          await supabase
+            .from('vision_new_category_state')
+            .update({ category_vision_text: generatedVisionText.trim() })
+            .eq('user_id', user.id)
+            .eq('category', categoryKey)
+        }
+      } catch (err) {
+        console.error('Error saving edits:', err)
+      }
+    }
+
+    const allReady = LIFE_CATEGORY_KEYS.every(key => completedCategoryKeys.includes(key))
+    if (allReady) {
+      setShowAllReadyModal(true)
+    } else if (nextCategory) {
+      router.push(`${pathPrefix}/life-vision/new/category/${nextCategory.key}`)
+    } else {
+      router.push(`${pathPrefix}/life-vision/new/assembly`)
     }
   }
 
@@ -332,6 +523,9 @@ export default function CategoryPage() {
       setGetMeStartedText('')
       setImaginationText('')
       setRestoredDraft(false)
+      setGeneratedVisionText('')
+      setGenerationComplete(false)
+      setGenerationError(null)
       setCompletedCategoryKeys(prev => prev.filter(k => k !== categoryKey))
     } catch (err) {
       console.error('Error clearing category:', err)
@@ -355,7 +549,7 @@ export default function CategoryPage() {
         {/* Ready to Assemble Banner */}
         {allCategoriesReady && !showAllReadyModal && (
           <button
-            onClick={() => router.push('/life-vision/new/assembly')}
+            onClick={() => router.push(`${pathPrefix}/life-vision/new/assembly`)}
             className="w-full flex items-center justify-between gap-3 px-5 py-3 rounded-xl bg-primary-500/15 border border-primary-500/40 hover:bg-primary-500/25 transition-colors group"
           >
             <div className="flex items-center gap-3">
@@ -379,7 +573,7 @@ export default function CategoryPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => prevCategory && router.push(`/life-vision/new/category/${prevCategory.key}`)}
+              onClick={() => prevCategory && router.push(`${pathPrefix}/life-vision/new/category/${prevCategory.key}`)}
               disabled={!prevCategory}
               className="flex-1"
             >
@@ -389,7 +583,7 @@ export default function CategoryPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => nextCategory && router.push(`/life-vision/new/category/${nextCategory.key}`)}
+              onClick={() => nextCategory && router.push(`${pathPrefix}/life-vision/new/category/${nextCategory.key}`)}
               disabled={!nextCategory}
               className="flex-1"
             >
@@ -401,16 +595,18 @@ export default function CategoryPage() {
 
         {/* Categories bar - full width under hero */}
         <CategoryGrid
-          categories={categoriesWithout}
+          categories={allCategories}
           selectedCategories={[categoryKey]}
           completedCategories={completedCategoryKeys}
-          onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
+          onCategoryClick={(key: string) => router.push(`${pathPrefix}/life-vision/new/category/${key}`)}
           mode="completion"
           lifeVisionCategoryStrip
+          desktopColumnCount={6}
+          pillLabel="Create"
         />
 
-        {/* Context Card - Profile Details + Current State */}
-        {(profileData || fullProfile) && (
+        {/* Context Card - Profile Details + Current State (hidden for meta categories) */}
+        {!isMetaCategory && (profileData || fullProfile) && (
           <Card className="border-2 border-neutral-700 bg-neutral-800/30">
             <button
               onClick={() => setShowContextCard(!showContextCard)}
@@ -594,13 +790,13 @@ export default function CategoryPage() {
         {restoredDraft && (
           <Card className="bg-primary-500/10 border border-primary-500/30 p-4">
             <p className="text-sm text-primary-400">
-              Unsaved content was restored. Click Save and Continue to keep it.
+              Unsaved content was restored. Click Create and Continue to keep it.
             </p>
           </Card>
         )}
 
-        {/* Inspiration Questions (toggle) */}
-        {inspirationQuestions.length > 0 && (
+        {/* Inspiration Questions (toggle) — only for life categories */}
+        {!isMetaCategory && inspirationQuestions.length > 0 && (
           <Card variant="elevated">
             <button
               onClick={() => setShowInspirationQuestions(!showInspirationQuestions)}
@@ -638,10 +834,12 @@ export default function CategoryPage() {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
             <label className="block">
               <span className="text-lg font-semibold text-white mb-2 block">
-                Get Me Started
+                {isMetaCategory ? `${category.label} Text` : 'Get Me Started'}
               </span>
               <span className="text-sm text-neutral-400 block">
-                VIVA builds a starting point from your profile. Edit freely to make it yours.
+                {isMetaCategory
+                  ? `VIVA personalizes the ${categoryKey === 'forward' ? 'opening declaration' : 'closing statement'} of your Life Vision with details from your profile. Edit freely to make it yours.`
+                  : 'VIVA builds a starting point from your profile. Edit freely to make it yours.'}
               </span>
             </label>
             
@@ -687,11 +885,13 @@ export default function CategoryPage() {
           <div className="relative">
             <VIVALoadingOverlay
               isVisible={isGeneratingStarter && !getMeStartedText.trim()}
-              messages={[
-                `VIVA is reading your ${category.label.toLowerCase()} profile...`,
-                'Activating your vision language...',
-                'Building your starting point...',
-              ]}
+              messages={isMetaCategory
+                ? ['Personalizing your vision text...', 'Weaving in your life details...', 'Building your starting point...']
+                : [
+                  `VIVA is reading your ${category.label.toLowerCase()} profile...`,
+                  'Activating your vision language...',
+                  'Building your starting point...',
+                ]}
               cycleDuration={3000}
               showProgressBar={false}
               size="sm"
@@ -700,12 +900,14 @@ export default function CategoryPage() {
             <RecordingTextarea
               value={getMeStartedText}
               onChange={(value) => setGetMeStartedText(value)}
-              placeholder={`Press "Get Me Started" and VIVA will create a starting point from your ${category.label.toLowerCase()} profile data...`}
+              placeholder={isMetaCategory
+                ? `Edit the ${category.label.toLowerCase()} text for your Life Vision...`
+                : `Press "Get Me Started" and VIVA will create a starting point from your ${category.label.toLowerCase()} profile data...`}
               className="min-h-[200px] w-full"
               rows={8}
               storageFolder="lifeVision"
               recordingPurpose="quick"
-              category={visionToRecordingKey(categoryKey)}
+              category={visionToRecordingKey(recordingKeyForVisionCategory(categoryKey))}
               instanceId="get-me-started"
             />
           </div>
@@ -733,7 +935,7 @@ export default function CategoryPage() {
             rows={10}
             storageFolder="lifeVision"
             recordingPurpose="quick"
-            category={visionToRecordingKey(categoryKey)}
+            category={visionToRecordingKey(recordingKeyForVisionCategory(categoryKey))}
             instanceId="imagination"
           />
           <p className="text-xs text-neutral-500 mt-2">
@@ -741,31 +943,139 @@ export default function CategoryPage() {
           </p>
         </Card>
 
-        {/* Save and Continue */}
+        {/* Section 3: Generated Vision Text */}
+        {!isMetaCategory && (isGenerating || generationComplete || generationError) && (
+          <div ref={generationRef}>
+            <Card variant="elevated" className={`p-6 border-2 ${
+              generationComplete ? 'border-primary-500/30'
+                : isGenerating ? 'border-accent-500/30'
+                : 'border-red-500/30'
+            }`}>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    generationComplete ? 'bg-primary-500/20' : isGenerating ? 'bg-accent-500/20' : 'bg-red-500/20'
+                  }`}>
+                    {generationComplete ? <CheckCircle className="w-5 h-5 text-primary-500" />
+                      : isGenerating ? <Spinner size="sm" />
+                      : <AlertCircle className="w-5 h-5 text-red-500" />}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">
+                      {generationComplete ? `Your ${category.label} Vision` : isGenerating ? 'VIVA is writing...' : 'Generation Failed'}
+                    </h3>
+                    {generationComplete && (
+                      <p className="text-xs text-neutral-400">You&apos;ll refine this in Step 6</p>
+                    )}
+                  </div>
+                </div>
+                {generationComplete && (
+                  <button
+                    onClick={() => {
+                      setGenerationComplete(false)
+                      setGeneratedVisionText('')
+                      setGenerationError(null)
+                      setCompletedCategoryKeys(prev => prev.filter(k => k !== categoryKey))
+                      handleRetryGeneration()
+                    }}
+                    className="text-xs text-neutral-500 hover:text-accent-400 transition-colors flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Regenerate
+                  </button>
+                )}
+              </div>
+
+              {isGenerating && !generatedVisionText.trim() && (
+                <VIVALoadingOverlay
+                  isVisible={true}
+                  messages={[
+                    `VIVA is crafting your ${category.label.toLowerCase()} vision...`,
+                    'Weaving your imagination into reality...',
+                    'Building your Life I Choose text...',
+                  ]}
+                  cycleDuration={5000}
+                  showProgressBar={false}
+                  size="sm"
+                  className="rounded-xl"
+                />
+              )}
+
+              {generatedVisionText && (
+                <div className="relative">
+                  <textarea
+                    value={generatedVisionText}
+                    onChange={(e) => setGeneratedVisionText(e.target.value)}
+                    className="w-full min-h-[300px] bg-neutral-900/50 border border-neutral-700 rounded-xl p-4 text-neutral-200 leading-relaxed resize-y focus:outline-none focus:border-primary-500/50"
+                    readOnly={isGenerating}
+                  />
+                  {isGenerating && (
+                    <span className="absolute bottom-4 right-4 inline-block w-2 h-5 bg-accent-500 animate-pulse" />
+                  )}
+                </div>
+              )}
+
+              {generationError && (
+                <div className="text-center py-4">
+                  <p className="text-red-400 text-sm mb-3">{generationError}</p>
+                  <Button variant="outline" size="sm" onClick={handleRetryGeneration}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry Generation
+                  </Button>
+                </div>
+              )}
+
+              {generationComplete && generatedVisionText && (
+                <p className="text-xs text-neutral-500 mt-3">
+                  {generatedVisionText.trim().split(/\s+/).filter(Boolean).length} words
+                </p>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Save and Continue / Continue to Next */}
         <Card variant="elevated" className="p-6" onClick={(e) => e.stopPropagation()}>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              handleSaveAndContinue()
-            }}
-            disabled={(!getMeStartedText.trim() && !imaginationText.trim()) || isSaving}
-            className="w-full"
-          >
-            {isSaving ? (
-              <>
-                <Spinner size="sm" className="mr-2" />
-                Saving...
-              </>
-            ) : (
-              <>
-                Save and Continue
-                <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
-              </>
-            )}
-          </Button>
+          {generationComplete && !isMetaCategory ? (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleContinueToNext}
+              className="w-full"
+            >
+              {nextCategory ? 'Continue to Next Category' : 'Go to Assembly'}
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleSaveAndContinue()
+              }}
+              disabled={(!getMeStartedText.trim() && !imaginationText.trim()) || isSaving || isGenerating}
+              className="w-full"
+            >
+              {isSaving ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Saving...
+                </>
+              ) : isGenerating ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  Create and Continue
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+                </>
+              )}
+            </Button>
+          )}
         </Card>
       </Stack>
 
@@ -774,7 +1084,7 @@ export default function CategoryPage() {
         isOpen={showInsufficientTokens}
         onClose={() => setShowInsufficientTokens(false)}
         tokensRemaining={tokenErrorInfo.tokensRemaining}
-        actionName="Get Me Started"
+        actionName="Vision Generation"
       />
 
       {/* All Categories Ready Modal */}
@@ -798,18 +1108,18 @@ export default function CategoryPage() {
           </div>
 
           <h2 className="text-2xl font-bold text-white">
-            All Categories Are Ready to Assemble!
+            All Categories Are Created!
           </h2>
 
           <p className="text-neutral-300 text-sm">
-            You can now combine all 12 categories into your unified Life Vision.
+            Your 12 categories are ready to be assembled into your complete Life Vision.
           </p>
 
           <div className="flex flex-col gap-3 pt-2">
             <Button
               variant="primary"
               size="lg"
-              onClick={() => router.push('/life-vision/new/assembly')}
+              onClick={() => router.push(`${pathPrefix}/life-vision/new/assembly`)}
               className="w-full"
             >
               Go to Assembly

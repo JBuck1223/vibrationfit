@@ -276,7 +276,7 @@ export default function AudioDesignerPage() {
         </PageHero>
 
         {/* Rain Designer */}
-        <Card variant="elevated" className="bg-[#0A0A0A]">
+        <Card variant="elevated" className="bg-neutral-850">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
               <Droplets className="w-6 h-6 text-blue-400" />
@@ -374,7 +374,7 @@ export default function AudioDesignerPage() {
         </Card>
 
         {/* Ocean Waves Designer */}
-        <Card variant="elevated" className="bg-[#0A0A0A]">
+        <Card variant="elevated" className="bg-neutral-850">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-teal-500/20 rounded-xl flex items-center justify-center">
               <WavesIcon className="w-6 h-6 text-teal-400" />
@@ -506,7 +506,7 @@ export default function AudioDesignerPage() {
         </Card>
 
         {/* Waterfall Designer */}
-        <Card variant="elevated" className="bg-[#0A0A0A]">
+        <Card variant="elevated" className="bg-neutral-850">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center">
               <Wind className="w-6 h-6 text-cyan-400" />

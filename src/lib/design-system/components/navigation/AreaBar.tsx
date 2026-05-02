@@ -684,7 +684,7 @@ export function AreaBar({
             </div>
           </div>
         ) : (
-          <div className="sticky top-0 z-30 w-full min-w-0 border-b border-neutral-800/60 bg-[#0A0A0A]">
+          <div className="sticky top-0 z-30 w-full min-w-0 border-b border-neutral-800/60 bg-neutral-850">
             {/* Title row — centered when no right-side actions; split layout when selectors/menuItems exist */}
             {hasMobileTitleActions ? (
               <div className="flex min-w-0 items-center gap-2 px-4 pb-2.5" style={mobileTitlePaddingTop}>
@@ -753,7 +753,7 @@ export function AreaBar({
           </div>
         </div>
       ) : (
-        <div className="hidden md:block rounded-2xl border-2 border-[#333] bg-[#0A0A0A]">
+        <div className="hidden md:block rounded-2xl border-2 border-[#333] bg-neutral-850">
           {/* Row 1: Title | Tabs | Right */}
           <div className="px-6">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center">

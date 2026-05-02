@@ -263,104 +263,113 @@ async function advanceStep3_Profile(
   // Check if profile exists
   const { data: existing } = await supabase
     .from('user_profiles')
-    .select('id')
+    .select('id, state_fun')
     .eq('user_id', userId)
     .maybeSingle()
 
-  if (!existing) {
-    // Values must match CHECK constraints in user_profiles table
+  const profilePayload = {
+    // Demographics
+    gender: 'Female',
+    ethnicity: 'White',
+    relationship_status: 'Married',
+    relationship_length: '5-10 years',
+    partner_name: 'Michael',
+    has_children: true,
+    children: JSON.stringify([
+      { name: 'Emma', age: 8, gender: 'Female' },
+      { name: 'Jack', age: 5, gender: 'Male' }
+    ]),
+    
+    // Physical
+    units: 'US',
+    height: 65,
+    weight: 145,
+    exercise_frequency: '3-4x',
+    
+    // Location
+    living_situation: 'Own',
+    time_at_location: '3-5 years',
+    city: 'Los Angeles',
+    state: 'CA',
+    postal_code: '90210',
+    country: 'United States',
+    
+    // Education & Work
+    education: "Bachelor's Degree",
+    education_description: 'Computer Science from UCLA',
+    employment_type: 'Employed',
+    occupation: 'Software Developer',
+    company: 'Tech Startup Inc.',
+    time_in_role: '2-3 years',
+    
+    // Financial
+    currency: 'USD',
+    household_income: '100,000-249,999',
+    savings_retirement: '50,000-99,999',
+    assets_equity: '100,000-249,999',
+    consumer_debt: '10,000-24,999',
+    
+    // Lifestyle
+    hobbies: ['yoga', 'hiking', 'reading', 'cooking', 'photography'],
+    leisure_time_weekly: '10-15 hours',
+    passport: true,
+    countries_visited: 12,
+    has_vehicle: true,
+    vehicles: JSON.stringify([
+      { make: 'Tesla', model: 'Model Y', year: 2023 }
+    ]),
+    items: JSON.stringify([
+      { name: 'MacBook Pro', category: 'Electronics', value: 2500 },
+      { name: 'Peloton Bike', category: 'Fitness', value: 1500 }
+    ]),
+    trips: JSON.stringify([
+      { destination: 'Paris, France', date: '2024-06', type: 'vacation' },
+      { destination: 'Tokyo, Japan', date: '2023-10', type: 'vacation' }
+    ]),
+    
+    // Social
+    close_friends_count: '5-10',
+    
+    // Spiritual & Giving
+    spiritual_practice: 'Meditation and mindfulness',
+    meditation_frequency: 'Daily',
+    personal_growth_focus: true,
+    volunteer_status: 'Monthly',
+    charitable_giving: '5-10% of income',
+    legacy_mindset: true,
+    
+    // State descriptions
+    state_love: 'I want a deeply connected partnership filled with adventure, growth, and unwavering support. We travel together, grow together, and our love deepens with each passing year. Right now I sometimes feel disconnected or taken for granted. Routine without romance. Growing apart instead of together.',
+    state_family: 'Quality time with my kids, creating lasting memories and strong bonds. Family dinners, weekend adventures, and being fully present for their milestones. But I find myself being too busy for the kids. Missing moments. Distracted parenting and guilt.',
+    state_work: 'Meaningful work that challenges me and creates positive impact. Leading a team that innovates and builds products that matter. Currently dealing with unfulfilling work that drains energy. Toxic environments. Trading time for money without meaning.',
+    state_money: 'Financial freedom to travel, invest, and give generously. Multiple income streams and complete peace of mind about our future. But there is financial stress and scarcity mindset. Living paycheck to paycheck. Worry about the future.',
+    state_home: 'A beautiful, spacious home with natural light, a chef\'s kitchen, and a backyard where the kids can play. A sanctuary that inspires creativity. Right now it feels like cramped spaces, clutter, and chaos. A home that feels temporary rather than intentional.',
+    state_health: 'Vibrant energy, strong body, clear mind. Running 5Ks, doing yoga daily, sleeping deeply, and aging gracefully with vitality. Currently experiencing low energy, poor sleep, and neglecting my body. Feeling older than my years.',
+    state_fun: 'Regular adventures, spontaneous road trips, learning new skills, and belly laughs with friends. Life should feel like play. But it has been all work and no play. Forgetting to have fun. Life feeling like a grind.',
+    state_travel: 'Exploring new countries every year. Immersive experiences, luxury stays, and creating memories that enrich our souls. Right now feeling stuck. Never exploring. Putting off adventures until "someday."',
+    state_social: 'A tight circle of inspiring friends who lift each other up. Deep conversations, shared experiences, and genuine connection. But experiencing superficial relationships. Loneliness despite being busy. No one to truly confide in.',
+    state_stuff: 'High-quality possessions that bring joy and serve a purpose. A Tesla, beautiful art, and experiences over things. Currently accumulating junk. Buying cheap things that break. Clutter that weighs me down.',
+    state_giving: 'Generously supporting causes I believe in. Mentoring others, volunteering time, and leaving the world better than I found it. But feeling too self-focused. Not making a difference. Living small.',
+    state_spirituality: 'Daily meditation, deep intuition, and living with purpose. Feeling connected to something greater and trusting the journey. Currently feeling disconnection from purpose. Racing through life. Ignoring my inner voice.',
+    
+    is_active: true,
+    is_draft: false,
+    updated_at: now
+  }
+
+  if (existing && !existing.state_fun) {
+    const { error } = await supabase.from('user_profiles')
+      .update(profilePayload)
+      .eq('id', existing.id)
+    if (error) {
+      console.error('Error updating profile:', error)
+      throw new Error(`Failed to update profile: ${error.message}`)
+    }
+  } else if (!existing) {
     const { error } = await supabase.from('user_profiles').insert({
       user_id: userId,
-      
-      // Demographics
-      gender: 'Female',
-      ethnicity: 'White',
-      relationship_status: 'Married',
-      relationship_length: '5-10 years',
-      partner_name: 'Michael',
-      has_children: true,
-      children: JSON.stringify([
-        { name: 'Emma', age: 8, gender: 'Female' },
-        { name: 'Jack', age: 5, gender: 'Male' }
-      ]),
-      
-      // Physical
-      units: 'US',
-      height: 65,
-      weight: 145,
-      exercise_frequency: '3-4x',
-      
-      // Location
-      living_situation: 'Own',
-      time_at_location: '3-5 years',
-      city: 'Los Angeles',
-      state: 'CA',
-      postal_code: '90210',
-      country: 'United States',
-      
-      // Education & Work
-      education: "Bachelor's Degree",
-      education_description: 'Computer Science from UCLA',
-      employment_type: 'Employee',
-      occupation: 'Software Developer',
-      company: 'Tech Startup Inc.',
-      time_in_role: '2-3 years',
-      
-      // Financial
-      currency: 'USD',
-      household_income: '100,000-249,999',
-      savings_retirement: '50,000-99,999',
-      assets_equity: '100,000-249,999',
-      consumer_debt: '10,000-24,999',
-      
-      // Lifestyle
-      hobbies: ['yoga', 'hiking', 'reading', 'cooking', 'photography'],
-      leisure_time_weekly: '10-15 hours',
-      passport: true,
-      countries_visited: 12,
-      has_vehicle: true,
-      vehicles: JSON.stringify([
-        { make: 'Tesla', model: 'Model Y', year: 2023 }
-      ]),
-      items: JSON.stringify([
-        { name: 'MacBook Pro', category: 'Electronics', value: 2500 },
-        { name: 'Peloton Bike', category: 'Fitness', value: 1500 }
-      ]),
-      trips: JSON.stringify([
-        { destination: 'Paris, France', date: '2024-06', type: 'vacation' },
-        { destination: 'Tokyo, Japan', date: '2023-10', type: 'vacation' }
-      ]),
-      
-      // Social
-      close_friends_count: '5-10',
-      
-      // Spiritual & Giving
-      spiritual_practice: 'Meditation and mindfulness',
-      meditation_frequency: 'Daily',
-      personal_growth_focus: true,
-      volunteer_status: 'Monthly',
-      charitable_giving: '5-10% of income',
-      legacy_mindset: true,
-      
-      // State descriptions (holistic view of where they are now in each category)
-      state_love: 'I want a deeply connected partnership filled with adventure, growth, and unwavering support. We travel together, grow together, and our love deepens with each passing year. Right now I sometimes feel disconnected or taken for granted. Routine without romance. Growing apart instead of together.',
-      state_family: 'Quality time with my kids, creating lasting memories and strong bonds. Family dinners, weekend adventures, and being fully present for their milestones. But I find myself being too busy for the kids. Missing moments. Distracted parenting and guilt.',
-      state_work: 'Meaningful work that challenges me and creates positive impact. Leading a team that innovates and builds products that matter. Currently dealing with unfulfilling work that drains energy. Toxic environments. Trading time for money without meaning.',
-      state_money: 'Financial freedom to travel, invest, and give generously. Multiple income streams and complete peace of mind about our future. But there is financial stress and scarcity mindset. Living paycheck to paycheck. Worry about the future.',
-      state_home: 'A beautiful, spacious home with natural light, a chef\'s kitchen, and a backyard where the kids can play. A sanctuary that inspires creativity. Right now it feels like cramped spaces, clutter, and chaos. A home that feels temporary rather than intentional.',
-      state_health: 'Vibrant energy, strong body, clear mind. Running 5Ks, doing yoga daily, sleeping deeply, and aging gracefully with vitality. Currently experiencing low energy, poor sleep, and neglecting my body. Feeling older than my years.',
-      state_fun: 'Regular adventures, spontaneous road trips, learning new skills, and belly laughs with friends. Life should feel like play. But it has been all work and no play. Forgetting to have fun. Life feeling like a grind.',
-      state_travel: 'Exploring new countries every year. Immersive experiences, luxury stays, and creating memories that enrich our souls. Right now feeling stuck. Never exploring. Putting off adventures until "someday."',
-      state_social: 'A tight circle of inspiring friends who lift each other up. Deep conversations, shared experiences, and genuine connection. But experiencing superficial relationships. Loneliness despite being busy. No one to truly confide in.',
-      state_stuff: 'High-quality possessions that bring joy and serve a purpose. A Tesla, beautiful art, and experiences over things. Currently accumulating junk. Buying cheap things that break. Clutter that weighs me down.',
-      state_giving: 'Generously supporting causes I believe in. Mentoring others, volunteering time, and leaving the world better than I found it. But feeling too self-focused. Not making a difference. Living small.',
-      state_spirituality: 'Daily meditation, deep intuition, and living with purpose. Feeling connected to something greater and trusting the journey. Currently feeling disconnection from purpose. Racing through life. Ignoring my inner voice.',
-      
-      // Version metadata
-      is_active: true,
-      is_draft: false,
-      created_at: now,
-      updated_at: now
+      ...profilePayload,
+      created_at: now
     })
     
     if (error) {
@@ -405,6 +414,13 @@ async function advanceStep4_Assessment(
     .from('assessment_results')
     .update({ is_active: false })
     .eq('user_id', userId)
+
+  // Remove any leftover draft assessments (unique constraint: one draft per user)
+  await supabase
+    .from('assessment_results')
+    .delete()
+    .eq('user_id', userId)
+    .eq('is_draft', true)
 
   // Create assessment as in_progress (matching normal flow)
   const { data: assessment, error: assessmentError } = await supabase
