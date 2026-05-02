@@ -37,9 +37,11 @@ function isPathAccessibleForIntensive(
   intensive: IntensiveData | null, 
   settingsComplete: boolean
 ): boolean {
-  // Always accessible during intensive (no progress check needed)
   const alwaysAllowed = [
     '/intensive/start',
+    '/intensive/welcome',
+    '/intensive/journey',
+    '/intensive/check-email',
     '/viva',
     '/support',
     '/referral',
@@ -51,65 +53,79 @@ function isPathAccessibleForIntensive(
   
   if (!intensive) return false
 
-  // Dashboard - accessible after intensive is started
   if (pathname === '/intensive/dashboard' || pathname.startsWith('/intensive/dashboard/')) {
     return !!intensive.started_at
   }
 
-  // Step 1: Settings - accessible only after intensive is started
-  if (pathname.startsWith('/account')) {
+  // Step 1: Account Settings
+  if (pathname.startsWith('/intensive/account')) {
     return !!intensive.started_at
   }
   
-  // Step 2: Intake - accessible after settings
+  // Step 2: Intake (but not /intensive/intake/unlock which is Step 14)
+  if (pathname === '/intensive/intake/unlock') {
+    return intensive.activation_protocol_completed
+  }
   if (pathname === '/intensive/intake' || pathname.startsWith('/intensive/intake/')) {
-    // But NOT /intensive/intake/unlock until step 14
-    if (pathname.startsWith('/intensive/intake/unlock')) {
-      return intensive.activation_protocol_completed
-    }
     return settingsComplete
   }
   
-  // Step 3: Profile - accessible after intake
-  if (pathname.startsWith('/profile')) {
+  // Step 3: Profile
+  if (pathname.startsWith('/intensive/profile')) {
     return intensive.intake_completed
   }
   
-  // Step 4: Assessment - accessible after profile
-  if (pathname.startsWith('/assessment')) {
+  // Step 4: Assessment
+  if (pathname.startsWith('/intensive/assessment')) {
     return intensive.profile_completed
   }
   
-  // Steps 7-9: Audio - must check BEFORE general life-vision
-  // Audio requires vision to be refined (step 6 complete)
-  if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) {
-    return intensive.vision_refined
-  }
-  
-  // Steps 5-6: Vision building & refining - accessible after assessment
-  if (pathname.startsWith('/life-vision')) {
+  // Steps 5-6: Life Vision (build + refine)
+  if (pathname.startsWith('/intensive/life-vision')) {
     return intensive.assessment_completed
   }
   
-  // Step 10: Vision Board - accessible after audio generated
-  if (pathname.startsWith('/vision-board')) {
+  // Steps 7-9: Audio
+  if (pathname.startsWith('/intensive/audio')) {
+    return intensive.vision_refined
+  }
+  
+  // Step 10: Vision Board
+  if (pathname.startsWith('/intensive/vision-board')) {
     return intensive.audio_generated || intensive.audios_generated
   }
   
-  // Step 11: Journal - accessible after vision board
-  if (pathname.startsWith('/journal')) {
+  // Step 11: Journal
+  if (pathname.startsWith('/intensive/journal')) {
     return intensive.vision_board_completed
   }
   
-  // Step 12: Schedule Call & Call Prep - accessible after journal
+  // Step 12: Schedule Call & Call Prep
   if (pathname.startsWith('/intensive/schedule-call') || pathname.startsWith('/intensive/call-prep')) {
     return intensive.first_journal_entry
   }
   
-  // Step 13: My Activation Plan & Calibration - accessible after call scheduled
-  if (pathname.startsWith('/map') || pathname.startsWith('/intensive/calibration')) {
+  // Step 13: My Activation Plan & Calibration
+  if (pathname.startsWith('/intensive/map') || pathname.startsWith('/intensive/calibration')) {
     return intensive.call_scheduled
   }
+
+  // Step 14: Unlock
+  if (pathname.startsWith('/intensive/unlock')) {
+    return intensive.activation_protocol_completed
+  }
+
+  // Legacy paths outside /intensive/ — still allow for backwards compatibility
+  if (pathname.startsWith('/account')) return !!intensive.started_at
+  if (pathname.startsWith('/profile')) return intensive.intake_completed
+  if (pathname.startsWith('/assessment')) return intensive.profile_completed
+  if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) return intensive.vision_refined
+  if (pathname.startsWith('/life-vision')) return intensive.assessment_completed
+  if (pathname.startsWith('/vision-board')) return intensive.audio_generated || intensive.audios_generated
+  if (pathname.startsWith('/journal')) return intensive.vision_board_completed
+  if (pathname.startsWith('/map')) return intensive.call_scheduled
+  if (pathname.startsWith('/activation-protocol')) return intensive.call_scheduled
+  if (pathname.startsWith('/audio')) return intensive.vision_refined
   
   // Main Dashboard - accessible after intensive is fully complete (unlock step done)
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
@@ -128,6 +144,10 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   // inside the same session never re-query the database.
   const [snapshot, setSnapshot] = useState<IntensiveSnapshot | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   useEffect(() => {
     let cancelled = false
@@ -169,9 +189,19 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       }
     })
 
+    const handleSnapshotInvalidation = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user || cancelled) return
+      const fetched = await loadIntensiveSnapshot(session.user.id, { forceRefresh: true })
+      if (!cancelled) setSnapshot(fetched)
+    }
+
+    window.addEventListener('intensive-snapshot-invalidated', handleSnapshotInvalidation)
+
     return () => {
       cancelled = true
       subscription.unsubscribe()
+      window.removeEventListener('intensive-snapshot-invalidated', handleSnapshotInvalidation)
     }
   }, [])
 

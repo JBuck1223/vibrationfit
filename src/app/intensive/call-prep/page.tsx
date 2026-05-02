@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { ArrowLeft, Video, CheckCircle, ArrowRight, Clock, Calendar, ExternalLink } from 'lucide-react'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 
@@ -87,6 +88,7 @@ export default function CallPrepPage() {
 
       if (error) throw error
 
+      invalidateIntensiveSnapshot()
       router.push('/intensive/dashboard')
     } catch (error) {
       console.error('Error updating checklist:', error)

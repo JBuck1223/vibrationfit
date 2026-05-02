@@ -67,12 +67,23 @@ export async function POST(request: NextRequest) {
       console.log('Using default woo level')
     }
 
-    // Get bookend templates
+    // Get bookend templates as defaults
     const bookendTemplate = getBookendTemplate(wooLevel, perspective)
-    const finalForward = bookendTemplate.forward
-    const finalConclusion = bookendTemplate.conclusion
     
-    console.log('[Assembly] Using bookend templates - woo:', wooLevel, 'perspective:', perspective, '(from request:', !!requestedPerspective, ')')
+    // Check if user has written custom Forward/Conclusion text
+    const { data: metaCategoryStates } = await supabase
+      .from('vision_new_category_state')
+      .select('category, get_me_started_text')
+      .eq('user_id', user.id)
+      .in('category', ['forward', 'conclusion'])
+
+    const userForward = metaCategoryStates?.find(s => s.category === 'forward')?.get_me_started_text?.trim()
+    const userConclusion = metaCategoryStates?.find(s => s.category === 'conclusion')?.get_me_started_text?.trim()
+
+    const finalForward = userForward || bookendTemplate.forward
+    const finalConclusion = userConclusion || bookendTemplate.conclusion
+    
+    console.log('[Assembly] Forward source:', userForward ? 'user-written' : 'template', '| Conclusion source:', userConclusion ? 'user-written' : 'template', '| woo:', wooLevel, 'perspective:', perspective)
 
     // Standard activation message
     const activationMessage = `Your Life Vision is complete and ready for activation. This is your north star, your decision filter, and your reminder of what matters most. Return to it regularly to stay aligned with your most fun and satisfying life.`

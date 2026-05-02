@@ -48,7 +48,7 @@ export function IntensiveWelcomeScreen({ onStart }: IntensiveWelcomeScreenProps)
       title: 'Phase 2: Vision Creation',
       icon: Sparkles,
       items: [
-        'Build your life vision',
+        'Create your life vision',
         'Refine with VIVA'
       ]
     },

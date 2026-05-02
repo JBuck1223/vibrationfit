@@ -2,6 +2,7 @@
 // Updated for 14-step Activation Intensive flow
 
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 
 // All possible intensive steps that can be marked complete
 // Note: Step 1 (Settings) is tracked via user_accounts table directly
@@ -66,6 +67,7 @@ export async function markIntensiveStep(step: IntensiveStepType) {
     }
 
     console.log(`Intensive: ${step} marked complete`)
+    invalidateIntensiveSnapshot()
     return true
   } catch (err) {
     console.error('Error in markIntensiveStep:', err)

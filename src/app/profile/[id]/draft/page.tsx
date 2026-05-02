@@ -558,14 +558,16 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
       {/* Category Selection */}
       <Container size="xl">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Choose a Section to Edit</h2>
           <CategoryGrid
             categories={PROFILE_CATEGORIES}
             activeCategory={selectedCategory || undefined}
             refinedCategories={isFreshProfile ? [] : Object.entries(changedSections).filter(([, fields]) => (fields?.length || 0) > 0).map(([key]) => key)}
             onCategoryClick={handleCategorySelect}
             mode="draft"
-            fillWidth
+            lifeVisionCategoryStrip
+            title="Choose a Section to Edit"
+            bleedClassName="max-md:-mx-4"
+            pillLabel="scroll"
           />
         </div>
       </Container>

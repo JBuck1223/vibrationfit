@@ -49,14 +49,14 @@ export default function EmailDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0A0A0A]">
+      <div className="flex-1 flex items-center justify-center bg-neutral-850">
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0A0A0A] min-w-0">
+    <div className="flex-1 flex flex-col bg-neutral-850 min-w-0">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[#222]">
         <button

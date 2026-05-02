@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Button, Card, Spinner, Container, Stack } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Play, X, ChevronDown, ChevronUp, AudioLines, Search, Home } from 'lucide-react'
@@ -12,6 +12,8 @@ import { CompletedStepRow } from '@/components/CompletedStepRow'
 
 export default function AudioGeneratePage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathPrefix = pathname.startsWith('/intensive/') ? '/intensive' : ''
   const { refreshBatches, sourceType, sourceId } = useAudioStudio()
 
   const [selectedSource, setSelectedSource] = useState<AudioSourceSelection | null>(null)
@@ -264,7 +266,7 @@ export default function AudioGeneratePage() {
       })
 
       await refreshBatches()
-      router.push('/audio/queue')
+      router.push(`${pathPrefix}/audio/queue`)
 
     } catch (error) {
       console.error('Generation error:', error)

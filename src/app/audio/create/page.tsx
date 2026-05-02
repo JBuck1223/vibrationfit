@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Container, Stack, Card } from '@/lib/design-system/components'
 import { AudioLines, ChevronRight, Mic, Sliders, Clock } from 'lucide-react'
 
@@ -11,9 +12,8 @@ interface CreateTile {
   icon: React.ElementType
   iconColor: string
   iconBg: string
-  /** Accent wash on hover (default state stays glass like /audio/generate). */
   hoverBg: string
-  href: string
+  path: string
 }
 
 const CREATE_TILES: CreateTile[] = [
@@ -24,7 +24,7 @@ const CREATE_TILES: CreateTile[] = [
     iconColor: 'text-[#39FF14]',
     iconBg: 'bg-[#39FF14]/15',
     hoverBg: 'hover:bg-[#39FF14]/[0.11]',
-    href: '/audio/generate',
+    path: '/audio/generate',
   },
   {
     title: 'Record in Your Voice',
@@ -33,7 +33,7 @@ const CREATE_TILES: CreateTile[] = [
     iconColor: 'text-cyan-400',
     iconBg: 'bg-cyan-500/15',
     hoverBg: 'hover:bg-cyan-500/[0.11]',
-    href: '/audio/record',
+    path: '/audio/record',
   },
   {
     title: 'Mix Audio',
@@ -42,7 +42,7 @@ const CREATE_TILES: CreateTile[] = [
     iconColor: 'text-teal-400',
     iconBg: 'bg-teal-500/15',
     hoverBg: 'hover:bg-teal-500/[0.11]',
-    href: '/audio/mix',
+    path: '/audio/mix',
   },
   {
     title: 'Generation Queue',
@@ -51,11 +51,14 @@ const CREATE_TILES: CreateTile[] = [
     iconColor: 'text-purple-400',
     iconBg: 'bg-purple-500/15',
     hoverBg: 'hover:bg-purple-500/[0.11]',
-    href: '/audio/queue',
+    path: '/audio/queue',
   },
 ]
 
 export default function CreatePage() {
+  const pathname = usePathname()
+  const pathPrefix = pathname.startsWith('/intensive/') ? '/intensive' : ''
+
   return (
     <Container size="xl" className="pt-2 pb-6 sm:pb-8">
       <Stack gap="md">
@@ -67,7 +70,7 @@ export default function CreatePage() {
             return (
               <Link
                 key={tile.title}
-                href={tile.href}
+                href={`${pathPrefix}${tile.path}`}
                 className="group block min-w-0 touch-manipulation"
               >
                 <Card

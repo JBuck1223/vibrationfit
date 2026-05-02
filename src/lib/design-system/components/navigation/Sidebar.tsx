@@ -93,7 +93,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       <div 
         ref={ref}
         className={cn(
-          'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300 sticky top-0 h-screen overflow-hidden',
+          'hidden md:flex flex-col bg-neutral-800 border-r border-neutral-800 transition-all duration-300 sticky top-0 h-screen overflow-hidden',
           collapsed ? 'w-16' : 'w-64',
           className
         )}

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import * as Diff from 'diff'
 import {
   Sparkles,
@@ -17,6 +17,7 @@ import {
   Lightbulb,
   ChevronDown,
   SlidersHorizontal,
+  CheckCircle,
 } from 'lucide-react'
 import {
   Badge,
@@ -32,24 +33,41 @@ import {
   IconList,
   VIVALoadingOverlay,
   InsufficientTokensDialog,
+  ProgressBar,
 } from '@/lib/design-system'
 import { WarningConfirmationDialog } from '@/lib/design-system/components/overlays'
-import { VISION_CATEGORIES, getVisionCategory, getCategoryStateField, getCategoryStoryField, visionToRecordingKey, META_CATEGORY_KEYS, type LifeCategoryKey, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
+import {
+  ORDERED_VISION_CATEGORIES,
+  getVisionCategory,
+  visionToRecordingKey,
+  META_CATEGORY_KEYS,
+  type LifeCategoryKey,
+  type VisionCategoryKey,
+} from '@/lib/design-system/vision-categories'
+
+function recordingKeyForVisionCategory(key: VisionCategoryKey): LifeCategoryKey {
+  return (META_CATEGORY_KEYS as readonly string[]).includes(key) ? 'fun' : (key as LifeCategoryKey)
+}
 import { createClient } from '@/lib/supabase/client'
 import { updateDraftCategory, type VisionData } from '@/lib/life-vision/draft-helpers'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 import { normalizeProfileVersionFromRpc } from '@/lib/profile/profile-version-from-rpc'
+import { getBookendTemplate } from '@/lib/viva/bookend-templates'
 
 type EditMode = 'viva' | 'manual'
 
 export default function UnifiedCategoryPage() {
   const router = useRouter()
   const params = useParams()
+  const pathname = usePathname()
   const categoryKey = params.category as string
   const supabase = createClient()
+  const isIntensive = pathname.startsWith('/intensive/')
+  const pathPrefix = isIntensive ? '/intensive' : ''
   const { draftId, activeVisionId, visions, refreshVisions } = useLifeVisionStudio()
+  const isMetaCategory = (META_CATEGORY_KEYS as readonly string[]).includes(categoryKey)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,7 +83,7 @@ export default function UnifiedCategoryPage() {
   const [editMode, setEditMode] = useState<EditMode>('viva')
   const [includeProfile, setIncludeProfile] = useState(true)
   const [includeActiveVision, setIncludeActiveVision] = useState(true)
-  const [showContextAdjust, setShowContextAdjust] = useState(true)
+  const [showContextAdjust, setShowContextAdjust] = useState(false)
   const [manualText, setManualText] = useState('')
   const [manualViewMode, setManualViewMode] = useState<'edit' | 'highlight'>('edit')
   const [showManualCurrent, setShowManualCurrent] = useState(true)
@@ -98,9 +116,10 @@ export default function UnifiedCategoryPage() {
   const compareSectionRef = useRef<HTMLElement | null>(null)
 
   const category = getVisionCategory(categoryKey as VisionCategoryKey)
-  const isMetaCategory = (META_CATEGORY_KEYS as readonly string[]).includes(categoryKey)
-  // Align with intensive flow: 12 life categories only (not Forward/Conclusion bookends)
-  const allCategories = VISION_CATEGORIES.filter(c => c.order > 0 && c.order < 13)
+  // Full vision strip: Forward + 12 life areas + Conclusion (matches vision document order)
+  const allCategories = ORDERED_VISION_CATEGORIES.filter(
+    c => !(META_CATEGORY_KEYS as readonly string[]).includes(c.key)
+  )
   const currentIndex = allCategories.findIndex(c => c.key === categoryKey)
   const currentCategoryLabel = category?.label ?? ''
 
@@ -121,12 +140,6 @@ export default function UnifiedCategoryPage() {
       setRefineSource('active')
     }
   }, [manualText, refineSource])
-
-  useEffect(() => {
-    if (isMetaCategory) {
-      router.replace('/life-vision/new/fun')
-    }
-  }, [isMetaCategory, router])
 
   const loadData = async () => {
     if (!user) return
@@ -164,11 +177,38 @@ export default function UnifiedCategoryPage() {
           .then(r => ({ type: 'profile', data: r.data }))
       )
 
+      // Load category state (per-category draft data)
+      queries.push(
+        Promise.resolve(supabase.from('vision_new_category_state').select('*')
+          .eq('user_id', user.id).eq('category', categoryKey).maybeSingle())
+          .then(r => ({ type: 'categoryState', data: r.data }))
+      )
+
+      // Load all category states to track completion
+      queries.push(
+        Promise.resolve(supabase.from('vision_new_category_state').select('category, category_vision_text')
+          .eq('user_id', user.id))
+          .then(r => ({ type: 'allCategoryStates', data: r.data }))
+      )
+
       const results = await Promise.all(queries)
 
       const draftResult = results.find(r => r.type === 'draft')?.data
       const activeResult = results.find(r => r.type === 'active')?.data
       const profileResult = results.find(r => r.type === 'profile')?.data
+      const categoryStateResult = results.find(r => r.type === 'categoryState')?.data
+      const allCategoryStates = results.find(r => r.type === 'allCategoryStates')?.data as { category: string; category_vision_text: string | null }[] | null
+
+      // Track completed categories from vision_new_category_state
+      if (allCategoryStates) {
+        const completedFromState = allCategoryStates
+          .filter(s => s.category_vision_text && s.category_vision_text.trim().length > 0)
+          .map(s => s.category)
+        setRefinedCategories(prev => {
+          const merged = new Set([...prev, ...completedFromState])
+          return Array.from(merged)
+        })
+      }
 
       const activeValue = activeResult ? ((activeResult[categoryKey as keyof VisionData] as string) || '') : ''
       const draftValue = draftResult ? ((draftResult[categoryKey as keyof VisionData] as string) || '') : ''
@@ -210,14 +250,14 @@ export default function UnifiedCategoryPage() {
           console.error('get_profile_version_number:', rpcProfileVersionError)
         }
         setProfileVersionFromRpc(normalizeProfileVersionFromRpc(rpcProfileVersion))
-        const storyField = getCategoryStoryField(categoryKey as LifeCategoryKey)
-        const stateField = getCategoryStateField(categoryKey as LifeCategoryKey)
+        const storyField = `${categoryKey}_story`
+        const stateField = `state_${categoryKey}`
         const story = profileResult[storyField] || ''
         const state = profileResult[stateField] || ''
         setProfileData({ story, hasStory: story.trim().length > 0, state, hasStateData: !!state })
         setIncludeProfile(!!(story.trim() || state.trim()))
 
-        const filtered = getFilteredQuestionsForCategory(categoryKey as LifeCategoryKey, profileResult)
+        const filtered = getFilteredQuestionsForCategory(categoryKey, profileResult)
         setInspirationQuestions(filtered.map(q => q.text))
       } else {
         setFullProfile(null)
@@ -225,6 +265,16 @@ export default function UnifiedCategoryPage() {
         setProfileData(null)
         setInspirationQuestions([])
         setIncludeProfile(false)
+      }
+
+      // Restore saved category state
+      if (categoryStateResult) {
+        if (categoryStateResult.get_me_started_text) setGetMeStartedText(categoryStateResult.get_me_started_text)
+        if (categoryStateResult.imagination_text) setVivaSteeringText(categoryStateResult.imagination_text)
+        if (categoryStateResult.category_vision_text) {
+          setManualText(categoryStateResult.category_vision_text)
+          setCurrentRefinement(categoryStateResult.category_vision_text)
+        }
       }
     } catch (err) {
       console.error('Error loading data:', err)
@@ -236,6 +286,13 @@ export default function UnifiedCategoryPage() {
 
   // Profile mode: Get Me Started
   const handleGetMeStarted = async () => {
+    if (isMetaCategory) {
+      const perspective = activeVision?.perspective || fullProfile?.perspective || 'singular'
+      const bookend = getBookendTemplate('high', perspective as 'singular' | 'plural')
+      setGetMeStartedText(categoryKey === 'forward' ? bookend.forward : bookend.conclusion)
+      return
+    }
+
     setIsGeneratingStarter(true)
     setGetMeStartedText('')
     setError(null)
@@ -278,10 +335,10 @@ export default function UnifiedCategoryPage() {
   }
 
   const handleEditWithViva = async () => {
-    if (!draftVision) return
-
     const activeVal = activeVision ? ((activeVision[categoryKey as keyof VisionData] as string) || '') : ''
     const useRefinePath = includeActiveVision && !!activeVal.trim()
+
+    if (useRefinePath && !draftVision) return
     const priorManual = manualText
     const baseForRefine =
       useRefinePath && refineSource === 'new' ? priorManual : useRefinePath ? activeVal : ''
@@ -324,7 +381,7 @@ export default function UnifiedCategoryPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            visionId: draftVision.id,
+            visionId: draftVision!.id,
             category: categoryKey,
             currentVisionText: baseForRefine,
             refinement: { notes: vivaSteeringText.trim() || undefined },
@@ -360,8 +417,8 @@ export default function UnifiedCategoryPage() {
         return
       }
 
-      const stateField = getCategoryStateField(categoryKey as LifeCategoryKey)
-      const storyField = getCategoryStoryField(categoryKey as LifeCategoryKey)
+      const stateField = `state_${categoryKey}`
+      const storyField = `${categoryKey}_story`
       const currentStateText = includeProfile ? (fullProfile?.[stateField] || '') : ''
       const profileStoryText = includeProfile ? (fullProfile?.[storyField] || '') : ''
 
@@ -415,7 +472,7 @@ export default function UnifiedCategoryPage() {
     setCurrentRefinementId(null)
     setManualText('')
     setShowContextAdjust(false)
-    router.push(`/life-vision/new/${key}`)
+    router.push(`${pathPrefix}/life-vision/new/${key}`)
   }
 
   const saveManualEdit = async () => {
@@ -469,15 +526,42 @@ export default function UnifiedCategoryPage() {
     }
   }
 
+  const saveCategoryState = async () => {
+    if (!user) return
+    const hasData = getMeStartedText.trim() || vivaSteeringText.trim() || manualText.trim()
+    if (!hasData) return
+
+    try {
+      await supabase
+        .from('vision_new_category_state')
+        .upsert({
+          user_id: user.id,
+          category: categoryKey,
+          get_me_started_text: getMeStartedText || null,
+          imagination_text: vivaSteeringText || null,
+          category_vision_text: manualText || null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,category' })
+
+      if (manualText.trim() && !refinedCategories.includes(categoryKey)) {
+        setRefinedCategories(prev => [...prev, categoryKey])
+      }
+    } catch (err) {
+      console.error('Failed to save category state:', err)
+    }
+  }
+
   const goToPreviousCategory = () => {
+    saveCategoryState()
     if (currentIndex > 0) handleCategoryChange(allCategories[currentIndex - 1].key)
   }
 
   const goToNextCategory = () => {
+    saveCategoryState()
     if (currentIndex < allCategories.length - 1) {
       handleCategoryChange(allCategories[currentIndex + 1].key)
     } else if (canReviewFromLast && draftVision) {
-      router.push(`/life-vision/${draftVision.id}`)
+      router.push(`${pathPrefix}/life-vision/${draftVision.id}`)
     }
   }
 
@@ -516,14 +600,6 @@ export default function UnifiedCategoryPage() {
     )
   }
 
-  if (isMetaCategory) {
-    return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
-    )
-  }
-
   const activeValue = activeVision ? ((activeVision[categoryKey as keyof VisionData] as string) || '') : ''
   const isFirstTime = !activeVision || !activeValue.trim()
   const gridMode = draftVision?.parent_id ? 'draft' : 'completion'
@@ -543,20 +619,16 @@ export default function UnifiedCategoryPage() {
     !useRefinePath ||
     (refineSource === 'active' ? !!activeValue.trim() : !!manualText.trim())
   const canRunViva =
-    !!draftVision &&
     refineInputReady &&
-    (useRefinePath || hasGenerateSignal)
+    (useRefinePath ? !!draftVision : hasGenerateSignal)
 
-  const getMeStartedPlaceholder =
-    includeProfile && profileHasData
+  const getMeStartedPlaceholder = isFirstTime || isMetaCategory
+    ? 'Your starter text will appear here...'
+    : includeProfile && profileHasData
       ? 'Tap Get Me Started for a contrast-flip starter from your profile, then edit here.'
-      : 'Tap Get Me Started for a contrast-flip starter, then edit here.'
+      : 'Your starter text will appear here...'
 
-  const vivaSteeringPlaceholder = !useRefinePath
-    ? 'Optional. Add tone, specifics, or edits you want in the new vision.'
-    : refineSource === 'new' && manualText.trim()
-      ? 'Optional. Say how you want your draft below changed — tone, length, emphasis, or new details.'
-      : 'Optional. Say how you want your active vision updated — tone, length, emphasis, or new details.'
+  const vivaSteeringPlaceholder = 'Is anything missing? Add it here...'
 
   return (
     <Container size="xl">
@@ -571,10 +643,23 @@ export default function UnifiedCategoryPage() {
             onCategoryClick={handleCategoryChange}
             mode={gridMode as any}
             lifeVisionCategoryStrip
-            title={isFirstTime ? 'Choose a Category' : 'Choose a Category to Update'}
+            title={isFirstTime ? 'Life Vision Categories' : 'Choose a Category to Update'}
             bleedClassName="max-md:-mx-4"
             pillLabel="scroll"
+            desktopColumnCount={6}
           />
+        </div>
+
+        {/* Progress Bar */}
+        <div className="flex items-center gap-3 -mt-2">
+          <ProgressBar
+            value={Math.round((refinedCategories.length / allCategories.length) * 100)}
+            variant="accent"
+            className="h-2 flex-1"
+          />
+          <span className="text-xs text-neutral-400 whitespace-nowrap">
+            {refinedCategories.length} of {allCategories.length} · {Math.round((refinedCategories.length / allCategories.length) * 100)}%
+          </span>
         </div>
 
         {/* Overarching Category Card */}
@@ -653,12 +738,25 @@ export default function UnifiedCategoryPage() {
           {/* VIVA inputs + overlay — hidden in Edit Manually (Compare handles editing) */}
           {(editMode === 'viva' || !hasActiveContent) && (
           <>
-          <section className={`mb-8 ${editMode === 'viva' ? 'border-b border-neutral-800 pb-8' : ''}`}>
-            <p className="text-center text-xs text-neutral-500 mb-3 w-full max-w-none mx-auto leading-relaxed px-1">
-              Viva expands your clarity and flips your contrast. It uses your active profile and vision by default.
-              Expand below to trim what goes into the prompt.
-            </p>
-            <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 mb-6">
+          <section>
+
+            <div>
+              <div>
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">1</span>
+                  <h2 className="text-lg font-semibold text-white">
+                    Starter Text
+                  </h2>
+                </div>
+                <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
+                  {isMetaCategory
+                    ? `Tap Get Me Started and VIVA will generate the first draft of the ${categoryKey} section of your Life Vision.`
+                    : `Tap Get Me Started and VIVA will generate the first draft of the ${category?.label.toLowerCase() || categoryKey} section of your Life Vision.`}
+                </p>
+
+                {/* What VIVA uses — context controls for life categories */}
+                {!isMetaCategory && (
+                <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 mb-4">
               <button
                 type="button"
                 onClick={() => setShowContextAdjust(!showContextAdjust)}
@@ -666,7 +764,7 @@ export default function UnifiedCategoryPage() {
               >
                 <div className="flex items-center gap-3">
                   <SlidersHorizontal className="w-4 h-4 text-primary-500 shrink-0" />
-                  <span className="text-sm font-medium text-neutral-300 text-left">Adjust what Viva uses</span>
+                  <span className="text-sm font-medium text-neutral-300 text-left">{isFirstTime ? 'What VIVA uses' : 'Adjust what Viva uses'}</span>
                 </div>
                 <ChevronDown
                   className={`w-4 h-4 text-neutral-400 transition-transform shrink-0 ${showContextAdjust ? 'rotate-180' : ''}`}
@@ -674,26 +772,29 @@ export default function UnifiedCategoryPage() {
               </button>
               {showContextAdjust && (
                 <div className="pt-3 mt-3 border-t border-neutral-700 space-y-4">
-                  <div className="flex items-center justify-between gap-4 px-0.5">
-                    <span className={`text-sm ${activeValue.trim() ? 'text-neutral-200' : 'text-neutral-500'}`}>
-                      Include active vision text
-                    </span>
-                    <div
-                      role="switch"
-                      aria-checked={includeActiveVision}
-                      onClick={() => activeValue.trim() && setIncludeActiveVision(!includeActiveVision)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
-                        activeValue.trim() ? 'cursor-pointer' : 'opacity-40 pointer-events-none'
-                      } ${includeActiveVision && activeValue.trim() ? 'bg-primary-500' : 'bg-neutral-600'}`}
-                    >
-                      <span
-                        className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
-                          includeActiveVision && activeValue.trim() ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                        }`}
-                      />
+                  {!isFirstTime && (
+                    <div className="flex items-center justify-between gap-4 px-0.5">
+                      <span className={`text-sm ${activeValue.trim() ? 'text-neutral-200' : 'text-neutral-500'}`}>
+                        Include active vision text
+                      </span>
+                      <div
+                        role="switch"
+                        aria-checked={includeActiveVision}
+                        onClick={() => activeValue.trim() && setIncludeActiveVision(!includeActiveVision)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+                          activeValue.trim() ? 'cursor-pointer' : 'opacity-40 pointer-events-none'
+                        } ${includeActiveVision && activeValue.trim() ? 'bg-primary-500' : 'bg-neutral-600'}`}
+                      >
+                        <span
+                          className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                            includeActiveVision && activeValue.trim() ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                          }`}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
+                  {!isFirstTime && (
                   <div className="flex items-center justify-between gap-4 px-0.5">
                     <span className="text-sm text-neutral-200">Include profile context</span>
                     <div
@@ -712,6 +813,7 @@ export default function UnifiedCategoryPage() {
                       />
                     </div>
                   </div>
+                  )}
 
                   <div className="rounded-xl border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5 p-3.5">
                     <div className="flex flex-wrap items-center justify-between gap-2 gap-y-2 mb-3">
@@ -746,34 +848,33 @@ export default function UnifiedCategoryPage() {
                 </div>
               )}
             </div>
-
-            {/* Inspiration Questions (collapsible) */}
-            {inspirationQuestions.length > 0 && (
-              <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 mb-6">
-                <button
-                  onClick={() => setShowInspirationQuestions(!showInspirationQuestions)}
-                  className="w-full flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <Lightbulb className="w-4 h-4 text-primary-500" />
-                    <span className="text-sm font-medium text-neutral-300">Questions to Inspire You</span>
-                  </div>
-                  <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${showInspirationQuestions ? 'rotate-180' : ''}`} />
-                </button>
-                {showInspirationQuestions && (
-                  <div className="pt-3 mt-3 border-t border-neutral-700">
-                    <IconList items={inspirationQuestions} />
-                  </div>
-                )}
-              </div>
             )}
 
-            <div className="space-y-6">
-              <div>
-                <label className="block text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-3">
-                  Get Me Started
-                </label>
-                <div className="flex justify-center mb-3">
+                <div className="relative">
+                  <VIVALoadingOverlay
+                    isVisible={isGeneratingStarter && !getMeStartedText.trim()}
+                    messages={isMetaCategory
+                      ? ['Personalizing your vision text...', 'Weaving in your life details...', 'Building your starting point...']
+                      : [`VIVA is reading your ${category.label.toLowerCase()} profile...`, 'Activating your vision language...', 'Building your starting point...']}
+                    cycleDuration={3000}
+                    showProgressBar={false}
+                    size="sm"
+                    className="rounded-xl"
+                  />
+                  <RecordingTextarea
+                    value={getMeStartedText}
+                    onChange={setGetMeStartedText}
+                    placeholder={getMeStartedPlaceholder}
+                    className="min-h-[120px] w-full !bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500"
+                    rows={5}
+                    storageFolder="lifeVision"
+                    recordingPurpose="quick"
+                    category={visionToRecordingKey(recordingKeyForVisionCategory(categoryKey as VisionCategoryKey))}
+                    instanceId="get-me-started"
+                    hideClear
+                  />
+                </div>
+                <div className="flex justify-center mt-3">
                   <Button
                     variant="accent"
                     size="sm"
@@ -789,45 +890,57 @@ export default function UnifiedCategoryPage() {
                     )}
                   </Button>
                 </div>
-                <div className="relative">
-                  <VIVALoadingOverlay
-                    isVisible={isGeneratingStarter && !getMeStartedText.trim()}
-                    messages={[`VIVA is reading your ${category.label.toLowerCase()} profile...`, 'Activating your vision language...', 'Building your starting point...']}
-                    cycleDuration={3000}
-                    showProgressBar={false}
-                    size="sm"
-                    className="rounded-xl"
-                  />
-                  <RecordingTextarea
-                    value={getMeStartedText}
-                    onChange={setGetMeStartedText}
-                    placeholder={getMeStartedPlaceholder}
-                    className="min-h-[120px] w-full !bg-[#101010] !border-neutral-800 focus-within:!border-primary-500"
-                    rows={5}
-                    storageFolder="lifeVision"
-                    recordingPurpose="quick"
-                    category={visionToRecordingKey(categoryKey as LifeCategoryKey)}
-                    instanceId="get-me-started"
-                  />
-                </div>
               </div>
 
+              <div className="py-6"><div className="h-px bg-neutral-800" /></div>
+
               <div>
-                <label className="block text-center text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-3">
-                  Unleash your imagination / Viva instructions
-                </label>
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">2</span>
+                  <h2 className="text-lg font-semibold text-white">
+                    Unleash Your Imagination
+                  </h2>
+                </div>
+                <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
+                  Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)
+                </p>
+
+                {/* Inspiration Questions (collapsible) — only for life categories */}
+                {!isMetaCategory && inspirationQuestions.length > 0 && (
+                  <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 mb-4">
+                    <button
+                      onClick={() => setShowInspirationQuestions(!showInspirationQuestions)}
+                      className="w-full flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Lightbulb className="w-4 h-4 text-primary-500" />
+                        <span className="text-sm font-medium text-neutral-300">Questions to Inspire You</span>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${showInspirationQuestions ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showInspirationQuestions && (
+                      <div className="pt-3 mt-3 border-t border-neutral-700">
+                        <IconList items={inspirationQuestions} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <RecordingTextarea
                   value={vivaSteeringText}
                   onChange={setVivaSteeringText}
                   placeholder={vivaSteeringPlaceholder}
-                  className="min-h-[150px] w-full !bg-[#101010] !border-neutral-800 focus-within:!border-accent-500"
+                  className="min-h-[150px] w-full !bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500"
                   rows={6}
                   storageFolder="lifeVision"
                   recordingPurpose="quick"
-                  category={visionToRecordingKey(categoryKey as LifeCategoryKey)}
+                  category={visionToRecordingKey(recordingKeyForVisionCategory(categoryKey as VisionCategoryKey))}
                   instanceId="viva-steering"
+                  hideClear
                 />
               </div>
+
+              <div className="py-6"><div className="h-px bg-neutral-800" /></div>
 
               {hasActiveContent && includeActiveVision && !!activeValue.trim() && (
                 <div className="mt-2 flex flex-col items-center gap-2 border-t border-neutral-800/80 pt-6">
@@ -869,43 +982,107 @@ export default function UnifiedCategoryPage() {
               )}
 
               <div className="flex flex-col items-center gap-2 pt-2">
-                <Button
-                  onClick={handleEditWithViva}
-                  disabled={isGenerating || !canRunViva}
-                  variant="accent"
-                  size="lg"
-                  className="flex items-center gap-2"
-                >
-                  {isGenerating ? (
-                    <><Spinner variant="secondary" size="sm" />{useRefinePath ? 'Updating with VIVA...' : 'Generating with VIVA...'}</>
-                  ) : (
-                    <><Wand2 className="w-5 h-5" />{useRefinePath ? `Update ${category.label} with Viva` : `Build ${category.label} with Viva`}</>
-                  )}
-                </Button>
-                {!canRunViva && !isGenerating && (
-                  <p className="text-xs text-center text-neutral-500 max-w-sm">
-                    Add Get Me Started or instructions above, turn on profile context, or include active vision.
-                  </p>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">3</span>
+                  <h2 className="text-lg font-semibold text-white">
+                    {useRefinePath ? `Update ${category.label}` : `Create ${category.label}`}
+                  </h2>
+                </div>
+                <p className="text-center text-sm text-neutral-400 mb-2 leading-relaxed">
+                  {useRefinePath
+                    ? `VIVA will refine your active vision text using your inputs above.`
+                    : `VIVA will combine your starter text, imagination, and profile to create the ${category.label.toLowerCase()} section of your Life Vision.`}
+                </p>
+
+                {/* Output textbox — streams generation result */}
+                {(isGenerating || manualText.trim()) && (
+                  <div className="w-full mb-3">
+                    <div className="relative">
+                      <VIVALoadingOverlay
+                        isVisible={isGenerating && !manualText.trim()}
+                        messages={[
+                          `VIVA is crafting your ${category.label.toLowerCase()} vision...`,
+                          'Weaving your intentions into words...',
+                          'Channeling your ideal future...',
+                        ]}
+                        cycleDuration={3500}
+                        showProgressBar={false}
+                        size="sm"
+                        className="rounded-xl"
+                      />
+                      <AutoResizeTextarea
+                        value={manualText}
+                        onChange={setManualText}
+                        className="!bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        minHeight={200}
+                      />
+                    </div>
+                  </div>
                 )}
+
+                <div className="flex justify-center gap-3">
+                  <Button
+                    onClick={handleEditWithViva}
+                    disabled={isGenerating || !canRunViva}
+                    variant="accent"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    {isGenerating ? (
+                      <><Spinner variant="secondary" size="sm" />{useRefinePath ? 'Updating with VIVA...' : 'Generating with VIVA...'}</>
+                    ) : manualText.trim().length >= 50 ? (
+                      <><RefreshCw className="w-4 h-4 mr-2" />Regenerate</>
+                    ) : (
+                      <><Wand2 className="w-5 h-5" />{useRefinePath ? `Update ${category.label} with VIVA` : `Create ${category.label} with VIVA`}</>
+                    )}
+                  </Button>
+                  {!isGenerating && manualText.trim() && !draftVision && (
+                    (() => {
+                      const completedAfterSave = new Set([...refinedCategories, categoryKey])
+                      const allComplete = allCategories.every(c => completedAfterSave.has(c.key))
+
+                      if (allComplete) {
+                        return (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              saveCategoryState()
+                              router.push(`${pathPrefix}/life-vision/new/assembly`)
+                            }}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />Save & Finish
+                          </Button>
+                        )
+                      }
+
+                      const nextIncomplete = allCategories.find(c =>
+                        c.key !== categoryKey && !refinedCategories.includes(c.key)
+                      )
+                      return (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => {
+                            saveCategoryState()
+                            if (nextIncomplete) {
+                              handleCategoryChange(nextIncomplete.key)
+                            } else {
+                              router.push(`${pathPrefix}/life-vision/new`)
+                            }
+                          }}
+                        >
+                          Save & Continue
+                          <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      )
+                    })()
+                  )}
+                </div>
               </div>
             </div>
           </section>
 
-          {/* Generation overlay — output streams into Compare New column */}
-          <section className="relative">
-            <VIVALoadingOverlay
-              isVisible={isGenerating}
-              messages={[
-                `VIVA is crafting your ${category.label.toLowerCase()} vision...`,
-                'Weaving your intentions into words...',
-                'Channeling your ideal future...',
-              ]}
-              cycleDuration={3500}
-              showProgressBar={false}
-              size="md"
-              className="rounded-xl"
-            />
-          </section>
           </>
           )}
 

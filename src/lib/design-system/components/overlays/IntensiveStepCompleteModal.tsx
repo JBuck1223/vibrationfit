@@ -5,6 +5,7 @@ import { CheckCircle, ArrowRight } from 'lucide-react'
 import { Modal } from './Modal'
 import { Button } from '../forms/Button'
 import { getStepInfo, getNextStep as getNextStepById } from '@/lib/intensive/step-mapping'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 
 interface IntensiveStepCompleteModalProps {
   isOpen: boolean
@@ -34,6 +35,7 @@ export function IntensiveStepCompleteModal({
   }
 
   const handleContinue = () => {
+    invalidateIntensiveSnapshot()
     if (onContinue) {
       onContinue()
     } else if (nextStep) {

@@ -69,26 +69,20 @@ export function IntensiveLockedOverlay() {
 
       // Determine next step (14-step flow)
       const steps = [
-        // Phase 1: Setup
-        { id: 'settings', stepNumber: 1, title: 'Account Settings', href: '/account/settings', completed: hasSettings },
+        { id: 'settings', stepNumber: 1, title: 'Account Settings', href: '/intensive/account/settings', completed: hasSettings },
         { id: 'intake', stepNumber: 2, title: 'Baseline Intake', href: '/intensive/intake', completed: !!checklist.intake_completed },
-        // Phase 2: Foundation
-        { id: 'profile', stepNumber: 3, title: 'Create Profile', href: '/profile/new', completed: !!checklist.profile_completed },
-        { id: 'assessment', stepNumber: 4, title: 'Take Assessment', href: '/assessment/new', completed: !!checklist.assessment_completed },
-        // Phase 3: Vision
-        { id: 'vision', stepNumber: 5, title: 'Build Life Vision', href: '/life-vision/new', completed: !!checklist.vision_built },
-        { id: 'refine', stepNumber: 6, title: 'Refine Vision', href: '/life-vision/refine/new', completed: !!checklist.vision_refined },
-        // Phase 4: Audio
-        { id: 'audio', stepNumber: 7, title: 'Generate Audio', href: '/life-vision/audio/generate/new', completed: !!checklist.audio_generated },
-        { id: 'record', stepNumber: 8, title: 'Record Your Voice', href: '/life-vision/audio/record/new', completed: step8Complete }, // Optional - complete if recorded OR skipped
-        { id: 'mix', stepNumber: 9, title: 'Create Audio Mix', href: '/life-vision/audio/mix/new', completed: !!checklist.audios_generated },
-        // Phase 5: Activation
-        { id: 'board', stepNumber: 10, title: 'Vision Board', href: '/vision-board/resources', completed: !!checklist.vision_board_completed },
-        { id: 'journal', stepNumber: 11, title: 'First Journal Entry', href: '/journal/resources', completed: !!checklist.first_journal_entry },
+        { id: 'profile', stepNumber: 3, title: 'Create Profile', href: '/intensive/profile/new', completed: !!checklist.profile_completed },
+        { id: 'assessment', stepNumber: 4, title: 'Take Assessment', href: '/intensive/assessment/new', completed: !!checklist.assessment_completed },
+        { id: 'vision', stepNumber: 5, title: 'Create Life Vision', href: '/intensive/life-vision/new', completed: !!checklist.vision_built },
+        { id: 'refine', stepNumber: 6, title: 'Refine Vision', href: '/intensive/life-vision/new', completed: !!checklist.vision_refined },
+        { id: 'audio', stepNumber: 7, title: 'Generate Audio', href: '/intensive/audio/generate', completed: !!checklist.audio_generated },
+        { id: 'record', stepNumber: 8, title: 'Record Your Voice', href: '/intensive/audio/record', completed: step8Complete },
+        { id: 'mix', stepNumber: 9, title: 'Create Audio Mix', href: '/intensive/audio/mix', completed: !!checklist.audios_generated },
+        { id: 'board', stepNumber: 10, title: 'Vision Board', href: '/intensive/vision-board/about', completed: !!checklist.vision_board_completed },
+        { id: 'journal', stepNumber: 11, title: 'First Journal Entry', href: '/intensive/journal/about', completed: !!checklist.first_journal_entry },
         { id: 'call', stepNumber: 12, title: 'Book Calibration Call', href: '/intensive/schedule-call', completed: !!checklist.call_scheduled },
-        // Phase 6: Completion
-        { id: 'activate', stepNumber: 13, title: 'My Activation Plan', href: '/map?intensive=true', completed: !!checklist.activation_protocol_completed },
-        { id: 'unlock', stepNumber: 14, title: 'Unlock Platform', href: '/intensive/intake/unlock', completed: !!checklist.unlock_completed },
+        { id: 'activate', stepNumber: 13, title: 'My Activation Plan', href: '/intensive/map', completed: !!checklist.activation_protocol_completed },
+        { id: 'unlock', stepNumber: 14, title: 'Unlock Platform', href: '/intensive/unlock', completed: !!checklist.unlock_completed },
       ]
 
       const next = steps.find(s => !s.completed)

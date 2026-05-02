@@ -1,14 +1,16 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Intensive Intake',
+  title: {
+    template: '%s | New Vision',
+    default: 'New Vision',
+  },
 };
 
-export default function IntensiveIntakeLayout({
+export default function IntensiveNewVisionLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return <>{children}</>;
 }
-

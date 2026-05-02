@@ -623,7 +623,7 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
 
         {/* Existing Voice Sets */}
         {existingVoiceSets.length > 0 && (
-          <Card variant="elevated" className="bg-[#0A0A0A] relative z-50 overflow-visible">
+          <Card variant="elevated" className="bg-neutral-850 relative z-50 overflow-visible">
             {/* Audio Set Selector */}
             <div className={selectedVoiceSetId && selectedSetTracks.length > 0 ? 'mb-8' : ''}>
               <h2 className="text-xl md:text-2xl font-semibold text-white mb-6 text-center">Your Voice-Only Sets</h2>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   Container,
   Card,
@@ -16,7 +16,7 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, CheckCircle } from 'lucide-react'
-import { VISION_CATEGORIES, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { VISION_CATEGORIES, ORDERED_VISION_CATEGORIES, LIFE_CATEGORY_KEYS, META_CATEGORY_KEYS, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
 const VISION_INTRO_VIDEO =
@@ -34,6 +34,9 @@ interface CategoryProgress {
 
 export default function VIVALifeVisionLandingPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const isIntensive = pathname.startsWith('/intensive/')
+  const pathPrefix = isIntensive ? '/intensive' : ''
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<CategoryProgress>({})
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
@@ -44,9 +47,9 @@ export default function VIVALifeVisionLandingPage() {
   // Track completed categories for the CategoryGrid
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
   
-  // Categories without forward and conclusion for the grid
-  const categoriesWithout = VISION_CATEGORIES.filter(
-    c => c.key !== 'forward' && c.key !== 'conclusion'
+  // 12 life categories only (Forward/Conclusion handled at assembly)
+  const allCategories = ORDERED_VISION_CATEGORIES.filter(
+    c => !(META_CATEGORY_KEYS as readonly string[]).includes(c.key)
   )
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export default function VIVALifeVisionLandingPage() {
       // Get all category states
       const { data: categoryStates } = await supabase
         .from('vision_new_category_state')
-        .select('category, clarity_keys, get_me_started_text')
+        .select('category, clarity_keys, get_me_started_text, category_vision_text')
         .eq('user_id', user.id)
 
       // Also get user profile to check for profile state as fallback
@@ -130,10 +133,21 @@ export default function VIVALifeVisionLandingPage() {
       setProgress(progressMap)
       
       // Set completed category keys for the CategoryGrid
-      // Match category page logic: completed = has get_me_started_text (hasImagination)
-      const completed = Object.entries(progressMap)
-        .filter(([_, prog]) => prog.hasImagination)
-        .map(([key]) => key)
+      // Life categories: completed when category_vision_text exists
+      // Meta categories (forward/conclusion): completed when prompts exist
+      const completed: string[] = []
+      categoryStates?.forEach(state => {
+        const isMeta = (META_CATEGORY_KEYS as readonly string[]).includes(state.category)
+        if (isMeta) {
+          if (state.get_me_started_text && state.get_me_started_text.trim().length > 0) {
+            completed.push(state.category)
+          }
+        } else {
+          if (state.category_vision_text && state.category_vision_text.trim().length > 50) {
+            completed.push(state.category)
+          }
+        }
+      })
       setCompletedCategoryKeys(completed)
       
       // Check if a completed vision exists in vision_versions
@@ -165,23 +179,18 @@ export default function VIVALifeVisionLandingPage() {
     }
   }
 
-  const allCategoriesCompleted = completedCategoryKeys.length === 12
+  const allCategoriesCompleted = LIFE_CATEGORY_KEYS.every(key => completedCategoryKeys.includes(key))
 
 
   const handleGetStarted = async () => {
-    // Find first incomplete category
-    // Match category page logic: completed = has get_me_started_text (hasImagination)
-    const categories = VISION_CATEGORIES.filter(cat => cat.order > 0 && cat.order < 13)
-    const firstIncomplete = categories.find(cat => {
-      const prog = progress[cat.key]
-      return !prog?.hasImagination
-    })
+    // Find first life category without generated vision text
+    const lifeCategories = VISION_CATEGORIES.filter(c => c.order > 0 && c.order < 13)
+    const firstIncomplete = lifeCategories.find(cat => !completedCategoryKeys.includes(cat.key))
     
     if (firstIncomplete) {
-      router.push(`/life-vision/new/category/${firstIncomplete.key}`)
+      router.push(`${pathPrefix}/life-vision/new/${firstIncomplete.key}`)
     } else {
-      // All complete, go to assembly
-      router.push('/life-vision/new/assembly')
+      router.push(`${pathPrefix}/life-vision/new/assembly`)
     }
   }
 
@@ -203,13 +212,13 @@ export default function VIVALifeVisionLandingPage() {
         {/* Ready to Assemble Banner — only shown during intensive flow */}
         {isIntensiveMode && allCategoriesCompleted && (
           <button
-            onClick={() => router.push('/life-vision/new/assembly')}
+            onClick={() => router.push(`${pathPrefix}/life-vision/new/assembly`)}
             className="w-full flex items-center justify-between gap-3 px-5 py-3 rounded-xl bg-primary-500/15 border border-primary-500/40 hover:bg-primary-500/25 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
               <span className="text-sm font-semibold text-primary-400">
-                All 12 categories are ready. Create your vision now.
+                All categories are ready. Create your vision now.
               </span>
             </div>
             <ArrowRight className="w-4 h-4 text-primary-500 group-hover:translate-x-0.5 transition-transform" />
@@ -219,7 +228,7 @@ export default function VIVALifeVisionLandingPage() {
         {/* Completion Banner - Shows above PageHero when step is already complete */}
         {isIntensiveMode && isAlreadyCompleted && completedAt && (
           <IntensiveCompletionBanner 
-            stepTitle="Build Your Life Vision"
+            stepTitle="Create Your Life Vision"
             completedAt={completedAt}
           />
         )}
@@ -244,7 +253,7 @@ export default function VIVALifeVisionLandingPage() {
                 <Button 
                   variant="primary" 
                   size="sm" 
-                  onClick={() => router.push('/life-vision')}
+                  onClick={() => router.push(`${pathPrefix}/life-vision`)}
                   className="w-full md:w-auto"
                 >
                   View Life Vision
@@ -286,14 +295,15 @@ export default function VIVALifeVisionLandingPage() {
 
         {/* Categories bar - progress tracker under hero */}
         <CategoryGrid
-          title="Life categories"
-          categories={categoriesWithout}
+          title="Life Vision Categories"
+          categories={allCategories}
           selectedCategories={[]}
           completedCategories={completedCategoryKeys}
-          onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
+          onCategoryClick={(key: string) => router.push(`${pathPrefix}/life-vision/new/${key}`)}
           mode="completion"
           lifeVisionCategoryStrip
-          pillLabel="Life categories"
+          desktopColumnCount={6}
+          pillLabel="Create"
           bleedClassName="max-md:-mx-[var(--content-px,0px)]"
         />
 

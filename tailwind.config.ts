@@ -74,6 +74,7 @@ const config: Config = {
           600: '#4B5563',  // Dark Gray
           700: '#404040',  // Medium Gray
           800: '#1F1F1F',  // Dark Gray
+          850: '#0A0A0A',  // Very Dark Gray (surfaces: sidebars, area bars)
           900: '#000000',  // Pure Black
         },
         

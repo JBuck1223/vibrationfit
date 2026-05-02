@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { 
   Card, 
   Button, 
@@ -385,6 +386,7 @@ export default function IntensiveUnlockPage() {
       fetch('/api/intensive/completed', { method: 'POST' })
         .catch(err => console.error('intensive.completed event error:', err))
 
+      invalidateIntensiveSnapshot()
       router.push('/dashboard?unlocked=true')
 
     } catch (error) {
