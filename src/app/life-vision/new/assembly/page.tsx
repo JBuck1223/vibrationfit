@@ -108,16 +108,6 @@ export default function AssemblyPage() {
         conclusionState?.get_me_started_text?.trim() || templates.conclusion
       )
 
-      // Check for existing completed vision
-      const { data: existingVision } = await supabase
-        .from('vision_versions')
-        .select('id')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (existingVision) setVisionId(existingVision.id)
     } catch (err) {
       console.error('Error loading state:', err)
       setError('Failed to load your vision data')
