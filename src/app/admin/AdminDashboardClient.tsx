@@ -24,6 +24,7 @@ const GROUP_COLORS: Record<string, string> = {
   'Leads & Growth': 'text-[#FFB701]',
   'Sessions': 'text-[#00FFFF]',
   'Content & Audio': 'text-[#8B5CF6]',
+  'Cinematic': 'text-[#F97316]',
   'VIVA & Models': 'text-accent-500',
   'Homeschool': 'text-[#FFB701]',
   'Developer': 'text-neutral-400',
