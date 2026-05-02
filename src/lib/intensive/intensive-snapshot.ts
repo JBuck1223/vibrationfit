@@ -178,4 +178,9 @@ export function invalidateIntensiveSnapshot(): void {
   } catch {
     // ignore
   }
+  try {
+    window.dispatchEvent(new Event('intensive-snapshot-invalidated'))
+  } catch {
+    // ignore
+  }
 }

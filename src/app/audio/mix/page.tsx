@@ -1,6 +1,6 @@
 "use client"
 import React, { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Button, Card, Spinner, Container, Stack, Toggle } from '@/lib/design-system/components'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
@@ -70,6 +70,8 @@ function calculateAdjustedVolumes(voiceVol: number, bgVol: number, binauralVol: 
 
 export default function AudioMixPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathPrefix = pathname.startsWith('/intensive/') ? '/intensive' : ''
   const { refreshAudioSets, refreshBatches, sourceType, sourceId } = useAudioStudio()
 
   // Source selection
@@ -613,7 +615,7 @@ export default function AudioMixPage() {
         console.error('Generation API error:', err)
       })
 
-      router.push('/audio/queue')
+      router.push(`${pathPrefix}/audio/queue`)
       
     } catch (err) {
       console.error('Error generating custom mix:', err)
@@ -841,7 +843,7 @@ export default function AudioMixPage() {
         console.error('Generation API error:', err)
       })
 
-      router.push('/audio/queue')
+      router.push(`${pathPrefix}/audio/queue`)
     } catch (error) {
       console.error('Generation error:', error)
       alert('An error occurred during generation. Please try again.')
@@ -919,7 +921,7 @@ export default function AudioMixPage() {
               You need to generate voice-only tracks first before you can create mixes with background music.
             </p>
             <Button variant="primary" asChild>
-              <Link href={activeSourceType && activeSourceId ? `/audio/generate?source=${activeSourceType}&sourceId=${activeSourceId}` : '/audio/generate'}>
+              <Link href={activeSourceType && activeSourceId ? `${pathPrefix}/audio/generate?source=${activeSourceType}&sourceId=${activeSourceId}` : `${pathPrefix}/audio/generate`}>
                 <Plus className="w-4 h-4 mr-2" />
                 Generate Voice Tracks
               </Link>
@@ -1052,7 +1054,7 @@ export default function AudioMixPage() {
           {/* Generate New Base Voice Button */}
           <div className="flex justify-center pt-2">
             <Button variant="outline" asChild>
-              <Link href="/audio/generate" className="flex items-center gap-2">
+              <Link href={`${pathPrefix}/audio/generate`} className="flex items-center gap-2">
                 <Waves className="w-5 h-5" />
                 Generate New Base Voice
               </Link>

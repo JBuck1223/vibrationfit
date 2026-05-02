@@ -28,10 +28,10 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     id: 'settings',
     stepNumber: 1,
     title: 'Account Settings',
-    checklistKey: null, // Checked via user_accounts table
+    checklistKey: null,
     completedAtKey: null,
-    href: '/account/settings',
-    viewHref: '/account/settings',
+    href: '/intensive/account/settings',
+    viewHref: '/intensive/account/settings',
     nextStepId: 'intake',
     phase: 'Setup'
   },
@@ -54,8 +54,8 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'Create Your Profile',
     checklistKey: 'profile_completed',
     completedAtKey: 'profile_completed_at',
-    href: '/profile/new',
-    viewHref: '/profile',
+    href: '/intensive/profile/new',
+    viewHref: '/intensive/profile/new',
     nextStepId: 'assessment',
     phase: 'Foundation'
   },
@@ -65,8 +65,8 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'Vibration Assessment',
     checklistKey: 'assessment_completed',
     completedAtKey: 'assessment_completed_at',
-    href: '/assessment/new',
-    viewHref: '/assessment',
+    href: '/intensive/assessment/new',
+    viewHref: '/intensive/assessment/new',
     nextStepId: 'build_vision',
     phase: 'Foundation'
   },
@@ -75,11 +75,11 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   build_vision: {
     id: 'build_vision',
     stepNumber: 5,
-    title: 'Build Your Life Vision',
+    title: 'Create Your Life Vision',
     checklistKey: 'vision_built',
     completedAtKey: 'vision_built_at',
-    href: '/life-vision/new',
-    viewHref: '/life-vision',
+    href: '/intensive/life-vision/new',
+    viewHref: '/intensive/life-vision/new',
     nextStepId: 'refine_vision',
     phase: 'Vision Creation'
   },
@@ -89,8 +89,8 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'Refine Your Vision',
     checklistKey: 'vision_refined',
     completedAtKey: 'vision_refined_at',
-    href: '/life-vision/refine/new',
-    viewHref: '/life-vision',
+    href: '/intensive/life-vision/new',
+    viewHref: '/intensive/life-vision/new',
     nextStepId: 'generate_audio',
     phase: 'Vision Creation'
   },
@@ -102,8 +102,8 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'Generate Vision Audio',
     checklistKey: 'audio_generated',
     completedAtKey: 'audio_generated_at',
-    href: '/life-vision/audio/generate/new',
-    viewHref: '/life-vision',
+    href: '/intensive/audio/generate',
+    viewHref: '/intensive/audio/generate',
     nextStepId: 'record_audio',
     phase: 'Audio'
   },
@@ -111,10 +111,10 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     id: 'record_audio',
     stepNumber: 8,
     title: 'Record Your Voice',
-    checklistKey: 'audio_generated', // Shares with generate_audio, can skip
+    checklistKey: 'audio_generated',
     completedAtKey: 'audio_generated_at',
-    href: '/life-vision/audio/record/new',
-    viewHref: '/life-vision',
+    href: '/intensive/audio/record',
+    viewHref: '/intensive/audio/record',
     nextStepId: 'mix_audio',
     phase: 'Audio'
   },
@@ -124,8 +124,8 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'Create Audio Mix',
     checklistKey: 'audios_generated',
     completedAtKey: 'audios_generated_at',
-    href: '/life-vision/audio/mix/new',
-    viewHref: '/life-vision',
+    href: '/intensive/audio/mix',
+    viewHref: '/intensive/audio/mix',
     nextStepId: 'vision_board',
     phase: 'Audio'
   },
@@ -137,8 +137,8 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'Create Vision Board',
     checklistKey: 'vision_board_completed',
     completedAtKey: 'vision_board_completed_at',
-    href: '/vision-board/resources',
-    viewHref: '/vision-board',
+    href: '/intensive/vision-board/about',
+    viewHref: '/intensive/vision-board/about',
     nextStepId: 'journal',
     phase: 'Activation'
   },
@@ -148,8 +148,8 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'First Journal Entry',
     checklistKey: 'first_journal_entry',
     completedAtKey: 'first_journal_entry_at',
-    href: '/journal/resources',
-    viewHref: '/journal',
+    href: '/intensive/journal/about',
+    viewHref: '/intensive/journal/about',
     nextStepId: 'schedule_call',
     phase: 'Activation'
   },
@@ -172,8 +172,8 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'My Activation Plan',
     checklistKey: 'activation_protocol_completed',
     completedAtKey: 'activation_protocol_completed_at',
-    href: '/map?intensive=true',
-    viewHref: '/map',
+    href: '/intensive/map',
+    viewHref: '/intensive/map',
     nextStepId: 'unlock',
     phase: 'Completion'
   },
@@ -183,9 +183,9 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     title: 'Full Platform Unlock',
     checklistKey: 'unlock_completed',
     completedAtKey: 'unlock_completed_at',
-    href: '/intensive/intake/unlock',
+    href: '/intensive/unlock',
     viewHref: '/dashboard',
-    nextStepId: null, // Final step
+    nextStepId: null,
     phase: 'Completion'
   }
 }

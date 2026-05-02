@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams, usePathname } from 'next/navigation'
 import {
   Button,
   Card,
@@ -27,6 +27,8 @@ export default function AssessmentResultsPage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
+  const currentPathname = usePathname()
+  const pathPrefix = currentPathname?.startsWith('/intensive') ? '/intensive' : ''
   const routeAssessmentId = Array.isArray(params?.id)
     ? params?.id[0]
     : (params?.id as string | undefined)
@@ -155,7 +157,7 @@ export default function AssessmentResultsPage() {
       }
 
       // Redirect to assessment hub after deleting the current assessment
-      router.push('/assessment')
+      router.push(`${pathPrefix}/assessment`)
     } catch (err) {
       console.error('Failed to delete assessment:', err)
       alert('Failed to delete assessment. Please try again.')
@@ -199,11 +201,11 @@ export default function AssessmentResultsPage() {
             {error ?? 'Use the assessment hub to browse all of your drafts and completions.'}
           </p>
           <Inline gap="sm" className="justify-center">
-            <Button variant="outline" onClick={() => router.push('/assessment')}>
+            <Button variant="outline" onClick={() => router.push(`${pathPrefix}/assessment`)}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Assessment Hub
             </Button>
-            <Button variant="primary" onClick={() => router.push('/assessment/history')}>
+            <Button variant="primary" onClick={() => router.push(`${pathPrefix}/assessment/history`)}>
               View Assessment History
             </Button>
           </Inline>
@@ -264,7 +266,7 @@ export default function AssessmentResultsPage() {
                 <Button
                   variant="outline"
                   size="md"
-                  onClick={() => router.push('/assessment')}
+                  onClick={() => router.push(`${pathPrefix}/assessment`)}
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -312,7 +314,7 @@ export default function AssessmentResultsPage() {
                   {otherAssessments.map((assessment) => (
                     <button
                       key={assessment.id}
-                      onClick={() => router.push(`/assessment/${assessment.id}/results`)}
+                      onClick={() => router.push(`${pathPrefix}/assessment/${assessment.id}/results`)}
                       className={`w-full rounded-xl border-2 px-4 py-3 text-left transition-all ${
                         assessment.is_active
                           ? 'border-primary-500 bg-primary-500/10 hover:border-primary-400'

@@ -237,46 +237,51 @@ export function LifeVisionAreaBar() {
       ]
 
       if (isOnCategoryPage && !draft) {
-        contextText = 'Build each category of your new Life Vision with VIVA.'
+        contextText = 'Create each category of your new Life Vision with VIVA.'
       }
 
-      if (draft || nonDraftVisions.length > 0) {
-        const draftOption = draft
-          ? [{
-              id: draft.id,
-              label: `Version ${draftDisplayVersion}`,
-              sublabel: new Date(draft.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              badge: 'Draft',
-              badgeVariant: 'draft' as const,
-              isActive: false,
-              icon: draft.household_id ? Users : undefined,
-              iconPosition: (draft.household_id ? 'right' : undefined) as ('right' | undefined),
-            }]
-          : []
+      const draftOption = draft
+        ? {
+            id: draft.id,
+            label: `Version ${draftDisplayVersion}`,
+            sublabel: new Date(draft.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            badge: 'Draft',
+            badgeVariant: 'draft' as const,
+            isActive: false,
+            icon: draft.household_id ? Users : undefined,
+            iconPosition: (draft.household_id ? 'right' : undefined) as ('right' | undefined),
+          }
+        : {
+            id: '__in-progress__',
+            label: `Version ${draftDisplayVersion}`,
+            sublabel: 'In progress',
+            badge: 'Draft',
+            badgeVariant: 'draft' as const,
+            isActive: false,
+          }
 
-        const nonDraftOptions = nonDraftVisions.map(v => ({
-          id: v.id,
-          label: `Version ${v.version_number}`,
-          sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          badge: v.is_active ? 'Active' : undefined,
-          badgeVariant: v.is_active ? ('active' as const) : undefined,
-          isActive: v.is_active,
-          icon: v.household_id ? Users : undefined,
-          iconPosition: (v.household_id ? 'right' : undefined) as ('right' | undefined),
-        }))
+      const nonDraftOptions = nonDraftVisions.map(v => ({
+        id: v.id,
+        label: `Version ${v.version_number}`,
+        sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        badge: v.is_active ? 'Active' : undefined,
+        badgeVariant: v.is_active ? ('active' as const) : undefined,
+        isActive: v.is_active,
+        icon: v.household_id ? Users : undefined,
+        iconPosition: (v.household_id ? 'right' : undefined) as ('right' | undefined),
+      }))
 
-        versionSelectors = [{
-          id: 'vision-version',
-          label: 'Vision',
-          position: 'contextRow',
-          options: [...draftOption, ...nonDraftOptions],
-          selectedId: draft ? draft.id : (activeVisionId ?? nonDraftVisions[0]?.id ?? ''),
-          onSelect: (id: string) => {
-            if (draft && id === draft.id) return
-            router.push(`/life-vision/${id}`)
-          },
-        }]
-      }
+      versionSelectors = [{
+        id: 'vision-version',
+        label: 'Vision',
+        position: 'contextRow',
+        options: [draftOption, ...nonDraftOptions],
+        selectedId: draftOption.id,
+        onSelect: (id: string) => {
+          if (id === draftOption.id) return
+          router.push(`/life-vision/${id}`)
+        },
+      }]
     }
   }
 

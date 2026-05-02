@@ -87,7 +87,6 @@ export function IntensiveMobileNav() {
 
       setProgress({ completed: completedSteps, total: 14 })
 
-      // Mobile nav shows 5 key items for quick access
       const items: NavItem[] = [
         { 
           id: 'dashboard', 
@@ -100,34 +99,34 @@ export function IntensiveMobileNav() {
         { 
           id: 'settings', 
           title: 'Setup', 
-          href: '/account/settings', 
+          href: '/intensive/account/settings', 
           icon: Settings,
           completed: hasSettings && !!checklist.intake_completed,
-          active: pathname.startsWith('/account') || pathname === '/intensive/intake'
+          active: pathname.startsWith('/intensive/account') || pathname === '/intensive/intake'
         },
         { 
           id: 'vision', 
           title: 'Vision', 
-          href: '/life-vision', 
+          href: '/intensive/life-vision/new', 
           icon: Sparkles,
           completed: !!checklist.vision_built && !!checklist.vision_refined,
-          active: pathname.startsWith('/life-vision') || pathname.startsWith('/profile') || pathname.startsWith('/assessment')
+          active: pathname.startsWith('/intensive/life-vision') || pathname.startsWith('/intensive/profile') || pathname.startsWith('/intensive/assessment')
         },
         { 
           id: 'audio', 
           title: 'Audio', 
-          href: '/life-vision/audio/new', 
+          href: '/intensive/audio/generate', 
           icon: Music,
           completed: !!checklist.audio_generated && !!checklist.audios_generated,
-          active: pathname.includes('/audio')
+          active: pathname.startsWith('/intensive/audio')
         },
         { 
           id: 'activate', 
           title: 'Activate', 
-          href: '/vision-board', 
+          href: '/intensive/vision-board/about', 
           icon: ImageIcon,
           completed: !!checklist.vision_board_completed && !!checklist.first_journal_entry,
-          active: pathname.startsWith('/vision-board') || pathname.startsWith('/journal')
+          active: pathname.startsWith('/intensive/vision-board') || pathname.startsWith('/intensive/journal')
         },
       ]
 

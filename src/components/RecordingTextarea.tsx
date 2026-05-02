@@ -96,6 +96,7 @@ interface RecordingTextareaProps {
   transcriptOnly?: boolean // Deprecated: use recordingPurpose instead
   recordingPurpose?: 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly' // Recording behavior: quick (no S3), transcriptOnly (S3 deleted if discarded), withFile (S3 always kept), audioOnly (S3 storage, no transcription)
   onAudioSaved?: (audioUrl: string, transcript: string) => void
+  hideClear?: boolean
 }
 
 export function RecordingTextarea({
@@ -116,6 +117,7 @@ export function RecordingTextarea({
   transcriptOnly = false, // Deprecated
   recordingPurpose = transcriptOnly ? 'transcriptOnly' : 'transcriptOnly', // Default to transcriptOnly for better UX
   onAudioSaved,
+  hideClear = false,
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
@@ -834,7 +836,7 @@ export function RecordingTextarea({
       </div>
 
       {/* Clear button - below the text block */}
-      {value && !isQuickRecording && !isUploading && !isOverlayVisible && !disabled && (
+      {value && !hideClear && !isQuickRecording && !isUploading && !isOverlayVisible && !disabled && (
         <div className="flex justify-start -mt-1">
           <button
             type="button"

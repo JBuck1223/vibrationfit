@@ -1555,7 +1555,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   <div className="space-y-4">
                     <div>
                       <p className="text-xs text-neutral-500 mb-2">Standard usage (on /life-vision):</p>
-                      <div className="bg-[#0A0A0A] p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
+                      <div className="bg-neutral-850 p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
                         <pre>{`<StatusBadge 
   status={vision.is_active ? 'active' : 'draft'} 
   subtle={!vision.is_active}
@@ -1565,7 +1565,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                     </div>
                     <div>
                       <p className="text-xs text-neutral-500 mb-2">With custom label (use "IN PROGRESS" instead of "DRAFT"):</p>
-                      <div className="bg-[#0A0A0A] p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
+                      <div className="bg-neutral-850 p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
                         <pre>{`<StatusBadge 
   status="draft"
   label="IN PROGRESS"
@@ -1666,7 +1666,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                 {/* Usage Example */}
                 <div className="bg-neutral-900 rounded-lg p-4 border border-neutral-700">
                   <h5 className="text-sm font-semibold text-white mb-3">Usage Example</h5>
-                  <div className="bg-[#0A0A0A] p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
+                  <div className="bg-neutral-850 p-3 rounded border border-neutral-800 font-mono text-xs text-neutral-300 overflow-x-auto">
                     <pre>{`<VersionBadge 
   versionNumber={visionData.version_number ?? 1} 
   status="active"

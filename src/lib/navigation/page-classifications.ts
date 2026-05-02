@@ -48,7 +48,7 @@ export const PAGE_CLASSIFICATIONS = {
     // '/life-vision/[id]/refine', // REMOVED: Deprecated vibe-assistant refine page (Nov 11, 2025)
     '/life-vision/[id]/print',        // PDF preview page (with sidebar)
     '/life-vision/new/assembly',
-    '/life-vision/new/category/[key]',
+    '/life-vision/new/[category]',
     
     // Vision Board & Gallery
     '/vision-board',
@@ -358,6 +358,12 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/abundance-tracker',
   '/audio',
   '/daily-paper',
+  '/intensive/life-vision',
+  '/intensive/journal',
+  '/intensive/profile',
+  '/intensive/story',
+  '/intensive/vision-board',
+  '/intensive/audio',
   '/life-vision',
   '/journal',
   '/profile',

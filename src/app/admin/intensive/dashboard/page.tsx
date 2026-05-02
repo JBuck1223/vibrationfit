@@ -451,20 +451,20 @@ function EnrollmentModal({
         <div className="p-6 space-y-5">
           {/* Quick stats row */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#0A0A0A] rounded-xl p-3 border border-[#222]">
+            <div className="bg-neutral-850 rounded-xl p-3 border border-[#222]">
               <div className="text-xs text-neutral-500 mb-1">Status</div>
               <Badge className={`${getStatusColor(enrollment.status)} px-2 py-0.5 text-xs`}>
                 {enrollment.status === 'in_progress' ? 'Active' : enrollment.status.charAt(0).toUpperCase() + enrollment.status.slice(1)}
               </Badge>
             </div>
-            <div className="bg-[#0A0A0A] rounded-xl p-3 border border-[#222]">
+            <div className="bg-neutral-850 rounded-xl p-3 border border-[#222]">
               <div className="text-xs text-neutral-500 mb-1">Progress</div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-white">{enrollment.progress_pct}%</span>
                 <span className="text-xs text-neutral-500">({enrollment.completed_steps}/{enrollment.total_steps})</span>
               </div>
             </div>
-            <div className="bg-[#0A0A0A] rounded-xl p-3 border border-[#222]">
+            <div className="bg-neutral-850 rounded-xl p-3 border border-[#222]">
               <div className="text-xs text-neutral-500 mb-1">Current Step</div>
               <div className="text-sm font-medium text-white">
                 {enrollment.current_step_number === 0 ? 'Not Started'
@@ -507,7 +507,7 @@ function EnrollmentModal({
               )}
             </div>
           ) : (
-            <div className="bg-[#0A0A0A] rounded-xl p-6 border border-[#222] text-center">
+            <div className="bg-neutral-850 rounded-xl p-6 border border-[#222] text-center">
               <Video className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
               <p className="text-sm text-neutral-500">No testimonial video submitted</p>
             </div>
@@ -517,7 +517,7 @@ function EnrollmentModal({
           {enrollment.testimonial_transcript && (
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-white">Transcript</h3>
-              <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#222]">
+              <div className="bg-neutral-850 rounded-xl p-4 border border-[#222]">
                 <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
                   {enrollment.testimonial_transcript}
                 </p>
@@ -529,7 +529,7 @@ function EnrollmentModal({
           {enrollment.biggest_shift && !enrollment.testimonial_transcript && (
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-white">Biggest Shift</h3>
-              <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#222]">
+              <div className="bg-neutral-850 rounded-xl p-4 border border-[#222]">
                 <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">
                   {enrollment.biggest_shift}
                 </p>

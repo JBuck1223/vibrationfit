@@ -543,7 +543,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       {/* Mobile Sidebar */}
       <aside
         className={cn(
-          'md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-900 border-r border-neutral-800 z-50',
+          'md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-800 border-r border-neutral-800 z-50',
           'transform transition-transform duration-300',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
@@ -553,7 +553,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
 
       {/* Desktop Sidebar */}
       <div className={cn(
-        'hidden md:flex flex-col bg-neutral-900 border-r border-neutral-800 transition-all duration-300',
+        'hidden md:flex flex-col bg-neutral-800 border-r border-neutral-800 transition-all duration-300',
         collapsed ? 'w-16' : 'w-64',
         className
       )}>

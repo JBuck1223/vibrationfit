@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   Container,
   Card,
@@ -25,6 +25,8 @@ const PROFILE_INTRO_POSTER =
 
 export default function ProfileNewPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathPrefix = pathname?.startsWith('/intensive') ? '/intensive' : ''
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
@@ -104,7 +106,7 @@ export default function ProfileNewPage() {
       const data = await response.json()
       
       if (data.profile?.id) {
-        router.push(`/profile/${data.profile.id}/edit`)
+        router.push(`${pathPrefix}/profile/${data.profile.id}/edit`)
       } else {
         throw new Error('No profile ID returned from API')
       }
@@ -132,7 +134,7 @@ export default function ProfileNewPage() {
       
       if (hasExistingProfile) {
         // User already has a profile - redirect to profile dashboard
-        router.push('/profile')
+        router.push(`${pathPrefix}/profile`)
         return
       }
       
@@ -155,7 +157,7 @@ export default function ProfileNewPage() {
       const data = await response.json()
       
       if (data.profile?.id) {
-        router.push(`/profile/${data.profile.id}/edit`)
+        router.push(`${pathPrefix}/profile/${data.profile.id}/edit`)
       } else {
         throw new Error('No profile ID returned from API')
       }
@@ -213,7 +215,7 @@ export default function ProfileNewPage() {
                 <Button 
                   variant="primary" 
                   size="sm" 
-                  onClick={() => router.push(activeProfileId ? `/profile/${activeProfileId}` : '/profile')}
+                  onClick={() => router.push(activeProfileId ? `${pathPrefix}/profile/${activeProfileId}` : `${pathPrefix}/profile`)}
                   className="w-full md:w-auto"
                 >
                   View Profile
@@ -224,7 +226,7 @@ export default function ProfileNewPage() {
                 <Button 
                   variant="primary" 
                   size="sm" 
-                  onClick={() => router.push(`/profile/${activeProfileId}/edit`)}
+                  onClick={() => router.push(`${pathPrefix}/profile/${activeProfileId}/edit`)}
                   className="w-full md:w-auto"
                 >
                   Continue Profile
@@ -257,7 +259,7 @@ export default function ProfileNewPage() {
               <Button 
                 variant="primary" 
                 size="sm" 
-                onClick={() => router.push('/profile')}
+                onClick={() => router.push(`${pathPrefix}/profile`)}
                 className="w-full md:w-auto"
               >
                 <ArrowRight className="mr-2 h-4 w-4" />

@@ -114,19 +114,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extract category-specific profile data
     const profileData = extractCategoryProfileData(categoryKey as LifeCategoryKey, profile)
-
-    // Get inspiration questions for this category
     const questions = getFilteredQuestionsForCategory(categoryKey, profile)
     const questionTexts = questions.map(q => q.text)
 
-    // Calculate input richness for dynamic max tokens
     const stateWords = stateText?.trim().split(/\s+/).filter(Boolean).length || 0
     const totalInputWords = stateWords + (Object.keys(profileData).length * 5)
     
-    // Dynamic max tokens based on input richness
-    // minimal (<30 words): 300 tokens, moderate (<80): 500 tokens, rich (<150): 800 tokens, very_rich: 1200 tokens
     const dynamicMaxTokens = totalInputWords < 30 ? 300 
       : totalInputWords < 80 ? 500 
       : totalInputWords < 150 ? 800 
@@ -134,7 +128,6 @@ export async function POST(request: NextRequest) {
 
     console.log(`[ImaginationStarter] Data - state: ${stateWords} words, profile fields: ${Object.keys(profileData).length}, maxTokens: ${dynamicMaxTokens}`)
 
-    // Build the prompt
     const prompt = buildImaginationStarterPrompt(
       categoryKey as LifeCategoryKey,
       category.label,

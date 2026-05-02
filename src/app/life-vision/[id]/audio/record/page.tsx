@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Card, Container, StatusBadge, Icon, Spinner, Stack, PageHero, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { CategoryGrid } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { CheckCircle, Headphones, Mic, Wand2, Clock, AudioLines, ListMusic, Eye, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
@@ -376,6 +377,7 @@ export default function RecordVisionAudioPage({ params }: { params: Promise<{ id
             voice_recording_completed_at: new Date().toISOString()
           })
           .eq('intensive_id', intensiveId)
+        invalidateIntensiveSnapshot()
         setShowStepCompleteModal(true)
       }
 

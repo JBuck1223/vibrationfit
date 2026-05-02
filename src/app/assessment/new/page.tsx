@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   Container,
   Card,
@@ -25,6 +25,8 @@ const ASSESSMENT_INTRO_POSTER =
 
 export default function AssessmentNewPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathPrefix = pathname?.startsWith('/intensive') ? '/intensive' : ''
   const [isCreating, setIsCreating] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
@@ -104,7 +106,7 @@ export default function AssessmentNewPage() {
       const data = await response.json()
       
       if (data.assessment?.id) {
-        router.push(`/assessment/${data.assessment.id}/in-progress`)
+        router.push(`${pathPrefix}/assessment/${data.assessment.id}/in-progress`)
       } else {
         throw new Error('No assessment ID returned from API')
       }
@@ -162,7 +164,7 @@ export default function AssessmentNewPage() {
                 <Button 
                   variant="primary" 
                   size="sm" 
-                  onClick={() => router.push(`/assessment/${assessmentLatestCompletedId}/results`)}
+                  onClick={() => router.push(`${pathPrefix}/assessment/${assessmentLatestCompletedId}/results`)}
                   className="w-full md:w-auto"
                 >
                   <ArrowRight className="mr-2 h-4 w-4" />
@@ -172,7 +174,7 @@ export default function AssessmentNewPage() {
                 <Button 
                   variant="primary" 
                   size="sm" 
-                  onClick={() => router.push(`/assessment/${assessmentInProgressId}/in-progress`)}
+                  onClick={() => router.push(`${pathPrefix}/assessment/${assessmentInProgressId}/in-progress`)}
                   className="w-full md:w-auto"
                 >
                   <ArrowRight className="mr-2 h-4 w-4" />
@@ -204,7 +206,7 @@ export default function AssessmentNewPage() {
               <Button 
                 variant="primary" 
                 size="sm" 
-                onClick={() => router.push('/assessment')}
+                onClick={() => router.push(`${pathPrefix}/assessment`)}
                 className="w-full md:w-auto"
               >
                 <ArrowRight className="mr-2 h-4 w-4" />

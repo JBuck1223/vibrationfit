@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Button, Card, Container, Icon, Spinner, Stack, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { useAudioStudio, AudioSourceSelector, QueueStatusBanner } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
@@ -10,6 +10,7 @@ import type { Story } from '@/lib/stories/types'
 import { CategoryGrid } from '@/lib/design-system'
 import { CompletedStepRow } from '@/components/CompletedStepRow'
 import { createClient } from '@/lib/supabase/client'
+import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { CheckCircle, Headphones, Mic, Wand2, RefreshCw, Home, Library } from 'lucide-react'
 import Link from 'next/link'
@@ -17,6 +18,8 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export default function RecordVisionAudioPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathPrefix = pathname.startsWith('/intensive/') ? '/intensive' : ''
   const { sourceType, sourceId } = useAudioStudio()
 
   // Source selection
@@ -347,6 +350,7 @@ export default function RecordVisionAudioPage() {
             .from('intensive_checklist')
             .update({ voice_recording_completed: true, voice_recording_completed_at: new Date().toISOString() })
             .eq('intensive_id', intensiveId)
+          invalidateIntensiveSnapshot()
           setShowStepCompleteModal(true)
         }
 
@@ -665,7 +669,7 @@ export default function RecordVisionAudioPage() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">All Sections Recorded!</h3>
                 <p className="text-neutral-400 mb-6">Your personal voice version is complete. Ready to listen?</p>
-                <Button onClick={() => router.push('/audio')} variant="primary" size="lg">
+                <Button onClick={() => router.push(`${pathPrefix}/audio`)} variant="primary" size="lg">
                   <Headphones className="w-5 h-5 mr-2" />
                   Listen to Your Recording
                 </Button>
@@ -753,7 +757,7 @@ export default function RecordVisionAudioPage() {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">Story Recorded!</h3>
                 <p className="text-neutral-400 mb-6">Your personal voice recording is saved.</p>
-                <Button onClick={() => router.push('/audio')} variant="primary" size="lg">
+                <Button onClick={() => router.push(`${pathPrefix}/audio`)} variant="primary" size="lg">
                   <Headphones className="w-5 h-5 mr-2" />
                   Listen Now
                 </Button>

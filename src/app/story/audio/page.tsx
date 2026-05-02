@@ -210,7 +210,7 @@ function SelectedStoryPanel({
   const hasRecording = !!story.user_audio_url
 
   return (
-    <Card variant="elevated" className="bg-[#0A0A0A]">
+    <Card variant="elevated" className="bg-neutral-850">
       <div className="p-6">
         {/* Story header */}
         <div className="flex items-start justify-between gap-4 mb-4">

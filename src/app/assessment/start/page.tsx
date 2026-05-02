@@ -779,7 +779,7 @@ export default function PublicAssessmentPage() {
     return (
       <>
         {/* Progress Header */}
-        <div className="sticky top-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-sm border-b border-[#1A1A1A]">
+        <div className="sticky top-0 z-50 bg-neutral-850/95 backdrop-blur-sm border-b border-[#1A1A1A]">
           <Container size="xl">
             <div className="py-3">
               <div className="flex items-center justify-between mb-2">

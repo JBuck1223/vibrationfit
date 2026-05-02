@@ -718,7 +718,7 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
             </Button>
           </Card>
         ) : (
-          <Card variant="elevated" className="bg-[#0A0A0A]">
+          <Card variant="elevated" className="bg-neutral-850">
             {/* Audio Set Selector */}
             <div className="mb-8">
               <h2 className="text-xl md:text-2xl font-semibold text-white mb-6 text-center">Select Audio Set</h2>
