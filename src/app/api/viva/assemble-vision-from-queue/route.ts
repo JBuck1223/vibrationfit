@@ -99,12 +99,17 @@ export async function POST(request: NextRequest) {
 
     // Deactivate any existing active personal visions (household_id IS NULL)
     // This ensures only one active personal vision per user
-    await supabase
+    const { error: deactivateError } = await supabase
       .from('vision_versions')
       .update({ is_active: false })
       .eq('user_id', user.id)
       .eq('is_active', true)
       .is('household_id', null)
+
+    if (deactivateError) {
+      console.error('[Assemble Vision] Failed to deactivate existing visions:', deactivateError)
+      throw new Error('Failed to deactivate existing vision')
+    }
 
     // Create new vision_versions row
     const { data: insertedVision, error: insertError } = await supabase
