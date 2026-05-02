@@ -94,6 +94,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [isCloning, setIsCloning] = useState(false)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
 
+  const hasActiveVision = !!activeVision
+
   // Show commit confirmation dialog
   const handleCommitAsActive = () => {
     if (!draftVision) {
@@ -101,7 +103,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       return
     }
 
-    if (refinedCategories.length === 0) {
+    // Only require refined categories when there's an active vision to compare against
+    if (hasActiveVision && refinedCategories.length === 0) {
       alert('No refined categories to commit')
       return
     }
@@ -752,7 +755,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
             </Button>
             <Button
               onClick={handleCommitAsActive}
-              disabled={isCommitting || refinedCount === 0}
+              disabled={isCommitting || (hasActiveVision && refinedCount === 0)}
               variant="primary"
               size="sm"
               className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
@@ -908,7 +911,10 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         onClose={() => setShowCommitDialog(false)}
         onConfirm={confirmCommit}
         title="Commit Draft as Active Vision?"
-        message={`Are you sure you want to commit this draft vision with ${refinedCount} refined ${refinedCount === 1 ? 'category' : 'categories'} as your active vision? This will create a new version.`}
+        message={hasActiveVision
+          ? `Are you sure you want to commit this draft vision with ${refinedCount} refined ${refinedCount === 1 ? 'category' : 'categories'} as your active vision? This will create a new version.`
+          : 'Are you sure you want to activate this draft as your Life Vision?'
+        }
         confirmText={isCommitting ? 'Committing...' : 'Commit as Active Vision'}
         type="commit"
         isLoading={isCommitting}

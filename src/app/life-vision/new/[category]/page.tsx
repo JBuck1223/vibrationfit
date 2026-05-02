@@ -49,7 +49,7 @@ function recordingKeyForVisionCategory(key: VisionCategoryKey): LifeCategoryKey 
   return (META_CATEGORY_KEYS as readonly string[]).includes(key) ? 'fun' : (key as LifeCategoryKey)
 }
 import { createClient } from '@/lib/supabase/client'
-import { updateDraftCategory, type VisionData } from '@/lib/life-vision/draft-helpers'
+import { updateDraftCategory, commitDraft, type VisionData } from '@/lib/life-vision/draft-helpers'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
@@ -79,6 +79,8 @@ export default function UnifiedCategoryPage() {
   const [showDraftBanner, setShowDraftBanner] = useState(true)
   const [showFreshConfirm, setShowFreshConfirm] = useState(false)
   const [isResettingDraft, setIsResettingDraft] = useState(false)
+  const [isCommittingDraft, setIsCommittingDraft] = useState(false)
+  const [commitError, setCommitError] = useState<string | null>(null)
 
   const [editMode, setEditMode] = useState<EditMode>('viva')
   const [includeProfile, setIncludeProfile] = useState(true)
@@ -526,6 +528,20 @@ export default function UnifiedCategoryPage() {
     }
   }
 
+  const handleCommitDraft = async () => {
+    if (!draftVision) return
+    setIsCommittingDraft(true)
+    setCommitError(null)
+    try {
+      const vision = await commitDraft(draftVision.id)
+      router.push(`${pathPrefix}/life-vision/${vision.id}`)
+    } catch (err) {
+      console.error('Error committing draft:', err)
+      setCommitError(err instanceof Error ? err.message : 'Failed to commit draft')
+      setIsCommittingDraft(false)
+    }
+  }
+
   const saveCategoryState = async () => {
     if (!user) return
     const hasData = getMeStartedText.trim() || vivaSteeringText.trim() || manualText.trim()
@@ -790,13 +806,28 @@ export default function UnifiedCategoryPage() {
                   )}
                   {' '}with <span className="font-semibold text-white">{refinedCategories.length} of {allCategories.length}</span> categories updated.
                 </p>
-                <div className="flex items-center gap-3">
+                {commitError && (
+                  <p className="text-xs text-red-400">{commitError}</p>
+                )}
+                <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button
                     variant="primary"
                     size="sm"
+                    onClick={handleCommitDraft}
+                    disabled={isCommittingDraft}
+                  >
+                    {isCommittingDraft ? (
+                      <><Spinner size="sm" className="mr-1.5" />Committing...</>
+                    ) : (
+                      <><CheckCircle className="w-4 h-4 mr-1.5" />Commit as Active</>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowDraftBanner(false)}
                   >
-                    Continue Draft
+                    Continue Editing
                   </Button>
                   <Button
                     variant="outline"
@@ -1372,6 +1403,27 @@ export default function UnifiedCategoryPage() {
             </section>
           )}
         </Card>
+
+        {/* Commit Draft as Active — persistent action outside the dismissable banner */}
+        {draftVision && !showDraftBanner && (
+          <div className="flex flex-col items-center gap-2">
+            {commitError && (
+              <p className="text-xs text-red-400">{commitError}</p>
+            )}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleCommitDraft}
+              disabled={isCommittingDraft}
+            >
+              {isCommittingDraft ? (
+                <><Spinner size="sm" className="mr-1.5" />Committing...</>
+              ) : (
+                <><CheckCircle className="w-4 h-4 mr-1.5" />Commit Draft as Active Vision</>
+              )}
+            </Button>
+          </div>
+        )}
 
         {/* Previous / Progress / Next Footer */}
         <div className="flex items-center justify-between px-4 md:px-0">

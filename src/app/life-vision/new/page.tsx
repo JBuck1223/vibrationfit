@@ -15,7 +15,8 @@ import {
   CategoryGrid,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, CheckCircle } from 'lucide-react'
+import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, CheckCircle, FileCheck } from 'lucide-react'
+import { commitDraft } from '@/lib/life-vision/draft-helpers'
 import { VISION_CATEGORIES, ORDERED_VISION_CATEGORIES, LIFE_CATEGORY_KEYS, META_CATEGORY_KEYS, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
@@ -46,6 +47,9 @@ export default function VIVALifeVisionLandingPage() {
   const [visionStatus, setVisionStatus] = useState<'none' | 'in_progress' | 'completed'>('none')
   // Track completed categories for the CategoryGrid
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
+  const [draftVisionId, setDraftVisionId] = useState<string | null>(null)
+  const [isCommittingDraft, setIsCommittingDraft] = useState(false)
+  const [commitError, setCommitError] = useState<string | null>(null)
   
   // 12 life categories only (Forward/Conclusion handled at assembly)
   const allCategories = ORDERED_VISION_CATEGORIES.filter(
@@ -159,6 +163,19 @@ export default function VIVALifeVisionLandingPage() {
         .limit(1)
         .maybeSingle()
 
+      // Check for a draft vision that can be committed
+      const { data: draftVision } = await supabase
+        .from('vision_versions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_draft', true)
+        .eq('is_active', false)
+        .maybeSingle()
+
+      if (draftVision) {
+        setDraftVisionId(draftVision.id)
+      }
+
       // Determine vision status based on actual vision work
       // Only count vision_new_category_state entries (not profile state fallback)
       if (!checklist?.vision_built) {
@@ -195,6 +212,20 @@ export default function VIVALifeVisionLandingPage() {
   }
 
 
+  const handleCommitDraft = async () => {
+    if (!draftVisionId) return
+    setIsCommittingDraft(true)
+    setCommitError(null)
+    try {
+      const vision = await commitDraft(draftVisionId)
+      router.push(`${pathPrefix}/life-vision/${vision.id}`)
+    } catch (err) {
+      console.error('Error committing draft:', err)
+      setCommitError(err instanceof Error ? err.message : 'Failed to commit draft')
+      setIsCommittingDraft(false)
+    }
+  }
+
   // Show loading spinner while checking status
   if (loading) {
     return (
@@ -223,6 +254,58 @@ export default function VIVALifeVisionLandingPage() {
             </div>
             <ArrowRight className="w-4 h-4 text-primary-500 group-hover:translate-x-0.5 transition-transform" />
           </button>
+        )}
+
+        {/* Draft Vision Banner — commit existing draft as active */}
+        {draftVisionId && (
+          <div className="w-full rounded-xl bg-secondary-500/10 border border-secondary-500/30 p-4 md:p-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <FileCheck className="w-5 h-5 text-secondary-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-secondary-300">
+                    You have a draft Life Vision ready to activate.
+                  </p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Commit your draft to make it your active Life Vision.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`${pathPrefix}/life-vision/${draftVisionId}/draft`)}
+                  className="flex-1 sm:flex-initial"
+                >
+                  <Eye className="mr-1.5 h-3.5 w-3.5" />
+                  Review
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCommitDraft}
+                  disabled={isCommittingDraft}
+                  className="flex-1 sm:flex-initial"
+                >
+                  {isCommittingDraft ? (
+                    <>
+                      <Spinner size="sm" className="mr-1.5" />
+                      Committing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                      Commit as Active
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            {commitError && (
+              <p className="text-xs text-red-400 mt-2">{commitError}</p>
+            )}
+          </div>
         )}
 
         {/* Completion Banner - Shows above PageHero when step is already complete */}
@@ -283,13 +366,46 @@ export default function VIVALifeVisionLandingPage() {
             </div>
           </PageHero>
         ) : (
-          <div className="mx-auto w-full max-w-3xl">
+          <div className="mx-auto w-full max-w-3xl space-y-6">
             <OptimizedVideo
               url={VISION_INTRO_VIDEO}
               thumbnailUrl={VISION_INTRO_POSTER}
               context="single"
               className="w-full"
             />
+            <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+              {visionStatus === 'completed' ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={() => router.push(`${pathPrefix}/life-vision`)}
+                  className="w-full md:w-auto"
+                >
+                  View Life Vision
+                  <Eye className="ml-2 h-4 w-4" />
+                </Button>
+              ) : visionStatus === 'in_progress' ? (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  className="w-full md:w-auto"
+                >
+                  Continue Your Vision
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  onClick={handleGetStarted}
+                  className="w-full md:w-auto"
+                >
+                  Start Your Vision
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
