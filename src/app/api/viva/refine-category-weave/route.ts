@@ -252,36 +252,10 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Save refinement to database
-        let refinementId: string | null = null;
-        try {
-          const { data: refinementData } = await supabase
-            .from('vision_refinements')
-            .insert({
-              user_id: user.id,
-              vision_id: visionId,
-              category: categoryKey,
-              input_text: currentVisionText,
-              output_text: fullText,
-              refinement_inputs: refinement || {},
-              weave_settings: weave || { enabled: false },
-              applied: false,
-            })
-            .select('id')
-            .single();
-          
-          refinementId = refinementData?.id || null;
-        } catch (saveError) {
-          console.error('Error saving refinement to database:', saveError);
-          // Don't fail the request if saving refinement fails
-        }
-
-        // Send completion event
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({ 
               done: true, 
-              refinementId,
               usage: { 
                 inputTokens, 
                 outputTokens, 

@@ -21,7 +21,6 @@ const CREATE_AREA_ROUTES = [
   '/life-vision/new',
   '/life-vision/manual',
   '/life-vision/refine',
-  '/life-vision/refinements',
 ]
 
 export function LifeVisionAreaBar() {
@@ -176,13 +175,11 @@ export function LifeVisionAreaBar() {
       || pathname.startsWith('/life-vision/new/')
     const isRefineFlow = /^\/life-vision\/[^/]+\/refine/.test(pathname)
       || pathname.startsWith('/life-vision/refine')
-      || pathname.startsWith('/life-vision/refinements')
       || /^\/life-vision\/[^/]+\/draft/.test(pathname)
       || pathname.startsWith('/life-vision/manual')
 
     const isOnRefineSubpage = /^\/life-vision\/[^/]+\/refine/.test(pathname)
       || pathname.startsWith('/life-vision/refine')
-      || pathname.startsWith('/life-vision/refinements')
     const isOnCommitSubpage = /^\/life-vision\/[^/]+\/draft/.test(pathname)
       || pathname.startsWith('/life-vision/manual')
     const isOnAssemblyPage = pathname === '/life-vision/new/assembly' || pathname.startsWith('/life-vision/new/assembly/')
