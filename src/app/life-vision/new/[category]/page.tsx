@@ -84,6 +84,7 @@ export default function UnifiedCategoryPage() {
 
   const [sourceMode, setSourceMode] = useState<SourceMode | null>(null)
   const [includeProfile, setIncludeProfile] = useState(true)
+  const [includeActiveReference, setIncludeActiveReference] = useState(true)
   const [manualText, setManualText] = useState('')
   const [manualViewMode, setManualViewMode] = useState<'edit' | 'highlight'>('edit')
   const [showManualCurrent, setShowManualCurrent] = useState(true)
@@ -393,6 +394,24 @@ export default function UnifiedCategoryPage() {
 
         if (!baseForRefine.trim()) throw new Error('No baseline text to refine')
 
+        // In iterate_draft mode, surface the active vision as a REFERENCE so
+        // VIVA can keep the original voice/style intact while editing the draft.
+        // Honors the in-card "Active V{N}" toggle so the user can opt out.
+        const referenceForRefine =
+          mode === 'iterate_draft' &&
+          includeActiveReference &&
+          activeVal.trim() &&
+          activeVal.trim() !== baseForRefine.trim()
+            ? activeVal
+            : undefined
+        const activeVersionNumber = activeVision?.version_number
+          ?? visions.filter(v => !v.is_draft).find(v => v.is_active)?.version_number
+          ?? null
+        const referenceLabel =
+          mode === 'iterate_draft' && referenceForRefine
+            ? `ACTIVE VISION${activeVersionNumber != null ? ` V${activeVersionNumber}` : ''} (REFERENCE)`
+            : undefined
+
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('perspective')
@@ -418,6 +437,8 @@ export default function UnifiedCategoryPage() {
             weave: { enabled: false as const },
             perspective: profile?.perspective || 'singular',
             profileContext: pc && (pc.state || pc.story) ? pc : undefined,
+            referenceText: referenceForRefine,
+            referenceLabel,
           }),
         })
 
@@ -733,6 +754,12 @@ export default function UnifiedCategoryPage() {
           {showDraftBanner && draftVision && refinedCategories.length > 0 && (
             <div className="mb-6 rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-4">
               <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex items-center gap-2">
+                  <PenLine className="w-4 h-4 text-accent-500" />
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-accent-500">
+                    Draft In Progress
+                  </h3>
+                </div>
                 <p className="text-sm text-neutral-300">
                   You have a draft in progress
                   {draftParentVersion && (
@@ -800,111 +827,175 @@ export default function UnifiedCategoryPage() {
           </div>
 
           {/* Source Mode Cards — pick the high-level intent first.
-              All other inputs adapt to the selected mode. */}
+              Cards escalate context: fresh = profile only,
+              refine_active = profile + active, iterate_draft = profile + active + draft.
+              Pills inside the SELECTED card act as inline toggles for what
+              VIVA actually pulls in. Baseline pills (the source the mode
+              refines from) are locked on. */}
           {sourceMode && (
             <div className="mb-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {([
-                  {
-                    key: 'fresh' as const,
-                    icon: Wand2,
-                    title: 'Generate Fresh',
-                    description: 'Start this category from scratch using your profile.',
-                    disabled: false,
-                    disabledReason: '',
-                  },
-                  {
-                    key: 'refine_active' as const,
-                    icon: RefreshCw,
-                    title: 'Refine Active',
-                    description: 'Clone your active vision and let VIVA refine it.',
-                    disabled: !canRefineActive,
-                    disabledReason: 'No active vision text for this category yet.',
-                  },
-                  {
-                    key: 'iterate_draft' as const,
-                    icon: PenLine,
-                    title: 'Iterate on Draft',
-                    description: 'Keep refining your working draft.',
-                    disabled: !canIterateDraft,
-                    disabledReason: 'No draft yet. Generate or refine first.',
-                  },
-                ]).map((card) => {
-                  const isSelected = sourceMode === card.key
-                  const CardIcon = card.icon
-                  return (
-                    <button
-                      key={card.key}
-                      type="button"
-                      onClick={() => !card.disabled && setSourceMode(card.key)}
-                      disabled={card.disabled}
-                      title={card.disabled ? card.disabledReason : ''}
-                      className={`group relative text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
-                        card.disabled
-                          ? 'border-neutral-800 bg-neutral-900/40 opacity-50 cursor-not-allowed'
-                          : isSelected
-                            ? 'border-primary-500 bg-primary-500/5 shadow-[0_0_0_1px_rgba(57,255,20,0.15)] -translate-y-0.5'
-                            : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                          isSelected ? 'bg-primary-500 text-black' : 'bg-neutral-800 text-neutral-300 group-hover:text-white'
-                        }`}>
-                          <CardIcon className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-200'}`}>
-                              {card.title}
-                            </h3>
-                            {isSelected && (
-                              <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-500">Selected</span>
+                {(() => {
+                  const profileLabel = `Profile${profileVersionFromRpc != null ? ` v${profileVersionFromRpc}` : ''}`
+                  const activeLabel = `Vision V${activeVisionVersion}`
+                  const draftLabel = `Draft V${nonDraftVisions.length + 1}`
+                  type Tag = {
+                    key: 'Profile' | 'Active' | 'Draft'
+                    label: string
+                    showActiveBadge?: boolean
+                    on: boolean
+                    locked: boolean
+                    onToggle?: () => void
+                  }
+                  const cards: Array<{
+                    key: SourceMode
+                    icon: typeof Wand2
+                    title: string
+                    description: string
+                    disabled: boolean
+                    disabledReason: string
+                    tags: Tag[]
+                  }> = [
+                    {
+                      key: 'fresh',
+                      icon: Wand2,
+                      title: 'Generate Fresh',
+                      description: 'Your notes below are the primary signal. VIVA writes a new draft, enhanced by your profile.',
+                      disabled: false,
+                      disabledReason: '',
+                      tags: [
+                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
+                      ],
+                    },
+                    {
+                      key: 'refine_active',
+                      icon: RefreshCw,
+                      title: 'Refine Active',
+                      description: 'Your notes below are the primary signal. VIVA reshapes your active vision, enhanced by your profile.',
+                      disabled: !canRefineActive,
+                      disabledReason: 'No active vision text for this category yet.',
+                      tags: [
+                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
+                        { key: 'Active', label: activeLabel, showActiveBadge: true, on: true, locked: true },
+                      ],
+                    },
+                    {
+                      key: 'iterate_draft',
+                      icon: PenLine,
+                      title: 'Iterate on Draft',
+                      description: 'Your notes below are the primary signal. VIVA iterates your draft, with active and profile for context.',
+                      disabled: !canIterateDraft,
+                      disabledReason: 'No draft yet. Generate or refine first.',
+                      tags: [
+                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
+                        { key: 'Active', label: activeLabel, showActiveBadge: true, on: includeActiveReference, locked: false, onToggle: () => setIncludeActiveReference(p => !p) },
+                        { key: 'Draft', label: draftLabel, on: true, locked: true },
+                      ],
+                    },
+                  ]
+                  const tagOnStyles: Record<Tag['key'], string> = {
+                    Profile: 'border-[#00FFFF]/40 bg-[#00FFFF]/10 text-[#00FFFF]',
+                    Active: 'border-primary-500/40 bg-primary-500/10 text-primary-500',
+                    Draft: 'border-accent-500/40 bg-accent-500/10 text-accent-500',
+                  }
+                  const tagOffStyles = 'border-neutral-700 bg-neutral-900/60 text-neutral-500'
+
+                  return cards.map(card => {
+                    const isSelected = sourceMode === card.key
+                    const CardIcon = card.icon
+                    const interactive = isSelected && !card.disabled
+                    return (
+                      <div
+                        key={card.key}
+                        role="button"
+                        tabIndex={card.disabled ? -1 : 0}
+                        aria-pressed={isSelected}
+                        onClick={() => !card.disabled && setSourceMode(card.key)}
+                        onKeyDown={(e) => {
+                          if (card.disabled) return
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setSourceMode(card.key)
+                          }
+                        }}
+                        title={card.disabled ? card.disabledReason : ''}
+                        className={`group relative text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
+                          card.disabled
+                            ? 'border-neutral-800 bg-neutral-900/40 opacity-50 cursor-not-allowed'
+                            : isSelected
+                              ? 'border-primary-500 bg-primary-500/5 shadow-[0_0_0_1px_rgba(57,255,20,0.15)] -translate-y-0.5'
+                              : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                            isSelected ? 'bg-primary-500 text-black' : 'bg-neutral-800 text-neutral-300 group-hover:text-white'
+                          }`}>
+                            <CardIcon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-200'}`}>
+                                {card.title}
+                              </h3>
+                              {isSelected && (
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-500">Selected</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-neutral-400 leading-relaxed mt-1">
+                              {card.disabled ? card.disabledReason : card.description}
+                            </p>
+                            {!card.disabled && (
+                              <div className="flex flex-wrap items-center gap-1 mt-2">
+                                <span className="text-[10px] uppercase tracking-wide text-neutral-500 mr-0.5">Uses:</span>
+                                {card.tags.map(tag => {
+                                  const baseClasses = `inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors ${
+                                    tag.on ? tagOnStyles[tag.key] : tagOffStyles
+                                  }`
+                                  const content = (
+                                    <>
+                                      {tag.label}
+                                      {tag.showActiveBadge && tag.on && (
+                                        <span className="rounded-full bg-primary-500 text-black px-1 text-[9px] font-bold uppercase tracking-wide">Active</span>
+                                      )}
+                                      {!tag.on && <span className="text-[9px] uppercase">off</span>}
+                                    </>
+                                  )
+                                  if (interactive && !tag.locked && tag.onToggle) {
+                                    return (
+                                      <button
+                                        key={tag.key}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          tag.onToggle?.()
+                                        }}
+                                        className={`${baseClasses} cursor-pointer hover:opacity-80`}
+                                        title={`Toggle ${tag.key} context`}
+                                      >
+                                        {content}
+                                      </button>
+                                    )
+                                  }
+                                  return (
+                                    <span
+                                      key={tag.key}
+                                      className={`${baseClasses} ${interactive && tag.locked ? 'opacity-90' : ''}`}
+                                      title={interactive && tag.locked ? `${tag.key} is required for this mode` : ''}
+                                    >
+                                      {content}
+                                    </span>
+                                  )
+                                })}
+                              </div>
                             )}
                           </div>
-                          <p className="text-xs text-neutral-400 leading-relaxed mt-1">
-                            {card.disabled ? card.disabledReason : card.description}
-                          </p>
                         </div>
                       </div>
-                    </button>
-                  )
-                })}
+                    )
+                  })
+                })()}
               </div>
-            </div>
-          )}
-
-          {/* Context chips — what VIVA will pull in for the selected mode. */}
-          {sourceMode && (
-            <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
-              {fullProfile && (profileData?.hasStateData || profileData?.hasStory) && (
-                <button
-                  type="button"
-                  onClick={() => setIncludeProfile(!includeProfile)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    includeProfile
-                      ? 'border-[#00FFFF]/40 bg-[#00FFFF]/10 text-[#00FFFF]'
-                      : 'border-neutral-700 bg-neutral-900/60 text-neutral-500 hover:text-neutral-300'
-                  }`}
-                  title={profileData?.state?.trim() || 'Profile context for this category'}
-                >
-                  <SlidersHorizontal className="w-3 h-3" />
-                  Profile{profileVersionFromRpc != null ? ` v${profileVersionFromRpc}` : ''}
-                  {includeProfile ? '' : ' · off'}
-                </button>
-              )}
-              {sourceMode === 'refine_active' && canRefineActive && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-500/40 bg-primary-500/10 text-primary-500 px-3 py-1.5 text-xs font-medium">
-                  <RefreshCw className="w-3 h-3" />
-                  Active V{activeVisionVersion} baseline
-                </span>
-              )}
-              {sourceMode === 'iterate_draft' && canIterateDraft && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-500/40 bg-accent-500/10 text-accent-500 px-3 py-1.5 text-xs font-medium">
-                  <PenLine className="w-3 h-3" />
-                  Current draft baseline
-                </span>
-              )}
             </div>
           )}
 

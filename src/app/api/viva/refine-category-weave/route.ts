@@ -32,6 +32,11 @@ interface RefineCategoryWeaveRequest {
   weave?: WeaveInputs;
   perspective?: 'singular' | 'plural';
   profileContext?: { state?: string; story?: string };
+  // Optional reference vision text (e.g. the active version while iterating
+  // on a draft) — surfaced to VIVA for voice/style continuity, not as a
+  // primary editing target.
+  referenceText?: string;
+  referenceLabel?: string;
 }
 
 /**
@@ -72,6 +77,8 @@ export async function POST(req: NextRequest) {
           weave,
           perspective = 'singular',
           profileContext,
+          referenceText,
+          referenceLabel,
         } = body;
 
         const profileForPrompt =
@@ -172,12 +179,15 @@ export async function POST(req: NextRequest) {
         }
 
         // Build the refinement prompt using dedicated refine prompt
+        const referenceForPrompt = referenceText?.trim() || undefined;
         const prompt = buildRefineCategoryPrompt(
           categoryKey,
           categoryInfo.label,
           visionTextWithBlocks,
           perspective,
-          profileForPrompt
+          profileForPrompt,
+          referenceForPrompt,
+          referenceLabel
         );
 
         // Get AI tool config
