@@ -946,6 +946,7 @@ export default function UnifiedCategoryPage() {
                               {card.disabled ? card.disabledReason : card.description}
                             </p>
                             {!card.disabled && (
+                              <>
                               <div className="flex flex-wrap items-center gap-1 mt-2">
                                 <span className="text-[10px] uppercase tracking-wide text-neutral-500 mr-0.5">Uses:</span>
                                 {card.tags.map(tag => {
@@ -988,6 +989,12 @@ export default function UnifiedCategoryPage() {
                                   )
                                 })}
                               </div>
+                              {interactive && (
+                                <p className="mt-1 text-[10px] italic text-neutral-500">
+                                  Click to add or remove sources
+                                </p>
+                              )}
+                              </>
                             )}
                           </div>
                         </div>
