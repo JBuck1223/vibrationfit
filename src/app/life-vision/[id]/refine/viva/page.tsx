@@ -303,7 +303,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
   const [showVivaRefine, setShowVivaRefine] = useState(true)
   const [vivaRevision, setVivaRevision] = useState('')
   const [isVivaRefining, setIsVivaRefining] = useState(false)
-  const [currentRefinementId, setCurrentRefinementId] = useState<string | null>(null)
   const [addItems, setAddItems] = useState<string[]>([])
   const [addInput, setAddInput] = useState('')
   const [removeItems, setRemoveItems] = useState<string[]>([])
@@ -1130,26 +1129,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setDraftVision(updatedDraft)
       setLastSaved(new Date())
       console.log('Draft saved successfully, refined categories:', updatedDraft.refined_categories)
-      
-      // Mark refinement as applied if there's a current refinement ID
-      if (currentRefinementId) {
-        try {
-          await supabase
-            .from('vision_refinements')
-            .update({
-              applied: true,
-              applied_at: new Date().toISOString(),
-            })
-            .eq('id', currentRefinementId)
-          
-          console.log('Refinement marked as applied:', currentRefinementId)
-          setCurrentRefinementId(null) // Clear the ID after applying
-        } catch (refinementError) {
-          console.error('Error marking refinement as applied:', refinementError)
-          // Don't fail the save if this fails
-        }
-      }
-      
+
       // Restore scroll position and focus after React re-renders
       setTimeout(() => {
         window.scrollTo({ top: scrollPosition, behavior: 'instant' })
@@ -1261,10 +1241,6 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             
             if (data.done) {
               console.log('VIVA Refine complete')
-              if (data.refinementId) {
-                setCurrentRefinementId(data.refinementId)
-                console.log('Refinement saved with ID:', data.refinementId)
-              }
             }
           }
         }

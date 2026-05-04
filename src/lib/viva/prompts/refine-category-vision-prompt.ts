@@ -91,6 +91,24 @@ export interface ProfileContextInput {
   story?: string
 }
 
+function buildReferenceVisionSection(referenceText?: string, label?: string): string {
+  const text = referenceText?.trim()
+  if (!text) return ''
+  const heading = label?.trim() || 'REFERENCE VISION TEXT'
+  const parts: string[] = [
+    '',
+    '═══════════════════════════════════════════════════════════════',
+    `${heading} (for voice and style continuity — do not copy verbatim, do not output)`,
+    '═══════════════════════════════════════════════════════════════',
+    '',
+    text,
+    '',
+    'Use this REFERENCE only to keep VIVA continuity with the original voice, imagery, and rhythm. The PRIMARY SOURCE below is what you actually refine and output.',
+    '',
+  ]
+  return parts.join('\n')
+}
+
 function buildProfileContextSection(profile?: ProfileContextInput): string {
   if (!profile) return ''
   const state = profile.state?.trim()
@@ -126,13 +144,16 @@ export function buildRefineCategoryPrompt(
   categoryLabel: string,
   currentVisionText: string,
   perspective: 'singular' | 'plural' = 'singular',
-  profileContext?: ProfileContextInput
+  profileContext?: ProfileContextInput,
+  referenceText?: string,
+  referenceLabel?: string
 ): string {
   const profileBlock = buildProfileContextSection(profileContext)
+  const referenceBlock = buildReferenceVisionSection(referenceText, referenceLabel)
   return `You are VIVA. Your job is to REFINE the member's existing vision text.
 
 CATEGORY: ${categoryLabel}
-${profileBlock}
+${profileBlock}${referenceBlock}
 ═══════════════════════════════════════════════════════════════
 CURRENT VISION TEXT (PRIMARY SOURCE)
 ═══════════════════════════════════════════════════════════════
