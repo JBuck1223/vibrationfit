@@ -32,6 +32,11 @@ interface RefineCategoryWeaveRequest {
   weave?: WeaveInputs;
   perspective?: 'singular' | 'plural';
   profileContext?: { state?: string; story?: string };
+  // Optional reference vision text (e.g. the active version while iterating
+  // on a draft) — surfaced to VIVA for voice/style continuity, not as a
+  // primary editing target.
+  referenceText?: string;
+  referenceLabel?: string;
 }
 
 /**
@@ -72,6 +77,8 @@ export async function POST(req: NextRequest) {
           weave,
           perspective = 'singular',
           profileContext,
+          referenceText,
+          referenceLabel,
         } = body;
 
         const profileForPrompt =
@@ -172,12 +179,15 @@ export async function POST(req: NextRequest) {
         }
 
         // Build the refinement prompt using dedicated refine prompt
+        const referenceForPrompt = referenceText?.trim() || undefined;
         const prompt = buildRefineCategoryPrompt(
           categoryKey,
           categoryInfo.label,
           visionTextWithBlocks,
           perspective,
-          profileForPrompt
+          profileForPrompt,
+          referenceForPrompt,
+          referenceLabel
         );
 
         // Get AI tool config
@@ -252,36 +262,10 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Save refinement to database
-        let refinementId: string | null = null;
-        try {
-          const { data: refinementData } = await supabase
-            .from('vision_refinements')
-            .insert({
-              user_id: user.id,
-              vision_id: visionId,
-              category: categoryKey,
-              input_text: currentVisionText,
-              output_text: fullText,
-              refinement_inputs: refinement || {},
-              weave_settings: weave || { enabled: false },
-              applied: false,
-            })
-            .select('id')
-            .single();
-          
-          refinementId = refinementData?.id || null;
-        } catch (saveError) {
-          console.error('Error saving refinement to database:', saveError);
-          // Don't fail the request if saving refinement fails
-        }
-
-        // Send completion event
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({ 
               done: true, 
-              refinementId,
               usage: { 
                 inputTokens, 
                 outputTokens, 

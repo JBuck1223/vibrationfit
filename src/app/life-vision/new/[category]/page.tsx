@@ -56,7 +56,7 @@ import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionS
 import { normalizeProfileVersionFromRpc } from '@/lib/profile/profile-version-from-rpc'
 import { getBookendTemplate } from '@/lib/viva/bookend-templates'
 
-type EditMode = 'viva' | 'manual'
+type SourceMode = 'fresh' | 'refine_active' | 'iterate_draft'
 
 export default function UnifiedCategoryPage() {
   const router = useRouter()
@@ -82,10 +82,9 @@ export default function UnifiedCategoryPage() {
   const [isCommittingDraft, setIsCommittingDraft] = useState(false)
   const [commitError, setCommitError] = useState<string | null>(null)
 
-  const [editMode, setEditMode] = useState<EditMode>('viva')
+  const [sourceMode, setSourceMode] = useState<SourceMode | null>(null)
   const [includeProfile, setIncludeProfile] = useState(true)
-  const [includeActiveVision, setIncludeActiveVision] = useState(true)
-  const [showContextAdjust, setShowContextAdjust] = useState(false)
+  const [includeActiveReference, setIncludeActiveReference] = useState(true)
   const [manualText, setManualText] = useState('')
   const [manualViewMode, setManualViewMode] = useState<'edit' | 'highlight'>('edit')
   const [showManualCurrent, setShowManualCurrent] = useState(true)
@@ -105,14 +104,11 @@ export default function UnifiedCategoryPage() {
   const [showInsufficientTokens, setShowInsufficientTokens] = useState(false)
   const [tokenErrorInfo, setTokenErrorInfo] = useState<{ tokensRemaining?: number }>({})
 
-  const [refineSource, setRefineSource] = useState<'active' | 'new'>('active')
-
   // Shared state
   const [currentRefinement, setCurrentRefinement] = useState('')
   const [previousRefinement, setPreviousRefinement] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isDraftSaving, setIsDraftSaving] = useState(false)
-  const [currentRefinementId, setCurrentRefinementId] = useState<string | null>(null)
 
   const categoryGridRef = useRef<HTMLDivElement>(null)
   const compareSectionRef = useRef<HTMLElement | null>(null)
@@ -137,17 +133,12 @@ export default function UnifiedCategoryPage() {
     if (user && categoryKey) loadData()
   }, [user, categoryKey, draftId, activeVisionId])
 
-  useEffect(() => {
-    if (refineSource === 'new' && !manualText.trim()) {
-      setRefineSource('active')
-    }
-  }, [manualText, refineSource])
-
   const loadData = async () => {
     if (!user) return
     setLoading(true)
     setError(null)
     setProfileVersionFromRpc(null)
+    setSourceMode(null)
 
     try {
       const queries: Promise<any>[] = []
@@ -227,7 +218,7 @@ export default function UnifiedCategoryPage() {
         }
       }
 
-        if (activeResult) {
+      if (activeResult) {
         setActiveVision(activeResult)
         // Only pre-fill manualText if draft truly differs from active (prior generation)
         if (draftValue.trim() && draftValue.trim() !== activeValue.trim()) {
@@ -235,11 +226,8 @@ export default function UnifiedCategoryPage() {
         } else {
           setManualText('')
         }
-
-        setIncludeActiveVision(!!activeValue.trim())
       } else {
         setActiveVision(null)
-        setIncludeActiveVision(false)
       }
 
       if (profileResult) {
@@ -278,6 +266,15 @@ export default function UnifiedCategoryPage() {
           setCurrentRefinement(categoryStateResult.category_vision_text)
         }
       }
+
+      // Pick a default sourceMode based on what content exists for this category.
+      // Priority: a working draft (with content distinct from active) → iterate the draft;
+      // otherwise an active version → refine from it; otherwise generate fresh.
+      const activeText = activeResult ? ((activeResult[categoryKey as keyof VisionData] as string) || '') : ''
+      const draftText = draftResult ? ((draftResult[categoryKey as keyof VisionData] as string) || '') : ''
+      const hasDraftCat = !!(draftText.trim() && draftText.trim() !== activeText.trim())
+      const hasActiveCat = !!activeText.trim()
+      setSourceMode(hasDraftCat ? 'iterate_draft' : hasActiveCat ? 'refine_active' : 'fresh')
     } catch (err) {
       console.error('Error loading data:', err)
       setError('Failed to load data')
@@ -336,16 +333,34 @@ export default function UnifiedCategoryPage() {
     }
   }
 
+  // Make sure a draft exists for refine/iterate paths.
+  // Returns the draft vision to use, or null if creation failed.
+  const ensureDraftForRefine = async (): Promise<VisionData | null> => {
+    if (draftVision) return draftVision
+    if (!activeVisionId) return null
+    const res = await fetch('/api/vision/draft/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visionId: activeVisionId }),
+    })
+    if (!res.ok) throw new Error('Failed to create draft')
+    const json = await res.json().catch(() => ({}))
+    const newDraft: VisionData | null = json?.draft ?? json ?? null
+    if (newDraft && newDraft.id) {
+      setDraftVision(newDraft)
+      await refreshVisions()
+      return newDraft
+    }
+    await refreshVisions()
+    return null
+  }
+
   const handleEditWithViva = async () => {
+    const mode = sourceMode
+    if (!mode) return
+
     const activeVal = activeVision ? ((activeVision[categoryKey as keyof VisionData] as string) || '') : ''
-    const useRefinePath = includeActiveVision && !!activeVal.trim()
-
-    if (useRefinePath && !draftVision) return
-    const priorManual = manualText
-    const baseForRefine =
-      useRefinePath && refineSource === 'new' ? priorManual : useRefinePath ? activeVal : ''
-
-    if (useRefinePath && !baseForRefine.trim()) return
+    const draftVal = draftVision ? ((draftVision[categoryKey as keyof VisionData] as string) || '') : ''
 
     const profileHasData = !!(profileData?.state?.trim() || profileData?.story?.trim())
     const hasGenerateSignal =
@@ -353,10 +368,13 @@ export default function UnifiedCategoryPage() {
       vivaSteeringText.trim() ||
       (includeProfile && profileHasData)
 
-    if (!useRefinePath && !hasGenerateSignal) return
+    if (mode === 'refine_active' && !activeVal.trim()) return
+    if (mode === 'iterate_draft' && !draftVal.trim() && !activeVal.trim()) return
+    if (mode === 'fresh' && !hasGenerateSignal) return
 
     compareSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
+    const priorManual = manualText
     if (priorManual.trim()) setPreviousRefinement(priorManual)
     setIsGenerating(true)
     setCurrentRefinement('')
@@ -364,7 +382,36 @@ export default function UnifiedCategoryPage() {
     setError(null)
 
     try {
-      if (useRefinePath) {
+      if (mode === 'refine_active' || mode === 'iterate_draft') {
+        const targetDraft = await ensureDraftForRefine()
+        if (!targetDraft) throw new Error('No draft available to refine into')
+
+        // Pick the baseline text to refine: live active for refine_active,
+        // current draft category text for iterate_draft.
+        const baseForRefine = mode === 'refine_active'
+          ? activeVal
+          : (draftVal || activeVal)
+
+        if (!baseForRefine.trim()) throw new Error('No baseline text to refine')
+
+        // In iterate_draft mode, surface the active vision as a REFERENCE so
+        // VIVA can keep the original voice/style intact while editing the draft.
+        // Honors the in-card "Active V{N}" toggle so the user can opt out.
+        const referenceForRefine =
+          mode === 'iterate_draft' &&
+          includeActiveReference &&
+          activeVal.trim() &&
+          activeVal.trim() !== baseForRefine.trim()
+            ? activeVal
+            : undefined
+        const activeVersionNumber = activeVision?.version_number
+          ?? visions.filter(v => !v.is_draft).find(v => v.is_active)?.version_number
+          ?? null
+        const referenceLabel =
+          mode === 'iterate_draft' && referenceForRefine
+            ? `ACTIVE VISION${activeVersionNumber != null ? ` V${activeVersionNumber}` : ''} (REFERENCE)`
+            : undefined
+
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('perspective')
@@ -383,13 +430,15 @@ export default function UnifiedCategoryPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            visionId: draftVision!.id,
+            visionId: targetDraft.id,
             category: categoryKey,
             currentVisionText: baseForRefine,
             refinement: { notes: vivaSteeringText.trim() || undefined },
             weave: { enabled: false as const },
             perspective: profile?.perspective || 'singular',
             profileContext: pc && (pc.state || pc.story) ? pc : undefined,
+            referenceText: referenceForRefine,
+            referenceLabel,
           }),
         })
 
@@ -412,13 +461,13 @@ export default function UnifiedCategoryPage() {
                 setCurrentRefinement(fullText)
                 setManualText(fullText)
               }
-              if (data.done && data.refinementId) setCurrentRefinementId(data.refinementId)
             }
           }
         }
         return
       }
 
+      // mode === 'fresh' — full generation from profile + starter + imagination.
       const stateField = `state_${categoryKey}`
       const storyField = `${categoryKey}_story`
       const currentStateText = includeProfile ? (fullProfile?.[stateField] || '') : ''
@@ -470,10 +519,7 @@ export default function UnifiedCategoryPage() {
     setGetMeStartedText('')
     setVivaSteeringText('')
     setPreviousRefinement(null)
-    setRefineSource('active')
-    setCurrentRefinementId(null)
     setManualText('')
-    setShowContextAdjust(false)
     router.push(`${pathPrefix}/life-vision/new/${key}`)
   }
 
@@ -486,11 +532,6 @@ export default function UnifiedCategoryPage() {
       const updatedDraft = await updateDraftCategory(draftVision.id, categoryKey, manualText)
       setDraftVision(updatedDraft)
       setRefinedCategories(updatedDraft.refined_categories || [])
-
-      if (currentRefinementId) {
-        await supabase.from('vision_refinements').update({ applied: true, applied_at: new Date().toISOString() }).eq('id', currentRefinementId)
-        setCurrentRefinementId(null)
-      }
 
       await refreshVisions()
       setTimeout(() => window.scrollTo({ top: scrollPosition, behavior: 'instant' as ScrollBehavior }), 0)
@@ -631,18 +672,25 @@ export default function UnifiedCategoryPage() {
     ? nonDraftVisions.find(v => v.id === draftVision.parent_id) ?? null
     : null
 
-  const useRefinePath = includeActiveVision && !!activeValue.trim()
+  const draftCategoryText = draftVision ? ((draftVision[categoryKey as keyof VisionData] as string) || '') : ''
+  const hasDraftCat = !!(draftCategoryText.trim() && draftCategoryText.trim() !== activeValue.trim())
+  const canRefineActive = !!activeValue.trim()
+  const canIterateDraft = hasDraftCat
+
   const profileHasData = !!(profileData?.state?.trim() || profileData?.story?.trim())
   const hasGenerateSignal =
     !!getMeStartedText.trim() ||
     !!vivaSteeringText.trim() ||
     (includeProfile && profileHasData)
-  const refineInputReady =
-    !useRefinePath ||
-    (refineSource === 'active' ? !!activeValue.trim() : !!manualText.trim())
+
   const canRunViva =
-    refineInputReady &&
-    (useRefinePath ? !!draftVision : hasGenerateSignal)
+    sourceMode === 'fresh'
+      ? hasGenerateSignal
+      : sourceMode === 'refine_active'
+        ? canRefineActive
+        : sourceMode === 'iterate_draft'
+          ? canIterateDraft
+          : false
 
   const getMeStartedPlaceholder = isFirstTime || isMetaCategory
     ? 'Your starter text will appear here...'
@@ -650,106 +698,23 @@ export default function UnifiedCategoryPage() {
       ? 'Tap Get Me Started for a contrast-flip starter from your profile, then edit here.'
       : 'Your starter text will appear here...'
 
-  const vivaSteeringPlaceholder = hasActiveContent
-    ? 'Tell VIVA how to refine this section...'
-    : 'Is anything missing? Add it here...'
+  const vivaSteeringPlaceholder = sourceMode === 'fresh'
+    ? 'Is anything missing? Add it here...'
+    : 'Tell VIVA how to refine this section...'
 
-  // "What VIVA uses" / "Adjust what Viva uses" — extracted so it can live both
-  // inside Step 1 (fresh create flow) and above Update Notes (refine flow).
-  const whatVivaUsesPanel = !isMetaCategory ? (
-    <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 mb-4">
-      <button
-        type="button"
-        onClick={() => setShowContextAdjust(!showContextAdjust)}
-        className="w-full flex items-center justify-between gap-3"
-      >
-        <div className="flex items-center gap-3">
-          <SlidersHorizontal className="w-4 h-4 text-primary-500 shrink-0" />
-          <span className="text-sm font-medium text-neutral-300 text-left">{isFirstTime ? 'What VIVA uses' : 'Adjust what Viva uses'}</span>
-        </div>
-        <ChevronDown
-          className={`w-4 h-4 text-neutral-400 transition-transform shrink-0 ${showContextAdjust ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {showContextAdjust && (
-        <div className="pt-3 mt-3 border-t border-neutral-700 space-y-4">
-          {!isFirstTime && (
-            <div className="flex items-center justify-between gap-4 px-0.5">
-              <span className={`text-sm ${activeValue.trim() ? 'text-neutral-200' : 'text-neutral-500'}`}>
-                Include active vision text
-              </span>
-              <div
-                role="switch"
-                aria-checked={includeActiveVision}
-                onClick={() => activeValue.trim() && setIncludeActiveVision(!includeActiveVision)}
-                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
-                  activeValue.trim() ? 'cursor-pointer' : 'opacity-40 pointer-events-none'
-                } ${includeActiveVision && activeValue.trim() ? 'bg-primary-500' : 'bg-neutral-600'}`}
-              >
-                <span
-                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
-                    includeActiveVision && activeValue.trim() ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                  }`}
-                />
-              </div>
-            </div>
-          )}
+  const actionLabel =
+    sourceMode === 'refine_active'
+      ? `Refine ${category.label} with VIVA`
+      : sourceMode === 'iterate_draft'
+        ? `Iterate ${category.label} with VIVA`
+        : `Create ${category.label} with VIVA`
 
-          {!isFirstTime && (
-            <div className="flex items-center justify-between gap-4 px-0.5">
-              <span className="text-sm text-neutral-200">Include profile context</span>
-              <div
-                role="switch"
-                aria-checked={includeProfile}
-                aria-label="Include profile context"
-                onClick={() => setIncludeProfile(!includeProfile)}
-                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 cursor-pointer ${
-                  includeProfile ? 'bg-primary-500' : 'bg-neutral-600'
-                }`}
-              >
-                <span
-                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
-                    includeProfile ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                  }`}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="rounded-xl border-2 border-[#00FFFF]/30 bg-[#00FFFF]/5 p-3.5">
-            <div className="flex flex-wrap items-center justify-between gap-2 gap-y-2 mb-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-[#00FFFF] text-left">
-                Current state from profile
-                {fullProfile && profileVersionFromRpc != null ? (
-                  <span className="text-[#00FFFF]/95 normal-case font-medium tracking-normal">
-                    {' '}
-                    · Version {profileVersionFromRpc}
-                  </span>
-                ) : null}
-              </h4>
-              {fullProfile ? (
-                <Badge variant="secondary" className="!py-0.5 !px-2.5 text-[10px] shrink-0">
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="warning" className="!py-0.5 !px-2 text-[11px] shrink-0">
-                  No profile
-                </Badge>
-              )}
-            </div>
-
-            <p className="text-xs text-neutral-200 leading-relaxed whitespace-pre-wrap line-clamp-6 border-t border-[#00FFFF]/15 pt-3">
-              {profileData?.state?.trim()
-                ? profileData.state
-                : fullProfile
-                  ? `No current state recorded for ${category.label.toLowerCase()} yet.`
-                  : 'Complete your profile to see current state here.'}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  ) : null
+  const generatingLabel =
+    sourceMode === 'refine_active'
+      ? 'Refining with VIVA...'
+      : sourceMode === 'iterate_draft'
+        ? 'Iterating with VIVA...'
+        : 'Generating with VIVA...'
 
   return (
     <Container size="xl">
@@ -789,6 +754,12 @@ export default function UnifiedCategoryPage() {
           {showDraftBanner && draftVision && refinedCategories.length > 0 && (
             <div className="mb-6 rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-4">
               <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex items-center gap-2">
+                  <PenLine className="w-4 h-4 text-accent-500" />
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-accent-500">
+                    Draft In Progress
+                  </h3>
+                </div>
                 <p className="text-sm text-neutral-300">
                   You have a draft in progress
                   {draftParentVersion && (
@@ -855,131 +826,255 @@ export default function UnifiedCategoryPage() {
             <div className="h-px flex-1 bg-neutral-800" />
           </div>
 
-          {/* Edit Mode Toggle — only in fresh-create flow.
-              In refine mode (active content for this category) the page
-              collapses to "VIVA instructions box + Update button + Compare",
-              and manual editing happens directly in the Compare panel. */}
-          {draftVision && !hasActiveContent && (
-            <div className="mb-6 flex justify-center">
-              <div className="inline-flex rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-1">
-                <button
-                  onClick={() => setEditMode('viva')}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    editMode === 'viva'
-                      ? 'bg-zinc-900/85 text-white font-semibold'
-                      : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                  }`}
-                >
-                  <Wand2 className="w-3.5 h-3.5" />
-                  Edit with VIVA
-                </button>
-                <button
-                  onClick={() => setEditMode('manual')}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    editMode === 'manual'
-                      ? 'bg-zinc-900/85 text-white font-semibold'
-                      : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                  }`}
-                >
-                  <PenLine className="w-3.5 h-3.5" />
-                  Edit Manually
-                </button>
+          {/* Source Mode Cards — pick the high-level intent first.
+              Cards escalate context: fresh = profile only,
+              refine_active = profile + active, iterate_draft = profile + active + draft.
+              Pills inside the SELECTED card act as inline toggles for what
+              VIVA actually pulls in. Baseline pills (the source the mode
+              refines from) are locked on. */}
+          {sourceMode && (
+            <div className="mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {(() => {
+                  const profileLabel = `Profile${profileVersionFromRpc != null ? ` v${profileVersionFromRpc}` : ''}`
+                  const activeLabel = `Vision V${activeVisionVersion}`
+                  const draftLabel = `Draft V${nonDraftVisions.length + 1}`
+                  type Tag = {
+                    key: 'Profile' | 'Active' | 'Draft'
+                    label: string
+                    showActiveBadge?: boolean
+                    on: boolean
+                    locked: boolean
+                    onToggle?: () => void
+                  }
+                  const cards: Array<{
+                    key: SourceMode
+                    icon: typeof Wand2
+                    title: string
+                    description: string
+                    disabled: boolean
+                    disabledReason: string
+                    tags: Tag[]
+                  }> = [
+                    {
+                      key: 'fresh',
+                      icon: Wand2,
+                      title: 'Generate Fresh',
+                      description: 'Your notes below are the primary signal. VIVA writes a new draft, enhanced by your profile.',
+                      disabled: false,
+                      disabledReason: '',
+                      tags: [
+                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
+                      ],
+                    },
+                    {
+                      key: 'refine_active',
+                      icon: RefreshCw,
+                      title: 'Refine Active',
+                      description: 'Your notes below are the primary signal. VIVA reshapes your active vision, enhanced by your profile.',
+                      disabled: !canRefineActive,
+                      disabledReason: 'No active vision text for this category yet.',
+                      tags: [
+                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
+                        { key: 'Active', label: activeLabel, showActiveBadge: true, on: true, locked: true },
+                      ],
+                    },
+                    {
+                      key: 'iterate_draft',
+                      icon: PenLine,
+                      title: 'Iterate on Draft',
+                      description: 'Your notes below are the primary signal. VIVA iterates your draft, with active and profile for context.',
+                      disabled: !canIterateDraft,
+                      disabledReason: 'No draft yet. Generate or refine first.',
+                      tags: [
+                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
+                        { key: 'Active', label: activeLabel, showActiveBadge: true, on: includeActiveReference, locked: false, onToggle: () => setIncludeActiveReference(p => !p) },
+                        { key: 'Draft', label: draftLabel, on: true, locked: true },
+                      ],
+                    },
+                  ]
+                  const tagOnStyles: Record<Tag['key'], string> = {
+                    Profile: 'border-[#00FFFF]/40 bg-[#00FFFF]/10 text-[#00FFFF]',
+                    Active: 'border-primary-500/40 bg-primary-500/10 text-primary-500',
+                    Draft: 'border-accent-500/40 bg-accent-500/10 text-accent-500',
+                  }
+                  const tagOffStyles = 'border-neutral-700 bg-neutral-900/60 text-neutral-500'
+
+                  return cards.map(card => {
+                    const isSelected = sourceMode === card.key
+                    const CardIcon = card.icon
+                    const interactive = isSelected && !card.disabled
+                    return (
+                      <div
+                        key={card.key}
+                        role="button"
+                        tabIndex={card.disabled ? -1 : 0}
+                        aria-pressed={isSelected}
+                        onClick={() => !card.disabled && setSourceMode(card.key)}
+                        onKeyDown={(e) => {
+                          if (card.disabled) return
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setSourceMode(card.key)
+                          }
+                        }}
+                        title={card.disabled ? card.disabledReason : ''}
+                        className={`group relative text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
+                          card.disabled
+                            ? 'border-neutral-800 bg-neutral-900/40 opacity-50 cursor-not-allowed'
+                            : isSelected
+                              ? 'border-primary-500 bg-primary-500/5 shadow-[0_0_0_1px_rgba(57,255,20,0.15)] -translate-y-0.5'
+                              : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                            isSelected ? 'bg-primary-500 text-black' : 'bg-neutral-800 text-neutral-300 group-hover:text-white'
+                          }`}>
+                            <CardIcon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-200'}`}>
+                                {card.title}
+                              </h3>
+                              {isSelected && (
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-500">Selected</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-neutral-400 leading-relaxed mt-1">
+                              {card.disabled ? card.disabledReason : card.description}
+                            </p>
+                            {!card.disabled && (
+                              <>
+                              <div className="flex flex-wrap items-center gap-1 mt-2">
+                                <span className="text-[10px] uppercase tracking-wide text-neutral-500 mr-0.5">Uses:</span>
+                                {card.tags.map(tag => {
+                                  const baseClasses = `inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors ${
+                                    tag.on ? tagOnStyles[tag.key] : tagOffStyles
+                                  }`
+                                  const content = (
+                                    <>
+                                      {tag.label}
+                                      {tag.showActiveBadge && tag.on && (
+                                        <span className="rounded-full bg-primary-500 text-black px-1 text-[9px] font-bold uppercase tracking-wide">Active</span>
+                                      )}
+                                      {!tag.on && <span className="text-[9px] uppercase">off</span>}
+                                    </>
+                                  )
+                                  if (interactive && !tag.locked && tag.onToggle) {
+                                    return (
+                                      <button
+                                        key={tag.key}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          tag.onToggle?.()
+                                        }}
+                                        className={`${baseClasses} cursor-pointer hover:opacity-80`}
+                                        title={`Toggle ${tag.key} context`}
+                                      >
+                                        {content}
+                                      </button>
+                                    )
+                                  }
+                                  return (
+                                    <span
+                                      key={tag.key}
+                                      className={`${baseClasses} ${interactive && tag.locked ? 'opacity-90' : ''}`}
+                                      title={interactive && tag.locked ? `${tag.key} is required for this mode` : ''}
+                                    >
+                                      {content}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                              {interactive && (
+                                <p className="mt-1 text-[10px] italic text-neutral-500">
+                                  Click to add or remove sources
+                                </p>
+                              )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
               </div>
             </div>
           )}
 
-          {/* VIVA inputs + overlay — hidden in Edit Manually (Compare handles editing) */}
-          {(editMode === 'viva' || !hasActiveContent) && (
-          <>
+          {/* Inputs — fresh mode shows starter + imagination, refine modes show notes only. */}
           <section>
-
             <div>
-              {/* Step 1 — Starter Text. Hidden in refine mode, where the user
-                  already has active content for this category and is simply
-                  giving VIVA instructions to update it. */}
-              {!hasActiveContent && (
-              <>
-              <div>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">1</span>
-                  <h2 className="text-lg font-semibold text-white">
-                    Starter Text
-                  </h2>
-                </div>
-                <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
-                  {isMetaCategory
-                    ? `Tap Get Me Started and VIVA will generate the first draft of the ${categoryKey} section of your Life Vision.`
-                    : `Tap Get Me Started and VIVA will generate the first draft of the ${category?.label.toLowerCase() || categoryKey} section of your Life Vision.`}
-                </p>
+              {sourceMode === 'fresh' && (
+                <>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white text-center mb-2">
+                      Starter Text
+                    </h2>
+                    <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
+                      {isMetaCategory
+                        ? `Tap Get Me Started and VIVA will generate the first draft of the ${categoryKey} section of your Life Vision.`
+                        : `Tap Get Me Started and VIVA will generate the first draft of the ${category?.label.toLowerCase() || categoryKey} section of your Life Vision.`}
+                    </p>
 
-                {/* What VIVA uses — extracted to whatVivaUsesPanel above so it can
-                    also render in refine mode. */}
-                {whatVivaUsesPanel}
+                    <div className="relative">
+                      <VIVALoadingOverlay
+                        isVisible={isGeneratingStarter && !getMeStartedText.trim()}
+                        messages={isMetaCategory
+                          ? ['Personalizing your vision text...', 'Weaving in your life details...', 'Building your starting point...']
+                          : [`VIVA is reading your ${category.label.toLowerCase()} profile...`, 'Activating your vision language...', 'Building your starting point...']}
+                        cycleDuration={3000}
+                        showProgressBar={false}
+                        size="sm"
+                        className="rounded-xl"
+                      />
+                      <RecordingTextarea
+                        value={getMeStartedText}
+                        onChange={setGetMeStartedText}
+                        placeholder={getMeStartedPlaceholder}
+                        className="min-h-[120px] w-full !bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500"
+                        rows={5}
+                        storageFolder="lifeVision"
+                        recordingPurpose="quick"
+                        category={visionToRecordingKey(recordingKeyForVisionCategory(categoryKey as VisionCategoryKey))}
+                        instanceId="get-me-started"
+                        hideClear
+                      />
+                    </div>
+                    <div className="flex justify-center mt-3">
+                      <Button
+                        variant="accent"
+                        size="sm"
+                        onClick={handleGetMeStarted}
+                        disabled={isGeneratingStarter}
+                      >
+                        {isGeneratingStarter ? (
+                          <><Spinner size="sm" className="mr-2" />Generating...</>
+                        ) : getMeStartedText.trim().length >= 50 ? (
+                          <><RefreshCw className="w-4 h-4 mr-2" />Regenerate</>
+                        ) : (
+                          <><Wand2 className="w-4 h-4 mr-2" />Get Me Started</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
 
-                <div className="relative">
-                  <VIVALoadingOverlay
-                    isVisible={isGeneratingStarter && !getMeStartedText.trim()}
-                    messages={isMetaCategory
-                      ? ['Personalizing your vision text...', 'Weaving in your life details...', 'Building your starting point...']
-                      : [`VIVA is reading your ${category.label.toLowerCase()} profile...`, 'Activating your vision language...', 'Building your starting point...']}
-                    cycleDuration={3000}
-                    showProgressBar={false}
-                    size="sm"
-                    className="rounded-xl"
-                  />
-                  <RecordingTextarea
-                    value={getMeStartedText}
-                    onChange={setGetMeStartedText}
-                    placeholder={getMeStartedPlaceholder}
-                    className="min-h-[120px] w-full !bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500"
-                    rows={5}
-                    storageFolder="lifeVision"
-                    recordingPurpose="quick"
-                    category={visionToRecordingKey(recordingKeyForVisionCategory(categoryKey as VisionCategoryKey))}
-                    instanceId="get-me-started"
-                    hideClear
-                  />
-                </div>
-                <div className="flex justify-center mt-3">
-                  <Button
-                    variant="accent"
-                    size="sm"
-                    onClick={handleGetMeStarted}
-                    disabled={isGeneratingStarter}
-                  >
-                    {isGeneratingStarter ? (
-                      <><Spinner size="sm" className="mr-2" />Generating...</>
-                    ) : getMeStartedText.trim().length >= 50 ? (
-                      <><RefreshCw className="w-4 h-4 mr-2" />Regenerate</>
-                    ) : (
-                      <><Wand2 className="w-4 h-4 mr-2" />Get Me Started</>
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="py-6"><div className="h-px bg-neutral-800" /></div>
-              </>
+                  <div className="py-6"><div className="h-px bg-neutral-800" /></div>
+                </>
               )}
 
-              {/* In refine mode, surface the "Adjust what Viva uses" controls
-                  above the Update Notes textarea (Step 1 is hidden so they'd
-                  otherwise disappear). */}
-              {hasActiveContent && whatVivaUsesPanel}
-
               <div>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  {!hasActiveContent && (
-                    <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">2</span>
-                  )}
-                  <h2 className="text-lg font-semibold text-white">
-                    {hasActiveContent ? 'Update Notes' : 'Unleash Your Imagination'}
-                  </h2>
-                </div>
+                <h2 className="text-lg font-semibold text-white text-center mb-2">
+                  {sourceMode === 'fresh' ? 'Unleash Your Imagination' : 'Update Notes'}
+                </h2>
                 <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
-                  {hasActiveContent
-                    ? `Tell VIVA how to refine this section. (Optional — VIVA can also refine without notes.)`
-                    : `Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)`}
+                  {sourceMode === 'fresh'
+                    ? 'Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)'
+                    : 'Tell VIVA how to refine this section. (Optional — VIVA can refine without notes too.)'}
                 </p>
 
                 {/* Inspiration Questions (collapsible) — only for life categories */}
@@ -1017,160 +1112,72 @@ export default function UnifiedCategoryPage() {
                 />
               </div>
 
-              <div className="py-6"><div className="h-px bg-neutral-800" /></div>
-
-              {hasActiveContent && includeActiveVision && !!activeValue.trim() && (
-                <div className="mt-2 flex flex-col items-center gap-2 border-t border-neutral-800/80 pt-6">
-                  {!manualText.trim() ? (
-                    <p className="text-xs text-center text-neutral-600 max-w-md leading-relaxed select-none">
-                      Refine from Active or your draft — this unlocks after Viva writes your draft in Compare below.
-                    </p>
+              {/* Action button — single CTA. The streamed result lands directly
+                  in the Compare panel below, so no duplicate output box here. */}
+              <div className="flex justify-center gap-3 pt-6">
+                <Button
+                  onClick={handleEditWithViva}
+                  disabled={isGenerating || !canRunViva}
+                  variant="accent"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  {isGenerating ? (
+                    <><Spinner variant="secondary" size="sm" />{generatingLabel}</>
+                  ) : manualText.trim().length >= 50 ? (
+                    <><RefreshCw className="w-4 h-4 mr-2" />Regenerate</>
                   ) : (
-                    <>
-                      <span className="text-[11px] uppercase tracking-[0.2em] text-neutral-400">Refine from</span>
-                      <div className="inline-flex rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-1">
-                        <button
-                          type="button"
-                          onClick={() => setRefineSource('active')}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                            refineSource === 'active'
-                              ? 'bg-zinc-900/85 text-white font-semibold'
-                              : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                          }`}
-                        >
-                          Active version
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRefineSource('new')}
-                          disabled={!manualText.trim()}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                            refineSource === 'new'
-                              ? 'bg-zinc-900/85 text-white font-semibold'
-                              : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-40 disabled:pointer-events-none'
-                          }`}
-                        >
-                          Draft below
-                        </button>
-                      </div>
-                    </>
+                    <><Wand2 className="w-5 h-5" />{actionLabel}</>
                   )}
-                </div>
-              )}
+                </Button>
+                {!isGenerating && manualText.trim() && !draftVision && (
+                  (() => {
+                    const completedAfterSave = new Set([...refinedCategories, categoryKey])
+                    const allComplete = allCategories.every(c => completedAfterSave.has(c.key))
 
-              <div className="flex flex-col items-center gap-2 pt-2">
-                {/* In refine mode the section is just "Update Notes box → button → Compare",
-                    so we drop the numbered Step 3 heading and description for a cleaner UI. */}
-                {!hasActiveContent && (
-                  <>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <span className="w-7 h-7 rounded-full bg-accent-500/15 text-accent-500 text-sm font-semibold flex items-center justify-center shrink-0">3</span>
-                      <h2 className="text-lg font-semibold text-white">
-                        {useRefinePath ? `Update ${category.label}` : `Create ${category.label}`}
-                      </h2>
-                    </div>
-                    <p className="text-center text-sm text-neutral-400 mb-2 leading-relaxed">
-                      {useRefinePath
-                        ? `VIVA will refine your active vision text using your inputs above.`
-                        : `VIVA will combine your starter text, imagination, and profile to create the ${category.label.toLowerCase()} section of your Life Vision.`}
-                    </p>
-                  </>
-                )}
-
-                {/* Output textbox — streams generation result */}
-                {(isGenerating || manualText.trim()) && (
-                  <div className="w-full mb-3">
-                    <div className="relative">
-                      <VIVALoadingOverlay
-                        isVisible={isGenerating && !manualText.trim()}
-                        messages={[
-                          `VIVA is crafting your ${category.label.toLowerCase()} vision...`,
-                          'Weaving your intentions into words...',
-                          'Channeling your ideal future...',
-                        ]}
-                        cycleDuration={3500}
-                        showProgressBar={false}
-                        size="sm"
-                        className="rounded-xl"
-                      />
-                      <AutoResizeTextarea
-                        value={manualText}
-                        onChange={setManualText}
-                        className="!bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
-                        minHeight={200}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-center gap-3">
-                  <Button
-                    onClick={handleEditWithViva}
-                    disabled={isGenerating || !canRunViva}
-                    variant="accent"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    {isGenerating ? (
-                      <><Spinner variant="secondary" size="sm" />{useRefinePath ? 'Updating with VIVA...' : 'Generating with VIVA...'}</>
-                    ) : manualText.trim().length >= 50 ? (
-                      <><RefreshCw className="w-4 h-4 mr-2" />Regenerate</>
-                    ) : (
-                      <><Wand2 className="w-5 h-5" />{useRefinePath ? `Update ${category.label} with VIVA` : `Create ${category.label} with VIVA`}</>
-                    )}
-                  </Button>
-                  {!isGenerating && manualText.trim() && !draftVision && (
-                    (() => {
-                      const completedAfterSave = new Set([...refinedCategories, categoryKey])
-                      const allComplete = allCategories.every(c => completedAfterSave.has(c.key))
-
-                      if (allComplete) {
-                        return (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => {
-                              saveCategoryState()
-                              router.push(`${pathPrefix}/life-vision/new/assembly`)
-                            }}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />Save & Finish
-                          </Button>
-                        )
-                      }
-
-                      const nextIncomplete = allCategories.find(c =>
-                        c.key !== categoryKey && !refinedCategories.includes(c.key)
-                      )
+                    if (allComplete) {
                       return (
                         <Button
                           variant="primary"
                           size="sm"
                           onClick={() => {
                             saveCategoryState()
-                            if (nextIncomplete) {
-                              handleCategoryChange(nextIncomplete.key)
-                            } else {
-                              router.push(`${pathPrefix}/life-vision/new`)
-                            }
+                            router.push(`${pathPrefix}/life-vision/new/assembly`)
                           }}
                         >
-                          Save & Continue
-                          <ChevronRight className="w-4 h-4 ml-1" />
+                          <CheckCircle className="w-4 h-4 mr-2" />Save & Finish
                         </Button>
                       )
-                    })()
-                  )}
-                </div>
+                    }
+
+                    const nextIncomplete = allCategories.find(c =>
+                      c.key !== categoryKey && !refinedCategories.includes(c.key)
+                    )
+                    return (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          saveCategoryState()
+                          if (nextIncomplete) {
+                            handleCategoryChange(nextIncomplete.key)
+                          } else {
+                            router.push(`${pathPrefix}/life-vision/new`)
+                          }
+                        }}
+                      >
+                        Save & Continue
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    )
+                  })()
+                )}
               </div>
             </div>
           </section>
 
-          </>
-          )}
-
           {draftVision && (
-            <section ref={compareSectionRef} className="mb-8">
+            <section ref={compareSectionRef} className="mt-12 pt-8 border-t border-neutral-800 mb-8">
               {hasActiveContent ? (
                 <>
                   <div className="mb-6 flex flex-col items-center gap-3">
