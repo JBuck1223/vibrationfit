@@ -599,6 +599,22 @@ export default function AudioQueueBatchPage({
               </div>
             </div>
 
+            {batch.audio_set_ids.length > 0 &&
+              ['completed', 'partial_success'].includes(batch.status) && (
+                <div className="flex justify-center">
+                  <Button variant="primary" asChild>
+                    <Link href={
+                      isStory
+                        ? `/audio?listen=stories&storyId=${batch.content_id || ''}`
+                        : `/audio?listen=life-vision&audioSetId=${batch.audio_set_ids[0]}`
+                    }>
+                      <Play className="w-4 h-4 mr-2" />
+                      Listen to Audio
+                    </Link>
+                  </Button>
+                </div>
+              )}
+
             <div className="border-t border-[#1F1F1F] pt-4">
               {batch.metadata?.custom_mix ? (
                 <>
