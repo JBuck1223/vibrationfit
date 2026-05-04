@@ -127,13 +127,16 @@ export async function POST(request: NextRequest) {
     
     // Build descriptive audio set name
     const voiceNames: Record<string, string> = {
-      'alloy': 'Fresh and Modern (Male)',
-      'echo': 'Warm and Inviting (Male)',
-      'fable': 'Smooth and Expressive (Male)',
-      'onyx': 'Deep and Authoritative (Male)',
-      'nova': 'Fresh and Modern (Female)',
-      'shimmer': 'Warm and Inviting (Female)',
-      'user_voice': 'Your Voice (Personal Recording)'
+      'alloy': 'Alloy',
+      'echo': 'Echo',
+      'fable': 'Fable',
+      'onyx': 'Onyx',
+      'nova': 'Nova',
+      'shimmer': 'Shimmer',
+      'ash': 'Ash',
+      'coral': 'Coral',
+      'sage': 'Sage',
+      'user_voice': 'Personal Recording'
     }
     
     let audioSetName = voiceNames[voice] || voice

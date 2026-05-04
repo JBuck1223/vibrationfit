@@ -593,7 +593,7 @@ export async function generateAudioTracks(params: {
         audio_url: existingElsewhere.audio_url,
         status: 'completed',
         duration_seconds: existingElsewhere.duration_seconds,
-        mix_status: 'pending',
+        mix_status: variant && variant !== 'standard' ? 'pending' : 'not_required',
         content_type: contentType,
       }
       if (!isStory) copyInsert.vision_id = entityId
