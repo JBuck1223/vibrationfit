@@ -90,12 +90,13 @@ export async function POST(request: NextRequest) {
     // Track token usage
     if (result.usage) {
       await trackTokenUsage({
-        userId: user.id,
-        toolName: 'vibrational_proofread',
-        modelName: VISION_MODEL,
-        inputTokens: result.usage.promptTokens,
-        outputTokens: result.usage.completionTokens,
-        supabase,
+        user_id: user.id,
+        action_type: 'vibrational_analysis',
+        model_used: VISION_MODEL,
+        tokens_used: result.usage.totalTokens || 0,
+        input_tokens: result.usage.inputTokens || 0,
+        output_tokens: result.usage.outputTokens || 0,
+        success: true,
       }).catch(err => console.error('[Proofread] Token tracking error:', err))
     }
 
