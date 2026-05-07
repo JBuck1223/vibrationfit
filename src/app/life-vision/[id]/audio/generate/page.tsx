@@ -155,14 +155,20 @@ export default function AudioGeneratePage({ params }: { params: Promise<{ id: st
   async function loadSetTracks(setId: string) {
     setLoadingTracks(true)
     const supabase = createClient()
-    
-    const { data: tracks } = await supabase
+
+    const { data: audioSet } = await supabase.from('audio_sets').select('metadata').eq('id', setId).single()
+    const isCombinedOnly = (audioSet?.metadata as any)?.output_format === 'combined'
+
+    let tracksQuery = supabase
       .from('audio_tracks')
       .select('*')
       .eq('audio_set_id', setId)
       .eq('status', 'completed')
       .not('audio_url', 'is', null)
-      .order('section_key')
+    if (isCombinedOnly) {
+      tracksQuery = tracksQuery.eq('section_key', 'full')
+    }
+    const { data: tracks } = await tracksQuery.order('section_key')
     
     if (tracks) {
       // Map database fields to PlaylistPlayer expected format

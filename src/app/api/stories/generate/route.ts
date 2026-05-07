@@ -23,6 +23,12 @@ import {
   buildStoryFlipPrompt,
   type CategoryContent,
 } from '@/lib/viva/prompts/focus-story-prompt'
+import {
+  IDENTITY_STATEMENT_SYSTEM_PROMPT,
+  buildIdentityFromCategoriesPrompt,
+  buildCustomIdentityPrompt,
+  buildFlipIdentityPrompt,
+} from '@/lib/viva/prompts/identity-statement-prompt'
 import type { StoryEntityType } from '@/lib/stories/types'
 
 export const maxDuration = 120
@@ -36,7 +42,7 @@ interface GenerateBody {
   focusNotes?: string
   selectedCategories?: string[]
   categoryData?: Record<string, CategoryContent>
-  customMode?: 'tell' | 'flip'
+  customMode?: 'tell' | 'flip' | 'identity' | 'identity_flip'
 }
 
 async function buildPromptForEntity(
@@ -44,24 +50,29 @@ async function buildPromptForEntity(
   userId: string,
   body: GenerateBody,
   perspective: 'singular' | 'plural'
-): Promise<{ prompt: string; entityId: string; title: string | null; sourceInput: string }> {
+): Promise<{ prompt: string; systemPrompt: string; entityId: string; title: string | null; sourceInput: string }> {
   const { entityType, entityId, focusNotes } = body
+  const isIdentityMode = body.customMode === 'identity' || body.customMode === 'identity_flip'
 
   switch (entityType) {
     case 'life_vision': {
       if (!entityId || !body.selectedCategories?.length || !body.categoryData) {
         throw new Error('life_vision requires entityId, selectedCategories, and categoryData')
       }
-      const prompt = buildFocusStoryFromCategoriesPrompt(body.categoryData, perspective)
+      const prompt = isIdentityMode
+        ? buildIdentityFromCategoriesPrompt(body.categoryData, perspective)
+        : buildFocusStoryFromCategoriesPrompt(body.categoryData, perspective)
+      const systemPrompt = isIdentityMode ? IDENTITY_STATEMENT_SYSTEM_PROMPT : FOCUS_STORY_SYSTEM_PROMPT
       const categoryLabels = body.selectedCategories.map(
         c => c.charAt(0).toUpperCase() + c.slice(1)
       )
-      const generatedTitle = `Life Vision Focus – ${categoryLabels.join(' | ')}`
+      const prefix = isIdentityMode ? 'Identity Statement' : 'Life Vision Focus'
+      const generatedTitle = `${prefix} – ${categoryLabels.join(' | ')}`
       const sourceInput = Object.entries(body.categoryData)
         .filter(([_, v]) => v.visionText.trim())
         .map(([k, v]) => `[${k}] ${v.visionText}${v.focusNotes ? `\nFocus: ${v.focusNotes}` : ''}`)
         .join('\n\n')
-      return { prompt, entityId, title: generatedTitle, sourceInput }
+      return { prompt, systemPrompt, entityId, title: generatedTitle, sourceInput }
     }
 
     case 'vision_board_item': {
@@ -80,7 +91,7 @@ async function buildPromptForEntity(
         perspective
       )
       const sourceInput = [item.name, item.description, focusNotes].filter(Boolean).join('\n\n')
-      return { prompt, entityId, title: item.name, sourceInput }
+      return { prompt, systemPrompt: FOCUS_STORY_SYSTEM_PROMPT, entityId, title: item.name, sourceInput }
     }
 
     case 'journal_entry': {
@@ -104,7 +115,7 @@ async function buildPromptForEntity(
         perspective
       )
       const sourceInput = [entry.title, entry.content, focusNotes].filter(Boolean).join('\n\n')
-      return { prompt, entityId, title: entry.title || 'Journal Story', sourceInput }
+      return { prompt, systemPrompt: FOCUS_STORY_SYSTEM_PROMPT, entityId, title: entry.title || 'Journal Story', sourceInput }
     }
 
     case 'custom': {
@@ -112,13 +123,30 @@ async function buildPromptForEntity(
       const customId = entityId || crypto.randomUUID()
 
       let prompt: string
-      if (body.customMode === 'flip') {
-        prompt = buildStoryFlipPrompt(body.content, body.title, perspective, body.categoryData)
-      } else {
-        prompt = buildCustomStoryPrompt(body.content, body.title, perspective, body.categoryData)
+      let systemPrompt: string = FOCUS_STORY_SYSTEM_PROMPT
+      let defaultTitle: string = 'Custom Story'
+
+      switch (body.customMode) {
+        case 'flip':
+          prompt = buildStoryFlipPrompt(body.content, body.title, perspective, body.categoryData)
+          defaultTitle = 'Story Flip'
+          break
+        case 'identity':
+          prompt = buildCustomIdentityPrompt(body.content, body.title, perspective, body.categoryData)
+          systemPrompt = IDENTITY_STATEMENT_SYSTEM_PROMPT
+          defaultTitle = 'Identity Statement'
+          break
+        case 'identity_flip':
+          prompt = buildFlipIdentityPrompt(body.content, body.title, perspective, body.categoryData)
+          systemPrompt = IDENTITY_STATEMENT_SYSTEM_PROMPT
+          defaultTitle = 'Identity Flip'
+          break
+        default:
+          prompt = buildCustomStoryPrompt(body.content, body.title, perspective, body.categoryData)
+          break
       }
 
-      return { prompt, entityId: customId, title: body.title || (body.customMode === 'flip' ? 'Story Flip' : 'Custom Story'), sourceInput: body.content }
+      return { prompt, systemPrompt, entityId: customId, title: body.title || defaultTitle, sourceInput: body.content }
     }
 
     default:
@@ -161,7 +189,7 @@ export async function POST(request: NextRequest) {
 
     const perspective = (profile?.perspective as 'singular' | 'plural') || 'singular'
 
-    const { prompt, entityId, title, sourceInput } = await buildPromptForEntity(supabase, user.id, body, perspective)
+    const { prompt, systemPrompt, entityId, title, sourceInput } = await buildPromptForEntity(supabase, user.id, body, perspective)
 
     let toolConfig
     try {
@@ -185,7 +213,7 @@ export async function POST(request: NextRequest) {
 
     const result = streamText({
       model: gateway(VISION_MODEL),
-      system: FOCUS_STORY_SYSTEM_PROMPT,
+      system: systemPrompt,
       prompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.8) : undefined,
 
