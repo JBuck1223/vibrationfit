@@ -91,5 +91,13 @@ export {
   type JournalStoryInput,
 } from './focus-story-prompt'
 
+// Identity Statements (nervous system encoding — "I am" declarations)
+export {
+  IDENTITY_STATEMENT_SYSTEM_PROMPT,
+  buildIdentityFromCategoriesPrompt,
+  buildCustomIdentityPrompt,
+  buildFlipIdentityPrompt,
+} from './identity-statement-prompt'
+
 // Shared Components
 export { VIVA_PERSONA, VIVA_PERSONA_WITH_GOLDEN_RULES } from './shared/viva-persona'

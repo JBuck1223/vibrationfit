@@ -12,6 +12,8 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { listRecordings, getRecording } from '@/lib/video/daily'
 import { optimizeRecording } from '@/lib/video/recording-optimize'
+import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
+import { transcribeSession } from '@/lib/video/transcribe-session'
 
 const CDN_URL = 'https://media.vibrationfit.com'
 
@@ -46,7 +48,7 @@ export async function syncRecordings(opts?: {
 
   let query = supabase
     .from('video_sessions')
-    .select('id, daily_room_name, daily_recording_id, recording_status, recording_url, title')
+    .select('id, daily_room_name, daily_recording_id, recording_status, recording_url, title, session_type')
     .not('daily_room_name', 'is', null)
 
   if (opts?.sessionId) {
@@ -185,6 +187,18 @@ export async function syncRecordings(opts?: {
   for (const r of synced) {
     optimizeRecording(r.session_id).catch((err) =>
       console.error(`[recording-sync] optimize trigger failed for ${r.session_id}:`, err)
+    )
+  }
+
+  // Auto-transcribe newly synced Alignment Gym sessions.
+  // Fire-and-forget: the auto-transcribe cron is a safety net if this fails.
+  const syncedSessions = (pendingSessions || []).filter((s) =>
+    synced.some((r) => r.session_id === s.id) &&
+    isAlignmentGymDirectorySession({ session_type: s.session_type, title: s.title })
+  )
+  for (const s of syncedSessions) {
+    transcribeSession(s.id).catch((err) =>
+      console.error(`[recording-sync] auto-transcribe failed for ${s.id}:`, err)
     )
   }
 

@@ -146,6 +146,7 @@ export default function AudioListenPage() {
   const {
     visionId, visionLoading,
     audioSets, audioSetsLoading, refreshAudioSets,
+    switchVision, allVisions,
     listenContentType: contentType,
     listenStoryFilter,
     storiesWithAudio: stories, storiesWithAudioLoading: storiesLoading,
@@ -205,18 +206,39 @@ export default function AudioListenPage() {
 
   useEffect(() => { loadTotalPlays() }, [])
 
+  // Track whether the deep link has already been consumed so version switches don't re-select it.
+  const deepLinkConsumed = useRef(false)
+
   // Deep link ?audioSetId= — refresh catalog then load this set (fixes stale list right after generation).
   useEffect(() => {
-    if (!urlAudioSetId) return
+    if (!urlAudioSetId || !visionId || deepLinkConsumed.current) return
 
     let cancelled = false
     ;(async () => {
+      const supabase = createClient()
+      const { data: setRow } = await supabase
+        .from('audio_sets')
+        .select('vision_id')
+        .eq('id', urlAudioSetId)
+        .maybeSingle()
+
+      if (cancelled) return
+
+      if (setRow?.vision_id && setRow.vision_id !== visionId) {
+        const targetVision = allVisions.find(v => v.id === setRow.vision_id)
+        if (targetVision) {
+          switchVision(setRow.vision_id)
+          return
+        }
+      }
+
       await refreshAudioSets()
       if (cancelled) return
+      deepLinkConsumed.current = true
       setSelectedAudioSetId(urlAudioSetId)
       await loadAudioTracks(urlAudioSetId)
       if (cancelled) return
-      if (visionId) localStorage.setItem(`audioSetSelection_${visionId}`, urlAudioSetId)
+      localStorage.setItem(`audioSetSelection_${visionId}`, urlAudioSetId)
     })()
 
     return () => {
@@ -225,14 +247,15 @@ export default function AudioListenPage() {
   }, [urlAudioSetId, visionId])
 
   useEffect(() => {
-    if (urlAudioSetId) return
+    if (urlAudioSetId && !deepLinkConsumed.current) return
+    if (deepLinkConsumed.current && selectedAudioSetId) return
 
     if (audioSetsLoading || audioSets.length === 0) return
     const saved = visionId ? localStorage.getItem(`audioSetSelection_${visionId}`) : null
     let target = saved ? audioSets.find(s => s.id === saved && s.isReady) : null
     if (!target) target = audioSets.find(s => s.isReady) || null
     if (target) { setSelectedAudioSetId(target.id); loadAudioTracks(target.id) }
-  }, [audioSets, audioSetsLoading, visionId, urlAudioSetId])
+  }, [audioSets, audioSetsLoading, visionId])
 
   useEffect(() => { setIsEditingAudioSetName(false) }, [selectedAudioSetId])
 
@@ -370,10 +393,16 @@ export default function AudioListenPage() {
   async function loadAudioTracks(audioSetId: string) {
     setLoadingTracks(true)
     const supabase = createClient()
-    const { data: audioSet } = await supabase.from('audio_sets').select('variant').eq('id', audioSetId).single()
-    const { data: tracks } = await supabase
+    const { data: audioSet } = await supabase.from('audio_sets').select('variant, metadata').eq('id', audioSetId).single()
+    const isCombinedOnly = (audioSet?.metadata as any)?.output_format === 'combined'
+
+    let tracksQuery = supabase
       .from('audio_tracks').select('*').eq('audio_set_id', audioSetId).eq('status', 'completed')
-      .not('audio_url', 'is', null).order('section_key')
+      .not('audio_url', 'is', null)
+    if (isCombinedOnly) {
+      tracksQuery = tracksQuery.eq('section_key', 'full')
+    }
+    const { data: tracks } = await tracksQuery.order('section_key')
 
     const sectionMap = new Map<string, string>([
       ['forward', 'Forward'], ['fun', 'Fun'], ['health', 'Health'], ['travel', 'Travel'],
@@ -439,7 +468,7 @@ export default function AudioListenPage() {
     if (set.variant === 'personal') return 'Personal Recording'
     let vv = 100, bv = 0
     if (set.mixRatio) { const m = set.mixRatio.match(/(\d+)%\s*\/\s*(\d+)%/); if (m) { vv = parseInt(m[1]); bv = parseInt(m[2]) } }
-    if (bv === 0 || set.variant === 'standard') return 'Voice Only'
+    if (bv === 0 || set.variant === 'standard') return `Voice Only · ${getVoiceDisplayName(set.voice_id)}`
     if (vv <= 30) return 'Sleep'
     if (vv >= 40 && vv <= 60) return 'Meditation'
     return 'Power'

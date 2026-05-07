@@ -1,12 +1,16 @@
 'use client'
 
-import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
+import React, { useCallback, useRef, useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react'
 import { Video } from '@/lib/design-system/components'
 import { AlertCircle, RotateCcw } from 'lucide-react'
 import {
   buildAdaptiveVideoUrlCandidates,
   type VideoQualityRendition,
 } from '@/components/OptimizedVideo'
+
+export type SessionReplayVideoHandle = {
+  seekTo: (seconds: number) => void
+}
 
 type SessionReplayVideoProps = {
   src: string
@@ -30,13 +34,18 @@ type SessionReplayVideoProps = {
  *  - Error/retry handling for flaky connections
  *  - Falls through quality candidates if a variant 404s
  */
-export function SessionReplayVideo({
-  src,
-  poster,
-  playbackStartSeconds = 0,
-  className = '',
-}: SessionReplayVideoProps) {
+export const SessionReplayVideo = forwardRef<SessionReplayVideoHandle, SessionReplayVideoProps>(
+  function SessionReplayVideo({ src, poster, playbackStartSeconds = 0, className = '' }, ref) {
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    seekTo(seconds: number) {
+      const el = videoRef.current
+      if (!el) return
+      el.currentTime = Math.max(0, seconds)
+      if (el.paused) el.play().catch(() => {})
+    },
+  }))
   const start = Math.max(0, Math.floor(playbackStartSeconds ?? 0))
   const hasSeeked = useRef(false)
   const [error, setError] = useState(false)
@@ -148,4 +157,4 @@ export function SessionReplayVideo({
       onError={handleError}
     />
   )
-}
+})

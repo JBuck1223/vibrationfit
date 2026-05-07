@@ -19,7 +19,6 @@ import {
   Wand2,
   CheckCircle,
   Search,
-  RefreshCw,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -125,9 +124,9 @@ export default function NewStoryWizardPage() {
   const [categoryData, setCategoryData] = useState<CategoryFocusData[]>([])
   const [vision, setVision] = useState<any>(null)
 
-  // Custom sub-mode state
-  type CustomMode = 'tell' | 'flip'
-  const [customMode, setCustomMode] = useState<CustomMode>('tell')
+  // Output type: what kind of content to generate (applies to ALL sources)
+  type OutputType = 'story' | 'identity'
+  const [outputType, setOutputType] = useState<OutputType>('story')
 
   // Custom vision tagging state (shared across tell & flip)
   const [showVisionTagging, setShowVisionTagging] = useState(false)
@@ -207,7 +206,6 @@ export default function NewStoryWizardPage() {
     setEntitySearchQuery('')
 
     // Reset custom-specific state
-    setCustomMode('tell')
     setShowVisionTagging(false)
     setCustomVisionId(null)
     setCustomVision(null)
@@ -377,6 +375,9 @@ export default function NewStoryWizardPage() {
     try {
       const body: Record<string, unknown> = { entityType: selectedSource.entityType }
 
+      // Derive the API customMode from outputType
+      const resolvedMode = outputType === 'identity' ? 'identity' : 'tell'
+
       if (selectedSource.entityType === 'life_vision') {
         if (selectedCategories.length === 0) throw new Error('Select at least one category')
         const contentPayload = categoryData.reduce((acc, cat) => {
@@ -386,13 +387,14 @@ export default function NewStoryWizardPage() {
         body.entityId = selectedEntityId
         body.selectedCategories = selectedCategories
         body.categoryData = contentPayload
+        body.customMode = resolvedMode
       } else if (selectedSource.entityType === 'vision_board_item' || selectedSource.entityType === 'journal_entry') {
         body.entityId = selectedEntityId
         if (focusNotes.trim()) body.focusNotes = focusNotes
       } else if (selectedSource.entityType === 'custom') {
         body.content = storyContent || focusNotes
         body.title = storyTitle || undefined
-        body.customMode = customMode
+        body.customMode = resolvedMode
 
         if (customSelectedCategories.length > 0 && customCategoryData.length > 0) {
           body.selectedCategories = customSelectedCategories
@@ -660,7 +662,9 @@ export default function NewStoryWizardPage() {
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg md:text-xl font-semibold text-white">Your Story</h3>
+                  <h3 className="text-lg md:text-xl font-semibold text-white">
+                    {outputType === 'identity' ? 'Your Identity Statement' : 'Your Story'}
+                  </h3>
                   <p className="text-sm text-neutral-400">
                     {streamingText.split(/\s+/).length} words
                   </p>
@@ -698,7 +702,13 @@ export default function NewStoryWizardPage() {
             <VIVALoadingOverlay
               isVisible={generating}
               className="!fixed !inset-0 !rounded-none"
-              messages={[
+              messages={outputType === 'identity' ? [
+                'VIVA is crafting your identity statement...',
+                'Drawing from your vision to declare who you are...',
+                'Building powerful "I am" declarations...',
+                'Grounding each declaration in your real life...',
+                'Sealing your identity statement...',
+              ] : [
                 'VIVA is crafting your day-in-the-life story...',
                 'Weaving together your selected life areas...',
                 'Creating an immersive morning-to-evening narrative...',
@@ -844,7 +854,34 @@ export default function NewStoryWizardPage() {
                   <div className="pt-6">
                     <div className="flex flex-col items-center mb-4">
                       {stepNumber(isCustom ? 2 : 3)}
-                      <h3 className="text-lg md:text-xl font-semibold text-white">Create Story</h3>
+                      <h3 className="text-lg md:text-xl font-semibold text-white">
+                        {outputType === 'identity' ? 'Create Identity Statement' : 'Create Story'}
+                      </h3>
+                    </div>
+
+                    {/* Output Type Toggle: Story vs Identity */}
+                    <div className="flex justify-center mb-4">
+                      <Toggle
+                        value={outputType}
+                        onChange={setOutputType}
+                        options={[
+                          { value: 'story' as OutputType, label: 'Story' },
+                          { value: 'identity' as OutputType, label: 'Identity Statement' },
+                        ]}
+                        size="sm"
+                        activeColor={outputType === 'identity' ? '#FFD700' : '#39FF14'}
+                      />
+                    </div>
+                    <div className="text-center mb-6">
+                      {outputType === 'story' ? (
+                        <p className="text-xs text-neutral-500">
+                          An immersive day-in-the-life narrative for audio listening.
+                        </p>
+                      ) : (
+                        <p className="text-xs text-yellow-500/70">
+                          Powerful &ldquo;I am&rdquo; declarations that encode into your nervous system.
+                        </p>
+                      )}
                     </div>
 
                     {/* Mode Toggle */}
@@ -853,7 +890,7 @@ export default function NewStoryWizardPage() {
                         value={createMode}
                         onChange={setCreateMode}
                         options={[
-                          { value: 'viva', label: 'VIVA Story' },
+                          { value: 'viva', label: outputType === 'identity' ? 'VIVA Identity' : 'VIVA Story' },
                           { value: 'manual', label: 'Write My Own' },
                         ]}
                       />
@@ -870,7 +907,7 @@ export default function NewStoryWizardPage() {
                                 <div className="text-center sm:text-left">
                                   <h4 className="text-white font-semibold">Choose Focus Areas</h4>
                                   <p className="text-sm text-neutral-400">
-                                    Select the life areas for your story
+                                    Select the life areas for your {outputType === 'identity' ? 'identity statement' : 'story'}
                                   </p>
                                 </div>
                                 <Badge variant="info">{selectedCategories.length} selected</Badge>
@@ -881,6 +918,7 @@ export default function NewStoryWizardPage() {
                                 onCategoryClick={handleCategoryToggle}
                                 mode="selection"
                                 lifeVisionCategoryStrip
+                                desktopColumnCount={6}
                               />
                             </div>
 
@@ -965,34 +1003,18 @@ export default function NewStoryWizardPage() {
                           </div>
                         )}
 
-                        {/* Custom content input with sub-mode toggle */}
+                        {/* Custom content input */}
                         {isCustom && (
                           <div className="space-y-6">
-                            {/* Sub-mode toggle: Tell vs Flip */}
-                            <div className="flex justify-center">
-                              <Toggle
-                                value={customMode}
-                                onChange={setCustomMode}
-                                options={[
-                                  { value: 'tell' as CustomMode, label: 'Tell a Story' },
-                                  { value: 'flip' as CustomMode, label: 'Flip a Story' },
-                                ]}
-                                size="sm"
-                                activeColor={customMode === 'flip' ? '#BF00FF' : '#39FF14'}
-                              />
-                            </div>
-
-                            {/* Mode description */}
-                            <div className="text-center">
-                              {customMode === 'tell' ? (
-                                <p className="text-sm text-neutral-400">
-                                  Describe the reality you want to live. VIVA will weave it into an immersive story.
-                                </p>
-                              ) : (
-                                <p className="text-sm text-purple-400">
-                                  Paste a limiting story you want to transform. VIVA will flip it into an empowering narrative.
-                                </p>
-                              )}
+                            <div className="max-w-2xl mx-auto text-center space-y-2">
+                              <p className="text-sm text-neutral-300">
+                                Write it raw. VIVA handles the rest.
+                              </p>
+                              <p className="text-xs text-neutral-500 leading-relaxed">
+                                Describe what you want from above the green line clarity, a below the green line contrast you&apos;ve identified, or a mixture of both.
+                                VIVA takes whatever you give and shapes it into
+                                {outputType === 'identity' ? ' powerful identity declarations.' : ' an immersive story.'}
+                              </p>
                             </div>
 
                             {/* Title + Content */}
@@ -1000,15 +1022,15 @@ export default function NewStoryWizardPage() {
                               <Input
                                 value={storyTitle}
                                 onChange={e => setStoryTitle(e.target.value)}
-                                placeholder="Story title (optional)"
+                                placeholder={outputType === 'identity' ? 'Identity statement title (optional)' : 'Story title (optional)'}
                               />
                               <RecordingTextarea
                                 value={storyContent}
                                 onChange={setStoryContent}
                                 placeholder={
-                                  customMode === 'tell'
-                                    ? 'Describe your vision, experience, or idea. Be specific with names, places, and details...'
-                                    : 'Paste or describe the limiting story you want to transform. What narrative do you want to replace?'
+                                  outputType === 'identity'
+                                    ? 'Describe who you are, what you want, or what you\'re ready to claim. VIVA will shape it into powerful declarations...'
+                                    : 'Describe your vision, experience, or idea. Be specific with names, places, and details...'
                                 }
                                 rows={6}
                                 recordingPurpose="quick"
@@ -1136,6 +1158,7 @@ export default function NewStoryWizardPage() {
                                               onCategoryClick={handleCustomCategoryToggle}
                                               mode="selection"
                                               lifeVisionCategoryStrip
+                                              desktopColumnCount={6}
                                             />
                                           </div>
 
@@ -1222,16 +1245,12 @@ export default function NewStoryWizardPage() {
                             {generating ? (
                               <>
                                 <Spinner size="sm" className="mr-2" />
-                                {isCustom && customMode === 'flip' ? 'Flipping Story...' : 'Writing Story...'}
+                                {outputType === 'identity' ? 'Writing Identity...' : 'Writing Story...'}
                               </>
                             ) : (
                               <>
-                                {isCustom && customMode === 'flip' ? (
-                                  <RefreshCw className="w-5 h-5 mr-2" />
-                                ) : (
-                                  <Sparkles className="w-5 h-5 mr-2" />
-                                )}
-                                {isCustom && customMode === 'flip' ? 'Flip Story' : 'Generate Story'}
+                                <Sparkles className="w-5 h-5 mr-2" />
+                                {outputType === 'identity' ? 'Generate Identity Statement' : 'Generate Story'}
                               </>
                             )}
                           </Button>

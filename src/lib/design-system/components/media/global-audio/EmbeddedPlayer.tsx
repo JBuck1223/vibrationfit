@@ -82,6 +82,8 @@ export function EmbeddedPlayer({
   const [isEditingName, setIsEditingName] = useState(false)
   const [editingName, setEditingName] = useState('')
   const lastRepeatClickRef = useRef<number>(0)
+  const durationProbeQueue = useRef<string[]>([])
+  const probeActiveRef = useRef(false)
 
   const { cachedTrackIds, downloadingTrackIds, downloadTrack, downloadAllTracks, removeTrack } = useAudioOffline(tracks)
   const allCached = tracks.length > 0 && tracks.every(t => cachedTrackIds.has(t.id))
@@ -98,25 +100,50 @@ export function EmbeddedPlayer({
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   useEffect(() => {
-    tracks.forEach(track => {
-      if (track.url && !trackDurations.has(track.id)) {
-        const tempAudio = new Audio()
-        tempAudio.src = track.url
-        tempAudio.addEventListener('loadedmetadata', () => {
-          if (tempAudio.duration && !isNaN(tempAudio.duration) && isFinite(tempAudio.duration)) {
-            setTrackDurations(prev => {
-              const newMap = new Map(prev)
-              newMap.set(track.id, tempAudio.duration)
-              return newMap
-            })
-          }
-        })
-      }
-    })
-  }, [tracks, trackDurations])
+    const needed = tracks.filter(
+      t => t.url && !trackDurations.has(t.id) && !(t.duration && t.duration > 0)
+    )
+    if (needed.length === 0) return
+
+    durationProbeQueue.current = needed.map(t => t.id)
+
+    if (probeActiveRef.current) return
+    probeActiveRef.current = true
+
+    const CONCURRENCY = 2
+    let cancelled = false
+    const trackMap = new Map(tracks.map(t => [t.id, t]))
+
+    function probeNext() {
+      if (cancelled) { probeActiveRef.current = false; return }
+      const id = durationProbeQueue.current.shift()
+      if (!id) { probeActiveRef.current = false; return }
+      const track = trackMap.get(id)
+      if (!track?.url) { probeNext(); return }
+      const tempAudio = new Audio()
+      tempAudio.preload = 'metadata'
+      tempAudio.src = track.url
+      tempAudio.addEventListener('loadedmetadata', () => {
+        if (!cancelled && tempAudio.duration && !isNaN(tempAudio.duration) && isFinite(tempAudio.duration)) {
+          setTrackDurations(prev => {
+            const m = new Map(prev)
+            m.set(id, tempAudio.duration)
+            return m
+          })
+        }
+        tempAudio.src = ''
+        probeNext()
+      })
+      tempAudio.addEventListener('error', () => { tempAudio.src = ''; probeNext() })
+    }
+
+    for (let i = 0; i < Math.min(CONCURRENCY, needed.length); i++) probeNext()
+
+    return () => { cancelled = true; durationProbeQueue.current = []; probeActiveRef.current = false }
+  }, [tracks])
 
   const totalDuration = tracks.reduce((sum, track) => {
-    const dur = trackDurations.get(track.id) || track.duration || 0
+    const dur = (track.duration && track.duration > 0 ? track.duration : 0) || trackDurations.get(track.id) || 0
     return sum + dur
   }, 0)
 
