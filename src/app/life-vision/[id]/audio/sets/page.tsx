@@ -218,21 +218,30 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
     setLoadingTracks(true)
     const supabase = createClient()
 
-    // Get the audio set to check variant
+    // Get the audio set to check variant and output format
     const { data: audioSet } = await supabase
       .from('audio_sets')
-      .select('variant')
+      .select('variant, metadata')
       .eq('id', audioSetId)
       .single()
 
+    const isCombinedOnly = (audioSet?.metadata as any)?.output_format === 'combined'
+
     // Load audio tracks for this set
-    const { data: tracks, error: tracksError } = await supabase
+    let tracksQuery = supabase
       .from('audio_tracks')
       .select('*')
       .eq('audio_set_id', audioSetId)
       .eq('status', 'completed')
       .not('audio_url', 'is', null)
-      .order('section_key')
+
+    // When output_format is 'combined', only load the full track —
+    // individual section tracks are intermediate artifacts
+    if (isCombinedOnly) {
+      tracksQuery = tracksQuery.eq('section_key', 'full')
+    }
+
+    const { data: tracks, error: tracksError } = await tracksQuery.order('section_key')
 
     if (tracksError) {
       console.error('Error loading tracks:', tracksError)
@@ -310,6 +319,12 @@ export default function AudioSetsPage({ params }: { params: Promise<{ id: string
       })
 
     setAudioTracks(formattedTracks)
+
+    // Auto-switch to 'full' play mode when set only has a combined track
+    if (isCombinedOnly) {
+      setPlayMode('full')
+    }
+
     setLoadingTracks(false)
   }
 

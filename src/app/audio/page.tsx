@@ -393,10 +393,16 @@ export default function AudioListenPage() {
   async function loadAudioTracks(audioSetId: string) {
     setLoadingTracks(true)
     const supabase = createClient()
-    const { data: audioSet } = await supabase.from('audio_sets').select('variant').eq('id', audioSetId).single()
-    const { data: tracks } = await supabase
+    const { data: audioSet } = await supabase.from('audio_sets').select('variant, metadata').eq('id', audioSetId).single()
+    const isCombinedOnly = (audioSet?.metadata as any)?.output_format === 'combined'
+
+    let tracksQuery = supabase
       .from('audio_tracks').select('*').eq('audio_set_id', audioSetId).eq('status', 'completed')
-      .not('audio_url', 'is', null).order('section_key')
+      .not('audio_url', 'is', null)
+    if (isCombinedOnly) {
+      tracksQuery = tracksQuery.eq('section_key', 'full')
+    }
+    const { data: tracks } = await tracksQuery.order('section_key')
 
     const sectionMap = new Map<string, string>([
       ['forward', 'Forward'], ['fun', 'Fun'], ['health', 'Health'], ['travel', 'Travel'],

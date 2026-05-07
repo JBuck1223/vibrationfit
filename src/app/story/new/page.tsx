@@ -126,7 +126,7 @@ export default function NewStoryWizardPage() {
   const [vision, setVision] = useState<any>(null)
 
   // Custom sub-mode state
-  type CustomMode = 'tell' | 'flip'
+  type CustomMode = 'tell' | 'flip' | 'identity' | 'identity_flip'
   const [customMode, setCustomMode] = useState<CustomMode>('tell')
 
   // Custom vision tagging state (shared across tell & flip)
@@ -968,17 +968,24 @@ export default function NewStoryWizardPage() {
                         {/* Custom content input with sub-mode toggle */}
                         {isCustom && (
                           <div className="space-y-6">
-                            {/* Sub-mode toggle: Tell vs Flip */}
+                            {/* Sub-mode toggle: Tell vs Identity vs Flip */}
                             <div className="flex justify-center">
                               <Toggle
                                 value={customMode}
                                 onChange={setCustomMode}
                                 options={[
-                                  { value: 'tell' as CustomMode, label: 'Tell a Story' },
-                                  { value: 'flip' as CustomMode, label: 'Flip a Story' },
+                                  { value: 'tell' as CustomMode, label: 'Story' },
+                                  { value: 'identity' as CustomMode, label: 'Identity' },
+                                  { value: 'flip' as CustomMode, label: 'Flip' },
+                                  { value: 'identity_flip' as CustomMode, label: 'Identity Flip' },
                                 ]}
                                 size="sm"
-                                activeColor={customMode === 'flip' ? '#BF00FF' : '#39FF14'}
+                                activeColor={
+                                  customMode === 'flip' ? '#BF00FF'
+                                  : customMode === 'identity' ? '#FFD700'
+                                  : customMode === 'identity_flip' ? '#FF6B35'
+                                  : '#39FF14'
+                                }
                               />
                             </div>
 
@@ -987,6 +994,14 @@ export default function NewStoryWizardPage() {
                               {customMode === 'tell' ? (
                                 <p className="text-sm text-neutral-400">
                                   Describe the reality you want to live. VIVA will weave it into an immersive story.
+                                </p>
+                              ) : customMode === 'identity' ? (
+                                <p className="text-sm text-yellow-400">
+                                  Write what you know to be true about yourself. VIVA will craft powerful &ldquo;I am&rdquo; declarations that encode into your nervous system.
+                                </p>
+                              ) : customMode === 'identity_flip' ? (
+                                <p className="text-sm text-orange-400">
+                                  Write the limiting belief about who you are. VIVA will transform it into an empowering identity statement.
                                 </p>
                               ) : (
                                 <p className="text-sm text-purple-400">
@@ -1008,6 +1023,10 @@ export default function NewStoryWizardPage() {
                                 placeholder={
                                   customMode === 'tell'
                                     ? 'Describe your vision, experience, or idea. Be specific with names, places, and details...'
+                                    : customMode === 'identity'
+                                    ? 'Describe who you are at your best. Be specific — names, places, what you do, how it feels...'
+                                    : customMode === 'identity_flip'
+                                    ? 'Write the limiting belief about yourself you want to overwrite. What old identity are you done with?'
                                     : 'Paste or describe the limiting story you want to transform. What narrative do you want to replace?'
                                 }
                                 rows={6}
@@ -1222,7 +1241,9 @@ export default function NewStoryWizardPage() {
                             {generating ? (
                               <>
                                 <Spinner size="sm" className="mr-2" />
-                                {isCustom && customMode === 'flip' ? 'Flipping Story...' : 'Writing Story...'}
+                                {isCustom && customMode === 'flip' ? 'Flipping Story...'
+                                  : isCustom && (customMode === 'identity' || customMode === 'identity_flip') ? 'Writing Identity...'
+                                  : 'Writing Story...'}
                               </>
                             ) : (
                               <>
@@ -1231,7 +1252,10 @@ export default function NewStoryWizardPage() {
                                 ) : (
                                   <Sparkles className="w-5 h-5 mr-2" />
                                 )}
-                                {isCustom && customMode === 'flip' ? 'Flip Story' : 'Generate Story'}
+                                {isCustom && customMode === 'flip' ? 'Flip Story'
+                                  : isCustom && customMode === 'identity' ? 'Generate Identity Statement'
+                                  : isCustom && customMode === 'identity_flip' ? 'Flip Identity'
+                                  : 'Generate Story'}
                               </>
                             )}
                           </Button>

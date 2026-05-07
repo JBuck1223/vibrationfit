@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
           background_track_name: bgTrack?.display_name,
           frequency_track_name: frequencyTrackName || undefined,
           frequency_type: frequencyType || undefined,
+          output_format: effectiveOutputFormat,
         }
       }
       if (isStory) {
@@ -287,6 +288,7 @@ export async function POST(request: NextRequest) {
           background_track_name: bgTrack?.display_name,
           frequency_track_name: frequencyTrackName || undefined,
           frequency_type: frequencyType || undefined,
+          output_format: effectiveOutputFormat,
         }
       })
 

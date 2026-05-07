@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Magic Lens — VibrationFit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Poppins:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="preload"
+      as="image"
+      href="https://media.vibrationfit.com/site-assets/images/presentations/lens/lens/magic-lens.png"
+      fetchpriority="high"
+    />
+    <style>
+      :root {
+        --bg: #000000;
+        --fg: #ffffff;
+        --muted: rgba(255, 255, 255, 0.74);
+        --subtle: rgba(255, 255, 255, 0.45);
+        --faint: rgba(255, 255, 255, 0.22);
+        --accent: rgba(255, 255, 255, 0.12);
+        --panel: rgba(255, 255, 255, 0.04);
+        --c-green: #39ff14;
+        --c-cyan: #00ffff;
+        --c-violet: #bf00ff;
+        --c-amber: #ffb347;
+        --c-below: #ff3355;
+        --c-rec: #ff3355;
+        --glow-green: rgba(57, 255, 20, 0.35);
+        --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Poppins", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(50% 45% at 50% -5%, rgba(57, 255, 20, 0.12), transparent 55%),
+          radial-gradient(40% 35% at 90% 80%, rgba(191, 0, 255, 0.1), transparent 60%),
+          radial-gradient(35% 30% at 5% 60%, rgba(0, 255, 255, 0.08), transparent 55%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Static ambient lens layer */
+      .lens-ambient {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .lens-ambient svg {
+        position: absolute;
+        display: block;
+      }
+
+      .lens-ambient .rings {
+        right: -12%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: min(95vh, 780px);
+        height: min(95vh, 780px);
+        opacity: 0.16;
+      }
+
+      /* Persistent viewfinder corner brackets */
+      .vf-brackets {
+        position: fixed;
+        inset: max(2rem, env(safe-area-inset-top, 0px) + 1.6rem)
+          max(2rem, env(safe-area-inset-right, 0px) + 1rem)
+          max(4.5rem, env(safe-area-inset-bottom, 0px) + 4rem)
+          max(2rem, env(safe-area-inset-left, 0px) + 1rem);
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .vf-brackets::before,
+      .vf-brackets::after,
+      .vf-brackets > span::before,
+      .vf-brackets > span::after {
+        content: "";
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        border: 1.5px solid rgba(57, 255, 20, 0.32);
+      }
+
+      .vf-brackets::before { top: 0; left: 0; border-right: none; border-bottom: none; }
+      .vf-brackets::after { top: 0; right: 0; border-left: none; border-bottom: none; }
+      .vf-brackets > span::before { bottom: 0; left: 0; border-right: none; border-top: none; }
+      .vf-brackets > span::after { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+      /* —— Camera HUD (static) —— */
+      .hud {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 5;
+        font-family: var(--mono);
+      }
+
+      .hud-rec {
+        position: absolute;
+        top: max(0.85rem, env(safe-area-inset-top, 0px) + 0.4rem);
+        left: max(1rem, env(safe-area-inset-left, 0px) + 0.5rem);
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+
+      .hud-rec .rec-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--c-rec);
+        box-shadow: 0 0 10px var(--c-rec), 0 0 4px var(--c-rec);
+      }
+
+      .hud-rec .rec-label { color: var(--muted); }
+      .hud-rec .rec-sep { color: var(--faint); }
+      .hud-rec .rec-name { color: var(--fg); font-weight: 500; letter-spacing: 0.15em; }
+
+      .hud-counter {
+        position: absolute;
+        top: max(0.85rem, env(safe-area-inset-top, 0px) + 0.4rem);
+        right: max(1rem, env(safe-area-inset-right, 0px) + 0.5rem);
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        color: var(--subtle);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .hud-counter b { color: var(--fg); font-weight: 500; }
+
+      .hud-exif {
+        position: absolute;
+        bottom: max(0.85rem, env(safe-area-inset-bottom, 0px) + 0.5rem);
+        left: max(1rem, env(safe-area-inset-left, 0px) + 0.5rem);
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .hud-exif .exif-row { display: flex; align-items: center; gap: 0.5rem; }
+      .hud-exif .exif-row span { color: var(--fg); }
+
+      .hud-exif .exif-row em {
+        font-style: normal;
+        color: var(--subtle);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.62rem;
+      }
+
+      .hud-exif .dof-bar {
+        width: clamp(110px, 22vw, 180px);
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hud-exif .dof-fill {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, var(--c-cyan), var(--c-green));
+        opacity: 0.85;
+        transition: left 600ms cubic-bezier(0.22, 0.61, 0.36, 1),
+          right 600ms cubic-bezier(0.22, 0.61, 0.36, 1);
+        box-shadow: 0 0 12px rgba(57, 255, 20, 0.45);
+      }
+
+      @media (max-width: 640px) {
+        .hud-exif { font-size: 0.62rem; }
+        .hud-exif .dof-bar { width: 90px; }
+        .vf-brackets { inset: 1.2rem 1rem 4rem 1rem; }
+      }
+
+      /* —— Deck —— */
+      .deck {
+        position: relative;
+        z-index: 2;
+        height: 100vh;
+        width: 100%;
+        display: block;
+      }
+
+      .slide {
+        display: none;
+        position: absolute;
+        inset: 0;
+        padding:
+          max(3.75rem, env(safe-area-inset-top, 0px) + 3.25rem)
+          clamp(1.5rem, 4.5vw, 3.25rem)
+          max(6rem, env(safe-area-inset-bottom, 0px) + 5.75rem);
+        width: 100%;
+        height: 100vh;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        justify-content: safe center;
+        align-items: safe center;
+        isolation: isolate;
+      }
+
+      .slide.active {
+        display: flex;
+        animation: iris-in 700ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+      }
+
+      @keyframes iris-in {
+        0% { clip-path: circle(0% at 50% 50%); opacity: 0.4; }
+        70% { opacity: 1; }
+        100% { clip-path: circle(150% at 50% 50%); opacity: 1; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .slide.active { animation: none !important; }
+      }
+
+      .slide-content {
+        position: relative;
+        z-index: 1;
+        flex: 0 1 auto;
+        max-width: min(820px, 100%);
+        margin: 0 auto;
+        width: 100%;
+        padding: clamp(0.35rem, 2vh, 1.25rem) 0;
+        text-align: center;
+      }
+
+      /* —— Typography —— */
+      h1 {
+        font-size: clamp(2.35rem, 6vw, 4.25rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.65rem;
+        line-height: 1.04;
+        color: var(--fg);
+      }
+
+      .hero-title {
+        font-size: clamp(2.85rem, 9vw, 5.6rem);
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.02;
+        margin: 0 0 0.5rem;
+        color: #fff;
+        text-shadow:
+          0 0 100px rgba(57, 255, 20, 0.14),
+          0 0 60px rgba(0, 255, 255, 0.08);
+      }
+
+      h2 {
+        font-size: clamp(2rem, 5.2vw, 3.6rem);
+        font-weight: 700;
+        margin: 0 0 1.2rem;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        color: var(--fg);
+      }
+
+      /* Stanza-based poetic lines */
+      .stanza {
+        font-size: clamp(1.25rem, 2.55vw, 1.6rem);
+        line-height: 1.5;
+        margin: 0 auto 1.45rem;
+        color: var(--muted);
+        max-width: 32ch;
+        font-weight: 400;
+      }
+
+      .stanza:last-child { margin-bottom: 0; }
+
+      .stanza--punch {
+        color: var(--fg);
+        font-weight: 600;
+        font-size: clamp(1.5rem, 3.3vw, 2.05rem);
+        max-width: 28ch;
+        letter-spacing: -0.005em;
+        line-height: 1.3;
+      }
+
+      .stanza--accent {
+        color: var(--c-green);
+        font-weight: 500;
+      }
+
+      .stanza--lead-in {
+        font-family: var(--mono);
+        font-size: clamp(0.78rem, 1.4vw, 0.92rem);
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--subtle);
+        margin-bottom: 1.6rem;
+      }
+
+      .callout {
+        margin: 1.5rem auto 0;
+        padding: 1.45rem 1.75rem;
+        border: 1px solid var(--accent);
+        background: var(--panel);
+        border-radius: 14px;
+        max-width: min(40ch, 100%);
+        text-align: center;
+      }
+
+      .callout p {
+        margin: 0;
+        font-size: clamp(1.2rem, 2.4vw, 1.5rem);
+        line-height: 1.45;
+        color: var(--fg);
+        font-weight: 600;
+      }
+
+      .callout--green {
+        border-color: rgba(57, 255, 20, 0.35);
+        background: rgba(57, 255, 20, 0.06);
+      }
+
+      /* Hint key on the hero */
+      .title-slide .hint {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--subtle);
+        letter-spacing: 0.16em;
+        margin-top: 2.65rem;
+      }
+
+      .title-slide .hint kbd {
+        background: var(--accent);
+        border-radius: 4px;
+        padding: 0.15rem 0.45rem;
+        font-family: var(--mono);
+        font-weight: 600;
+        color: var(--fg);
+        margin: 0 0.2rem;
+      }
+
+      /* —— Magic lens artwork —— */
+      .magic-lens-figure {
+        margin: 0 auto 1.35rem;
+        max-width: min(520px, 92vw);
+        padding: 0;
+        border: none;
+        background: none;
+        position: relative;
+      }
+
+      .magic-lens-figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: min(38vh, 360px);
+        object-fit: contain;
+        margin: 0 auto;
+        filter: drop-shadow(0 30px 80px rgba(0, 0, 0, 0.55))
+          drop-shadow(0 0 60px rgba(57, 255, 20, 0.16));
+      }
+
+      .title-slide--magic-hero .magic-lens-figure img { max-height: min(38vh, 380px); }
+      .cta-slide--magic-art .magic-lens-figure img { max-height: min(34vh, 340px); }
+
+      /* —— Slide 2: 12 Life Categories grid (static) —— */
+      .categories-grid {
+        margin: 1.5rem auto 1.6rem;
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.7rem;
+        max-width: 720px;
+        width: min(96%, 720px);
+      }
+
+      .categories-grid .category {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.85rem 0.45rem;
+        border: 1px solid var(--accent);
+        border-radius: 12px;
+        background: var(--panel);
+        text-align: center;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+
+      .categories-grid .category .emoji {
+        font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+        line-height: 1;
+      }
+
+      .categories-grid .category .label {
+        font-family: var(--mono);
+        font-size: clamp(0.58rem, 1.05vw, 0.7rem);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      @media (max-width: 720px) {
+        .categories-grid { grid-template-columns: repeat(4, 1fr); max-width: 460px; }
+      }
+
+      @media (max-width: 420px) {
+        .categories-grid { grid-template-columns: repeat(3, 1fr); gap: 0.55rem; }
+      }
+
+      /* —— Slide 6: Green Line slate (static) —— */
+      .greenline-slate {
+        margin: 1.5rem auto 1.7rem;
+        max-width: 520px;
+        width: min(92%, 520px);
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--accent);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+      }
+
+      .greenline-slate .zone {
+        height: clamp(78px, 11vh, 94px);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.15rem;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+      }
+
+      .greenline-slate .zone .zone-tag { font-weight: 500; }
+      .greenline-slate .zone .zone-state {
+        font-size: 0.62rem;
+        letter-spacing: 0.2em;
+        color: var(--subtle);
+      }
+
+      .greenline-slate .zone.above {
+        background:
+          radial-gradient(60% 80% at 50% 100%, rgba(57, 255, 20, 0.22), transparent 70%),
+          linear-gradient(180deg, rgba(57, 255, 20, 0.04), rgba(57, 255, 20, 0.14));
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .greenline-slate .zone.below {
+        background:
+          radial-gradient(60% 80% at 50% 0%, rgba(255, 51, 85, 0.18), transparent 70%),
+          linear-gradient(180deg, rgba(255, 51, 85, 0.12), rgba(255, 51, 85, 0.02));
+        color: rgba(255, 255, 255, 0.55);
+      }
+
+      .greenline-slate .line {
+        position: relative;
+        height: 2px;
+        background: var(--c-green);
+        box-shadow: 0 0 14px var(--c-green), 0 0 4px var(--c-green);
+      }
+
+      .greenline-slate .line::after {
+        content: "GREEN LINE";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: #000;
+        padding: 0.2rem 0.7rem;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.32em;
+        color: var(--c-green);
+        border: 1px solid rgba(57, 255, 20, 0.5);
+        border-radius: 999px;
+        text-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+      }
+
+      /* —— Counter / nav / brand —— */
+      nav.dots {
+        position: fixed;
+        bottom: max(2.65rem, env(safe-area-inset-bottom, 0px) + 2.25rem);
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+        row-gap: 0.4rem;
+        z-index: 6;
+        max-width: min(96vw, 720px);
+        padding: 0.35rem 0.5rem;
+        scrollbar-width: none;
+        pointer-events: auto;
+      }
+
+      nav.dots::-webkit-scrollbar { display: none; }
+
+      nav.dots button {
+        flex-shrink: 0;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 200ms ease;
+      }
+
+      nav.dots button[aria-current="true"] {
+        background: #fff;
+        transform: scale(1.4);
+      }
+
+      .brand-mark {
+        position: fixed;
+        bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        color: var(--subtle);
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        z-index: 4;
+        pointer-events: none;
+      }
+
+      .nav-arrows {
+        position: fixed;
+        top: 50%;
+        left: 0;
+        right: 0;
+        transform: translateY(-50%);
+        display: flex;
+        justify-content: space-between;
+        padding: 0 clamp(0.75rem, 2vw, 1.5rem);
+        pointer-events: none;
+        z-index: 6;
+      }
+
+      .nav-arrow {
+        pointer-events: auto;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.88);
+        width: clamp(2.75rem, 4vw, 3.5rem);
+        height: clamp(2.75rem, 4vw, 3.5rem);
+        border-radius: 999px;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: background 200ms ease, opacity 200ms ease, transform 200ms ease,
+          border-color 200ms ease;
+      }
+
+      .nav-arrow:hover:not(:disabled) {
+        background: rgba(57, 255, 20, 0.15);
+        border-color: rgba(57, 255, 20, 0.5);
+        transform: scale(1.08);
+      }
+
+      .nav-arrow:disabled {
+        opacity: 0.2;
+        cursor: not-allowed;
+      }
+
+      .nav-arrow svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </head>
+  <body data-band="hook" data-slide="0">
+    <!-- Static ambient lens layer -->
+    <div class="lens-ambient" aria-hidden="true">
+      <svg class="rings" viewBox="0 0 400 400" fill="none">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color: #39ff14; stop-opacity: 0.5" />
+            <stop offset="50%" style="stop-color: #00ffff; stop-opacity: 0.35" />
+            <stop offset="100%" style="stop-color: #bf00ff; stop-opacity: 0.45" />
+          </linearGradient>
+        </defs>
+        <circle cx="200" cy="200" r="190" stroke="url(#ringGrad)" stroke-width="1.5" opacity="0.4" />
+        <circle cx="200" cy="200" r="160" stroke="url(#ringGrad)" stroke-width="1.2" opacity="0.35" />
+        <circle cx="200" cy="200" r="130" stroke="url(#ringGrad)" stroke-width="1" opacity="0.45" />
+        <circle cx="200" cy="200" r="100" stroke="url(#ringGrad)" stroke-width="0.8" opacity="0.5" />
+        <circle cx="200" cy="200" r="72" stroke="#39ff14" stroke-width="1.2" opacity="0.32" />
+        <circle cx="200" cy="200" r="48" fill="rgba(0,255,255,0.04)" stroke="rgba(0,255,255,0.25)" stroke-width="1" />
+      </svg>
+    </div>
+
+    <div class="vf-brackets" aria-hidden="true"><span></span></div>
+
+    <div class="hud" aria-hidden="true">
+      <div class="hud-rec">
+        <span class="rec-dot"></span>
+        <span class="rec-label">REC</span>
+        <span class="rec-sep">·</span>
+        <span class="rec-name" id="hudName">The Magic Lens</span>
+      </div>
+      <div class="hud-counter"><b id="hudIndex">01</b> · <span id="hudTotal">07</span></div>
+      <div class="hud-exif">
+        <div class="exif-row">
+          <em>F</em><span id="exifF">f/1.4</span>
+          <em>·</em><em>FL</em><span id="exifZ">50mm</span>
+          <em>·</em><em>AF</em><span id="exifD">∞</span>
+        </div>
+        <div class="dof-bar"><div class="dof-fill" id="dofFill" style="left: 18%; right: 4%"></div></div>
+      </div>
+    </div>
+
+    <div class="deck" id="deck">
+      <!-- 1 — Title -->
+      <section
+        class="slide title-slide title-slide--magic-hero active"
+        data-index="0"
+        data-band="hook"
+        data-name="The Magic Lens"
+        data-fstop="f/0.95"
+        data-zoom="50mm"
+        data-focus="∞"
+        aria-label="The Magic Lens"
+      >
+        <div class="slide-content">
+          <figure class="magic-lens-figure">
+            <img
+              src="https://media.vibrationfit.com/site-assets/images/presentations/lens/lens/magic-lens.png"
+              alt="Ornate magical camera lens with cosmic light inside the glass element."
+              width="1885"
+              height="1254"
+              fetchpriority="high"
+            />
+          </figure>
+          <h1 class="hero-title">The Magic Lens</h1>
+          <p class="hint">Press <kbd>&rarr;</kbd> or tap right to advance</p>
+        </div>
+      </section>
+
+      <!-- 2 — Every Area -->
+      <section
+        class="slide"
+        data-index="1"
+        data-band="areas"
+        data-name="Every Area"
+        data-fstop="f/2.0"
+        data-zoom="35mm"
+        data-focus="∞"
+        aria-label="Every area has a lens"
+      >
+        <div class="slide-content">
+          <p class="stanza stanza--punch">
+            Imagine every area of your life<br />
+            already has a lens installed
+          </p>
+          <div class="categories-grid" aria-hidden="true">
+            <div class="category"><span class="emoji">🎉</span><span class="label">Fun</span></div>
+            <div class="category"><span class="emoji">💪</span><span class="label">Health</span></div>
+            <div class="category"><span class="emoji">✈️</span><span class="label">Travel</span></div>
+            <div class="category"><span class="emoji">❤️</span><span class="label">Love</span></div>
+            <div class="category"><span class="emoji">👨‍👩‍👧‍👦</span><span class="label">Family</span></div>
+            <div class="category"><span class="emoji">👥</span><span class="label">Social</span></div>
+            <div class="category"><span class="emoji">🏠</span><span class="label">Home</span></div>
+            <div class="category"><span class="emoji">💼</span><span class="label">Work</span></div>
+            <div class="category"><span class="emoji">💰</span><span class="label">Money</span></div>
+            <div class="category"><span class="emoji">📦</span><span class="label">Stuff</span></div>
+            <div class="category"><span class="emoji">🎁</span><span class="label">Giving</span></div>
+            <div class="category"><span class="emoji">✨</span><span class="label">Spirituality</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 — Default Settings -->
+      <section
+        class="slide"
+        data-index="2"
+        data-band="defaults"
+        data-name="Default Settings"
+        data-fstop="f/2.8"
+        data-zoom="50mm"
+        data-focus="1m"
+        aria-label="You react to the lens"
+      >
+        <div class="slide-content">
+          <p class="stanza">Each one has default settings</p>
+          <p class="stanza stanza--punch">
+            You&rsquo;re not reacting to life<br />
+            You&rsquo;re reacting to the lens
+          </p>
+        </div>
+      </section>
+
+      <!-- 4 — The Truth -->
+      <section
+        class="slide"
+        data-index="3"
+        data-band="truth"
+        data-name="The Truth"
+        data-fstop="f/2.8"
+        data-zoom="50mm"
+        data-focus="2m"
+        aria-label="What your lens is set to"
+      >
+        <div class="slide-content">
+          <p class="stanza">Your life isn&rsquo;t showing you what&rsquo;s true</p>
+          <p class="stanza stanza--punch">
+            It&rsquo;s showing you<br />
+            what your lens is set to
+          </p>
+        </div>
+      </section>
+
+      <!-- 5 — Above the Green Line -->
+      <section
+        class="slide"
+        data-index="4"
+        data-band="greenline"
+        data-name="The Green Line"
+        data-fstop="f/4"
+        data-zoom="35mm"
+        data-focus="3m"
+        aria-label="Above the Green Line"
+      >
+        <div class="slide-content">
+          <p class="stanza">
+            Above the Green Line<br />
+            life isn&rsquo;t complicated
+          </p>
+          <div class="greenline-slate" aria-hidden="true">
+            <div class="zone above">
+              <span class="zone-tag">Above</span>
+              <span class="zone-state">Aligned · Open · Clear</span>
+            </div>
+            <div class="line"></div>
+            <div class="zone below">
+              <span class="zone-tag">Below</span>
+              <span class="zone-state">Off · Tight · Tangled</span>
+            </div>
+          </div>
+          <p class="stanza stanza--punch">
+            It&rsquo;s what happens<br />
+            when your lens is set well
+          </p>
+        </div>
+      </section>
+
+      <!-- 6 — Settings -->
+      <section
+        class="slide"
+        data-index="5"
+        data-band="tune"
+        data-name="Settings"
+        data-fstop="f/2.0"
+        data-zoom="50mm"
+        data-focus="1m"
+        aria-label="Settings can be changed"
+      >
+        <div class="slide-content">
+          <p class="stanza">If something feels off</p>
+          <p class="stanza stanza--punch">
+            It&rsquo;s not the category<br />
+            It&rsquo;s the settings
+          </p>
+          <p class="stanza stanza--accent">And settings can be changed</p>
+        </div>
+      </section>
+
+      <!-- 7 — Close -->
+      <section
+        class="slide cta-slide cta-slide--magic-art"
+        data-index="6"
+        data-band="signature"
+        data-name="The Magic Lens"
+        data-fstop="f/0.95"
+        data-zoom="50mm"
+        data-focus="∞"
+        aria-label="The Magic Lens close"
+      >
+        <div class="slide-content">
+          <figure class="magic-lens-figure">
+            <img
+              src="https://media.vibrationfit.com/site-assets/images/presentations/lens/lens/magic-lens.png"
+              alt="The magic lens — cosmic light inside arcane glass."
+              width="1885"
+              height="1254"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+          <p class="stanza">You don&rsquo;t need to fix your life.</p>
+          <div class="callout callout--green">
+            <p>You just need to adjust<br />your life lens.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="brand-mark">VibrationFit &middot; Alignment Gym</div>
+
+    <div class="nav-arrows">
+      <button class="nav-arrow" id="navPrev" aria-label="Previous slide" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
+      </button>
+      <button class="nav-arrow" id="navNext" aria-label="Next slide" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+      </button>
+    </div>
+
+    <nav class="dots" id="dots" aria-label="Slides"></nav>
+
+    <script>
+      (function () {
+        var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+        var dotsNav = document.getElementById("dots");
+        var prevBtn = document.getElementById("navPrev");
+        var nextBtn = document.getElementById("navNext");
+        var hudIndex = document.getElementById("hudIndex");
+        var hudTotal = document.getElementById("hudTotal");
+        var hudName = document.getElementById("hudName");
+        var exifF = document.getElementById("exifF");
+        var exifZ = document.getElementById("exifZ");
+        var exifD = document.getElementById("exifD");
+        var dofFill = document.getElementById("dofFill");
+        var index = 0;
+
+        var dofProfiles = {
+          "0.5m":  { left: 4,  right: 76 },
+          "0.8m":  { left: 8,  right: 68 },
+          "1m":    { left: 14, right: 60 },
+          "1.5m":  { left: 22, right: 50 },
+          "2m":    { left: 28, right: 42 },
+          "2.5m":  { left: 32, right: 36 },
+          "3m":    { left: 36, right: 30 },
+          "10m":   { left: 50, right: 16 },
+          "HORIZON": { left: 30, right: 14 },
+          "∞":     { left: 18, right: 4 }
+        };
+
+        function setHUD(slide) {
+          var name = slide.getAttribute("data-name") || "Lens";
+          var fstop = slide.getAttribute("data-fstop") || "f/1.4";
+          var zoom = slide.getAttribute("data-zoom") || "50mm";
+          var focus = slide.getAttribute("data-focus") || "∞";
+          var band = slide.getAttribute("data-band") || "hook";
+          if (hudName) hudName.textContent = name;
+          if (exifF) exifF.textContent = fstop;
+          if (exifZ) exifZ.textContent = zoom;
+          if (exifD) exifD.textContent = focus;
+
+          var prof = dofProfiles[focus] || { left: 30, right: 18 };
+          if (dofFill) {
+            dofFill.style.left = prof.left + "%";
+            dofFill.style.right = prof.right + "%";
+          }
+
+          document.body.setAttribute("data-band", band);
+          document.body.setAttribute("data-slide", String(index));
+        }
+
+        function renderDots() {
+          dotsNav.innerHTML = "";
+          slides.forEach(function (_, i) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.setAttribute("aria-label", "Go to slide " + (i + 1));
+            if (i === index) btn.setAttribute("aria-current", "true");
+            btn.addEventListener("click", function (ev) {
+              ev.stopPropagation();
+              go(i);
+            });
+            dotsNav.appendChild(btn);
+          });
+        }
+
+        function go(i) {
+          index = Math.max(0, Math.min(slides.length - 1, i));
+          slides.forEach(function (s, j) {
+            if (j === index) {
+              s.classList.add("active");
+            } else {
+              s.classList.remove("active");
+            }
+          });
+          var current = slides[index];
+          setHUD(current);
+          renderDots();
+          var pad = function (n) { return String(n).padStart(2, "0"); };
+          if (hudIndex) hudIndex.textContent = pad(index + 1);
+          if (hudTotal) hudTotal.textContent = pad(slides.length);
+          prevBtn.disabled = index === 0;
+          nextBtn.disabled = index === slides.length - 1;
+        }
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+            e.preventDefault();
+            go(index + 1);
+          } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+            e.preventDefault();
+            go(index - 1);
+          } else if (e.key === "Home") {
+            go(0);
+          } else if (e.key === "End") {
+            go(slides.length - 1);
+          }
+        });
+
+        prevBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          go(index - 1);
+        });
+
+        nextBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          go(index + 1);
+        });
+
+        document.body.addEventListener("click", function (e) {
+          if (
+            e.target.closest("nav.dots") ||
+            e.target.closest(".nav-arrow") ||
+            e.target.closest("a") ||
+            e.target.closest("button")
+          ) {
+            return;
+          }
+          var vw = window.innerWidth || document.documentElement.clientWidth;
+          if (e.clientX < vw / 2) {
+            go(index - 1);
+          } else {
+            go(index + 1);
+          }
+        });
+
+        go(0);
+        renderDots();
+      })();
+    </script>
+  </body>
+</html>
