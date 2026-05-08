@@ -5,6 +5,7 @@ interface GlobalAudioState {
   tracks: AudioTrack[]
   currentIndex: number
   isPlaying: boolean
+  isBuffering: boolean
   currentTime: number
   duration: number
   setName: string
@@ -77,6 +78,15 @@ function wireAudioEvents() {
   audio.addEventListener('pause', () => {
     useGlobalAudioStore.setState({ isPlaying: false })
   })
+  audio.addEventListener('waiting', () => {
+    useGlobalAudioStore.setState({ isBuffering: true })
+  })
+  audio.addEventListener('canplay', () => {
+    useGlobalAudioStore.setState({ isBuffering: false })
+  })
+  audio.addEventListener('playing', () => {
+    useGlobalAudioStore.setState({ isBuffering: false })
+  })
   audio.addEventListener('ended', () => {
     const s = useGlobalAudioStore.getState()
     const { repeatMode } = s
@@ -89,12 +99,12 @@ function wireAudioEvents() {
 
     const nextIndex = s.currentIndex + 1
     if (nextIndex < s.tracks.length) {
-      useGlobalAudioStore.setState({ currentIndex: nextIndex, currentTime: 0 })
+      useGlobalAudioStore.setState({ currentIndex: nextIndex, currentTime: 0, isBuffering: true })
       audio.src = s.tracks[nextIndex].url
       audio.play().catch(() => {})
       preloadNextTrack(s.tracks[nextIndex + 1]?.url)
     } else if (repeatMode === 'all' && s.tracks.length > 0) {
-      useGlobalAudioStore.setState({ currentIndex: 0, currentTime: 0 })
+      useGlobalAudioStore.setState({ currentIndex: 0, currentTime: 0, isBuffering: true })
       audio.src = s.tracks[0].url
       audio.play().catch(() => {})
       preloadNextTrack(s.tracks[1]?.url)
@@ -123,6 +133,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
   tracks: [],
   currentIndex: 0,
   isPlaying: false,
+  isBuffering: false,
   currentTime: 0,
   duration: 0,
   setName: '',
@@ -139,6 +150,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       tracks,
       currentIndex: startIndex,
       isPlaying: true,
+      isBuffering: true,
       currentTime: 0,
       duration: 0,
       setName: setName ?? '',
@@ -155,7 +167,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
     const s = get()
     if (index < 0 || index >= s.tracks.length) return
     const audio = getAudio()
-    set({ currentIndex: index, currentTime: 0 })
+    set({ currentIndex: index, currentTime: 0, isBuffering: true })
     audio.src = s.tracks[index].url
     audio.play().catch(() => {})
     preloadNextTrack(s.tracks[index + 1]?.url)
@@ -170,6 +182,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       tracks: [],
       currentIndex: 0,
       isPlaying: false,
+      isBuffering: false,
       currentTime: 0,
       duration: 0,
       setName: '',
@@ -204,7 +217,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       else return
     }
     const audio = getAudio()
-    set({ currentIndex: nextIndex, currentTime: 0 })
+    set({ currentIndex: nextIndex, currentTime: 0, isBuffering: true })
     audio.src = s.tracks[nextIndex].url
     audio.play().catch(() => {})
     const followingIndex = nextIndex + 1 < s.tracks.length ? nextIndex + 1 : (s.repeatMode === 'all' ? 0 : undefined)
@@ -224,7 +237,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       if (s.repeatMode === 'all') prevIndex = s.tracks.length - 1
       else return
     }
-    set({ currentIndex: prevIndex, currentTime: 0 })
+    set({ currentIndex: prevIndex, currentTime: 0, isBuffering: true })
     audio.src = s.tracks[prevIndex].url
     audio.play().catch(() => {})
     preloadNextTrack(s.tracks[prevIndex + 1]?.url)
