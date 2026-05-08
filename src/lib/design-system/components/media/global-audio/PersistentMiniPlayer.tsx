@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useRef, useCallback } from 'react'
-import { Play, Pause, SkipBack, SkipForward, X } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, X, Loader2 } from 'lucide-react'
 import { useGlobalAudioStore, getGlobalAudioElement } from '@/lib/stores/global-audio-store'
 import { useMediaSession } from '@/hooks/useMediaSession'
 import { TrackArtwork } from './TrackArtwork'
@@ -17,6 +17,7 @@ export function PersistentMiniPlayer() {
   const tracks = useGlobalAudioStore(s => s.tracks)
   const currentIndex = useGlobalAudioStore(s => s.currentIndex)
   const isPlaying = useGlobalAudioStore(s => s.isPlaying)
+  const isBuffering = useGlobalAudioStore(s => s.isBuffering)
   const currentTime = useGlobalAudioStore(s => s.currentTime)
   const duration = useGlobalAudioStore(s => s.duration)
   const setName = useGlobalAudioStore(s => s.setName)
@@ -114,9 +115,11 @@ export function PersistentMiniPlayer() {
             <button
               onClick={(e) => { e.stopPropagation(); isPlaying ? pause() : resume() }}
               className="p-2.5 bg-white rounded-full text-black hover:bg-neutral-200 transition-colors"
-              aria-label={isPlaying ? 'Pause' : 'Play'}
+              aria-label={isBuffering ? 'Loading' : isPlaying ? 'Pause' : 'Play'}
             >
-              {isPlaying ? (
+              {isBuffering ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isPlaying ? (
                 <Pause className="w-4 h-4" fill="currentColor" />
               ) : (
                 <Play className="w-4 h-4" fill="currentColor" />
