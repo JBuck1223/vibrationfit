@@ -31,20 +31,33 @@ export const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResi
       return textareaRef
     }, [ref])
 
+    const getScrollParent = React.useCallback((el: HTMLElement | null): HTMLElement | null => {
+      if (!el) return null
+      let parent = el.parentElement
+      while (parent) {
+        const { overflow, overflowY } = getComputedStyle(parent)
+        if (/(auto|scroll)/.test(overflow + overflowY)) return parent
+        parent = parent.parentElement
+      }
+      return null
+    }, [])
+
     const autoResize = React.useCallback(() => {
       if (textareaRef.current) {
-        // Reset height to auto to get the natural height
+        const scrollParent = getScrollParent(textareaRef.current)
+        const prevScroll = scrollParent ? scrollParent.scrollTop : window.scrollY
         textareaRef.current.style.height = 'auto'
-        // Get the scroll height (content height)
         const scrollHeight = textareaRef.current.scrollHeight
-        // Set height to content height (no maxHeight limit!)
         const newHeight = Math.max(scrollHeight, minHeight)
         textareaRef.current.style.height = `${newHeight}px`
-        
-        // Always keep overflow hidden since we're expanding to full content
         textareaRef.current.style.overflowY = 'hidden'
+        if (scrollParent) {
+          if (scrollParent.scrollTop !== prevScroll) scrollParent.scrollTop = prevScroll
+        } else if (window.scrollY !== prevScroll) {
+          window.scrollTo({ top: prevScroll })
+        }
       }
-    }, [minHeight])
+    }, [minHeight, getScrollParent])
 
     // Auto-resize when value changes
     React.useEffect(() => {

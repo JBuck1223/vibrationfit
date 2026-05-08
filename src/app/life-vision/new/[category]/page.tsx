@@ -117,8 +117,11 @@ export default function UnifiedCategoryPage() {
   // Update method choice (VIVA vs Manual) — only shown when active content exists
   const [updateMethod, setUpdateMethod] = useState<'viva' | 'manual' | null>(null)
 
-  // VIVA generation mode: add to existing or complete rewrite
-  const [vivaGenerateMode, setVivaGenerateMode] = useState<'add' | 'rewrite'>('add')
+  // VIVA generation mode: add to existing or complete rewrite (null = not yet chosen, cards expanded)
+  const [vivaGenerateMode, setVivaGenerateMode] = useState<'add' | 'rewrite' | null>(null)
+  const [showGenModeCards, setShowGenModeCards] = useState(true)
+  const [showInstructionsSection, setShowInstructionsSection] = useState(true)
+  const instructionsSectionRef = useRef<HTMLDivElement>(null)
 
   // Manual path state
   const [manualStep, setManualStep] = useState<'write' | 'proofread' | 'polish'>('write')
@@ -374,7 +377,9 @@ export default function UnifiedCategoryPage() {
   }
 
   const handleEditWithViva = async () => {
-    const mode = sourceMode
+    const mode: SourceMode | null = updateMethod === 'viva'
+      ? (vivaGenerateMode === 'add' ? 'refine_active' : vivaGenerateMode === 'rewrite' ? 'fresh' : null)
+      : sourceMode
     if (!mode) return
 
     const activeVal = activeVision ? ((activeVision[categoryKey as keyof VisionData] as string) || '') : ''
@@ -391,6 +396,7 @@ export default function UnifiedCategoryPage() {
     if (mode === 'fresh' && !hasGenerateSignal) return
 
     compareSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    saveCategoryState()
 
     const priorManual = manualText
     if (priorManual.trim()) setPreviousRefinement(priorManual)
@@ -523,6 +529,9 @@ export default function UnifiedCategoryPage() {
       setError(err instanceof Error ? err.message : 'Failed to run VIVA')
     } finally {
       setIsGenerating(false)
+      if (updateMethod === 'viva') {
+        setShowInstructionsSection(false)
+      }
     }
   }
 
@@ -541,7 +550,9 @@ export default function UnifiedCategoryPage() {
     setProofreadEdits([])
     setEditSelections({})
     setPolishText('')
-    setVivaGenerateMode('add')
+    setVivaGenerateMode(null)
+    setShowGenModeCards(true)
+    setShowInstructionsSection(true)
     router.push(`${pathPrefix}/life-vision/new/${key}`)
   }
 
@@ -769,13 +780,15 @@ export default function UnifiedCategoryPage() {
     (includeProfile && profileHasData)
 
   const canRunViva =
-    sourceMode === 'fresh'
-      ? hasGenerateSignal
-      : sourceMode === 'refine_active'
-        ? canRefineActive
-        : sourceMode === 'iterate_draft'
-          ? canIterateDraft
-          : false
+    updateMethod === 'viva'
+      ? (vivaGenerateMode === null ? false : vivaGenerateMode === 'rewrite' ? hasGenerateSignal : canRefineActive)
+      : sourceMode === 'fresh'
+        ? hasGenerateSignal
+        : sourceMode === 'refine_active'
+          ? canRefineActive
+          : sourceMode === 'iterate_draft'
+            ? canIterateDraft
+            : false
 
   const getMeStartedPlaceholder = isFirstTime || isMetaCategory
     ? 'Your starter text will appear here...'
@@ -783,21 +796,25 @@ export default function UnifiedCategoryPage() {
       ? 'Tap Get Me Started for a contrast-flip starter from your profile, then edit here.'
       : 'Your starter text will appear here...'
 
-  const vivaSteeringPlaceholder = sourceMode === 'fresh'
+  const effectiveMode = updateMethod === 'viva'
+    ? (vivaGenerateMode === 'add' ? 'refine_active' : vivaGenerateMode === 'rewrite' ? 'fresh' : null)
+    : sourceMode
+
+  const vivaSteeringPlaceholder = effectiveMode === 'fresh'
     ? 'Is anything missing? Add it here...'
     : 'Tell VIVA how to refine this section...'
 
   const actionLabel =
-    sourceMode === 'refine_active'
+    effectiveMode === 'refine_active'
       ? `Refine ${category.label} with VIVA`
-      : sourceMode === 'iterate_draft'
+      : effectiveMode === 'iterate_draft'
         ? `Iterate ${category.label} with VIVA`
         : `Create ${category.label} with VIVA`
 
   const generatingLabel =
-    sourceMode === 'refine_active'
+    effectiveMode === 'refine_active'
       ? 'Refining with VIVA...'
-      : sourceMode === 'iterate_draft'
+      : effectiveMode === 'iterate_draft'
         ? 'Iterating with VIVA...'
         : 'Generating with VIVA...'
 
@@ -833,70 +850,70 @@ export default function UnifiedCategoryPage() {
           </span>
         </div>
 
-        {/* Overarching Category Card */}
-        <Card>
-          {/* Continue Draft / Start Fresh Banner */}
-          {showDraftBanner && draftVision && refinedCategories.length > 0 && (
-            <div className="mb-6 rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-4">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="flex items-center gap-2">
-                  <PenLine className="w-4 h-4 text-accent-500" />
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-accent-500">
-                    Draft In Progress
-                  </h3>
-                </div>
-                <p className="text-sm text-neutral-300">
-                  You have a draft in progress
-                  {draftParentVersion && (
-                    <>
-                      {' '}based on{' '}
-                      <span className="font-semibold text-white">
-                        Version {draftParentVersion.version_number}
+        {/* Continue Draft / Start Fresh Banner — own card above the category card */}
+        {showDraftBanner && draftVision && refinedCategories.length > 0 && (
+          <Card>
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex items-center gap-2">
+                <PenLine className="w-4 h-4 text-accent-500" />
+                <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-accent-500">
+                  Draft In Progress
+                </h3>
+              </div>
+              <p className="text-sm text-neutral-300">
+                You have a draft in progress
+                {draftParentVersion && (
+                  <>
+                    {' '}based on{' '}
+                    <span className="font-semibold text-white">
+                      Version {draftParentVersion.version_number}
+                    </span>
+                    {draftParentVersion.is_active && (
+                      <span className="ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-500 bg-primary-500/10">
+                        Active
                       </span>
-                      {draftParentVersion.is_active && (
-                        <span className="ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-500 bg-primary-500/10">
-                          Active
-                        </span>
-                      )}
-                    </>
-                  )}
-                  {' '}with <span className="font-semibold text-white">{refinedCategories.length} of {allCategories.length}</span> categories updated.
-                </p>
-                {commitError && (
-                  <p className="text-xs text-red-400">{commitError}</p>
-                )}
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleCommitDraft}
-                    disabled={isCommittingDraft}
-                  >
-                    {isCommittingDraft ? (
-                      <><Spinner size="sm" className="mr-1.5" />Committing...</>
-                    ) : (
-                      <><CheckCircle className="w-4 h-4 mr-1.5" />Commit as Active</>
                     )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDraftBanner(false)}
-                  >
-                    Continue Editing
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFreshConfirm(true)}
-                  >
-                    Start Fresh
-                  </Button>
-                </div>
+                  </>
+                )}
+                {' '}with <span className="font-semibold text-white">{refinedCategories.length} of {allCategories.length}</span> categories updated.
+              </p>
+              {commitError && (
+                <p className="text-xs text-red-400">{commitError}</p>
+              )}
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCommitDraft}
+                  disabled={isCommittingDraft}
+                >
+                  {isCommittingDraft ? (
+                    <><Spinner size="sm" className="mr-1.5" />Committing...</>
+                  ) : (
+                    <><CheckCircle className="w-4 h-4 mr-1.5" />Commit as Active</>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDraftBanner(false)}
+                >
+                  Continue Editing
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFreshConfirm(true)}
+                >
+                  Start Fresh
+                </Button>
               </div>
             </div>
-          )}
+          </Card>
+        )}
 
+        {/* Overarching Category Card */}
+        <Card>
           {/* Card Header */}
           <div className="mb-6 flex items-center gap-3 md:gap-4">
             <div className="h-px flex-1 bg-neutral-800" />
@@ -912,33 +929,61 @@ export default function UnifiedCategoryPage() {
           </div>
 
           {/* Method Choice Cards — Update with VIVA vs Update Myself */}
-          {!isFirstTime && sourceMode && (
-            <div className="mb-6">
+          {!isFirstTime && sourceMode && (() => {
+            const methodCards = [
+              {
+                key: 'viva' as const,
+                icon: Wand2,
+                title: 'Update with VIVA',
+                description: 'Let VIVA help you refine, expand, or rewrite this section using AI.',
+              },
+              {
+                key: 'manual' as const,
+                icon: User,
+                title: 'Update Myself',
+                description: 'Write or edit your vision text directly. VIVA will proofread for vibrational grammar when you\'re done.',
+              },
+            ]
+            const selectedCard = updateMethod ? methodCards.find(c => c.key === updateMethod) : null
+            const isCollapsed = !!selectedCard
+
+            return (
+            <div className={updateMethod ? 'mb-6' : ''}>
+              {isCollapsed ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUpdateMethod(null)
+                    setVivaGenerateMode(null)
+                    setShowGenModeCards(true)
+                  }}
+                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                >
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 1 · Update Method</h4>
+                  <p className="text-sm font-medium text-white mt-1 flex items-center gap-2">
+                    {(() => { const SelIcon = selectedCard.icon; return <SelIcon className="w-4 h-4 text-primary-500" /> })()}
+                    {selectedCard.title}
+                  </p>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <ChevronDown className="w-4 h-4 text-neutral-400" />
+                  </div>
+                </button>
+              ) : (
+              <>
+              <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400 text-center mb-3">Step 1 · Update Method</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {([
-                  {
-                    key: 'viva' as const,
-                    icon: Wand2,
-                    title: 'Update with VIVA',
-                    description: 'Let VIVA help you refine, expand, or rewrite this section using AI.',
-                  },
-                  {
-                    key: 'manual' as const,
-                    icon: User,
-                    title: 'Update Myself',
-                    description: 'Write or edit your vision text directly. VIVA will proofread for vibrational grammar when you\'re done.',
-                  },
-                ]).map(card => {
-                  const isSelected = updateMethod === card.key
+                {methodCards.map(card => {
                   const CardIcon = card.icon
                   return (
                     <div
                       key={card.key}
                       role="button"
                       tabIndex={0}
-                      aria-pressed={isSelected}
                       onClick={async () => {
                         setUpdateMethod(card.key)
+                        if (card.key === 'viva') {
+                          setVivaSteeringText('')
+                        }
                         if (card.key === 'manual') {
                           setManualStep('write')
                           setManualText('')
@@ -946,7 +991,6 @@ export default function UnifiedCategoryPage() {
                           setProofreadEdits([])
                           setEditSelections({})
                           setPolishText('')
-                          // Ensure a draft exists for saving later
                           if (!draftVision) await ensureDraftForRefine()
                         }
                       }}
@@ -956,27 +1000,16 @@ export default function UnifiedCategoryPage() {
                           setUpdateMethod(card.key)
                         }
                       }}
-                      className={`group relative text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
-                        isSelected
-                          ? 'border-primary-500 bg-primary-500/5 shadow-[0_0_0_1px_rgba(57,255,20,0.15)] -translate-y-0.5'
-                          : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer'
-                      }`}
+                      className="group relative text-left rounded-2xl border-2 border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer p-4 transition-all duration-200"
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                          isSelected ? 'bg-primary-500 text-black' : 'bg-neutral-800 text-neutral-300 group-hover:text-white'
-                        }`}>
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-800 text-neutral-300 group-hover:text-white">
                           <CardIcon className="w-4 h-4" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-200'}`}>
-                              {card.title}
-                            </h3>
-                            {isSelected && (
-                              <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-500">Selected</span>
-                            )}
-                          </div>
+                          <h3 className="text-sm font-semibold text-neutral-200">
+                            {card.title}
+                          </h3>
                           <p className="text-xs text-neutral-400 leading-relaxed mt-1">
                             {card.description}
                           </p>
@@ -986,11 +1019,14 @@ export default function UnifiedCategoryPage() {
                   )
                 })}
               </div>
+              </>
+              )}
             </div>
-          )}
+            )
+          })()}
 
-          {/* Source Mode Cards — only shown when VIVA is selected (or first time with no active content) */}
-          {sourceMode && (updateMethod === 'viva' || isFirstTime) && (
+          {/* Source Mode Cards — only shown for first-time users (no active content yet) */}
+          {sourceMode && isFirstTime && (
             <div className="mb-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {(() => {
@@ -1165,50 +1201,83 @@ export default function UnifiedCategoryPage() {
           )}
 
           {/* VIVA Generate Mode: Add Only vs Complete Rewrite */}
-          {(updateMethod === 'viva' || isFirstTime) && sourceMode && sourceMode !== 'fresh' && (
-            <div className="mb-6">
-              <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400 text-center mb-3">Generation Mode</h4>
-              <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
-                {([
-                  {
-                    key: 'add' as const,
-                    title: 'Add Only',
-                    description: 'Weave new content into existing text',
-                  },
-                  {
-                    key: 'rewrite' as const,
-                    title: 'Complete Rewrite',
-                    description: 'Generate a full replacement',
-                  },
-                ]).map(mode => {
-                  const isSelected = vivaGenerateMode === mode.key
-                  return (
-                    <button
-                      key={mode.key}
-                      type="button"
-                      onClick={() => setVivaGenerateMode(mode.key)}
-                      className={`text-left rounded-xl border-2 p-3 transition-all duration-200 ${
-                        isSelected
-                          ? 'border-accent-500 bg-accent-500/5'
-                          : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
-                      }`}
-                    >
-                      <h5 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
-                        {mode.title}
-                      </h5>
-                      <p className="text-xs text-neutral-400 mt-0.5">{mode.description}</p>
-                    </button>
-                  )
-                })}
-              </div>
+          {(updateMethod === 'viva' || (isFirstTime && sourceMode && sourceMode !== 'fresh')) && (() => {
+            const genModes = [
+              { key: 'add' as const, title: 'Add Only', description: 'Weave new content into existing text' },
+              { key: 'rewrite' as const, title: 'Complete Rewrite', description: 'Generate a full replacement' },
+            ]
+            const selectedGenMode = vivaGenerateMode ? genModes.find(m => m.key === vivaGenerateMode) : null
+            const isCollapsed = !!selectedGenMode && !showGenModeCards
+
+            return (
+            <div className={vivaGenerateMode ? 'mb-6' : ''}>
+              {isCollapsed ? (
+                <button
+                  type="button"
+                  onClick={() => setShowGenModeCards(true)}
+                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                >
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">{updateMethod === 'viva' ? 'Step 2 · ' : ''}Generation Mode</h4>
+                  <p className="text-sm font-medium text-white mt-1">{selectedGenMode.title}</p>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <ChevronDown className="w-4 h-4 text-neutral-400" />
+                  </div>
+                </button>
+              ) : (
+              <>
+                <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400 text-center mb-3">{updateMethod === 'viva' ? 'Step 2 · ' : ''}Generation Mode</h4>
+                <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
+                  {genModes.map(mode => {
+                    const isSelected = vivaGenerateMode === mode.key
+                    return (
+                      <button
+                        key={mode.key}
+                        type="button"
+                        onClick={() => {
+                          setVivaGenerateMode(mode.key)
+                          setShowGenModeCards(false)
+                        }}
+                        className={`text-left rounded-xl border-2 p-3 transition-all duration-200 ${
+                          isSelected
+                            ? 'border-accent-500 bg-accent-500/5'
+                            : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
+                        }`}
+                      >
+                        <h5 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
+                          {mode.title}
+                        </h5>
+                        <p className="text-xs text-neutral-400 mt-0.5">{mode.description}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+              )}
             </div>
-          )}
+            )
+          })()}
 
           {/* Inputs — fresh mode shows starter + imagination, refine modes show notes only. */}
-          {(updateMethod === 'viva' || isFirstTime) && (
-          <section>
+          {((updateMethod === 'viva' && vivaGenerateMode) || isFirstTime) && (
+          <section ref={instructionsSectionRef}>
+            {/* VIVA path: collapsible after generation */}
+            {updateMethod === 'viva' && !showInstructionsSection ? (
+              <button
+                type="button"
+                onClick={() => setShowInstructionsSection(true)}
+                className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+              >
+                <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 3 · Instructions</h4>
+                <p className="text-sm font-medium text-white mt-1">
+                  {vivaSteeringText.trim() ? vivaSteeringText.trim().slice(0, 60) + (vivaSteeringText.trim().length > 60 ? '…' : '') : 'No instructions provided'}
+                </p>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <ChevronDown className="w-4 h-4 text-neutral-400" />
+                </div>
+              </button>
+            ) : (
             <div>
-              {sourceMode === 'fresh' && (
+              {sourceMode === 'fresh' && updateMethod !== 'viva' && (
                 <>
                   <div>
                     <h2 className="text-lg font-semibold text-white text-center mb-2">
@@ -1267,14 +1336,25 @@ export default function UnifiedCategoryPage() {
               )}
 
               <div>
-                <h2 className="text-lg font-semibold text-white text-center mb-2">
-                  {sourceMode === 'fresh' ? 'Unleash Your Imagination' : 'Update Notes'}
-                </h2>
-                <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
-                  {sourceMode === 'fresh'
-                    ? 'Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)'
-                    : 'Tell VIVA how to refine this section. (Optional — VIVA can refine without notes too.)'}
-                </p>
+                {updateMethod === 'viva' ? (
+                  <>
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400 text-center mb-3">Step 3 · Instructions</h4>
+                    <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
+                      Tell VIVA how to refine this section. (Optional — VIVA can refine without notes too.)
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-lg font-semibold text-white text-center mb-2">
+                      {effectiveMode === 'fresh' ? 'Unleash Your Imagination' : 'Update Notes'}
+                    </h2>
+                    <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
+                      {effectiveMode === 'fresh'
+                        ? 'Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)'
+                        : 'Tell VIVA how to refine this section. (Optional — VIVA can refine without notes too.)'}
+                    </p>
+                  </>
+                )}
 
                 {/* Inspiration Questions (collapsible) — only for life categories */}
                 {!isMetaCategory && inspirationQuestions.length > 0 && (
@@ -1372,7 +1452,13 @@ export default function UnifiedCategoryPage() {
                   })()
                 )}
               </div>
+              <p className="text-center text-xs text-neutral-500 mt-3">
+                {manualText.trim().length >= 50
+                  ? 'Your draft is ready below. Adjust your instructions and regenerate, or scroll down to review.'
+                  : 'Your generated text will appear in the Draft section below for review.'}
+              </p>
             </div>
+            )}
           </section>
           )}
 
@@ -1445,7 +1531,7 @@ export default function UnifiedCategoryPage() {
                         <AutoResizeTextarea
                           value={manualText}
                           onChange={setManualText}
-                          placeholder="Write your updated vision here..."
+                          placeholder="Type your updated vision here..."
                           className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                           minHeight={200}
                         />
@@ -1684,12 +1770,24 @@ export default function UnifiedCategoryPage() {
             </section>
           )}
 
-          {draftVision && (updateMethod === 'viva' || isFirstTime) && (
+          {draftVision && ((updateMethod === 'viva' && vivaGenerateMode) || isFirstTime) && (
             <section ref={compareSectionRef} className="mt-12 pt-8 border-t border-neutral-800 mb-8">
               {hasActiveContent ? (
                 <>
                   <div className="mb-6 flex flex-col items-center gap-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Compare</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">{updateMethod === 'viva' ? 'Step 4 · ' : ''}Compare</h4>
+                    {updateMethod === 'viva' && !showInstructionsSection && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowInstructionsSection(true)
+                          setTimeout(() => instructionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+                        }}
+                        className="text-xs text-accent-500 hover:text-accent-400 transition-colors"
+                      >
+                        Not quite right? Adjust instructions &amp; regenerate ↑
+                      </button>
+                    )}
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1.5 text-sm text-neutral-300">
                         {activeVersionLabel}
@@ -1799,7 +1897,7 @@ export default function UnifiedCategoryPage() {
                           <AutoResizeTextarea
                             value={manualText}
                             onChange={setManualText}
-                            placeholder="Run Viva above or write your updated vision here..."
+                            placeholder="Generate with VIVA in Step 3 above, or type your vision here..."
                             className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                             minHeight={200}
                           />
@@ -1882,7 +1980,7 @@ export default function UnifiedCategoryPage() {
                       <AutoResizeTextarea
                         value={manualText}
                         onChange={setManualText}
-                        placeholder="Run Viva above or write your vision here..."
+                        placeholder="Generate with VIVA in Step 3 above, or type your vision here..."
                         className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                         minHeight={200}
                       />
