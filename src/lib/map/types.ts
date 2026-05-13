@@ -1,3 +1,9 @@
+import type { LifeCategoryKey } from '@/lib/design-system/vision-categories'
+
+// ============================================================================
+// MAP v1 legacy types (user_maps / user_map_items) — kept for migration
+// ============================================================================
+
 export type MapCategory = 'creations' | 'activations' | 'connections' | 'sessions'
 
 export interface UserMap {
@@ -57,17 +63,129 @@ export interface UpdateMapPayload {
   items?: CreateMapItemPayload[]
 }
 
-/**
- * Derive a display status from the is_draft / is_active booleans.
- * - is_draft=true                → 'draft'
- * - is_draft=false, is_active=true  → 'active'
- * - is_draft=false, is_active=false → 'archived'
- */
 export function getMapDisplayStatus(map: Pick<UserMap, 'is_draft' | 'is_active'>): 'draft' | 'active' | 'archived' {
   if (map.is_draft) return 'draft'
   if (map.is_active) return 'active'
   return 'archived'
 }
+
+// ============================================================================
+// MAP v2 types — Living The Vision
+// ============================================================================
+
+// -- Cadence ------------------------------------------------------------------
+
+export type CadenceKind = 'daily' | 'days_per_week'
+
+export interface DailyCadence {
+  kind: 'daily'
+}
+
+export interface DaysPerWeekCadence {
+  kind: 'days_per_week'
+  count: number
+}
+
+export type Cadence = DailyCadence | DaysPerWeekCadence
+
+// -- Vision Targets -----------------------------------------------------------
+
+export type VisionTargetStatus = 'active' | 'achieved' | 'archived'
+
+export interface VisionTarget {
+  id: string
+  user_id: string
+  vision_version_id: string | null
+  category: LifeCategoryKey | string
+  title: string
+  description: string | null
+  status: VisionTargetStatus
+  achieved_at: string | null
+  achievement_note: string | null
+  achievement_journal_entry_id: string | null
+  created_at: string
+  updated_at: string
+  commitments?: Commitment[]
+}
+
+export interface CreateVisionTargetPayload {
+  category: string
+  title: string
+  description?: string | null
+  vision_version_id?: string | null
+}
+
+export interface UpdateVisionTargetPayload {
+  title?: string
+  description?: string | null
+  status?: VisionTargetStatus
+  achievement_note?: string | null
+  achievement_journal_entry_id?: string | null
+}
+
+// -- Commitments --------------------------------------------------------------
+
+export type CommitmentType = 'recurring' | 'project'
+export type CommitmentStatus = 'active' | 'paused' | 'completed' | 'archived'
+
+export interface Commitment {
+  id: string
+  user_id: string
+  vision_target_id: string | null
+  category: LifeCategoryKey | string
+  parent_commitment_id: string | null
+  type: CommitmentType
+  title: string
+  description: string | null
+  cadence: Cadence | null
+  start_date: string | null
+  end_date: string | null
+  status: CommitmentStatus
+  imported_from_map_item_id: string | null
+  created_at: string
+  updated_at: string
+  occurrences?: CommitmentOccurrence[]
+}
+
+export interface CreateCommitmentPayload {
+  vision_target_id?: string | null
+  category: string
+  parent_commitment_id?: string | null
+  type: CommitmentType
+  title: string
+  description?: string | null
+  cadence?: Cadence | null
+  start_date?: string | null
+  end_date?: string | null
+}
+
+export interface UpdateCommitmentPayload {
+  title?: string
+  description?: string | null
+  cadence?: Cadence | null
+  start_date?: string | null
+  end_date?: string | null
+  status?: CommitmentStatus
+}
+
+// -- Occurrences --------------------------------------------------------------
+
+export type OccurrenceStatus = 'pending' | 'yes' | 'no' | 'skipped'
+
+export interface CommitmentOccurrence {
+  id: string
+  commitment_id: string
+  user_id: string
+  occurred_on: string
+  status: OccurrenceStatus
+  verified_at: string | null
+  note: string | null
+  created_at: string
+  updated_at: string
+  commitment?: Commitment
+}
+
+// -- Constants ----------------------------------------------------------------
 
 export const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 export const DAY_LABELS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const

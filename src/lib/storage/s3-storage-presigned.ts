@@ -83,6 +83,10 @@ async function withRetry<T>(
         message.includes('network') ||
         message.includes('timeout') ||
         message.includes('timed out') ||
+        message.includes('load failed') ||
+        message.includes('failed to fetch') ||
+        message.includes('network request failed') ||
+        message.includes('aborted') ||
         message.includes('500') ||
         message.includes('502') ||
         message.includes('503') ||
