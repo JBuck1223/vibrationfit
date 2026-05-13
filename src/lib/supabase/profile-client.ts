@@ -1,5 +1,6 @@
 'use client'
 
+import { isTransientNetworkError } from '@/lib/net/transient-network-error'
 import { createClient } from './client'
 import type { User } from '@supabase/supabase-js'
 
@@ -48,11 +49,7 @@ function setCachedProfile(userId: string, data: ActiveProfileFields | null): voi
 
 /** True when the browser could not complete the HTTP request (unreachable host, CORS, offline, etc.). */
 function isLikelyNetworkFailure(err: unknown): boolean {
-  if (!err) return false
-  const msg = err instanceof Error ? err.message : String(err)
-  if (/failed to fetch|networkerror|load failed|network request failed|aborted/i.test(msg)) return true
-  if (err instanceof TypeError && /fetch|network|load failed/i.test(msg)) return true
-  return false
+  return isTransientNetworkError(err)
 }
 
 /**

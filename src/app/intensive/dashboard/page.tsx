@@ -470,7 +470,7 @@ function IntensiveDashboardContent() {
     const utcStartedAt = startedAt.endsWith('Z') ? startedAt : startedAt + 'Z'
     const startTime = new Date(utcStartedAt).getTime()
     const endTime = startTime + INTENSIVE_DURATION_MS
-    const now = Date.now()
+    const now = Math.floor(Date.now() / 1000) * 1000
     const diff = endTime - now
 
     if (diff <= 0) {

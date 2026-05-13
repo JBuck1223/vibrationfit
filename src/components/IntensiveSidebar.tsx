@@ -101,7 +101,7 @@ export function IntensiveSidebar() {
       const utcStartedAt = startedAt.endsWith('Z') ? startedAt : startedAt + 'Z'
       const startTime = new Date(utcStartedAt).getTime()
       const endTime = startTime + INTENSIVE_DURATION_MS
-      const now = Date.now()
+      const now = Math.floor(Date.now() / 1000) * 1000
       const remaining = endTime - now
 
       if (remaining <= 0) {

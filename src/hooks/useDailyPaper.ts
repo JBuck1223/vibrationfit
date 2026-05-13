@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { isTransientNetworkError } from '@/lib/net/transient-network-error'
 
 export interface DailyPaperEntry {
   id: string
@@ -145,30 +146,46 @@ export function useDailyPaperMutation(): UseDailyPaperMutationResult {
   const saveDailyPaper = useCallback(async (payload: DailyPaperPayload) => {
     setIsSaving(true)
     setError(null)
+    const maxAttempts = 3
+    let lastErr: unknown
     try {
-      const response = await fetch('/api/daily-paper', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          const response = await fetch('/api/daily-paper', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(
-          (errorData as { error?: string }).error || 'Failed to save Daily Paper.',
-        )
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(
+              (errorData as { error?: string }).error || 'Failed to save Daily Paper.',
+            )
+          }
+
+          const data = (await response.json()) as { data: DailyPaperEntry }
+          return data.data
+        } catch (err) {
+          lastErr = err
+          const retryable =
+            isTransientNetworkError(err) && attempt < maxAttempts - 1
+          if (!retryable) throw err
+          await new Promise((r) => setTimeout(r, 800 * (attempt + 1)))
+        }
       }
-
-      const data = (await response.json()) as { data: DailyPaperEntry }
-      return data.data
+      throw lastErr
     } catch (err) {
       console.error('useDailyPaperMutation error:', err)
+      const raw = err instanceof Error ? err.message : 'Unable to save your Daily Paper.'
       const message =
-        err instanceof Error ? err.message : 'Unable to save your Daily Paper.'
+        raw === 'Load failed' || /^failed to fetch$/i.test(raw)
+          ? 'Connection dropped before save finished. Check your signal and try again.'
+          : raw
       setError(message)
-      throw err instanceof Error ? err : new Error(message)
+      throw new Error(message)
     } finally {
       setIsSaving(false)
     }
