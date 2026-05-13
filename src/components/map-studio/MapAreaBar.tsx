@@ -20,7 +20,7 @@ export function MapAreaBar() {
   return (
     <AreaBar
       area={{ name: 'MAP', icon: Map }}
-      tabs={isDetailPage ? undefined : TABS}
+      tabs={isDetailPage ? [] : TABS}
       variant="default"
       appLikePrimaryTabs
     />
