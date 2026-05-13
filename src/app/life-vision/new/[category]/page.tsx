@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams, usePathname } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import * as Diff from 'diff'
 import {
   Sparkles,
@@ -65,11 +65,8 @@ type SourceMode = 'fresh' | 'refine_active' | 'iterate_draft'
 export default function UnifiedCategoryPage() {
   const router = useRouter()
   const params = useParams()
-  const pathname = usePathname()
   const categoryKey = params.category as string
   const supabase = createClient()
-  const isIntensive = pathname.startsWith('/intensive/')
-  const pathPrefix = isIntensive ? '/intensive' : ''
   const { draftId, activeVisionId, visions, refreshVisions } = useLifeVisionStudio()
   const isMetaCategory = (META_CATEGORY_KEYS as readonly string[]).includes(categoryKey)
 
@@ -553,7 +550,7 @@ export default function UnifiedCategoryPage() {
     setVivaGenerateMode(null)
     setShowGenModeCards(true)
     setShowInstructionsSection(true)
-    router.push(`${pathPrefix}/life-vision/new/${key}`)
+    router.push(`/life-vision/new/${key}`)
   }
 
   const saveManualEdit = async () => {
@@ -608,7 +605,7 @@ export default function UnifiedCategoryPage() {
     setCommitError(null)
     try {
       const vision = await commitDraft(draftVision.id)
-      router.push(`${pathPrefix}/life-vision/${vision.id}`)
+      router.push(`/life-vision/${vision.id}`)
     } catch (err) {
       console.error('Error committing draft:', err)
       setCommitError(err instanceof Error ? err.message : 'Failed to commit draft')
@@ -651,7 +648,7 @@ export default function UnifiedCategoryPage() {
     if (currentIndex < allCategories.length - 1) {
       handleCategoryChange(allCategories[currentIndex + 1].key)
     } else if (canReviewFromLast && draftVision) {
-      router.push(`${pathPrefix}/life-vision/${draftVision.id}`)
+      router.push(`/life-vision/${draftVision.id}`)
     }
   }
 
@@ -936,12 +933,16 @@ export default function UnifiedCategoryPage() {
                 icon: Wand2,
                 title: 'Update with VIVA',
                 description: 'Let VIVA help you refine, expand, or rewrite this section using AI.',
+                iconColor: 'text-accent-100',
+                bgColor: 'bg-accent-700/20',
               },
               {
                 key: 'manual' as const,
                 icon: User,
                 title: 'Update Myself',
                 description: 'Write or edit your vision text directly. VIVA will proofread for vibrational grammar when you\'re done.',
+                iconColor: 'text-secondary-500',
+                bgColor: 'bg-secondary-500/20',
               },
             ]
             const selectedCard = updateMethod ? methodCards.find(c => c.key === updateMethod) : null
@@ -1000,13 +1001,13 @@ export default function UnifiedCategoryPage() {
                           setUpdateMethod(card.key)
                         }
                       }}
-                      className="group relative text-left rounded-2xl border-2 border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer p-4 transition-all duration-200"
+                      className="group relative rounded-2xl border-2 border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer p-4 transition-all duration-200"
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-800 text-neutral-300 group-hover:text-white">
+                      <div className="flex flex-col items-center gap-2 text-center">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${card.bgColor} ${card.iconColor}`}>
                           <CardIcon className="w-4 h-4" />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div>
                           <h3 className="text-sm font-semibold text-neutral-200">
                             {card.title}
                           </h3>
@@ -1421,7 +1422,7 @@ export default function UnifiedCategoryPage() {
                           size="sm"
                           onClick={() => {
                             saveCategoryState()
-                            router.push(`${pathPrefix}/life-vision/new/assembly`)
+                            router.push('/life-vision/new/assembly')
                           }}
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />Save & Finish
@@ -1441,7 +1442,7 @@ export default function UnifiedCategoryPage() {
                           if (nextIncomplete) {
                             handleCategoryChange(nextIncomplete.key)
                           } else {
-                            router.push(`${pathPrefix}/life-vision/new`)
+                            router.push('/life-vision/new')
                           }
                         }}
                       >

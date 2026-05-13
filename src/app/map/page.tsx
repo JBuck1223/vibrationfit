@@ -1,23 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
-import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import Link from 'next/link'
 import {
   Container,
   Stack,
-  PageHero,
   Card,
   Button,
   Spinner,
   Inline,
   Text,
   Badge,
-  IntensiveCompletionBanner,
-  IntensiveStepCompleteModal
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import {
@@ -25,22 +20,18 @@ import {
   Moon,
   Zap,
   ArrowRight,
-  Calendar,
   BookOpen,
   Image as ImageIcon,
   FileText,
   Target,
   Headphones,
   CheckCircle,
-  Circle,
   User,
   ClipboardCheck,
   Mic,
   Layers,
-  Unlock,
   Video,
   UsersRound,
-  Award,
   Info,
   Plus,
   ChevronDown,
@@ -57,8 +48,7 @@ import {
   type BadgeWithProgress as BadgeWithProgressType,
 } from '@/lib/badges/types'
 import type { UserMap, UserMapItem, MapCategory } from '@/lib/map/types'
-import { DAY_LABELS, CATEGORY_LABELS, CATEGORY_ORDER, getMapDisplayStatus } from '@/lib/map/types'
-import { getActivityDefinition } from '@/lib/map/activities'
+import { CATEGORY_LABELS, CATEGORY_ORDER, getMapDisplayStatus } from '@/lib/map/types'
 
 const MAP_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/13-map-1080p.mp4'
@@ -123,32 +113,14 @@ function makeBadgeStub(badgeType: BadgeType): BadgeWithProgressType {
   }
 }
 
-function formatTime(t: string | null) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  const period = h >= 12 ? 'PM' : 'AM'
-  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h
-  return `${dh}:${String(m).padStart(2, '0')} ${period}`
-}
-
 export default function MAPPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const [loading, setLoading] = useState(true)
   const [selectedMilestoneBadge, setSelectedMilestoneBadge] = useState<BadgeWithProgressType | null>(null)
-  const [completing, setCompleting] = useState(false)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
-  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
 
-  // Intensive flow states
-  const [isIntensiveFlow, setIsIntensiveFlow] = useState(false)
-  const [intensiveId, setIntensiveId] = useState<string | null>(null)
-  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
-  const [completedAt, setCompletedAt] = useState<string | null>(null)
-
-  // MAP data
   const [maps, setMaps] = useState<UserMap[]>([])
   const [activeMap, setActiveMap] = useState<UserMap | null>(null)
 
@@ -166,23 +138,6 @@ export default function MAPPage() {
         return
       }
 
-      const fromIntensive = searchParams.get('intensive') === 'true'
-      const intensiveData = await getActiveIntensiveClient()
-
-      let isInIntensive = false
-      if (intensiveData) {
-        setIntensiveId(intensiveData.intensive_id)
-        if (!intensiveData.unlock_completed || fromIntensive) {
-          setIsIntensiveFlow(true)
-          setShowGuide(true)
-          isInIntensive = true
-        }
-        if (intensiveData.activation_protocol_completed) {
-          setIsAlreadyCompleted(true)
-          setCompletedAt(intensiveData.activation_protocol_completed_at || intensiveData.created_at)
-        }
-      }
-
       const { data: visionData } = await supabase
         .from('vision_versions')
         .select('id')
@@ -197,51 +152,22 @@ export default function MAPPage() {
         setActiveVisionId(visionData.id)
       }
 
-      // Only fetch MAPs after intensive graduation
-      if (!isInIntensive) {
-        try {
-          const mapsRes = await fetch('/api/map')
-          if (mapsRes.ok) {
-            const mapsData = await mapsRes.json()
-            setMaps(mapsData.maps || [])
-            const active = (mapsData.maps || []).find((m: UserMap) => m.is_active && !m.is_draft)
-            if (active) setActiveMap(active)
-          }
-        } catch {
-          // Maps table may not exist yet
+      try {
+        const mapsRes = await fetch('/api/map')
+        if (mapsRes.ok) {
+          const mapsData = await mapsRes.json()
+          setMaps(mapsData.maps || [])
+          const active = (mapsData.maps || []).find((m: UserMap) => m.is_active && !m.is_draft)
+          if (active) setActiveMap(active)
         }
+      } catch {
+        // Maps table may not exist yet
       }
 
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleContinueToUnlock = async () => {
-    if (!intensiveId) return
-
-    setCompleting(true)
-    try {
-      const supabase = createClient()
-      const completedTime = new Date().toISOString()
-
-      await supabase
-        .from('intensive_checklist')
-        .update({
-          activation_protocol_completed: true,
-          activation_protocol_completed_at: completedTime
-        })
-        .eq('intensive_id', intensiveId)
-
-      invalidateIntensiveSnapshot()
-      setShowStepCompleteModal(true)
-    } catch (error) {
-      console.error('Error completing:', error)
-      alert('Failed to continue. Please try again.')
-    } finally {
-      setCompleting(false)
     }
   }
 
@@ -267,93 +193,40 @@ export default function MAPPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Completion Banner if revisiting during intensive */}
-        {isIntensiveFlow && isAlreadyCompleted && completedAt && (
-          <IntensiveCompletionBanner
-            stepTitle="My Activation Plan"
-            completedAt={completedAt}
-          />
-        )}
-
         {/* ============================================ */}
-        {/* HERO SECTION */}
+        {/* ACTION BUTTONS */}
         {/* ============================================ */}
-        <PageHero
-          eyebrow={isIntensiveFlow ? "ACTIVATION INTENSIVE \u2022 STEP 13 OF 14" : "MAP"}
-          title="My Activation Plan"
-          subtitle={activeMap
-            ? `Your active MAP: ${activeMap.title}`
-            : "Build your personal roadmap to make The Life I Choose your new normal."
-          }
-        >
-          <div className="flex flex-row flex-wrap justify-center lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-            {isIntensiveFlow ? (
-              isAlreadyCompleted ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => router.push('/dashboard')}
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  <ArrowRight className="w-4 h-4 shrink-0" />
-                  <span>Go to Dashboard</span>
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleContinueToUnlock}
-                  disabled={completing}
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  {completing ? (
-                    <>
-                      <Spinner size="sm" />
-                      <span>Continuing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Unlock className="w-4 h-4 shrink-0" />
-                      <span>Continue to Unlock Platform</span>
-                    </>
-                  )}
-                </Button>
-              )
-            ) : (
-              <>
-                {activeMap ? (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    asChild
-                    className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                  >
-                    <Link href={`/map/${activeMap.id}`}>
-                      <MapIcon className="w-4 h-4 shrink-0" />
-                      <span>View Active MAP</span>
-                    </Link>
-                  </Button>
-                ) : null}
-                <Button
-                  variant={activeMap ? 'outline' : 'primary'}
-                  size="sm"
-                  asChild
-                  className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                >
-                  <Link href="/map/new">
-                    <Plus className="w-4 h-4 shrink-0" />
-                    <span>Build New MAP</span>
-                  </Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </PageHero>
+        <div className="flex flex-row flex-wrap justify-center lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
+          {activeMap ? (
+            <Button
+              variant="primary"
+              size="sm"
+              asChild
+              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+            >
+              <Link href={`/map/${activeMap.id}`}>
+                <MapIcon className="w-4 h-4 shrink-0" />
+                <span>View Active MAP</span>
+              </Link>
+            </Button>
+          ) : null}
+          <Button
+            variant={activeMap ? 'outline' : 'primary'}
+            size="sm"
+            asChild
+            className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+          >
+            <Link href="/map/new">
+              <Plus className="w-4 h-4 shrink-0" />
+              <span>Build New MAP</span>
+            </Link>
+          </Button>
+        </div>
 
         {/* ============================================ */}
         {/* ACTIVE MAP PREVIEW */}
         {/* ============================================ */}
-        {!isIntensiveFlow && activeMap && activeMap.items && (activeMap.items as UserMapItem[]).length > 0 && (
+        {activeMap && activeMap.items && (activeMap.items as UserMapItem[]).length > 0 && (
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
             <Stack gap="md">
               <div className="flex items-center justify-between">
@@ -373,7 +246,6 @@ export default function MAPPage() {
                 </Button>
               </div>
 
-              {/* Compact summary of the active MAP */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {CATEGORY_ORDER.map(category => {
                   const items = ((activeMap.items || []) as UserMapItem[]).filter(
@@ -423,7 +295,7 @@ export default function MAPPage() {
         {/* ============================================ */}
         {/* PAST MAPS */}
         {/* ============================================ */}
-        {!isIntensiveFlow && pastMaps.length > 0 && (
+        {pastMaps.length > 0 && (
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
             <Stack gap="md">
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
@@ -795,101 +667,48 @@ export default function MAPPage() {
         {/* ============================================ */}
         {/* BOTTOM CTA */}
         {/* ============================================ */}
-        {!isIntensiveFlow && (
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
-            <div className="py-6">
-              <p className="text-neutral-300 mb-4">
-                {activeMap
-                  ? 'Build a new MAP to update your weekly practice.'
-                  : 'Ready to plan your routine? Build your first MAP.'
-                }
-              </p>
-              <div className="flex flex-row flex-wrap justify-center gap-2 md:gap-4">
-                {activeMap && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-                  >
-                    <Link href={`/map/${activeMap.id}`}>
-                      <MapIcon className="w-4 h-4 shrink-0" />
-                      <span>View Active MAP</span>
-                    </Link>
-                  </Button>
-                )}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
+          <div className="py-6">
+            <p className="text-neutral-300 mb-4">
+              {activeMap
+                ? 'Build a new MAP to update your weekly practice.'
+                : 'Ready to plan your routine? Build your first MAP.'
+              }
+            </p>
+            <div className="flex flex-row flex-wrap justify-center gap-2 md:gap-4">
+              {activeMap && (
                 <Button
-                  variant="primary"
+                  variant="outline"
                   size="sm"
                   asChild
                   className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
                 >
-                  <Link href="/map/new">
-                    <Plus className="w-4 h-4 shrink-0" />
-                    <span>Build New MAP</span>
+                  <Link href={`/map/${activeMap.id}`}>
+                    <MapIcon className="w-4 h-4 shrink-0" />
+                    <span>View Active MAP</span>
                   </Link>
                 </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {isIntensiveFlow && (
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
-            <div className="py-6">
-              {!isAlreadyCompleted ? (
-                <>
-                  <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Ready to Unlock?</h2>
-                  <p className="text-sm text-neutral-300 mb-6">
-                    You&apos;ve reviewed your MAP. Continue to unlock your full platform access.
-                  </p>
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    onClick={handleContinueToUnlock}
-                    disabled={completing}
-                    className="w-full sm:w-auto"
-                  >
-                    {completing ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        Continuing...
-                      </>
-                    ) : (
-                      <>
-                        <Unlock className="w-5 h-5 mr-2" />
-                        Continue to Unlock Platform
-                      </>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p className="text-neutral-300 mb-4">
-                    This is your MAP. Come back anytime during your journey.
-                  </p>
-                  <Button variant="primary" asChild>
-                    <Link href="/dashboard">
-                      Go to Dashboard
-                    </Link>
-                  </Button>
-                </>
               )}
+              <Button
+                variant="primary"
+                size="sm"
+                asChild
+                className="flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
+              >
+                <Link href="/map/new">
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span>Build New MAP</span>
+                </Link>
+              </Button>
             </div>
-          </Card>
-        )}
+          </div>
+        </Card>
       </Stack>
 
       <BadgeDetailModal
         badge={selectedMilestoneBadge}
         isOpen={!!selectedMilestoneBadge}
         onClose={() => setSelectedMilestoneBadge(null)}
-      />
-
-      <IntensiveStepCompleteModal
-        isOpen={showStepCompleteModal}
-        onClose={() => setShowStepCompleteModal(false)}
-        stepId="activation_protocol"
       />
     </Container>
   )

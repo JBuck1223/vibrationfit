@@ -18,20 +18,14 @@ SET
   profile_completed_at = NULL,
   assessment_completed = false,
   assessment_completed_at = NULL,
-  call_scheduled = false,
-  call_scheduled_at = NULL,
   vision_built = false,
   vision_built_at = NULL,
-  vision_refined = false,
-  vision_refined_at = NULL,
   audio_generated = false,
   audio_generated_at = NULL,
   vision_board_completed = false,
   vision_board_completed_at = NULL,
   first_journal_entry = false,
   first_journal_entry_at = NULL,
-  calibration_call_completed = false,
-  calibration_call_completed_at = NULL,
   activation_protocol_completed = false,
   activation_protocol_completed_at = NULL
 WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
@@ -44,8 +38,8 @@ WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com
 
 -- OPTION 3: Fast-forward to 90% complete (test completion flow)
 -- UPDATE intensive_checklist SET 
---   profile_completed = true, assessment_completed = true, call_scheduled = true,
---   vision_built = true, vision_refined = true, audio_generated = true,
+--   profile_completed = true, assessment_completed = true,
+--   vision_built = true, audio_generated = true,
 --   vision_board_completed = true, first_journal_entry = true,
---   calibration_call_completed = true
+--   activation_protocol_completed = true
 -- WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');

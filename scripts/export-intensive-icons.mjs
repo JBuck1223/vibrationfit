@@ -12,15 +12,13 @@ const ICONS = [
   { step: '03', name: 'user-circle', label: 'Create Your Profile', path: 'circle-user' },
   { step: '04', name: 'activity', label: 'Vibration Assessment', path: 'activity' },
   { step: '05', name: 'eye', label: 'Build Your Life Vision', path: 'eye' },
-  { step: '06', name: 'sparkles', label: 'Refine Your Vision', path: 'sparkles' },
-  { step: '07', name: 'audio-lines', label: 'Generate Vision Audio', path: 'audio-lines' },
-  { step: '08', name: 'mic', label: 'Record Your Voice', path: 'mic' },
-  { step: '09', name: 'music', label: 'Create Audio Mix', path: 'music' },
-  { step: '10', name: 'layout-grid', label: 'Create Vision Board', path: 'layout-grid' },
-  { step: '11', name: 'pen-line', label: 'First Journal Entry', path: 'pen-line' },
-  { step: '12', name: 'phone', label: 'Book Calibration Call', path: 'phone' },
-  { step: '13', name: 'map', label: 'My Activation Plan', path: 'map' },
-  { step: '14', name: 'unlock', label: 'Platform Unlock', path: 'lock-open' },
+  { step: '06', name: 'audio-lines', label: 'Generate Vision Audio', path: 'audio-lines' },
+  { step: '07', name: 'mic', label: 'Record Your Voice', path: 'mic' },
+  { step: '08', name: 'music', label: 'Create Audio Mix', path: 'music' },
+  { step: '09', name: 'layout-grid', label: 'Create Vision Board', path: 'layout-grid' },
+  { step: '10', name: 'pen-line', label: 'First Journal Entry', path: 'pen-line' },
+  { step: '11', name: 'map', label: 'My Activation Plan', path: 'map' },
+  { step: '12', name: 'unlock', label: 'Platform Unlock', path: 'lock-open' },
 ];
 
 async function fetchSvg(iconPath) {

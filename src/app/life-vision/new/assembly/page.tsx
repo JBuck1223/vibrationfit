@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Button, Container, Stack, PageHero, Spinner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { Card, Button, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
 import { CheckCircle, ArrowRight, AlertCircle, Sparkles, ChevronDown } from 'lucide-react'
 import { VISION_CATEGORIES, getVisionCategory, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 import { getBookendTemplate, determineWooLevel } from '@/lib/viva/bookend-templates'
@@ -17,13 +17,10 @@ interface CategoryPreview {
 
 export default function AssemblyPage() {
   const router = useRouter()
-  const pathname = usePathname()
   const supabase = createClient()
-  const isIntensive = pathname.startsWith('/intensive/')
-  const pathPrefix = isIntensive ? '/intensive' : ''
 
   const [isLoading, setIsLoading] = useState(true)
-  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  
   const [isCommitting, setIsCommitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [visionId, setVisionId] = useState<string | null>(null)
@@ -31,7 +28,7 @@ export default function AssemblyPage() {
   const [forwardText, setForwardText] = useState('')
   const [conclusionText, setConclusionText] = useState('')
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
-  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
+  
 
   const categoryKeys = VISION_CATEGORIES
     .filter(c => c.order > 0 && c.order < 13)
@@ -54,15 +51,6 @@ export default function AssemblyPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
-      const { data: checklist } = await supabase
-        .from('intensive_checklist')
-        .select('id')
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
-        .maybeSingle()
-
-      if (checklist) setIsIntensiveMode(true)
 
       const { data: categoryStates } = await supabase
         .from('vision_new_category_state')
@@ -137,11 +125,7 @@ export default function AssemblyPage() {
       if (data.visionId) {
         setVisionId(data.visionId)
 
-        if (isIntensiveMode) {
-          const { markIntensiveStep } = await import('@/lib/intensive/checklist')
-          const success = await markIntensiveStep('vision_built')
-          if (success) setShowStepCompleteModal(true)
-        }
+        
       }
     } catch (err) {
       console.error('Assembly error:', err)
@@ -194,7 +178,7 @@ export default function AssemblyPage() {
                   {categories.filter(c => !c.ready).map(c => (
                     <button
                       key={c.key}
-                      onClick={() => router.push(`${pathPrefix}/life-vision/new/category/${c.key}`)}
+                      onClick={() => router.push(`/life-vision/new/${c.key}`)}
                       className="block text-sm text-amber-400 hover:text-amber-300 transition-colors"
                     >
                       {c.label} &rarr;
@@ -338,7 +322,7 @@ export default function AssemblyPage() {
               <Button
                 variant="primary"
                 size="lg"
-                onClick={() => router.push(`${pathPrefix}/life-vision/${visionId}`)}
+                onClick={() => router.push(`/life-vision/${visionId}`)}
               >
                 View My Vision
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -354,11 +338,6 @@ export default function AssemblyPage() {
         )}
       </Stack>
 
-      <IntensiveStepCompleteModal
-        isOpen={showStepCompleteModal}
-        onClose={() => setShowStepCompleteModal(false)}
-        stepId="build_vision"
-      />
     </Container>
   )
 }

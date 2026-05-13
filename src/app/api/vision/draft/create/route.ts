@@ -52,42 +52,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Create draft vision by copying active vision
+    const now = new Date().toISOString()
     const { data: draft, error: createError } = await supabase
       .from('vision_versions')
       .insert({
         user_id: user.id,
-        version_number: activeVision.version_number,
         title: activeVision.title ? `${activeVision.title} (Draft)` : 'Draft Vision',
-        status: 'draft',
-        completion_percent: activeVision.completion_percent || 0,
-        
-        // Copy all category content
         forward: activeVision.forward || '',
         fun: activeVision.fun || '',
         travel: activeVision.travel || '',
         home: activeVision.home || '',
         family: activeVision.family || '',
-        love: activeVision.love || activeVision.romance || '',
+        love: activeVision.love || '',
         health: activeVision.health || '',
         money: activeVision.money || '',
-        work: activeVision.work || activeVision.business || '',
+        work: activeVision.work || '',
         social: activeVision.social || '',
-        stuff: activeVision.stuff || activeVision.possessions || '',
+        stuff: activeVision.stuff || '',
         giving: activeVision.giving || '',
         spirituality: activeVision.spirituality || '',
         conclusion: activeVision.conclusion || '',
-        
-        // Draft flags
         is_active: false,
         is_draft: true,
-        
-        // Lineage tracking
         parent_id: activeVision.id,
         refined_categories: [],
-        
-        // Timestamps
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: now,
+        updated_at: now,
       })
       .select()
       .single()
