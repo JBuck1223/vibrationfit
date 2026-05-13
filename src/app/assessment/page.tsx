@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, PageHero, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner, Text, Inline, IntensiveCompletionBanner } from '@/lib/design-system/components'
+import { Button, Card, Badge, StatusBadge, DeleteConfirmationDialog, Container, Stack, Spinner, Text, Inline } from '@/lib/design-system/components'
 import { fetchAssessments, deleteAssessment, createAssessment, fetchAssessmentProgress, AssessmentProgress } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { createClient } from '@/lib/supabase/client'
-import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 import { 
   PlayCircle, 
   Trash2, 
@@ -37,9 +36,6 @@ export default function AssessmentHub() {
   const [progress, setProgress] = useState<AssessmentProgress | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [assessmentToDelete, setAssessmentToDelete] = useState<string | null>(null)
-  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
-  const [isIntensiveCompleted, setIsIntensiveCompleted] = useState(false)
-  const [intensiveCompletedAt, setIntensiveCompletedAt] = useState<string | null>(null)
 
   const toTimestamp = (value?: Date | string | null) => {
     if (!value) return 0
@@ -59,27 +55,7 @@ export default function AssessmentHub() {
 
   useEffect(() => {
     loadAssessments()
-    checkIntensiveCompletion()
   }, [])
-
-  const checkIntensiveCompletion = async () => {
-    try {
-      // Use centralized intensive check (source of truth: intensive_checklist.status)
-      const intensiveData = await getActiveIntensiveClient()
-
-      if (intensiveData) {
-        setIsIntensiveMode(true)
-        
-        // Check if assessment step is completed (data is already in intensiveData)
-        if (intensiveData.assessment_completed) {
-          setIsIntensiveCompleted(true)
-          setIntensiveCompletedAt(intensiveData.assessment_completed_at || intensiveData.created_at)
-        }
-      }
-    } catch (error) {
-      console.error('Error checking intensive completion:', error)
-    }
-  }
 
   useEffect(() => {
     if (!incompleteAssessment && errorMessage) {
@@ -105,12 +81,10 @@ export default function AssessmentHub() {
 
   const loadAssessments = async () => {
     try {
-      // Check if user is authenticated first
       const supabase = createClient()
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       
       if (authError || !user) {
-        console.log('User not authenticated, redirecting to login')
         router.push('/login?redirect=/assessment')
         return
       }
@@ -119,7 +93,6 @@ export default function AssessmentHub() {
       setAssessments(assessments)
     } catch (error) {
       console.error('Failed to load assessments:', error)
-      // If it's an auth error, redirect to login
       if (error instanceof Error && error.message.includes('Unauthorized')) {
         router.push('/login?redirect=/assessment')
       }
@@ -145,7 +118,7 @@ export default function AssessmentHub() {
     setDeletingId(assessmentToDelete)
     try {
       await deleteAssessment(assessmentToDelete)
-      await loadAssessments() // Reload the list
+      await loadAssessments()
       setShowDeleteDialog(false)
       setAssessmentToDelete(null)
     } catch (error) {
@@ -165,7 +138,6 @@ export default function AssessmentHub() {
     setErrorMessage(null)
 
     try {
-      // First, get the user's active profile to use as the profile_version_id
       const profileResponse = await fetch('/api/profile')
       if (!profileResponse.ok) {
         throw new Error('Failed to get profile. Please create a profile first.')
@@ -177,7 +149,6 @@ export default function AssessmentHub() {
         throw new Error('No active profile found. Please create a profile first.')
       }
       
-      // Create new assessment with the active profile
       const response = await fetch('/api/assessment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -233,98 +204,8 @@ export default function AssessmentHub() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Intensive Completion Banner */}
-        {(isIntensiveMode || isIntensiveCompleted) && isIntensiveCompleted && intensiveCompletedAt && (
-          <IntensiveCompletionBanner
-            stepTitle="Vibration Assessment"
-            completedAt={intensiveCompletedAt}
-          />
-        )}
-
-        {/* Hero */}
-        <PageHero
-          eyebrow={isIntensiveMode || isIntensiveCompleted ? "ACTIVATION INTENSIVE • STEP 4 OF 14" : undefined}
-          title="Vibration Assessment"
-          subtitle="Track your progress and measure your alignment across all 12 life categories."
-        >
-          {/* Action Buttons - Only for non-intensive users */}
-          {!isIntensiveMode && !isIntensiveCompleted && (
-            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center max-w-2xl mx-auto">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => router.push('/assessment/new')}
-                className="w-full sm:w-auto"
-              >
-                <HelpCircle className="mr-2 h-4 w-4" />
-                How It Works
-              </Button>
-            </div>
-          )}
-        </PageHero>
-
-        {/* Intensive: single CTA - Start / Continue / View Results */}
-        {(isIntensiveMode || isIntensiveCompleted) && (
-          <Card variant="elevated" className="p-4 md:p-6">
-            <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-[#1F1F1F]" />
-              </div>
-              <div>
-                <h2 className="text-lg md:text-xl lg:text-2xl font-semibold mb-2">
-                  {incompleteAssessment
-                    ? 'Assessment In Progress'
-                    : sortedCompletedAssessments.length > 0
-                      ? 'Your Assessment Results'
-                      : 'Vibration Assessment'}
-                </h2>
-                <p className="text-sm text-neutral-400 max-w-2xl mx-auto">
-                  {incompleteAssessment
-                    ? 'Pick up where you left off and complete your assessment.'
-                    : sortedCompletedAssessments.length > 0
-                      ? 'Review your vibration scores and category breakdown.'
-                      : 'Discover your current vibration score and insights.'}
-                </p>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              {incompleteAssessment ? (
-                <Button 
-                  variant="primary" 
-                  size="md"
-                  onClick={handleContinueAssessment}
-                  className="w-full sm:w-auto"
-                >
-                  <PlayCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                  Continue Assessment
-                </Button>
-              ) : sortedCompletedAssessments.length > 0 ? (
-                <Button 
-                  variant="primary" 
-                  size="md"
-                  onClick={() => handleViewResults(sortedCompletedAssessments[0].id)}
-                  className="w-full sm:w-auto"
-                >
-                  <Eye className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                  View Results
-                </Button>
-              ) : (
-                <Button 
-                  variant="primary" 
-                  size="md"
-                  onClick={() => router.push('/assessment/new')}
-                  className="w-full sm:w-auto"
-                >
-                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                  Start Assessment
-                </Button>
-              )}
-            </div>
-          </Card>
-        )}
-
         {/* Take New Assessment Card */}
-        {!incompleteAssessment && !isIntensiveMode && !isIntensiveCompleted && (
+        {!incompleteAssessment && (
           <Card variant="elevated" className="p-4 md:p-6">
             <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -365,8 +246,8 @@ export default function AssessmentHub() {
           </Card>
         )}
 
-        {/* In-Progress Assessment Card - Only show for non-intensive users (they need delete option) */}
-        {incompleteAssessment && !isIntensiveMode && (
+        {/* In-Progress Assessment Card */}
+        {incompleteAssessment && (
           <Card variant="elevated" className="p-4 md:p-6">
             <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -397,7 +278,6 @@ export default function AssessmentHub() {
               </div>
             </div>
 
-            {/* Buttons: Delete + Continue for regular members */}
             <div className="flex flex-row gap-3">
               <Button 
                 onClick={() => handleDeleteClick(incompleteAssessment.id)}
@@ -423,8 +303,8 @@ export default function AssessmentHub() {
           </Card>
         )}
 
-        {/* Previous Assessments Section - Hide during and after intensive */}
-        {!(isIntensiveMode || isIntensiveCompleted) && completedAssessments.length > 0 && (
+        {/* Previous Assessments Section */}
+        {completedAssessments.length > 0 && (
           <Card variant="default" className="p-4 md:p-6">
             <div className="flex flex-col items-center gap-3 md:gap-4 mb-4 md:mb-6 text-center">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -512,7 +392,6 @@ export default function AssessmentHub() {
 
       </Stack>
 
-      {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         isOpen={showDeleteDialog}
         onClose={() => {

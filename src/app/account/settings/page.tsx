@@ -1,23 +1,15 @@
 // /src/app/account/settings/page.tsx
 // Account settings - manages user_accounts table fields
-// Step 1 of Activation Intensive - completes when First Name, Last Name, Phone, Email, profile_picture_url are filled
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Stack, PageHero, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, Badge, IntensiveStepCompleteModal } from '@/lib/design-system/components'
-import { User, Check, Rocket, Globe } from 'lucide-react'
+import { Container, Stack, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal } from '@/lib/design-system/components'
+import { User, Check, Globe } from 'lucide-react'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { IntensiveCompletionBanner } from '@/lib/design-system/components'
-import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
-import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
-import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
-
-// Default profile picture URL to check against
-const DEFAULT_PROFILE_PICTURE = 'https://media.vibrationfit.com/site-assets/default-avatar.png'
 
 export default function AccountSettingsPage() {
   const [loading, setLoading] = useState(true)
@@ -44,121 +36,12 @@ export default function AccountSettingsPage() {
   const [showOptOutModal, setShowOptOutModal] = useState(false)
   const [pendingOptOut, setPendingOptOut] = useState<'sms' | 'email' | null>(null)
   
-  // Intensive mode state
-  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
-  const [intensiveId, setIntensiveId] = useState<string | null>(null)
-  const [showDefaultPictureModal, setShowDefaultPictureModal] = useState(false)
-  const [justCompletedStep, setJustCompletedStep] = useState(false)
-  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
-  const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
-  const [completedAt, setCompletedAt] = useState<string | null>(null)
-  
   const supabase = createClient()
   const router = useRouter()
 
   useEffect(() => {
     fetchUserData()
-    checkIntensiveMode()
   }, [])
-
-  const checkIntensiveMode = async () => {
-    try {
-      // Use centralized intensive check (source of truth: intensive_checklist.status)
-      const intensiveData = await getActiveIntensiveClient()
-
-      if (intensiveData) {
-        setIsIntensiveMode(true)
-        setIntensiveId(intensiveData.intensive_id)
-        
-        // Step 1 (Account Settings) completion is tracked via user_accounts table
-        // Check if user has filled out required fields
-        const { data: accountData } = await supabase
-          .from('user_accounts')
-          .select('first_name, last_name, email, phone, updated_at')
-          .eq('id', intensiveData.user_id)
-          .single()
-
-        if (accountData) {
-          const hasFirstName = accountData.first_name && accountData.first_name.trim().length > 0
-          const hasLastName = accountData.last_name && accountData.last_name.trim().length > 0
-          const hasEmail = accountData.email && accountData.email.trim().length > 0
-          const hasPhone = accountData.phone && accountData.phone.replace(/\D/g, '').length >= 10
-          
-          if (hasFirstName && hasLastName && hasEmail && hasPhone) {
-            setIsAlreadyCompleted(true)
-            // Use updated_at as the completion timestamp (best available approximation)
-            setCompletedAt(accountData.updated_at)
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error checking intensive mode:', error)
-    }
-  }
-
-  // Check if all required fields for intensive Step 1 are complete
-  const isIntensiveStep1Complete = () => {
-    const hasFirstName = firstName.trim().length > 0
-    const hasLastName = lastName.trim().length > 0
-    const hasEmail = email.trim().length > 0
-    const hasPhone = phone.replace(/\D/g, '').length >= 10
-    const hasProfilePicture = profilePictureUrl && profilePictureUrl !== DEFAULT_PROFILE_PICTURE
-    
-    return hasFirstName && hasLastName && hasEmail && hasPhone && hasProfilePicture
-  }
-
-  // Check if fields are complete but using default picture
-  const canProceedWithDefaultPicture = () => {
-    const hasFirstName = firstName.trim().length > 0
-    const hasLastName = lastName.trim().length > 0
-    const hasEmail = email.trim().length > 0
-    const hasPhone = phone.replace(/\D/g, '').length >= 10
-    const isDefaultPicture = !profilePictureUrl || profilePictureUrl === DEFAULT_PROFILE_PICTURE
-    
-    return hasFirstName && hasLastName && hasEmail && hasPhone && isDefaultPicture
-  }
-
-  const markIntensiveSettingsComplete = async () => {
-    if (!intensiveId) return
-
-    try {
-      // Update the intensive_checklist - using a generic "settings_completed" approach
-      // Note: The actual field name may need to be adjusted based on final schema
-      const { error } = await supabase
-        .from('intensive_checklist')
-        .update({
-          // Settings step doesn't have its own field, it's tracked implicitly
-          // The dashboard will check user_accounts directly
-          updated_at: new Date().toISOString()
-        })
-        .eq('intensive_id', intensiveId)
-
-      if (error) {
-        console.error('Error marking intensive settings complete:', error)
-      } else {
-        invalidateIntensiveSnapshot()
-        setJustCompletedStep(true)
-        setShowStepCompleteModal(true)
-      }
-    } catch (error) {
-      console.error('Error in markIntensiveSettingsComplete:', error)
-    }
-  }
-
-  const handleContinueToIntensive = async () => {
-    if (canProceedWithDefaultPicture()) {
-      // Show modal asking about default picture
-      setShowDefaultPictureModal(true)
-    } else if (isIntensiveStep1Complete()) {
-      // All complete including custom picture, proceed
-      await markIntensiveSettingsComplete()
-    }
-  }
-
-  const handleProceedWithDefaultPicture = async () => {
-    setShowDefaultPictureModal(false)
-    await markIntensiveSettingsComplete()
-  }
 
   // Track changes
   useEffect(() => {
@@ -270,14 +153,12 @@ export default function AccountSettingsPage() {
 
   const handleOptOutAttempt = (type: 'sms' | 'email', checked: boolean) => {
     if (checked) {
-      // Opting in - no confirmation needed
       if (type === 'sms') {
         setSmsOptIn(true)
       } else {
         setEmailOptIn(true)
       }
     } else {
-      // Opting out - show confirmation modal
       setPendingOptOut(type)
       setShowOptOutModal(true)
     }
@@ -366,21 +247,6 @@ export default function AccountSettingsPage() {
           .eq('id', user.id)
       }
       
-      // In intensive mode, show completion modal after save (if required fields are filled)
-      if (isIntensiveMode && !isAlreadyCompleted) {
-        const hasFirstName = firstName.trim().length > 0
-        const hasLastName = lastName.trim().length > 0
-        const hasEmail = email.trim().length > 0
-        const hasPhone = phone.replace(/\D/g, '').length >= 10
-        
-        if (hasFirstName && hasLastName && hasEmail && hasPhone) {
-          setIsAlreadyCompleted(true)
-          setShowStepCompleteModal(true)
-          return
-        }
-      }
-      
-      // Show toast only if NOT redirecting to dashboard
       if (email !== originalAccount?.email) {
         toast.success('Account updated! Check your email to confirm the address change.')
       } else {
@@ -399,7 +265,6 @@ export default function AccountSettingsPage() {
 
   const handleProfilePictureChange = (url: string) => {
     setProfilePictureUrl(url)
-    // Also update user_accounts directly
     if (user) {
       supabase
         .from('user_accounts')
@@ -421,35 +286,9 @@ export default function AccountSettingsPage() {
     )
   }
 
-  // Get step info for banners
-  const currentStep = getStepInfo('settings')
-  const nextStep = getNextStep('settings')
-
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* TODO: Add "just completed" banner for Scenario A (Continue to Next Step) */}
-
-        {/* Completion Banner - Shows above PageHero when step is already complete in intensive mode */}
-        {isIntensiveMode && isAlreadyCompleted && completedAt && !justCompletedStep && (
-          <IntensiveCompletionBanner 
-            stepTitle="Account Settings"
-            completedAt={completedAt}
-          />
-        )}
-
-        {/* Page Hero - Always shows, with intensive eyebrow when in intensive mode */}
-        <PageHero
-          eyebrow={isIntensiveMode ? "ACTIVATION INTENSIVE • STEP 1 OF 14" : undefined}
-          title="Account Settings"
-          subtitle="Manage your personal information and preferences"
-        >
-          {!isIntensiveMode && (
-            <Button variant="outline" onClick={() => router.push('/account')}>
-              Account Dashboard
-            </Button>
-          )}
-        </PageHero>
 
         {/* Personal Information */}
         <Card className="p-6">
@@ -643,33 +482,6 @@ export default function AccountSettingsPage() {
           </div>
         </div>
       </Modal>
-
-      {/* Default Profile Picture Modal */}
-      <Modal
-        isOpen={showDefaultPictureModal}
-        onClose={() => setShowDefaultPictureModal(false)}
-        title="Profile Picture"
-      >
-        <div className="space-y-4">
-          <p className="text-neutral-300">
-            Your Profile Picture is used across Vibration Fit to help you become a vibrational match to your vision. Are you sure you want to proceed with the default icon?
-          </p>
-          <div className="flex flex-col gap-3">
-            <Button variant="primary" onClick={() => setShowDefaultPictureModal(false)} className="w-full">
-              Add My Photo
-            </Button>
-            <Button variant="ghost" onClick={handleProceedWithDefaultPicture} className="w-full">
-              Continue with Default
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <IntensiveStepCompleteModal
-        isOpen={showStepCompleteModal}
-        onClose={() => setShowStepCompleteModal(false)}
-        stepId="settings"
-      />
     </Container>
   )
 }

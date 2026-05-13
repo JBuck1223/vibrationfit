@@ -1,11 +1,8 @@
-// /src/app/assessment/[id]/in-progress/page.tsx
-// Main assessment flow page
-
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams, usePathname } from 'next/navigation'
-import { Button, Spinner, Card, Container, Stack, PageHero, StatusBadge, CategoryGrid } from '@/lib/design-system/components'
+import { useRouter, useParams } from 'next/navigation'
+import { Button, Spinner, Card, Container, Stack, StatusBadge, CategoryGrid } from '@/lib/design-system/components'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle, CalendarDays, Check, Circle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
@@ -18,21 +15,16 @@ import {
   AssessmentProgress
 } from '@/lib/services/assessmentService'
 import ResultsSummary from '../../components/ResultsSummary'
-import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 export default function AssessmentPage() {
   const router = useRouter()
   const params = useParams()
-  const currentPathname = usePathname()
-  const pathPrefix = currentPathname?.startsWith('/intensive') ? '/intensive' : ''
   const routeAssessmentId = Array.isArray(params?.id)
     ? params?.id[0]
     : (params?.id as string | undefined)
   
-  // State
   const [assessmentId, setAssessmentId] = useState<string | null>(null)
   const [assessmentData, setAssessmentData] = useState<any>(null)
-  const [isIntensiveMode, setIsIntensiveMode] = useState(false)
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [responses, setResponses] = useState<Map<string, number>>(new Map())
@@ -52,21 +44,16 @@ export default function AssessmentPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [assessmentResponses, setAssessmentResponses] = useState<any[] | null>(null)
 
-  // Ref for scrolling to question card on mobile
   const questionCardRef = useRef<HTMLDivElement>(null)
 
-  // Get assessment categories in the correct order (all categories, including empty ones)
   const assessmentCategoriesOrder = VISION_CATEGORIES
     .filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')
     .map(cat => cat.key)
 
-
-  // Reorder assessmentQuestions to match VISION_CATEGORIES order
   const orderedAssessmentQuestions = assessmentCategoriesOrder
     .map(key => assessmentQuestions.find(cat => cat.category === key))
     .filter(Boolean) as typeof assessmentQuestions
 
-  // Get current category and questions
   const currentCategory = orderedAssessmentQuestions[currentCategoryIndex]
   const currentCategoryWithMetadata = currentCategory ? {
     ...currentCategory,
@@ -78,39 +65,32 @@ export default function AssessmentPage() {
     : currentCategory?.questions || []
   const currentQuestion = filteredQuestions[currentQuestionIndex]
   
-  
-  // If current category has no questions, skip to next category with questions
   if (currentCategoryWithMetadata && filteredQuestions.length === 0) {
-    // This will be handled in the useEffect
+    // Handled in useEffect
   }
   
-  // Load custom response text when navigating to a question
   useEffect(() => {
-    
     if (currentQuestion && customResponseTexts.has(currentQuestion.id)) {
       const savedText = customResponseTexts.get(currentQuestion.id) || ''
       const savedScore = customResponseScores.get(currentQuestion.id) || 3
       setCustomResponse(savedText)
       setCustomResponseScore(savedScore)
       setShowCustomInput(true)
-      setCustomResponseSubmitted(true) // Show as submitted for existing responses
+      setCustomResponseSubmitted(true)
     } else if (currentQuestion && !justSelectedCustom) {
       setCustomResponse('')
       setCustomResponseScore(null)
       setShowCustomInput(false)
-      setCustomResponseSubmitted(false) // Reset success state for new questions
+      setCustomResponseSubmitted(false)
     }
   }, [currentQuestion, customResponseTexts])
   
-  // Handle justSelectedCustom flag separately
   useEffect(() => {
     if (justSelectedCustom) {
-      console.log('User just selected custom option, keeping input visible')
       setJustSelectedCustom(false)
     }
   }, [justSelectedCustom])
   
-  // Calculate total question number
   let totalQuestionNumber = 0
   for (let i = 0; i < currentCategoryIndex; i++) {
     const catQuestions = profile
@@ -120,7 +100,6 @@ export default function AssessmentPage() {
   }
   totalQuestionNumber += currentQuestionIndex + 1
 
-  // Calculate total questions
   let totalQuestions = 0
   for (const cat of orderedAssessmentQuestions) {
     const catQuestions = profile
@@ -129,7 +108,6 @@ export default function AssessmentPage() {
     totalQuestions += catQuestions.length
   }
 
-  // Initialize assessment
   useEffect(() => {
     async function initialize() {
       if (!routeAssessmentId) {
@@ -143,7 +121,6 @@ export default function AssessmentPage() {
       try {
         let profileData: any = null
 
-        // Fetch profile for conditional logic
         try {
           const profileRes = await fetch('/api/profile')
           if (profileRes.ok) {
@@ -155,31 +132,6 @@ export default function AssessmentPage() {
           console.warn('Unable to fetch profile for assessment filters:', profileError)
         }
 
-        // Check if user is in intensive mode
-        try {
-          const { createClient } = await import('@/lib/supabase/client')
-          const supabase = createClient()
-          const { data: { session } } = await supabase.auth.getSession()
-          const user = session?.user
-          
-          if (user) {
-            const { data: checklist } = await supabase
-              .from('intensive_checklist')
-              .select('id')
-              .eq('user_id', user.id)
-              .in('status', ['pending', 'in_progress'])
-              .limit(1)
-              .maybeSingle()
-            
-            if (checklist) {
-              setIsIntensiveMode(true)
-            }
-          }
-        } catch (intensiveError) {
-          console.warn('Unable to check intensive mode:', intensiveError)
-        }
-
-        // Verify assessment exists and load responses
         const { assessment, responses } = await fetchAssessment(routeAssessmentId, { includeResponses: true })
         if (!assessment) {
           setLoadError('Assessment not found.')
@@ -193,7 +145,6 @@ export default function AssessmentPage() {
         setAssessmentData(assessment)
         setAssessmentId(routeAssessmentId)
 
-        // Load progress metrics
         try {
           const progressData = await fetchAssessmentProgress(routeAssessmentId)
           setProgress(progressData)
@@ -228,7 +179,6 @@ export default function AssessmentPage() {
           setCustomResponseTexts(customTexts)
           setCustomResponseScores(customScores)
 
-          // Try to restore saved position first
           const savedPosition = loadCurrentPosition(routeAssessmentId)
           let foundPosition = false
 
@@ -249,7 +199,6 @@ export default function AssessmentPage() {
             }
           }
 
-          // If no saved position, find the first unanswered question
           if (!foundPosition) {
             for (let catIndex = 0; catIndex < orderedAssessmentQuestions.length && !foundPosition; catIndex++) {
               const cat = orderedAssessmentQuestions[catIndex]
@@ -269,7 +218,6 @@ export default function AssessmentPage() {
             }
           }
 
-          // If all questions are answered, mark as complete
           if (!foundPosition) {
             setCurrentCategoryIndex(0)
             setCurrentQuestionIndex(0)
@@ -288,7 +236,6 @@ export default function AssessmentPage() {
     initialize()
   }, [routeAssessmentId])
 
-  // Save current position to localStorage
   const saveCurrentPosition = () => {
     if (assessmentId) {
       const position = {
@@ -298,32 +245,18 @@ export default function AssessmentPage() {
         timestamp: Date.now()
       }
       localStorage.setItem('assessment-position', JSON.stringify(position))
-      console.log('Saved position:', position)
     }
   }
 
-  // Load current position from localStorage
   const loadCurrentPosition = (currentAssessmentId: string) => {
     try {
       const saved = localStorage.getItem('assessment-position')
-      console.log('Loading saved position:', saved)
       if (saved) {
         const position = JSON.parse(saved)
-        console.log('Parsed position:', position)
-        console.log('Current assessment ID:', currentAssessmentId)
-        console.log('Position assessment ID:', position.assessmentId)
-        console.log('Time check:', Date.now() - position.timestamp < 24 * 60 * 60 * 1000)
-        
-        // Only restore if it's for the same assessment and not too old (24 hours)
         if (position.assessmentId === currentAssessmentId && 
             Date.now() - position.timestamp < 24 * 60 * 60 * 1000) {
-          console.log('Restoring position:', { categoryIndex: position.categoryIndex, questionIndex: position.questionIndex })
           return { categoryIndex: position.categoryIndex, questionIndex: position.questionIndex }
-        } else {
-          console.log('Position not restored - assessment mismatch or expired')
         }
-      } else {
-        console.log('No saved position found')
       }
     } catch (error) {
       console.error('Failed to load saved position:', error)
@@ -331,27 +264,22 @@ export default function AssessmentPage() {
     return null
   }
 
-  // Handle option selection
   const handleSelect = async (option: AssessmentOption) => {
     if (!assessmentId) return
     
-    // Prevent clicking the same option while it's already being saved
     const currentlySelected = responses.get(currentQuestion.id)
     if (isSaving && currentlySelected === option.value) {
       return
     }
 
-    // Handle custom response option
     if (option.isCustom) {
-      // Optimistically highlight the custom option (value 0) while showing input
       setResponses(prev => new Map(prev).set(currentQuestion.id, 0))
       setShowCustomInput(true)
       setJustSelectedCustom(true)
-      saveCurrentPosition() // Save position when custom input is shown
+      saveCurrentPosition()
       return
     }
 
-    // Hide custom input if switching to a standard option
     if (showCustomInput) {
       setShowCustomInput(false)
       setCustomResponse('')
@@ -361,19 +289,12 @@ export default function AssessmentPage() {
 
     setIsSaving(true)
     
-    // Update local state immediately for better UX
     setResponses(prev => new Map(prev).set(currentQuestion.id, option.value))
     
     try {
-
-      // Use 1-5 scale directly for database storage
-      // No conversion needed - database now accepts 1-5 values
-      const dbValue = option.value // 0, 1, 2, 3, 4, 5
-      
-      // For custom responses, we'll use custom_response_value for the actual calculation
+      const dbValue = option.value
       const customScore = option.value === 0 ? 0 : undefined
 
-      // Save response to database
       await saveResponse({
         assessment_id: assessmentId,
         question_id: currentQuestion.id,
@@ -388,15 +309,13 @@ export default function AssessmentPage() {
         custom_green_line: option.value === 0 ? 'neutral' : undefined
       })
 
-      // Refresh progress (do not auto-advance; require explicit Next click)
       const progressData = await fetchAssessmentProgress(assessmentId)
       setProgress(progressData)
 
-      saveCurrentPosition() // Save position after successful response
+      saveCurrentPosition()
 
     } catch (error) {
       console.error('Failed to save response:', error)
-      // Revert local state on error
       setResponses(prev => {
         const newMap = new Map(prev)
         newMap.delete(currentQuestion.id)
@@ -407,56 +326,38 @@ export default function AssessmentPage() {
     }
   }
 
-  // Handle custom response submission with user's 1-5 score
   const handleCustomResponse = async () => {
     if (!assessmentId || !customResponse.trim() || !customResponseScore || isSaving) return
 
     setIsSaving(true)
     try {
-      // Use 1-5 scale directly for database compatibility
-      const dbScore = customResponseScore // 1, 2, 3, 4, 5
-      
-      // Determine green line status based on score
+      const dbScore = customResponseScore
       const greenLine = customResponseScore >= 4 ? 'above' : customResponseScore <= 2 ? 'below' : 'neutral'
 
-      console.log('Custom response submission:', { 
-        score: customResponseScore, 
-        dbScore, 
-        greenLine, 
-        questionId: currentQuestion.id 
-      })
-
-      // Save response with user's score
       const saveData = {
         assessment_id: assessmentId,
         question_id: currentQuestion.id,
         question_text: currentQuestion.text,
         category: currentQuestion.category,
-        response_value: 0, // Keep 0 for "None of these specifically resonate" option
+        response_value: 0,
         response_text: customResponse,
         response_emoji: '🤔',
         green_line: greenLine as 'above' | 'neutral' | 'below',
         is_custom_response: true,
-        custom_response_value: dbScore, // Store user's score in custom_response_value field for calculations
+        custom_response_value: dbScore,
         custom_green_line: greenLine as 'above' | 'neutral' | 'below'
       }
       
       await saveResponse(saveData)
 
-      // Update local state - keep 0 to show "None of these specifically resonate" is selected
       setResponses(prev => new Map(prev).set(currentQuestion.id, 0))
-      console.log('Updated local state with 0 (None of these specifically resonate selected)')
-      
-      // Store the custom response text and score for this question
       setCustomResponseTexts(prev => new Map(prev).set(currentQuestion.id, customResponse))
       setCustomResponseScores(prev => new Map(prev).set(currentQuestion.id, customResponseScore))
       
-      // Show success message and keep input visible
       setShowCustomInput(true)
-      setCustomResponse(customResponse) // Keep the text visible
+      setCustomResponse(customResponse)
       setCustomResponseSubmitted(true)
 
-      // Refresh progress
       const progressData = await fetchAssessmentProgress(assessmentId)
       setProgress(progressData)
 
@@ -467,13 +368,10 @@ export default function AssessmentPage() {
     }
   }
 
-  // Navigate to next question
   const handleNext = () => {
     if (currentQuestionIndex < filteredQuestions.length - 1) {
-      // Next question in current category
       setCurrentQuestionIndex(prev => {
         const newIndex = prev + 1
-        // Save position and scroll to top of card
         setTimeout(() => {
           saveCurrentPosition()
           questionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -481,11 +379,9 @@ export default function AssessmentPage() {
         return newIndex
       })
     } else if (currentCategoryIndex < orderedAssessmentQuestions.length - 1) {
-      // Next category
       setCurrentCategoryIndex(prev => {
         const newIndex = prev + 1
         setCurrentQuestionIndex(0)
-        // Save position and scroll to top of card
         setTimeout(() => {
           saveCurrentPosition()
           questionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -493,18 +389,14 @@ export default function AssessmentPage() {
         return newIndex
       })
     } else {
-      // Assessment complete
       handleComplete()
     }
   }
 
-  // Navigate to previous question
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
-      // Previous question in current category
       setCurrentQuestionIndex(prev => {
         const newIndex = prev - 1
-        // Save position and scroll to top of card
         setTimeout(() => {
           saveCurrentPosition()
           questionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -512,7 +404,6 @@ export default function AssessmentPage() {
         return newIndex
       })
     } else if (currentCategoryIndex > 0) {
-      // Previous category
       const prevCategoryIndex = currentCategoryIndex - 1
       const prevCategory = orderedAssessmentQuestions[prevCategoryIndex]
       const prevQuestions = profile
@@ -521,7 +412,6 @@ export default function AssessmentPage() {
       
       setCurrentCategoryIndex(prevCategoryIndex)
       setCurrentQuestionIndex(prevQuestions.length - 1)
-      // Save position and scroll to top of card
       setTimeout(() => {
         saveCurrentPosition()
         questionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -529,26 +419,15 @@ export default function AssessmentPage() {
     }
   }
 
-  // Complete assessment
   const handleComplete = async () => {
     if (!assessmentId) return
 
     try {
       await completeAssessment(assessmentId)
-      
-      // Redirect to results page - intensive step will be marked there
-      router.push(`${pathPrefix}/assessment/${assessmentId}/results`)
+      router.push(`/assessment/${assessmentId}/results`)
     } catch (error) {
       console.error('Failed to complete assessment:', error)
     }
-  }
-
-  const handleGenerateVision = () => {
-    router.push(`${pathPrefix}/life-vision/create?assessmentId=${assessmentId}`)
-  }
-
-  const handleViewDetails = () => {
-    router.push(`${pathPrefix}/assessment/${assessmentId}/results`)
   }
 
   if (isLoading) {
@@ -569,7 +448,7 @@ export default function AssessmentPage() {
           <p className="text-neutral-400 mb-6">
             {loadError}
           </p>
-          <Button variant="primary" onClick={() => router.push(`${pathPrefix}/assessment`)}>
+          <Button variant="primary" onClick={() => router.push('/assessment')}>
             Return to Assessment Hub
           </Button>
         </Card>
@@ -578,11 +457,6 @@ export default function AssessmentPage() {
   }
 
   if (isComplete && assessmentId && assessmentData) {
-    // Get step info for intensive mode
-    const currentStep = getStepInfo('assessment')
-    const nextStep = getNextStep('assessment')
-    
-    // Show results summary with real assessment data and responses
     return (
       <div className="min-h-screen bg-black">
         <Container size="xl">
@@ -603,36 +477,30 @@ export default function AssessmentPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Page Header */}
-        <PageHero
-          title="Vibrational Assessment"
-          subtitle="Discover your current state across all 12 life categories"
-        >
-          {/* Badge Row */}
-          {assessmentData && (
-            <div className="text-center">
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-                <StatusBadge 
-                  status="draft"
-                  label="IN PROGRESS"
-                  subtle={true} 
-                  className="uppercase tracking-[0.25em]" 
-                />
-                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                  <CalendarDays className="w-4 h-4 text-neutral-500" />
-                  <span className="font-medium">Started:</span>
-                  <span>{new Date(assessmentData.started_at || assessmentData.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                </div>
-                {progress && (
-                  <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                    <span className="font-medium">Completion:</span>
-                    <span className="font-semibold text-[#39FF14]">{progress.overall.percentage}%</span>
-                  </div>
-                )}
+        {/* Status badges */}
+        {assessmentData && (
+          <div className="text-center">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+              <StatusBadge 
+                status="draft"
+                label="IN PROGRESS"
+                subtle={true} 
+                className="uppercase tracking-[0.25em]" 
+              />
+              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                <CalendarDays className="w-4 h-4 text-neutral-500" />
+                <span className="font-medium">Started:</span>
+                <span>{new Date(assessmentData.started_at || assessmentData.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
               </div>
+              {progress && (
+                <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+                  <span className="font-medium">Completion:</span>
+                  <span className="font-semibold text-[#39FF14]">{progress.overall.percentage}%</span>
+                </div>
+              )}
             </div>
-          )}
-        </PageHero>
+          </div>
+        )}
 
         {/* Assessment Completion Progress */}
         {progress && (
@@ -652,11 +520,10 @@ export default function AssessmentPage() {
           </Card>
         )}
 
-        {/* DEV ONLY: Fill with Test Data Button */}
         {/* VIVA Tip */}
         <div className="bg-secondary-500/10 border border-secondary-500/30 rounded-xl p-4">
           <p className="text-xs text-neutral-300 leading-relaxed text-center">
-            <span className="font-semibold text-secondary-500">VIVA's Tip:</span> Answer honestly based on your current reality, not where you want to be. This helps VIVA create your most aligned life vision.
+            <span className="font-semibold text-secondary-500">VIVA&apos;s Tip:</span> Answer honestly based on your current reality, not where you want to be. This helps VIVA create your most aligned life vision.
           </p>
         </div>
 
@@ -685,9 +552,8 @@ export default function AssessmentPage() {
             pillLabel="scroll"
           />
 
-        {/* Main Question Content - Full Width */}
+        {/* Main Question Content */}
         <Card ref={questionCardRef} variant="elevated" className="p-8">
-          {/* Category Header */}
           <div className="flex items-center justify-center gap-3 mb-6">
             {currentCategoryWithMetadata && (() => {
               const visionCat = VISION_CATEGORIES.find(v => v.key === currentCategoryWithMetadata.category)
@@ -703,7 +569,6 @@ export default function AssessmentPage() {
             })()}
           </div>
 
-          {/* Question Content */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-semibold text-[#39FF14]">
@@ -720,7 +585,6 @@ export default function AssessmentPage() {
             </p>
           </div>
 
-          {/* Options */}
           <div className="space-y-3">
             {currentQuestion.options.map((option, index) => {
               const isSelected = selectedValue === option.value
@@ -746,17 +610,13 @@ export default function AssessmentPage() {
                     text-left relative group
                   `}
                 >
-
                   <div className="flex items-center gap-4">
-                    {/* Option Text */}
                     <span className={`
                       flex-1 text-base
                       ${isSelected ? 'text-white font-medium' : 'text-neutral-300'}
                     `}>
                       {option.text}
                     </span>
-
-                    {/* Check Icon */}
                     {isSelected && (
                       <CheckCircle className="flex-shrink-0 w-5 h-5 text-[#39FF14]" />
                     )}
@@ -764,7 +624,6 @@ export default function AssessmentPage() {
                 </button>
               )
             })}
-
           </div>
 
           {/* Custom Response Input */}
@@ -803,7 +662,6 @@ export default function AssessmentPage() {
                     disabled={isSaving}
                   />
                   
-                  {/* 1-5 Score Selector */}
                   <div className="mt-4">
                     <h5 className="text-sm font-semibold text-white mb-3">
                       How do you feel about this? (Select 1-5)
@@ -904,4 +762,3 @@ export default function AssessmentPage() {
     </Container>
   )
 }
-

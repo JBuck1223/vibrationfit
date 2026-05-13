@@ -13,7 +13,6 @@ import {
   Spinner,
   Container,
   Stack,
-  PageHero,
   Checkbox,
   RadioGroup
 } from '@/lib/design-system/components'
@@ -24,7 +23,8 @@ import {
 } from '@/lib/constants/intensive-intake-questions'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { ReadOnlySection } from '@/components/IntensiveStepCompletedBanner'
-import { IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
 
 // All question components defined outside IntensiveIntake to prevent
@@ -201,6 +201,12 @@ export default function IntensiveIntake() {
 
   const router = useRouter()
   const supabase = createClient()
+  const { setCompletedAt: setStepCompleted } = useIntensiveStep()
+
+  useEffect(() => {
+    if (isAlreadyCompleted && completedAt) setStepCompleted(completedAt)
+    return () => setStepCompleted(null)
+  }, [isAlreadyCompleted, completedAt, setStepCompleted])
 
   // Get questions for pre_intensive phase
   const questions = getQuestionsForPhase('pre_intensive')
@@ -560,20 +566,6 @@ export default function IntensiveIntake() {
     return (
       <Container size="xl">
         <Stack gap="lg">
-          {/* Completion Banner - Shows above PageHero when step is already complete */}
-          <IntensiveCompletionBanner 
-            stepTitle="Baseline Intake"
-            completedAt={completedAt}
-          />
-
-          {/* Page Hero - Same as normal view, with intensive eyebrow */}
-          <PageHero
-            eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
-            title="Baseline Intake"
-            subtitle="Help us understand where you are today so we can measure your transformation"
-          />
-
-          {/* Read-Only Responses */}
           <ReadOnlySection
             title="Your Baseline Responses"
             helperText="These responses are locked in as part of your 72-Hour Activation baseline and cannot be edited."
@@ -601,11 +593,6 @@ export default function IntensiveIntake() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="ACTIVATION INTENSIVE • STEP 2 OF 14"
-          title="Baseline Intake"
-          subtitle="Help us understand where you are today so we can measure your transformation"
-        />
 
         <div className="space-y-6">
           <form onSubmit={(e) => { e.preventDefault(); submitForm(); }} className="space-y-6">

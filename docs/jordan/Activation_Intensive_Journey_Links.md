@@ -8,8 +8,8 @@ All intensive steps are now under the `/intensive/` namespace.
 2. Baseline Intake: https://vibrationfit.com/intensive/intake
 3. Create Profile: https://vibrationfit.com/intensive/profile/new
 4. Vibration Assessment: https://vibrationfit.com/intensive/assessment/new
-5. Build Life Vision: https://vibrationfit.com/intensive/life-vision/new
-6. Refine Vision: https://vibrationfit.com/intensive/life-vision/new (same unified flow)
+5. Build Life Vision: https://vibrationfit.com/intensive/life-vision/create
+6. Refine Vision: https://vibrationfit.com/intensive/life-vision/refine
 7. Generate Audio: https://vibrationfit.com/intensive/audio/generate
 8. Record Voice: https://vibrationfit.com/intensive/audio/record
 9. Audio Mix: https://vibrationfit.com/intensive/audio/mix

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Badge, Container, Stack, PageHero, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Badge, Container, Stack, Spinner } from '@/lib/design-system/components'
 import { fetchAssessments } from '@/lib/services/assessmentService'
 import { AssessmentResult } from '@/types/assessment'
 import { RefreshCw, BarChart3, PlayCircle } from 'lucide-react'
@@ -76,11 +76,6 @@ export default function AssessmentHistoryPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="Assessment History"
-          subtitle="Review every Vibrational Assessment you've completed and resume drafts in progress."
-        />
-
         {sortedAssessments.length === 0 ? (
           <Card className="p-12 text-center">
             <p className="text-neutral-400">No assessments yet. Start your first assessment to see your history here.</p>

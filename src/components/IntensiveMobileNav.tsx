@@ -28,7 +28,7 @@ export function IntensiveMobileNav() {
   const pathname = usePathname()
   const [navItems, setNavItems] = useState<NavItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [progress, setProgress] = useState({ completed: 0, total: 14 })
+  const [progress, setProgress] = useState({ completed: 0, total: 12 })
 
   useEffect(() => {
     loadNavItems()
@@ -74,18 +74,16 @@ export function IntensiveMobileNav() {
         !!checklist.profile_completed,
         !!checklist.assessment_completed,
         !!checklist.vision_built,
-        !!checklist.vision_refined,
         !!checklist.audio_generated,
-        step8Complete, // Step 8: counts if recorded OR skipped
+        step8Complete, // Step 7: counts if recorded OR skipped
         !!checklist.audios_generated,
         !!checklist.vision_board_completed,
         !!checklist.first_journal_entry,
-        !!checklist.call_scheduled,
         !!checklist.activation_protocol_completed,
         !!checklist.unlock_completed,
       ].filter(Boolean).length
 
-      setProgress({ completed: completedSteps, total: 14 })
+      setProgress({ completed: completedSteps, total: 12 })
 
       const items: NavItem[] = [
         { 
@@ -105,11 +103,11 @@ export function IntensiveMobileNav() {
           active: pathname.startsWith('/intensive/account') || pathname === '/intensive/intake'
         },
         { 
-          id: 'vision', 
-          title: 'Vision', 
-          href: '/intensive/life-vision/new', 
+          id: 'vision',
+          title: 'Vision',
+          href: '/intensive/life-vision/create',
           icon: Sparkles,
-          completed: !!checklist.vision_built && !!checklist.vision_refined,
+          completed: !!checklist.vision_built,
           active: pathname.startsWith('/intensive/life-vision') || pathname.startsWith('/intensive/profile') || pathname.startsWith('/intensive/assessment')
         },
         { 

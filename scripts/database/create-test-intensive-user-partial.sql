@@ -26,22 +26,20 @@ DECLARE
   v_profile_done BOOLEAN := TRUE;        -- Step 3: Profile
   v_assessment_done BOOLEAN := TRUE;     -- Step 4: Assessment
   
-  -- Phase 3: Vision Creation
-  v_vision_built_done BOOLEAN := TRUE;   -- Step 5: Build Life Vision
-  v_vision_refined_done BOOLEAN := FALSE; -- Step 6: Refine Vision (TEST FROM HERE)
+  -- Phase 3: Vision
+  v_vision_built_done BOOLEAN := TRUE;   -- Step 5: Build Life Vision (TEST FROM HERE)
   
   -- Phase 4: Audio
-  v_audio_generated_done BOOLEAN := FALSE; -- Step 7: Generate Audio
-  v_audios_mixed_done BOOLEAN := FALSE;    -- Step 9: Audio Mix
+  v_audio_generated_done BOOLEAN := FALSE; -- Step 6: Generate Audio
+  v_audios_mixed_done BOOLEAN := FALSE;    -- Step 8: Audio Mix
   
   -- Phase 5: Activation
-  v_vision_board_done BOOLEAN := FALSE;    -- Step 10: Vision Board
-  v_journal_done BOOLEAN := FALSE;         -- Step 11: First Journal Entry
-  v_call_scheduled_done BOOLEAN := FALSE;  -- Step 12: Book Calibration Call
+  v_vision_board_done BOOLEAN := FALSE;    -- Step 9: Vision Board
+  v_journal_done BOOLEAN := FALSE;         -- Step 10: First Journal Entry
   
   -- Phase 6: Completion
-  v_activation_protocol_done BOOLEAN := FALSE; -- Step 13: My Activation Plan
-  v_unlock_done BOOLEAN := FALSE;              -- Step 14: Platform Unlock
+  v_activation_protocol_done BOOLEAN := FALSE; -- Step 11: My Activation Plan
+  v_unlock_done BOOLEAN := FALSE;              -- Step 12: Platform Unlock
   -- ============================================================================
 
   v_user_id UUID;
@@ -198,11 +196,9 @@ BEGIN
     assessment_completed,
     assessment_completed_at,
     
-    -- Phase 3: Vision Creation
+    -- Phase 3: Vision
     vision_built,
     vision_built_at,
-    vision_refined,
-    vision_refined_at,
     
     -- Phase 4: Audio
     audio_generated,
@@ -215,8 +211,6 @@ BEGIN
     vision_board_completed_at,
     first_journal_entry,
     first_journal_entry_at,
-    call_scheduled,
-    call_scheduled_at,
     
     -- Phase 6: Completion
     activation_protocol_completed,
@@ -246,8 +240,6 @@ BEGIN
     -- Phase 3
     v_vision_built_done,
     CASE WHEN v_vision_built_done THEN v_now - INTERVAL '30 minutes' ELSE NULL END,
-    v_vision_refined_done,
-    CASE WHEN v_vision_refined_done THEN v_now - INTERVAL '20 minutes' ELSE NULL END,
     
     -- Phase 4
     v_audio_generated_done,
@@ -260,8 +252,6 @@ BEGIN
     CASE WHEN v_vision_board_done THEN v_now - INTERVAL '8 minutes' ELSE NULL END,
     v_journal_done,
     CASE WHEN v_journal_done THEN v_now - INTERVAL '5 minutes' ELSE NULL END,
-    v_call_scheduled_done,
-    CASE WHEN v_call_scheduled_done THEN v_now - INTERVAL '3 minutes' ELSE NULL END,
     
     -- Phase 6
     v_activation_protocol_done,
@@ -289,14 +279,12 @@ BEGIN
   RAISE NOTICE '  [%] Step 3: Profile', CASE WHEN v_profile_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '  [%] Step 4: Assessment', CASE WHEN v_assessment_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '  [%] Step 5: Vision Built', CASE WHEN v_vision_built_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 6: Vision Refined', CASE WHEN v_vision_refined_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 7: Audio Generated', CASE WHEN v_audio_generated_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 9: Audio Mix', CASE WHEN v_audios_mixed_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 10: Vision Board', CASE WHEN v_vision_board_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 11: Journal', CASE WHEN v_journal_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 12: Book Call', CASE WHEN v_call_scheduled_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 13: My Activation Plan', CASE WHEN v_activation_protocol_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 14: Unlock', CASE WHEN v_unlock_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 6: Audio Generated', CASE WHEN v_audio_generated_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 8: Audio Mix', CASE WHEN v_audios_mixed_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 9: Vision Board', CASE WHEN v_vision_board_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 10: Journal', CASE WHEN v_journal_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 11: My Activation Plan', CASE WHEN v_activation_protocol_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 12: Unlock', CASE WHEN v_unlock_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '';
   RAISE NOTICE 'Login via Magic Link to: %', v_test_email;
   RAISE NOTICE '========================================';
