@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams, usePathname } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { ProfileStateCard } from '@/lib/design-system/profile-cards'
@@ -27,11 +27,8 @@ function recordingKeyForVisionCategory(key: VisionCategoryKey): LifeCategoryKey 
 export default function CategoryPage() {
   const router = useRouter()
   const params = useParams()
-  const pathname = usePathname()
   const categoryKey = params.key as VisionCategoryKey
   const supabase = createClient()
-  const isIntensive = pathname.startsWith('/intensive/')
-  const pathPrefix = isIntensive ? '/intensive' : ''
   const isMetaCategory = (META_CATEGORY_KEYS as readonly string[]).includes(categoryKey)
 
   const [loading, setLoading] = useState(true)
@@ -78,7 +75,7 @@ export default function CategoryPage() {
 
   // Forward/Conclusion are handled at assembly, not here
   if (isMetaCategory) {
-    router.push(`${pathPrefix}/life-vision/new/assembly`)
+    router.push(`/life-vision/new/assembly`)
     return null
   }
 
@@ -494,9 +491,9 @@ export default function CategoryPage() {
     if (allReady) {
       setShowAllReadyModal(true)
     } else if (nextCategory) {
-      router.push(`${pathPrefix}/life-vision/new/category/${nextCategory.key}`)
+      router.push(`/life-vision/new/category/${nextCategory.key}`)
     } else {
-      router.push(`${pathPrefix}/life-vision/new/assembly`)
+      router.push(`/life-vision/new/assembly`)
     }
   }
 
@@ -549,7 +546,7 @@ export default function CategoryPage() {
         {/* Ready to Assemble Banner */}
         {allCategoriesReady && !showAllReadyModal && (
           <button
-            onClick={() => router.push(`${pathPrefix}/life-vision/new/assembly`)}
+            onClick={() => router.push(`/life-vision/new/assembly`)}
             className="w-full flex items-center justify-between gap-3 px-5 py-3 rounded-xl bg-primary-500/15 border border-primary-500/40 hover:bg-primary-500/25 transition-colors group"
           >
             <div className="flex items-center gap-3">
@@ -573,7 +570,7 @@ export default function CategoryPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => prevCategory && router.push(`${pathPrefix}/life-vision/new/category/${prevCategory.key}`)}
+              onClick={() => prevCategory && router.push(`/life-vision/new/category/${prevCategory.key}`)}
               disabled={!prevCategory}
               className="flex-1"
             >
@@ -583,7 +580,7 @@ export default function CategoryPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => nextCategory && router.push(`${pathPrefix}/life-vision/new/category/${nextCategory.key}`)}
+              onClick={() => nextCategory && router.push(`/life-vision/new/category/${nextCategory.key}`)}
               disabled={!nextCategory}
               className="flex-1"
             >
@@ -598,7 +595,7 @@ export default function CategoryPage() {
           categories={allCategories}
           selectedCategories={[categoryKey]}
           completedCategories={completedCategoryKeys}
-          onCategoryClick={(key: string) => router.push(`${pathPrefix}/life-vision/new/category/${key}`)}
+          onCategoryClick={(key: string) => router.push(`/life-vision/new/category/${key}`)}
           mode="completion"
           lifeVisionCategoryStrip
           desktopColumnCount={6}
@@ -1119,7 +1116,7 @@ export default function CategoryPage() {
             <Button
               variant="primary"
               size="lg"
-              onClick={() => router.push(`${pathPrefix}/life-vision/new/assembly`)}
+              onClick={() => router.push(`/life-vision/new/assembly`)}
               className="w-full"
             >
               Go to Assembly

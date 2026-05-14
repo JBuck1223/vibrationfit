@@ -23,6 +23,14 @@
     {
       "path": "/api/cron/auto-transcribe",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/map/weekly-digest",
+      "schedule": "0 11 * * 1"
+    },
+    {
+      "path": "/api/map/generate-occurrences",
+      "schedule": "0 5 * * *"
     }
   ],
   "functions": {

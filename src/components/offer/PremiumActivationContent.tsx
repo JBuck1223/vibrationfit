@@ -679,11 +679,6 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Build Life Vision</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">6</span>
-                        <Wand2 className="w-3.5 h-3.5" />
-                        <span>Refine with VIVA</span>
-                      </div>
                     </div>
                   </div>
 
@@ -695,17 +690,17 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">7</span>
+                        <span className="text-xs font-mono text-neutral-600 w-4">6</span>
                         <Music className="w-3.5 h-3.5" />
                         <span>Generate Audio</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">8</span>
+                        <span className="text-xs font-mono text-neutral-600 w-4">7</span>
                         <Mic className="w-3.5 h-3.5" />
                         <span>Record Voice (Optional)</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">9</span>
+                        <span className="text-xs font-mono text-neutral-600 w-4">8</span>
                         <Sliders className="w-3.5 h-3.5" />
                         <span>Create Audio Mix</span>
                       </div>
@@ -720,19 +715,14 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">10</span>
+                        <span className="text-xs font-mono text-neutral-600 w-4">9</span>
                         <Image className="w-3.5 h-3.5" />
                         <span>Vision Board</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">11</span>
+                        <span className="text-xs font-mono text-neutral-600 w-4">10</span>
                         <BookOpen className="w-3.5 h-3.5" />
                         <span>Journal Entry</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">12</span>
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span>Book Calibration Call</span>
                       </div>
                     </div>
                   </div>
@@ -745,12 +735,12 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">13</span>
+                        <span className="text-xs font-mono text-neutral-600 w-4">11</span>
                         <Rocket className="w-3.5 h-3.5" />
                         <span>My Activation Plan</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <span className="text-xs font-mono text-neutral-600 w-4">14</span>
+                        <span className="text-xs font-mono text-neutral-600 w-4">12</span>
                         <Unlock className="w-3.5 h-3.5" />
                         <span>Unlock Platform</span>
                       </div>
@@ -787,11 +777,11 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                     {/* Header Section - PageHero style */}
                     <div className="text-center space-y-2">
                       <Text size="xs" className="text-[#39FF14] uppercase tracking-wider font-semibold">72-Hour Activation Intensive</Text>
-                      <Heading level={4} className="text-white">Your 14-Step Activation Path</Heading>
-                      <Text size="xs" className="text-neutral-400 max-w-md mx-auto">Follow each step in order. Complete all 14 to graduate and unlock your Advanced Audio Suite, Alignment Gym, and Vibe Tribe access.</Text>
+                      <Heading level={4} className="text-white">Your 12-Step Activation Path</Heading>
+                      <Text size="xs" className="text-neutral-400 max-w-md mx-auto">Follow each step in order. Complete all 12 to graduate and unlock your Advanced Audio Suite, Alignment Gym, and Vibe Tribe access.</Text>
                       <div className="pt-2">
                         <span className="inline-flex items-center gap-2 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-full px-3 py-1 text-xs font-semibold text-[#BF00FF]">
-                          Current Phase: Foundation · Step 3 of 14
+                          Current Phase: Foundation · Step 3 of 12
                         </span>
                       </div>
                     </div>
@@ -809,12 +799,12 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                         </div>
                         <div className="text-right">
                           <Text size="xs" className="text-neutral-400 mb-1">Overall Progress</Text>
-                          <Text size="2xl" className="font-bold text-[#14B8A6]">14%</Text>
-                          <Text size="xs" className="text-neutral-400 mt-1">2 of 14 steps</Text>
+                          <Text size="2xl" className="font-bold text-[#14B8A6]">17%</Text>
+                          <Text size="xs" className="text-neutral-400 mt-1">2 of 12 steps</Text>
                         </div>
                       </div>
                       <div className="w-full bg-neutral-700 rounded-full h-3">
-                        <div className="h-3 rounded-full bg-gradient-to-r from-[#39FF14] to-[#14B8A6]" style={{ width: '14%' }}></div>
+                        <div className="h-3 rounded-full bg-gradient-to-r from-[#39FF14] to-[#14B8A6]" style={{ width: '17%' }}></div>
                       </div>
                     </div>
                     
@@ -981,7 +971,7 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                     {/* Completion Message */}
                     <div className="text-center bg-gradient-to-r from-[#39FF14]/5 to-[#14B8A6]/5 border border-[#39FF14]/20 rounded-xl p-3">
                       <Text size="xs" className="text-neutral-300">
-                        <strong className="text-[#39FF14]">Complete all 14 steps</strong> to unlock Advanced Audio Suite, Alignment Gym + Vibe Tribe
+                        <strong className="text-[#39FF14]">Complete all 12 steps</strong> to unlock Advanced Audio Suite, Alignment Gym + Vibe Tribe
                       </Text>
                     </div>
                   </div>

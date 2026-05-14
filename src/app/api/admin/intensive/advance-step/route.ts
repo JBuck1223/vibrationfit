@@ -13,7 +13,7 @@ function getAdminClient() {
   })
 }
 
-// Step definitions for the 14-step intensive
+// Step definitions for the 12-step intensive
 const STEP_DEFINITIONS = [
   { step: 0, name: 'Start Intensive', checklistField: 'started_at' },
   { step: 1, name: 'Account Settings', checklistField: null }, // Uses user_accounts
@@ -21,15 +21,13 @@ const STEP_DEFINITIONS = [
   { step: 3, name: 'Profile', checklistField: 'profile_completed' },
   { step: 4, name: 'Assessment', checklistField: 'assessment_completed' },
   { step: 5, name: 'Build Vision', checklistField: 'vision_built' },
-  { step: 6, name: 'Refine Vision', checklistField: 'vision_refined' },
-  { step: 7, name: 'Generate Audio', checklistField: 'audio_generated' },
-  { step: 8, name: 'Record Voice', checklistField: 'voice_recording_completed' },
-  { step: 9, name: 'Audio Mix', checklistField: 'audios_generated' },
-  { step: 10, name: 'Vision Board', checklistField: 'vision_board_completed' },
-  { step: 11, name: 'Journal', checklistField: 'first_journal_entry' },
-  { step: 12, name: 'Book Call', checklistField: 'call_scheduled' },
-  { step: 13, name: 'My Activation Plan', checklistField: 'activation_protocol_completed' },
-  { step: 14, name: 'Unlock Platform', checklistField: 'unlock_completed' },
+  { step: 6, name: 'Generate Audio', checklistField: 'audio_generated' },
+  { step: 7, name: 'Record Voice', checklistField: 'voice_recording_completed' },
+  { step: 8, name: 'Audio Mix', checklistField: 'audios_generated' },
+  { step: 9, name: 'Vision Board', checklistField: 'vision_board_completed' },
+  { step: 10, name: 'Journal', checklistField: 'first_journal_entry' },
+  { step: 11, name: 'My Activation Plan', checklistField: 'activation_protocol_completed' },
+  { step: 12, name: 'Unlock Platform', checklistField: 'unlock_completed' },
 ]
 
 // Life categories for vision and other features
@@ -64,8 +62,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId and stepNumber are required' }, { status: 400 })
     }
 
-    if (stepNumber < 0 || stepNumber > 14) {
-      return NextResponse.json({ error: 'stepNumber must be between 0 and 14' }, { status: 400 })
+    if (stepNumber < 0 || stepNumber > 12) {
+      return NextResponse.json({ error: 'stepNumber must be between 0 and 12' }, { status: 400 })
     }
 
     // Use admin client to bypass RLS
@@ -108,31 +106,25 @@ export async function POST(request: NextRequest) {
         await advanceStep5_BuildVision(adminClient, userId, now)
         break
       case 6:
-        await advanceStep6_RefineVision(adminClient, userId, now)
+        await advanceStep6_GenerateAudio(adminClient, userId, now)
         break
       case 7:
-        await advanceStep7_GenerateAudio(adminClient, userId, now)
+        // Step 7 is optional - admin advance marks it as completed (recorded)
         break
       case 8:
-        // Step 8 is optional - admin advance marks it as completed (recorded)
+        await advanceStep8_AudioMix(adminClient, userId, now)
         break
       case 9:
-        await advanceStep9_AudioMix(adminClient, userId, now)
+        await advanceStep9_VisionBoard(adminClient, userId, now)
         break
       case 10:
-        await advanceStep10_VisionBoard(adminClient, userId, now)
+        await advanceStep10_Journal(adminClient, userId, now)
         break
       case 11:
-        await advanceStep11_Journal(adminClient, userId, now)
+        await advanceStep11_ActivationProtocol(adminClient, checklist.id, now)
         break
       case 12:
-        await advanceStep12_BookCall(adminClient, checklist.id, now)
-        break
-      case 13:
-        await advanceStep13_ActivationProtocol(adminClient, checklist.id, now)
-        break
-      case 14:
-        await advanceStep14_Unlock(adminClient, checklist, now)
+        await advanceStep12_Unlock(adminClient, checklist, now)
 
         // Fire exit event to cancel the onboarding sequence
         {
@@ -571,38 +563,8 @@ async function advanceStep5_BuildVision(
   })
 }
 
-// Step 6: Refine vision
-async function advanceStep6_RefineVision(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  now: string
-) {
-  // Get the active vision
-  const { data: vision } = await supabase
-    .from('vision_versions')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .maybeSingle()
-
-  if (!vision) return
-
-  // Update with refined content
-  await supabase
-    .from('vision_versions')
-    .update({
-      refined_categories: LIFE_CATEGORIES.map(cat => ({
-        category: cat,
-        refined_at: now,
-        refinement_notes: 'Refined with VIVA for deeper clarity and emotional resonance.'
-      })),
-      updated_at: now
-    })
-    .eq('id', vision.id)
-}
-
-// Step 7: Generate audio
-async function advanceStep7_GenerateAudio(
+// Step 6: Generate audio
+async function advanceStep6_GenerateAudio(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -679,8 +641,8 @@ async function advanceStep7_GenerateAudio(
     .eq('id', vision.id)
 }
 
-// Step 9: Audio mix
-async function advanceStep9_AudioMix(
+// Step 8: Audio mix
+async function advanceStep8_AudioMix(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -696,8 +658,8 @@ async function advanceStep9_AudioMix(
     .eq('user_id', userId)
 }
 
-// Step 10: Vision board
-async function advanceStep10_VisionBoard(
+// Step 9: Vision board
+async function advanceStep9_VisionBoard(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -727,8 +689,8 @@ async function advanceStep10_VisionBoard(
   await supabase.from('vision_board_items').insert(items)
 }
 
-// Step 11: Journal entries (3 entries: written, voice, video)
-async function advanceStep11_Journal(
+// Step 10: Journal entries (3 entries: written, voice, video)
+async function advanceStep10_Journal(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -802,25 +764,8 @@ Tomorrow I'll dive into building my actual vision. I can't wait to see what emer
   })
 }
 
-// Step 12: Book calibration call
-async function advanceStep12_BookCall(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  checklistId: string,
-  now: string
-) {
-  await supabase
-    .from('intensive_checklist')
-    .update({
-      call_scheduled: true,
-      call_scheduled_at: now,
-      call_scheduled_time: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
-      updated_at: now
-    })
-    .eq('id', checklistId)
-}
-
-// Step 13: Activation protocol
-async function advanceStep13_ActivationProtocol(
+// Step 11: Activation protocol
+async function advanceStep11_ActivationProtocol(
   supabase: Awaited<ReturnType<typeof createClient>>,
   checklistId: string,
   now: string
@@ -835,8 +780,8 @@ async function advanceStep13_ActivationProtocol(
     .eq('id', checklistId)
 }
 
-// Step 14: Unlock platform
-async function advanceStep14_Unlock(
+// Step 12: Unlock platform
+async function advanceStep12_Unlock(
   supabase: Awaited<ReturnType<typeof createClient>>,
   checklist: { id: string; intensive_id: string },
   now: string
@@ -921,19 +866,17 @@ export async function GET(request: NextRequest) {
       step3: !!checklist.profile_completed,
       step4: !!checklist.assessment_completed,
       step5: !!checklist.vision_built,
-      step6: !!checklist.vision_refined,
-      step7: !!checklist.audio_generated,
-      step8: !!checklist.voice_recording_completed || !!checklist.voice_recording_skipped,
-      step9: !!checklist.audios_generated,
-      step10: !!checklist.vision_board_completed,
-      step11: !!checklist.first_journal_entry,
-      step12: !!checklist.call_scheduled,
-      step13: !!checklist.activation_protocol_completed,
-      step14: !!checklist.unlock_completed
+      step6: !!checklist.audio_generated,
+      step7: !!checklist.voice_recording_completed || !!checklist.voice_recording_skipped,
+      step8: !!checklist.audios_generated,
+      step9: !!checklist.vision_board_completed,
+      step10: !!checklist.first_journal_entry,
+      step11: !!checklist.activation_protocol_completed,
+      step12: !!checklist.unlock_completed
     }
 
     const completedCount = Object.values(progress).filter(Boolean).length
-    const totalSteps = 15 // 0-14
+    const totalSteps = 13 // 0-12
 
     return NextResponse.json({
       checklist,

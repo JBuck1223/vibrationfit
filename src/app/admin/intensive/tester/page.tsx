@@ -22,13 +22,11 @@ import {
   User,
   ClipboardCheck,
   Sparkles,
-  Wand2,
   Music,
   Mic,
   Sliders,
   ImageIcon,
   BookOpen,
-  Calendar,
   Unlock,
   CheckCircle,
   Circle,
@@ -68,15 +66,13 @@ const STEP_ICONS = [
   User,       // 3 - Profile
   ClipboardCheck, // 4 - Assessment
   Sparkles,   // 5 - Build Vision
-  Wand2,      // 6 - Refine Vision
-  Music,      // 7 - Generate Audio
-  Mic,        // 8 - Record Voice
-  Sliders,    // 9 - Audio Mix
-  ImageIcon,  // 10 - Vision Board
-  BookOpen,   // 11 - Journal
-  Calendar,   // 12 - Book Call
-  Rocket,     // 13 - My Activation Plan
-  Unlock      // 14 - Unlock
+  Music,      // 6 - Generate Audio
+  Mic,        // 7 - Record Voice
+  Sliders,    // 8 - Audio Mix
+  ImageIcon,  // 9 - Vision Board
+  BookOpen,   // 10 - Journal
+  Rocket,     // 11 - My Activation Plan
+  Unlock      // 12 - Unlock
 ]
 
 const STEP_PHASES: Record<number, string> = {
@@ -86,15 +82,13 @@ const STEP_PHASES: Record<number, string> = {
   3: 'Foundation',
   4: 'Foundation',
   5: 'Vision Creation',
-  6: 'Vision Creation',
+  6: 'Audio',
   7: 'Audio',
   8: 'Audio',
-  9: 'Audio',
+  9: 'Activation',
   10: 'Activation',
-  11: 'Activation',
-  12: 'Activation',
-  13: 'Completion',
-  14: 'Completion'
+  11: 'Completion',
+  12: 'Completion'
 }
 
 export default function IntensiveTesterPage() {
@@ -106,7 +100,7 @@ export default function IntensiveTesterPage() {
   const [progress, setProgress] = useState<Progress | null>(null)
   const [stepDefinitions, setStepDefinitions] = useState<StepDefinition[]>([])
   const [completedCount, setCompletedCount] = useState(0)
-  const [totalSteps, setTotalSteps] = useState(15)
+  const [totalSteps, setTotalSteps] = useState(13)
   const [percentage, setPercentage] = useState(0)
   
   const [loading, setLoading] = useState(true)
@@ -411,7 +405,7 @@ export default function IntensiveTesterPage() {
 
   const getNextAvailableStep = (): number | null => {
     if (!progress) return null
-    for (let i = 0; i <= 14; i++) {
+    for (let i = 0; i <= 12; i++) {
       if (!isStepComplete(i) && !isStepLocked(i)) {
         return i
       }

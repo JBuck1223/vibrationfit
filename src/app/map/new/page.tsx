@@ -1,526 +1,426 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Container,
   Stack,
-  PageHero,
   Card,
   Button,
-  Text,
-  Inline,
   Spinner,
-  Badge,
 } from '@/lib/design-system/components'
-import { TimePicker } from '@/lib/design-system/components/forms/TimePicker'
 import {
-  ChevronDown,
-  ChevronUp,
-  Bell,
-  BellOff,
-  Save,
-  Zap,
-  Check,
   ArrowLeft,
+  Target,
+  RotateCw,
+  FolderKanban,
+  ChevronRight,
+  Check,
 } from 'lucide-react'
-import {
-  ACTIVITY_DEFINITIONS,
-  getActivitiesByCategory,
-  type ActivityDefinition,
-} from '@/lib/map/activities'
-import {
-  type MapCategory,
-  type CreateMapItemPayload,
-  CATEGORY_ORDER,
-  CATEGORY_LABELS,
-  DAY_LABELS,
-} from '@/lib/map/types'
+import { useMapStudio } from '@/components/map-studio'
+import { LIFE_CATEGORY_KEYS, getVisionCategory } from '@/lib/design-system/vision-categories'
+import type { CommitmentType, CadenceKind } from '@/lib/map/types'
 
-const CATEGORY_COLORS: Record<MapCategory, string> = {
-  activations: '#39FF14',
-  connections: '#BF00FF',
-  sessions: '#00FFFF',
-  creations: '#FFFF00',
-}
+type Step = 'choose-type' | 'target-or-commitment' | 'pick-target' | 'new-target' | 'commitment-details' | 'review'
 
-interface ActivityState {
-  enabled: boolean
-  days_of_week: number[]
-  time_of_day: string | null
-  notify_sms: boolean
-}
+const CADENCE_OPTIONS: { label: string; kind: CadenceKind; count?: number }[] = [
+  { label: 'Daily', kind: 'daily' },
+  { label: '6x / week', kind: 'days_per_week', count: 6 },
+  { label: '5x / week', kind: 'days_per_week', count: 5 },
+  { label: '4x / week', kind: 'days_per_week', count: 4 },
+  { label: '3x / week', kind: 'days_per_week', count: 3 },
+  { label: '2x / week', kind: 'days_per_week', count: 2 },
+  { label: '1x / week', kind: 'days_per_week', count: 1 },
+]
 
-type BuilderState = Record<string, ActivityState>
-
-function getDefaultBuilderState(): BuilderState {
-  const state: BuilderState = {}
-  for (const activity of ACTIVITY_DEFINITIONS) {
-    state[activity.type] = {
-      enabled: false,
-      days_of_week: [...activity.defaultDaysOfWeek],
-      time_of_day: activity.defaultTimeOfDay,
-      notify_sms: false,
-    }
-  }
-  return state
-}
-
-export default function MapBuilderPage() {
+export default function MapNewPage() {
   const router = useRouter()
-  const [title, setTitle] = useState(() => {
-    const now = new Date()
-    const monday = new Date(now)
-    const day = monday.getDay()
-    const diff = monday.getDate() - day + (day === 0 ? -6 : 1)
-    monday.setDate(diff)
-    return `Week of ${monday.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
-  })
-  const [activities, setActivities] = useState<BuilderState>(getDefaultBuilderState)
-  const [expandedCategories, setExpandedCategories] = useState<Set<MapCategory>>(
-    new Set(['activations'])
-  )
+  const searchParams = useSearchParams()
+  const preselectedTarget = searchParams.get('target')
+  const { targets, refreshAll } = useMapStudio()
+
+  const [step, setStep] = useState<Step>(preselectedTarget ? 'commitment-details' : 'target-or-commitment')
   const [saving, setSaving] = useState(false)
-  const [activating, setActivating] = useState(false)
 
-  const enabledCount = useMemo(
-    () => Object.values(activities).filter(a => a.enabled).length,
-    [activities]
-  )
+  // Target fields
+  const [targetId, setTargetId] = useState<string | null>(preselectedTarget)
+  const [targetTitle, setTargetTitle] = useState('')
+  const [targetDescription, setTargetDescription] = useState('')
+  const [targetCategory, setTargetCategory] = useState('')
 
-  const toggleCategory = (cat: MapCategory) => {
-    setExpandedCategories(prev => {
-      const next = new Set(prev)
-      if (next.has(cat)) next.delete(cat)
-      else next.add(cat)
-      return next
-    })
-  }
+  // Commitment fields
+  const [commitmentType, setCommitmentType] = useState<CommitmentType>('recurring')
+  const [commitmentTitle, setCommitmentTitle] = useState('')
+  const [commitmentDescription, setCommitmentDescription] = useState('')
+  const [commitmentCategory, setCommitmentCategory] = useState('')
+  const [cadenceIndex, setCadenceIndex] = useState(0)
+  const [endDate, setEndDate] = useState('')
 
-  const updateActivity = (type: string, updates: Partial<ActivityState>) => {
-    setActivities(prev => ({
-      ...prev,
-      [type]: { ...prev[type], ...updates },
-    }))
-  }
-
-  const toggleDay = (type: string, day: number) => {
-    setActivities(prev => {
-      const current = prev[type].days_of_week
-      const next = current.includes(day)
-        ? current.filter(d => d !== day)
-        : [...current, day].sort((a, b) => a - b)
-      return { ...prev, [type]: { ...prev[type], days_of_week: next } }
-    })
-  }
-
-  const buildPayloadItems = (): CreateMapItemPayload[] => {
-    const items: CreateMapItemPayload[] = []
-    let sortOrder = 0
-
-    for (const category of CATEGORY_ORDER) {
-      const categoryActivities = getActivitiesByCategory(category)
-      for (const def of categoryActivities) {
-        const state = activities[def.type]
-        if (!state.enabled) continue
-        items.push({
-          category,
-          activity_type: def.type,
-          label: def.label,
-          days_of_week: state.days_of_week,
-          time_of_day: state.time_of_day,
-          notify_sms: state.notify_sms,
-          deep_link: def.defaultDeepLink,
-          sort_order: sortOrder++,
-        })
+  useEffect(() => {
+    if (preselectedTarget) {
+      const t = targets.find(t => t.id === preselectedTarget)
+      if (t) {
+        setCommitmentCategory(t.category)
       }
     }
+  }, [preselectedTarget, targets])
 
-    return items
-  }
-
-  const handleSave = async (andActivate: boolean) => {
-    const items = buildPayloadItems()
-    if (items.length === 0) return
-
-    andActivate ? setActivating(true) : setSaving(true)
-
+  const handleCreateTarget = async () => {
+    setSaving(true)
     try {
-      const res = await fetch('/api/map', {
+      const res = await fetch('/api/map/targets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          items,
+          title: targetTitle,
+          description: targetDescription || null,
+          category: targetCategory,
         }),
       })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to save')
-
-      if (andActivate) {
-        const activateRes = await fetch(`/api/map/${data.map.id}/activate`, {
-          method: 'POST',
-        })
-        if (!activateRes.ok) {
-          const errData = await activateRes.json()
-          throw new Error(errData.error || 'Failed to activate')
-        }
+      if (res.ok) {
+        const data = await res.json()
+        setTargetId(data.target.id)
+        setCommitmentCategory(targetCategory)
+        setStep('commitment-details')
       }
-
-      router.push(`/map/${data.map.id}`)
-    } catch (err) {
-      console.error('Error saving map:', err)
-      alert(err instanceof Error ? err.message : 'Failed to save map')
     } finally {
       setSaving(false)
-      setActivating(false)
+    }
+  }
+
+  const handleCreateCommitment = async () => {
+    setSaving(true)
+    try {
+      const cadenceOpt = CADENCE_OPTIONS[cadenceIndex]
+      const cadence = commitmentType === 'recurring'
+        ? cadenceOpt.kind === 'daily'
+          ? { kind: 'daily' as const }
+          : { kind: 'days_per_week' as const, count: cadenceOpt.count! }
+        : null
+
+      const res = await fetch('/api/map/commitments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vision_target_id: targetId,
+          category: commitmentCategory || 'health',
+          type: commitmentType,
+          title: commitmentTitle,
+          description: commitmentDescription || null,
+          cadence,
+          end_date: endDate || null,
+        }),
+      })
+      if (res.ok) {
+        await refreshAll()
+        await fetch('/api/map/generate-occurrences', { method: 'POST' })
+        router.push(targetId ? `/map/t/${targetId}` : '/map/portfolio')
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="MAP BUILDER"
-          title="Build Your Weekly MAP"
-          subtitle="Select the activations, connections, sessions, and creations you intend to practice this week. Set your schedule and turn on SMS reminders."
-        />
+        {/* Back */}
+        <button
+          onClick={() => {
+            if (step === 'target-or-commitment') router.push('/map/portfolio')
+            else if (step === 'pick-target') setStep('target-or-commitment')
+            else if (step === 'new-target') setStep('target-or-commitment')
+            else if (step === 'choose-type') setStep('pick-target')
+            else if (step === 'commitment-details') {
+              if (preselectedTarget) router.push(`/map/t/${preselectedTarget}`)
+              else setStep('choose-type')
+            }
+            else router.back()
+          }}
+          className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-white transition-colors w-fit"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
 
-        {/* Title input */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <label className="block text-sm font-medium text-neutral-400 mb-2">
-            MAP Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            className="w-full bg-[#1A1A1A] border-2 border-[#333] rounded-xl px-4 py-3 text-white focus:border-[#39FF14] focus:outline-none transition-colors"
-            placeholder="e.g. Week of March 16"
-          />
-        </Card>
-
-        {/* Activity Categories */}
-        {CATEGORY_ORDER.map(category => {
-          const categoryActivities = getActivitiesByCategory(category)
-          const expanded = expandedCategories.has(category)
-          const enabledInCategory = categoryActivities.filter(
-            a => activities[a.type].enabled
-          ).length
-          const color = CATEGORY_COLORS[category]
-
-          return (
-            <Card key={category} variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-              <button
-                onClick={() => toggleCategory(category)}
-                className="w-full flex items-center justify-between"
-              >
-                <Inline gap="sm" className="items-center">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: color }}
-                  />
-                  <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
-                    {CATEGORY_LABELS[category]}
-                  </Text>
-                  {enabledInCategory > 0 && (
-                    <Badge variant="neutral" className="text-xs" style={{ color, borderColor: color + '40' }}>
-                      {enabledInCategory} selected
-                    </Badge>
-                  )}
-                </Inline>
-                {expanded ? (
-                  <ChevronUp className="w-5 h-5 text-neutral-500" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-neutral-500" />
-                )}
-              </button>
-
-              {expanded && (
-                <Stack gap="md" className="mt-6">
-                  {categoryActivities.map(def => (
-                    <ActivityCard
-                      key={def.type}
-                      definition={def}
-                      state={activities[def.type]}
-                      color={color}
-                      onToggle={() =>
-                        updateActivity(def.type, { enabled: !activities[def.type].enabled })
-                      }
-                      onToggleDay={day => toggleDay(def.type, day)}
-                      onTimeChange={time =>
-                        updateActivity(def.type, { time_of_day: time })
-                      }
-                      onToggleSms={() =>
-                        updateActivity(def.type, {
-                          notify_sms: !activities[def.type].notify_sms,
-                        })
-                      }
-                    />
-                  ))}
-                </Stack>
-              )}
-            </Card>
-          )
-        })}
-
-        {/* Preview Summary */}
-        {enabledCount > 0 && (
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-            <Stack gap="md">
-              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-                Weekly Preview
-              </Text>
-              <WeekPreview activities={activities} />
-            </Stack>
-          </Card>
+        {/* Step: Choose Target or New Target */}
+        {step === 'target-or-commitment' && (
+          <>
+            <h1 className="text-2xl font-bold text-white">What do you want to create?</h1>
+            <div className="space-y-3">
+              <OptionCard
+                icon={<Target className="w-5 h-5 text-primary-400" />}
+                title="New Vision Target"
+                description="A meaningful goal tied to your Life Vision"
+                onClick={() => setStep('new-target')}
+              />
+              <OptionCard
+                icon={<RotateCw className="w-5 h-5 text-blue-400" />}
+                title="Add Commitment to Existing Target"
+                description="A recurring or project-based commitment under an existing target"
+                onClick={() => {
+                  if (targets.filter(t => t.status === 'active').length === 0) {
+                    setStep('new-target')
+                  } else {
+                    setStep('pick-target')
+                  }
+                }}
+              />
+            </div>
+          </>
         )}
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="sm:mr-auto"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handleSave(false)}
-            disabled={enabledCount === 0 || saving || activating}
-          >
-            {saving ? <Spinner size="sm" className="mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-            Save as Draft
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => handleSave(true)}
-            disabled={enabledCount === 0 || saving || activating}
-          >
-            {activating ? (
-              <Spinner size="sm" className="mr-2" />
-            ) : (
-              <Zap className="w-4 h-4 mr-2" />
-            )}
-            Activate MAP
-          </Button>
-        </div>
+        {/* Step: Pick Existing Target */}
+        {step === 'pick-target' && (
+          <>
+            <h1 className="text-xl font-bold text-white">Choose a Target</h1>
+            <div className="space-y-2">
+              {targets
+                .filter(t => t.status === 'active')
+                .map(t => (
+                  <Card
+                    key={t.id}
+                    variant="outlined"
+                    className="bg-[#101010] border-[#1F1F1F] cursor-pointer hover:border-primary-500/30 transition-colors"
+                    onClick={() => {
+                      setTargetId(t.id)
+                      setCommitmentCategory(t.category)
+                      setStep('choose-type')
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Target className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">{t.title}</p>
+                        <p className="text-xs text-neutral-500 capitalize">{t.category}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-neutral-600" />
+                    </div>
+                  </Card>
+                ))}
+            </div>
+          </>
+        )}
+
+        {/* Step: New Target Form */}
+        {step === 'new-target' && (
+          <>
+            <h1 className="text-xl font-bold text-white">Create Vision Target</h1>
+            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+              <Stack gap="md">
+                <div>
+                  <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Category</label>
+                  <div className="flex flex-wrap gap-2">
+                    {LIFE_CATEGORY_KEYS.map(key => {
+                      const cat = getVisionCategory(key)
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setTargetCategory(key)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            targetCategory === key
+                              ? 'bg-primary-500/20 text-primary-400 ring-1 ring-primary-500/50'
+                              : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                          }`}
+                        >
+                          {cat?.label || key}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Title</label>
+                  <input
+                    value={targetTitle}
+                    onChange={e => setTargetTitle(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary-500/50"
+                    placeholder="e.g., Run a half marathon"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Description (optional)</label>
+                  <textarea
+                    value={targetDescription}
+                    onChange={e => setTargetDescription(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-neutral-600 resize-none focus:outline-none focus:border-primary-500/50"
+                    rows={3}
+                    placeholder="What does achieving this look like?"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={handleCreateTarget}
+                    disabled={saving || !targetTitle.trim() || !targetCategory}
+                  >
+                    {saving ? <Spinner size="sm" /> : 'Create Target'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => {
+                    setTargetTitle(''); setTargetDescription(''); setTargetCategory('')
+                    setStep('target-or-commitment')
+                  }}>
+                    Cancel
+                  </Button>
+                </div>
+              </Stack>
+            </Card>
+          </>
+        )}
+
+        {/* Step: Choose Commitment Type */}
+        {step === 'choose-type' && (
+          <>
+            <h1 className="text-xl font-bold text-white">What kind of commitment?</h1>
+            <div className="space-y-3">
+              <OptionCard
+                icon={<RotateCw className="w-5 h-5 text-blue-400" />}
+                title="Recurring"
+                description="Something you do regularly (daily, 3x/week, etc.)"
+                onClick={() => { setCommitmentType('recurring'); setStep('commitment-details') }}
+              />
+              <OptionCard
+                icon={<FolderKanban className="w-5 h-5 text-amber-400" />}
+                title="Project"
+                description="A one-time goal with a start and end date"
+                onClick={() => { setCommitmentType('project'); setStep('commitment-details') }}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Step: Commitment Details */}
+        {step === 'commitment-details' && (
+          <>
+            <h1 className="text-xl font-bold text-white">
+              {commitmentType === 'recurring' ? 'Recurring Commitment' : 'Project Commitment'}
+            </h1>
+            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+              <Stack gap="md">
+                <div>
+                  <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Title</label>
+                  <input
+                    value={commitmentTitle}
+                    onChange={e => setCommitmentTitle(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary-500/50"
+                    placeholder={commitmentType === 'recurring' ? 'e.g., Run 3 miles' : 'e.g., Complete fitness program'}
+                  />
+                </div>
+
+                {!commitmentCategory && (
+                  <div>
+                    <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Category</label>
+                    <div className="flex flex-wrap gap-2">
+                      {LIFE_CATEGORY_KEYS.map(key => {
+                        const cat = getVisionCategory(key)
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => setCommitmentCategory(key)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              commitmentCategory === key
+                                ? 'bg-primary-500/20 text-primary-400 ring-1 ring-primary-500/50'
+                                : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                            }`}
+                          >
+                            {cat?.label || key}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {commitmentType === 'recurring' && (
+                  <div>
+                    <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Cadence</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CADENCE_OPTIONS.map((opt, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCadenceIndex(i)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            cadenceIndex === i
+                              ? 'bg-primary-500/20 text-primary-400 ring-1 ring-primary-500/50'
+                              : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {commitmentType === 'project' && (
+                  <div>
+                    <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Target End Date (optional)</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      className="bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary-500/50"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Description (optional)</label>
+                  <textarea
+                    value={commitmentDescription}
+                    onChange={e => setCommitmentDescription(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-neutral-600 resize-none focus:outline-none focus:border-primary-500/50"
+                    rows={2}
+                    placeholder="Any details or notes"
+                  />
+                </div>
+
+                <Button
+                  variant="primary"
+                  onClick={handleCreateCommitment}
+                  disabled={saving || !commitmentTitle.trim() || (!commitmentCategory && !preselectedTarget)}
+                >
+                  {saving ? <Spinner size="sm" /> : (
+                    <>
+                      <Check className="w-4 h-4 mr-1" />
+                      Create Commitment
+                    </>
+                  )}
+                </Button>
+              </Stack>
+            </Card>
+          </>
+        )}
       </Stack>
     </Container>
   )
 }
 
-// ─── Activity Card ───
-
-interface ActivityCardProps {
-  definition: ActivityDefinition
-  state: ActivityState
-  color: string
-  onToggle: () => void
-  onToggleDay: (day: number) => void
-  onTimeChange: (time: string) => void
-  onToggleSms: () => void
-}
-
-function ActivityCard({
-  definition,
-  state,
-  color,
-  onToggle,
-  onToggleDay,
-  onTimeChange,
-  onToggleSms,
-}: ActivityCardProps) {
-  const Icon = definition.icon
-
+function OptionCard({
+  icon,
+  title,
+  description,
+  onClick,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  onClick: () => void
+}) {
   return (
-    <div
-      className={`p-4 rounded-xl border transition-all duration-200 ${
-        state.enabled
-          ? 'bg-neutral-900/80 border-neutral-700'
-          : 'bg-neutral-900/30 border-neutral-800/50'
-      }`}
+    <Card
+      variant="outlined"
+      className="bg-[#101010] border-[#1F1F1F] cursor-pointer hover:border-primary-500/30 transition-colors"
+      onClick={onClick}
     >
-      <Stack gap="md">
-        {/* Header with toggle */}
-        <button
-          onClick={onToggle}
-          className="w-full flex items-start gap-3 text-left"
-        >
-          <div
-            className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-              state.enabled ? 'border-transparent' : 'border-neutral-600'
-            }`}
-            style={state.enabled ? { backgroundColor: color } : {}}
-          >
-            {state.enabled && <Check className="w-3 h-3 text-black" />}
-          </div>
-          <div className="flex-1">
-            <Inline gap="sm" className="items-center">
-              <Icon
-                className="w-4 h-4 flex-shrink-0"
-                style={{ color: state.enabled ? color : '#666' }}
-              />
-              <Text
-                size="sm"
-                className={`font-semibold ${
-                  state.enabled ? 'text-white' : 'text-neutral-500'
-                }`}
-              >
-                {definition.label}
-              </Text>
-            </Inline>
-            <Text size="xs" className="text-neutral-500 mt-1">
-              {definition.description}
-            </Text>
-          </div>
-        </button>
-
-        {/* Expanded options when enabled */}
-        {state.enabled && (
-          <div className="pl-8 space-y-4">
-            {/* Day pills */}
-            <div>
-              <Text size="xs" className="text-neutral-500 mb-2">
-                Days
-              </Text>
-              <div className="flex flex-wrap gap-2">
-                {DAY_LABELS.map((label, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => onToggleDay(idx)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                      state.days_of_week.includes(idx)
-                        ? 'text-black'
-                        : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700'
-                    }`}
-                    style={
-                      state.days_of_week.includes(idx)
-                        ? { backgroundColor: color }
-                        : {}
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Time picker + SMS toggle */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-              <div className="flex-1 min-w-[140px]">
-                <TimePicker
-                  label="Time"
-                  value={state.time_of_day || undefined}
-                  onChange={onTimeChange}
-                  step={15}
-                  size="sm"
-                />
-              </div>
-              <button
-                onClick={onToggleSms}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
-                  state.notify_sms
-                    ? 'border-[#39FF14]/40 bg-[#39FF14]/10 text-[#39FF14]'
-                    : 'border-neutral-700 bg-neutral-800 text-neutral-500 hover:bg-neutral-700'
-                }`}
-              >
-                {state.notify_sms ? (
-                  <Bell className="w-3.5 h-3.5" />
-                ) : (
-                  <BellOff className="w-3.5 h-3.5" />
-                )}
-                {state.notify_sms ? 'SMS On' : 'SMS Off'}
-              </button>
-            </div>
-          </div>
-        )}
-      </Stack>
-    </div>
-  )
-}
-
-// ─── Week Preview Grid ───
-
-function WeekPreview({ activities }: { activities: BuilderState }) {
-  const dayActivities = useMemo(() => {
-    const result: Record<number, Array<{ label: string; time: string | null; color: string }>> = {}
-    for (let d = 0; d < 7; d++) result[d] = []
-
-    for (const def of ACTIVITY_DEFINITIONS) {
-      const state = activities[def.type]
-      if (!state.enabled) continue
-
-      const color = CATEGORY_COLORS[def.category]
-      for (const day of state.days_of_week) {
-        result[day].push({
-          label: def.label,
-          time: state.time_of_day,
-          color,
-        })
-      }
-    }
-
-    // Sort each day by time
-    for (const d of Object.keys(result)) {
-      result[Number(d)].sort((a, b) => {
-        if (!a.time) return 1
-        if (!b.time) return -1
-        return a.time.localeCompare(b.time)
-      })
-    }
-
-    return result
-  }, [activities])
-
-  const formatTime = (t: string | null) => {
-    if (!t) return ''
-    const [h, m] = t.split(':').map(Number)
-    const period = h >= 12 ? 'p' : 'a'
-    const dh = h === 0 ? 12 : h > 12 ? h - 12 : h
-    return `${dh}:${String(m).padStart(2, '0')}${period}`
-  }
-
-  return (
-    <div className="grid grid-cols-7 gap-1">
-      {DAY_LABELS.map((label, idx) => (
-        <div key={idx} className="min-w-0">
-          <Text
-            size="xs"
-            className="text-neutral-500 text-center font-semibold mb-2"
-          >
-            {label}
-          </Text>
-          <div className="space-y-1">
-            {dayActivities[idx].length === 0 ? (
-              <div className="h-6 rounded bg-neutral-900/30" />
-            ) : (
-              dayActivities[idx].map((item, i) => (
-                <div
-                  key={i}
-                  className="rounded px-1 py-0.5 text-center truncate"
-                  style={{
-                    backgroundColor: item.color + '15',
-                    borderLeft: `2px solid ${item.color}`,
-                  }}
-                  title={`${item.label}${item.time ? ` at ${formatTime(item.time)}` : ''}`}
-                >
-                  <span
-                    className="text-[9px] leading-tight block truncate"
-                    style={{ color: item.color }}
-                  >
-                    {formatTime(item.time)}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="flex-shrink-0">{icon}</div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-white">{title}</p>
+          <p className="text-xs text-neutral-500">{description}</p>
         </div>
-      ))}
-    </div>
+        <ChevronRight className="w-4 h-4 text-neutral-600 flex-shrink-0" />
+      </div>
+    </Card>
   )
 }

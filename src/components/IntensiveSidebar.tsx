@@ -13,13 +13,11 @@ import {
   User,
   ClipboardCheck,
   Sparkles,
-  Wand2,
   Music,
   Mic,
   Sliders,
   ImageIcon,
   BookOpen,
-  Calendar,
   Rocket,
   Menu,
   X,
@@ -103,7 +101,7 @@ export function IntensiveSidebar() {
       const utcStartedAt = startedAt.endsWith('Z') ? startedAt : startedAt + 'Z'
       const startTime = new Date(utcStartedAt).getTime()
       const endTime = startTime + INTENSIVE_DURATION_MS
-      const now = Date.now()
+      const now = Math.floor(Date.now() / 1000) * 1000
       const remaining = endTime - now
 
       if (remaining <= 0) {
@@ -304,38 +302,28 @@ export function IntensiveSidebar() {
         { 
           id: 'vision', 
           stepNumber: 5,
-          title: 'Life Vision', 
-          href: '/intensive/life-vision/new', 
+          title: 'Life Vision',
+          href: '/intensive/life-vision/create',
           icon: Sparkles,
           phase: 'Vision',
           completed: !!checklist.vision_built,
           locked: !checklist.assessment_completed 
         },
-        { 
-          id: 'refine', 
-          stepNumber: 6,
-          title: 'Refine Vision', 
-          href: '/intensive/life-vision/new', 
-          icon: Wand2,
-          phase: 'Vision',
-          completed: !!checklist.vision_refined,
-          locked: !checklist.vision_built 
-        },
 
         // Phase 4: Audio
         { 
           id: 'generate_audio', 
-          stepNumber: 7,
+          stepNumber: 6,
           title: 'Generate Audio', 
           href: '/intensive/audio/generate', 
           icon: Music,
           phase: 'Audio',
           completed: !!checklist.audio_generated,
-          locked: !checklist.vision_refined 
+          locked: !checklist.vision_built 
         },
         { 
           id: 'record_audio', 
-          stepNumber: 8,
+          stepNumber: 7,
           title: 'Record Voice', 
           href: '/intensive/audio/record', 
           icon: Mic,
@@ -346,7 +334,7 @@ export function IntensiveSidebar() {
         },
         { 
           id: 'mix_audio', 
-          stepNumber: 9,
+          stepNumber: 8,
           title: 'Audio Mix', 
           href: '/intensive/audio/mix', 
           icon: Sliders,
@@ -358,7 +346,7 @@ export function IntensiveSidebar() {
         // Phase 5: Activation
         { 
           id: 'vision_board', 
-          stepNumber: 10,
+          stepNumber: 9,
           title: 'Vision Board', 
           href: '/intensive/vision-board/about', 
           icon: ImageIcon,
@@ -368,7 +356,7 @@ export function IntensiveSidebar() {
         },
         { 
           id: 'journal', 
-          stepNumber: 11,
+          stepNumber: 10,
           title: 'Journal', 
           href: '/intensive/journal/about', 
           icon: BookOpen,
@@ -376,31 +364,21 @@ export function IntensiveSidebar() {
           completed: !!checklist.first_journal_entry,
           locked: !checklist.vision_board_completed 
         },
-        { 
-          id: 'call', 
-          stepNumber: 12,
-          title: 'Book Call', 
-          href: '/intensive/schedule-call', 
-          icon: Calendar,
-          phase: 'Activation',
-          completed: !!checklist.call_scheduled,
-          locked: !checklist.first_journal_entry 
-        },
 
         // Phase 6: Completion
         { 
           id: 'activation', 
-          stepNumber: 13,
+          stepNumber: 11,
           title: 'My Activation Plan', 
           href: '/intensive/map', 
           icon: Rocket,
           phase: 'Completion',
           completed: !!checklist.activation_protocol_completed,
-          locked: !checklist.call_scheduled 
+          locked: !checklist.first_journal_entry 
         },
         { 
           id: 'unlock', 
-          stepNumber: 14,
+          stepNumber: 12,
           title: 'Unlock Platform', 
           href: '/intensive/unlock', 
           icon: Unlock,
@@ -447,8 +425,9 @@ export function IntensiveSidebar() {
   ]
 
   // Calculate progress
-  const completedCount = steps.filter(s => s.completed).length
-  const totalCount = steps.length
+  const numberedSteps = steps.filter(s => s.stepNumber > 0)
+  const completedCount = numberedSteps.filter(s => s.completed).length
+  const totalCount = numberedSteps.length
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   // Using a variable instead of a component to prevent remounting on timer updates
@@ -578,7 +557,7 @@ export function IntensiveSidebar() {
                 
                 {/* Subtext */}
                 <p className="text-[10px] text-white text-center leading-relaxed">
-                  You're still in the Intensive. Keep going until you complete all 14 steps.
+                  You're still in the Intensive. Keep going until you complete all 12 steps.
                 </p>
               </div>
             )}
