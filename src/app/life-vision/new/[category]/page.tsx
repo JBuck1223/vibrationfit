@@ -192,23 +192,40 @@ export default function UnifiedCategoryPage() {
       const categoryStateResult = results.find(r => r.type === 'categoryState')?.data
       const allCategoryStates = results.find(r => r.type === 'allCategoryStates')?.data as { category: string; category_vision_text: string | null }[] | null
 
-      // Track completed categories from vision_new_category_state
-      if (allCategoryStates) {
-        const completedFromState = allCategoryStates
-          .filter(s => s.category_vision_text && s.category_vision_text.trim().length > 0)
-          .map(s => s.category)
-        setRefinedCategories(prev => {
-          const merged = new Set([...prev, ...completedFromState])
-          return Array.from(merged)
-        })
-      }
-
       const activeValue = activeResult ? ((activeResult[categoryKey as keyof VisionData] as string) || '') : ''
       const draftValue = draftResult ? ((draftResult[categoryKey as keyof VisionData] as string) || '') : ''
 
+      // Compute the unified set of "refined" categories used to render the
+      // yellow check badges. Sources, all OR'd together:
+      //   1) per-category WIP from vision_new_category_state (typed in editor)
+      //   2) explicit tracking on draft.refined_categories (set when VIVA
+      //      writes through /api/vision/draft/update)
+      //   3) value-level diff between draft and active — catches drafts that
+      //      were edited via direct DB updates or older code paths that did
+      //      not maintain refined_categories.
+      const completedFromState = (allCategoryStates || [])
+        .filter(s => s.category_vision_text && s.category_vision_text.trim().length > 0)
+        .map(s => s.category)
+
+      const trackedRefined: string[] = (draftResult?.refined_categories as string[] | null) || []
+
+      const valueDiffRefined: string[] = []
+      if (draftResult && activeResult) {
+        for (const cat of allCategories) {
+          const dv = ((draftResult[cat.key as keyof VisionData] as string) || '').trim()
+          const av = ((activeResult[cat.key as keyof VisionData] as string) || '').trim()
+          if (dv && dv !== av) valueDiffRefined.push(cat.key)
+        }
+      }
+
+      setRefinedCategories(Array.from(new Set([
+        ...completedFromState,
+        ...trackedRefined,
+        ...valueDiffRefined,
+      ])))
+
       if (draftResult) {
         setDraftVision(draftResult)
-        setRefinedCategories(draftResult.refined_categories || [])
         // Only pre-populate Update field if draft has actual generated content
         // (different from active, meaning a VIVA generation already happened)
         if (draftValue.trim() && draftValue.trim() !== activeValue.trim()) {
@@ -543,23 +560,52 @@ export default function UnifiedCategoryPage() {
   }
 
   const handleStartFresh = async () => {
-    if (!activeVisionId) return
+    if (!activeVisionId || !user) return
     setIsResettingDraft(true)
     try {
+      // 1) Wipe the draft row itself (vision_versions).
       if (draftVision) {
-        await fetch(`/api/vision/draft?draftId=${draftVision.id}`, { method: 'DELETE' })
+        const delRes = await fetch(`/api/vision/draft?draftId=${draftVision.id}`, { method: 'DELETE' })
+        if (!delRes.ok) {
+          const body = await delRes.json().catch(() => ({} as { error?: string }))
+          throw new Error(body?.error || `Failed to delete existing draft (${delRes.status})`)
+        }
       }
+
+      // 2) CRITICAL: also wipe the per-category WIP rows in
+      // vision_new_category_state. That table is keyed by (user_id, category)
+      // and holds the editor's manualText, get_me_started_text, and imagination
+      // notes. If we leave it behind, loadData re-hydrates yellow checks, the
+      // "draft in progress" banner, and stale text on the next render — even
+      // though the new draft row is a clean clone of active.
+      const { error: stateDeleteError } = await supabase
+        .from('vision_new_category_state')
+        .delete()
+        .eq('user_id', user.id)
+      if (stateDeleteError) {
+        console.error('Failed to clear vision_new_category_state:', stateDeleteError)
+        throw new Error(stateDeleteError.message || 'Failed to clear category state')
+      }
+
+      // 3) Create a fresh draft from active (clones all category text).
       const res = await fetch('/api/vision/draft/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ visionId: activeVisionId }),
       })
-      if (!res.ok) throw new Error('Failed to create draft')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({} as { error?: string }))
+        throw new Error(body?.error || `Failed to create draft (${res.status})`)
+      }
+
+      // 4) Reset local UI state so nothing carries over visually.
       await refreshVisions()
       setManualText('')
       setCurrentRefinement('')
+      setPreviousRefinement(null)
       setGetMeStartedText('')
       setVivaSteeringText('')
+      setRefinedCategories([])
       setShowDraftBanner(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start fresh')

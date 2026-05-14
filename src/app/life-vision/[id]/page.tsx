@@ -743,7 +743,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     if (!vision) return
     setVersionToolbarLoading(true)
     try {
-      await fetch(`/api/vision/draft?draftId=${vision.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/vision/draft?draftId=${vision.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({} as { error?: string }))
+        throw new Error(body?.error || `Failed to delete draft (${res.status})`)
+      }
       await refreshVisions()
       router.push('/life-vision')
     } catch (error) {

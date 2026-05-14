@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How You Become You &amp; the A.U.R.A. Process — VibrationFit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #000000;
+        --fg: #ffffff;
+        --muted: rgba(255, 255, 255, 0.72);
+        --subtle: rgba(255, 255, 255, 0.45);
+        --accent: rgba(255, 255, 255, 0.12);
+        --panel: rgba(255, 255, 255, 0.04);
+
+        /* Brand */
+        --lime: #39ff14;
+        --cyan: #00ffff;
+        --purple: #bf00ff;
+        --yellow: #ffff00;
+        --red: #ff0040;
+
+        /* Above / Below Green Line */
+        --above: #39ff14;
+        --above-soft: rgba(57, 255, 20, 0.08);
+        --above-border: rgba(57, 255, 20, 0.4);
+        --below: #ff0040;
+        --below-soft: rgba(255, 0, 64, 0.06);
+        --below-border: rgba(255, 0, 64, 0.35);
+
+        /* Stage colors */
+        --stage-1: #ffffff;       /* Snowflake / Thought */
+        --stage-2: #00ffff;       /* Pile / Belief */
+        --stage-3: #39ff14;       /* Snowball / Truth */
+        --stage-4: #bf00ff;       /* Snowman / Identity */
+
+        /* A.U.R.A. step colors */
+        --aura-1: #39ff14; /* Awareness */
+        --aura-2: #00ffff; /* Unplug */
+        --aura-3: #bf00ff; /* Replace */
+        --aura-4: #ffff00; /* Activate */
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Poppins", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(60% 40% at 20% 10%, rgba(57, 255, 20, 0.08), transparent 60%),
+          radial-gradient(50% 40% at 80% 100%, rgba(191, 0, 255, 0.10), transparent 60%),
+          radial-gradient(40% 40% at 100% 20%, rgba(0, 255, 255, 0.06), transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .deck {
+        position: relative;
+        z-index: 1;
+        height: 100vh;
+        width: 100%;
+        display: block;
+      }
+
+      .slide {
+        display: none;
+        position: absolute;
+        inset: 0;
+        padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 5vw, 4rem);
+        width: 100%;
+        height: 100vh;
+        flex-direction: column;
+      }
+
+      .slide.active { display: flex; }
+
+      .slide-content {
+        flex: 0 0 auto;
+        max-width: 1100px;
+        margin: 0 auto;
+        width: 100%;
+        padding-top: clamp(1rem, 4vh, 3rem);
+      }
+
+      /* Typography */
+      h1 {
+        font-size: clamp(2rem, 5.2vw, 4rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.75rem;
+        line-height: 1.05;
+      }
+
+      h1 .gradient,
+      h2 .gradient {
+        background: linear-gradient(135deg, #39ff14, #00ffff, #bf00ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      h2 {
+        font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+        font-weight: 700;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        font-size: clamp(0.7rem, 1.2vw, 0.8rem);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--muted);
+        margin-bottom: 0.85rem;
+        padding: 0.35rem 0.85rem;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+      }
+
+      .stage-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: clamp(0.75rem, 1.3vw, 0.85rem);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        margin-bottom: 0.85rem;
+      }
+
+      .stage-badge .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 12px currentColor;
+      }
+
+      .quote {
+        font-size: clamp(1.2rem, 2.7vw, 1.7rem);
+        line-height: 1.35;
+        margin: 0 0 1rem;
+        color: var(--fg);
+        font-weight: 500;
+        font-style: italic;
+        max-width: 36ch;
+      }
+
+      .quote::before { content: "\201C"; margin-right: 0.1em; }
+      .quote::after  { content: "\201D"; margin-left: 0.1em; }
+
+      .lead {
+        font-size: clamp(0.95rem, 1.9vw, 1.15rem);
+        line-height: 1.55;
+        margin: 0 0 0.85rem;
+        color: var(--muted);
+        max-width: 56ch;
+      }
+
+      .lead.bright { color: var(--fg); }
+
+      .sub {
+        font-size: clamp(0.85rem, 1.5vw, 1rem);
+        line-height: 1.5;
+        margin: 0.5rem 0 0;
+        color: var(--subtle);
+        max-width: 56ch;
+        font-style: italic;
+      }
+
+      ul.bullets {
+        margin: 0 0 1rem;
+        padding: 0;
+        list-style: none;
+        color: var(--muted);
+        font-size: clamp(0.95rem, 1.7vw, 1.05rem);
+        line-height: 1.5;
+        max-width: 52ch;
+      }
+
+      ul.bullets li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.55rem;
+      }
+
+      ul.bullets li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        /* Center marker on first line box (lh); fallback for older browsers. */
+        top: 0.52em;
+        top: calc(0.5lh - 0.3rem);
+        width: 0.6rem;
+        height: 0.6rem;
+        background: currentColor;
+        border-radius: 50%;
+        opacity: 0.55;
+      }
+
+      .callout {
+        margin-top: 0.5rem;
+        padding: 1rem 1.25rem;
+        border-left: 3px solid currentColor;
+        background: var(--panel);
+        border-radius: 0 12px 12px 0;
+        max-width: 60ch;
+      }
+
+      .callout-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        opacity: 0.75;
+        margin-bottom: 0.4rem;
+        font-weight: 700;
+      }
+
+      .callout p {
+        margin: 0;
+        font-size: clamp(0.95rem, 1.7vw, 1.05rem);
+        line-height: 1.5;
+        color: var(--fg);
+        font-weight: 500;
+      }
+
+      /* Per-stage colors for stages 1-4 */
+      .slide[data-stage="1"] .stage-badge,
+      .slide[data-stage="1"] .callout { color: var(--stage-1); }
+      .slide[data-stage="2"] .stage-badge,
+      .slide[data-stage="2"] .callout { color: var(--stage-2); }
+      .slide[data-stage="3"] .stage-badge,
+      .slide[data-stage="3"] .callout { color: var(--stage-3); }
+      .slide[data-stage="4"] .stage-badge,
+      .slide[data-stage="4"] .callout { color: var(--stage-4); }
+
+      /* TITLE slide */
+      .title-slide .slide-content {
+        margin: auto;
+        text-align: center;
+        padding: 0;
+      }
+
+      .title-slide h1 {
+        font-size: clamp(2.2rem, 6vw, 5.25rem);
+        font-weight: 800;
+      }
+
+      .title-slide .subtitle {
+        font-size: clamp(1rem, 2.1vw, 1.4rem);
+        color: var(--muted);
+        max-width: 52ch;
+        margin: 1rem auto 1.25rem;
+        font-style: italic;
+      }
+
+      .title-slide .super-eyebrow {
+        font-size: clamp(0.7rem, 1.2vw, 0.85rem);
+        font-weight: 700;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--lime);
+        margin-bottom: 1rem;
+      }
+
+      .title-slide .meta-line {
+        margin-top: 1.75rem;
+        font-size: clamp(0.78rem, 1.3vw, 0.9rem);
+        color: var(--subtle);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .title-slide .hint {
+        font-size: 0.78rem;
+        color: var(--subtle);
+        letter-spacing: 0.1em;
+        margin-top: 1.25rem;
+      }
+
+      .title-slide .hint kbd {
+        background: var(--accent);
+        border-radius: 4px;
+        padding: 0.15rem 0.45rem;
+        font-family: inherit;
+        font-weight: 600;
+        color: var(--fg);
+        margin: 0 0.2rem;
+      }
+
+      /* CENTERED bigger text variants */
+      .center-slide .slide-content {
+        margin: auto;
+        text-align: center;
+      }
+
+      .center-slide .quote {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 30ch;
+        font-style: normal;
+      }
+
+      .center-slide .lead {
+        margin-left: auto;
+        margin-right: auto;
+        font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+        color: var(--fg);
+        max-width: 38ch;
+      }
+
+      .center-slide .sub {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .center-slide .slide-content > ul.bullets {
+        margin-left: auto;
+        margin-right: auto;
+        text-align: left;
+      }
+
+      .snowman-sequence-slide.center-slide .lead {
+        max-width: min(50ch, min(92vw, 40rem));
+      }
+
+      /* TWO DIALS layout */
+      .dials-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1.25rem;
+      }
+
+      @media (min-width: 800px) {
+        .dials-grid { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+      }
+
+      .dial-card {
+        padding: 1.25rem 1.4rem;
+        border: 1px solid var(--accent);
+        background: var(--panel);
+        border-radius: 16px;
+      }
+
+      .dial-card .num {
+        font-size: 0.7rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--subtle);
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .dial-card h3 {
+        margin: 0 0 0.55rem;
+        font-size: clamp(1.05rem, 2vw, 1.3rem);
+        font-weight: 700;
+      }
+
+      .dial-card .meta {
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .dial-card.lime  h3 { color: var(--lime); }
+      .dial-card.cyan  h3 { color: var(--cyan); }
+
+      /* STAGE SLIDES: copy centered in the viewport band above the graphic;
+         graphic stays pinned to the bottom of the slide. */
+      .stage-slide .slide-content {
+        flex: 1 1 auto;
+        align-self: stretch;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding-top: clamp(0.75rem, 2.5vh, 2rem);
+        padding-bottom: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      /* Text + cards: vertically + horizontally centered in remaining space */
+      .stage-slide-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+        max-width: 760px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0 clamp(0.5rem, 2vw, 1rem) clamp(0.5rem, 1.5vh, 1.25rem);
+      }
+
+      .stage-slide-overview .slide-content {
+        justify-content: center;
+        align-items: center;
+        padding-top: clamp(1rem, 4vh, 3rem);
+      }
+
+      .stage-slide-overview .stage-slide-body {
+        flex: 0 1 auto;
+        padding-bottom: 0;
+      }
+
+      .stage-slide .stage-badge { justify-content: center; }
+      .stage-slide h2 { margin-bottom: 0.85rem; }
+
+      .stage-slide .lead,
+      .stage-slide .bullets {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .stage-slide .bullets {
+        text-align: left;
+        max-width: 48ch;
+      }
+
+      .stage-slide-overview .sub {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Graphic container: bottom of slide, full width row */
+      .stage-graphic {
+        flex: 0 0 auto;
+        margin-top: 0;
+        padding-top: clamp(0.5rem, 1.5vh, 1.25rem);
+        padding-bottom: clamp(0.25rem, 1vh, 0.75rem);
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        width: 100%;
+      }
+
+      .stage-graphic svg {
+        display: block;
+        width: 100%;
+        max-width: clamp(180px, 22vw, 280px);
+        height: auto;
+        max-height: clamp(160px, 26vh, 240px);
+      }
+
+      .stage-graphic.tall svg {
+        max-width: clamp(160px, 18vw, 220px);
+        max-height: clamp(200px, 32vh, 300px);
+      }
+
+      .stage-graphic.wide svg {
+        max-width: clamp(220px, 28vw, 360px);
+        max-height: clamp(140px, 22vh, 200px);
+      }
+
+      /* Mini stage icons (used inside stage-card on the overview slide) */
+      .stage-icon {
+        width: clamp(46px, 4.5vw, 56px);
+        height: clamp(46px, 4.5vw, 56px);
+        margin: 0 auto 0.5rem;
+        display: block;
+      }
+
+      .stage-icon svg { width: 100%; height: 100%; display: block; }
+
+      /* OVERVIEW (4 stages) layout */
+      .stages-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 600px;
+      }
+
+      @media (min-width: 800px) {
+        .stages-grid { grid-template-columns: repeat(4, 1fr); gap: 0.75rem; max-width: 720px; }
+      }
+
+      .stage-card {
+        padding: 0.95rem 0.85rem;
+        background: var(--panel);
+        border: 1px solid var(--accent);
+        border-radius: 12px;
+        text-align: center;
+      }
+
+      .stage-card .step-num {
+        font-size: 0.65rem;
+        letter-spacing: 0.22em;
+        font-weight: 700;
+        color: var(--subtle);
+      }
+
+      .stage-card h3 {
+        margin: 0.25rem 0 0.25rem;
+        font-size: clamp(0.9rem, 1.6vw, 1.05rem);
+        font-weight: 700;
+      }
+
+      .stage-card .sub-text {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .stage-card.s1 h3 { color: var(--stage-1); }
+      .stage-card.s2 h3 { color: var(--stage-2); }
+      .stage-card.s3 h3 { color: var(--stage-3); }
+      .stage-card.s4 h3 { color: var(--stage-4); }
+
+      /* A.U.R.A. process grid (overview) */
+      .aura-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+        margin-top: 1.25rem;
+      }
+
+      @media (min-width: 800px) {
+        .aura-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+      }
+
+      @media (min-width: 1100px) {
+        .aura-grid { grid-template-columns: repeat(4, 1fr); gap: 0.85rem; }
+      }
+
+      .aura-card {
+        padding: 1rem 1.1rem;
+        border: 1px solid currentColor;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .aura-card.c1 { color: var(--aura-1); }
+      .aura-card.c2 { color: var(--aura-2); }
+      .aura-card.c3 { color: var(--aura-3); }
+      .aura-card.c4 { color: var(--aura-4); }
+
+      .aura-step {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
+      .aura-step .num {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: currentColor;
+        color: #000;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+      }
+
+      .aura-step .letter {
+        font-size: 0.7rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        font-weight: 700;
+        opacity: 0.85;
+      }
+
+      .aura-card h3 {
+        margin: 0;
+        font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        color: var(--fg);
+      }
+
+      .aura-card p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      /* A.U.R.A. STEP DETAIL slides (matches PDF layout) */
+      .aura-step-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .aura-step-num {
+        width: clamp(46px, 5vw, 60px);
+        height: clamp(46px, 5vw, 60px);
+        border-radius: 50%;
+        background: #0c0c0c;
+        border: 2px solid currentColor;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: clamp(1.2rem, 2.2vw, 1.5rem);
+        flex-shrink: 0;
+        box-shadow: 0 0 28px currentColor;
+      }
+
+      .aura-step-banner {
+        flex: 1;
+        background: currentColor;
+        border-radius: 14px;
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .aura-step-banner .step-tag {
+        font-size: clamp(0.65rem, 1vw, 0.75rem);
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        font-weight: 800;
+        color: rgba(0, 0, 0, 0.55);
+        white-space: nowrap;
+      }
+
+      .aura-step-banner .step-title {
+        font-size: clamp(1.1rem, 2.4vw, 1.7rem);
+        font-weight: 800;
+        color: #0a0a0a;
+        line-height: 1.1;
+      }
+
+      .aura-step-banner .step-title em {
+        font-style: normal;
+        opacity: 0.6;
+      }
+
+      .aura-body {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.1rem;
+        margin-top: 0.5rem;
+      }
+
+      @media (min-width: 900px) {
+        .aura-body { grid-template-columns: 1.1fr 0.9fr; gap: 1.5rem; }
+      }
+
+      .aura-intro {
+        font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+        line-height: 1.6;
+        color: var(--muted);
+        margin: 0 0 1rem;
+      }
+
+      .qa-block {
+        background: var(--panel);
+        border: 1px solid var(--accent);
+        border-radius: 14px;
+        padding: 1.05rem 1.15rem;
+      }
+
+      .qa-block h4 {
+        margin: 0 0 0.65rem;
+        font-size: clamp(0.85rem, 1.4vw, 0.95rem);
+        font-weight: 700;
+        color: currentColor;
+        letter-spacing: 0.04em;
+      }
+
+      .qa-block ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        color: var(--muted);
+        font-size: clamp(0.85rem, 1.45vw, 0.95rem);
+        line-height: 1.5;
+      }
+
+      .qa-block ul li {
+        position: relative;
+        padding-left: 1.1rem;
+        margin-bottom: 0.45rem;
+      }
+
+      .qa-block ul li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.65em;
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.65;
+      }
+
+      .example-card {
+        border: 1px solid currentColor;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 14px;
+        padding: 1.05rem 1.15rem;
+        position: relative;
+      }
+
+      .example-card .example-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        font-weight: 800;
+        color: currentColor;
+        margin-bottom: 0.55rem;
+      }
+
+      .example-card .example-label svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+      }
+
+      .example-card p {
+        margin: 0;
+        font-size: clamp(0.92rem, 1.55vw, 1rem);
+        line-height: 1.55;
+        color: var(--fg);
+        font-style: italic;
+      }
+
+      /* A.U.R.A. step detail color variants */
+      .slide[data-aura="1"] .aura-step-num,
+      .slide[data-aura="1"] .aura-step-banner,
+      .slide[data-aura="1"] .qa-block h4,
+      .slide[data-aura="1"] .example-card { color: var(--aura-1); }
+
+      .slide[data-aura="2"] .aura-step-num,
+      .slide[data-aura="2"] .aura-step-banner,
+      .slide[data-aura="2"] .qa-block h4,
+      .slide[data-aura="2"] .example-card { color: var(--aura-2); }
+
+      .slide[data-aura="3"] .aura-step-num,
+      .slide[data-aura="3"] .aura-step-banner,
+      .slide[data-aura="3"] .qa-block h4,
+      .slide[data-aura="3"] .example-card { color: var(--aura-3); }
+
+      .slide[data-aura="4"] .aura-step-num,
+      .slide[data-aura="4"] .aura-step-banner,
+      .slide[data-aura="4"] .qa-block h4,
+      .slide[data-aura="4"] .example-card { color: var(--aura-4); }
+
+      /* LENS examples grid */
+      .lenses-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+        margin-top: 1.25rem;
+      }
+
+      @media (min-width: 800px) {
+        .lenses-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .lenses-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+      }
+
+      .lens-card {
+        padding: 1rem 1.15rem;
+        border: 1px solid var(--accent);
+        background: var(--panel);
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .lens-card h3 {
+        margin: 0;
+        font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .lens-row {
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid currentColor;
+        font-size: clamp(0.85rem, 1.5vw, 0.95rem);
+        line-height: 1.45;
+      }
+
+      .lens-row.below {
+        color: var(--below);
+        background: var(--below-soft);
+        border-color: var(--below-border);
+      }
+
+      .lens-row.above {
+        color: var(--above);
+        background: var(--above-soft);
+        border-color: var(--above-border);
+      }
+
+      .lens-row .label {
+        display: block;
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        opacity: 0.85;
+        margin-bottom: 0.25rem;
+        font-weight: 700;
+      }
+
+      .lens-row .text {
+        display: block;
+        color: var(--fg);
+        font-weight: 500;
+      }
+
+      /* EXERCISE close slide */
+      .exercise-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1.25rem;
+      }
+
+      @media (min-width: 800px) {
+        .exercise-grid { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+      }
+
+      .exercise-col {
+        padding: 1.1rem 1.25rem;
+        border: 1px solid currentColor;
+        border-radius: 16px;
+      }
+
+      .exercise-col.below {
+        color: var(--below);
+        background: var(--below-soft);
+      }
+
+      .exercise-col.above {
+        color: var(--above);
+        background: var(--above-soft);
+      }
+
+      .exercise-col h3 {
+        margin: 0 0 0.4rem;
+        font-size: clamp(1rem, 1.9vw, 1.2rem);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .exercise-col p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .prompt-box {
+        margin-top: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: linear-gradient(135deg, rgba(57, 255, 20, 0.08), rgba(0, 255, 255, 0.05));
+        text-align: center;
+      }
+
+      .prompt-box .label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--subtle);
+        margin-bottom: 0.45rem;
+        font-weight: 700;
+      }
+
+      .prompt-box p {
+        margin: 0;
+        font-size: clamp(1rem, 1.9vw, 1.2rem);
+        font-weight: 600;
+        color: var(--fg);
+      }
+
+      /* VIDEO EMBED (responsive 16:9) */
+      .video-slide .slide-content {
+        max-width: 1000px;
+        text-align: center;
+      }
+
+      .video-slide h2 {
+        text-align: center;
+        margin-bottom: 1.25rem;
+      }
+
+      .video-embed {
+        position: relative;
+        width: 100%;
+        max-width: 880px;
+        margin: 0 auto;
+        aspect-ratio: 16 / 9;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--accent);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(57, 255, 20, 0.15),
+                    0 0 80px rgba(57, 255, 20, 0.08);
+        background: #000;
+      }
+
+      .video-embed iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      /* CAR analogy visual */
+      .car-visual {
+        margin: 1rem auto 0.5rem;
+        max-width: 520px;
+        opacity: 0.95;
+      }
+
+      .car-visual svg { width: 100%; height: auto; display: block; }
+
+      .car-analogy-slide .slide-content {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .car-analogy-slide .lead {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 46ch;
+      }
+
+      .car-analogy-slide .car-step {
+        text-align: center;
+      }
+
+      .car-steps {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.65rem;
+        margin-top: 1rem;
+      }
+
+      @media (min-width: 800px) {
+        .car-steps { grid-template-columns: repeat(4, 1fr); }
+      }
+
+      .car-step {
+        padding: 0.85rem 1rem;
+        background: var(--panel);
+        border: 1px solid var(--accent);
+        border-radius: 12px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .car-step strong {
+        display: block;
+        color: var(--fg);
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        margin-bottom: 0.3rem;
+      }
+
+      .car-step.c1 strong { color: var(--aura-1); }
+      .car-step.c2 strong { color: var(--aura-2); }
+      .car-step.c3 strong { color: var(--aura-3); }
+      .car-step.c4 strong { color: var(--aura-4); }
+
+      /* SOURCE / current visual */
+      .current-visual {
+        margin: 0.5rem auto 0;
+        max-width: 640px;
+        position: relative;
+      }
+      .current-visual svg { width: 100%; height: auto; display: block; }
+
+      /* Big quote slide for Joe Dispenza */
+      .big-quote {
+        max-width: 50ch;
+        font-size: clamp(1.4rem, 3.2vw, 2.2rem);
+        line-height: 1.25;
+        font-weight: 500;
+        font-style: italic;
+        margin: 0.75rem auto 0.85rem;
+        color: var(--fg);
+      }
+      .big-quote::before { content: "\201C"; }
+      .big-quote::after  { content: "\201D"; }
+
+      .quote-attr {
+        font-size: clamp(0.75rem, 1.2vw, 0.9rem);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--subtle);
+        font-weight: 700;
+      }
+
+      /* TWO-COLUMN compare */
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1.25rem;
+      }
+      @media (min-width: 800px) {
+        .compare-grid { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+      }
+      .compare-col {
+        padding: 1.1rem 1.25rem;
+        border: 1px solid var(--accent);
+        background: var(--panel);
+        border-radius: 14px;
+      }
+      .compare-col h3 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1rem, 1.7vw, 1.15rem);
+        font-weight: 700;
+      }
+      .compare-col p {
+        margin: 0;
+        font-size: clamp(0.9rem, 1.5vw, 1rem);
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .compare-col.bad  { border-color: var(--below-border); }
+      .compare-col.good { border-color: var(--above-border); }
+      .compare-col.bad h3  { color: var(--below); }
+      .compare-col.good h3 { color: var(--above); }
+
+      /* SECTION DIVIDER (chapter slide) */
+      .section-slide .slide-content {
+        margin: auto;
+        text-align: center;
+      }
+      .section-slide .section-num {
+        font-size: clamp(0.75rem, 1.3vw, 0.9rem);
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--lime);
+        font-weight: 700;
+        margin-bottom: 0.85rem;
+      }
+      .section-slide h1 {
+        font-size: clamp(2.2rem, 5vw, 4rem);
+        margin: 0 auto;
+        max-width: 16ch;
+      }
+      .section-slide .section-sub {
+        margin: 1.25rem auto 0;
+        font-size: clamp(0.95rem, 1.7vw, 1.15rem);
+        color: var(--muted);
+        max-width: 50ch;
+      }
+
+      /* 68-second activation visual */
+      .cycle-visual {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.6rem;
+        margin: 0.75rem 0 0.5rem;
+      }
+      .cycle-block {
+        padding: 0.75rem 0.5rem;
+        text-align: center;
+        background: rgba(255, 255, 0, 0.06);
+        border: 1px solid rgba(255, 255, 0, 0.35);
+        border-radius: 10px;
+      }
+      .cycle-block .num {
+        font-size: clamp(1rem, 2vw, 1.3rem);
+        font-weight: 800;
+        color: var(--yellow);
+      }
+      .cycle-block .lbl {
+        font-size: 0.65rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--subtle);
+        margin-top: 0.2rem;
+      }
+      .cycle-total {
+        text-align: center;
+        font-size: clamp(0.85rem, 1.4vw, 0.95rem);
+        color: var(--muted);
+        margin-top: 0.5rem;
+      }
+      .cycle-total strong {
+        color: var(--yellow);
+      }
+
+      .activation-cycles-slide .cycle-visual {
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      @media (max-width: 600px) {
+        .activation-cycles-slide .cycle-visual {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      /* I AM grid */
+      .iam-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
+        margin: 1rem 0 0.75rem;
+        max-width: 600px;
+      }
+      @media (min-width: 800px) {
+        .iam-grid { grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+      }
+      .iam-pill {
+        padding: 0.55rem 0.85rem;
+        border-radius: 999px;
+        background: var(--panel);
+        border: 1px solid var(--accent);
+        font-size: 0.85rem;
+        text-align: center;
+        color: var(--fg);
+        font-weight: 600;
+      }
+      .iam-pill.serves { color: var(--lime); border-color: var(--above-border); background: var(--above-soft); }
+      .iam-pill.drains { color: var(--red);  border-color: var(--below-border); background: var(--below-soft); }
+
+      /* Slide 9 · Identity thought collage */
+      .identity-collage-slide .slide-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: clamp(0.4rem, 1.2vh, 1rem) clamp(0.75rem, 2.5vw, 1.75rem) clamp(0.5rem, 1.5vh, 1rem);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .identity-collage-slide.snowman-title-slide .slide-content {
+        justify-content: center;
+      }
+
+      .identity-collage-slide.snowman-title-slide .identity-collage-head {
+        margin-bottom: 0;
+      }
+
+      .identity-collage-head {
+        text-align: center;
+        flex: 0 0 auto;
+        max-width: 48rem;
+        margin-bottom: clamp(0.35rem, 1vh, 0.65rem);
+      }
+
+      .identity-collage-slide .identity-collage-head h2 {
+        font-size: clamp(1.1rem, 2.1vw, 1.65rem);
+        margin-bottom: 0.35rem;
+      }
+
+      .identity-collage-slide .identity-collage-head .lead {
+        margin: 0 auto;
+        max-width: 40rem;
+        font-size: clamp(0.78rem, 1.35vw, 0.92rem);
+        line-height: 1.45;
+      }
+
+      .identity-collage-legend {
+        margin: 0.45rem 0 0;
+        font-size: clamp(0.58rem, 0.95vw, 0.68rem);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--subtle);
+      }
+
+      .identity-collage-legend .legend-below {
+        color: var(--red);
+        font-weight: 700;
+        margin: 0 0.35rem;
+      }
+
+      .identity-collage-legend .legend-above {
+        color: var(--lime);
+        font-weight: 700;
+        margin: 0 0.35rem;
+      }
+
+      .identity-collage-legend .legend-sep {
+        opacity: 0.45;
+        margin: 0 0.15rem;
+      }
+
+      /* Slides 12+ · twelve lens pairs (below | above), no category headers */
+      .lens-pairs-collage {
+        width: 100%;
+        max-width: 1080px;
+        margin: 0.35rem auto 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.42rem;
+      }
+
+      .lens-pair-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.45rem;
+        align-items: stretch;
+      }
+
+      @media (max-width: 720px) {
+        .lens-pair-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .pair-pill {
+        display: flex;
+        align-items: center;
+        padding: 0.42rem 0.6rem;
+        border-radius: 12px;
+        font-size: clamp(0.58rem, 1.02vw, 0.74rem);
+        line-height: 1.32;
+        font-weight: 600;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+        hyphens: auto;
+      }
+
+      .pair-pill--below {
+        color: var(--red);
+        border: 1px solid var(--below-border);
+        background: var(--below-soft);
+      }
+
+      .pair-pill--above {
+        color: var(--lime);
+        border: 1px solid var(--above-border);
+        background: var(--above-soft);
+      }
+
+      .lens-pair-row:nth-child(odd) .pair-pill--below { transform: rotate(-0.25deg); }
+      .lens-pair-row:nth-child(odd) .pair-pill--above { transform: rotate(0.2deg); }
+      .lens-pair-row:nth-child(even) .pair-pill--below { transform: rotate(0.2deg); }
+      .lens-pair-row:nth-child(even) .pair-pill--above { transform: rotate(-0.25deg); }
+
+      .identity-collage-slide .slide-content > .sub {
+        margin-top: 0.75rem;
+        text-align: center;
+        max-width: 48rem;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Navigation */
+      nav.dots {
+        position: fixed;
+        top: 1.25rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.4rem;
+        z-index: 3;
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 70vw;
+      }
+
+      nav.dots button {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 200ms ease;
+      }
+
+      nav.dots button[aria-current="true"] {
+        background: #fff;
+        transform: scale(1.3);
+      }
+
+      .slide-counter {
+        position: fixed;
+        top: 1.25rem;
+        right: 1.5rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.18em;
+        color: var(--subtle);
+        font-variant-numeric: tabular-nums;
+        z-index: 3;
+      }
+
+      .nav-arrows {
+        position: fixed;
+        top: 50%;
+        left: 0;
+        right: 0;
+        transform: translateY(-50%);
+        display: flex;
+        justify-content: space-between;
+        padding: 0 clamp(0.75rem, 2vw, 1.5rem);
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .nav-arrow {
+        pointer-events: auto;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.88);
+        width: clamp(2.75rem, 4vw, 3.5rem);
+        height: clamp(2.75rem, 4vw, 3.5rem);
+        border-radius: 999px;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: background 200ms ease, opacity 200ms ease,
+          transform 200ms ease, border-color 200ms ease;
+      }
+
+      .nav-arrow:hover:not(:disabled) {
+        background: rgba(57, 255, 20, 0.15);
+        border-color: rgba(57, 255, 20, 0.5);
+        transform: scale(1.08);
+      }
+
+      .nav-arrow:active:not(:disabled) { transform: scale(0.95); }
+      .nav-arrow:disabled { opacity: 0.2; cursor: not-allowed; }
+
+      .nav-arrow svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .brand-mark {
+        position: fixed;
+        bottom: 0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.7rem;
+        color: var(--subtle);
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      /* On smaller viewports the bottom graphic shrinks further so it
+         never crowds the text content. */
+      @media (max-width: 800px) {
+        .stage-graphic svg,
+        .stage-graphic.tall svg,
+        .stage-graphic.wide svg {
+          max-height: 28vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="slide-counter" id="counter">01 / 28</div>
+
+    <div class="deck" id="deck">
+      <!-- ============================================================
+           0 · TITLE / HOOK
+           ============================================================ -->
+      <section class="slide title-slide active" data-index="0" aria-label="Title">
+        <div class="slide-content">
+          <h1>How You Become <span class="gradient">You</span></h1>
+          <p class="subtitle">A four-step framework for shifting any part of your identity that no longer serves you.</p>
+          <p class="hint">Press <kbd>&rarr;</kbd> or click anywhere to begin</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           2 · YOU DON'T REACT TO REALITY (with video)
+           ============================================================ -->
+      <section class="slide video-slide" data-index="2" aria-label="We don't see reality. We see our reality.">
+        <div class="slide-content">
+          <div class="eyebrow">Your Life Lens</div>
+          <h2>We don&rsquo;t see reality.<br/>We see <span class="gradient">OUR</span> reality.</h2>
+
+          <div class="video-embed">
+            <iframe
+              src="https://www.youtube.com/embed/d7pPMm0S4zM?rel=0&modestbranding=1"
+              title="We don't see reality. We see OUR reality."
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+            ></iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           4 · SECTION DIVIDER · HOW YOU BECOME YOU
+           ============================================================ -->
+      <section class="slide section-slide" data-index="4" aria-label="Section: How You Become You">
+        <div class="slide-content">
+          <div class="section-num">Part 01</div>
+          <h1>How You<br/>Become <span class="gradient">You</span></h1>
+          <p class="section-sub">Thought &rarr; Belief &rarr; Truth &rarr; Identity. The same four-step process built every part of who you are today.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           5 · OVERVIEW · 4 STAGES
+           ============================================================ -->
+      <section class="slide stage-slide stage-slide-overview" data-index="5" aria-label="How You Become You Overview">
+        <div class="slide-content">
+          <div class="stage-slide-body">
+          <div class="eyebrow">The Four Stages</div>
+          <h2>One Process. Four Stages.</h2>
+          <p class="lead bright">
+            Every &ldquo;I am&hellip;&rdquo; you carry was stacked the exact same way.
+          </p>
+
+          <div class="stages-grid">
+            <div class="stage-card s1">
+              <div class="step-num">01</div>
+              <div class="stage-icon">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <g stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" transform="translate(30,30)">
+                    <line x1="0" y1="-22" x2="0" y2="22"/>
+                    <line x1="-22" y1="0" x2="22" y2="0"/>
+                    <line x1="-15" y1="-15" x2="15" y2="15"/>
+                    <line x1="-15" y1="15" x2="15" y2="-15"/>
+                    <polyline points="0,-22 -5,-17 0,-13"/>
+                    <polyline points="0,-22 5,-17 0,-13"/>
+                    <polyline points="-22,0 -17,-5 -13,0"/>
+                    <polyline points="22,0 17,-5 13,0"/>
+                  </g>
+                  <circle cx="30" cy="30" r="2.5" fill="#ffffff"/>
+                </svg>
+              </div>
+              <h3>Thought</h3>
+              <p class="sub-text">Snowflake</p>
+            </div>
+            <div class="stage-card s2">
+              <div class="step-num">02</div>
+              <div class="stage-icon">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <circle cx="14" cy="14" r="2" fill="#ffffff" opacity="0.7"/>
+                  <circle cx="30" cy="9"  r="1.5" fill="#ffffff" opacity="0.7"/>
+                  <circle cx="46" cy="15" r="2" fill="#ffffff" opacity="0.7"/>
+                  <circle cx="22" cy="22" r="1.5" fill="#ffffff" opacity="0.6"/>
+                  <circle cx="40" cy="24" r="1.5" fill="#ffffff" opacity="0.6"/>
+                  <path d="M 4 50 Q 16 32 28 38 Q 40 30 52 42 Q 58 48 56 54 L 4 54 Q 2 50 4 50 Z"
+                        fill="#00ffff" opacity="0.85"/>
+                </svg>
+              </div>
+              <h3>Belief</h3>
+              <p class="sub-text">Pile of Snow</p>
+            </div>
+            <div class="stage-card s3">
+              <div class="step-num">03</div>
+              <div class="stage-icon">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <ellipse cx="30" cy="52" rx="20" ry="3" fill="#000000" opacity="0.4"/>
+                  <circle cx="30" cy="30" r="20" fill="#39ff14"/>
+                  <circle cx="24" cy="24" r="6" fill="#ffffff" opacity="0.4"/>
+                </svg>
+              </div>
+              <h3>Truth</h3>
+              <p class="sub-text">Snowball</p>
+            </div>
+            <div class="stage-card s4">
+              <div class="step-num">04</div>
+              <div class="stage-icon">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <ellipse cx="30" cy="56" rx="14" ry="2" fill="#000000" opacity="0.4"/>
+                  <circle cx="30" cy="46" r="11" fill="#bf00ff"/>
+                  <circle cx="30" cy="30" r="9"  fill="#bf00ff"/>
+                  <circle cx="30" cy="17" r="7"  fill="#bf00ff"/>
+                  <circle cx="27" cy="15" r="1" fill="#0a0a0a"/>
+                  <circle cx="31" cy="15" r="1" fill="#0a0a0a"/>
+                  <rect x="22" y="6" width="16" height="2" fill="#0a0a0a"/>
+                  <rect x="25" y="0" width="10" height="6" fill="#0a0a0a"/>
+                </svg>
+              </div>
+              <h3>Identity</h3>
+              <p class="sub-text">Snowman</p>
+            </div>
+          </div>
+
+          <p class="sub" style="margin-top: 1rem">Each thing has its own vibrational signature &mdash; and they combine into bigger ones.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           6 · STAGE 1 · THOUGHT = SNOWFLAKE
+           ============================================================ -->
+      <section class="slide stage-slide" data-index="6" data-stage="1" aria-label="Thought equals Snowflake">
+        <div class="slide-content">
+          <div class="stage-slide-body">
+          <div class="stage-badge"><span class="dot" style="background: var(--stage-1)"></span>Stage 01 &middot; Thought</div>
+          <h2>Thought = <em>Snowflake</em></h2>
+          <p class="lead bright">A single thought is like one snowflake.</p>
+          <ul class="bullets" style="color: var(--stage-1)">
+            <li>Tiny. Delicate. Unique &mdash; no two are the same.</li>
+            <li>Each thought has its own vibrational signature.</li>
+            <li>What is like unto itself is drawn &mdash; one snowflake invites another.</li>
+          </ul>
+          </div>
+
+          <div class="stage-graphic">
+            <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g transform="translate(110,110)" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+                <line x1="0" y1="-95" x2="0" y2="95"/>
+                <line x1="-95" y1="0" x2="95" y2="0"/>
+                <line x1="-67" y1="-67" x2="67" y2="67"/>
+                <line x1="-67" y1="67" x2="67" y2="-67"/>
+                <polyline points="0,-95 -16,-78 0,-65"/>
+                <polyline points="0,-95 16,-78 0,-65"/>
+                <polyline points="0,95 -16,78 0,65"/>
+                <polyline points="0,95 16,78 0,65"/>
+                <polyline points="-95,0 -78,-16 -65,0"/>
+                <polyline points="-95,0 -78,16 -65,0"/>
+                <polyline points="95,0 78,-16 65,0"/>
+                <polyline points="95,0 78,16 65,0"/>
+                <polyline points="-67,-67 -55,-46 -45,-52"/>
+                <polyline points="67,67 55,46 45,52"/>
+                <polyline points="67,-67 55,-46 45,-52"/>
+                <polyline points="-67,67 -55,46 -45,52"/>
+              </g>
+              <circle cx="110" cy="110" r="6" fill="#ffffff"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           7 · STAGE 2 · BELIEF = PILE OF SNOW
+           ============================================================ -->
+      <section class="slide stage-slide" data-index="7" data-stage="2" aria-label="Belief equals Pile of Snow">
+        <div class="slide-content">
+          <div class="stage-slide-body">
+          <div class="stage-badge"><span class="dot" style="background: var(--stage-2)"></span>Stage 02 &middot; Belief</div>
+          <h2>Belief = <em>Pile of Snow</em></h2>
+          <p class="lead bright">A belief is just a thought you keep thinking.</p>
+          <ul class="bullets" style="color: var(--stage-2)">
+            <li>Enough snowflakes in one spot &mdash; now you&rsquo;ve got a pile.</li>
+            <li>Vibrational momentum builds. The thought pattern is set.</li>
+            <li>Your beliefs start to dictate how you see the world.</li>
+          </ul>
+          </div>
+
+          <div class="stage-graphic wide">
+            <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <g fill="#ffffff">
+                <circle cx="40"  cy="20"  r="3"   opacity="0.85"/>
+                <circle cx="90"  cy="40"  r="2.5" opacity="0.75"/>
+                <circle cx="150" cy="15"  r="3"   opacity="0.85"/>
+                <circle cx="220" cy="35"  r="2.5" opacity="0.75"/>
+                <circle cx="285" cy="25"  r="3"   opacity="0.85"/>
+                <circle cx="60"  cy="70"  r="2"   opacity="0.65"/>
+                <circle cx="120" cy="80"  r="2.5" opacity="0.7"/>
+                <circle cx="190" cy="65"  r="2"   opacity="0.65"/>
+                <circle cx="260" cy="75"  r="2.5" opacity="0.7"/>
+                <circle cx="30"  cy="105" r="2"   opacity="0.6"/>
+                <circle cx="170" cy="100" r="2"   opacity="0.6"/>
+                <circle cx="295" cy="105" r="2"   opacity="0.6"/>
+              </g>
+              <ellipse cx="160" cy="190" rx="135" ry="5" fill="#000000" opacity="0.4"/>
+              <path d="M 18 160 Q 50 110 100 120 Q 145 95 195 122 Q 250 105 295 158 Q 308 175 295 184 L 25 184 Q 12 175 18 160 Z"
+                    fill="#e8f8ff" opacity="0.95"/>
+              <circle cx="60"  cy="148" r="3.5" fill="#ffffff" opacity="0.85"/>
+              <circle cx="115" cy="135" r="3.5" fill="#ffffff" opacity="0.85"/>
+              <circle cx="170" cy="138" r="3"   fill="#ffffff" opacity="0.8"/>
+              <circle cx="225" cy="135" r="3.5" fill="#ffffff" opacity="0.85"/>
+              <circle cx="270" cy="148" r="3.5" fill="#ffffff" opacity="0.85"/>
+              <line x1="18" y1="186" x2="295" y2="186" stroke="#00ffff" stroke-width="2.5" opacity="0.55"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           8 · STAGE 3 · TRUTH = SNOWBALL
+           ============================================================ -->
+      <section class="slide stage-slide" data-index="8" data-stage="3" aria-label="Truth equals Snowball">
+        <div class="slide-content">
+          <div class="stage-slide-body">
+          <div class="stage-badge"><span class="dot" style="background: var(--stage-3)"></span>Stage 03 &middot; Truth</div>
+          <h2>Truth = <em>Snowball</em></h2>
+          <p class="lead bright">When a belief is validated by manifestation, it feels like truth.</p>
+          <ul class="bullets" style="color: var(--stage-3)">
+            <li>Solid. Real. Compacted by repeated focus.</li>
+            <li>Now you have evidence. &ldquo;Let me show you why this is true for me.&rdquo;</li>
+            <li>Once it&rsquo;s a truth, it&rsquo;s an active vibration &mdash; attracting more unto itself.</li>
+          </ul>
+          </div>
+
+          <div class="stage-graphic">
+            <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <ellipse cx="110" cy="200" rx="80" ry="6" fill="#000000" opacity="0.45"/>
+              <circle cx="110" cy="110" r="92" fill="none" stroke="#39ff14" stroke-width="2.5" opacity="0.5"/>
+              <circle cx="110" cy="110" r="84" fill="#ffffff"/>
+              <circle cx="86"  cy="82"  r="22" fill="#ffffff" opacity="0.95"/>
+              <circle cx="134" cy="138" r="10" fill="#e0e0e0" opacity="0.55"/>
+              <circle cx="78"  cy="68"  r="6"  fill="#ffffff" opacity="0.7"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           9 · STAGE 4 · IDENTITY = SNOWMAN
+           ============================================================ -->
+      <section class="slide stage-slide" data-index="9" data-stage="4" aria-label="Identity equals Snowman">
+        <div class="slide-content">
+          <div class="stage-slide-body">
+          <div class="stage-badge"><span class="dot" style="background: var(--stage-4)"></span>Stage 04 &middot; Identity</div>
+          <h2>Identity = <em>Snowman</em></h2>
+          <p class="lead bright">
+            Roll that snowball into your snowman &mdash; and it becomes <strong>&ldquo;I am&hellip;&rdquo;</strong>
+          </p>
+          <ul class="bullets" style="color: var(--stage-4)">
+            <li>Your identity = the sum total of everything that follows <em>&ldquo;I am&hellip;&rdquo;</em></li>
+            <li>Stacked &mdash; one truth at a time &mdash; over years.</li>
+            <li>The snowman isn&rsquo;t fixed. You can reshape any snowball you choose.</li>
+          </ul>
+          </div>
+
+          <div class="stage-graphic tall">
+            <svg viewBox="0 0 220 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <ellipse cx="110" cy="312" rx="55" ry="5" fill="#000000" opacity="0.45"/>
+              <circle cx="110" cy="265" r="48" fill="#ffffff"/>
+              <circle cx="92"  cy="248" r="11" fill="#ffffff" opacity="0.85"/>
+              <circle cx="110" cy="248" r="3" fill="#1a1a1a"/>
+              <circle cx="110" cy="268" r="3" fill="#1a1a1a"/>
+              <circle cx="110" cy="288" r="3" fill="#1a1a1a"/>
+              <circle cx="110" cy="178" r="38" fill="#ffffff"/>
+              <circle cx="96"  cy="166" r="9" fill="#ffffff" opacity="0.85"/>
+              <line x1="76"  y1="178" x2="36"  y2="148" stroke="#7a4a1c" stroke-width="4" stroke-linecap="round"/>
+              <line x1="46"  y1="158" x2="34"  y2="146" stroke="#7a4a1c" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="38"  y1="166" x2="22"  y2="166" stroke="#7a4a1c" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="144" y1="178" x2="184" y2="148" stroke="#7a4a1c" stroke-width="4" stroke-linecap="round"/>
+              <line x1="174" y1="158" x2="186" y2="146" stroke="#7a4a1c" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="182" y1="166" x2="198" y2="166" stroke="#7a4a1c" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M 84 124 Q 110 132 136 124 L 138 138 Q 110 144 82 138 Z" fill="#bf00ff"/>
+              <path d="M 124 138 L 134 168 L 142 162 L 132 136 Z" fill="#bf00ff"/>
+              <circle cx="110" cy="100" r="30" fill="#ffffff"/>
+              <circle cx="100" cy="92"  r="7" fill="#ffffff" opacity="0.85"/>
+              <circle cx="100" cy="96"  r="2.5" fill="#1a1a1a"/>
+              <circle cx="120" cy="96"  r="2.5" fill="#1a1a1a"/>
+              <polygon points="110,103 138,110 110,114" fill="#ff6600"/>
+              <circle cx="100" cy="118" r="1.3" fill="#1a1a1a"/>
+              <circle cx="106" cy="121" r="1.3" fill="#1a1a1a"/>
+              <circle cx="113" cy="121" r="1.3" fill="#1a1a1a"/>
+              <circle cx="119" cy="118" r="1.3" fill="#1a1a1a"/>
+              <rect x="84"  y="56" width="52" height="5" fill="#1a1a1a"/>
+              <rect x="92"  y="36" width="36" height="22" fill="#1a1a1a"/>
+              <rect x="92"  y="44" width="36" height="3" fill="#39ff14"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           10 · MOST OF YOUR SNOWMAN SERVES YOU
+           ============================================================ -->
+      <section class="slide identity-collage-slide snowman-title-slide" data-index="10" aria-label="Most of your snowman serves you">
+        <div class="slide-content">
+          <div class="identity-collage-head">
+            <div class="eyebrow">The &ldquo;I Am&rdquo; Sum Total</div>
+            <h2>Most of Your Snowman <span class="gradient">Serves You</span></h2>
+            <p class="lead bright">
+              The majority of your identity serves you. The work is spotting the few snowballs that don&rsquo;t.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           12 · TWELVE LIFE LENS PAIRS
+           ============================================================ -->
+      <section class="slide identity-collage-slide" data-index="12" aria-label="Twelve lens pairs below and above the Green Line">
+        <div class="slide-content">
+          <div class="identity-collage-head">
+            <p class="identity-collage-legend">
+              <span class="legend-below">Below the Green Line</span><span class="legend-sep">&middot;</span><span class="legend-above">Above the Green Line</span>
+            </p>
+          </div>
+
+          <div class="lens-pairs-collage">
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;I don&rsquo;t have time for fun. Adulting comes first.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;Joy is fuel, not a reward. Fun raises my vibration and pulls everything else into alignment.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;My body is fighting me. It&rsquo;s downhill from here.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;My body is responsive. When I tune my habits and energy, it responds.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;I can&rsquo;t afford to travel. There&rsquo;s never a good time.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;Adventure is part of how I expand. The right trips line up when I&rsquo;m in alignment.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;Real love isn&rsquo;t out there for me. I&rsquo;m too much &mdash; or not enough.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;I&rsquo;m worthy of vibrant, present love. The right partner is a vibrational match &mdash; not a search.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;My family drains me. They&rsquo;ll never change.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;I tune my own signal. As I shift, my role in the family shifts &mdash; and so does the dynamic.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;I don&rsquo;t really fit in anywhere. Real friendship is rare.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;My tribe is calibrating. As I become more me, the right people become more visible.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;I&rsquo;m stuck in this place. I can&rsquo;t make it feel like home.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;My home is an extension of my vibration. Any space becomes home when I&rsquo;m at home in myself.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;Work is something I have to survive.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;Work is one of the most direct places I get to express my energy and create real value.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;Money is scarce. I&rsquo;m always behind. It&rsquo;s out of my control.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;Money is a reflection of value and belief. I can learn skills, line up with service, and let more in.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;I never have nice things. Stuff is shallow anyway.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;The objects around me reflect what I believe I deserve. I&rsquo;m allowed to enjoy beautiful things.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;I have to take care of myself first &mdash; there&rsquo;s nothing left to give.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;Giving from overflow expands me. Service is one of the fastest ways to lift my vibration.&rdquo;</span>
+            </div>
+            <div class="lens-pair-row">
+              <span class="pair-pill pair-pill--below">&ldquo;I&rsquo;m disconnected. I have to figure life out alone.&rdquo;</span>
+              <span class="pair-pill pair-pill--above">&ldquo;I&rsquo;m already connected to Source. I get to deepen that relationship and be guided every day.&rdquo;</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           13 · EVERY I AM CAN BE RESHAPED
+           ============================================================ -->
+      <section class="slide center-slide snowman-sequence-slide" data-index="13" aria-label="Every I am can be reshaped">
+        <div class="slide-content">
+          <p class="lead">
+            Every &ldquo;I am&rdquo; had a Genesis in thought &mdash; which means every &ldquo;I am&rdquo; can be reshaped.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           14 · 95% ON AUTOPILOT (Joe Dispenza)
+           ============================================================ -->
+      <section class="slide center-slide" data-index="14" aria-label="95 percent autopilot">
+        <div class="slide-content">
+          <div class="eyebrow">The Autopilot</div>
+          <p class="big-quote">
+            By the time we&rsquo;re 35, 95% of who we are is a set of memorized behaviors and emotional reactions that run just like a computer program.
+          </p>
+          <div class="quote-attr">&mdash; Dr. Joe Dispenza</div>
+          <p class="sub" style="margin-top: 1.5rem">Most of those programs serve you. Awareness gives you the keys to rewrite the few that don&rsquo;t.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           15 · SECTION DIVIDER · NO NEED TO FIX
+           ============================================================ -->
+      <section class="slide section-slide" data-index="15" aria-label="Section: No Need to Fix">
+        <div class="slide-content">
+          <div class="section-num">Part 02</div>
+          <h1>No Need to <span class="gradient">Fix</span></h1>
+          <p class="section-sub">A deeper part of your Consciousness has already done the work. You don&rsquo;t build a new vibration &mdash; you align with one.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           16 · VIBRATIONAL ESCROW
+           ============================================================ -->
+      <section class="slide center-slide" data-index="16" aria-label="Vibrational Escrow">
+        <div class="slide-content">
+          <div class="eyebrow">Vibrational Escrow</div>
+          <h2>The Best Version of You<br/>is Already Built.</h2>
+          <p class="lead">
+            All day, every day &mdash; whether you live joy or contrast &mdash; the infinite part of your Consciousness
+            takes every active vibration within you and transforms it into its <strong>above-the-Green-Line equivalent</strong>.
+          </p>
+          <ul class="bullets" style="color: var(--lime)">
+            <li>Held for you, unconditionally, in vibrational escrow.</li>
+            <li>Always growing &mdash; always available the moment you tune in.</li>
+            <li>You&rsquo;re not creating from scratch. You&rsquo;re aligning with what already exists.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           17 · GET IN THE CURRENT
+           ============================================================ -->
+      <section class="slide center-slide" data-index="17" aria-label="Get in the Current">
+        <div class="slide-content">
+          <h2>Get in the <span class="gradient">Current</span>.</h2>
+          <p class="lead">
+            Most people are swimming hard <em>against</em> the current &mdash; exhausted, beat up, going slow.
+          </p>
+
+          <div class="current-visual">
+            <svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="curGrad" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%"  stop-color="#00ffff" stop-opacity="0.0"/>
+                  <stop offset="50%" stop-color="#00ffff" stop-opacity="0.55"/>
+                  <stop offset="100%" stop-color="#39ff14" stop-opacity="0.0"/>
+                </linearGradient>
+              </defs>
+              <!-- current band -->
+              <path d="M 0 60 Q 150 30 300 60 T 600 60 L 600 130 Q 450 100 300 130 T 0 130 Z"
+                    fill="url(#curGrad)" />
+              <!-- arrows in current -->
+              <g stroke="#00ffff" stroke-width="2" fill="none" stroke-linecap="round">
+                <polyline points="60,95 130,95" />
+                <polyline points="120,90 130,95 120,100" />
+                <polyline points="220,95 290,95" />
+                <polyline points="280,90 290,95 280,100" />
+                <polyline points="380,95 450,95" />
+                <polyline points="440,90 450,95 440,100" />
+              </g>
+              <!-- struggling fish above -->
+              <g fill="#ff0040" opacity="0.85">
+                <path d="M 80 25 q -10 -8 -18 0 q 18 8 18 0 z" />
+                <path d="M 200 18 q -10 -8 -18 0 q 18 8 18 0 z" />
+                <path d="M 330 28 q -10 -8 -18 0 q 18 8 18 0 z" />
+              </g>
+              <!-- in-current fish -->
+              <g fill="#39ff14">
+                <path d="M 200 95 q -14 -10 -24 0 q 24 10 24 0 z" />
+                <path d="M 400 95 q -14 -10 -24 0 q 24 10 24 0 z" />
+              </g>
+              <text x="20"  y="18"  fill="#ff0040" font-family="Poppins" font-size="11" letter-spacing="2" font-weight="700">SWIMMING AGAINST</text>
+              <text x="420" y="170" fill="#39ff14" font-family="Poppins" font-size="11" letter-spacing="2" font-weight="700">IN THE FLOW</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           18 · EMOTIONAL GUIDANCE SYSTEM
+           ============================================================ -->
+      <section class="slide center-slide" data-index="18" aria-label="Emotional Guidance System">
+        <div class="slide-content">
+          <div class="eyebrow">Your Built-in GPS</div>
+          <h2>Emotion Is <span class="gradient">Guidance</span>.</h2>
+          <p class="lead">
+            Your emotional state is just feedback &mdash; telling you whether your active vibration is in harmony
+            with the Source perspective being held for you.
+          </p>
+          <ul class="bullets" style="color: var(--cyan)">
+            <li><strong>Above the Green Line</strong> &mdash; momentum lifts you up, into hope, expectation, joy.</li>
+            <li><strong>Below the Green Line</strong> &mdash; momentum pulls you further down. Same place + time = feels worse.</li>
+            <li>Don&rsquo;t dissect the emotion. Use it. It&rsquo;s pointing you somewhere.</li>
+          </ul>
+          <p class="sub">Trying to find the &ldquo;root cause&rdquo; of an emotion is a needle in a haystack of thousands of snowflakes.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           19 · SECTION DIVIDER · A.U.R.A. PROCESS
+           ============================================================ -->
+      <section class="slide section-slide" data-index="19" aria-label="Section: A.U.R.A. Process">
+        <div class="slide-content">
+          <div class="section-num">Part 03</div>
+          <h1>The <span class="gradient">A.U.R.A.</span> Process</h1>
+          <p class="section-sub">A four-step framework to replace any active vibration within you with one that actually serves you.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           20 · CAR ANALOGY (Foundational metaphor for A.U.R.A.)
+           ============================================================ -->
+      <section class="slide car-analogy-slide" data-index="20" aria-label="Car Analogy">
+        <div class="slide-content">
+          <div class="eyebrow">The Car Analogy</div>
+          <h2>You Can&rsquo;t U-Turn at <span class="gradient">70 MPH</span>.</h2>
+          <p class="lead">
+            If you&rsquo;re heading the wrong direction at full speed, you can&rsquo;t safely flip it instantly.
+            That&rsquo;s exactly how vibration works &mdash; and exactly how A.U.R.A. handles it.
+          </p>
+
+          <div class="car-visual">
+            <svg viewBox="0 0 540 140" xmlns="http://www.w3.org/2000/svg">
+              <!-- road -->
+              <line x1="0" y1="100" x2="540" y2="100" stroke="rgba(255,255,255,0.25)" stroke-width="1" stroke-dasharray="6 6"/>
+              <!-- car body -->
+              <g transform="translate(220,55)">
+                <rect x="0" y="20" width="100" height="28" rx="6" fill="#39ff14"/>
+                <path d="M 14 20 L 28 6 L 70 6 L 86 20 Z" fill="#00ffff" opacity="0.8"/>
+                <circle cx="22" cy="50" r="9" fill="#1a1a1a" stroke="#fff" stroke-width="2"/>
+                <circle cx="78" cy="50" r="9" fill="#1a1a1a" stroke="#fff" stroke-width="2"/>
+              </g>
+              <!-- forward arrow direction (pointing right, "wrong way") -->
+              <g stroke="#ff0040" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="380,75 460,75"/>
+                <polyline points="450,68 460,75 450,82"/>
+              </g>
+              <text x="532" y="58" text-anchor="end" fill="#ff0040" font-family="Poppins" font-size="7" font-weight="700" letter-spacing="0.08em">Below the Green Line</text>
+              <!-- desired direction -->
+              <g stroke="#39ff14" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="170,75 90,75"/>
+                <polyline points="100,68 90,75 100,82"/>
+              </g>
+              <text x="8" y="58" text-anchor="start" fill="#39ff14" font-family="Poppins" font-size="7" font-weight="700" letter-spacing="0.06em">Above the Green Line</text>
+            </svg>
+          </div>
+
+          <div class="car-steps">
+            <div class="car-step c1"><strong>A · Awareness</strong> Realize you&rsquo;re going the wrong direction.</div>
+            <div class="car-step c2"><strong>U · Unplug</strong> Log in to VibrationFit and navigate to Journal.</div>
+            <div class="car-step c3"><strong>R · Replace</strong> Journal it out, then flip the entry into an above-the-Green-Line story in Stories.</div>
+            <div class="car-step c4"><strong>A · Activate</strong> Story audios on repeat until the new story is who you are.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           21 · ACTIVATION CYCLES (68 seconds)
+           ============================================================ -->
+      <section class="slide center-slide activation-cycles-slide" data-index="21" aria-label="Activation cycles">
+        <div class="slide-content">
+          <div class="eyebrow">Activate</div>
+          <h2><span class="gradient">Activation Cycles</span></h2>
+          <p class="lead">
+            One clean activation is about <strong>68 seconds</strong> of holding the new thought without introducing the old vibration again.
+            Stack four ~17-second windows back to back &mdash; each window is a fresh hold on the new story.
+          </p>
+
+          <div class="cycle-visual">
+            <div class="cycle-block">
+              <div class="num">17</div>
+              <div class="lbl">Seconds</div>
+            </div>
+            <div class="cycle-block">
+              <div class="num">17</div>
+              <div class="lbl">Seconds</div>
+            </div>
+            <div class="cycle-block">
+              <div class="num">17</div>
+              <div class="lbl">Seconds</div>
+            </div>
+            <div class="cycle-block">
+              <div class="num">17</div>
+              <div class="lbl">Seconds</div>
+            </div>
+          </div>
+
+          <p class="cycle-total">Four windows &asymp; <strong>68 seconds</strong> of rehearsal &mdash; enough for your system to register momentum.</p>
+          <p class="sub" style="margin-top: 0.75rem; max-width: 44ch; margin-left: auto; margin-right: auto;">
+            Repeat on enough dominant subjects and the new line of thought becomes the path of least resistance.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           22 · YOUR NEW VIBRATIONAL HOME (GPS analogy)
+           ============================================================ -->
+      <section class="slide center-slide" data-index="22" aria-label="Vibrational Home">
+        <div class="slide-content">
+          <div class="eyebrow">The GPS Has a &ldquo;Home&rdquo;</div>
+          <h2>Reset Your <span class="gradient">Vibrational Home</span>.</h2>
+          <p class="lead">
+            When you move, your phone keeps trying to take you to your old address until you tell it the new one.
+            Your vibration works the same way.
+          </p>
+          <ul class="bullets" style="color: var(--yellow)">
+            <li>The vibrations you&rsquo;ve activated most often = your default destination.</li>
+            <li>Activation cycles tell your inner GPS: <em>&ldquo;This is my new home now.&rdquo;</em></li>
+            <li>Do this on enough dominant subjects and your <strong>baseline</strong> lives above the Green Line &mdash; on autopilot.</li>
+          </ul>
+          <p class="sub">That&rsquo;s vibrational fitness: 80&ndash;90% of your day humming the new tune, without effort.</p>
+        </div>
+      </section>
+
+
+    </div>
+
+    <nav class="dots" id="dots" aria-label="Slides"></nav>
+
+    <div class="nav-arrows" aria-hidden="true">
+      <button class="nav-arrow" id="prevBtn" type="button" aria-label="Previous slide">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <button class="nav-arrow" id="nextBtn" type="button" aria-label="Next slide">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+    </div>
+
+    <div class="brand-mark">VibrationFit · How You Become You · A.U.R.A.</div>
+
+    <script>
+      (function () {
+        var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+        var index = 0;
+        var dotsNav = document.getElementById("dots");
+        var counter = document.getElementById("counter");
+        var prevBtn = document.getElementById("prevBtn");
+        var nextBtn = document.getElementById("nextBtn");
+
+        function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+        function renderDots() {
+          dotsNav.innerHTML = "";
+          slides.forEach(function (_, i) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.setAttribute("aria-label", "Go to slide " + (i + 1));
+            if (i === index) b.setAttribute("aria-current", "true");
+            b.addEventListener("click", function (ev) {
+              ev.stopPropagation();
+              go(i);
+            });
+            dotsNav.appendChild(b);
+          });
+        }
+
+        function updateCounter() {
+          counter.textContent = pad(index + 1) + " / " + pad(slides.length);
+        }
+
+        function updateArrows() {
+          prevBtn.disabled = index === 0;
+          nextBtn.disabled = index === slides.length - 1;
+        }
+
+        function go(i) {
+          index = Math.max(0, Math.min(slides.length - 1, i));
+          slides.forEach(function (s, j) {
+            s.classList.toggle("active", j === index);
+          });
+          renderDots();
+          updateCounter();
+          updateArrows();
+        }
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+            e.preventDefault();
+            go(index + 1);
+          } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+            e.preventDefault();
+            go(index - 1);
+          } else if (e.key === "Home") {
+            go(0);
+          } else if (e.key === "End") {
+            go(slides.length - 1);
+          }
+        });
+
+        prevBtn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          go(index - 1);
+        });
+        nextBtn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          go(index + 1);
+        });
+
+        document.body.addEventListener("click", function (ev) {
+          var target = ev.target;
+          while (target && target !== document.body) {
+            if (target.tagName === "BUTTON" || target.tagName === "A" || target.classList.contains("nav-arrows")) return;
+            target = target.parentElement;
+          }
+          go(index + 1);
+        });
+
+        renderDots();
+        updateCounter();
+        updateArrows();
+        updateSnowman(slides[index]);
+      })();
+    </script>
+  </body>
+</html>
