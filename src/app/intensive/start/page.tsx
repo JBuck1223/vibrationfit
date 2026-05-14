@@ -8,13 +8,13 @@ import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { 
   Container, 
   Stack,
-  PageHero,
   Card, 
   Button, 
   Spinner,
   Inline,
   Text
 } from '@/lib/design-system/components'
+import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { 
   Settings, 
@@ -22,13 +22,11 @@ import {
   User, 
   ClipboardCheck, 
   Sparkles, 
-  Wand2, 
   Music, 
   Mic,
   Sliders,
   ImageIcon, 
   BookOpen, 
-  Calendar, 
   Rocket,
   Unlock,
   ArrowRight,
@@ -48,6 +46,12 @@ export default function IntensiveStartPage() {
   const [checklistId, setChecklistId] = useState<string | null>(null)
   const [alreadyStarted, setAlreadyStarted] = useState(false)
   const [startedAt, setStartedAt] = useState<string | null>(null)
+  const { setCompletedAt: setStepCompleted } = useIntensiveStep()
+
+  useEffect(() => {
+    if (alreadyStarted && startedAt) setStepCompleted(startedAt)
+    return () => setStepCompleted(null)
+  }, [alreadyStarted, startedAt, setStepCompleted])
 
   useEffect(() => {
     checkIntensiveStatus()
@@ -137,7 +141,7 @@ export default function IntensiveStartPage() {
   }
 
 
-  // 14-step journey phases
+  // 12-step journey phases
   const phases = [
     {
       name: 'Setup',
@@ -163,7 +167,6 @@ export default function IntensiveStartPage() {
       color: 'text-[#2DD4BF]',
       steps: [
         { num: 5, title: 'Build Life Vision', icon: Sparkles },
-        { num: 6, title: 'Refine with VIVA', icon: Wand2 },
       ]
     },
     {
@@ -171,9 +174,9 @@ export default function IntensiveStartPage() {
       icon: Music,
       color: 'text-[#8B5CF6]',
       steps: [
-        { num: 7, title: 'Generate Audio', icon: Music },
-        { num: 8, title: 'Record Voice (Optional)', icon: Mic },
-        { num: 9, title: 'Create Audio Mix', icon: Sliders },
+        { num: 6, title: 'Generate Audio', icon: Music },
+        { num: 7, title: 'Record Voice (Optional)', icon: Mic },
+        { num: 8, title: 'Create Audio Mix', icon: Sliders },
       ]
     },
     {
@@ -181,9 +184,8 @@ export default function IntensiveStartPage() {
       icon: ImageIcon,
       color: 'text-[#FFB701]',
       steps: [
-        { num: 10, title: 'Vision Board', icon: ImageIcon },
-        { num: 11, title: 'Journal Entry', icon: BookOpen },
-        { num: 12, title: 'Book Calibration Call', icon: Calendar },
+        { num: 9, title: 'Vision Board', icon: ImageIcon },
+        { num: 10, title: 'Journal Entry', icon: BookOpen },
       ]
     },
     {
@@ -191,8 +193,8 @@ export default function IntensiveStartPage() {
       icon: Rocket,
       color: 'text-primary-500',
       steps: [
-        { num: 13, title: 'My Activation Plan', icon: Rocket },
-        { num: 14, title: 'Unlock Platform', icon: Unlock },
+        { num: 11, title: 'My Activation Plan', icon: Rocket },
+        { num: 12, title: 'Unlock Platform', icon: Unlock },
       ]
     }
   ]
@@ -200,61 +202,54 @@ export default function IntensiveStartPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Hero - Always shows original welcome content */}
-        <PageHero
-          eyebrow="72-HOUR ACTIVATION INTENSIVE"
-          title="Welcome to Your Transformation"
-          subtitle="Your 14-step journey to creating and activating the life you truly desire begins now."
-        >
-          <div className="mx-auto w-full max-w-3xl">
-            <OptimizedVideo
-              url={INTENSIVE_START_VIDEO}
-              thumbnailUrl={INTENSIVE_START_POSTER}
-              context="single"
-              className="w-full"
-            />
-          </div>
+        <div className="mx-auto w-full max-w-3xl">
+          <OptimizedVideo
+            url={INTENSIVE_START_VIDEO}
+            thumbnailUrl={INTENSIVE_START_POSTER}
+            context="single"
+            className="w-full"
+          />
+        </div>
 
-          <div className="flex flex-col gap-2 items-center">
-            {alreadyStarted ? (
-              <Button 
-                variant="primary"
-                size="lg"
-                onClick={() => router.push('/intensive/dashboard')}
-                className="w-full sm:w-auto px-8"
-              >
-                <ArrowRight className="w-5 h-5 mr-2" />
-                Go to Dashboard
-              </Button>
-            ) : (
-              <Button 
-                variant="primary"
-                size="lg"
-                onClick={handleStart}
-                disabled={starting}
-                className="w-full sm:w-auto px-8"
-              >
-                {starting ? (
-                  <>
-                    <Spinner size="sm" className="mr-2" />
-                    Starting...
-                  </>
-                ) : (
-                  <>
-                    <Rocket className="w-5 h-5 mr-2" />
-                    Start My Activation Intensive
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-        </PageHero>
+        <div className="flex flex-col gap-2 items-center">
+          {alreadyStarted ? (
+            <Button 
+              variant="primary"
+              size="lg"
+              onClick={() => router.push('/intensive/dashboard')}
+              className="w-full sm:w-auto px-8"
+            >
+              <ArrowRight className="w-5 h-5 mr-2" />
+              Go to Dashboard
+            </Button>
+          ) : (
+            <Button 
+              variant="primary"
+              size="lg"
+              onClick={handleStart}
+              disabled={starting}
+              className="w-full sm:w-auto px-8"
+            >
+              {starting ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <Rocket className="w-5 h-5 mr-2" />
+                  Start My Activation Intensive
+                </>
+              )}
+            </Button>
+          )}
+        </div>
 
-        {/* Your Journey - 14 Steps Overview */}
+        {/* Your Journey - 12 Steps Overview */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Your 14-Step Journey
+              Your 12-Step Journey
             </Text>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -294,7 +289,7 @@ export default function IntensiveStartPage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  When you click "Start," your 72-hour focus window begins. Most people complete their 14 steps inside this window because focused energy is powerful. If life happens and you need more time, take it. The timer is for motivation, not pressure.
+                  When you click "Start," your 72-hour focus window begins. Most people complete their 12 steps inside this window because focused energy is powerful. If life happens and you need more time, take it. The timer is for motivation, not pressure.
                 </p>
               </Stack>
 
@@ -318,7 +313,7 @@ export default function IntensiveStartPage() {
                   </Text>
                 </Inline>
                 <div className="text-sm text-neutral-300 leading-relaxed space-y-2">
-                  <p>When you complete all 14 steps, you graduate from the Intensive. That graduation unlocks the full Vibration Fit platform, including:</p>
+                  <p>When you complete all 12 steps, you graduate from the Intensive. That graduation unlocks the full Vibration Fit platform, including:</p>
                   <ul className="list-none space-y-1 pl-0">
                     <li>– Advanced Audio Suite</li>
                     <li>– The Alignment Gym (weekly live coaching)</li>

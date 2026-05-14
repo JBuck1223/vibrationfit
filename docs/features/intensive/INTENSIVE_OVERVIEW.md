@@ -1,24 +1,24 @@
 # 72-Hour Activation Intensive
 
-**Last Updated:** February 9, 2026  
+**Last Updated:** May 13, 2026  
 **Status:** Active / In Development
 
 ---
 
 ## Overview
 
-The **72-Hour Activation Intensive** is VibrationFit's flagship onboarding program. It's a guided, time-boxed experience that takes users through 14 sequential steps to establish their complete conscious creation system: Life Vision, Audio Suite, Vision Board, Journal practice, and daily activation protocol.
+The **72-Hour Activation Intensive** is VibrationFit's flagship onboarding program. It's a guided, time-boxed experience that takes users through 12 sequential steps to establish their complete conscious creation system: Life Vision, Audio Suite, Vision Board, Journal practice, and daily activation protocol.
 
 ### Key Characteristics
 
 - **Duration:** 72 hours (timer starts when user begins Step 0)
-- **Steps:** 14 sequential steps across 6 phases
+- **Steps:** 12 sequential steps across 6 phases
 - **Gate-Locked:** Each step unlocks only after the previous step is completed
 - **Outcome:** Upon completion, users unlock full platform access including Advanced Audio Suite, Alignment Gym, and Vibe Tribe
 
 ---
 
-## The 14-Step Flow
+## The 12-Step Flow
 
 ### Phase 1: Setup (Steps 1-2)
 
@@ -35,35 +35,33 @@ The **72-Hour Activation Intensive** is VibrationFit's flagship onboarding progr
 | 3 | Create Profile | Comprehensive life profile | `profile_completed` | Profile saved with demographics, lifestyle, clarity/contrast statements |
 | 4 | Vibration Assessment | 12-category assessment | `assessment_completed` | All 84 questions answered (7 per category) |
 
-### Phase 3: Vision Creation (Steps 5-6)
+### Phase 3: Vision (Step 5)
 
 | Step | Name | Description | Checklist Field | Completion Criteria |
 |------|------|-------------|-----------------|---------------------|
 | 5 | Build Vision | Create Life Vision across 12 categories | `vision_built` | Forward + 12 categories + Conclusion written |
-| 6 | Refine Vision | Enhance with VIVA | `vision_refined` | Vision refined with AI assistance |
 
-### Phase 4: Audio (Steps 7-9)
-
-| Step | Name | Description | Checklist Field | Completion Criteria |
-|------|------|-------------|-----------------|---------------------|
-| 7 | Generate Audio | AI-generated voice narration | `audio_generated` | Audio tracks generated for all sections |
-| 8 | Record Voice | User voice recording (Optional) | `audio_generated` (shared) | User records own voice OR skips |
-| 9 | Audio Mix | Add music and frequencies | `audios_generated` | Mixed audio tracks created |
-
-### Phase 5: Activation (Steps 10-12)
+### Phase 4: Audio (Steps 6-8)
 
 | Step | Name | Description | Checklist Field | Completion Criteria |
 |------|------|-------------|-----------------|---------------------|
-| 10 | Vision Board | Visual board with images | `vision_board_completed` | At least one image per life category (12 total) |
-| 11 | Journal Entry | First conscious creation journal | `first_journal_entry` | One journal entry created |
-| 12 | Book Call | Schedule calibration session | `call_scheduled` | Calendar booking completed |
+| 6 | Generate Audio | AI-generated voice narration | `audio_generated` | Audio tracks generated for all sections |
+| 7 | Record Voice | User voice recording (Optional) | `audio_generated` (shared) | User records own voice OR skips |
+| 8 | Audio Mix | Add music and frequencies | `audios_generated` | Mixed audio tracks created |
 
-### Phase 6: Completion (Steps 13-14)
+### Phase 5: Activation (Steps 9-10)
 
 | Step | Name | Description | Checklist Field | Completion Criteria |
 |------|------|-------------|-----------------|---------------------|
-| 13 | My Activation Plan (MAP) | 28-day daily activation protocol | `activation_protocol_completed` | User reviews and commits to protocol |
-| 14 | Platform Unlock | Post-intensive survey + unlock | `unlock_completed` | Survey completed, platform unlocked |
+| 9 | Vision Board | Visual board with images | `vision_board_completed` | At least one image per life category (12 total) |
+| 10 | Journal Entry | First conscious creation journal | `first_journal_entry` | One journal entry created |
+
+### Phase 6: Completion (Steps 11-12)
+
+| Step | Name | Description | Checklist Field | Completion Criteria |
+|------|------|-------------|-----------------|---------------------|
+| 11 | My Activation Plan (MAP) | 28-day daily activation protocol | `activation_protocol_completed` | User reviews and commits to protocol |
+| 12 | Platform Unlock | Post-intensive survey + unlock | `unlock_completed` | Survey completed, platform unlocked |
 
 ---
 
@@ -82,22 +80,20 @@ The **72-Hour Activation Intensive** is VibrationFit's flagship onboarding progr
 - **Primary tracking table** for step completion
 - One row per user per intensive
 - Boolean flags + timestamps for each step
-- Fields: `started_at`, `intake_completed`, `profile_completed`, `assessment_completed`, `vision_built`, `vision_refined`, `audio_generated`, `audios_generated`, `vision_board_completed`, `first_journal_entry`, `call_scheduled`, `activation_protocol_completed`, `unlock_completed`
+- Fields: `started_at`, `intake_completed`, `profile_completed`, `assessment_completed`, `vision_built`, `audio_generated`, `audios_generated`, `vision_board_completed`, `first_journal_entry`, `activation_protocol_completed`, `unlock_completed`
 - Status: 'pending' | 'in_progress' | 'completed'
 
 #### `intensive_responses`
 Unified table for intake/survey data across three phases:
 
 1. **`pre_intensive`** - Initial baseline intake (Step 2)
-2. **`post_intensive`** - Unlock survey (Step 14)
-3. **`calibration_session`** - Call recording data
+2. **`post_intensive`** - Unlock survey (Step 12)
 
 **Key Fields:**
 - Rating questions (0-10): vision_clarity, vibrational_harmony, vibrational_constraints_clarity, vision_iteration_ease, audio_iteration_ease, vision_board_management, journey_capturing, roadmap_clarity, transformation_tracking
 - Multiple choice: has_audio_tracks, has_vision_board, sharing_preference
 - Text: previous_attempts, biggest_shift
 - Video testimonial data
-- Calibration call recordings, transcripts, segments, soundbites
 - Metrics comparison (before/after)
 
 ### Related Tables
@@ -105,10 +101,10 @@ Unified table for intake/survey data across three phases:
 - `user_accounts` - Step 1 completion check
 - `user_profiles` - Step 3 data
 - `assessment_results` + `assessment_responses` - Step 4 data
-- `vision_versions` - Steps 5-6 data
-- `audio_sets` + `audio_tracks` - Steps 7-9 data
-- `vision_board_items` - Step 10 data
-- `journal_entries` - Step 11 data
+- `vision_versions` - Step 5 data
+- `audio_sets` + `audio_tracks` - Steps 6-8 data
+- `vision_board_items` - Step 9 data
+- `journal_entries` - Step 10 data
 
 ---
 
@@ -147,21 +143,16 @@ Unified table for intake/survey data across three phases:
 | `/intensive/start` | Start button and timer initiation |
 | `/intensive/dashboard` | Main checklist view with progress |
 | `/intensive/intake` | Pre-intensive survey (Step 2) |
-| `/intensive/intake/unlock` | Post-intensive survey (Step 14) |
-| `/intensive/schedule-call` | Calendly booking (Step 12) |
-| `/intensive/call-prep` | Call preparation after booking |
-| `/intensive/calibration` | Calibration call interface |
+| `/intensive/intake/unlock` | Post-intensive survey (Step 12) |
 | `/intensive/welcome` | Welcome/intro screen |
 | `/intensive/builder` | Vision building interface |
-| `/intensive/refine-vision` | Vision refinement with VIVA |
-| `/activation-protocol` | 28-day MAP page (Step 13) |
+| `/activation-protocol` | 28-day MAP page (Step 11) |
 
 ### Admin Pages
 
 | Route | Purpose |
 |-------|---------|
 | `/admin/intensive/tester` | Test user management, advance steps with sample data |
-| `/admin/intensive/schedule-call` | Admin call scheduling interface |
 
 ---
 
@@ -178,7 +169,6 @@ Unified table for intake/survey data across three phases:
 | `/reset-user` | POST | Reset user's intensive data |
 | `/advance-step` | GET | Get user's current progress |
 | `/advance-step` | POST | Advance user through a step with sample data |
-| `/appointments` | Various | Manage calibration call appointments |
 
 ---
 
@@ -237,20 +227,18 @@ Each step creates appropriate sample data:
 - Step 3: Creates full profile with demographics
 - Step 4: Creates assessment with 84 sample responses
 - Step 5: Creates vision with all 14 sections
-- Step 6: Marks vision as refined
-- Step 7: Creates audio set + tracks
-- Step 9: Marks audio as mixed
-- Step 10: Creates 12 vision board items
-- Step 11: Creates 3 journal entries (text, voice, video)
-- Step 12: Marks call scheduled
-- Step 13: Marks activation protocol complete
-- Step 14: Marks unlock complete, sets status to 'completed'
+- Step 6: Creates audio set + tracks
+- Step 8: Marks audio as mixed
+- Step 9: Creates 12 vision board items
+- Step 10: Creates 3 journal entries (text, voice, video)
+- Step 11: Marks activation protocol complete
+- Step 12: Marks unlock complete, sets status to 'completed'
 
 ---
 
 ## Completion Flow
 
-1. User completes Step 14 (Unlock survey)
+1. User completes Step 12 (Unlock survey)
 2. `intensive_checklist.status` set to 'completed'
 3. `intensive_checklist.completed_at` timestamp recorded
 4. `order_items.completion_status` set to 'completed'
@@ -280,7 +268,7 @@ Users who complete the intensive unlock:
 ### Step Locking
 - Steps unlock sequentially
 - Each step checks previous step's completion boolean
-- Step 8 (Record Voice) is optional but shares completion with Step 7
+- Step 7 (Record Voice) is optional but shares completion with Step 6
 
 ### RLS Policies
 - Users can only access their own intensive data
@@ -292,7 +280,7 @@ Users who complete the intensive unlock:
 ## Current Development Status
 
 ### Completed
-- 14-step flow implementation
+- 12-step flow implementation
 - Dashboard with progress tracking
 - All step pages functional
 - Admin tester tool
@@ -300,9 +288,7 @@ Users who complete the intensive unlock:
 - Timer system
 
 ### In Progress
-- Calibration call recording integration
 - Video testimonial capture
-- Soundbite extraction for marketing
 
 ### Future Considerations
 - Analytics dashboard for completion rates

@@ -10,7 +10,6 @@ import {
   Stack,
   Inline,
   Text,
-  PageHero,
   Spinner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
@@ -96,47 +95,38 @@ export default function IntensiveWelcomePage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Centered Hero Title */}
-        <PageHero
-          eyebrow="ACTIVATION INTENSIVE"
-          title="Welcome to Your Transformation"
-          subtitle="Your 14-step journey to creating and activating the life you truly desire."
-        >
-          {/* Video */}
-          <div className="mx-auto w-full max-w-3xl">
-            <OptimizedVideo
-              url={INTENSIVE_INTRO_VIDEO}
-              context="single"
-              className="w-full"
-            />
-          </div>
+        <div className="mx-auto w-full max-w-3xl">
+          <OptimizedVideo
+            url={INTENSIVE_INTRO_VIDEO}
+            context="single"
+            className="w-full"
+          />
+        </div>
 
-          {/* Action Button */}
-          <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-            <Button 
-              variant="primary" 
-              size="sm" 
-              onClick={handleStartIntensive}
-              disabled={isStarting}
-              className="w-full md:w-auto"
-            >
-              {isStarting ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  Starting...
-                </>
-              ) : (
-                <>
-                  <Rocket className="mr-2 h-4 w-4" />
-                  Start My Activation Intensive
-                </>
-              )}
-            </Button>
-            {error && (
-              <p className="text-sm text-red-400">{error}</p>
+        <div className="flex flex-col gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
+          <Button 
+            variant="primary" 
+            size="sm" 
+            onClick={handleStartIntensive}
+            disabled={isStarting}
+            className="w-full md:w-auto"
+          >
+            {isStarting ? (
+              <>
+                <Spinner variant="primary" size="sm" className="mr-2" />
+                Starting...
+              </>
+            ) : (
+              <>
+                <Rocket className="mr-2 h-4 w-4" />
+                Start My Activation Intensive
+              </>
             )}
-          </div>
-        </PageHero>
+          </Button>
+          {error && (
+            <p className="text-sm text-red-400">{error}</p>
+          )}
+        </div>
 
         {/* What is the Activation Intensive? */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
@@ -148,7 +138,7 @@ export default function IntensiveWelcomePage() {
               The Activation Intensive is a guided, step-by-step process designed to help you clarify your vision, create powerful activation tools, and establish the daily practices that will transform your life.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Over 14 carefully sequenced steps, you'll build everything you need to become a vibrational match to the life you truly desire. Each step unlocks the next, ensuring you have a solid foundation before moving forward.
+              Over 12 carefully sequenced steps, you'll build everything you need to become a vibrational match to the life you truly desire. Each step unlocks the next, ensuring you have a solid foundation before moving forward.
             </p>
           </Stack>
         </Card>
@@ -204,7 +194,7 @@ export default function IntensiveWelcomePage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Build your vision board, start your journal practice, schedule your calibration call, and complete your custom activation protocol to unlock the full platform.
+                  Build your vision board, start your journal practice, and complete your custom activation protocol to unlock the full platform.
                 </p>
               </Stack>
             </Stack>

@@ -182,12 +182,10 @@ BEGIN
     profile_completed,
     assessment_completed,
     vision_built,
-    vision_refined,
     audio_generated,
     audios_generated,
     vision_board_completed,
     first_journal_entry,
-    call_scheduled,
     activation_protocol_completed,
     unlock_completed,
     created_at,
@@ -201,12 +199,10 @@ BEGIN
     false, -- profile_completed
     false, -- assessment_completed
     false, -- vision_built
-    false, -- vision_refined
     false, -- audio_generated
     false, -- audios_generated
     false, -- vision_board_completed
     false, -- first_journal_entry
-    false, -- call_scheduled
     false, -- activation_protocol_completed
     false, -- unlock_completed
     NOW(),

@@ -80,37 +80,37 @@ function isPathAccessibleForIntensive(
     return intensive.profile_completed
   }
   
-  // Steps 5-6: Life Vision (build + refine)
+  // Step 5: Life Vision
   if (pathname.startsWith('/intensive/life-vision')) {
     return intensive.assessment_completed
   }
   
-  // Steps 7-9: Audio
+  // Steps 6-8: Audio
   if (pathname.startsWith('/intensive/audio')) {
-    return intensive.vision_refined
+    return intensive.vision_built
   }
   
-  // Step 10: Vision Board
+  // Step 9: Vision Board
   if (pathname.startsWith('/intensive/vision-board')) {
     return intensive.audio_generated || intensive.audios_generated
   }
   
-  // Step 11: Journal
+  // Step 10: Journal
   if (pathname.startsWith('/intensive/journal')) {
     return intensive.vision_board_completed
   }
   
-  // Step 12: Schedule Call & Call Prep
-  if (pathname.startsWith('/intensive/schedule-call') || pathname.startsWith('/intensive/call-prep')) {
+  // Legacy calibration routes — redirect handles these, but allow access if journal is done
+  if (pathname.startsWith('/intensive/schedule-call') || pathname.startsWith('/intensive/call-prep') || pathname.startsWith('/intensive/calibration')) {
     return intensive.first_journal_entry
   }
   
-  // Step 13: My Activation Plan & Calibration
-  if (pathname.startsWith('/intensive/map') || pathname.startsWith('/intensive/calibration')) {
-    return intensive.call_scheduled
+  // Step 11: My Activation Plan
+  if (pathname.startsWith('/intensive/map')) {
+    return intensive.first_journal_entry
   }
 
-  // Step 14: Unlock
+  // Step 12: Unlock
   if (pathname.startsWith('/intensive/unlock')) {
     return intensive.activation_protocol_completed
   }
@@ -119,13 +119,13 @@ function isPathAccessibleForIntensive(
   if (pathname.startsWith('/account')) return !!intensive.started_at
   if (pathname.startsWith('/profile')) return intensive.intake_completed
   if (pathname.startsWith('/assessment')) return intensive.profile_completed
-  if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) return intensive.vision_refined
+  if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) return intensive.vision_built
   if (pathname.startsWith('/life-vision')) return intensive.assessment_completed
   if (pathname.startsWith('/vision-board')) return intensive.audio_generated || intensive.audios_generated
   if (pathname.startsWith('/journal')) return intensive.vision_board_completed
-  if (pathname.startsWith('/map')) return intensive.call_scheduled
-  if (pathname.startsWith('/activation-protocol')) return intensive.call_scheduled
-  if (pathname.startsWith('/audio')) return intensive.vision_refined
+  if (pathname.startsWith('/map')) return intensive.first_journal_entry
+  if (pathname.startsWith('/activation-protocol')) return intensive.first_journal_entry
+  if (pathname.startsWith('/audio')) return intensive.vision_built
   
   // Main Dashboard - accessible after intensive is fully complete (unlock step done)
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {

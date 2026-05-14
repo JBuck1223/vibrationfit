@@ -40,8 +40,7 @@ export function IntensiveWelcomeScreen({ onStart }: IntensiveWelcomeScreenProps)
       icon: User,
       items: [
         'Complete your profile',
-        'Take vibration assessment',
-        'Book calibration call'
+        'Take vibration assessment'
       ]
     },
     {
@@ -65,7 +64,6 @@ export function IntensiveWelcomeScreen({ onStart }: IntensiveWelcomeScreenProps)
       title: 'Phase 4: Launch',
       icon: Rocket,
       items: [
-        'Attend calibration call',
         'Complete activation protocol'
       ]
     }

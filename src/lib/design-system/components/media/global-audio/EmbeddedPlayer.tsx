@@ -78,10 +78,11 @@ export function EmbeddedPlayer({
   const setRepeatMode = useGlobalAudioStore(s => s.setRepeatMode)
   const toggleShuffle = useGlobalAudioStore(s => s.toggleShuffle)
 
-  const [trackDurations, setTrackDurations] = useState<Map<string, number>>(new Map())
+  const [probedDurations, setProbedDurations] = useState<Map<string, number>>(new Map())
   const [isEditingName, setIsEditingName] = useState(false)
   const [editingName, setEditingName] = useState('')
   const lastRepeatClickRef = useRef<number>(0)
+  const probeAbortRef = useRef<(() => void) | null>(null)
 
   const { cachedTrackIds, downloadingTrackIds, downloadTrack, downloadAllTracks, removeTrack } = useAudioOffline(tracks)
   const allCached = tracks.length > 0 && tracks.every(t => cachedTrackIds.has(t.id))
@@ -93,32 +94,80 @@ export function EmbeddedPlayer({
   const activeIndex = isThisSetActive ? storeIndex : -1
   const activeTrack = isThisSetActive ? storeTracks[storeIndex] : null
   const isActivePlaying = isThisSetActive && storeIsPlaying
+  const isBuffering = useGlobalAudioStore(s => s.isBuffering)
+  const isActiveBuffering = isThisSetActive && isBuffering
   const currentTime = isThisSetActive ? storeCurrentTime : 0
   const duration = isThisSetActive ? storeDuration : 0
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   useEffect(() => {
-    tracks.forEach(track => {
-      if (track.url && !trackDurations.has(track.id)) {
-        const tempAudio = new Audio()
-        tempAudio.src = track.url
-        tempAudio.addEventListener('loadedmetadata', () => {
-          if (tempAudio.duration && !isNaN(tempAudio.duration) && isFinite(tempAudio.duration)) {
-            setTrackDurations(prev => {
-              const newMap = new Map(prev)
-              newMap.set(track.id, tempAudio.duration)
-              return newMap
-            })
-          }
-        })
-      }
-    })
-  }, [tracks, trackDurations])
+    if (!isThisSetActive || !activeTrack) return
+    if (storeDuration > 0 && isFinite(storeDuration)) {
+      setProbedDurations(prev => {
+        if (prev.get(activeTrack.id) === storeDuration) return prev
+        const m = new Map(prev)
+        m.set(activeTrack.id, storeDuration)
+        return m
+      })
+    }
+  }, [isThisSetActive, activeTrack?.id, storeDuration])
 
-  const totalDuration = tracks.reduce((sum, track) => {
-    const dur = trackDurations.get(track.id) || track.duration || 0
-    return sum + dur
-  }, 0)
+  useEffect(() => {
+    probeAbortRef.current?.()
+
+    const needed = tracks.filter(
+      t => t.url && !probedDurations.has(t.id) && !(t.duration && t.duration > 0)
+    )
+    if (needed.length === 0) return
+
+    let cancelled = false
+    const queue = [...needed]
+    let activeProbes = 0
+    const CONCURRENCY = 2
+    const INITIAL_DELAY_MS = 800
+
+    function probeNext() {
+      if (cancelled) return
+      const track = queue.shift()
+      if (!track) return
+      activeProbes++
+      const el = new Audio()
+      el.preload = 'metadata'
+      const done = (dur?: number) => {
+        el.src = ''
+        el.load()
+        activeProbes--
+        if (!cancelled && dur && isFinite(dur) && dur > 0) {
+          setProbedDurations(prev => {
+            const m = new Map(prev)
+            m.set(track.id, dur)
+            return m
+          })
+        }
+        probeNext()
+      }
+      el.addEventListener('loadedmetadata', () => done(el.duration), { once: true })
+      el.addEventListener('error', () => done(), { once: true })
+      el.src = track.url
+    }
+
+    const timerId = setTimeout(() => {
+      if (cancelled) return
+      for (let i = 0; i < Math.min(CONCURRENCY, queue.length); i++) probeNext()
+    }, INITIAL_DELAY_MS)
+
+    const abort = () => {
+      cancelled = true
+      clearTimeout(timerId)
+    }
+    probeAbortRef.current = abort
+    return abort
+  }, [tracks])
+
+  const getTrackDuration = (track: AudioTrack) =>
+    (track.duration && track.duration > 0 ? track.duration : 0) || probedDurations.get(track.id) || 0
+
+  const totalDuration = tracks.reduce((sum, track) => sum + getTrackDuration(track), 0)
 
   const handlePlayAll = () => {
     if (isThisSetActive) {
@@ -324,9 +373,11 @@ export function EmbeddedPlayer({
               }
             }}
             className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 transition-colors shadow-lg"
-            aria-label={isActivePlaying ? 'Pause' : 'Play'}
+            aria-label={isActiveBuffering ? 'Loading' : isActivePlaying ? 'Pause' : 'Play'}
           >
-            {isActivePlaying ? (
+            {isActiveBuffering ? (
+              <Loader2 className="w-7 h-7 animate-spin" />
+            ) : isActivePlaying ? (
               <Pause className="w-7 h-7" fill="currentColor" />
             ) : (
               <Play className="w-7 h-7 ml-1" fill="currentColor" />
@@ -410,9 +461,12 @@ export function EmbeddedPlayer({
                     {track.artist && <p className="truncate text-xs text-neutral-500">{track.artist}</p>}
                   </div>
                   <span className="text-xs text-neutral-500 flex-shrink-0">
-                    {formatTime(trackDurations.get(track.id) || track.duration || 0)}
+                    {formatTime(getTrackDuration(track))}
                   </span>
-                  {isActive && isActivePlaying && (
+                  {isActive && isActiveBuffering && (
+                    <Loader2 className="w-4 h-4 text-primary-500 animate-spin flex-shrink-0" />
+                  )}
+                  {isActive && isActivePlaying && !isActiveBuffering && (
                     <div className="flex items-center gap-0.5 flex-shrink-0">
                       <span className="w-0.5 h-3 bg-primary-500 rounded-full animate-pulse" />
                       <span className="w-0.5 h-4 bg-primary-500 rounded-full animate-pulse [animation-delay:150ms]" />

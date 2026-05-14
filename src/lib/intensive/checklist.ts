@@ -1,5 +1,5 @@
 // Utility functions for updating intensive checklist
-// Updated for 14-step Activation Intensive flow
+// Updated for 12-step Activation Intensive flow
 
 import { createClient } from '@/lib/supabase/client'
 import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
@@ -14,18 +14,16 @@ export type IntensiveStepType =
   | 'assessment_completed'       // Step 4: Assessment
   // Phase 3: Vision Creation
   | 'vision_built'               // Step 5: Build Life Vision
-  | 'vision_refined'             // Step 6: Refine Vision
   // Phase 4: Audio
-  | 'audio_generated'            // Step 7: Generate Audio
-  // Step 8: Record Audio - optional, uses audio_generated or can be skipped
-  | 'audios_generated'           // Step 9: Audio Mix
+  | 'audio_generated'            // Step 6: Generate Audio
+  // Step 7: Record Audio - optional, uses audio_generated or can be skipped
+  | 'audios_generated'           // Step 8: Audio Mix
   // Phase 5: Activation
-  | 'vision_board_completed'     // Step 10: Vision Board
-  | 'first_journal_entry'        // Step 11: Journal
-  | 'call_scheduled'             // Step 12: Book Calibration Call
+  | 'vision_board_completed'     // Step 9: Vision Board
+  | 'first_journal_entry'        // Step 10: Journal
   // Phase 6: Completion
-  | 'activation_protocol_completed' // Step 13: My Activation Plan
-  | 'unlock_completed'           // Step 14: Full Platform Unlock
+  | 'activation_protocol_completed' // Step 11: My Activation Plan
+  | 'unlock_completed'           // Step 12: Full Platform Unlock
 
 export async function markIntensiveStep(step: IntensiveStepType) {
   try {
@@ -124,7 +122,7 @@ export async function isInIntensiveMode(): Promise<boolean> {
 }
 
 /**
- * Get step progress for the 14-step intensive
+ * Get step progress for the 12-step intensive
  * Returns an object with each step's completion status
  */
 export async function getIntensiveStepProgress(): Promise<Record<IntensiveStepType, boolean> | null> {
@@ -148,12 +146,10 @@ export async function getIntensiveStepProgress(): Promise<Record<IntensiveStepTy
       profile_completed: checklist.profile_completed || false,
       assessment_completed: checklist.assessment_completed || false,
       vision_built: checklist.vision_built || false,
-      vision_refined: checklist.vision_refined || false,
       audio_generated: checklist.audio_generated || false,
       audios_generated: checklist.audios_generated || false,
       vision_board_completed: checklist.vision_board_completed || false,
       first_journal_entry: checklist.first_journal_entry || false,
-      call_scheduled: checklist.call_scheduled || false,
       activation_protocol_completed: checklist.activation_protocol_completed || false,
       unlock_completed: checklist.unlock_completed || false,
     }

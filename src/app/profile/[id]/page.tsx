@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, DeleteConfirmationDialog, Heading, Text, Stack, Container, PageHero, Spinner, IntensiveCompletionBanner } from '@/lib/design-system/components'
+import { Card, Button, DeleteConfirmationDialog, Heading, Text, Stack, Container, PageHero, Spinner } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -27,6 +27,7 @@ import NextImage from 'next/image'
 import { calculateProfileCompletion, getIncompleteFields } from '@/lib/utils/profile-completion'
 import VersionActionToolbar from '@/components/VersionActionToolbar'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
+import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 
 const getCategoryInfo = (categoryId: string) => {
   const visionCategoryKey = convertCategoryKey(categoryId as any, 'vision', 'vision')
@@ -85,6 +86,12 @@ export default function ProfileDetailPage() {
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
   const [versionToolbarLoading, setVersionToolbarLoading] = useState(false)
+  const { setCompletedAt: setStepCompleted } = useIntensiveStep()
+
+  useEffect(() => {
+    if (isIntensiveMode && isAlreadyCompleted && completedAt) setStepCompleted(completedAt)
+    return () => setStepCompleted(null)
+  }, [isIntensiveMode, isAlreadyCompleted, completedAt, setStepCompleted])
 
   useEffect(() => {
     if (Object.keys(profile).length > 0) {
@@ -94,8 +101,6 @@ export default function ProfileDetailPage() {
   }, [profile])
 
   useEffect(() => {
-    // Use the cached intensive snapshot — this is populated once per session by
-    // GlobalLayout, so the check below is usually synchronous and never hits the DB.
     let cancelled = false
     ;(async () => {
       try {
@@ -646,15 +651,6 @@ export default function ProfileDetailPage() {
   return (
     <div className="pb-6">
       <Stack gap="md">
-        {/* Intensive Completion Banner */}
-        {isIntensiveMode && isAlreadyCompleted && completedAt && (
-          <Container size="xl">
-            <IntensiveCompletionBanner 
-              stepTitle="Create Profile"
-              completedAt={completedAt}
-            />
-          </Container>
-        )}
 
         {showReviewCommitChrome ? (
           <>

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
-// completeIntensive no longer needed; step 14 marks the intensive as completed
+// completeIntensive no longer needed; step 12 marks the intensive as completed
 import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 // IntensiveCompletionScreen removed; graduates are redirected to /dashboard
@@ -15,9 +15,7 @@ import {
   CheckCircle, 
   User,
   ClipboardCheck,
-  Calendar,
   Sparkles,
-  Wand2,
   Music,
   Mic,
   Sliders,
@@ -44,8 +42,7 @@ import {
   Badge,
   ProgressBar,
   Spinner,
-  Stack,
-  PageHero
+  Stack
 } from '@/lib/design-system/components'
 import { fetchAssessments } from '@/lib/services/assessmentService'
 
@@ -75,13 +72,13 @@ interface IntensiveChecklist {
   assessment_completed: boolean
   assessment_completed_at: string | null
   
-  // Phase 3: Vision Creation (Steps 5-6)
+  // Phase 3: Vision (Step 5)
   vision_built: boolean
   vision_built_at: string | null
   vision_refined: boolean
   vision_refined_at: string | null
   
-  // Phase 4: Audio (Steps 7-9)
+  // Phase 4: Audio (Steps 6-8)
   audio_generated: boolean
   audio_generated_at: string | null
   voice_recording_completed: boolean
@@ -91,7 +88,7 @@ interface IntensiveChecklist {
   audios_generated: boolean
   audios_generated_at: string | null
   
-  // Phase 5: Activation (Steps 10-12)
+  // Phase 5: Activation (Steps 9-10)
   vision_board_completed: boolean
   vision_board_completed_at: string | null
   first_journal_entry: boolean
@@ -99,7 +96,7 @@ interface IntensiveChecklist {
   call_scheduled: boolean
   call_scheduled_at: string | null
   
-  // Phase 6: Completion (Steps 13-14)
+  // Phase 6: Completion (Steps 11-12)
   activation_protocol_completed: boolean
   activation_protocol_completed_at: string | null
   unlock_completed: boolean
@@ -185,8 +182,8 @@ function IntensiveDashboardContent() {
       
       if (stepInfo) {
         const message = nextStepInfo 
-          ? `Step ${stepInfo.stepNumber} of 14 complete – "${stepInfo.title}"\nYour next step, "${nextStepInfo.title}," is now unlocked.`
-          : `Step ${stepInfo.stepNumber} of 14 complete – "${stepInfo.title}"`
+          ? `Step ${stepInfo.stepNumber} of 12 complete – "${stepInfo.title}"\nYour next step, "${nextStepInfo.title}," is now unlocked.`
+          : `Step ${stepInfo.stepNumber} of 12 complete – "${stepInfo.title}"`
         
         toast.success(message, {
           duration: 5000,
@@ -375,7 +372,7 @@ function IntensiveDashboardContent() {
         .maybeSingle()
       if (activeVision?.id) setActiveVisionId(activeVision.id)
 
-      // Verify Vision Board completion (Step 10)
+      // Verify Vision Board completion (Step 9)
       // If vision_board_completed is false but user has items in all 12 categories, mark complete
       if (!checklistData.vision_board_completed) {
         const { data: visionBoardItems } = await supabase
@@ -415,7 +412,7 @@ function IntensiveDashboardContent() {
         }
       }
 
-      // Verify Journal completion (Step 11)
+      // Verify Journal completion (Step 10)
       // If first_journal_entry is false but user has at least one journal entry, mark complete
       if (!checklistData.first_journal_entry) {
         const { count: journalCount } = await supabase
@@ -473,7 +470,7 @@ function IntensiveDashboardContent() {
     const utcStartedAt = startedAt.endsWith('Z') ? startedAt : startedAt + 'Z'
     const startTime = new Date(utcStartedAt).getTime()
     const endTime = startTime + INTENSIVE_DURATION_MS
-    const now = Date.now()
+    const now = Math.floor(Date.now() / 1000) * 1000
     const diff = endTime - now
 
     if (diff <= 0) {
@@ -556,7 +553,7 @@ function IntensiveDashboardContent() {
         viewLabel: 'View Results'
       },
       
-      // Phase 3: Vision Creation (Steps 5-6)
+      // Phase 3: Vision (Step 5)
       {
         id: 'build_vision',
         stepNumber: 5,
@@ -566,28 +563,15 @@ function IntensiveDashboardContent() {
         phase: 'Vision Creation',
         completed: checklist.vision_built,
         completedAt: checklist.vision_built_at,
-        href: '/intensive/life-vision/new',
-        viewHref: '/intensive/life-vision/new',
+        href: '/intensive/life-vision/create',
+        viewHref: '/intensive/life-vision/create',
         locked: !checklist.assessment_completed
       },
-      {
-        id: 'refine_vision',
-        stepNumber: 6,
-        title: 'Refine Your Vision',
-        description: 'Enhance your vision with VIVA for deeper clarity',
-        icon: Wand2,
-        phase: 'Vision Creation',
-        completed: checklist.vision_refined,
-        completedAt: checklist.vision_refined_at,
-        href: '/intensive/life-vision/new',
-        viewHref: '/intensive/life-vision/new',
-        locked: !checklist.vision_built
-      },
       
-      // Phase 4: Audio (Steps 7-9)
+      // Phase 4: Audio (Steps 6-8)
       {
         id: 'generate_audio',
-        stepNumber: 7,
+        stepNumber: 6,
         title: 'Generate Vision Audio',
         description: 'Create voice-only audio of your vision',
         icon: Music,
@@ -596,11 +580,11 @@ function IntensiveDashboardContent() {
         completedAt: checklist.audio_generated_at,
         href: '/intensive/audio/generate',
         viewHref: '/intensive/audio/generate',
-        locked: !checklist.vision_refined
+        locked: !checklist.vision_built
       },
       {
         id: 'record_audio',
-        stepNumber: 8,
+        stepNumber: 7,
         title: 'Record Your Voice',
         description: 'Optionally record sections in your own voice',
         icon: Mic,
@@ -614,7 +598,7 @@ function IntensiveDashboardContent() {
       },
       {
         id: 'mix_audio',
-        stepNumber: 9,
+        stepNumber: 8,
         title: 'Create Audio Mix',
         description: 'Mix your vision audio with music and frequencies',
         icon: Sliders,
@@ -626,10 +610,10 @@ function IntensiveDashboardContent() {
         locked: !checklist.audio_generated || !(checklist.voice_recording_completed || checklist.voice_recording_skipped)
       },
       
-      // Phase 5: Activation (Steps 10-12)
+      // Phase 5: Activation (Steps 9-10)
       {
         id: 'vision_board',
-        stepNumber: 10,
+        stepNumber: 9,
         title: 'Create Vision Board',
         description: 'Build your visual board with one image per life category',
         icon: ImageIcon,
@@ -642,7 +626,7 @@ function IntensiveDashboardContent() {
       },
       {
         id: 'journal',
-        stepNumber: 11,
+        stepNumber: 10,
         title: 'First Journal Entry',
         description: 'Start your conscious creation journal practice',
         icon: BookOpen,
@@ -653,24 +637,11 @@ function IntensiveDashboardContent() {
         viewHref: '/intensive/journal/about',
         locked: !checklist.vision_board_completed
       },
-      {
-        id: 'schedule_call',
-        stepNumber: 12,
-        title: 'Book Calibration Call',
-        description: 'Schedule your 1-on-1 vision calibration session',
-        icon: Calendar,
-        phase: 'Activation',
-        completed: checklist.call_scheduled,
-        completedAt: checklist.call_scheduled_at,
-        href: '/intensive/schedule-call',
-        viewHref: '/intensive/call-prep',
-        locked: !checklist.first_journal_entry
-      },
       
-      // Phase 6: Completion (Steps 13-14)
+      // Phase 6: Completion (Steps 11-12)
       {
         id: 'activation_protocol',
-        stepNumber: 13,
+        stepNumber: 11,
         title: 'My Activation Plan',
         description: 'Your personalized 28-day MAP',
         icon: Rocket,
@@ -679,11 +650,11 @@ function IntensiveDashboardContent() {
         completedAt: checklist.activation_protocol_completed_at,
         href: '/intensive/map',
         viewHref: '/intensive/map',
-        locked: !checklist.call_scheduled
+        locked: !checklist.first_journal_entry
       },
       {
         id: 'unlock',
-        stepNumber: 14,
+        stepNumber: 12,
         title: 'Full Platform Unlock',
         description: 'Unlock the complete Vibration Fit platform',
         icon: Unlock,
@@ -775,25 +746,17 @@ function IntensiveDashboardContent() {
   const nextStep = getNextStep()
   const currentPhase = getCurrentPhase()
   
-  // Calculate current step number (first incomplete step or 14 if all complete)
-  const currentStepNumber = nextStep ? nextStep.stepNumber : 14
+  // Calculate current step number (first incomplete step or 12 if all complete)
+  const currentStepNumber = nextStep ? nextStep.stepNumber : 12
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Header */}
-        <PageHero
-          eyebrow="72-Hour Activation Intensive"
-          title="Your 14-Step Activation Path"
-          subtitle="Follow each step in order. Complete all 14 to graduate and unlock your Advanced Audio Suite, Alignment Gym, and Vibe Tribe access."
-        >
-          {/* Phase pill */}
-          <div className="flex justify-center">
-            <Badge variant="premium" className="text-xs md:text-sm">
-              Current Phase: {currentPhase} · Step {currentStepNumber} of 14
-            </Badge>
-          </div>
-        </PageHero>
+        <div className="flex justify-center">
+          <Badge variant="premium" className="text-xs md:text-sm">
+            Current Phase: {currentPhase} · Step {currentStepNumber} of 12
+          </Badge>
+        </div>
 
         {/* Countdown Timer */}
         <Card variant="elevated" className="p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">

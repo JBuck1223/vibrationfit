@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -10,6 +10,7 @@ import {
   CheckCircle,
   ExternalLink,
   Presentation,
+  Sparkles,
 } from 'lucide-react'
 import Markdown from 'react-markdown'
 import {
@@ -21,7 +22,7 @@ import {
   Spinner,
   Badge,
 } from '@/lib/design-system/components'
-import { SessionReplayVideo } from '@/components/video/SessionReplayVideo'
+import { SessionReplayVideo, type SessionReplayVideoHandle } from '@/components/video/SessionReplayVideo'
 import { SessionNotes } from '@/components/video/SessionNotes'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
@@ -41,10 +42,66 @@ const SESSION_SLIDE_DECKS: Record<string, { url: string; title: string }> = {
   },
 }
 
+interface KeyPoint {
+  text: string
+  timestamp_seconds: number
+}
+
+interface KeyPointsData {
+  summary?: string
+  key_points?: KeyPoint[]
+  themes?: string[]
+}
+
+const PLACEHOLDER_PATTERNS = [
+  /^2-3 sentence/i,
+  /^write an actual/i,
+  /^overview of the session/i,
+  /^placeholder/i,
+]
+
+function isPlaceholderSummary(text: string): boolean {
+  return PLACEHOLDER_PATTERNS.some((p) => p.test(text.trim()))
+}
+
+function parseKeyPoints(raw: unknown): KeyPointsData | null {
+  if (!raw || typeof raw !== 'object') return null
+  const data = raw as Record<string, unknown>
+  if (!Array.isArray(data.key_points)) return null
+  // Handle both old format (string[]) and new format (object[])
+  const points = (data.key_points as unknown[]).map((p) => {
+    if (typeof p === 'string') return { text: p, timestamp_seconds: 0 }
+    if (typeof p === 'object' && p !== null) {
+      const obj = p as Record<string, unknown>
+      return {
+        text: String(obj.text || ''),
+        timestamp_seconds: Number(obj.timestamp_seconds) || 0,
+      }
+    }
+    return { text: String(p), timestamp_seconds: 0 }
+  })
+
+  const rawSummary = typeof data.summary === 'string' ? data.summary : undefined
+  const summary = rawSummary && !isPlaceholderSummary(rawSummary) ? rawSummary : undefined
+
+  return {
+    summary,
+    key_points: points,
+    themes: Array.isArray(data.themes) ? data.themes.map(String) : undefined,
+  }
+}
+
+function formatTimestampLabel(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
 export default function AlignmentGymSessionPage() {
   const params = useParams()
   const router = useRouter()
   const sessionId = params?.id as string
+  const videoRef = useRef<SessionReplayVideoHandle>(null)
 
   const [session, setSession] = useState<NullableSession>(null)
   const [userId, setUserId] = useState(null as string | null)
@@ -129,6 +186,8 @@ export default function AlignmentGymSessionPage() {
   const skip = session.recording_playback_start_seconds ?? 0
   const hasSummaryContent = Boolean(session.session_summary?.trim())
   const hasTranscript = Boolean(session.transcript_text?.trim())
+  const keyPointsData = parseKeyPoints(session.transcript_key_points)
+  const hasKeyPoints = Boolean(keyPointsData?.key_points?.length)
   const slideDeck = SESSION_SLIDE_DECKS[sessionId]
 
   return (
@@ -153,6 +212,7 @@ export default function AlignmentGymSessionPage() {
               )}
               <div className="aspect-video w-full rounded-xl overflow-hidden bg-black border border-neutral-800">
                 <SessionReplayVideo
+                  ref={videoRef}
                   src={session.recording_url}
                   playbackStartSeconds={skip}
                   className="w-full h-full"
@@ -199,7 +259,7 @@ export default function AlignmentGymSessionPage() {
           </div>
         </PageHero>
 
-        {hasSummaryContent && (
+        {(hasSummaryContent || hasKeyPoints) && (
           <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]">
             <button
               type="button"
@@ -223,54 +283,98 @@ export default function AlignmentGymSessionPage() {
               className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${recapOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
             >
               <div className="overflow-hidden">
-                <div className="px-6 md:px-8 pb-6 md:pb-8">
-                  <Markdown
-                    components={{
-                      h1: () => null,
-                      h2: ({ children }) => (
-                        <h2 className="text-xl md:text-2xl font-bold text-white mt-10 mb-4 first:mt-0 border-l-2 border-[#39FF14] pl-4">
-                          {children}
-                        </h2>
-                      ),
-                      h3: ({ children }) => (
-                        <h3 className="text-lg font-semibold text-white mt-8 mb-3">{children}</h3>
-                      ),
-                      p: ({ children }) => (
-                        <p className="text-sm md:text-base text-neutral-300 leading-relaxed mb-4 last:mb-0">
-                          {children}
+                <div className="px-6 md:px-8 pb-6 md:pb-8 space-y-6">
+                  {hasSummaryContent && (
+                    <Markdown
+                      components={{
+                        h1: () => null,
+                        h2: ({ children }) => (
+                          <h2 className="text-xl md:text-2xl font-bold text-white mt-10 mb-4 first:mt-0 border-l-2 border-[#39FF14] pl-4">
+                            {children}
+                          </h2>
+                        ),
+                        h3: ({ children }) => (
+                          <h3 className="text-lg font-semibold text-white mt-8 mb-3">{children}</h3>
+                        ),
+                        p: ({ children }) => (
+                          <p className="text-sm md:text-base text-neutral-300 leading-relaxed mb-4 last:mb-0">
+                            {children}
+                          </p>
+                        ),
+                        strong: ({ children }) => (
+                          <strong className="font-semibold text-white">{children}</strong>
+                        ),
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-l-2 border-[#00FFFF]/40 pl-4 md:pl-6 my-6 italic text-neutral-400">
+                            {children}
+                          </blockquote>
+                        ),
+                        ul: ({ children }) => (
+                          <ul className="space-y-2.5 my-4">{children}</ul>
+                        ),
+                        li: ({ children }) => (
+                          <li className="flex gap-3 text-sm md:text-base text-neutral-200 leading-relaxed">
+                            <CheckCircle className="w-4 h-4 text-[#39FF14] shrink-0 mt-1" />
+                            <span>{children}</span>
+                          </li>
+                        ),
+                        a: ({ href, children }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#00FFFF] hover:text-[#00FFFF]/80 underline underline-offset-2 transition-colors duration-300"
+                          >
+                            {children}
+                          </a>
+                        ),
+                      }}
+                    >
+                      {session.session_summary}
+                    </Markdown>
+                  )}
+
+                  {hasKeyPoints && keyPointsData && (
+                    <div className={hasSummaryContent ? 'pt-4 border-t border-neutral-700/50' : ''}>
+                      {keyPointsData.summary && (
+                        <p className="text-sm md:text-base text-neutral-300 leading-relaxed mb-5">
+                          {keyPointsData.summary}
                         </p>
-                      ),
-                      strong: ({ children }) => (
-                        <strong className="font-semibold text-white">{children}</strong>
-                      ),
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-2 border-[#00FFFF]/40 pl-4 md:pl-6 my-6 italic text-neutral-400">
-                          {children}
-                        </blockquote>
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="space-y-2.5 my-4">{children}</ul>
-                      ),
-                      li: ({ children }) => (
-                        <li className="flex gap-3 text-sm md:text-base text-neutral-200 leading-relaxed">
-                          <CheckCircle className="w-4 h-4 text-[#39FF14] shrink-0 mt-1" />
-                          <span>{children}</span>
-                        </li>
-                      ),
-                      a: ({ href, children }) => (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[#00FFFF] hover:text-[#00FFFF]/80 underline underline-offset-2 transition-colors duration-300"
-                        >
-                          {children}
-                        </a>
-                      ),
-                    }}
-                  >
-                    {session.session_summary}
-                  </Markdown>
+                      )}
+
+                      <div className="flex items-center gap-2 mb-4">
+                        <Sparkles className="w-4 h-4 text-[#39FF14]" />
+                        <h3 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">
+                          Key Moments
+                        </h3>
+                      </div>
+
+                      <ul className="space-y-3">
+                        {keyPointsData.key_points?.map((point, i) => (
+                          <li key={i} className="flex items-start gap-3 group/point">
+                            {point.timestamp_seconds > 0 && hasReplay ? (
+                              <button
+                                onClick={() => {
+                                  videoRef.current?.seekTo(point.timestamp_seconds)
+                                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                                }}
+                                className="shrink-0 mt-0.5 px-2 py-0.5 rounded-md bg-[#39FF14]/10 text-[#39FF14] text-xs font-mono font-medium hover:bg-[#39FF14]/20 transition-colors"
+                                title="Jump to this moment"
+                              >
+                                {formatTimestampLabel(point.timestamp_seconds)}
+                              </button>
+                            ) : (
+                              <CheckCircle className="w-4 h-4 text-[#39FF14] shrink-0 mt-1" />
+                            )}
+                            <span className="text-sm md:text-base text-neutral-200 leading-relaxed">
+                              {point.text}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -384,13 +488,13 @@ export default function AlignmentGymSessionPage() {
         )}
 
         {!hasSummaryContent &&
+          !hasKeyPoints &&
           !session.host_notes?.trim() &&
           !hasTranscript &&
           hasReplay && (
             <Card className="p-6 border-neutral-700 bg-neutral-900/30">
               <p className="text-sm text-neutral-500">
-                Session recap and highlights can be added to this session and will show here for quick
-                review.
+                Session recap and highlights will be auto-generated once the transcript is ready. Check back shortly.
               </p>
             </Card>
           )}

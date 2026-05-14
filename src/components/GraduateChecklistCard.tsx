@@ -56,14 +56,6 @@ const ITEMS: Array<{
     graduateUnlock: true,
   },
   {
-    key: 'calibrationCallAttended',
-    title: 'Attend Your Calibration Call',
-    description: 'Show up live, review your journey, and dial in your 28-Day MAP.',
-    ctaLabel: 'View / Join Call',
-    ctaHref: '/intensive/call-prep',
-    icon: Video,
-  },
-  {
     key: 'vibeTribesAboutInfo',
     title: 'Add About Info to Your Vibe Tribe Profile',
     description: 'Let the Tribe know who you are by filling out your About section on your profile.',

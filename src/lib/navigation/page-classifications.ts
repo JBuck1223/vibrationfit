@@ -366,6 +366,7 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/intensive/audio',
   '/life-vision',
   '/journal',
+  '/map',
   '/profile',
   '/story',
   '/vision-board',

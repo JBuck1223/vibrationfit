@@ -122,17 +122,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     try {
       const committedVision = await commitDraft(draftVision.id)
       
-      // Mark intensive step if in intensive mode
-      if (isIntensiveMode) {
-        const { markIntensiveStep } = await import('@/lib/intensive/checklist')
-        const success = await markIntensiveStep('vision_refined')
-        if (success) {
-          setCommittedVisionId(committedVision.id)
-          setShowStepCompleteModal(true)
-          return
-        }
-      }
-      
       // Navigate to the new active vision
       router.push(`/life-vision/${committedVision.id}`)
     } catch (err) {

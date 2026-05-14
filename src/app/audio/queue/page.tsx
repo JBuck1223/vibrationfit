@@ -90,6 +90,7 @@ function formatCustomMixDetailLine(
   sectionsRequested: Array<{ sectionKey: string }> | undefined,
   trackNames: { backgrounds: Record<string, string>; binaurals: Record<string, string> },
   isStoryScope: boolean,
+  voiceName?: string,
 ): string {
   const bgId = meta.background_track_id as string | undefined
   const binId = meta.binaural_track_id as string | undefined
@@ -102,7 +103,7 @@ function formatCustomMixDetailLine(
   const mixChunks: string[] = []
 
   if (vv !== undefined) {
-    mixChunks.push(`Voice: ${Math.round(Number(vv))}% voice`)
+    mixChunks.push(`Voice: ${Math.round(Number(vv))}% ${voiceName || 'voice'}`)
   }
 
   if (bv !== undefined && Number(bv) > 0) {
@@ -156,7 +157,7 @@ function formatCustomMixDetailLine(
 }
 
 export default function AudioQueuePage() {
-  const { allBatches, allBatchesLoading, refreshAllBatches } = useAudioStudio()
+  const { allBatches, allBatchesLoading, refreshAllBatches, allVisions } = useAudioStudio()
   const [voices, setVoices] = useState<Voice[]>([])
   const [mixTrackNames, setMixTrackNames] = useState<{
     backgrounds: Record<string, string>
@@ -339,6 +340,7 @@ export default function AudioQueuePage() {
                           batch={batch}
                           voices={voices}
                           mixTrackNames={mixTrackNames}
+                          allVisions={allVisions}
                           onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
                         />
                       </Link>
@@ -355,6 +357,7 @@ export default function AudioQueuePage() {
                           batch={batch}
                           voices={voices}
                           mixTrackNames={mixTrackNames}
+                          allVisions={allVisions}
                           onDelete={(b) => { setBatchToDelete(b); setShowDeleteConfirm(true) }}
                         />
                       </Link>
@@ -383,11 +386,13 @@ function BatchCard({
   batch,
   voices,
   mixTrackNames,
+  allVisions,
   onDelete,
 }: {
   batch: any
   voices: Voice[]
   mixTrackNames: { backgrounds: Record<string, string>; binaurals: Record<string, string> }
+  allVisions: Array<{ id: string; version_number: number; is_active: boolean }>
   onDelete: (batch: any) => void
 }) {
   const meta = STATUS_META[batch.status] || STATUS_META.pending
@@ -407,6 +412,7 @@ function BatchCard({
           batch.sections_requested as Array<{ sectionKey: string }> | undefined,
           mixTrackNames,
           story,
+          voiceName,
         )
       : ''
 
@@ -418,7 +424,9 @@ function BatchCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <span className="text-sm font-medium text-white">{batchLabel}</span>
+            <span className="text-sm font-medium text-white">
+              {batchLabel}{!customMixDetail && voiceName ? ` · ${voiceName}` : ''}
+            </span>
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${meta.bg} ${meta.color}`}>
               {meta.label}
             </span>
@@ -430,7 +438,10 @@ function BatchCard({
             ) : (
               <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400">
                 <Target className="w-2.5 h-2.5" />
-                Life Vision
+                Life Vision{(() => {
+                  const v = allVisions.find(vis => vis.id === batch.vision_id)
+                  return v ? ` V${v.version_number}` : ''
+                })()}
               </span>
             )}
           </div>
@@ -438,7 +449,7 @@ function BatchCard({
             <p className="text-xs text-neutral-400 mt-1 leading-relaxed line-clamp-3">{customMixDetail}</p>
           ) : null}
           <p className="text-xs text-neutral-500">
-            Voice: {voiceName} &middot; {dateStr}
+            {dateStr}
           </p>
           <div className="flex items-center gap-3 mt-2">
             <div className="flex-1 bg-neutral-800 rounded-full h-1.5">

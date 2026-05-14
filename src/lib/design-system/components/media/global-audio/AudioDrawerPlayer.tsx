@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useRef, useCallback, useEffect, useState } from 'react'
-import { Play, Pause, SkipBack, SkipForward, ChevronDown, X, Shuffle, Repeat } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, ChevronDown, X, Shuffle, Repeat, Loader2 } from 'lucide-react'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { colors } from '../../../tokens'
 import { TrackArtwork } from './TrackArtwork'
@@ -35,8 +35,9 @@ export function AudioDrawerPlayer() {
   const setRepeatMode = useGlobalAudioStore(s => s.setRepeatMode)
   const toggleShuffle = useGlobalAudioStore(s => s.toggleShuffle)
 
+  const isBuffering = useGlobalAudioStore(s => s.isBuffering)
+
   const [showPlaylist, setShowPlaylist] = useState(false)
-  const [trackDurations, setTrackDurations] = useState<Map<string, number>>(new Map())
   const drawerRef = useRef<HTMLDivElement>(null)
   const touchStartY = useRef(0)
   const touchCurrentY = useRef(0)
@@ -64,24 +65,6 @@ export function AudioDrawerPlayer() {
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
   }, [isDrawerOpen, closeDrawer])
-
-  useEffect(() => {
-    tracks.forEach(track => {
-      if (track.url && !trackDurations.has(track.id)) {
-        const tempAudio = new Audio()
-        tempAudio.src = track.url
-        tempAudio.addEventListener('loadedmetadata', () => {
-          if (tempAudio.duration && !isNaN(tempAudio.duration) && isFinite(tempAudio.duration)) {
-            setTrackDurations(prev => {
-              const newMap = new Map(prev)
-              newMap.set(track.id, tempAudio.duration)
-              return newMap
-            })
-          }
-        })
-      }
-    })
-  }, [tracks, trackDurations])
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY
@@ -214,9 +197,11 @@ export function AudioDrawerPlayer() {
               <button
                 onClick={isPlaying ? pause : resume}
                 className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 transition-colors shadow-lg"
-                aria-label={isPlaying ? 'Pause' : 'Play'}
+                aria-label={isBuffering ? 'Loading' : isPlaying ? 'Pause' : 'Play'}
               >
-                {isPlaying ? (
+                {isBuffering ? (
+                  <Loader2 className="w-7 h-7 animate-spin" />
+                ) : isPlaying ? (
                   <Pause className="w-7 h-7" fill="currentColor" />
                 ) : (
                   <Play className="w-7 h-7 ml-1" fill="currentColor" />
@@ -285,9 +270,12 @@ export function AudioDrawerPlayer() {
                         {track.artist && <p className="truncate text-xs text-neutral-500">{track.artist}</p>}
                       </div>
                       <span className="text-xs text-neutral-500 flex-shrink-0 tabular-nums">
-                        {formatTime(trackDurations.get(track.id) || track.duration || 0)}
+                        {track.duration && track.duration > 0 ? formatTime(track.duration) : ''}
                       </span>
-                      {isActive && isPlaying && (
+                      {isActive && isBuffering && (
+                        <Loader2 className="w-4 h-4 text-primary-500 animate-spin flex-shrink-0" />
+                      )}
+                      {isActive && isPlaying && !isBuffering && (
                         <div className="flex items-center gap-0.5 flex-shrink-0">
                           <span className="w-0.5 h-3 bg-primary-500 rounded-full animate-pulse" />
                           <span className="w-0.5 h-4 bg-primary-500 rounded-full animate-pulse [animation-delay:150ms]" />

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useRouter, useParams, usePathname } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import * as Diff from 'diff'
 import {
   Sparkles,
@@ -18,6 +18,10 @@ import {
   ChevronDown,
   SlidersHorizontal,
   CheckCircle,
+  Copy,
+  FileCheck,
+  ArrowRight,
+  User,
 } from 'lucide-react'
 import {
   Badge,
@@ -61,11 +65,8 @@ type SourceMode = 'fresh' | 'refine_active' | 'iterate_draft'
 export default function UnifiedCategoryPage() {
   const router = useRouter()
   const params = useParams()
-  const pathname = usePathname()
   const categoryKey = params.category as string
   const supabase = createClient()
-  const isIntensive = pathname.startsWith('/intensive/')
-  const pathPrefix = isIntensive ? '/intensive' : ''
   const { draftId, activeVisionId, visions, refreshVisions } = useLifeVisionStudio()
   const isMetaCategory = (META_CATEGORY_KEYS as readonly string[]).includes(categoryKey)
 
@@ -109,6 +110,23 @@ export default function UnifiedCategoryPage() {
   const [previousRefinement, setPreviousRefinement] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isDraftSaving, setIsDraftSaving] = useState(false)
+
+  // Update method choice (VIVA vs Manual) — only shown when active content exists
+  const [updateMethod, setUpdateMethod] = useState<'viva' | 'manual' | null>(null)
+
+  // VIVA generation mode: add to existing or complete rewrite (null = not yet chosen, cards expanded)
+  const [vivaGenerateMode, setVivaGenerateMode] = useState<'add' | 'rewrite' | null>(null)
+  const [showGenModeCards, setShowGenModeCards] = useState(true)
+  const [showInstructionsSection, setShowInstructionsSection] = useState(true)
+  const instructionsSectionRef = useRef<HTMLDivElement>(null)
+
+  // Manual path state
+  const [manualStep, setManualStep] = useState<'write' | 'proofread' | 'polish'>('write')
+  const [proofreadEdits, setProofreadEdits] = useState<Array<{ original: string; suggested: string; reason: string }>>([])
+  const [editSelections, setEditSelections] = useState<Record<number, boolean>>({})
+  const [proofreadLoading, setProofreadLoading] = useState(false)
+  const [polishText, setPolishText] = useState('')
+  const [polishViewMode, setPolishViewMode] = useState<'edit' | 'highlight'>('edit')
 
   const categoryGridRef = useRef<HTMLDivElement>(null)
   const compareSectionRef = useRef<HTMLElement | null>(null)
@@ -373,7 +391,9 @@ export default function UnifiedCategoryPage() {
   }
 
   const handleEditWithViva = async () => {
-    const mode = sourceMode
+    const mode: SourceMode | null = updateMethod === 'viva'
+      ? (vivaGenerateMode === 'add' ? 'refine_active' : vivaGenerateMode === 'rewrite' ? 'fresh' : null)
+      : sourceMode
     if (!mode) return
 
     const activeVal = activeVision ? ((activeVision[categoryKey as keyof VisionData] as string) || '') : ''
@@ -390,6 +410,7 @@ export default function UnifiedCategoryPage() {
     if (mode === 'fresh' && !hasGenerateSignal) return
 
     compareSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    saveCategoryState()
 
     const priorManual = manualText
     if (priorManual.trim()) setPreviousRefinement(priorManual)
@@ -399,21 +420,19 @@ export default function UnifiedCategoryPage() {
     setError(null)
 
     try {
-      if (mode === 'refine_active' || mode === 'iterate_draft') {
+      // "Complete Rewrite" mode for refine/iterate: use fresh generation path instead of refine
+      const useRewriteMode = vivaGenerateMode === 'rewrite' && (mode === 'refine_active' || mode === 'iterate_draft')
+
+      if ((mode === 'refine_active' || mode === 'iterate_draft') && !useRewriteMode) {
         const targetDraft = await ensureDraftForRefine()
         if (!targetDraft) throw new Error('No draft available to refine into')
 
-        // Pick the baseline text to refine: live active for refine_active,
-        // current draft category text for iterate_draft.
         const baseForRefine = mode === 'refine_active'
           ? activeVal
           : (draftVal || activeVal)
 
         if (!baseForRefine.trim()) throw new Error('No baseline text to refine')
 
-        // In iterate_draft mode, surface the active vision as a REFERENCE so
-        // VIVA can keep the original voice/style intact while editing the draft.
-        // Honors the in-card "Active V{N}" toggle so the user can opt out.
         const referenceForRefine =
           mode === 'iterate_draft' &&
           includeActiveReference &&
@@ -484,7 +503,7 @@ export default function UnifiedCategoryPage() {
         return
       }
 
-      // mode === 'fresh' — full generation from profile + starter + imagination.
+      // mode === 'fresh' OR "Complete Rewrite" mode — full generation from profile + starter + imagination.
       const stateField = `state_${categoryKey}`
       const storyField = `${categoryKey}_story`
       const currentStateText = includeProfile ? (fullProfile?.[stateField] || '') : ''
@@ -524,6 +543,9 @@ export default function UnifiedCategoryPage() {
       setError(err instanceof Error ? err.message : 'Failed to run VIVA')
     } finally {
       setIsGenerating(false)
+      if (updateMethod === 'viva') {
+        setShowInstructionsSection(false)
+      }
     }
   }
 
@@ -537,7 +559,15 @@ export default function UnifiedCategoryPage() {
     setVivaSteeringText('')
     setPreviousRefinement(null)
     setManualText('')
-    router.push(`${pathPrefix}/life-vision/new/${key}`)
+    setUpdateMethod(null)
+    setManualStep('write')
+    setProofreadEdits([])
+    setEditSelections({})
+    setPolishText('')
+    setVivaGenerateMode(null)
+    setShowGenModeCards(true)
+    setShowInstructionsSection(true)
+    router.push(`/life-vision/new/${key}`)
   }
 
   const saveManualEdit = async () => {
@@ -621,7 +651,7 @@ export default function UnifiedCategoryPage() {
     setCommitError(null)
     try {
       const vision = await commitDraft(draftVision.id)
-      router.push(`${pathPrefix}/life-vision/${vision.id}`)
+      router.push(`/life-vision/${vision.id}`)
     } catch (err) {
       console.error('Error committing draft:', err)
       setCommitError(err instanceof Error ? err.message : 'Failed to commit draft')
@@ -664,8 +694,71 @@ export default function UnifiedCategoryPage() {
     if (currentIndex < allCategories.length - 1) {
       handleCategoryChange(allCategories[currentIndex + 1].key)
     } else if (canReviewFromLast && draftVision) {
-      router.push(`${pathPrefix}/life-vision/${draftVision.id}`)
+      router.push(`/life-vision/${draftVision.id}`)
     }
+  }
+
+  // Proofread handler
+  const handleProofread = async () => {
+    if (!manualText.trim()) return
+    setProofreadLoading(true)
+    setProofreadEdits([])
+    setEditSelections({})
+    setError(null)
+
+    try {
+      const response = await fetch('/api/viva/proofread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: manualText, category: categoryKey }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        if (response.status === 402) {
+          setTokenErrorInfo({ tokensRemaining: errorData.tokensRemaining })
+          setShowInsufficientTokens(true)
+          setProofreadLoading(false)
+          return
+        }
+        throw new Error(errorData.error || `Proofread failed (${response.status})`)
+      }
+
+      const data = await response.json()
+      const edits = data.edits || []
+      setProofreadEdits(edits)
+      // Default all edits to "apply"
+      const selections: Record<number, boolean> = {}
+      edits.forEach((_: any, i: number) => { selections[i] = true })
+      setEditSelections(selections)
+      setManualStep('proofread')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to proofread')
+    } finally {
+      setProofreadLoading(false)
+    }
+  }
+
+  // Apply selected proofread edits to produce polished text
+  const applyProofreadEdits = () => {
+    let polished = manualText
+    // Apply edits in reverse order of their position to preserve indices
+    const editsToApply = proofreadEdits
+      .map((edit, i) => ({ ...edit, index: i }))
+      .filter(edit => editSelections[edit.index])
+      .sort((a, b) => {
+        const posA = polished.lastIndexOf(a.original)
+        const posB = polished.lastIndexOf(b.original)
+        return posB - posA
+      })
+
+    for (const edit of editsToApply) {
+      polished = polished.replace(edit.original, edit.suggested)
+    }
+
+    setPolishText(polished)
+    setPolishViewMode('edit')
+    setManualStep('polish')
   }
 
   // Diff renderers
@@ -730,13 +823,15 @@ export default function UnifiedCategoryPage() {
     (includeProfile && profileHasData)
 
   const canRunViva =
-    sourceMode === 'fresh'
-      ? hasGenerateSignal
-      : sourceMode === 'refine_active'
-        ? canRefineActive
-        : sourceMode === 'iterate_draft'
-          ? canIterateDraft
-          : false
+    updateMethod === 'viva'
+      ? (vivaGenerateMode === null ? false : vivaGenerateMode === 'rewrite' ? hasGenerateSignal : canRefineActive)
+      : sourceMode === 'fresh'
+        ? hasGenerateSignal
+        : sourceMode === 'refine_active'
+          ? canRefineActive
+          : sourceMode === 'iterate_draft'
+            ? canIterateDraft
+            : false
 
   const getMeStartedPlaceholder = isFirstTime || isMetaCategory
     ? 'Your starter text will appear here...'
@@ -744,21 +839,25 @@ export default function UnifiedCategoryPage() {
       ? 'Tap Get Me Started for a contrast-flip starter from your profile, then edit here.'
       : 'Your starter text will appear here...'
 
-  const vivaSteeringPlaceholder = sourceMode === 'fresh'
+  const effectiveMode = updateMethod === 'viva'
+    ? (vivaGenerateMode === 'add' ? 'refine_active' : vivaGenerateMode === 'rewrite' ? 'fresh' : null)
+    : sourceMode
+
+  const vivaSteeringPlaceholder = effectiveMode === 'fresh'
     ? 'Is anything missing? Add it here...'
     : 'Tell VIVA how to refine this section...'
 
   const actionLabel =
-    sourceMode === 'refine_active'
+    effectiveMode === 'refine_active'
       ? `Refine ${category.label} with VIVA`
-      : sourceMode === 'iterate_draft'
+      : effectiveMode === 'iterate_draft'
         ? `Iterate ${category.label} with VIVA`
         : `Create ${category.label} with VIVA`
 
   const generatingLabel =
-    sourceMode === 'refine_active'
+    effectiveMode === 'refine_active'
       ? 'Refining with VIVA...'
-      : sourceMode === 'iterate_draft'
+      : effectiveMode === 'iterate_draft'
         ? 'Iterating with VIVA...'
         : 'Generating with VIVA...'
 
@@ -794,70 +893,70 @@ export default function UnifiedCategoryPage() {
           </span>
         </div>
 
-        {/* Overarching Category Card */}
-        <Card>
-          {/* Continue Draft / Start Fresh Banner */}
-          {showDraftBanner && draftVision && refinedCategories.length > 0 && (
-            <div className="mb-6 rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-4">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="flex items-center gap-2">
-                  <PenLine className="w-4 h-4 text-accent-500" />
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-accent-500">
-                    Draft In Progress
-                  </h3>
-                </div>
-                <p className="text-sm text-neutral-300">
-                  You have a draft in progress
-                  {draftParentVersion && (
-                    <>
-                      {' '}based on{' '}
-                      <span className="font-semibold text-white">
-                        Version {draftParentVersion.version_number}
+        {/* Continue Draft / Start Fresh Banner — own card above the category card */}
+        {showDraftBanner && draftVision && refinedCategories.length > 0 && (
+          <Card>
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex items-center gap-2">
+                <PenLine className="w-4 h-4 text-accent-500" />
+                <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-accent-500">
+                  Draft In Progress
+                </h3>
+              </div>
+              <p className="text-sm text-neutral-300">
+                You have a draft in progress
+                {draftParentVersion && (
+                  <>
+                    {' '}based on{' '}
+                    <span className="font-semibold text-white">
+                      Version {draftParentVersion.version_number}
+                    </span>
+                    {draftParentVersion.is_active && (
+                      <span className="ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-500 bg-primary-500/10">
+                        Active
                       </span>
-                      {draftParentVersion.is_active && (
-                        <span className="ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-500 bg-primary-500/10">
-                          Active
-                        </span>
-                      )}
-                    </>
-                  )}
-                  {' '}with <span className="font-semibold text-white">{refinedCategories.length} of {allCategories.length}</span> categories updated.
-                </p>
-                {commitError && (
-                  <p className="text-xs text-red-400">{commitError}</p>
-                )}
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={handleCommitDraft}
-                    disabled={isCommittingDraft}
-                  >
-                    {isCommittingDraft ? (
-                      <><Spinner size="sm" className="mr-1.5" />Committing...</>
-                    ) : (
-                      <><CheckCircle className="w-4 h-4 mr-1.5" />Commit as Active</>
                     )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDraftBanner(false)}
-                  >
-                    Continue Editing
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFreshConfirm(true)}
-                  >
-                    Start Fresh
-                  </Button>
-                </div>
+                  </>
+                )}
+                {' '}with <span className="font-semibold text-white">{refinedCategories.length} of {allCategories.length}</span> categories updated.
+              </p>
+              {commitError && (
+                <p className="text-xs text-red-400">{commitError}</p>
+              )}
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCommitDraft}
+                  disabled={isCommittingDraft}
+                >
+                  {isCommittingDraft ? (
+                    <><Spinner size="sm" className="mr-1.5" />Committing...</>
+                  ) : (
+                    <><CheckCircle className="w-4 h-4 mr-1.5" />Commit as Active</>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDraftBanner(false)}
+                >
+                  Continue Editing
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFreshConfirm(true)}
+                >
+                  Start Fresh
+                </Button>
               </div>
             </div>
-          )}
+          </Card>
+        )}
 
+        {/* Overarching Category Card */}
+        <Card>
           {/* Card Header */}
           <div className="mb-6 flex items-center gap-3 md:gap-4">
             <div className="h-px flex-1 bg-neutral-800" />
@@ -872,13 +971,109 @@ export default function UnifiedCategoryPage() {
             <div className="h-px flex-1 bg-neutral-800" />
           </div>
 
-          {/* Source Mode Cards — pick the high-level intent first.
-              Cards escalate context: fresh = profile only,
-              refine_active = profile + active, iterate_draft = profile + active + draft.
-              Pills inside the SELECTED card act as inline toggles for what
-              VIVA actually pulls in. Baseline pills (the source the mode
-              refines from) are locked on. */}
-          {sourceMode && (
+          {/* Method Choice Cards — Update with VIVA vs Update Myself */}
+          {!isFirstTime && sourceMode && (() => {
+            const methodCards = [
+              {
+                key: 'viva' as const,
+                icon: Wand2,
+                title: 'Update with VIVA',
+                description: 'Let VIVA help you refine, expand, or rewrite this section using AI.',
+                iconColor: 'text-accent-100',
+                bgColor: 'bg-accent-700/20',
+              },
+              {
+                key: 'manual' as const,
+                icon: User,
+                title: 'Update Myself',
+                description: 'Write or edit your vision text directly. VIVA will proofread for vibrational grammar when you\'re done.',
+                iconColor: 'text-secondary-500',
+                bgColor: 'bg-secondary-500/20',
+              },
+            ]
+            const selectedCard = updateMethod ? methodCards.find(c => c.key === updateMethod) : null
+            const isCollapsed = !!selectedCard
+
+            return (
+            <div className={updateMethod ? 'mb-6' : ''}>
+              {isCollapsed ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUpdateMethod(null)
+                    setVivaGenerateMode(null)
+                    setShowGenModeCards(true)
+                  }}
+                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                >
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 1 · Update Method</h4>
+                  <p className="text-sm font-medium text-white mt-1 flex items-center gap-2">
+                    {(() => { const SelIcon = selectedCard.icon; return <SelIcon className="w-4 h-4 text-primary-500" /> })()}
+                    {selectedCard.title}
+                  </p>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <ChevronDown className="w-4 h-4 text-neutral-400" />
+                  </div>
+                </button>
+              ) : (
+              <>
+              <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400 text-center mb-3">Step 1 · Update Method</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {methodCards.map(card => {
+                  const CardIcon = card.icon
+                  return (
+                    <div
+                      key={card.key}
+                      role="button"
+                      tabIndex={0}
+                      onClick={async () => {
+                        setUpdateMethod(card.key)
+                        if (card.key === 'viva') {
+                          setVivaSteeringText('')
+                        }
+                        if (card.key === 'manual') {
+                          setManualStep('write')
+                          setManualText('')
+                          setManualViewMode('edit')
+                          setProofreadEdits([])
+                          setEditSelections({})
+                          setPolishText('')
+                          if (!draftVision) await ensureDraftForRefine()
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setUpdateMethod(card.key)
+                        }
+                      }}
+                      className="group relative rounded-2xl border-2 border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer p-4 transition-all duration-200"
+                    >
+                      <div className="flex flex-col items-center gap-2 text-center">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${card.bgColor} ${card.iconColor}`}>
+                          <CardIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-neutral-200">
+                            {card.title}
+                          </h3>
+                          <p className="text-xs text-neutral-400 leading-relaxed mt-1">
+                            {card.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              </>
+              )}
+            </div>
+            )
+          })()}
+
+          {/* Source Mode Cards — only shown for first-time users (no active content yet) */}
+          {sourceMode && isFirstTime && (
             <div className="mb-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {(() => {
@@ -1052,10 +1247,84 @@ export default function UnifiedCategoryPage() {
             </div>
           )}
 
+          {/* VIVA Generate Mode: Add Only vs Complete Rewrite */}
+          {(updateMethod === 'viva' || (isFirstTime && sourceMode && sourceMode !== 'fresh')) && (() => {
+            const genModes = [
+              { key: 'add' as const, title: 'Add Only', description: 'Weave new content into existing text' },
+              { key: 'rewrite' as const, title: 'Complete Rewrite', description: 'Generate a full replacement' },
+            ]
+            const selectedGenMode = vivaGenerateMode ? genModes.find(m => m.key === vivaGenerateMode) : null
+            const isCollapsed = !!selectedGenMode && !showGenModeCards
+
+            return (
+            <div className={vivaGenerateMode ? 'mb-6' : ''}>
+              {isCollapsed ? (
+                <button
+                  type="button"
+                  onClick={() => setShowGenModeCards(true)}
+                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                >
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">{updateMethod === 'viva' ? 'Step 2 · ' : ''}Generation Mode</h4>
+                  <p className="text-sm font-medium text-white mt-1">{selectedGenMode.title}</p>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <ChevronDown className="w-4 h-4 text-neutral-400" />
+                  </div>
+                </button>
+              ) : (
+              <>
+                <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400 text-center mb-3">{updateMethod === 'viva' ? 'Step 2 · ' : ''}Generation Mode</h4>
+                <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
+                  {genModes.map(mode => {
+                    const isSelected = vivaGenerateMode === mode.key
+                    return (
+                      <button
+                        key={mode.key}
+                        type="button"
+                        onClick={() => {
+                          setVivaGenerateMode(mode.key)
+                          setShowGenModeCards(false)
+                        }}
+                        className={`text-left rounded-xl border-2 p-3 transition-all duration-200 ${
+                          isSelected
+                            ? 'border-accent-500 bg-accent-500/5'
+                            : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
+                        }`}
+                      >
+                        <h5 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
+                          {mode.title}
+                        </h5>
+                        <p className="text-xs text-neutral-400 mt-0.5">{mode.description}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+              )}
+            </div>
+            )
+          })()}
+
           {/* Inputs — fresh mode shows starter + imagination, refine modes show notes only. */}
-          <section>
+          {((updateMethod === 'viva' && vivaGenerateMode) || isFirstTime) && (
+          <section ref={instructionsSectionRef}>
+            {/* VIVA path: collapsible after generation */}
+            {updateMethod === 'viva' && !showInstructionsSection ? (
+              <button
+                type="button"
+                onClick={() => setShowInstructionsSection(true)}
+                className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+              >
+                <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 3 · Instructions</h4>
+                <p className="text-sm font-medium text-white mt-1">
+                  {vivaSteeringText.trim() ? vivaSteeringText.trim().slice(0, 60) + (vivaSteeringText.trim().length > 60 ? '…' : '') : 'No instructions provided'}
+                </p>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <ChevronDown className="w-4 h-4 text-neutral-400" />
+                </div>
+              </button>
+            ) : (
             <div>
-              {sourceMode === 'fresh' && (
+              {sourceMode === 'fresh' && updateMethod !== 'viva' && (
                 <>
                   <div>
                     <h2 className="text-lg font-semibold text-white text-center mb-2">
@@ -1114,14 +1383,25 @@ export default function UnifiedCategoryPage() {
               )}
 
               <div>
-                <h2 className="text-lg font-semibold text-white text-center mb-2">
-                  {sourceMode === 'fresh' ? 'Unleash Your Imagination' : 'Update Notes'}
-                </h2>
-                <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
-                  {sourceMode === 'fresh'
-                    ? 'Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)'
-                    : 'Tell VIVA how to refine this section. (Optional — VIVA can refine without notes too.)'}
-                </p>
+                {updateMethod === 'viva' ? (
+                  <>
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400 text-center mb-3">Step 3 · Instructions</h4>
+                    <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
+                      Tell VIVA how to refine this section. (Optional — VIVA can refine without notes too.)
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-lg font-semibold text-white text-center mb-2">
+                      {effectiveMode === 'fresh' ? 'Unleash Your Imagination' : 'Update Notes'}
+                    </h2>
+                    <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
+                      {effectiveMode === 'fresh'
+                        ? 'Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)'
+                        : 'Tell VIVA how to refine this section. (Optional — VIVA can refine without notes too.)'}
+                    </p>
+                  </>
+                )}
 
                 {/* Inspiration Questions (collapsible) — only for life categories */}
                 {!isMetaCategory && inspirationQuestions.length > 0 && (
@@ -1188,7 +1468,7 @@ export default function UnifiedCategoryPage() {
                           size="sm"
                           onClick={() => {
                             saveCategoryState()
-                            router.push(`${pathPrefix}/life-vision/new/assembly`)
+                            router.push('/life-vision/new/assembly')
                           }}
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />Save & Finish
@@ -1208,7 +1488,7 @@ export default function UnifiedCategoryPage() {
                           if (nextIncomplete) {
                             handleCategoryChange(nextIncomplete.key)
                           } else {
-                            router.push(`${pathPrefix}/life-vision/new`)
+                            router.push('/life-vision/new')
                           }
                         }}
                       >
@@ -1219,15 +1499,342 @@ export default function UnifiedCategoryPage() {
                   })()
                 )}
               </div>
+              <p className="text-center text-xs text-neutral-500 mt-3">
+                {manualText.trim().length >= 50
+                  ? 'Your draft is ready below. Adjust your instructions and regenerate, or scroll down to review.'
+                  : 'Your generated text will appear in the Draft section below for review.'}
+              </p>
             </div>
+            )}
           </section>
+          )}
 
-          {draftVision && (
+          {/* Manual Path — Update Myself */}
+          {updateMethod === 'manual' && (
+            <section>
+              {manualStep === 'write' && (
+                <div>
+                  <div className="mb-6 flex flex-col items-center gap-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">
+                      Write Your Update
+                    </h4>
+                    <p className="text-sm text-neutral-400 text-center max-w-md">
+                      Edit your vision text below. When you&apos;re done, VIVA will proofread it for vibrational grammar.
+                    </p>
+                  </div>
+
+                  <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+                    {/* Active panel (read-only) */}
+                    <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                      <div className="mb-2 flex items-center justify-between gap-3 min-h-[32px]">
+                        <div className="flex items-center gap-2">
+                          <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Current Active</h5>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#39FF14] bg-[#39FF14]/10">Active</span>
+                        </div>
+                      </div>
+                      <AutoResizeTextarea
+                        value={activeValue}
+                        onChange={() => {}}
+                        readOnly
+                        className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        minHeight={200}
+                      />
+                    </div>
+
+                    {/* Draft panel (editable, starts empty) */}
+                    <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Your Draft</h5>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
+                          {manualViewMode === 'highlight' && normalizeText(manualText) === normalizeText(activeValue) && (
+                            <span className="text-[11px] text-neutral-500 italic">No changes to highlight</span>
+                          )}
+                        </div>
+                        <div className="inline-flex rounded-md bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setManualViewMode('edit')}
+                            className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                              manualViewMode === 'edit' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+                            }`}
+                          >
+                            <Edit className="w-3 h-3 inline mr-1" />Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setManualViewMode('highlight')}
+                            className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                              manualViewMode === 'highlight' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+                            }`}
+                          >
+                            <Sparkles className="w-3 h-3 inline mr-1" />Highlight
+                          </button>
+                        </div>
+                      </div>
+                      {manualViewMode === 'highlight' && manualText.trim() ? (
+                        renderAddedDiff(normalizeText(activeValue), normalizeText(manualText))
+                      ) : (
+                        <AutoResizeTextarea
+                          value={manualText}
+                          onChange={setManualText}
+                          placeholder="Type your updated vision here..."
+                          className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                          minHeight={200}
+                        />
+                      )}
+                      {!manualText.trim() && (
+                        <div className="mt-3 flex justify-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setManualText(activeValue)}
+                          >
+                            <Copy className="w-4 h-4 mr-2" />Copy Active to Draft
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Proofread button */}
+                  <div className="mt-6 flex justify-center gap-3">
+                    <Button
+                      variant="accent"
+                      size="sm"
+                      onClick={handleProofread}
+                      disabled={!manualText.trim() || proofreadLoading}
+                    >
+                      {proofreadLoading ? (
+                        <><Spinner size="sm" className="mr-2" />Proofreading...</>
+                      ) : (
+                        <><FileCheck className="w-4 h-4 mr-2" />Proofread with VIVA</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {manualStep === 'proofread' && (
+                <div>
+                  <div className="mb-6 flex flex-col items-center gap-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">
+                      Vibrational Grammar Check
+                    </h4>
+                    <p className="text-sm text-neutral-400 text-center max-w-md">
+                      {proofreadEdits.length === 0
+                        ? 'Your text already follows vibrational grammar perfectly!'
+                        : `VIVA found ${proofreadEdits.length} suggestion${proofreadEdits.length === 1 ? '' : 's'}. Choose which to apply.`}
+                    </p>
+                  </div>
+
+                  {proofreadEdits.length > 0 ? (
+                    <>
+                      <div className="space-y-3 max-w-2xl mx-auto">
+                        {proofreadEdits.map((edit, i) => (
+                          <div
+                            key={i}
+                            className={`rounded-xl border p-4 transition-colors ${
+                              editSelections[i]
+                                ? 'border-accent-500/30 bg-accent-500/5'
+                                : 'border-neutral-800 bg-neutral-900/40'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setEditSelections(prev => ({ ...prev, [i]: !prev[i] }))}
+                                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                                  editSelections[i]
+                                    ? 'border-accent-500 bg-accent-500 text-black'
+                                    : 'border-neutral-600 bg-transparent'
+                                }`}
+                              >
+                                {editSelections[i] && <CheckCircle className="w-3 h-3" />}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm">
+                                  <span className="line-through text-red-400/80">{edit.original}</span>
+                                  <ArrowRight className="w-3 h-3 inline mx-2 text-neutral-500" />
+                                  <span className="text-green-400">{edit.suggested}</span>
+                                </div>
+                                <p className="text-xs text-neutral-500 mt-1">{edit.reason}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-6 flex justify-center gap-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setManualStep('write')}
+                        >
+                          Back to Editing
+                        </Button>
+                        <Button
+                          variant="accent"
+                          size="sm"
+                          onClick={applyProofreadEdits}
+                        >
+                          Apply Selected Edits
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="mt-6 flex justify-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setManualStep('write')}
+                      >
+                        Back to Editing
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={async () => {
+                          setPolishText(manualText)
+                          setManualStep('polish')
+                        }}
+                      >
+                        Continue to Save
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {manualStep === 'polish' && (
+                <div>
+                  <div className="mb-6 flex flex-col items-center gap-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">
+                      Review & Save
+                    </h4>
+                    <p className="text-sm text-neutral-400 text-center max-w-md">
+                      Compare your draft with the polished version. Make any final tweaks, then save.
+                    </p>
+                  </div>
+
+                  <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+                    {/* Draft panel (read-only) */}
+                    <div className="rounded-2xl border border-neutral-700 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                      <div className="mb-2 flex items-center gap-2 min-h-[32px]">
+                        <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Your Draft</h5>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-neutral-400 bg-neutral-800">Before</span>
+                      </div>
+                      <AutoResizeTextarea
+                        value={manualText}
+                        onChange={() => {}}
+                        readOnly
+                        className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        minHeight={200}
+                      />
+                    </div>
+
+                    {/* Polish panel (editable) */}
+                    <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Polished</h5>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Final</span>
+                          {polishViewMode === 'highlight' && normalizeText(polishText) === normalizeText(manualText) && (
+                            <span className="text-[11px] text-neutral-500 italic">No changes to highlight</span>
+                          )}
+                        </div>
+                        <div className="inline-flex rounded-md bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setPolishViewMode('edit')}
+                            className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                              polishViewMode === 'edit' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+                            }`}
+                          >
+                            <Edit className="w-3 h-3 inline mr-1" />Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPolishViewMode('highlight')}
+                            className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                              polishViewMode === 'highlight' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+                            }`}
+                          >
+                            <Sparkles className="w-3 h-3 inline mr-1" />Highlight
+                          </button>
+                        </div>
+                      </div>
+                      {polishViewMode === 'highlight' && polishText.trim() ? (
+                        renderAddedDiff(normalizeText(manualText), normalizeText(polishText))
+                      ) : (
+                        <AutoResizeTextarea
+                          value={polishText}
+                          onChange={setPolishText}
+                          placeholder="Your polished vision..."
+                          className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                          minHeight={200}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setManualStep('proofread')}
+                    >
+                      Back to Edits
+                    </Button>
+                    <SaveButton
+                      saveLabel="Save to Draft"
+                      hasUnsavedChanges={!!(draftVision && polishText.trim())}
+                      isSaving={isDraftSaving}
+                      onClick={async () => {
+                        if (!draftVision || !polishText.trim()) return
+                        const scrollPosition = window.scrollY
+                        setIsDraftSaving(true)
+                        try {
+                          setManualText(polishText)
+                          const updatedDraft = await updateDraftCategory(draftVision.id, categoryKey, polishText)
+                          setDraftVision(updatedDraft)
+                          setRefinedCategories(updatedDraft.refined_categories || [])
+                          await refreshVisions()
+                          setTimeout(() => window.scrollTo({ top: scrollPosition, behavior: 'instant' as ScrollBehavior }), 0)
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : 'Failed to save')
+                        } finally {
+                          setIsDraftSaving(false)
+                        }
+                      }}
+                      disabled={!draftVision || !polishText.trim()}
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {draftVision && ((updateMethod === 'viva' && vivaGenerateMode) || isFirstTime) && (
             <section ref={compareSectionRef} className="mt-12 pt-8 border-t border-neutral-800 mb-8">
               {hasActiveContent ? (
                 <>
                   <div className="mb-6 flex flex-col items-center gap-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Compare</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">{updateMethod === 'viva' ? 'Step 4 · ' : ''}Compare</h4>
+                    {updateMethod === 'viva' && !showInstructionsSection && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowInstructionsSection(true)
+                          setTimeout(() => instructionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+                        }}
+                        className="text-xs text-accent-500 hover:text-accent-400 transition-colors"
+                      >
+                        Not quite right? Adjust instructions &amp; regenerate ↑
+                      </button>
+                    )}
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1.5 text-sm text-neutral-300">
                         {activeVersionLabel}
@@ -1337,7 +1944,7 @@ export default function UnifiedCategoryPage() {
                           <AutoResizeTextarea
                             value={manualText}
                             onChange={setManualText}
-                            placeholder="Run Viva above or write your updated vision here..."
+                            placeholder="Generate with VIVA in Step 3 above, or type your vision here..."
                             className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                             minHeight={200}
                           />
@@ -1420,7 +2027,7 @@ export default function UnifiedCategoryPage() {
                       <AutoResizeTextarea
                         value={manualText}
                         onChange={setManualText}
-                        placeholder="Run Viva above or write your vision here..."
+                        placeholder="Generate with VIVA in Step 3 above, or type your vision here..."
                         className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                         minHeight={200}
                       />

@@ -1,5 +1,5 @@
 /**
- * Step Mapping Utility for the 14-Step Intensive Journey
+ * Step Mapping Utility for the 12-Step Intensive Journey
  * 
  * Maps step IDs to display names, hrefs, and navigation info
  * for consistent messaging across all intensive step pages.
@@ -20,7 +20,7 @@ export interface IntensiveStepInfo {
 }
 
 /**
- * All 14 steps of the Activation Intensive, in order
+ * All 12 steps of the Activation Intensive, in order
  */
 export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   // Phase 1: Setup (Steps 1-2)
@@ -71,34 +71,23 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     phase: 'Foundation'
   },
 
-  // Phase 3: Vision Creation (Steps 5-6)
+  // Phase 3: Vision Creation (Step 5)
   build_vision: {
     id: 'build_vision',
     stepNumber: 5,
     title: 'Create Your Life Vision',
     checklistKey: 'vision_built',
     completedAtKey: 'vision_built_at',
-    href: '/intensive/life-vision/new',
-    viewHref: '/intensive/life-vision/new',
-    nextStepId: 'refine_vision',
-    phase: 'Vision Creation'
-  },
-  refine_vision: {
-    id: 'refine_vision',
-    stepNumber: 6,
-    title: 'Refine Your Vision',
-    checklistKey: 'vision_refined',
-    completedAtKey: 'vision_refined_at',
-    href: '/intensive/life-vision/new',
-    viewHref: '/intensive/life-vision/new',
+    href: '/intensive/life-vision/create',
+    viewHref: '/intensive/life-vision/create',
     nextStepId: 'generate_audio',
     phase: 'Vision Creation'
   },
 
-  // Phase 4: Audio (Steps 7-9)
+  // Phase 4: Audio (Steps 6-8)
   generate_audio: {
     id: 'generate_audio',
-    stepNumber: 7,
+    stepNumber: 6,
     title: 'Generate Vision Audio',
     checklistKey: 'audio_generated',
     completedAtKey: 'audio_generated_at',
@@ -109,7 +98,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   },
   record_audio: {
     id: 'record_audio',
-    stepNumber: 8,
+    stepNumber: 7,
     title: 'Record Your Voice',
     checklistKey: 'audio_generated',
     completedAtKey: 'audio_generated_at',
@@ -120,7 +109,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   },
   mix_audio: {
     id: 'mix_audio',
-    stepNumber: 9,
+    stepNumber: 8,
     title: 'Create Audio Mix',
     checklistKey: 'audios_generated',
     completedAtKey: 'audios_generated_at',
@@ -130,10 +119,10 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     phase: 'Audio'
   },
 
-  // Phase 5: Activation (Steps 10-12)
+  // Phase 5: Activation (Steps 9-10)
   vision_board: {
     id: 'vision_board',
-    stepNumber: 10,
+    stepNumber: 9,
     title: 'Create Vision Board',
     checklistKey: 'vision_board_completed',
     completedAtKey: 'vision_board_completed_at',
@@ -144,31 +133,20 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   },
   journal: {
     id: 'journal',
-    stepNumber: 11,
+    stepNumber: 10,
     title: 'First Journal Entry',
     checklistKey: 'first_journal_entry',
     completedAtKey: 'first_journal_entry_at',
     href: '/intensive/journal/about',
     viewHref: '/intensive/journal/about',
-    nextStepId: 'schedule_call',
-    phase: 'Activation'
-  },
-  schedule_call: {
-    id: 'schedule_call',
-    stepNumber: 12,
-    title: 'Book Calibration Call',
-    checklistKey: 'call_scheduled',
-    completedAtKey: 'call_scheduled_at',
-    href: '/intensive/schedule-call',
-    viewHref: '/intensive/call-prep',
     nextStepId: 'activation_protocol',
     phase: 'Activation'
   },
 
-  // Phase 6: Completion (Steps 13-14)
+  // Phase 6: Completion (Steps 11-12)
   activation_protocol: {
     id: 'activation_protocol',
-    stepNumber: 13,
+    stepNumber: 11,
     title: 'My Activation Plan',
     checklistKey: 'activation_protocol_completed',
     completedAtKey: 'activation_protocol_completed_at',
@@ -179,7 +157,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   },
   unlock: {
     id: 'unlock',
-    stepNumber: 14,
+    stepNumber: 12,
     title: 'Full Platform Unlock',
     checklistKey: 'unlock_completed',
     completedAtKey: 'unlock_completed_at',

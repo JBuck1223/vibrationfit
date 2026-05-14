@@ -11,8 +11,8 @@
 
 set -e
 
-SRC="/Volumes/company-engineers/assets/Vibration Fit/Music"
-OUT="/tmp/vibrationfit-music"
+SRC="${SRC:-/Volumes/company-engineers/assets/Vibration Fit/Music}"
+OUT="${OUT:-/tmp/vibrationfit-music}"
 
 mkdir -p "$OUT"
 

@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Container,
   Stack,
-  PageHero,
   Card,
   Badge,
   Button,
@@ -34,11 +33,9 @@ import {
   Video,
   Settings,
   User,
-  Wand2,
   Music,
   Mic,
   Sliders,
-  Calendar,
   Rocket,
   Unlock,
   FileText,
@@ -58,12 +55,10 @@ interface IntensiveChecklist {
   profile_completed_at: string | null
   assessment_completed_at: string | null
   vision_built_at: string | null
-  vision_refined_at: string | null
   audio_generated_at: string | null
   audios_generated_at: string | null
   vision_board_completed_at: string | null
   first_journal_entry_at: string | null
-  call_scheduled_at: string | null
   activation_protocol_completed_at: string | null
   unlock_completed_at: string | null
   [key: string]: string | boolean | null
@@ -110,13 +105,11 @@ const STEP_ICONS: Record<string, React.ElementType> = {
   profile: User,
   assessment: ClipboardCheck,
   build_vision: Sparkles,
-  refine_vision: Wand2,
   generate_audio: Music,
   record_audio: Mic,
   mix_audio: Sliders,
   vision_board: ImageIcon,
   journal: BookOpen,
-  schedule_call: Calendar,
   activation_protocol: Rocket,
   unlock: Unlock,
 }
@@ -246,14 +239,9 @@ export default function IntensiveJourneyPage() {
     return (
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero
-            eyebrow="ACTIVATION INTENSIVE"
-            title="Your Intensive Journey"
-            subtitle="Complete the Activation Intensive to see your full journey results here."
-          />
           <Card className="p-4 md:p-6 lg:p-8 text-center">
             <p className="text-neutral-400 mb-6 text-sm md:text-base">
-              No completed intensive found. Complete all 14 steps to unlock your journey recap.
+              No completed intensive found. Complete all 12 steps to unlock your journey recap.
             </p>
             <Button variant="primary" size="sm" onClick={() => router.push('/dashboard')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -309,22 +297,16 @@ export default function IntensiveJourneyPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Hero */}
-        <PageHero
-          eyebrow="ACTIVATION INTENSIVE"
-          title="Your Intensive Journey"
-          subtitle={`Completed on ${completedDate} in ${totalDuration}`}
-        >
-          <div className="flex flex-wrap justify-center gap-3">
-            <Badge variant="success">14 / 14 Steps Complete</Badge>
-            {avgImprovement && Number(avgImprovement) > 0 && (
-              <Badge variant="premium">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                +{avgImprovement} avg growth
-              </Badge>
-            )}
-          </div>
-        </PageHero>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Badge variant="success">12 / 12 Steps Complete</Badge>
+          {avgImprovement && Number(avgImprovement) > 0 && (
+            <Badge variant="premium">
+              <TrendingUp className="w-3 h-3 mr-1" />
+              +{avgImprovement} avg growth
+            </Badge>
+          )}
+        </div>
+        <p className="text-sm text-neutral-400 text-center">Completed on {completedDate} in {totalDuration}</p>
 
         {/* Journey Timeline */}
         <JourneyTimeline
@@ -395,7 +377,7 @@ function JourneyTimeline({
       <Stack gap="md">
         <div className="text-center">
           <h3 className="text-lg md:text-xl font-bold text-white mb-1">
-            Your 14-Step Journey
+            Your 12-Step Journey
           </h3>
           <p className="text-sm text-neutral-400">
             Started {formatDate(checklist.started_at)} {formatTime(checklist.started_at) && `at ${formatTime(checklist.started_at)}`}

@@ -239,8 +239,12 @@ export default function NewJournalEntryPage() {
 
       if (error) throw error
 
-      // Update user stats
-      await supabase.rpc('increment_journal_stats', { p_user_id: user.id })
+      // Update user stats (non-critical – don't block save on failure)
+      try {
+        await supabase.rpc('increment_journal_stats', { p_user_id: user.id })
+      } catch (statsErr) {
+        console.warn('Failed to update journal stats:', statsErr)
+      }
 
       // Hide progress bar
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
@@ -254,9 +258,17 @@ export default function NewJournalEntryPage() {
         // Show success screen for normal mode
         setShowSuccess(true)
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating journal entry:', error)
-      const friendlyMessage = getUploadErrorMessage(error)
+      let friendlyMessage: string
+      if (error && typeof error === 'object' && 'code' in error) {
+        // Supabase / PostgREST error – show the real DB message
+        const pgErr = error as { message?: string; code?: string; details?: string }
+        friendlyMessage = pgErr.message || 'Database error. Please try again.'
+        console.error('Supabase error details:', { code: pgErr.code, details: pgErr.details, message: pgErr.message })
+      } else {
+        friendlyMessage = getUploadErrorMessage(error)
+      }
       setSubmitError(friendlyMessage)
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
     } finally {

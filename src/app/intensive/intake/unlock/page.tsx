@@ -11,12 +11,11 @@ import {
   Spinner,
   Container,
   Stack,
-  PageHero,
   RadioGroup,
   Badge,
   Checkbox,
-  IntensiveCompletionBanner
 } from '@/lib/design-system/components'
+import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { 
@@ -32,13 +31,11 @@ import {
   Settings,
   User,
   ClipboardCheck,
-  Wand2,
   Music,
   Mic,
   Sliders,
   Image as ImageIcon,
   BookOpen,
-  Calendar,
   Rocket,
   Unlock
 } from 'lucide-react'
@@ -125,6 +122,12 @@ export default function IntensiveUnlockPage() {
   const [showTextInput, setShowTextInput] = useState(false)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const { setCompletedAt: setStepCompleted } = useIntensiveStep()
+
+  useEffect(() => {
+    if (isAlreadyCompleted && completedAt) setStepCompleted(completedAt)
+    return () => setStepCompleted(null)
+  }, [isAlreadyCompleted, completedAt, setStepCompleted])
 
   // Load data on mount
   useEffect(() => {
@@ -658,36 +661,22 @@ export default function IntensiveUnlockPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Completion Banner - Shows when step is already complete */}
-        {isAlreadyCompleted && completedAt && (
-          <IntensiveCompletionBanner 
-            stepTitle="Full Platform Unlock"
-            completedAt={completedAt}
+        <div className="mx-auto w-full max-w-3xl">
+          <OptimizedVideo
+            url={UNLOCK_VIDEO}
+            thumbnailUrl={UNLOCK_POSTER}
+            context="single"
+            className="w-full"
           />
-        )}
+        </div>
 
-        <PageHero
-          eyebrow="ACTIVATION INTENSIVE • STEP 14 OF 14"
-          title="Unlock Platform"
-          subtitle="Let's capture your journey and unlock your full membership"
-        >
-          <div className="mx-auto w-full max-w-3xl">
-            <OptimizedVideo
-              url={UNLOCK_VIDEO}
-              thumbnailUrl={UNLOCK_POSTER}
-              context="single"
-              className="w-full"
-            />
-          </div>
-        </PageHero>
-
-        {/* 14-Step Journey Completed */}
+        {/* 12-Step Journey Completed */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <div className="text-center">
-              <h3 className="text-lg font-bold text-white mb-1">Your 14-Step Journey Complete</h3>
+              <h3 className="text-lg font-bold text-white mb-1">Your 12-Step Journey Complete</h3>
               <div className="text-sm text-neutral-400 space-y-2 max-w-2xl mx-auto">
-                <p>You&apos;ve completed all 14 steps. This page does two things:</p>
+                <p>You&apos;ve completed all 12 steps. This page does two things:</p>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>Captures your before/after results and experience,</li>
                   <li>Unlocks your full Vibration Fit platform access as a Graduate.</li>
@@ -756,12 +745,6 @@ export default function IntensiveUnlockPage() {
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Build Life Vision</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-400">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">6</span>
-                    <Wand2 className="w-3.5 h-3.5" />
-                    <span>Refine with VIVA</span>
-                  </div>
                 </div>
               </div>
 
@@ -775,19 +758,19 @@ export default function IntensiveUnlockPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">7</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">6</span>
                     <Music className="w-3.5 h-3.5" />
                     <span>Generate Audio</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">8</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">7</span>
                     <Mic className="w-3.5 h-3.5" />
                     <span>Record Voice (Optional)</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">9</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">8</span>
                     <Sliders className="w-3.5 h-3.5" />
                     <span>Create Audio Mix</span>
                   </div>
@@ -804,21 +787,15 @@ export default function IntensiveUnlockPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">10</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">9</span>
                     <ImageIcon className="w-3.5 h-3.5" />
                     <span>Vision Board</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">11</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">10</span>
                     <BookOpen className="w-3.5 h-3.5" />
                     <span>Journal Entry</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-400">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">12</span>
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Book Calibration Call</span>
                   </div>
                 </div>
               </div>
@@ -833,13 +810,13 @@ export default function IntensiveUnlockPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">13</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">11</span>
                     <Rocket className="w-3.5 h-3.5" />
                     <span>My Activation Plan</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">14</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">12</span>
                     <Unlock className="w-3.5 h-3.5" />
                     <span>Unlock Platform</span>
                   </div>

@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your Life Lens — VibrationFit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #000000;
+        --fg: #ffffff;
+        --muted: rgba(255, 255, 255, 0.72);
+        --subtle: rgba(255, 255, 255, 0.45);
+        --accent: rgba(255, 255, 255, 0.12);
+        --panel: rgba(255, 255, 255, 0.04);
+        --c-green: #39ff14;
+        --c-cyan: #00ffff;
+        --c-violet: #bf00ff;
+        --c-below: #ff3355;
+        --glow-green: rgba(57, 255, 20, 0.35);
+        --glow-cyan: rgba(0, 255, 255, 0.2);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Poppins", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(50% 45% at 50% -5%, rgba(57, 255, 20, 0.12), transparent 55%),
+          radial-gradient(40% 35% at 90% 80%, rgba(191, 0, 255, 0.1), transparent 60%),
+          radial-gradient(35% 30% at 5% 60%, rgba(0, 255, 255, 0.08), transparent 55%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* —— Ambient lens layer —— */
+      .lens-ambient {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .lens-ambient svg {
+        position: absolute;
+        display: block;
+      }
+
+      .lens-ambient .rings {
+        right: -8%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: min(90vh, 720px);
+        height: min(90vh, 720px);
+        opacity: 0.22;
+        animation: ring-drift 18s ease-in-out infinite;
+      }
+
+      @keyframes ring-drift {
+        0%,
+        100% {
+          transform: translateY(-50%) scale(1) rotate(0deg);
+          opacity: 0.2;
+        }
+        50% {
+          transform: translateY(-50%) scale(1.04) rotate(2deg);
+          opacity: 0.28;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .lens-ambient .rings {
+          animation: none;
+        }
+        .aperture-blade,
+        .ray {
+          animation: none !important;
+        }
+      }
+
+      .lens-ambient .aperture {
+        left: 8%;
+        bottom: 12%;
+        width: 180px;
+        height: 180px;
+        opacity: 0;
+        transition: opacity 0.8s ease;
+      }
+
+      body[data-band="lens"] .lens-ambient .aperture,
+      body[data-band="controls"] .lens-ambient .aperture,
+      body[data-band="focus"] .lens-ambient .aperture,
+      body[data-band="zoomDial"] .lens-ambient .aperture,
+      body[data-band="apertureDial"] .lens-ambient .aperture,
+      body[data-band="depth"] .lens-ambient .aperture {
+        opacity: 0.55;
+      }
+
+      body[data-band="focus"] .lens-ambient .rings {
+        opacity: 0.3;
+      }
+
+      body[data-band="zoomDial"] .lens-ambient .rings {
+        opacity: 0.26;
+      }
+
+      body[data-band="apertureDial"] .lens-ambient .rings {
+        opacity: 0.28;
+      }
+
+      @keyframes aperture-breathe {
+        0%,
+        100% {
+          transform: scale(0.92);
+        }
+        50% {
+          transform: scale(1);
+        }
+      }
+
+      .lens-ambient .aperture .aperture-blade {
+        transform-origin: 100px 100px;
+        animation: aperture-breathe 5s ease-in-out infinite;
+      }
+
+      .lens-ambient .viewfinder {
+        left: 50%;
+        top: 42%;
+        width: min(100vw, 900px);
+        height: min(70vh, 560px);
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        transition: opacity 0.7s ease;
+      }
+
+      body[data-band="hook"] .lens-ambient .viewfinder {
+        opacity: 0.14;
+      }
+
+      .lens-ambient .bokeh {
+        right: 5%;
+        top: 8%;
+        width: 200px;
+        height: 120px;
+        opacity: 0.35;
+      }
+
+      .lens-ambient .flow-arrows {
+        left: 50%;
+        bottom: 8%;
+        width: 520px;
+        height: 120px;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.8s ease;
+      }
+
+      body[data-band="manifest"] .lens-ambient .flow-arrows {
+        opacity: 0.55;
+      }
+
+      /* —— Deck —— */
+      .deck {
+        position: relative;
+        z-index: 2;
+        height: 100vh;
+        width: 100%;
+        display: block;
+      }
+
+      .slide {
+        display: none;
+        position: absolute;
+        inset: 0;
+        /* Clear fixed slide counter (top) + dot nav + brand (bottom) — titles stay fully visible */
+        padding:
+          max(3.75rem, env(safe-area-inset-top, 0px) + 3.25rem)
+          clamp(1.5rem, 4.5vw, 3.25rem)
+          max(6rem, env(safe-area-inset-bottom, 0px) + 5.75rem);
+        width: 100%;
+        height: 100vh;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        justify-content: center;
+        align-items: center;
+        isolation: isolate;
+      }
+
+      .slide.active {
+        display: flex;
+      }
+
+      .slide-content {
+        position: relative;
+        z-index: 1;
+        flex: 0 1 auto;
+        max-width: min(920px, 100%);
+        margin: 0 auto;
+        width: 100%;
+        padding: clamp(0.35rem, 2vh, 1.25rem) 0;
+        text-align: center;
+      }
+
+      /* Readable blocks stay legible inside centered layout */
+      .slide-content .lead,
+      .slide-content ul.bullets {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      h1 {
+        font-size: clamp(2.35rem, 6vw, 4.25rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.65rem;
+        line-height: 1.04;
+        color: var(--fg);
+      }
+
+      /* Hero titles: one solid focal line — no gradient split */
+      .hero-title {
+        font-size: clamp(3rem, 10vw, 6rem);
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.02;
+        margin: 0 0 0.85rem;
+        color: #fff;
+        text-shadow:
+          0 0 100px rgba(57, 255, 20, 0.12),
+          0 0 60px rgba(0, 255, 255, 0.06);
+      }
+
+      h2 {
+        font-size: clamp(1.85rem, 4.6vw, 3.15rem);
+        font-weight: 700;
+        margin: 0 0 1.05rem;
+        letter-spacing: -0.03em;
+        line-height: 1.12;
+        color: var(--fg);
+      }
+
+      /* Section label — pill above the slide title */
+      .eyebrow {
+        display: inline-block;
+        font-size: clamp(0.78rem, 1.55vw, 0.95rem);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+        margin: 0 auto 1.15rem;
+        padding: 0.55rem 1.25rem;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.045);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+      }
+
+      /* Small label under hero headline */
+      .series-label {
+        font-size: clamp(0.75rem, 1.3vw, 0.85rem);
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 1.65rem;
+      }
+
+      .tagline {
+        font-size: clamp(1.2rem, 2.8vw, 1.75rem);
+        font-weight: 500;
+        color: var(--muted);
+        margin: 0 auto 1.45rem;
+        max-width: 38ch;
+        line-height: 1.42;
+      }
+
+      .lead {
+        font-size: clamp(1.05rem, 2vw, 1.22rem);
+        line-height: 1.62;
+        margin: 0 auto 1.2rem;
+        color: var(--muted);
+        max-width: 52ch;
+      }
+
+      .lead--prompt {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        line-height: 1.48;
+        font-weight: 500;
+      }
+
+      ul.bullets {
+        margin: 0 auto 1.45rem;
+        padding: 0;
+        list-style: none;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.75vw, 1.12rem);
+        line-height: 1.62;
+        text-align: left;
+        width: fit-content;
+        max-width: min(52ch, 100%);
+      }
+
+      ul.bullets li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.55rem;
+      }
+
+      ul.bullets li:last-child {
+        margin-bottom: 0;
+      }
+
+      ul.bullets li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.65em;
+        width: 0.55rem;
+        height: 0.55rem;
+        background: var(--c-green);
+        border-radius: 50%;
+        opacity: 0.7;
+        box-shadow: 0 0 8px var(--glow-green);
+      }
+
+      .callout {
+        margin: 1.35rem auto 0;
+        padding: 1.35rem 1.65rem;
+        border: 1px solid var(--accent);
+        background: var(--panel);
+        border-radius: 14px;
+        max-width: min(56ch, 100%);
+        text-align: center;
+      }
+
+      .callout p {
+        margin: 0;
+        font-size: clamp(1.05rem, 1.9vw, 1.18rem);
+        line-height: 1.55;
+        color: var(--fg);
+        font-weight: 500;
+      }
+
+      /* Title */
+      .title-slide .slide-content {
+        padding: 0 0.5rem;
+      }
+
+      .title-slide .hint {
+        font-size: 0.82rem;
+        color: var(--subtle);
+        letter-spacing: 0.12em;
+        margin-top: 2.65rem;
+      }
+
+      .title-slide .hint kbd {
+        background: var(--accent);
+        border-radius: 4px;
+        padding: 0.15rem 0.45rem;
+        font-family: inherit;
+        font-weight: 600;
+        color: var(--fg);
+        margin: 0 0.2rem;
+      }
+
+      /* CTA / final */
+      .cta-slide .callout {
+        margin: 1.85rem auto 0;
+        border-color: rgba(57, 255, 20, 0.22);
+        background: rgba(57, 255, 20, 0.04);
+        max-width: min(48ch, 100%);
+      }
+
+      /*
+        Magic lens artwork — file is RGB (no alpha). Any “box” of black around the
+        lens is in the image pixels, not from these styles (we add no background).
+      */
+      .magic-lens-figure {
+        margin: 0 auto 1.25rem;
+        max-width: min(440px, 92vw);
+        padding: 0;
+        border: none;
+        background: none;
+      }
+
+      .magic-lens-figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: min(34vh, 340px);
+        object-fit: contain;
+        margin: 0 auto;
+      }
+
+      .title-slide--magic-hero .magic-lens-figure {
+        margin-bottom: 1.5rem;
+      }
+
+      .title-slide--magic-hero .magic-lens-figure img {
+        max-height: min(30vh, 300px);
+      }
+
+      .slide--imagine-lens .magic-lens-figure img {
+        max-height: min(36vh, 380px);
+      }
+
+      .cta-slide--magic-art .magic-lens-figure img {
+        max-height: min(40vh, 400px);
+      }
+
+      .cta-slide--magic-art .hero-title {
+        margin-top: 0.35rem;
+      }
+
+      /* Green line split */
+      .greenline-visual {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        margin: 1.5rem auto 1.35rem;
+        max-width: 640px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--accent);
+      }
+
+      .greenline-zone {
+        padding: 1.35rem 1.45rem;
+        position: relative;
+      }
+
+      .greenline-zone--above {
+        background: linear-gradient(180deg, rgba(57, 255, 20, 0.14), rgba(0, 0, 0, 0));
+        border-bottom: 3px solid var(--c-green);
+        box-shadow: 0 0 40px rgba(57, 255, 20, 0.12);
+      }
+
+      .greenline-zone--below {
+        background: linear-gradient(180deg, rgba(255, 51, 85, 0.08), transparent);
+      }
+
+      .greenline-zone h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-weight: 700;
+      }
+
+      .greenline-zone--above h3 {
+        color: var(--c-green);
+      }
+
+      .greenline-zone--below h3 {
+        color: var(--c-below);
+      }
+
+      .greenline-zone ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.92rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      /* Triad: Focus / Zoom / Aperture */
+      .triad {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin: 1.35rem auto;
+        max-width: 720px;
+      }
+
+      @media (min-width: 720px) {
+        .triad {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      .triad-card {
+        padding: 1.2rem 1.2rem;
+        background: var(--panel);
+        border: 1px solid var(--accent);
+        border-radius: 14px;
+        text-align: center;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .triad-card:hover {
+        border-color: rgba(57, 255, 20, 0.35);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+      }
+
+      .triad-card svg {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 0.55rem;
+        display: block;
+      }
+
+      .triad-card h3 {
+        margin: 0 0 0.25rem;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--fg);
+      }
+
+      .triad-card p {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--subtle);
+        line-height: 1.4;
+      }
+
+      /* Full-slide lens controls (Focus / Zoom / Aperture) */
+      .lens-icon-mega {
+        position: relative;
+        width: min(78vw, 300px);
+        height: min(78vw, 300px);
+        margin: 0.35rem auto 1.25rem;
+        display: grid;
+        place-items: center;
+      }
+
+      .lens-icon-mega::before {
+        content: "";
+        position: absolute;
+        inset: -12%;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        pointer-events: none;
+      }
+
+      .lens-icon-mega::after {
+        content: "";
+        position: absolute;
+        inset: -4%;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        pointer-events: none;
+      }
+
+      .lens-icon-mega svg {
+        width: 72%;
+        height: 72%;
+        display: block;
+      }
+
+      .slide--lens-focus .lens-icon-mega {
+        filter: drop-shadow(0 0 55px rgba(57, 255, 20, 0.42));
+      }
+
+      .slide--lens-zoom .lens-icon-mega {
+        filter: drop-shadow(0 0 55px rgba(0, 255, 255, 0.35));
+      }
+
+      .slide--lens-aperture .lens-icon-mega {
+        filter: drop-shadow(0 0 55px rgba(191, 0, 255, 0.38));
+      }
+
+      .lens-detail-kicker {
+        font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+        font-weight: 600;
+        color: var(--muted);
+        margin: 0 auto 1.1rem;
+        max-width: 36ch;
+        line-height: 1.35;
+      }
+
+      /* Zoom rule graphic */
+      .zoom-rule {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 1rem;
+        margin: 1.35rem auto;
+        max-width: 640px;
+        justify-content: center;
+      }
+
+      .zoom-pill {
+        flex: 1 1 200px;
+        padding: 1.15rem 1.35rem;
+        border-radius: 14px;
+        border: 1px solid var(--accent);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .zoom-pill--out {
+        border-color: rgba(0, 255, 255, 0.35);
+      }
+
+      .zoom-pill--in {
+        border-color: rgba(57, 255, 20, 0.35);
+      }
+
+      .zoom-pill h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+
+      .zoom-pill p {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--fg);
+      }
+
+      /* Aperture narrow / wide */
+      .aperture-compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.35rem;
+        margin: 1.35rem auto;
+        max-width: 560px;
+        align-items: start;
+      }
+
+      .aperture-compare .mini {
+        text-align: center;
+      }
+
+      .aperture-compare .mini svg {
+        width: 100%;
+        max-width: 140px;
+        height: auto;
+        margin: 0 auto 0.5rem;
+        display: block;
+      }
+
+      .aperture-compare .mini span {
+        font-size: 0.8rem;
+        color: var(--muted);
+        display: block;
+        line-height: 1.35;
+      }
+
+      /* Manifestation flow */
+      .flow-mini {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem 0.85rem;
+        margin: 1.35rem auto;
+        font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .flow-mini .step-box {
+        padding: 0.5rem 0.95rem;
+        border-radius: 999px;
+        border: 1px solid var(--accent);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--fg);
+      }
+
+      .flow-mini .arrow {
+        color: var(--c-green);
+        font-size: 1.1rem;
+      }
+
+      /* Practice checklist visual */
+      .lens-check {
+        display: grid;
+        gap: 0.75rem;
+        margin: 1.35rem auto;
+        max-width: 520px;
+      }
+
+      .lens-check-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        background: var(--panel);
+        border: 1px solid var(--accent);
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .lens-check-row svg {
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        margin-top: 0.1rem;
+        color: var(--c-green);
+      }
+
+      /* Counter & nav — dots at bottom so titles aren’t covered when content is vertically centered */
+      .slide-counter {
+        position: fixed;
+        top: max(0.75rem, env(safe-area-inset-top, 0px) + 0.35rem);
+        right: max(1rem, env(safe-area-inset-right, 0px));
+        font-size: 0.75rem;
+        letter-spacing: 0.18em;
+        color: var(--subtle);
+        font-variant-numeric: tabular-nums;
+        z-index: 5;
+        pointer-events: none;
+      }
+
+      nav.dots {
+        position: fixed;
+        bottom: max(2.65rem, env(safe-area-inset-bottom, 0px) + 2.25rem);
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.35rem;
+        row-gap: 0.4rem;
+        z-index: 5;
+        max-width: min(96vw, 720px);
+        overflow-x: auto;
+        padding: 0.35rem 0.5rem;
+        scrollbar-width: none;
+        pointer-events: auto;
+      }
+
+      nav.dots::-webkit-scrollbar {
+        display: none;
+      }
+
+      nav.dots button {
+        flex-shrink: 0;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 200ms ease;
+      }
+
+      nav.dots button[aria-current="true"] {
+        background: #fff;
+        transform: scale(1.35);
+      }
+
+      .brand-mark {
+        position: fixed;
+        bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.65rem;
+        color: var(--subtle);
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        z-index: 4;
+        pointer-events: none;
+      }
+
+      .nav-arrows {
+        position: fixed;
+        top: 50%;
+        left: 0;
+        right: 0;
+        transform: translateY(-50%);
+        display: flex;
+        justify-content: space-between;
+        padding: 0 clamp(0.75rem, 2vw, 1.5rem);
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .nav-arrow {
+        pointer-events: auto;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.88);
+        width: clamp(2.75rem, 4vw, 3.5rem);
+        height: clamp(2.75rem, 4vw, 3.5rem);
+        border-radius: 999px;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: background 200ms ease, opacity 200ms ease, transform 200ms ease,
+          border-color 200ms ease;
+      }
+
+      .nav-arrow:hover:not(:disabled) {
+        background: rgba(57, 255, 20, 0.15);
+        border-color: rgba(57, 255, 20, 0.5);
+        transform: scale(1.08);
+      }
+
+      .nav-arrow:disabled {
+        opacity: 0.2;
+        cursor: not-allowed;
+      }
+
+      .nav-arrow svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+    </style>
+  </head>
+  <body data-band="hook" data-slide="0">
+    <!-- Ambient graphics -->
+    <div class="lens-ambient" aria-hidden="true">
+      <!-- Concentric lens rings -->
+      <svg class="rings" viewBox="0 0 400 400" fill="none">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color: #39ff14; stop-opacity: 0.5" />
+            <stop offset="50%" style="stop-color: #00ffff; stop-opacity: 0.35" />
+            <stop offset="100%" style="stop-color: #bf00ff; stop-opacity: 0.45" />
+          </linearGradient>
+        </defs>
+        <circle cx="200" cy="200" r="190" stroke="url(#ringGrad)" stroke-width="1.5" opacity="0.4" />
+        <circle cx="200" cy="200" r="160" stroke="url(#ringGrad)" stroke-width="1.2" opacity="0.35" />
+        <circle cx="200" cy="200" r="130" stroke="url(#ringGrad)" stroke-width="1" opacity="0.45" />
+        <circle cx="200" cy="200" r="100" stroke="url(#ringGrad)" stroke-width="0.8" opacity="0.5" />
+        <circle cx="200" cy="200" r="72" stroke="#39ff14" stroke-width="1.2" opacity="0.35" />
+        <circle cx="200" cy="200" r="48" fill="rgba(0,255,255,0.04)" stroke="rgba(0,255,255,0.25)" stroke-width="1" />
+      </svg>
+
+      <!-- Aperture -->
+      <svg class="aperture" viewBox="0 0 200 200">
+        <defs>
+          <radialGradient id="apGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" style="stop-color: #39ff14; stop-opacity: 0.25" />
+            <stop offset="100%" style="stop-color: #000; stop-opacity: 0" />
+          </radialGradient>
+        </defs>
+        <circle cx="100" cy="100" r="88" fill="url(#apGlow)" />
+        <g class="aperture-blade" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2">
+          <path d="M100 12 L130 100 L100 100 Z" opacity="0.9" />
+          <path d="M188 100 L100 130 L100 100 Z" opacity="0.9" />
+          <path d="M100 188 L70 100 L100 100 Z" opacity="0.9" />
+          <path d="M12 100 L100 70 L100 100 Z" opacity="0.9" />
+          <path d="M156 44 L100 100 L130 44 Z" opacity="0.55" />
+          <path d="M156 156 L100 100 L156 100 Z" opacity="0.55" />
+          <path d="M44 156 L100 100 L44 100 Z" opacity="0.55" />
+          <path d="M44 44 L100 100 L70 44 Z" opacity="0.55" />
+        </g>
+        <circle cx="100" cy="100" r="28" fill="#050505" stroke="#39ff14" stroke-width="2" opacity="0.9" />
+      </svg>
+
+      <!-- Viewfinder corners -->
+      <svg class="viewfinder" viewBox="0 0 800 500" fill="none">
+        <path
+          d="M40 80 V40 H120 M680 40 H760 V80 M760 420 V460 H680 M120 460 H40 V420"
+          stroke="rgba(57,255,20,0.45)"
+          stroke-width="3"
+        />
+        <path d="M400 60 V140 M360 100 H440" stroke="rgba(0,255,255,0.25)" stroke-width="1" />
+        <rect x="280" y="160" width="240" height="160" stroke="rgba(255,255,255,0.12)" stroke-width="1" rx="4" />
+      </svg>
+
+      <!-- Bokeh -->
+      <svg class="bokeh" viewBox="0 0 200 120">
+        <circle cx="40" cy="30" r="16" fill="rgba(57,255,20,0.15)" />
+        <circle cx="100" cy="50" r="22" fill="rgba(0,255,255,0.12)" />
+        <circle cx="160" cy="25" r="12" fill="rgba(191,0,255,0.18)" />
+        <circle cx="70" cy="90" r="10" fill="rgba(255,255,255,0.08)" />
+        <circle cx="130" cy="85" r="18" fill="rgba(57,255,20,0.1)" />
+      </svg>
+
+      <!-- Perspective → emotion → action → results -->
+      <svg class="flow-arrows" viewBox="0 0 520 120">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="rgba(57,255,20,0.7)" />
+          </marker>
+        </defs>
+        <line x1="20" y1="60" x2="115" y2="60" stroke="rgba(57,255,20,0.45)" stroke-width="2" marker-end="url(#arr)" />
+        <line x1="135" y1="60" x2="230" y2="60" stroke="rgba(0,255,255,0.35)" stroke-width="2" marker-end="url(#arr)" />
+        <line x1="250" y1="60" x2="345" y2="60" stroke="rgba(191,0,255,0.4)" stroke-width="2" marker-end="url(#arr)" />
+        <line x1="365" y1="60" x2="460" y2="60" stroke="rgba(57,255,20,0.45)" stroke-width="2" marker-end="url(#arr)" />
+        <text x="55" y="95" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="11" font-family="Poppins,sans-serif">
+          perspective
+        </text>
+        <text x="180" y="95" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="11" font-family="Poppins,sans-serif">
+          emotion
+        </text>
+        <text x="300" y="95" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="11" font-family="Poppins,sans-serif">
+          action
+        </text>
+        <text x="420" y="95" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="11" font-family="Poppins,sans-serif">
+          results
+        </text>
+      </svg>
+    </div>
+
+    <div class="slide-counter" id="counter">01 / 27</div>
+
+    <div class="deck" id="deck">
+      <!-- 0 -->
+      <section class="slide title-slide title-slide--magic-hero active" data-index="0" aria-label="Your Life Lens">
+        <div class="slide-content">
+          <figure class="magic-lens-figure">
+            <img
+              src="/slide-decks/images/the-magic-lens.png"
+              alt="Ornate fantasy camera lens with inner cosmic light."
+              width="1024"
+              height="665"
+              fetchpriority="high"
+            />
+          </figure>
+          <h1 class="hero-title">Your Life Lens</h1>
+          <p class="series-label">Vibration Fit Lenses</p>
+          <p class="tagline">Your life feels the way you see it.</p>
+          <div class="callout" style="margin-top: 1.85rem; max-width: 42ch">
+            <p>You&rsquo;re not reacting to reality&hellip;<br />You&rsquo;re reacting to how you&rsquo;re looking at it.</p>
+          </div>
+          <p class="hint">Press <kbd>&rarr;</kbd> or tap right to advance</p>
+        </div>
+      </section>
+
+      <!-- 1 -->
+      <section class="slide" data-index="1" aria-label="Above the Green Line">
+        <div class="slide-content">
+          <div class="eyebrow">The Goal</div>
+
+
+          <h2>Above the Green Line</h2>
+          <div class="greenline-visual">
+            <div class="greenline-zone greenline-zone--above">
+              <h3>Above</h3>
+              <ul>
+                <li>Clarity, ease, joy, momentum</li>
+              </ul>
+            </div>
+            <div class="greenline-zone greenline-zone--below">
+              <h3>Below</h3>
+              <ul>
+                <li>Overwhelm, frustration, resistance</li>
+              </ul>
+            </div>
+          </div>
+          <div class="callout">
+            <p>The goal isn&rsquo;t to control life.<br />It&rsquo;s to stay above the Green Line.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section class="slide" data-index="2" aria-label="Emotions and perspective">
+        <div class="slide-content">
+          <div class="eyebrow">Where emotions come from</div>
+
+
+          <h2>Emotions Are Generated by Perspective</h2>
+          <ul class="bullets">
+            <li>Same situation &rarr; different feelings</li>
+            <li>Why? &rarr; different perspectives</li>
+          </ul>
+          <div class="callout">
+            <p>Your emotional state is not caused by life.<br />It&rsquo;s created by how you see it.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section class="slide" data-index="3" aria-label="Source perspective">
+        <div class="slide-content">
+          <div class="eyebrow">Source perspective</div>
+
+
+          <h2>There Is a Higher Way of Seeing</h2>
+          <p class="lead">Your &ldquo;source perspective&rdquo;:</p>
+          <ul class="bullets">
+            <li>Sees possibility</li>
+            <li>Sees support</li>
+            <li>Sees the bigger picture</li>
+          </ul>
+          <div class="callout">
+            <p>Above the Green Line = closer to that perspective.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section class="slide" data-index="4" aria-label="Alignment">
+        <div class="slide-content">
+          <div class="eyebrow">Alignment</div>
+
+
+          <h2>Alignment Feels Good</h2>
+          <ul class="bullets">
+            <li>Alignment &rarr; clarity, relief, openness</li>
+            <li>Misalignment &rarr; tension, resistance</li>
+          </ul>
+          <div class="callout">
+            <p>Feeling good isn&rsquo;t random.<br />It&rsquo;s feedback that you&rsquo;re in alignment.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section class="slide" data-index="5" aria-label="How do you change perspective">
+        <div class="slide-content">
+          <div class="eyebrow">The missing link</div>
+
+
+          <h2>So How Do You Change Perspective?</h2>
+          <p class="lead lead--prompt" style="max-width: 44ch; margin-top: 0.85rem; color: var(--fg)">
+            If emotions come from perspective&hellip;<br />how do you actually shift it?
+          </p>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section class="slide" data-index="6" aria-label="You are looking through a lens">
+        <div class="slide-content">
+          <div class="eyebrow">The lens</div>
+
+
+          <h2>You Are Always Looking Through a Lens</h2>
+          <ul class="bullets">
+            <li>Not seeing reality directly</li>
+            <li>Seeing through a lens</li>
+          </ul>
+          <div class="callout">
+            <p>Change the lens &rarr; change the experience</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 -->
+      <section class="slide" data-index="7" aria-label="Three settings">
+        <div class="slide-content">
+          <div class="eyebrow">The three controls</div>
+
+
+          <h2>Your Lens Has Three Settings</h2>
+          <p class="lead" style="max-width: 46ch">
+            Same lens. Three dials. Each one shifts what you feel&mdash;often before anything in the outside world changes.
+          </p>
+          <ul class="bullets">
+            <li><strong style="color: var(--fg)">Focus</strong> &mdash; aim attention</li>
+            <li><strong style="color: var(--fg)">Zoom</strong> &mdash; emotional distance / scale</li>
+            <li><strong style="color: var(--fg)">Aperture</strong> &mdash; how much context you include</li>
+          </ul>
+          <div class="callout">
+            <p>They can move independently&mdash;that&rsquo;s where leverage lives.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8 Focus -->
+      <section class="slide slide--lens-detail slide--lens-focus" data-index="8" aria-label="Focus">
+        <div class="slide-content">
+          <div class="eyebrow">Focus</div>
+
+          <div class="lens-icon-mega">
+            <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <circle cx="32" cy="32" r="26" stroke="#39ff14" stroke-width="2.5" opacity="0.85" />
+              <circle cx="32" cy="32" r="8" fill="#00ffff" opacity="0.95" />
+              <line x1="32" y1="2" x2="32" y2="14" stroke="#ffffff" stroke-width="2.5" opacity="0.55" />
+              <line x1="32" y1="50" x2="32" y2="62" stroke="#ffffff" stroke-width="2.5" opacity="0.55" />
+              <line x1="2" y1="32" x2="14" y2="32" stroke="#ffffff" stroke-width="2.5" opacity="0.55" />
+              <line x1="50" y1="32" x2="62" y2="32" stroke="#ffffff" stroke-width="2.5" opacity="0.55" />
+            </svg>
+          </div>
+
+          <h2>What You Aim At</h2>
+          <p class="lens-detail-kicker">What you&rsquo;re looking at</p>
+          <p class="lead">Attention is selective. Whatever earns the spotlight tends to become The Story.</p>
+          <ul class="bullets">
+            <li>Your mind fills in details around what you hold in focus</li>
+            <li>Shift focus &rarr; the scene can reorganize fast</li>
+          </ul>
+          <div class="callout">
+            <p>Change what you&rsquo;re aiming at&mdash;and the emotional texture starts to follow.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 Zoom -->
+      <section class="slide slide--lens-detail slide--lens-zoom" data-index="9" aria-label="Zoom">
+        <div class="slide-content">
+          <div class="eyebrow">Zoom</div>
+
+          <div class="lens-icon-mega">
+            <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <rect x="10" y="10" width="44" height="44" rx="8" stroke="#00ffff" stroke-width="2.5" opacity="0.75" />
+              <circle cx="28" cy="28" r="12" stroke="#39ff14" stroke-width="2.5" />
+              <line x1="37" y1="37" x2="52" y2="52" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+            </svg>
+          </div>
+
+          <h2>How Big It Feels</h2>
+          <p class="lens-detail-kicker">How close or far it feels</p>
+          <p class="lead">&ldquo;Zoom&rdquo; isn&rsquo;t only visual. It&rsquo;s how huge or tiny the moment feels in your body.</p>
+          <ul class="bullets">
+            <li>Zoomed in &rarr; intensity, detail, now</li>
+            <li>Zoomed out &rarr; proportion, pattern, relief</li>
+          </ul>
+          <div class="callout">
+            <p>Relief often starts with backing up one notch&mdash;then choosing where to lean in.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 Aperture -->
+      <section class="slide slide--lens-detail slide--lens-aperture" data-index="10" aria-label="Aperture">
+        <div class="slide-content">
+          <div class="eyebrow">Aperture</div>
+
+          <div class="lens-icon-mega">
+            <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <circle cx="32" cy="32" r="29" stroke="rgba(255,255,255,0.22)" stroke-width="2" />
+              <path
+                d="M32 7 L39 26 L58 26 L43 40 L50 60 L32 50 L14 60 L21 40 L6 26 L25 26 Z"
+                fill="none"
+                stroke="#bf00ff"
+                stroke-width="2.2"
+                opacity="0.95"
+              />
+              <circle cx="32" cy="32" r="13" fill="#060606" stroke="#39ff14" stroke-width="2.5" />
+            </svg>
+          </div>
+
+          <h2>What Else You Let In</h2>
+          <p class="lens-detail-kicker">How much else you include</p>
+          <p class="lead">Aperture is context: whether this moment is isolated&mdash;or connected to a bigger picture.</p>
+          <ul class="bullets">
+            <li>Narrow &rarr; one variable can feel like everything</li>
+            <li>Open &rarr; support, history, and perspective come back online</li>
+          </ul>
+          <div class="callout">
+            <p>Most overwhelm isn&rsquo;t missing strength. It&rsquo;s a missing frame.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section class="slide" data-index="11" aria-label="Your experience is adjustable">
+        <div class="slide-content">
+          <div class="eyebrow">What this means</div>
+
+
+          <h2>Your Experience Is Adjustable</h2>
+          <div class="callout">
+            <p style="margin-bottom: 0.95rem">You control:</p>
+            <ul class="bullets" style="margin: 0 auto">
+              <li>What you see</li>
+              <li>How big it feels</li>
+              <li>Whether it&rsquo;s everything&hellip; or part of something</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9 -->
+      <section class="slide" data-index="12" aria-label="Reaction is not reality">
+        <div class="slide-content">
+          <div class="eyebrow">The big insight</div>
+
+
+          <h2>Your Reaction Is Not Reality</h2>
+          <ul class="bullets">
+            <li>Your reaction = last lens setting</li>
+            <li>It feels automatic</li>
+          </ul>
+          <div class="callout">
+            <p>It&rsquo;s not truth.<br />It&rsquo;s a pattern.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 -->
+      <section class="slide" data-index="13" aria-label="You get a second look">
+        <div class="slide-content">
+          <div class="eyebrow">The reset</div>
+
+
+          <h2>You Always Get a Second Look</h2>
+          <ul class="bullets">
+            <li>Notice the lens</li>
+            <li>Adjust it</li>
+          </ul>
+          <div class="callout">
+            <p>You may not control the first reaction&hellip;<br />But you always control the reset.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section class="slide" data-index="14" aria-label="How to use zoom">
+        <div class="slide-content">
+          <div class="eyebrow">The zoom rule</div>
+
+
+          <h2>How to Use Zoom</h2>
+          <div class="zoom-rule">
+            <div class="zoom-pill zoom-pill--out">
+              <h3>Feels bad</h3>
+              <p>Zoom out</p>
+            </div>
+            <div class="zoom-pill zoom-pill--in">
+              <h3>Feels good</h3>
+              <p>Zoom in</p>
+            </div>
+          </div>
+          <div class="callout">
+            <p>Relief first.<br />Details second.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 -->
+      <section class="slide" data-index="15" aria-label="Goals vs problems">
+        <div class="slide-content">
+          <div class="eyebrow">Goals vs problems</div>
+
+
+          <h2>Use Zoom Differently</h2>
+          <ul class="bullets">
+            <li>Problems &rarr; zoom out</li>
+            <li>Goals &rarr; bring closer</li>
+          </ul>
+          <div class="callout">
+            <p>Too big? You&rsquo;re too far away.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 13 -->
+      <section class="slide" data-index="16" aria-label="Next right thing">
+        <div class="slide-content">
+          <div class="eyebrow">Next right thing</div>
+
+
+          <h2>How Goals Become Real</h2>
+          <ul class="bullets">
+            <li>Don&rsquo;t solve the whole thing</li>
+            <li>Find the next step</li>
+          </ul>
+          <div class="callout">
+            <p>Goals are walked&mdash;one next right thing at a time.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 14 -->
+      <section class="slide" data-index="17" aria-label="Aperture and context">
+        <div class="slide-content">
+          <div class="eyebrow">Aperture</div>
+
+
+          <h2>Context Changes Everything</h2>
+          <div class="aperture-compare">
+            <div class="mini">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle cx="60" cy="60" r="52" fill="rgba(255,51,85,0.08)" stroke="rgba(255,51,85,0.4)" stroke-width="2" />
+                <circle cx="60" cy="60" r="18" fill="#0a0a0a" stroke="#ff3355" stroke-width="2" />
+              </svg>
+              <span><strong style="color: var(--fg)">Narrow</strong> &mdash; one thing = everything</span>
+            </div>
+            <div class="mini">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle cx="60" cy="60" r="52" fill="rgba(57,255,20,0.06)" stroke="rgba(57,255,20,0.35)" stroke-width="2" />
+                <circle cx="60" cy="60" r="38" fill="none" stroke="rgba(0,255,255,0.2)" stroke-width="1" stroke-dasharray="3 4" />
+                <circle cx="60" cy="60" r="22" fill="#0a0a0a" stroke="#39ff14" stroke-width="2" />
+              </svg>
+              <span><strong style="color: var(--fg)">Open</strong> &mdash; part of a bigger picture</span>
+            </div>
+          </div>
+          <div class="callout">
+            <p>Most overwhelm is a context problem.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 15 -->
+      <section class="slide" data-index="18" aria-label="Same moment different lens">
+        <div class="slide-content">
+          <div class="eyebrow">The shift</div>
+
+
+          <h2>Same Moment, Different Lens</h2>
+          <ul class="bullets">
+            <li>Nothing external changes</li>
+            <li>Experience changes instantly</li>
+          </ul>
+          <div class="callout">
+            <p>The scene stays; the frame moves.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 16 -->
+      <section class="slide slide--imagine-lens" data-index="19" aria-label="Imagine this lens">
+        <div class="slide-content">
+          <div class="eyebrow">The magic lens</div>
+
+
+          <h2>Imagine This&hellip;</h2>
+          <figure class="magic-lens-figure">
+            <img
+              src="/slide-decks/images/the-magic-lens.png"
+              alt="Ornate fantasy camera lens with inner cosmic light."
+              width="1024"
+              height="665"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+          <p class="lead" style="color: var(--fg); max-width: 42ch">A lens that:</p>
+          <ul class="bullets">
+            <li>Focuses on what serves you</li>
+            <li>Right-sizes everything</li>
+            <li>Keeps you in perspective</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 17 -->
+      <section class="slide" data-index="20" aria-label="It's not magic">
+        <div class="slide-content">
+          <div class="eyebrow">The truth</div>
+
+
+          <h2>It&rsquo;s Not Magic</h2>
+          <ul class="bullets">
+            <li>Your brain remembers your settings</li>
+            <li>You repeat what you practice</li>
+          </ul>
+          <div class="callout">
+            <p>You don&rsquo;t have a fixed lens.<br />You have a practiced one.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 18 -->
+      <section class="slide" data-index="21" aria-label="How it becomes automatic">
+        <div class="slide-content">
+          <div class="eyebrow">Building the lens</div>
+
+
+          <h2>How It Becomes Automatic</h2>
+          <ul class="bullets">
+            <li>Notice</li>
+            <li>Adjust</li>
+            <li>Repeat</li>
+          </ul>
+          <div class="callout">
+            <p>Every adjustment trains your default.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 19 -->
+      <section class="slide" data-index="22" aria-label="Alignment changes outcomes">
+        <div class="slide-content">
+          <div class="eyebrow">Why this matters</div>
+
+
+          <h2>Alignment Changes Outcomes</h2>
+          <p class="lead">Above Green Line:</p>
+          <ul class="bullets">
+            <li>Better decisions</li>
+            <li>Better energy</li>
+            <li>Better action</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 20 -->
+      <section class="slide" data-index="23" aria-label="Your life reflects alignment">
+        <div class="slide-content">
+          <div class="eyebrow">Manifestation bridge</div>
+
+
+          <h2>Your Life Reflects Your Alignment</h2>
+          <div class="flow-mini">
+            <span class="step-box">Perspective</span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-box">Emotion</span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-box">Action</span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-box">Results</span>
+          </div>
+          <div class="callout">
+            <p>As you stay aligned, your life reorganizes around it.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 21 -->
+      <section class="slide" data-index="24" aria-label="Use it in real time">
+        <div class="slide-content">
+          <div class="eyebrow">The practice</div>
+
+
+          <h2>Use It in Real Time</h2>
+          <p class="lead">When something feels off:</p>
+          <div class="lens-check">
+            <div class="lens-check-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+              </svg>
+              <span>What am I focused on?</span>
+            </div>
+            <div class="lens-check-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4-4" />
+                <path d="M11 8v6M8 11h6" />
+              </svg>
+              <span>Am I too close?</span>
+            </div>
+            <div class="lens-check-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <path d="M3 9h18M9 3v18" opacity="0.5" />
+              </svg>
+              <span>What am I not including?</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 22 -->
+      <section class="slide" data-index="25" aria-label="The simple truth">
+        <div class="slide-content">
+          <div class="eyebrow">Final close</div>
+
+
+          <h2>The Simple Truth</h2>
+          <div class="callout" style="max-width: 44ch; margin-top: 1rem">
+            <p>You don&rsquo;t need to fix your life.<br />You need to adjust your lens.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 27 Final -->
+      <section class="slide cta-slide cta-slide--magic-art" data-index="26" aria-label="Vibration Fit The Magic Lens">
+        <div class="slide-content">
+          <figure class="magic-lens-figure">
+            <img
+              src="/slide-decks/images/the-magic-lens.png"
+              alt="Ornate fantasy camera lens with inner cosmic light and glowing arcane rings—the magic lens."
+              width="1024"
+              height="665"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+          <h1 class="hero-title">The Magic Lens</h1>
+          <p class="series-label">Vibration Fit</p>
+          <div class="callout">
+            <p>Train your lens&hellip;<br />and life starts adjusting for you.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="brand-mark">VibrationFit &middot; Alignment Gym</div>
+
+    <div class="nav-arrows">
+      <button class="nav-arrow" id="navPrev" aria-label="Previous slide" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
+      </button>
+      <button class="nav-arrow" id="navNext" aria-label="Next slide" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+      </button>
+    </div>
+
+    <nav class="dots" id="dots" aria-label="Slides"></nav>
+
+    <script>
+      (function () {
+        var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+        var dotsNav = document.getElementById("dots");
+        var counter = document.getElementById("counter");
+        var prevBtn = document.getElementById("navPrev");
+        var nextBtn = document.getElementById("navNext");
+        var index = 0;
+
+        /* Visual bands for ambient graphics */
+        var bands = [
+          "hook",
+          "baseline",
+          "emotion",
+          "source",
+          "align",
+          "question",
+          "lens",
+          "controls",
+          "focus",
+          "zoomDial",
+          "apertureDial",
+          "meaning",
+          "insight",
+          "reset",
+          "zoomRule",
+          "goals",
+          "next",
+          "context",
+          "shift",
+          "magic",
+          "truth",
+          "build",
+          "outcomes",
+          "manifest",
+          "practice",
+          "close",
+          "signature",
+        ];
+
+        function setBand(i) {
+          var b = bands[i] || "hook";
+          document.body.setAttribute("data-band", b);
+          document.body.setAttribute("data-slide", String(i));
+        }
+
+        function renderDots() {
+          dotsNav.innerHTML = "";
+          slides.forEach(function (_, i) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.setAttribute("aria-label", "Go to slide " + (i + 1));
+            if (i === index) btn.setAttribute("aria-current", "true");
+            btn.addEventListener("click", function (ev) {
+              ev.stopPropagation();
+              go(i);
+            });
+            dotsNav.appendChild(btn);
+          });
+        }
+
+        function go(i) {
+          index = Math.max(0, Math.min(slides.length - 1, i));
+          slides.forEach(function (s, j) {
+            s.classList.toggle("active", j === index);
+          });
+          setBand(index);
+          renderDots();
+          counter.textContent =
+            String(index + 1).padStart(2, "0") +
+            " / " +
+            String(slides.length).padStart(2, "0");
+          prevBtn.disabled = index === 0;
+          nextBtn.disabled = index === slides.length - 1;
+        }
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+            e.preventDefault();
+            go(index + 1);
+          } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+            e.preventDefault();
+            go(index - 1);
+          } else if (e.key === "Home") {
+            go(0);
+          } else if (e.key === "End") {
+            go(slides.length - 1);
+          }
+        });
+
+        prevBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          go(index - 1);
+        });
+
+        nextBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          go(index + 1);
+        });
+
+        document.body.addEventListener("click", function (e) {
+          if (e.target.closest("nav.dots") || e.target.closest(".nav-arrow")) {
+            return;
+          }
+          var vw = window.innerWidth || document.documentElement.clientWidth;
+          if (e.clientX < vw / 2) {
+            go(index - 1);
+          } else {
+            go(index + 1);
+          }
+        });
+
+        go(0);
+        renderDots();
+      })();
+    </script>
+  </body>
+</html>
