@@ -31,7 +31,9 @@ import {
   Timer,
   Info,
   Clock,
-  LogOut
+  LogOut,
+  CreditCard,
+  Headset
 } from 'lucide-react'
 
 type Step = {
@@ -662,17 +664,28 @@ export function IntensiveSidebar() {
 
       {/* Footer */}
       <div className="p-3 md:p-4 border-t border-neutral-800 space-y-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            router.push('/support')
-            setMobileOpen(false)
-          }}
-          className="w-full text-xs"
-        >
-          Support
-        </Button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              router.push('/account/billing')
+              setMobileOpen(false)
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all duration-200"
+          >
+            <Settings className="w-3 h-3" />
+            Account
+          </button>
+          <button
+            onClick={() => {
+              router.push('/support')
+              setMobileOpen(false)
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all duration-200"
+          >
+            <Headset className="w-3 h-3" />
+            Support
+          </button>
+        </div>
         <button
           onClick={async () => {
             const supabase = createClient()

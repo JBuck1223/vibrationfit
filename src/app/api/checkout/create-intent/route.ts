@@ -403,10 +403,22 @@ export async function POST(request: NextRequest) {
             .single()
 
           if (tier) {
+            // Try to use an existing payment method so the subscription can
+            // charge when the 56-day trial ends. For brand-new customers
+            // the payment_intent.succeeded webhook will set the customer-level
+            // default as a fallback.
+            const existingPMs = await stripe.paymentMethods.list({
+              customer: stripeCustomerId,
+              type: 'card',
+              limit: 1,
+            })
+            const existingPM = existingPMs.data[0]?.id
+
             const visionProSubscription = await stripe.subscriptions.create({
               customer: stripeCustomerId,
               items: [{ price: continuityPriceId, quantity: 1 }],
               trial_period_days: 56,
+              ...(existingPM && { default_payment_method: existingPM }),
               metadata: {
                 product_type: 'vision_pro_continuity',
                 tier_type: tierType,
