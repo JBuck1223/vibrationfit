@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Container, Stack, PageHero, Card, Button, Input, Badge, ProgressBar, Spinner } from '@/lib/design-system/components'
+import { Container, Stack, Card, Button, Input, Badge, ProgressBar, Spinner } from '@/lib/design-system/components'
 import {
   Copy, Check, Share2, Mail, MessageCircle, Send,
   Users, Zap, Target, Crown, Link2, Edit3, Gift, ChevronRight,
@@ -48,15 +48,22 @@ interface RewardEarned {
   tier: Tier
 }
 
+interface PaidReferral {
+  id: string
+  referred_email: string | null
+  created_at: string
+  metadata: Record<string, unknown> | null
+}
+
 interface DashboardData {
   participant: Participant
   referralLink: string
-  stats: { totalClicks: number; emailSignups: number; paidConversions: number; secondDegreeSignups: number }
+  stats: { totalClicks: number; paidConversions: number }
   currentTier: Tier | null
-  nextTier: Tier | null
   tiers: Tier[]
   rewardsEarned: RewardEarned[]
   invites: Invite[]
+  paidReferrals: PaidReferral[]
 }
 
 const INTEREST_OPTIONS = [
@@ -109,7 +116,10 @@ export default function ReferralPage() {
       const res = await fetch(`/api/referral/dashboard?${params}`)
       if (res.ok) {
         const data = await res.json()
-        setDashboard(data)
+        setDashboard({
+          ...data,
+          paidReferrals: data.paidReferrals ?? [],
+        })
         setEnrolled(true)
       } else if (res.status === 404 && !participantEmail) {
         const joinRes = await fetch('/api/referral/join', {
@@ -121,7 +131,10 @@ export default function ReferralPage() {
           const retryRes = await fetch('/api/referral/dashboard')
           if (retryRes.ok) {
             const data = await retryRes.json()
-            setDashboard(data)
+            setDashboard({
+              ...data,
+              paidReferrals: data.paidReferrals ?? [],
+            })
             setEnrolled(true)
           }
         }
@@ -329,12 +342,6 @@ export default function ReferralPage() {
     return (
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero
-            eyebrow="SHARE THE VIBE"
-            title="Referral Program"
-            subtitle="Share VibrationFit with your friends and earn rewards as they join the movement"
-          />
-
           <Card className="p-4 md:p-6 lg:p-8 max-w-lg mx-auto w-full">
             <h2 className="text-xl md:text-2xl font-bold text-white text-center mb-2">
               Join the Referral Program
@@ -371,21 +378,11 @@ export default function ReferralPage() {
     )
   }
 
-  const { participant, stats, tiers, currentTier, nextTier, rewardsEarned, invites } = dashboard
+  const { participant, stats, tiers, currentTier, rewardsEarned, invites, paidReferrals } = dashboard
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="SHARE THE VIBE"
-          title="Your Referral Dashboard"
-          subtitle={`Welcome back, ${participant.display_name || participant.email.split('@')[0]}`}
-        >
-          <Badge variant="primary">
-            {stats.emailSignups} signup{stats.emailSignups !== 1 ? 's' : ''} / {stats.paidConversions} conversion{stats.paidConversions !== 1 ? 's' : ''}
-          </Badge>
-        </PageHero>
-
         {/* Your Referral Link */}
         <Card className="p-4 md:p-6 lg:p-8">
           <div className="flex items-center gap-2 mb-4">
@@ -404,43 +401,50 @@ export default function ReferralPage() {
           </div>
 
           {/* Editable code */}
-          <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-2">
-            <span className="text-xs text-neutral-500">
-              Code: <span className="text-neutral-300 font-mono">{participant.referral_code}</span>
-            </span>
-            {!editingCode ? (
-              <button
-                onClick={() => { setEditingCode(true); setNewCode(participant.referral_code) }}
-                className="text-xs text-[#00FFFF] hover:underline flex items-center gap-1"
-              >
-                <Edit3 className="w-3 h-3" /> Customize
-              </button>
-            ) : (
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <input
-                  type="text"
-                  value={newCode}
-                  onChange={(e) => setNewCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                  className="bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-sm text-white w-40 font-mono"
-                  maxLength={20}
-                />
-                <Button variant="primary" size="sm" onClick={handleCodeUpdate} disabled={codeLoading}>
-                  {codeLoading ? <Spinner size="sm" /> : 'Save'}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => { setEditingCode(false); setCodeError(null) }}>
-                  Cancel
-                </Button>
-              </div>
-            )}
-            {codeError && <p className="text-[#FF0040] text-xs">{codeError}</p>}
+          <div className="mt-4 space-y-1">
+            <div className="flex flex-row flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-xs text-neutral-500 inline-flex items-center gap-1 min-w-0">
+                <span className="shrink-0">Code:</span>
+                <span className="text-neutral-300 font-mono truncate">{participant.referral_code}</span>
+              </span>
+              {!editingCode ? (
+                <button
+                  type="button"
+                  onClick={() => { setEditingCode(true); setNewCode(participant.referral_code) }}
+                  className="text-xs text-[#00FFFF] hover:underline inline-flex items-center gap-1 shrink-0"
+                >
+                  <Edit3 className="w-3 h-3 shrink-0" /> Customize
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
+                  <input
+                    type="text"
+                    value={newCode}
+                    onChange={(e) => setNewCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    className="bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-sm text-white w-40 font-mono min-w-0"
+                    maxLength={20}
+                  />
+                  <Button variant="primary" size="sm" onClick={handleCodeUpdate} disabled={codeLoading}>
+                    {codeLoading ? <Spinner size="sm" /> : 'Save'}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => { setEditingCode(false); setCodeError(null) }}>
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </div>
+            {codeError && <p className="text-[#FF0040] text-xs w-full">{codeError}</p>}
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-            <StatBox label="Clicks" value={stats.totalClicks} />
-            <StatBox label="Signups" value={stats.emailSignups} />
-            <StatBox label="Conversions" value={stats.paidConversions} />
-            <StatBox label="2nd Degree" value={stats.secondDegreeSignups} />
+          {/* Stats row: 50/50 on md+, centered block on small screens */}
+          <div className="mt-6 w-full max-w-md mx-auto md:max-w-none md:mx-0">
+            <div className="grid grid-cols-2 gap-3 md:gap-6 w-full">
+              <StatBox label="Clicks" value={stats.totalClicks} />
+              <StatBox label="Paid referrals" value={stats.paidConversions} />
+            </div>
+            <p className="text-xs text-neutral-500 mt-3 text-center max-w-lg mx-auto md:max-w-2xl leading-relaxed">
+              Clicks are visits to your link. Paid referrals are completed purchases attributed to your code.
+            </p>
           </div>
         </Card>
 
@@ -686,10 +690,9 @@ export default function ReferralPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {tiers.map((tier, i) => {
               const Icon = TIER_ICONS[i] || Gift
-              const earned = stats.emailSignups >= tier.min_email_signups &&
+              const emailSignups = participant.email_signups
+              const earned = emailSignups >= tier.min_email_signups &&
                              stats.paidConversions >= tier.min_paid_conversions
-              const signupProgress = tier.min_email_signups > 0
-                ? Math.min((stats.emailSignups / tier.min_email_signups) * 100, 100) : 100
               const conversionProgress = tier.min_paid_conversions > 0
                 ? Math.min((stats.paidConversions / tier.min_paid_conversions) * 100, 100) : 100
 
@@ -709,20 +712,10 @@ export default function ReferralPage() {
                     </span>
                   </div>
 
-                  {tier.min_email_signups > 0 && (
-                    <div className="mb-2">
-                      <div className="flex justify-between text-xs text-neutral-400 mb-1">
-                        <span>Signups</span>
-                        <span>{Math.min(stats.emailSignups, tier.min_email_signups)}/{tier.min_email_signups}</span>
-                      </div>
-                      <ProgressBar value={signupProgress} size="sm" variant={earned ? 'primary' : 'secondary'} />
-                    </div>
-                  )}
-
                   {tier.min_paid_conversions > 0 && (
                     <div className="mb-2">
                       <div className="flex justify-between text-xs text-neutral-400 mb-1">
-                        <span>Paid</span>
+                        <span>Paid referrals</span>
                         <span>{Math.min(stats.paidConversions, tier.min_paid_conversions)}/{tier.min_paid_conversions}</span>
                       </div>
                       <ProgressBar value={conversionProgress} size="sm" variant={earned ? 'primary' : 'accent'} />
@@ -737,35 +730,55 @@ export default function ReferralPage() {
           </div>
         </Card>
 
-        {/* Your Referrals */}
-        {invites.length > 0 && (
-          <Card className="p-4 md:p-6 lg:p-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-[#00FFFF]" />
-              <h2 className="text-lg md:text-xl font-bold text-white">Your Referrals</h2>
-            </div>
+        {/* Your referrals: paid purchases from your link */}
+        <Card className="p-4 md:p-6 lg:p-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-5 h-5 text-[#00FFFF]" />
+            <h2 className="text-lg md:text-xl font-bold text-white">Your referrals</h2>
+          </div>
 
+          {paidReferrals.length === 0 ? (
+            <p className="text-sm text-neutral-400">No paid referrals yet. When someone completes checkout with your link, they will appear here.</p>
+          ) : (
             <div className="space-y-2">
-              {invites.map(invite => (
-                <div key={invite.id} className="flex items-center justify-between bg-[#1a1a1a] rounded-lg px-4 py-3 border border-[#333]">
+              {paidReferrals.map(row => (
+                <div key={row.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-[#1a1a1a] rounded-lg px-4 py-3 border border-[#333]">
                   <div>
-                    <span className="text-sm text-white">{invite.referred_name || invite.referred_email}</span>
-                    <span className="text-xs text-neutral-500 ml-2">{invite.referred_email}</span>
+                    <span className="text-sm text-white font-medium">{row.referred_email || 'Purchase'}</span>
+                    <span className="text-xs text-neutral-500 block sm:inline sm:ml-2">{formatReferralDate(row.created_at)}</span>
                   </div>
-                  <Badge
-                    variant={
-                      invite.status === 'converted' ? 'success' :
-                      invite.status === 'clicked' ? 'secondary' :
-                      'neutral'
-                    }
-                  >
-                    {invite.status}
-                  </Badge>
+                  <Badge variant="success">Purchased</Badge>
                 </div>
               ))}
             </div>
-          </Card>
-        )}
+          )}
+
+          {invites.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-[#333]">
+              <h3 className="text-sm font-semibold text-white mb-3">Warm intro emails</h3>
+              <p className="text-xs text-neutral-500 mb-3">People you emailed through the warm intro form (separate from link purchases).</p>
+              <div className="space-y-2">
+                {invites.map(invite => (
+                  <div key={invite.id} className="flex items-center justify-between bg-[#1a1a1a] rounded-lg px-4 py-3 border border-[#333]">
+                    <div>
+                      <span className="text-sm text-white">{invite.referred_name || invite.referred_email}</span>
+                      <span className="text-xs text-neutral-500 ml-2">{invite.referred_email}</span>
+                    </div>
+                    <Badge
+                      variant={
+                        invite.status === 'converted' ? 'success' :
+                        invite.status === 'clicked' ? 'secondary' :
+                        'neutral'
+                      }
+                    >
+                      {invite.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
 
         {/* Rewards Earned */}
         {rewardsEarned.length > 0 && (
@@ -793,6 +806,14 @@ export default function ReferralPage() {
       </Stack>
     </Container>
   )
+}
+
+function formatReferralDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+  } catch {
+    return ''
+  }
 }
 
 function StatBox({ label, value }: { label: string; value: number }) {
