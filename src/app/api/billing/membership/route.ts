@@ -160,17 +160,18 @@ export async function GET() {
               }))
 
             // Sync period dates from Stripe if DB is stale
-            const stripeStart = stripeSub.current_period_start
-              ? new Date(stripeSub.current_period_start * 1000).toISOString()
+            const subData = stripeSub as unknown as { current_period_start?: number; current_period_end?: number; cancel_at_period_end?: boolean }
+            const stripeStart = subData.current_period_start
+              ? new Date(subData.current_period_start * 1000).toISOString()
               : null
-            const stripeEnd = stripeSub.current_period_end
-              ? new Date(stripeSub.current_period_end * 1000).toISOString()
+            const stripeEnd = subData.current_period_end
+              ? new Date(subData.current_period_end * 1000).toISOString()
               : null
 
             if (stripeEnd && stripeEnd !== subscription.current_period_end) {
               subscription.current_period_start = stripeStart
               subscription.current_period_end = stripeEnd
-              subscription.cancel_at_period_end = stripeSub.cancel_at_period_end
+              subscription.cancel_at_period_end = subData.cancel_at_period_end ?? false
               const admin = createAdminClient()
               admin.from('customer_subscriptions').update({
                 current_period_start: stripeStart,

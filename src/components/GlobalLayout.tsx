@@ -45,6 +45,8 @@ function isPathAccessibleForIntensive(
     '/viva',
     '/support',
     '/referral',
+    // SMS / member poll: must be reachable even during an active intensive
+    '/survey',
   ]
   
   if (alwaysAllowed.some(path => pathname.startsWith(path))) {
