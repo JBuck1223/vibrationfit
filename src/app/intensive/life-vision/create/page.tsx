@@ -206,7 +206,7 @@ export default function IntensiveCreateVisionPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {draftVisionId && (
+        {draftVisionId && activeVisionId && (
           <div className="w-full rounded-xl bg-secondary-500/10 border border-secondary-500/30 p-4 md:p-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-start gap-3">

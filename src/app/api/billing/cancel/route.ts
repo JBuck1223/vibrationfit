@@ -28,13 +28,18 @@ export async function POST() {
       return NextResponse.json({ error: 'No active subscription found' }, { status: 400 })
     }
 
-    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+    const updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
       cancel_at_period_end: true,
     })
 
     await supabase
       .from('customer_subscriptions')
-      .update({ cancel_at_period_end: true })
+      .update({
+        cancel_at_period_end: true,
+        current_period_end: updatedSub.current_period_end
+          ? new Date(updatedSub.current_period_end * 1000).toISOString()
+          : undefined,
+      })
       .eq('id', subscription.id)
 
     return NextResponse.json({ success: true })

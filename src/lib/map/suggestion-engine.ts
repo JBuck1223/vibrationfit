@@ -14,6 +14,8 @@ export interface GreenLineDiagnosis {
   above: AssessmentCategory[]
 }
 
+export type SuggestionTier = 'base' | 'supplement'
+
 export interface SuggestedCommitment {
   title: string
   description: string
@@ -21,6 +23,7 @@ export interface SuggestedCommitment {
   cadence: Cadence
   deepLink: string
   rationale: string
+  tier: SuggestionTier
 }
 
 /**
@@ -42,45 +45,50 @@ export function diagnoseGreenLine(greenLineStatus: GreenLineMap): GreenLineDiagn
 }
 
 /**
- * Generate the default first-MAP commitment suggestions for an intensive user.
+ * Generate the first-MAP commitment suggestions for an intensive user.
  *
- * These are VibrationFit-internal actions chosen to move below/transition
- * categories toward above the Green Line. Every suggestion maps to a tool
- * the user built during Steps 1-10 of the intensive.
+ * Structure:
+ *   BASE (4 universal) — one per MAP pillar, every user always gets these
+ *   SUPPLEMENTS — extra activation reps on below/transition categories
  *
- * The rules are deterministic: no AI, no tokens, instant results.
+ * First target: "Above the Green Line Emotional State"
+ * We help you get there with Creation, Activation, Connection, and Sessions.
+ *
+ * Deterministic: no AI, no tokens, instant results.
  */
 export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): SuggestedCommitment[] {
   const suggestions: SuggestedCommitment[] = []
-  const hasBelowOrTransition = diagnosis.below.length > 0 || diagnosis.transition.length > 0
+
+  // ── BASE: 4 universal commitments (one per MAP pillar) ────────────
 
   suggestions.push({
-    title: 'Morning Vision + Daily Paper',
-    description: 'Read your Life Vision, scan your Vision Board, and complete your Daily Paper each morning.',
+    title: 'Vision Audio Listen',
+    description: 'Listen to your Life Vision audio daily to stay anchored in the life you\'re creating.',
     category: 'activations',
     cadence: { kind: 'daily' },
-    deepLink: '/daily-paper/new',
-    rationale: hasBelowOrTransition
-      ? `Anchors your day in the vision. Targets your ${formatCategoryList(diagnosis.below)} areas.`
-      : 'Anchors your day in the vision you created.',
+    deepLink: '/life-vision',
+    rationale: 'Daily immersion in your vision rewires your default emotional state toward above the Green Line.',
+    tier: 'base',
   })
 
   suggestions.push({
-    title: 'Night Sleep Immersion + Journal',
-    description: 'Journal evidence of alignment, then drift off to your sleep immersion track.',
+    title: 'Journal: Wins & Wobbles',
+    description: 'Capture evidence of alignment (wins) and areas of resistance (wobbles). Quick entries are great! Getting it out of your head and stored helps us reference it later.',
     category: 'creations',
     cadence: { kind: 'daily' },
     deepLink: '/journal/new',
-    rationale: 'Creates evidence of alignment and reinforces your vision during sleep.',
+    rationale: 'Journaling creates evidence of your shift and surfaces wobbles before they take hold.',
+    tier: 'base',
   })
 
   suggestions.push({
     title: 'Vibe Tribe Engagement',
-    description: 'Share a post or engage with the community for support and accountability.',
+    description: 'Share a post, celebrate a win, or engage with the community for support and accountability.',
     category: 'connections',
     cadence: { kind: 'days_per_week', count: 2 },
     deepLink: '/vibe-tribe',
-    rationale: 'Community connection accelerates alignment shifts.',
+    rationale: 'Community connection accelerates alignment shifts and keeps you accountable.',
+    tier: 'base',
   })
 
   suggestions.push({
@@ -90,16 +98,26 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
     cadence: { kind: 'days_per_week', count: 1 },
     deepLink: '/alignment-gym',
     rationale: 'Live coaching keeps momentum on your toughest categories.',
+    tier: 'base',
   })
 
-  if (diagnosis.below.length >= 3) {
+  // ── SUPPLEMENTS: extra reps on below/transition areas ─────────────
+
+  const needsAttention = [...diagnosis.below, ...diagnosis.transition]
+
+  for (const cat of needsAttention) {
+    const displayName = CATEGORY_DISPLAY_NAMES[cat]
+    const isBelow = diagnosis.below.includes(cat)
+    const severity = isBelow ? 'below the Green Line' : 'in the transition zone'
+
     suggestions.push({
-      title: 'Vision Audio Listen',
-      description: 'Listen to your full Life Vision audio or a category-specific track.',
+      title: `Activate ${displayName}`,
+      description: `Extra activation reps on ${displayName}: listen to your ${displayName} vision audio, journal insights about how you feel shifting, abundance connections, and any wobbles. We have tools to help you work through those.`,
       category: 'activations',
-      cadence: { kind: 'daily' },
+      cadence: { kind: 'days_per_week', count: isBelow ? 3 : 2 },
       deepLink: '/life-vision',
-      rationale: `With ${diagnosis.below.length} categories below the line, extra immersion builds momentum.`,
+      rationale: `${displayName} is ${severity}. Targeted reps accelerate the shift above the line.`,
+      tier: 'supplement',
     })
   }
 
@@ -138,10 +156,14 @@ const CATEGORY_DISPLAY_NAMES: Record<AssessmentCategory, string> = {
   spirituality: 'Spirituality',
 }
 
-function formatCategoryList(categories: AssessmentCategory[]): string {
+export function formatCategoryList(categories: AssessmentCategory[]): string {
   if (categories.length === 0) return ''
   const names = categories.map(c => CATEGORY_DISPLAY_NAMES[c])
   if (names.length === 1) return names[0]
   if (names.length === 2) return `${names[0]} and ${names[1]}`
   return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
+}
+
+export function getCategoryDisplayName(cat: AssessmentCategory): string {
+  return CATEGORY_DISPLAY_NAMES[cat] || cat
 }

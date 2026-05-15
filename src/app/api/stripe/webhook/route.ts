@@ -421,6 +421,24 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         
+        // Ensure the customer's invoice_settings has a default payment method
+        // so trial subscriptions (e.g. Vision Pro) can charge when they convert.
+        if (session.customer && session.payment_intent) {
+          try {
+            const cscPI = await stripe.paymentIntents.retrieve(session.payment_intent as string)
+            const cscPM = typeof cscPI.payment_method === 'string'
+              ? cscPI.payment_method
+              : (cscPI.payment_method as Stripe.PaymentMethod)?.id
+            if (cscPM) {
+              await stripe.customers.update(session.customer as string, {
+                invoice_settings: { default_payment_method: cscPM },
+              })
+            }
+          } catch (err) {
+            console.error('Failed to set customer default PM from checkout:', err)
+          }
+        }
+
         // Check if this is an intensive combined checkout (handled by block 3 below)
         const isIntensiveCombined = session.metadata?.product_type === 'combined_intensive_continuity'
         
@@ -845,7 +863,16 @@ export async function POST(request: NextRequest) {
                 .single()
 
               if (tier) {
-                // Create Vision Pro subscription with 56-day trial
+                // Retrieve the payment method from the checkout so the Vision Pro
+                // subscription can charge automatically when the trial ends.
+                let vpDefaultPM: string | undefined
+                if (session.payment_intent) {
+                  const sessionPI = await stripe.paymentIntents.retrieve(session.payment_intent as string)
+                  vpDefaultPM = typeof sessionPI.payment_method === 'string'
+                    ? sessionPI.payment_method
+                    : (sessionPI.payment_method as Stripe.PaymentMethod)?.id
+                }
+
                 const visionProSubscription = await stripe.subscriptions.create({
                   customer: customerId,
                   items: [
@@ -854,7 +881,8 @@ export async function POST(request: NextRequest) {
                       quantity: 1,
                     },
                   ],
-                  trial_period_days: 56, // Start billing after 56 days
+                  trial_period_days: 56,
+                  ...(vpDefaultPM && { default_payment_method: vpDefaultPM }),
                   metadata: {
                     product_type: 'vision_pro_continuity',
                     tier_type: tierType,
@@ -1161,9 +1189,21 @@ export async function POST(request: NextRequest) {
           try {
             console.log('Creating Vision Pro subscription separately with 56-day trial...')
             
-            // Create Vision Pro subscription with 56-day trial via API
-            // NOTE: Cannot configure trial_period_days in Stripe Dashboard per price
-            // Must use trial_period_days parameter in Subscription.create API call
+            // Retrieve the payment method so the Vision Pro subscription can
+            // charge automatically when the 56-day trial ends.
+            let vpDefaultPM: string | undefined
+            if (session.payment_intent) {
+              const sessionPI = await stripe.paymentIntents.retrieve(session.payment_intent as string)
+              vpDefaultPM = typeof sessionPI.payment_method === 'string'
+                ? sessionPI.payment_method
+                : (sessionPI.payment_method as Stripe.PaymentMethod)?.id
+            } else if (session.subscription) {
+              const sessionSub = await stripe.subscriptions.retrieve(session.subscription as string)
+              vpDefaultPM = typeof sessionSub.default_payment_method === 'string'
+                ? sessionSub.default_payment_method
+                : (sessionSub.default_payment_method as Stripe.PaymentMethod)?.id ?? undefined
+            }
+
             const visionProSubscription = await stripe.subscriptions.create({
               customer: customerId,
               items: [
@@ -1172,7 +1212,8 @@ export async function POST(request: NextRequest) {
                   quantity: 1,
                 },
               ],
-              trial_period_days: 56, // Vision Pro trial (starts billing in 56 days)
+              trial_period_days: 56,
+              ...(vpDefaultPM && { default_payment_method: vpDefaultPM }),
               metadata: {
                 product_type: 'vision_pro_continuity',
                 tier_type: tierType,
@@ -1874,6 +1915,19 @@ export async function POST(request: NextRequest) {
         const purchaseType = meta.purchase_type
         const productType = meta.product_type
 
+        // Ensure the customer's invoice_settings has a default payment method
+        // so trial subscriptions (e.g. Vision Pro) can charge when they convert.
+        if (pi.customer && pi.payment_method) {
+          const pmId = typeof pi.payment_method === 'string'
+            ? pi.payment_method
+            : (pi.payment_method as Stripe.PaymentMethod).id
+          if (pmId) {
+            await stripe.customers.update(pi.customer as string, {
+              invoice_settings: { default_payment_method: pmId },
+            }).catch(err => console.error('Failed to set customer default PM:', err))
+          }
+        }
+
         if (!product || (!purchaseType && !productType)) {
           break
         }
@@ -2105,10 +2159,15 @@ export async function POST(request: NextRequest) {
                 .single()
 
               if (tier && customerId) {
+                const vpPaymentMethod = typeof pi.payment_method === 'string'
+                  ? pi.payment_method
+                  : (pi.payment_method as Stripe.PaymentMethod)?.id
+
                 const visionProSubscription = await stripe.subscriptions.create({
                   customer: customerId,
                   items: [{ price: continuityPriceId, quantity: 1 }],
                   trial_period_days: 56,
+                  ...(vpPaymentMethod && { default_payment_method: vpPaymentMethod }),
                   metadata: {
                     product_type: 'vision_pro_continuity',
                     tier_type: tierType,
