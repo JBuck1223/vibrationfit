@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Container, Stack, PageHero, Button, Spinner } from '@/lib/design-system/components'
-import { ChevronLeft, Zap, CreditCard, Users } from 'lucide-react'
+import { Container, Stack, Spinner } from '@/lib/design-system/components'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Suspense } from 'react'
@@ -14,16 +13,6 @@ import PaymentMethodsList from '@/components/billing/PaymentMethodsList'
 import InvoiceHistory from '@/components/billing/InvoiceHistory'
 import AddCardForm from '@/components/billing/AddCardForm'
 import CancelMembershipDialog from '@/components/billing/CancelMembershipDialog'
-
-function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
-  return (
-    <div className="flex items-center gap-2 pt-2">
-      <Icon className="w-4 h-4 text-neutral-500" />
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{title}</h2>
-      <div className="flex-1 border-t border-neutral-800" />
-    </div>
-  )
-}
 
 function BillingContent() {
   const router = useRouter()
@@ -126,7 +115,7 @@ function BillingContent() {
   if (loading) {
     return (
       <Container size="xl">
-        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center py-12">
           <Spinner size="lg" />
         </div>
       </Container>
@@ -134,28 +123,17 @@ function BillingContent() {
   }
 
   return (
-    <Container size="xl">
-      <Stack gap="lg">
-        <PageHero
-          title="Billing & Subscription"
-          subtitle="Manage your purchases, membership, and billing history"
-        >
-          <div className="flex justify-center w-full">
-            <Button variant="outline" onClick={() => router.push('/account')}>
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Account Dashboard
-            </Button>
-          </div>
-        </PageHero>
+    <Container size="xl" className="pb-12">
+      <Stack gap="md">
+        <header className="pt-1 text-center">
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Billing</h1>
+          <p className="text-sm text-neutral-500 mt-1.5 max-w-md mx-auto">
+            Subscription, payment methods, and invoices.
+          </p>
+        </header>
 
-        {intensive && (
-          <>
-            <SectionHeader icon={Zap} title="Vision Activation Intensive" />
-            <IntensiveOverview intensive={intensive} />
-          </>
-        )}
+        {intensive && <IntensiveOverview intensive={intensive} />}
 
-        <SectionHeader icon={CreditCard} title="Vision Pro Membership" />
         <PlanOverview
           subscription={membership?.subscription || null}
           upcomingInvoice={membership?.upcomingInvoice || null}
@@ -167,17 +145,14 @@ function BillingContent() {
         />
 
         {household && (
-          <>
-            <SectionHeader icon={Users} title="Household" />
-            <HouseholdSection
-              data={household}
-              billingInterval={membership?.subscription?.tier?.billingInterval || '28day'}
-              onRefresh={fetchAll}
-            />
-          </>
+          <HouseholdSection
+            data={household}
+            billingInterval={membership?.subscription?.tier?.billingInterval || '28day'}
+            onRefresh={fetchAll}
+          />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
           <AddOnsList
             addons={membership?.addons || []}
             onRemoved={fetchAll}
@@ -212,7 +187,7 @@ export default function BillingPage() {
   return (
     <Suspense fallback={
       <Container size="xl">
-        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center py-12">
           <Spinner size="lg" />
         </div>
       </Container>

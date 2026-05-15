@@ -2,7 +2,7 @@
 
 import { Card, Badge, Button } from '@/lib/design-system/components'
 import Link from 'next/link'
-import { Zap, CheckCircle, Clock, Calendar, Mail } from 'lucide-react'
+import { Zap, CheckCircle, Clock, Calendar, Mail, Home } from 'lucide-react'
 import { formatPrice } from '@/lib/billing/config'
 
 type Installment = {
@@ -66,37 +66,41 @@ export default function IntensiveOverview({ intensive }: Props) {
   const allPaid = intensive.installmentsPaid >= intensive.installmentsTotal
 
   return (
-    <Card className="p-6">
-      <div className="flex items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-start gap-3 min-w-0">
-          <Zap className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
-          <h3 className="text-lg font-bold text-white leading-tight">{intensive.productName}</h3>
+    <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+      <div className="mb-5 flex flex-col items-center gap-2 text-center md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-x-2">
+        <div className="hidden min-w-0 md:block" aria-hidden="true" />
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1 px-1">
+          <Zap className="w-5 h-5 text-[#39FF14] shrink-0" aria-hidden />
+          <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">{intensive.productName}</h3>
         </div>
-        {getStatusBadge(intensive.completionStatus)}
+        <div className="flex shrink-0 justify-center md:justify-end">
+          {getStatusBadge(intensive.completionStatus)}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-        <div className="bg-neutral-900 rounded-xl p-3">
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-1">
-            <Calendar className="w-3.5 h-3.5" />
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-5">
+        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
             Purchased
           </div>
           <div className="text-sm font-medium text-white">
             {formatDate(intensive.purchasedAt)}
           </div>
         </div>
-        <div className="bg-neutral-900 rounded-xl p-3">
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-1">
-            Payment Plan
+        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
+            Plan
           </div>
           <div className="text-sm font-medium text-white">
             {getPlanLabel(intensive.paymentPlan)}
           </div>
         </div>
         {intensive.isHousehold && (
-          <div className="bg-neutral-900 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-1">
-              Plan Type
+          <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80 col-span-2">
+            <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
+              <Home className="w-3.5 h-3.5 shrink-0" />
+              Type
             </div>
             <div className="text-sm font-medium text-white">Household</div>
           </div>
@@ -104,34 +108,34 @@ export default function IntensiveOverview({ intensive }: Props) {
       </div>
 
       {intensive.installments.length > 0 && (
-        <div className="mb-6">
-          <div className="text-xs text-neutral-400 uppercase tracking-wide mb-3">
-            Payment Schedule
+        <div className="mb-5">
+          <div className="text-[11px] text-neutral-500 uppercase tracking-wide mb-2">
+            Payment schedule
           </div>
           <div className="space-y-2">
             {intensive.installments.map((inst) => (
               <div
                 key={inst.number}
-                className="flex items-center justify-between bg-neutral-900 rounded-xl px-4 py-3"
+                className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-neutral-950/80 rounded-xl px-3 py-3 sm:px-4 border border-neutral-800/80"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {inst.status === 'paid' ? (
-                    <CheckCircle className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-[#39FF14] shrink-0" />
                   ) : (
-                    <Clock className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                    <Clock className="w-4 h-4 text-neutral-500 shrink-0" />
                   )}
-                  <div>
+                  <div className="min-w-0">
                     <span className="text-sm font-medium text-white">
                       {formatPrice(inst.amount)}
                     </span>
                     {intensive.installmentsTotal > 1 && (
                       <span className="text-xs text-neutral-500 ml-2">
-                        Payment {inst.number} of {intensive.installmentsTotal}
+                        {inst.number} / {intensive.installmentsTotal}
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="text-sm text-neutral-400">
+                <div className="text-sm text-neutral-400 sm:text-right pl-7 sm:pl-0 shrink-0">
                   {inst.status === 'paid' ? (
                     <span className="text-[#39FF14]">Paid {formatDate(inst.date)}</span>
                   ) : (
@@ -149,9 +153,11 @@ export default function IntensiveOverview({ intensive }: Props) {
         </div>
       )}
 
-      <div className="flex justify-center">
+      <div className="flex justify-center pt-1">
         <Button
           variant="ghost"
+          size="sm"
+          className="w-full max-w-sm justify-center md:w-auto md:max-w-none"
           asChild
         >
           <Link href="/support/tickets" className="inline-flex items-center justify-center gap-2">

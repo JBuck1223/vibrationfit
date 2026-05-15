@@ -148,7 +148,7 @@ export default function CancelMembershipDialog({
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="mt-3"
+                  className="mt-3 w-full sm:w-auto justify-center"
                   onClick={() => setStep('pause')}
                 >
                   <Pause className="w-3.5 h-3.5 mr-1.5" />
@@ -158,13 +158,13 @@ export default function CancelMembershipDialog({
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button variant="ghost" className="flex-1" onClick={onClose}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 pt-2">
+            <Button variant="ghost" className="w-full sm:flex-1" onClick={onClose}>
               Keep Membership
             </Button>
             <Button
               variant="danger"
-              className="flex-1"
+              className="w-full sm:flex-1"
               onClick={() => setStep('confirm')}
             >
               Continue to Cancel
@@ -226,13 +226,13 @@ export default function CancelMembershipDialog({
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button variant="ghost" className="flex-1" onClick={() => setStep('overview')}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 pt-2">
+            <Button variant="ghost" className="w-full sm:flex-1" onClick={() => setStep('overview')}>
               Back
             </Button>
             <Button
               variant="secondary"
-              className="flex-1"
+              className="w-full sm:flex-1"
               onClick={handlePause}
               disabled={isPausing}
               loading={isPausing}
@@ -267,13 +267,13 @@ export default function CancelMembershipDialog({
             </ul>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button variant="ghost" className="flex-1" onClick={() => setStep('overview')}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 pt-2">
+            <Button variant="ghost" className="w-full sm:flex-1" onClick={() => setStep('overview')}>
               Go Back
             </Button>
             <Button
               variant="danger"
-              className="flex-1"
+              className="w-full sm:flex-1"
               onClick={onConfirmCancel}
               disabled={isCanceling}
               loading={isCanceling}

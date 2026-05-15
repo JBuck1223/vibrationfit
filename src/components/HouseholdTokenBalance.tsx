@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Badge, Spinner, Button } from '@/lib/design-system/components'
 import Link from 'next/link'
-import { Zap, Users } from 'lucide-react'
+import { Zap, Home } from 'lucide-react'
 
 interface TokenBalanceData {
   totalActive: number
@@ -144,7 +144,7 @@ export default function HouseholdTokenBalance() {
       </p>
 
       <div className="flex items-center gap-2 text-sm text-neutral-400">
-        <Users className="w-4 h-4" />
+        <Home className="w-4 h-4" />
         <span>
           Shared pool ({data.memberCount} {data.memberCount === 1 ? 'member' : 'members'})
         </span>
