@@ -32,12 +32,14 @@ export async function POST() {
       cancel_at_period_end: true,
     })
 
+    const periodEnd = (updatedSub as unknown as { current_period_end?: number }).current_period_end
+
     await supabase
       .from('customer_subscriptions')
       .update({
         cancel_at_period_end: true,
-        current_period_end: updatedSub.current_period_end
-          ? new Date(updatedSub.current_period_end * 1000).toISOString()
+        current_period_end: periodEnd
+          ? new Date(periodEnd * 1000).toISOString()
           : undefined,
       })
       .eq('id', subscription.id)
