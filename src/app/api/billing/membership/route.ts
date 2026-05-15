@@ -136,10 +136,10 @@ export async function GET() {
     if (stripe && subscription.stripe_customer_id) {
       const tasks: Promise<void>[] = []
 
-      // Fetch active add-ons from Stripe subscription line items
+      // Fetch active add-ons and sync period dates from Stripe subscription
       if (subscription.stripe_subscription_id) {
         tasks.push(
-          stripe.subscriptions.retrieve(subscription.stripe_subscription_id).then(stripeSub => {
+          stripe.subscriptions.retrieve(subscription.stripe_subscription_id).then(async (stripeSub) => {
             addons = stripeSub.items.data
               .filter(item => {
                 const meta = item.price.metadata || {}
@@ -158,6 +158,26 @@ export async function GET() {
                   ? item.price.product
                   : (item.price.product as Stripe.Product)?.name || 'Add-on',
               }))
+
+            // Sync period dates from Stripe if DB is stale
+            const stripeStart = stripeSub.current_period_start
+              ? new Date(stripeSub.current_period_start * 1000).toISOString()
+              : null
+            const stripeEnd = stripeSub.current_period_end
+              ? new Date(stripeSub.current_period_end * 1000).toISOString()
+              : null
+
+            if (stripeEnd && stripeEnd !== subscription.current_period_end) {
+              subscription.current_period_start = stripeStart
+              subscription.current_period_end = stripeEnd
+              subscription.cancel_at_period_end = stripeSub.cancel_at_period_end
+              const admin = createAdminClient()
+              admin.from('customer_subscriptions').update({
+                current_period_start: stripeStart,
+                current_period_end: stripeEnd,
+                cancel_at_period_end: stripeSub.cancel_at_period_end,
+              }).eq('id', subscription.id).then(() => {})
+            }
           }).catch(() => { /* non-critical */ })
         )
 
