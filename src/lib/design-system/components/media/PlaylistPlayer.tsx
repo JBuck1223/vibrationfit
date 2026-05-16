@@ -138,7 +138,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
           { onConflict: 'user_id,area,activation_date', ignoreDuplicates: true },
         )
 
-        const { autoVerifyClient } = await import('@/lib/map/auto-verify')
+        const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
         autoVerifyClient('vision-audio')
       }
     } catch (error) {

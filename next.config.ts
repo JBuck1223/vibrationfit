@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
         destination: '/survey/alignment-gym',
         permanent: false,
       },
+      {
+        source: '/dashboard/tokens',
+        destination: '/tokens',
+        permanent: false,
+      },
+      {
+        source: '/dashboard/tokens/history',
+        destination: '/tokens/history',
+        permanent: false,
+      },
     ]
   },
   images: {
@@ -26,9 +36,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Prevent caching issues in production
+  // Production: unique id per deploy so CDN/clients do not keep stale chunks.
+  // Development: stable id so HTML and chunk paths stay aligned if the dev server re-reads config.
   generateBuildId: async () => {
-    // Use timestamp to ensure unique builds
+    if (process.env.NODE_ENV === 'development') {
+      return 'dev'
+    }
     return `build-${Date.now()}`
   },
 };

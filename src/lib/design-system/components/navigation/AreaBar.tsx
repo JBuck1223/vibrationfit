@@ -13,6 +13,8 @@ export interface AreaBarTab {
   path: string
   icon?: LucideIcon
   matchPaths?: string[]
+  /** When true, tab is active only on exact `path` / `matchPaths` hits (no `path/` prefix matching). */
+  exactPath?: boolean
 }
 
 export interface AreaBarPill {
@@ -69,10 +71,14 @@ export interface AreaBarVersionSelector {
 export interface AreaBarProps {
   /** Title on Left */
   area: { name: string; icon: LucideIcon }
+  /** When set, replaces `area.name` in the main title row (e.g. current page headline) */
+  areaHeadline?: string
   /** Top Nav in Center */
   tabs: AreaBarTab[]
   /** Context Nav — secondary tab strip rendered below Top Nav */
   contextNav?: AreaBarContextNavItem[]
+  /** Small uppercase line above context text (e.g. former PageHero eyebrow) */
+  contextEyebrow?: string
   /** Context Text — descriptive subtext rendered below Context Nav */
   contextText?: string
   /** Version Selectors — dropdown pickers, positioned topRight or contextRow */
@@ -86,11 +92,21 @@ export interface AreaBarProps {
   activeParentPath?: string
   variant?: 'default' | 'hero'
   appLikePrimaryTabs?: boolean
+  /**
+   * When true with `appLikePrimaryTabs`, uses a wider center tab strip (no max-w-sm cap),
+   * flexible grid, and optional dense tab labels for many tabs. Intended for `/account` only.
+   */
+  fluidAppLikeTabs?: boolean
 }
 
 // ─── Tab active detection ───
 
 function isTabActive(pathname: string, tab: AreaBarTab, allTabs: AreaBarTab[]): boolean {
+  if (tab.exactPath) {
+    if (pathname === tab.path) return true
+    if (tab.matchPaths?.some(p => pathname === p)) return true
+    return false
+  }
   if (tab.matchPaths?.some(p => pathname === p || pathname.startsWith(p + '/'))) return true
   if (pathname === tab.path) return true
   if (pathname.startsWith(tab.path + '/')) {
@@ -115,14 +131,27 @@ const GRID_COLS: Record<number, string> = {
   6: 'grid-cols-6',
 }
 
-const APP_LIKE_TAB_NAV =
+const APP_LIKE_TAB_NAV_DEFAULT =
   'w-full min-w-0 grid gap-0 overflow-hidden rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]'
+const APP_LIKE_TAB_NAV_FLUID =
+  'w-full min-w-0 grid gap-0 overflow-x-auto overflow-y-hidden rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]'
 
-function appLikePrimaryLinkClassName(isSelected: boolean, size: 'compact' | 'default' = 'compact') {
+function appLikePrimaryLinkClassName(isSelected: boolean, size: 'compact' | 'default' = 'compact', denseNav = false) {
+  if (!denseNav) {
+    const sizeCls =
+      size === 'compact'
+        ? 'min-h-[2.75rem] flex-col items-center justify-center gap-0.5 px-1.5 py-2 text-xs sm:min-h-11 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm'
+        : 'min-h-10 flex-row items-center justify-center gap-1.5 px-2.5 py-2.5 text-sm'
+    return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${
+      isSelected
+        ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
+        : 'border-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200 active:text-zinc-300'
+    }`
+  }
   const sizeCls =
     size === 'compact'
-      ? 'min-h-[2.75rem] flex-col items-center justify-center gap-0.5 px-1.5 py-2 text-xs sm:min-h-11 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm'
-      : 'min-h-10 flex-row items-center justify-center gap-1.5 px-2.5 py-2.5 text-sm'
+      ? 'min-h-[2.75rem] flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] leading-tight sm:min-h-11 sm:flex-row sm:gap-1 sm:px-1.5 sm:text-xs'
+      : 'min-h-10 flex-row items-center justify-center gap-1 px-1.5 py-2 text-xs'
   return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${
     isSelected
       ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
@@ -435,8 +464,10 @@ function VersionSelectorSheet({
 
 export function AreaBar({
   area,
+  areaHeadline,
   tabs,
   contextNav,
+  contextEyebrow,
   contextText,
   versionSelectors,
   pills,
@@ -448,21 +479,27 @@ export function AreaBar({
   activeParentPath,
   variant = 'default',
   appLikePrimaryTabs = false,
+  fluidAppLikeTabs = false,
 }: AreaBarProps) {
   const pathname = usePathname()
   const [openSheetId, setOpenSheetId] = useState<string | null>(null)
 
   const AreaIcon = area.icon
+  const displayTitle = areaHeadline ?? area.name
   const tabGridCols = GRID_COLS[tabs.length] || 'grid-cols-3'
   const isHero = variant === 'hero'
+
+  const appLikeTabNavClass = fluidAppLikeTabs ? APP_LIKE_TAB_NAV_FLUID : APP_LIKE_TAB_NAV_DEFAULT
+  const useFluidAccountTabs = appLikePrimaryTabs && fluidAppLikeTabs
 
   const topRightSelectors = versionSelectors?.filter(v => v.position === 'topRight') ?? []
   const contextRowSelectors = versionSelectors?.filter(v => v.position !== 'topRight') ?? []
 
   const hasContextNav = !!(contextNav && contextNav.length > 0)
+  const hasContextEyebrow = !!contextEyebrow
   const hasContextText = !!contextText
   const hasContextRowSelectors = contextRowSelectors.length > 0
-  const hasContextRows = hasContextNav || hasContextText || hasContextRowSelectors
+  const hasContextRows = hasContextNav || hasContextEyebrow || hasContextText || hasContextRowSelectors
   const suppressActiveTab = !!(breadcrumb || (hasContextRows && !keepTabActive))
 
   // Shared waterfall rendering — called from both mobile and desktop sections
@@ -501,6 +538,22 @@ export function AreaBar({
             {sep}
             <div className={`${innerPad} ${centerCls} w-full min-w-0`}>
               <ContextNavStrip items={contextNav!} />
+            </div>
+          </div>
+        )}
+
+        {/* Context eyebrow (small caps) */}
+        {hasContextEyebrow && (
+          <div className={rowCls}>
+            {sep}
+            <div className={innerPad}>
+              <p
+                className={`text-center font-semibold uppercase tracking-[0.35em] text-primary-500/80 ${
+                  isMobile ? 'text-[10px]' : 'text-xs'
+                }`}
+              >
+                {contextEyebrow}
+              </p>
             </div>
           </div>
         )}
@@ -620,6 +673,28 @@ export function AreaBar({
 
   const mobileTitlePaddingTop = { paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' } as const
 
+  const denseAppTabs = useFluidAccountTabs && tabs.length > 4
+
+  const desktopRowGridClass = useFluidAccountTabs
+    ? 'grid grid-cols-[max-content_minmax(0,1fr)_max-content] items-center gap-3 sm:gap-4'
+    : 'grid grid-cols-[1fr_auto_1fr] items-center'
+
+  const desktopTitleColClass = useFluidAccountTabs
+    ? 'flex items-center gap-3 py-3 pr-2'
+    : 'flex items-center gap-3 py-3'
+
+  const desktopH1Class = 'text-xl font-bold text-white tracking-tight'
+
+  const desktopNavAppLikeClass = useFluidAccountTabs
+    ? `${appLikeTabNavClass} ${tabGridCols} min-w-0 w-full max-w-lg`
+    : `${appLikeTabNavClass} min-w-[12rem] max-w-sm ${tabGridCols}`
+
+  const desktopRightFluidOverlayClass = 'flex shrink-0 items-center gap-2 justify-end'
+
+  const desktopRightColClass = useFluidAccountTabs
+    ? 'flex shrink-0 items-center gap-2 justify-end py-3'
+    : 'flex items-center gap-2 justify-end py-3'
+
   // ─── Tab link rendering (shared between mobile hero/default) ───
   const renderTabLinks = (size: 'compact' | 'default') =>
     tabs.map(tab => {
@@ -635,7 +710,7 @@ export function AreaBar({
           aria-current={isSelected && appLikePrimaryTabs ? 'page' : undefined}
           className={
             appLikePrimaryTabs
-              ? `relative ${appLikePrimaryLinkClassName(isSelected, size)}`
+              ? `relative ${appLikePrimaryLinkClassName(isSelected, size, denseAppTabs)}`
               : `relative flex items-center ${size === 'compact' ? 'justify-center gap-1.5 py-2 text-xs' : 'gap-1.5 px-4 py-2 text-sm whitespace-nowrap'} font-medium rounded-lg transition-all ${
                   active
                     ? 'bg-primary-500/20 text-primary-500'
@@ -648,7 +723,7 @@ export function AreaBar({
           }
         >
           {TabIcon && <TabIcon className={size === 'compact' ? 'w-3.5 h-3.5 shrink-0' : 'w-4 h-4 shrink-0'} />}
-          <span className="min-w-0 text-center font-medium leading-tight">{tab.label}</span>
+          <span className={`min-w-0 text-center font-medium leading-tight ${denseAppTabs ? 'line-clamp-2 sm:line-clamp-none' : ''}`}>{tab.label}</span>
           {showParentCaret && (
             <ChevronDown className={`absolute ${size === 'compact' ? '-bottom-1 w-3 h-3' : '-bottom-1.5 w-3.5 h-3.5'} left-1/2 -translate-x-1/2 text-primary-500/60`} />
           )}
@@ -665,7 +740,7 @@ export function AreaBar({
             <div className="rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
               {/* Title row */}
               <div className="relative flex items-center justify-center px-4 pt-4 pb-2">
-                <h1 className="text-2xl font-bold text-white leading-tight">{area.name}</h1>
+                <h1 className="text-2xl font-bold text-white leading-tight">{displayTitle}</h1>
                 {(hasTopRight || menuItems) && (
                   <div className="absolute right-4 flex items-center gap-2">
                     {topRightSelectors.map(sel => renderMobileTopRightTrigger(sel))}
@@ -674,8 +749,8 @@ export function AreaBar({
                 )}
               </div>
               {/* Tabs */}
-              <div className="px-3 pb-2">
-                <nav className={appLikePrimaryTabs ? `${APP_LIKE_TAB_NAV} ${tabGridCols}` : `grid ${tabGridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`}>
+              <div className={`px-3 pb-2${useFluidAccountTabs ? ' flex justify-center' : ''}`}>
+                <nav className={appLikePrimaryTabs ? `${appLikeTabNavClass} ${tabGridCols}${useFluidAccountTabs ? ' w-full max-w-lg' : ''}` : `grid ${tabGridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`}>
                   {renderTabLinks('compact')}
                 </nav>
               </div>
@@ -692,7 +767,7 @@ export function AreaBar({
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
                     <AreaIcon className="h-4 w-4 text-[#39FF14]" />
                   </div>
-                  <span className="min-w-0 truncate text-base font-bold tracking-tight text-white">{area.name}</span>
+                  <span className="min-w-0 truncate text-base font-bold tracking-tight text-white">{displayTitle}</span>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {topRightSelectors.map(sel => renderMobileTopRightTrigger(sel))}
@@ -708,13 +783,13 @@ export function AreaBar({
                   <AreaIcon className="h-4 w-4 text-[#39FF14]" />
                 </div>
                 <span className="max-w-[min(72vw,18rem)] truncate text-base font-bold tracking-tight text-white">
-                  {area.name}
+                  {displayTitle}
                 </span>
               </div>
             )}
             {/* Tabs */}
-            <div className="w-full min-w-0 px-3 pb-2.5">
-              <nav className={appLikePrimaryTabs ? `${APP_LIKE_TAB_NAV} ${tabGridCols}` : `grid ${tabGridCols} w-full p-1 gap-1 rounded-xl bg-neutral-900/60`}>
+            <div className={`w-full min-w-0 px-3 pb-2.5${useFluidAccountTabs ? ' flex justify-center' : ''}`}>
+              <nav className={appLikePrimaryTabs ? `${appLikeTabNavClass} ${tabGridCols}${useFluidAccountTabs ? ' w-full max-w-lg' : ''}` : `grid ${tabGridCols} w-full p-1 gap-1 rounded-xl bg-neutral-900/60`}>
                 {renderTabLinks('compact')}
               </nav>
             </div>
@@ -730,23 +805,61 @@ export function AreaBar({
           <div className="rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             {/* Row 1: Title | Tabs | Right */}
             <div className="px-6">
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-                <div className="flex items-center gap-3 py-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#39FF14]/10 flex items-center justify-center">
-                    <AreaIcon className="w-5 h-5 text-[#39FF14]" />
+              {useFluidAccountTabs ? (
+                <div className="relative py-3">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex max-w-[40%] items-center">
+                    <div className="pointer-events-auto flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
+                        <AreaIcon className="h-5 w-5 text-[#39FF14]" />
+                      </div>
+                      <h1 className={`${desktopH1Class} min-w-0 truncate`}>{displayTitle}</h1>
+                    </div>
                   </div>
-                  <h1 className="text-xl font-bold text-white tracking-tight">{area.name}</h1>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex items-center justify-end">
+                    <div className={desktopRightFluidOverlayClass}>
+                      {topRightSelectors.map(sel => (
+                        <VersionSelectorDropdown key={sel.id} selector={sel} compact />
+                      ))}
+                      {menuItems}
+                    </div>
+                  </div>
+                  <div className="relative z-20 flex justify-center">
+                    <nav
+                      className={
+                        appLikePrimaryTabs
+                          ? desktopNavAppLikeClass
+                          : 'flex items-center gap-1 p-1.5 rounded-xl bg-black/30 backdrop-blur-sm'
+                      }
+                    >
+                      {renderTabLinks('default')}
+                    </nav>
+                  </div>
                 </div>
-                <nav className={appLikePrimaryTabs ? `${APP_LIKE_TAB_NAV} min-w-[12rem] max-w-sm ${tabGridCols}` : 'flex items-center gap-1 p-1.5 rounded-xl bg-black/30 backdrop-blur-sm'}>
-                  {renderTabLinks('default')}
-                </nav>
-                <div className="flex items-center gap-2 justify-end py-3">
-                  {topRightSelectors.map(sel => (
-                    <VersionSelectorDropdown key={sel.id} selector={sel} compact />
-                  ))}
-                  {menuItems}
+              ) : (
+                <div className={desktopRowGridClass}>
+                  <div className={desktopTitleColClass}>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
+                      <AreaIcon className="h-5 w-5 text-[#39FF14]" />
+                    </div>
+                    <h1 className={desktopH1Class}>{displayTitle}</h1>
+                  </div>
+                  <nav
+                    className={
+                      appLikePrimaryTabs
+                        ? desktopNavAppLikeClass
+                        : 'flex items-center gap-1 p-1.5 rounded-xl bg-black/30 backdrop-blur-sm'
+                    }
+                  >
+                    {renderTabLinks('default')}
+                  </nav>
+                  <div className={desktopRightColClass}>
+                    {topRightSelectors.map(sel => (
+                      <VersionSelectorDropdown key={sel.id} selector={sel} compact />
+                    ))}
+                    {menuItems}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             {/* Waterfall rows */}
             {renderWaterfallRows({ isMobile: false })}
@@ -756,23 +869,61 @@ export function AreaBar({
         <div className="hidden md:block rounded-2xl border-2 border-[#333] bg-neutral-850">
           {/* Row 1: Title | Tabs | Right */}
           <div className="px-6">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-              <div className="flex items-center gap-3 py-3">
-                <div className="w-9 h-9 rounded-xl bg-[#39FF14]/10 flex items-center justify-center">
-                  <AreaIcon className="w-5 h-5 text-[#39FF14]" />
+            {useFluidAccountTabs ? (
+              <div className="relative py-3">
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex max-w-[40%] items-center">
+                  <div className="pointer-events-auto flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
+                      <AreaIcon className="h-5 w-5 text-[#39FF14]" />
+                    </div>
+                    <h1 className={`${desktopH1Class} min-w-0 truncate`}>{displayTitle}</h1>
+                  </div>
                 </div>
-                <h1 className="text-xl font-bold text-white tracking-tight">{area.name}</h1>
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex items-center justify-end">
+                  <div className={desktopRightFluidOverlayClass}>
+                    {topRightSelectors.map(sel => (
+                      <VersionSelectorDropdown key={sel.id} selector={sel} compact />
+                    ))}
+                    {menuItems}
+                  </div>
+                </div>
+                <div className="relative z-20 flex justify-center">
+                  <nav
+                    className={
+                      appLikePrimaryTabs
+                        ? desktopNavAppLikeClass
+                        : 'flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60'
+                    }
+                  >
+                    {renderTabLinks('default')}
+                  </nav>
+                </div>
               </div>
-              <nav className={appLikePrimaryTabs ? `${APP_LIKE_TAB_NAV} min-w-[12rem] max-w-sm ${tabGridCols}` : 'flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60'}>
-                {renderTabLinks('default')}
-              </nav>
-              <div className="flex items-center gap-2 justify-end py-3">
-                {topRightSelectors.map(sel => (
-                  <VersionSelectorDropdown key={sel.id} selector={sel} compact />
-                ))}
-                {menuItems}
+            ) : (
+              <div className={desktopRowGridClass}>
+                <div className={desktopTitleColClass}>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
+                    <AreaIcon className="h-5 w-5 text-[#39FF14]" />
+                  </div>
+                  <h1 className={desktopH1Class}>{displayTitle}</h1>
+                </div>
+                <nav
+                  className={
+                    appLikePrimaryTabs
+                      ? desktopNavAppLikeClass
+                      : 'flex items-center gap-1 p-1.5 rounded-xl bg-neutral-900/60'
+                  }
+                >
+                  {renderTabLinks('default')}
+                </nav>
+                <div className={desktopRightColClass}>
+                  {topRightSelectors.map(sel => (
+                    <VersionSelectorDropdown key={sel.id} selector={sel} compact />
+                  ))}
+                  {menuItems}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           {/* Waterfall rows */}
           {renderWaterfallRows({ isMobile: false })}

@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Container, Stack, Card, Spinner, DeleteConfirmationDialog } from '@/lib/design-system/components'
-import { Sparkles, ArrowRight, RotateCcw, PlayCircle } from 'lucide-react'
+import { Sparkles, ChevronRight, RotateCcw, PlayCircle } from 'lucide-react'
 import { useProfileStudio } from '@/components/profile-studio/ProfileStudioContext'
 import { createClient } from '@/lib/supabase/client'
 
@@ -184,9 +184,13 @@ export default function ProfileCreatePage() {
     )
   }
 
+  const optionCardClass =
+    'flex w-full min-h-[5.5rem] items-start gap-3 p-3.5 shadow-none transition-[border-color,background-color,transform] duration-200 sm:min-h-0 sm:p-4 md:p-4 lg:p-4 hover:border-neutral-500 active:scale-[0.99]'
+
   return (
-    <Container size="xl" className="py-6">
-      <Stack gap="lg">
+    <Container size="xl" className="pt-2 pb-6 sm:pb-8">
+      <Stack gap="md">
+        <h1 className="sr-only">Update profile</h1>
         <div className="rounded-2xl border border-[#BF00FF]/20 bg-gradient-to-br from-[#BF00FF]/[0.04] to-transparent p-5 md:p-6">
           <div className="flex items-center justify-center gap-2.5 mb-3">
             <Sparkles className="w-4 h-4 text-[#BF00FF]" />
@@ -207,92 +211,96 @@ export default function ProfileCreatePage() {
         )}
 
         {hasDraft ? (
-          /* Draft exists: show "Continue" and "Fresh Draft" side by side */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button onClick={handleContinueDraft} disabled={navigating} className="block w-full text-left">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={handleContinueDraft}
+              disabled={navigating}
+              className="group block min-w-0 touch-manipulation w-full text-left disabled:opacity-60"
+            >
               <Card
-                variant="elevated"
-                hover
-                className="p-6 transition-all border-[#BF00FF]/30 bg-gradient-to-br from-[#BF00FF]/[0.06] to-transparent h-full"
+                variant="glass"
+                className={`${optionCardClass} hover:bg-[#BF00FF]/[0.11]`}
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#BF00FF]/15">
-                    <PlayCircle className="w-6 h-6 text-[#BF00FF]" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-base font-semibold text-white mb-1">Edit Draft</h3>
-                    <p className="text-sm text-neutral-400 leading-relaxed">
-                      {continueDescription}
-                    </p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-neutral-600 flex-shrink-0 mt-1" />
+                <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#BF00FF]/15">
+                  <PlayCircle className="h-5 w-5 text-[#BF00FF]" aria-hidden />
                 </div>
+                <div className="min-w-0 flex-1 py-0.5">
+                  <h3 className="text-sm font-semibold leading-snug text-white">Edit Draft</h3>
+                  <p className="mt-0.5 text-xs leading-snug text-neutral-500">
+                    {continueDescription}
+                  </p>
+                </div>
+                <ChevronRight
+                  className="mt-2 h-5 w-5 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400"
+                  aria-hidden
+                />
               </Card>
             </button>
 
-            <button onClick={() => setShowDeleteConfirm(true)} disabled={navigating} className="block w-full text-left">
-              <Card
-                variant="elevated"
-                hover
-                className="p-6 transition-all border-[#00FFFF]/30 bg-gradient-to-br from-[#00FFFF]/[0.06] to-transparent h-full"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#00FFFF]/15">
-                    <RotateCcw className="w-6 h-6 text-[#00FFFF]" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-base font-semibold text-white mb-1">Clone and Restart</h3>
-                    <p className="text-sm text-neutral-400 leading-relaxed">
-                      {freshDraftDescription}
-                    </p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-neutral-600 flex-shrink-0 mt-1" />
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={navigating}
+              className="group block min-w-0 touch-manipulation w-full text-left disabled:opacity-60"
+            >
+              <Card variant="glass" className={`${optionCardClass} hover:bg-cyan-500/[0.11]`}>
+                <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cyan-500/15">
+                  <RotateCcw className="h-5 w-5 text-cyan-400" aria-hidden />
                 </div>
+                <div className="min-w-0 flex-1 py-0.5">
+                  <h3 className="text-sm font-semibold leading-snug text-white">Clone and Restart</h3>
+                  <p className="mt-0.5 text-xs leading-snug text-neutral-500">
+                    {freshDraftDescription}
+                  </p>
+                </div>
+                <ChevronRight
+                  className="mt-2 h-5 w-5 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400"
+                  aria-hidden
+                />
               </Card>
             </button>
           </div>
         ) : hasActiveProfile ? (
-          /* No draft, has active: single "Update my Profile" card */
-          <button onClick={cloneActiveAndEdit} disabled={navigating} className="block w-full text-left max-w-lg mx-auto">
-            <Card
-              variant="elevated"
-              hover
-              className="p-6 transition-all border-[#BF00FF]/30 bg-gradient-to-br from-[#BF00FF]/[0.06] to-transparent"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#BF00FF]/15">
-                  <Sparkles className="w-6 h-6 text-[#BF00FF]" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-base font-semibold text-white mb-1">Update my Profile</h3>
-                  <p className="text-sm text-neutral-400 leading-relaxed">
-                    Create a new version from {vLabel}{vDate ? ` (created ${vDate})` : ''} to capture your latest life updates.
-                  </p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-neutral-600 flex-shrink-0 mt-1" />
+          <button
+            type="button"
+            onClick={cloneActiveAndEdit}
+            disabled={navigating}
+            className="group mx-auto block min-w-0 max-w-lg touch-manipulation w-full text-left disabled:opacity-60"
+          >
+            <Card variant="glass" className={`${optionCardClass} hover:bg-[#BF00FF]/[0.11]`}>
+              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#BF00FF]/15">
+                <Sparkles className="h-5 w-5 text-[#BF00FF]" aria-hidden />
               </div>
+              <div className="min-w-0 flex-1 py-0.5">
+                <h3 className="text-sm font-semibold leading-snug text-white">Update my Profile</h3>
+                <p className="mt-0.5 text-xs leading-snug text-neutral-500">
+                  Create a new version from {vLabel}
+                  {vDate ? ` (created ${vDate})` : ''} to capture your latest life updates.
+                </p>
+              </div>
+              <ChevronRight
+                className="mt-2 h-5 w-5 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400"
+                aria-hidden
+              />
             </Card>
           </button>
         ) : (
-          /* No profile at all: link to How It Works */
-          <Link href="/profile/new" className="block max-w-lg mx-auto">
-            <Card
-              variant="elevated"
-              hover
-              className="p-6 transition-all border-[#39FF14]/30 bg-gradient-to-br from-[#39FF14]/[0.06] to-transparent"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#39FF14]/15">
-                  <Sparkles className="w-6 h-6 text-[#39FF14]" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-base font-semibold text-white mb-1">Create Your First Profile</h3>
-                  <p className="text-sm text-neutral-400 leading-relaxed">
-                    Build your first profile, defining your personal information and current state across all life areas.
-                  </p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-neutral-600 flex-shrink-0 mt-1" />
+          <Link href="/profile/new" className="group mx-auto block min-w-0 max-w-lg touch-manipulation">
+            <Card variant="glass" className={`${optionCardClass} hover:bg-[#39FF14]/[0.11]`}>
+              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#39FF14]/15">
+                <Sparkles className="h-5 w-5 text-[#39FF14]" aria-hidden />
               </div>
+              <div className="min-w-0 flex-1 py-0.5">
+                <h3 className="text-sm font-semibold leading-snug text-white">Create Your First Profile</h3>
+                <p className="mt-0.5 line-clamp-3 text-xs leading-snug text-neutral-500 sm:line-clamp-4">
+                  Build your first profile, defining your personal information and current state across all life areas.
+                </p>
+              </div>
+              <ChevronRight
+                className="mt-2 h-5 w-5 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400"
+                aria-hidden
+              />
             </Card>
           </Link>
         )}

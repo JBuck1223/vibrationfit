@@ -4,14 +4,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Container, Stack, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal } from '@/lib/design-system/components'
-import { User, Check, Globe } from 'lucide-react'
+import { Check, Globe } from 'lucide-react'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 
 export default function AccountSettingsPage() {
+  const router = useRouter()
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
@@ -37,11 +39,17 @@ export default function AccountSettingsPage() {
   const [pendingOptOut, setPendingOptOut] = useState<'sms' | 'email' | null>(null)
   
   const supabase = createClient()
-  const router = useRouter()
 
   useEffect(() => {
     fetchUserData()
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.location.hash === '#household') {
+      router.replace('/account/household')
+    }
+  }, [router])
 
   // Track changes
   useEffect(() => {
@@ -287,16 +295,18 @@ export default function AccountSettingsPage() {
   }
 
   return (
-    <Container size="xl">
-      <Stack gap="lg">
+    <Container size="xl" className="pt-2 pb-6 sm:pb-8">
+      <Stack gap="md">
+        <h1 className="sr-only">Personal information</h1>
 
-        {/* Personal Information */}
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <User className="w-6 h-6 text-white" />
-            <h3 className="text-xl font-bold text-white">Personal Information</h3>
-          </div>
-          
+        <Card
+          variant="glass"
+          className="border border-white/[0.06] p-4 shadow-none sm:p-5"
+        >
+          <p className="mb-5 text-sm text-neutral-500">
+            Update your name, contact details, timezone, and how we reach you.
+          </p>
+
           {/* Profile Picture */}
           <div className="mb-6">
             <ProfilePictureUpload
@@ -306,11 +316,11 @@ export default function AccountSettingsPage() {
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
             {/* First Name */}
             <div>
-              <label className="block text-sm font-medium text-neutral-200 mb-2">
-                First Name
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                First name
               </label>
               <Input
                 type="text"
@@ -323,8 +333,8 @@ export default function AccountSettingsPage() {
 
             {/* Last Name */}
             <div>
-              <label className="block text-sm font-medium text-neutral-200 mb-2">
-                Last Name
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Last name
               </label>
               <Input
                 type="text"
@@ -337,8 +347,8 @@ export default function AccountSettingsPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-neutral-200 mb-2">
-                Email Address
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Email
               </label>
               <Input
                 type="email"
@@ -351,8 +361,8 @@ export default function AccountSettingsPage() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-neutral-200 mb-2">
-                Phone Number
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Phone
               </label>
               <Input
                 type="tel"
@@ -376,14 +386,14 @@ export default function AccountSettingsPage() {
 
             {/* Timezone */}
             <div>
-              <label className="block text-sm font-medium text-neutral-200 mb-2">
-                <Globe className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
-                Time Zone
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-neutral-400">
+                <Globe className="h-3.5 w-3.5 shrink-0 text-neutral-500" aria-hidden />
+                Time zone
               </label>
               <select
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-neutral-900 border-2 border-neutral-700 text-white text-sm focus:border-primary-500 focus:outline-none transition-colors"
+                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white transition-colors focus:border-primary-500/50 focus:outline-none focus:ring-1 focus:ring-primary-500/30"
               >
                 <optgroup label="United States">
                   <option value="America/New_York">Eastern Time (ET)</option>
@@ -406,17 +416,17 @@ export default function AccountSettingsPage() {
                   <option value="Pacific/Auckland">New Zealand (NZST)</option>
                 </optgroup>
               </select>
-              <p className="text-xs text-neutral-500 mt-1.5">
-                Used for scheduling calls and displaying times
+              <p className="mt-1.5 text-xs text-neutral-500">
+                Used for scheduling and how times appear in the app
               </p>
             </div>
 
             {/* Communication Opt-In */}
             <div>
-              <label className="block text-sm font-medium text-neutral-200 mb-2">
-                Communication Opt-In
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Communication preferences
               </label>
-              <div className="flex gap-6 mt-3">
+              <div className="mt-2 flex gap-6">
                 <Checkbox
                   checked={emailOptIn}
                   onChange={(e) => handleOptOutAttempt('email', e.target.checked)}
@@ -436,12 +446,12 @@ export default function AccountSettingsPage() {
           </div>
 
           {/* Save Button */}
-          <div className="flex justify-end mt-6">
+          <div className="mt-6 flex justify-end border-t border-white/[0.06] pt-5">
             <Button
               onClick={handleSaveAccount}
               disabled={saving || !hasChanges}
               variant="primary"
-              className={`min-w-[140px] ${hasChanges ? 'animate-pulse' : ''}`}
+              className="min-w-[140px]"
             >
               {saving ? (
                 <>
@@ -459,7 +469,6 @@ export default function AccountSettingsPage() {
             </Button>
           </div>
         </Card>
-
       </Stack>
 
       {/* Opt-Out Confirmation Modal */}

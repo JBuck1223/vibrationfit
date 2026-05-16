@@ -205,7 +205,7 @@ export const userNavigationGroups: NavGroup[] = [
       },
       {
         name: 'Activity',
-        href: '/dashboard/activity',
+        href: '/activity',
         icon: BarChart3,
         description: 'Activity feed and timeline',
       },
@@ -294,34 +294,16 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Share your referral link and earn rewards',
       },
       {
-        name: 'Billing & Subscription',
-        href: '/billing',
-        icon: CreditCard,
-        description: 'Payment and subscription',
-      },
-      {
         name: 'Tokens',
-        href: '/dashboard/tokens',
+        href: '/tokens',
         icon: Zap,
-        hasDropdown: true,
-        description: 'Manage Creation Credits',
-        children: [
-          { name: 'Token Dashboard', href: '/dashboard/tokens', icon: Zap },
-          { name: 'Token History', href: '/dashboard/token-history', icon: BarChart3 },
-          { name: 'Buy Tokens', href: '/dashboard/add-tokens', icon: ShoppingCart },
-        ],
+        description: 'Creation credits, usage, and history',
       },
       {
         name: 'Storage',
-        href: '/dashboard/storage',
+        href: '/storage',
         icon: HardDrive,
-        hasDropdown: true,
-        description: 'File storage management',
-        children: [
-          { name: 'Storage Dashboard', href: '/dashboard/storage', icon: HardDrive },
-          { name: 'Storage History', href: '/dashboard/storage-history', icon: BarChart3 },
-          { name: 'Buy Storage', href: '/dashboard/add-storage', icon: ShoppingCart },
-        ],
+        description: 'File storage usage and history',
       },
       {
         name: 'Support',
@@ -330,15 +312,10 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Get help and support',
       },
       {
-        name: 'Settings',
-        href: '/account/settings',
+        name: 'Account',
+        href: '/account',
         icon: Settings,
-        hasDropdown: true,
-        description: 'Account and preferences',
-        children: [
-          { name: 'Account Settings', href: '/account/settings', icon: User },
-          { name: 'Household Settings', href: '/household/settings', icon: Home },
-        ],
+        description: 'Account, billing, and preferences',
       },
     ],
   },
@@ -631,19 +608,19 @@ export const headerAccountMenu: NavItem[] = [
   },
   {
     name: 'Activity Feed',
-    href: '/dashboard/activity',
+    href: '/activity',
     icon: BarChart3,
     description: 'View activity timeline',
   },
   {
     name: 'Token Usage',
-    href: '/dashboard/tokens',
+    href: '/tokens',
     icon: Zap,
     description: 'View token usage',
   },
   {
     name: 'Storage',
-    href: '/dashboard/storage',
+    href: '/storage',
     icon: HardDrive,
     description: 'Manage storage',
   },
@@ -654,8 +631,8 @@ export const headerAccountMenu: NavItem[] = [
     description: 'Manage billing',
   },
   {
-    name: 'Settings',
-    href: '/account/settings',
+    name: 'Account',
+    href: '/account',
     icon: Settings,
     description: 'Account settings',
   },
@@ -758,7 +735,11 @@ export function isNavItemActive(
         return uuidMatch[1] === activeProfileId
       }
     }
-    
+
+    if (item.href === '/account') {
+      return pathname === '/account'
+    }
+
     // For all other dropdown children, ONLY exact match
     return false
   }

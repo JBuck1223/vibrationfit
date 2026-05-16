@@ -129,7 +129,7 @@ function getTokenPackProduct(packKey: TokenPackKey): CheckoutProduct {
       'Use for any VIVA feature',
       'Stacks with existing balance',
     ],
-    redirectAfterSuccess: '/dashboard/tokens?purchase=success',
+    redirectAfterSuccess: '/tokens?purchase=success',
     getPriceEnvKey: () => process.env[pack.envKey],
     metadata: {
       purchase_type: 'token_pack',

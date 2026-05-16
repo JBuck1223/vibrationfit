@@ -23,11 +23,12 @@ export const PAGE_CLASSIFICATIONS = {
   USER: [
     // Dashboard & Analytics
       '/dashboard',
-      '/dashboard/activity',
-      '/dashboard/add-tokens',
-      '/dashboard/storage',
-      '/dashboard/token-history',
-      '/dashboard/tokens',
+      '/activity',
+      '/storage',
+      '/storage-history',
+      '/tokens',
+      '/tokens/history',
+      '/north-star',
       '/tracking',
       '/viva',
     
@@ -96,6 +97,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/account/settings',
     '/account/settings/password',
     '/account/settings/delete',
+    '/account/household',
     '/account/billing',
     '/account/privacy',
     
@@ -355,6 +357,7 @@ export function getPagesByType(type: PageType): readonly string[] {
  * GlobalLayout reads this to strip PageLayout's mobile padding on these routes.
  */
 export const STUDIO_ROUTE_PREFIXES = [
+  '/account',
   '/abundance-tracker',
   '/audio',
   '/daily-paper',
@@ -368,6 +371,7 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/journal',
   '/map',
   '/profile',
+  '/storage',
   '/story',
   '/vision-board',
 ] as const

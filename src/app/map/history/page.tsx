@@ -170,7 +170,7 @@ export default function MapHistoryPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Badge
-                      variant={isCurrent ? 'default' : 'neutral'}
+                      variant={isCurrent ? 'primary' : 'neutral'}
                       className={isCurrent ? 'bg-primary-500/20 text-primary-400' : ''}
                     >
                       MAP v{version.versionNumber}

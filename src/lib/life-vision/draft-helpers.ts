@@ -167,33 +167,43 @@ export async function deleteDraft(draftId: string): Promise<void> {
   }
 }
 
+export function normalizeVisionCategoryText(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  return value.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim()
+}
+
+export function getVisionCategoryText(vision: VisionData, categoryKey: string): string {
+  return normalizeVisionCategoryText(vision[categoryKey as keyof VisionData])
+}
+
 /**
- * Get categories that differ between draft and active
- * Uses refined_categories tracking if available, otherwise compares values
+ * Categories whose saved draft text differs from the active vision.
+ * Yellow checkmarks in /life-vision/new use this as the single source of truth.
+ */
+export function getCategoriesChangedFromActive(
+  active: VisionData | null | undefined,
+  draft: VisionData | null | undefined,
+  categoryKeys: readonly string[],
+): string[] {
+  if (!active || !draft) return []
+
+  return categoryKeys.filter((key) => {
+    return getVisionCategoryText(draft, key) !== getVisionCategoryText(active, key)
+  })
+}
+
+/**
+ * Get categories that differ between draft and active (value comparison only).
  */
 export function getDraftCategories(
-  draft: VisionData, 
+  draft: VisionData,
   active: VisionData
 ): string[] {
-  // If draft has refined_categories tracking, use that
-  if (draft.refined_categories && draft.refined_categories.length > 0) {
-    return draft.refined_categories
-  }
-  
-  // Fallback: Compare values directly
-  return VISION_CATEGORIES
-    .filter(cat => {
-      const categoryKey = cat.key as keyof VisionData
-      const draftValue = draft[categoryKey] as string
-      const activeValue = active[categoryKey] as string
-      
-      // Normalize values for comparison
-      const draftNormalized = (draftValue || '').trim()
-      const activeNormalized = (activeValue || '').trim()
-      
-      return draftNormalized !== activeNormalized
-    })
-    .map(cat => cat.key)
+  return getCategoriesChangedFromActive(
+    active,
+    draft,
+    VISION_CATEGORIES.map((cat) => cat.key),
+  )
 }
 
 /**

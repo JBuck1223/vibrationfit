@@ -418,7 +418,7 @@ function AIModelsAdminContent() {
                 'north_star_reflection': {
                   endpoint: '/api/vibration/dashboard/category',
                   filePath: 'src/app/api/vibration/dashboard/category/route.ts',
-                  usedBy: ['/dashboard/north-star', 'North Star Dashboard']
+                  usedBy: ['/north-star', 'North Star Dashboard']
                 },
                 'voice_analyzer': {
                   endpoint: '/api/voice-profile/analyze',

@@ -14,7 +14,7 @@ const EMAIL_TEMPLATES = [
     description: 'Invite family members to join your household account',
     category: 'Household',
     triggers: [
-      'Admin clicks "Send Invitation" in Household Settings',
+      'Admin clicks "Send invitation" on Account Household',
       'API: POST /api/household/invite',
     ],
     variables: ['inviterName', 'inviterEmail', 'householdName', 'invitationLink', 'expiresInDays'],

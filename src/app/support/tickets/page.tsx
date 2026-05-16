@@ -5,8 +5,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Card, Badge, type BadgeProps, Button, Spinner, Stack, PageHero } from '@/lib/design-system/components'
-import { Plus, MessageSquare, User, Mail } from 'lucide-react'
+import { Container, Card, Badge, type BadgeProps, Button, Spinner, Stack } from '@/lib/design-system/components'
+import { MessageSquare, User, Mail } from 'lucide-react'
 
 interface Ticket {
   id: string
@@ -86,22 +86,6 @@ export default function MyTicketsPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="My Support Tickets"
-        >
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/support')}
-              className="flex items-center justify-center gap-2 hover:-translate-y-0.5 transition-all duration-300"
-            >
-              <Plus className="w-4 h-4 shrink-0" />
-              <span>New Ticket</span>
-            </Button>
-          </div>
-        </PageHero>
-
         {tickets.length === 0 ? (
           <Card className="p-8 text-center">
             <MessageSquare className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
@@ -115,7 +99,12 @@ export default function MyTicketsPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {tickets.map((ticket) => (
+            {tickets.map((ticket) => {
+              const requesterName = ticket.user_accounts?.full_name?.trim()
+              const requesterEmail =
+                ticket.user_accounts?.email || ticket.guest_email || 'No email'
+
+              return (
               <Card
                 key={ticket.id}
                 className="p-6 hover:border-primary-500 transition-colors cursor-pointer"
@@ -137,16 +126,16 @@ export default function MyTicketsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-neutral-400 mb-4">
-                  {(ticket.user_accounts?.full_name) && (
-                    <span className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-neutral-500" />
-                      {ticket.user_accounts.full_name}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-400 mb-4">
+                  {requesterName ? (
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <User className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+                      <span className="text-neutral-300 truncate">{requesterName}</span>
                     </span>
-                  )}
-                  <span className="flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-neutral-500" />
-                    {ticket.user_accounts?.email || ticket.guest_email || 'No email'}
+                  ) : null}
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <Mail className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+                    <span className="truncate">{requesterEmail}</span>
                   </span>
                 </div>
 
@@ -165,7 +154,8 @@ export default function MyTicketsPage() {
                   <span>Submitted: {formatDate(ticket.created_at)}</span>
                 </div>
               </Card>
-            ))}
+              )
+            })}
           </div>
         )}
       </Stack>
