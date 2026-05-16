@@ -15,9 +15,9 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, User, Heart, Activity, Sparkles } from 'lucide-react'
 
 const PROFILE_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile-1080p.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile--5-15-26-1080p.mp4'
 const PROFILE_INTRO_POSTER =
-  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile-thumb.0000000.jpg'
+  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile--5-15-26-thumb.0000000.jpg'
 
 export default function ProfileNewPage() {
   const router = useRouter()
