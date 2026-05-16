@@ -1,13 +1,14 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { Map, CalendarDays, LayoutGrid, Target } from 'lucide-react'
+import { Map, CalendarDays, LayoutGrid, Target, History } from 'lucide-react'
 import { AreaBar } from '@/lib/design-system/components'
 
 const TABS = [
-  { label: 'Today', path: '/map', icon: Target },
+  { label: 'My MAP', path: '/map', icon: Target },
   { label: 'Week', path: '/map/week', icon: CalendarDays },
   { label: 'Portfolio', path: '/map/portfolio', icon: LayoutGrid },
+  { label: 'History', path: '/map/history', icon: History },
 ]
 
 export function MapAreaBar() {

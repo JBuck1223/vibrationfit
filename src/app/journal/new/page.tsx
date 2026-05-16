@@ -246,6 +246,13 @@ export default function NewJournalEntryPage() {
         console.warn('Failed to update journal stats:', statsErr)
       }
 
+      // Auto-verify MAP commitment for journal
+      try {
+        const { autoVerifyClient } = await import('@/lib/map/auto-verify')
+        autoVerifyClient('journal')
+      } catch {}
+
+
       // Hide progress bar
       setUploadProgress(prev => ({ ...prev, isVisible: false }))
 
