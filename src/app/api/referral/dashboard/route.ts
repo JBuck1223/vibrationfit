@@ -49,8 +49,15 @@ export async function GET(request: NextRequest) {
       .order('sent_at', { ascending: false })
       .limit(50)
 
+    const { data: paidReferralRows } = await adminDb
+      .from('referral_events')
+      .select('id, referred_email, created_at, metadata')
+      .eq('referrer_id', participant.id)
+      .eq('event_type', 'paid_conversion')
+      .order('created_at', { ascending: false })
+      .limit(50)
+
     let currentTier = null
-    let nextTier = null
     if (tiers?.length) {
       for (const tier of tiers) {
         if (
@@ -58,8 +65,6 @@ export async function GET(request: NextRequest) {
           participant.paid_conversions >= tier.min_paid_conversions
         ) {
           currentTier = tier
-        } else if (!nextTier) {
-          nextTier = tier
         }
       }
     }
@@ -71,15 +76,13 @@ export async function GET(request: NextRequest) {
       referralLink: `${siteUrl}/offer/launch?ref=${participant.referral_code}`,
       stats: {
         totalClicks: participant.total_clicks,
-        emailSignups: participant.email_signups,
         paidConversions: participant.paid_conversions,
-        secondDegreeSignups: participant.second_degree_signups,
       },
       currentTier,
-      nextTier,
       tiers: tiers || [],
       rewardsEarned: rewardsEarned || [],
       invites: invites || [],
+      paidReferrals: paidReferralRows || [],
     })
   } catch (error) {
     console.error('[referral/dashboard] Error:', error)

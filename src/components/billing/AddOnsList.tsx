@@ -56,40 +56,41 @@ export default function AddOnsList({ addons, onRemoved }: Props) {
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white">Active Add-ons</h3>
+    <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+      <div className="mb-4 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-lg md:text-xl font-semibold text-white leading-snug text-center sm:text-left">Active add-ons</h3>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => window.location.href = '/dashboard/add-tokens'}
+          className="w-full justify-center sm:w-auto shrink-0"
+          onClick={() => { window.location.href = '/dashboard/add-tokens' }}
         >
-          <Plus className="w-4 h-4 mr-1" />
+          <Plus className="w-4 h-4 mr-1.5 shrink-0" />
           Add
         </Button>
       </div>
 
       {addons.length === 0 ? (
-        <p className="text-neutral-500 text-sm text-center py-4">No active add-ons</p>
+        <p className="text-neutral-500 text-sm text-center py-6">No active add-ons</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {addons.map(addon => {
             const Icon = addon.addonType === 'tokens' ? Coins : HardDrive
             const total = addon.unitAmount * addon.quantity
             return (
               <div
                 key={addon.id}
-                className="flex items-center justify-between bg-neutral-900 rounded-xl p-4"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-neutral-950/80 rounded-xl p-3 sm:p-4 border border-neutral-800/80"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-neutral-800 flex items-center justify-center">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-neutral-900 flex items-center justify-center border border-neutral-800 shrink-0">
                     <Icon className="w-4 h-4 text-[#39FF14]" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-sm font-medium text-white capitalize">
                       {addon.addonType} x{addon.quantity}
                     </div>
-                    <div className="text-xs text-neutral-400">
+                    <div className="text-xs text-neutral-500">
                       {formatPrice(total)}{intervalLabel(addon.interval)}
                     </div>
                   </div>
@@ -97,11 +98,12 @@ export default function AddOnsList({ addons, onRemoved }: Props) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-red-400 hover:text-red-300"
+                  className="w-full justify-center sm:w-auto text-red-400 hover:text-red-300 min-h-[44px] sm:min-h-0"
                   onClick={() => handleRemove(addon)}
                   disabled={removingId === addon.id}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  <span className="ml-2 sm:hidden">Remove</span>
                 </Button>
               </div>
             )

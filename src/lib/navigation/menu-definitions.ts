@@ -254,7 +254,7 @@ export const userNavigationGroups: NavGroup[] = [
         hasDropdown: true,
         children: [
           { name: 'All Visions', href: '/life-vision', icon: Eye },
-          { name: 'Household Visions', href: '/life-vision/household', icon: Users },
+          { name: 'Household Visions', href: '/life-vision/household', icon: Home },
           { name: 'New Vision', href: '/life-vision/new', icon: Plus },
         ],
       },
@@ -337,7 +337,7 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Account and preferences',
         children: [
           { name: 'Account Settings', href: '/account/settings', icon: User },
-          { name: 'Household Settings', href: '/household/settings', icon: Users },
+          { name: 'Household Settings', href: '/household/settings', icon: Home },
         ],
       },
     ],

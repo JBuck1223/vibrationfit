@@ -38,18 +38,18 @@ function getStatusBadge(status: string | null) {
 
 export default function InvoiceHistory({ invoices }: Props) {
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Receipt className="w-5 h-5 text-neutral-400" />
-        <h3 className="text-lg font-bold text-white">Billing History</h3>
+    <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+      <div className="mb-4 flex items-center justify-center gap-2.5">
+        <Receipt className="w-5 h-5 text-neutral-500 shrink-0" aria-hidden />
+        <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">Billing history</h3>
       </div>
 
       {invoices.length === 0 ? (
-        <p className="text-neutral-500 text-sm text-center py-4">No invoices yet</p>
+        <p className="text-neutral-500 text-sm text-center py-6">No invoices yet</p>
       ) : (
         <div className="space-y-2">
-          {/* Header */}
-          <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 text-xs text-neutral-500 uppercase tracking-wide">
+          {/* Header — desktop only */}
+          <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-3 text-[11px] text-neutral-500 uppercase tracking-wide">
             <div>Description</div>
             <div className="w-20 text-right">Amount</div>
             <div className="w-16 text-center">Status</div>
@@ -59,28 +59,64 @@ export default function InvoiceHistory({ invoices }: Props) {
           {invoices.map(inv => (
             <div
               key={inv.id}
-              className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 sm:gap-4 bg-neutral-900 rounded-xl p-4 items-center"
+              className="bg-neutral-950/80 rounded-xl p-3 sm:px-4 border border-neutral-800/80 sm:grid sm:grid-cols-[1fr_auto_auto_auto] sm:gap-x-4 sm:gap-y-0 sm:items-center"
             >
-              <div>
-                <div className="text-sm font-medium text-white truncate">{inv.description}</div>
-                <div className="text-xs text-neutral-400">
+              <div className="min-w-0 mb-3 sm:mb-0">
+                <div className="text-sm font-medium text-white break-words">{inv.description}</div>
+                <div className="text-xs text-neutral-500 mt-0.5">
                   {formatDate(inv.date)}
                   {inv.number && ` \u00b7 ${inv.number}`}
                 </div>
               </div>
-              <div className="w-20 text-right text-sm font-medium text-white">
+
+              <div className="sm:hidden space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-neutral-500">Amount</span>
+                  <span className="text-sm font-medium text-white tabular-nums">{formatPrice(inv.amountPaid)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-neutral-500">Status</span>
+                  <div>{getStatusBadge(inv.status)}</div>
+                </div>
+                <div className="flex justify-end gap-1 pt-1 border-t border-neutral-800/80">
+                  {inv.pdfUrl && (
+                    <a
+                      href={inv.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title="Download PDF"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
+                  )}
+                  {inv.hostedUrl && (
+                    <a
+                      href={inv.hostedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title="View invoice"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <div className="hidden sm:block text-right text-sm font-medium text-white tabular-nums w-20">
                 {formatPrice(inv.amountPaid)}
               </div>
-              <div className="w-16 text-center">
+              <div className="hidden sm:flex w-16 justify-center">
                 {getStatusBadge(inv.status)}
               </div>
-              <div className="w-20 flex justify-end gap-1">
+              <div className="hidden sm:flex w-20 justify-end gap-1">
                 {inv.pdfUrl && (
                   <a
                     href={inv.pdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1.5 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400 hover:text-white"
+                    className="p-2 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400 hover:text-white"
                     title="Download PDF"
                   >
                     <Download className="w-4 h-4" />
@@ -91,8 +127,8 @@ export default function InvoiceHistory({ invoices }: Props) {
                     href={inv.hostedUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1.5 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400 hover:text-white"
-                    title="View Invoice"
+                    className="p-2 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400 hover:text-white"
+                    title="View invoice"
                   >
                     <ExternalLink className="w-4 h-4" />
                   </a>
