@@ -476,8 +476,8 @@ export default function HomePage() {
                   {/* Right column - Video (OptimizedVideo: adaptive 720p/1080p/original + same player as profile/new) */}
                   <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl max-w-3xl mx-auto w-full lg:order-last">
                     <OptimizedVideo
-                      url="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-1080p.mp4"
-                      thumbnailUrl="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-3-6-26-new-thumb.0000000.jpg"
+                      url="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-5-13-26-1080p.mp4"
+                      thumbnailUrl="https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-5-13-26-thumb.0000000.jpg"
                       context="single"
                       caption="Five minute overview video"
                       trackingId="homepage-hero-video"

@@ -35,9 +35,9 @@ import {
 } from 'lucide-react'
 
 const INTENSIVE_START_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/intensive/01-intensive-start-1080p.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/01-intensive-start--5-15-26-1080p.mp4'
 const INTENSIVE_START_POSTER =
-  'https://media.vibrationfit.com/site-assets/video/intensive/01-intensive-start-thumb.0000000.jpg'
+  'https://media.vibrationfit.com/site-assets/video/intensive/01-intensive-start--5-15-26-thumb.0000000.jpg'
 
 export default function IntensiveStartPage() {
   const router = useRouter()
