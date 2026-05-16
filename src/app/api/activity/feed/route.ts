@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
         desc: 'Used VIVA',
         icon: 'Zap',
         color: 'text-neutral-400',
-        link: '/dashboard/tokens'
+        link: '/tokens'
       }
 
       activities.push({
@@ -375,7 +375,7 @@ export async function GET(request: NextRequest) {
             desc: fileName,
             icon: 'Upload',
             color: 'text-neutral-500',
-            link: '/dashboard/storage'
+            link: '/storage'
           }
 
           activities.push({

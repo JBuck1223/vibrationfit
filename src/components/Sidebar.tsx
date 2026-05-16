@@ -650,7 +650,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
       title: 'Tracking',
       items: [
         { name: 'Tracking', href: '/tracking', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Tracking')?.icon },
-        { name: 'Activity', href: '/dashboard/activity', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Activity')?.icon },
+        { name: 'Activity', href: '/activity', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Activity')?.icon },
         { name: 'Abundance Tracker', href: '/abundance-tracker', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Abundance Tracker')?.icon },
         { name: 'Badges', href: '/snapshot/me', icon: Award },
       ]
@@ -658,10 +658,10 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
     {
       title: 'System',
       items: [
-        { name: 'Tokens', href: '/dashboard/tokens', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Tokens')?.icon },
-        { name: 'Storage', href: '/dashboard/storage', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Storage')?.icon },
-        { name: 'Support', href: '/support/tickets', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Support')?.icon },
-        { name: 'Settings', href: '/account/settings', icon: userNavigationGroups.find(g => g.name === 'System & Billing')?.items.find(i => i.name === 'Settings')?.icon },
+        { name: 'Tokens', href: '/tokens', icon: userNavigationGroups.find(g => g.name === 'Account & Billing')?.items.find(i => i.name === 'Tokens')?.icon },
+        { name: 'Storage', href: '/storage', icon: userNavigationGroups.find(g => g.name === 'Account & Billing')?.items.find(i => i.name === 'Storage')?.icon },
+        { name: 'Support', href: '/support/tickets', icon: userNavigationGroups.find(g => g.name === 'Account & Billing')?.items.find(i => i.name === 'Support')?.icon },
+        { name: 'Account', href: '/account', icon: userNavigationGroups.find(g => g.name === 'Account & Billing')?.items.find(i => i.name === 'Account')?.icon },
       ]
     }
   ]

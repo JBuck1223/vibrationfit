@@ -258,7 +258,7 @@ export const API_ROUTES_REGISTRY: APIRouteConfig[] = [
     description: 'Generates a North Star reflection summary for dashboard categories',
     filePath: 'src/app/api/vibration/dashboard/category/route.ts',
     hasTokenTracking: true,
-    usedBy: ['/dashboard/north-star - AI-Generated Category Reflections'],
+    usedBy: ['/north-star - AI-Generated Category Reflections'],
   },
 ]
 

@@ -101,6 +101,22 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // WIP rows in vision_new_category_state drive yellow checkmarks in the
+    // /life-vision/new flow. Clear them whenever the draft is deleted so a
+    // subsequent "Start Fresh" cannot re-hydrate stale completion badges.
+    const { error: stateDeleteError } = await supabase
+      .from('vision_new_category_state')
+      .delete()
+      .eq('user_id', user.id)
+
+    if (stateDeleteError) {
+      console.error('Error clearing vision_new_category_state:', stateDeleteError)
+      return NextResponse.json(
+        { error: stateDeleteError.message || 'Failed to clear category state' },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json({ success: true, draftId })
   } catch (error) {
     console.error('Error in DELETE /api/vision/draft:', error)

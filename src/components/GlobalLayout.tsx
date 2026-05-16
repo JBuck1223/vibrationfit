@@ -223,7 +223,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   const audioPageLayoutClass = studioRoute
     ? cn(
         'max-md:!pt-0 max-md:!px-0',
-        pathname?.startsWith('/audio') && 'max-md:!pb-6',
+        (pathname?.startsWith('/audio') || pathname?.startsWith('/account')) && 'max-md:!pb-6',
       )
     : undefined
   

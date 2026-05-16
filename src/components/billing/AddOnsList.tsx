@@ -63,7 +63,7 @@ export default function AddOnsList({ addons, onRemoved }: Props) {
           variant="ghost"
           size="sm"
           className="w-full justify-center sm:w-auto shrink-0"
-          onClick={() => { window.location.href = '/dashboard/add-tokens' }}
+          onClick={() => { window.location.href = '/tokens' }}
         >
           <Plus className="w-4 h-4 mr-1.5 shrink-0" />
           Add

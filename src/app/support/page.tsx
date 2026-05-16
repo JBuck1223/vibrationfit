@@ -4,7 +4,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Button, Card, Input, Textarea, Container, Stack, PageHero, Badge, Spinner, Select, Video } from '@/lib/design-system/components'
+import { Button, Card, Input, Textarea, Container, Stack, Badge, Spinner, Select, Video } from '@/lib/design-system/components'
 import { CheckCircle, User, Mail, Calendar, Hash, Paperclip, Monitor, Trash2, FileText } from 'lucide-react'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -225,11 +225,6 @@ export default function SupportPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          title="Get Support"
-          subtitle="Need help? Submit a support ticket and we'll get back to you soon."
-        />
-
         {/* User Info Card */}
         {loadingUser ? (
           <div className="flex justify-center py-8">

@@ -2704,7 +2704,7 @@ export function PremiumActivationContent({ forcePromo }: { forcePromo?: string }
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to switch</p>
                         <p className="text-sm text-neutral-300">
-                          When logged in, under "Settings" &gt; <a href="/account/billing" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">"Billing & Subscription"</a>, choose your desired plan change. If you're pre-Day 56, your first charge will run on Day 56 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
+                          When logged in, under "Account" &gt; <a href="/account/billing" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">"Billing"</a>, choose your desired plan change. If you're pre-Day 56, your first charge will run on Day 56 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
                         </p>
                       </div>
                       <div className="space-y-1">

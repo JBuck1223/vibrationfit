@@ -75,8 +75,7 @@ export default function SitemapPage() {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Complete page classification with descriptions
-  const pageSections: PageSection[] = [
+  const pageSections = useMemo<PageSection[]>(() => [
     {
       title: '👤 USER PAGES',
       description: 'Core app functionality - Sidebar + Mobile Navigation',
@@ -86,11 +85,11 @@ export default function SitemapPage() {
       pages: [
         // Dashboard & Core
         { href: '/dashboard', label: 'Dashboard', icon: BarChart3, description: 'Main dashboard overview' },
-        { href: '/dashboard/activity', label: 'Activity Feed', icon: BarChart3, description: 'User activity timeline' },
-        { href: '/dashboard/tokens', label: 'Tokens', icon: Zap, description: 'Manage tokens' },
-        { href: '/dashboard/add-tokens', label: 'Add Tokens', icon: Plus, description: 'Purchase more tokens' },
-        { href: '/dashboard/storage', label: 'Storage Usage', icon: HardDrive, description: 'File storage management' },
-        { href: '/dashboard/token-history', label: 'Token History', icon: BarChart3, description: 'Token usage history' },
+        { href: '/activity', label: 'Activity Feed', icon: BarChart3, description: 'User activity timeline' },
+        { href: '/tokens', label: 'Tokens', icon: Zap, description: 'Manage tokens' },
+        { href: '/storage', label: 'Storage', icon: HardDrive, description: 'Storage usage and history' },
+        { href: '/storage-history', label: 'Storage History', icon: BarChart3, description: 'Upload and file activity' },
+        { href: '/tokens/history', label: 'Token History', icon: BarChart3, description: 'Token usage history' },
         { href: '/viva', label: 'VIVA Assistant', icon: MessageCircle, description: 'AI assistant usage' },
 
         // Life Vision
@@ -140,7 +139,7 @@ export default function SitemapPage() {
         // { href: '/voice-profile/analyze', label: 'Voice Analysis', icon: BarChart3, description: 'Analyze voice profile' },
         
         // Household
-        { href: '/household/settings', label: 'Household Settings', icon: Users, description: 'Manage household' },
+        { href: '/account/household', label: 'Household', icon: Users, description: 'Members and invitations' },
         { href: '/household/invite/[token]', label: 'Household Invite', icon: UserPlus, description: 'Accept household invitation', isDynamic: true },
         
         // Account & Settings
@@ -266,10 +265,10 @@ export default function SitemapPage() {
         
         // Legacy/Unused
         { href: '/vision/build', label: 'Public Vision Builder', icon: Target, description: 'Public-facing vision builder', badge: 'UNUSED' },
-        { href: '/dashboard/north-star', label: 'North Star Goals', icon: Star, description: 'North star goal setting', badge: 'UNUSED' },
+        { href: '/north-star', label: 'North Star Goals', icon: Star, description: 'North star goal setting', badge: 'UNUSED' },
       ]
     }
-  ]
+  ], [])
 
   // Filter pages based on search query
   const filteredSections = useMemo(() => {
@@ -462,7 +461,7 @@ export default function SitemapPage() {
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {section.pages.map((page) => (
                 <PageCard 
-                  key={page.href} 
+                  key={`${section.title}:${page.label}:${page.href}`}
                   page={page} 
                   sectionColor={section.color}
                 />

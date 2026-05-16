@@ -24,6 +24,13 @@ export interface AudioSetOption {
   track_count: number
 }
 
+/** Optional page-level copy merged into `LifeVisionAreaBar` (replaces former PageHero). */
+export interface LifeVisionStudioAreaChrome {
+  headline?: string
+  contextEyebrow?: string
+  contextText?: string
+}
+
 interface LifeVisionStudioContextValue {
   visions: VisionVersion[]
   loading: boolean
@@ -42,6 +49,8 @@ interface LifeVisionStudioContextValue {
   setAudioSets: (sets: AudioSetOption[]) => void
   selectedAudioSetId: string | null
   setSelectedAudioSetId: (id: string | null) => void
+  studioAreaChrome: LifeVisionStudioAreaChrome | null
+  setStudioAreaChrome: (chrome: LifeVisionStudioAreaChrome | null) => void
 }
 
 const LifeVisionStudioContext = createContext<LifeVisionStudioContextValue | null>(null)
@@ -59,6 +68,7 @@ export function LifeVisionStudioProvider({ children }: { children: React.ReactNo
   const [profileVersionNumber, setProfileVersionNumber] = useState<number | null>(null)
   const [audioSets, setAudioSets] = useState<AudioSetOption[]>([])
   const [selectedAudioSetId, setSelectedAudioSetId] = useState<string | null>(null)
+  const [studioAreaChrome, setStudioAreaChrome] = useState<LifeVisionStudioAreaChrome | null>(null)
 
   const loadVisions = useCallback(async () => {
     const supabase = createClient()
@@ -152,6 +162,8 @@ export function LifeVisionStudioProvider({ children }: { children: React.ReactNo
         setAudioSets,
         selectedAudioSetId,
         setSelectedAudioSetId,
+        studioAreaChrome,
+        setStudioAreaChrome,
       }}
     >
       {children}

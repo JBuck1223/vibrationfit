@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 export type ProfilePictureLightboxProps = {
@@ -15,6 +16,12 @@ export type ProfilePictureLightboxProps = {
  * Next.js Image re-encoding (preserves uploaded JPEG quality).
  */
 export function ProfilePictureLightbox({ src, alt, isOpen, onClose }: ProfilePictureLightboxProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -33,11 +40,11 @@ export function ProfilePictureLightbox({ src, alt, isOpen, onClose }: ProfilePic
     }
   }, [isOpen, onKeyDown])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted || typeof document === 'undefined') return null
 
-  return (
+  const overlay = (
     <div
-      className="fixed inset-0 z-[1000000] flex items-center justify-center bg-black/90 p-4"
+      className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/90 p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -65,4 +72,6 @@ export function ProfilePictureLightbox({ src, alt, isOpen, onClose }: ProfilePic
       </div>
     </div>
   )
+
+  return createPortal(overlay, document.body)
 }

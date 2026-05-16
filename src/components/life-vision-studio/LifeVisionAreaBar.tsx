@@ -26,7 +26,7 @@ const CREATE_AREA_ROUTES = [
 export function LifeVisionAreaBar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { visions, activeVisionId, draftId, audioSets, selectedAudioSetId, setSelectedAudioSetId } = useLifeVisionStudio()
+  const { visions, activeVisionId, draftId, audioSets, selectedAudioSetId, setSelectedAudioSetId, studioAreaChrome } = useLifeVisionStudio()
 
   const isVisionList = pathname === '/life-vision' || pathname === '/life-vision/'
   const isAboutPage = pathname === '/life-vision/about' || pathname === '/life-vision/about/'
@@ -317,12 +317,18 @@ export function LifeVisionAreaBar() {
 
   const isOnCreateSubPage = isCreateArea && pathname !== '/life-vision/new/fun'
 
+  const mergedHeadline = studioAreaChrome?.headline
+  const mergedContextEyebrow = studioAreaChrome?.contextEyebrow
+  const mergedContextText = studioAreaChrome?.contextText ?? contextText
+
   return (
     <AreaBar
       area={{ name: 'Life Vision', icon: Target }}
+      areaHeadline={mergedHeadline}
       tabs={TABS}
       contextNav={contextNav}
-      contextText={contextText}
+      contextEyebrow={mergedContextEyebrow}
+      contextText={mergedContextText}
       versionSelectors={versionSelectors}
       keepTabActive={!isOnCreateSubPage}
       activeParentPath={isOnCreateSubPage ? '/life-vision/new/fun' : undefined}

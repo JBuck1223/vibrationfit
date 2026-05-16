@@ -237,8 +237,8 @@ export default function HouseholdVisionsPage() {
             <Button variant="outline" onClick={() => router.push('/dashboard')}>
               Go to Dashboard
             </Button>
-            <Button variant="outline" onClick={() => router.push('/household/settings')}>
-              Household Settings
+            <Button variant="outline" onClick={() => router.push('/account/household')}>
+              Household
             </Button>
           </div>
         </Card>
