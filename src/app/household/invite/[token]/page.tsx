@@ -134,7 +134,7 @@ export default function AcceptInvitationPage() {
       }
 
       // Success - redirect to household settings
-      router.push('/household/settings')
+      router.push('/account/household')
       
     } catch (err) {
       setError('Failed to accept invitation')

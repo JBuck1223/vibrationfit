@@ -1,4 +1,4 @@
-// /src/app/dashboard/activity/page.tsx
+// /src/app/activity/page.tsx
 // Real-time activity feed showing all user actions
 
 'use client'

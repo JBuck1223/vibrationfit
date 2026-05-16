@@ -1,10 +1,13 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Add Tokens',
+  title: {
+    template: '%s | Tokens',
+    default: 'Tokens',
+  },
 };
 
-export default function AddTokensLayout({
+export default function TokensLayout({
   children,
 }: {
   children: React.ReactNode;

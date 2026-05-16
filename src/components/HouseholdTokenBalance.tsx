@@ -118,7 +118,7 @@ export default function HouseholdTokenBalance() {
           </p>
           <p className="text-sm text-neutral-400 mt-2">Creation Tokens available</p>
           <Button variant="accent" size="sm" asChild className="mt-6">
-            <Link href="/dashboard/tokens">
+            <Link href="/tokens">
               Token Dashboard
             </Link>
           </Button>
@@ -152,13 +152,13 @@ export default function HouseholdTokenBalance() {
 
       <div className="flex items-center gap-3 mt-4">
         <Button variant="accent" size="sm" asChild>
-          <Link href="/dashboard/tokens">
+          <Link href="/tokens">
             Token Dashboard
           </Link>
         </Button>
         {data.isAdmin && (
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/household/settings">
+            <Link href="/account/household">
               Settings
             </Link>
           </Button>

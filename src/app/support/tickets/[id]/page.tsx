@@ -15,7 +15,7 @@ import {
   Stack,
   Video,
 } from '@/lib/design-system/components'
-import { ArrowLeft, Send, Paperclip, Monitor, Trash2, FileText } from 'lucide-react'
+import { Send, Paperclip, Monitor, Trash2, FileText } from 'lucide-react'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
@@ -163,7 +163,7 @@ export default function TicketDetailPage() {
 
   if (loading) {
     return (
-      <Container size="xl" className="py-8">
+      <Container size="xl">
         <div className="flex justify-center py-20">
           <Spinner size="lg" />
         </div>
@@ -173,7 +173,7 @@ export default function TicketDetailPage() {
 
   if (!ticket) {
     return (
-      <Container size="xl" className="py-8">
+      <Container size="xl">
         <Card className="p-8 text-center">
           <p className="text-neutral-400 mb-4">Ticket not found</p>
           <Button variant="secondary" onClick={() => router.push('/support/tickets')}>
@@ -185,20 +185,8 @@ export default function TicketDetailPage() {
   }
 
   return (
-    <Container size="xl" className="py-8">
+    <Container size="xl" className="pb-8">
       <Stack gap="lg">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/support/tickets')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Tickets
-          </Button>
-        </div>
-
         {/* Ticket Header Card */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-3">

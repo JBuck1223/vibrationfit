@@ -16,9 +16,9 @@ const EMAIL_TEMPLATES_DATA: Record<string, any> = {
     triggers: [
       {
         name: 'Manual Invitation',
-        description: 'Admin clicks "Send Invitation" in Household Settings',
+        description: 'Admin clicks "Send invitation" on Account Household',
         type: 'user_action',
-        location: '/household/settings',
+        location: '/account/household',
       },
       {
         name: 'API Trigger',

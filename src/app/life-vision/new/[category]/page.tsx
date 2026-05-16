@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import * as Diff from 'diff'
 import {
@@ -53,7 +53,13 @@ function recordingKeyForVisionCategory(key: VisionCategoryKey): LifeCategoryKey 
   return (META_CATEGORY_KEYS as readonly string[]).includes(key) ? 'fun' : (key as LifeCategoryKey)
 }
 import { createClient } from '@/lib/supabase/client'
-import { updateDraftCategory, commitDraft, type VisionData } from '@/lib/life-vision/draft-helpers'
+import {
+  updateDraftCategory,
+  commitDraft,
+  getCategoriesChangedFromActive,
+  normalizeVisionCategoryText,
+  type VisionData,
+} from '@/lib/life-vision/draft-helpers'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
@@ -76,7 +82,6 @@ export default function UnifiedCategoryPage() {
 
   const [draftVision, setDraftVision] = useState<VisionData | null>(null)
   const [activeVision, setActiveVision] = useState<VisionData | null>(null)
-  const [refinedCategories, setRefinedCategories] = useState<string[]>([])
   const [showDraftBanner, setShowDraftBanner] = useState(true)
   const [showFreshConfirm, setShowFreshConfirm] = useState(false)
   const [isResettingDraft, setIsResettingDraft] = useState(false)
@@ -136,8 +141,14 @@ export default function UnifiedCategoryPage() {
   const allCategories = ORDERED_VISION_CATEGORIES.filter(
     c => !(META_CATEGORY_KEYS as readonly string[]).includes(c.key)
   )
+  const lifeCategoryKeys = allCategories.map(c => c.key)
   const currentIndex = allCategories.findIndex(c => c.key === categoryKey)
   const currentCategoryLabel = category?.label ?? ''
+
+  const changedFromActive = useMemo(
+    () => getCategoriesChangedFromActive(activeVision, draftVision, lifeCategoryKeys),
+    [activeVision, draftVision, lifeCategoryKeys],
+  )
 
   useEffect(() => {
     const init = async () => {
@@ -151,8 +162,9 @@ export default function UnifiedCategoryPage() {
     if (user && categoryKey) loadData()
   }, [user, categoryKey, draftId, activeVisionId])
 
-  const loadData = async () => {
+  const loadData = async (overrideDraftId?: string) => {
     if (!user) return
+    const effectiveDraftId = overrideDraftId ?? draftId
     setLoading(true)
     setError(null)
     setProfileVersionFromRpc(null)
@@ -162,9 +174,9 @@ export default function UnifiedCategoryPage() {
       const queries: Promise<any>[] = []
 
       // Load draft vision
-      if (draftId) {
+      if (effectiveDraftId) {
         queries.push(
-          Promise.resolve(supabase.from('vision_versions').select('*').eq('id', draftId).single())
+          Promise.resolve(supabase.from('vision_versions').select('*').eq('id', effectiveDraftId).single())
             .then(r => ({ type: 'draft', data: r.data }))
         )
       } else {
@@ -195,52 +207,15 @@ export default function UnifiedCategoryPage() {
           .then(r => ({ type: 'categoryState', data: r.data }))
       )
 
-      // Load all category states to track completion
-      queries.push(
-        Promise.resolve(supabase.from('vision_new_category_state').select('category, category_vision_text')
-          .eq('user_id', user.id))
-          .then(r => ({ type: 'allCategoryStates', data: r.data }))
-      )
-
       const results = await Promise.all(queries)
 
       const draftResult = results.find(r => r.type === 'draft')?.data
       const activeResult = results.find(r => r.type === 'active')?.data
       const profileResult = results.find(r => r.type === 'profile')?.data
       const categoryStateResult = results.find(r => r.type === 'categoryState')?.data
-      const allCategoryStates = results.find(r => r.type === 'allCategoryStates')?.data as { category: string; category_vision_text: string | null }[] | null
 
       const activeValue = activeResult ? ((activeResult[categoryKey as keyof VisionData] as string) || '') : ''
       const draftValue = draftResult ? ((draftResult[categoryKey as keyof VisionData] as string) || '') : ''
-
-      // Compute the unified set of "refined" categories used to render the
-      // yellow check badges. Sources, all OR'd together:
-      //   1) per-category WIP from vision_new_category_state (typed in editor)
-      //   2) explicit tracking on draft.refined_categories (set when VIVA
-      //      writes through /api/vision/draft/update)
-      //   3) value-level diff between draft and active — catches drafts that
-      //      were edited via direct DB updates or older code paths that did
-      //      not maintain refined_categories.
-      const completedFromState = (allCategoryStates || [])
-        .filter(s => s.category_vision_text && s.category_vision_text.trim().length > 0)
-        .map(s => s.category)
-
-      const trackedRefined: string[] = (draftResult?.refined_categories as string[] | null) || []
-
-      const valueDiffRefined: string[] = []
-      if (draftResult && activeResult) {
-        for (const cat of allCategories) {
-          const dv = ((draftResult[cat.key as keyof VisionData] as string) || '').trim()
-          const av = ((activeResult[cat.key as keyof VisionData] as string) || '').trim()
-          if (dv && dv !== av) valueDiffRefined.push(cat.key)
-        }
-      }
-
-      setRefinedCategories(Array.from(new Set([
-        ...completedFromState,
-        ...trackedRefined,
-        ...valueDiffRefined,
-      ])))
 
       if (draftResult) {
         setDraftVision(draftResult)
@@ -292,11 +267,15 @@ export default function UnifiedCategoryPage() {
         setIncludeProfile(false)
       }
 
-      // Restore saved category state
+      // Restore non-vision WIP (starter/steering). Skip stale category_vision_text
+      // that matches active — it must not re-hydrate the editor or checkmarks.
       if (categoryStateResult) {
         if (categoryStateResult.get_me_started_text) setGetMeStartedText(categoryStateResult.get_me_started_text)
         if (categoryStateResult.imagination_text) setVivaSteeringText(categoryStateResult.imagination_text)
-        if (categoryStateResult.category_vision_text) {
+        const wipText = categoryStateResult.category_vision_text?.trim() ?? ''
+        const activeNorm = normalizeVisionCategoryText(activeValue)
+        const draftNorm = normalizeVisionCategoryText(draftValue)
+        if (wipText && wipText !== activeNorm && wipText !== draftNorm) {
           setManualText(categoryStateResult.category_vision_text)
           setCurrentRefinement(categoryStateResult.category_vision_text)
         }
@@ -552,7 +531,7 @@ export default function UnifiedCategoryPage() {
   // Category navigation
   const isFirstCategory = currentIndex === 0
   const isLastCategory = currentIndex === allCategories.length - 1
-  const canReviewFromLast = isLastCategory && !!draftVision && refinedCategories.length > 0
+  const canReviewFromLast = isLastCategory && !!draftVision && changedFromActive.length > 0
 
   const handleCategoryChange = (key: string) => {
     setGetMeStartedText('')
@@ -578,7 +557,6 @@ export default function UnifiedCategoryPage() {
     try {
       const updatedDraft = await updateDraftCategory(draftVision.id, categoryKey, manualText)
       setDraftVision(updatedDraft)
-      setRefinedCategories(updatedDraft.refined_categories || [])
 
       await refreshVisions()
       setTimeout(() => window.scrollTo({ top: scrollPosition, behavior: 'instant' as ScrollBehavior }), 0)
@@ -593,50 +571,29 @@ export default function UnifiedCategoryPage() {
     if (!activeVisionId || !user) return
     setIsResettingDraft(true)
     try {
-      // 1) Wipe the draft row itself (vision_versions).
-      if (draftVision) {
-        const delRes = await fetch(`/api/vision/draft?draftId=${draftVision.id}`, { method: 'DELETE' })
-        if (!delRes.ok) {
-          const body = await delRes.json().catch(() => ({} as { error?: string }))
-          throw new Error(body?.error || `Failed to delete existing draft (${delRes.status})`)
-        }
-      }
-
-      // 2) CRITICAL: also wipe the per-category WIP rows in
-      // vision_new_category_state. That table is keyed by (user_id, category)
-      // and holds the editor's manualText, get_me_started_text, and imagination
-      // notes. If we leave it behind, loadData re-hydrates yellow checks, the
-      // "draft in progress" banner, and stale text on the next render — even
-      // though the new draft row is a clean clone of active.
-      const { error: stateDeleteError } = await supabase
-        .from('vision_new_category_state')
-        .delete()
-        .eq('user_id', user.id)
-      if (stateDeleteError) {
-        console.error('Failed to clear vision_new_category_state:', stateDeleteError)
-        throw new Error(stateDeleteError.message || 'Failed to clear category state')
-      }
-
-      // 3) Create a fresh draft from active (clones all category text).
       const res = await fetch('/api/vision/draft/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visionId: activeVisionId }),
+        body: JSON.stringify({ visionId: activeVisionId, replaceExisting: true }),
       })
+      const body = await res.json().catch(() => ({} as { error?: string; draft?: VisionData }))
       if (!res.ok) {
-        const body = await res.json().catch(() => ({} as { error?: string }))
         throw new Error(body?.error || `Failed to create draft (${res.status})`)
       }
+      const newDraft = body.draft as VisionData | undefined
+      if (!newDraft?.id) {
+        throw new Error('Failed to create fresh draft')
+      }
 
-      // 4) Reset local UI state so nothing carries over visually.
       await refreshVisions()
       setManualText('')
       setCurrentRefinement('')
       setPreviousRefinement(null)
       setGetMeStartedText('')
       setVivaSteeringText('')
-      setRefinedCategories([])
       setShowDraftBanner(false)
+      setDraftVision(newDraft)
+      await loadData(newDraft.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start fresh')
     } finally {
@@ -676,9 +633,6 @@ export default function UnifiedCategoryPage() {
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id,category' })
 
-      if (manualText.trim() && !refinedCategories.includes(categoryKey)) {
-        setRefinedCategories(prev => [...prev, categoryKey])
-      }
     } catch (err) {
       console.error('Failed to save category state:', err)
     }
@@ -869,8 +823,8 @@ export default function UnifiedCategoryPage() {
           <CategoryGrid
             categories={allCategories}
             activeCategory={categoryKey}
-            refinedCategories={refinedCategories}
-            completedCategories={gridMode === 'completion' ? refinedCategories : undefined}
+            refinedCategories={changedFromActive}
+            completedCategories={gridMode === 'completion' ? changedFromActive : undefined}
             onCategoryClick={handleCategoryChange}
             mode={gridMode as any}
             lifeVisionCategoryStrip
@@ -884,17 +838,17 @@ export default function UnifiedCategoryPage() {
         {/* Progress Bar */}
         <div className="flex items-center gap-3 -mt-2">
           <ProgressBar
-            value={Math.round((refinedCategories.length / allCategories.length) * 100)}
+            value={Math.round((changedFromActive.length / allCategories.length) * 100)}
             variant="accent"
             className="h-2 flex-1"
           />
           <span className="text-xs text-neutral-400 whitespace-nowrap">
-            {refinedCategories.length} of {allCategories.length} · {Math.round((refinedCategories.length / allCategories.length) * 100)}%
+            {changedFromActive.length} of {allCategories.length} · {Math.round((changedFromActive.length / allCategories.length) * 100)}%
           </span>
         </div>
 
         {/* Continue Draft / Start Fresh Banner — own card above the category card */}
-        {showDraftBanner && draftVision && refinedCategories.length > 0 && (
+        {showDraftBanner && draftVision && changedFromActive.length > 0 && (
           <Card>
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex items-center gap-2">
@@ -918,7 +872,7 @@ export default function UnifiedCategoryPage() {
                     )}
                   </>
                 )}
-                {' '}with <span className="font-semibold text-white">{refinedCategories.length} of {allCategories.length}</span> categories updated.
+                {' '}with <span className="font-semibold text-white">{changedFromActive.length} of {allCategories.length}</span> categories updated.
               </p>
               {commitError && (
                 <p className="text-xs text-red-400">{commitError}</p>
@@ -1458,7 +1412,7 @@ export default function UnifiedCategoryPage() {
                 </Button>
                 {!isGenerating && manualText.trim() && !draftVision && (
                   (() => {
-                    const completedAfterSave = new Set([...refinedCategories, categoryKey])
+                    const completedAfterSave = new Set([...changedFromActive, categoryKey])
                     const allComplete = allCategories.every(c => completedAfterSave.has(c.key))
 
                     if (allComplete) {
@@ -1477,7 +1431,7 @@ export default function UnifiedCategoryPage() {
                     }
 
                     const nextIncomplete = allCategories.find(c =>
-                      c.key !== categoryKey && !refinedCategories.includes(c.key)
+                      c.key !== categoryKey && !changedFromActive.includes(c.key)
                     )
                     return (
                       <Button
@@ -1800,7 +1754,6 @@ export default function UnifiedCategoryPage() {
                           setManualText(polishText)
                           const updatedDraft = await updateDraftCategory(draftVision.id, categoryKey, polishText)
                           setDraftVision(updatedDraft)
-                          setRefinedCategories(updatedDraft.refined_categories || [])
                           await refreshVisions()
                           setTimeout(() => window.scrollTo({ top: scrollPosition, behavior: 'instant' as ScrollBehavior }), 0)
                         } catch (err) {
@@ -2101,7 +2054,7 @@ export default function UnifiedCategoryPage() {
               <span>·</span>
               <span>{currentCategoryLabel}</span>
             </div>
-            {refinedCategories.includes(categoryKey) && (
+            {changedFromActive.includes(categoryKey) && (
               <div className="flex items-center gap-2">
                 <span className="hidden md:inline">·</span>
                 <span className="text-primary-500">{isFirstTime ? 'Complete' : 'Updated'}</span>
@@ -2139,7 +2092,7 @@ export default function UnifiedCategoryPage() {
         onConfirm={handleStartFresh}
         type="draft"
         title="Start Fresh?"
-        message={`This will delete your current draft across all ${allCategories.length} categories${refinedCategories.length > 0 ? ` (${refinedCategories.length} updated so far)` : ''} and create a fresh starting point from your active vision. This cannot be undone.`}
+        message={`This will delete your current draft across all ${allCategories.length} categories${changedFromActive.length > 0 ? ` (${changedFromActive.length} updated so far)` : ''} and create a fresh starting point from your active vision. This cannot be undone.`}
         confirmText="Delete Draft & Start Fresh"
         isProcessing={isResettingDraft}
       />

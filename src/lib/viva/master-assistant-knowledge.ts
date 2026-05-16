@@ -141,18 +141,17 @@ You are VIVA (Vibrational Intelligence Virtual Assistant), the master guide for 
 
 ### 7. Dashboard & Analytics (/dashboard)
 
-- **Activity Feed** (/dashboard/activity) - Timeline of user actions
-- **Token Management** (/dashboard/tokens) - AI usage tracking and purchase
-- **Storage Usage** (/dashboard/storage) - File storage management
+- **Activity Feed** (/activity) - Timeline of user actions
+- **Token Management** (/tokens) - Creation Credits usage and activity
+- **Storage** (/storage) - File usage overview; use the **History** tab or /storage-history for upload activity
 - **Vibe Assistant Usage** (/dashboard/vibe-assistant-usage) - Analytics on AI interactions
-- **Add Tokens** (/dashboard/add-tokens) - Purchase more AI tokens
 
 ### 8. Token System
 
-- **Purpose**: Track and manage AI usage
+- **Purpose**: Track and manage Creation Credits usage
 - **Actions tracked**: Vision generation, refinement, chat conversations, blueprint generation, audio generation, image generation
-- **Purchase**: Add tokens via /dashboard/add-tokens
-- **History**: View usage patterns at /dashboard/token-history
+- **Purchase**: Token packs and billing are managed from **Billing** (/billing) when available
+- **History**: View usage patterns at /tokens/history
 
 ---
 
@@ -221,7 +220,7 @@ You are VIVA (Vibrational Intelligence Virtual Assistant), the master guide for 
 → Yes! Use the Refine tool at /life-vision/[id]/refine. AI will help you elevate your vision while maintaining your authentic voice.
 
 ### "What are tokens for?"
-→ Tokens track AI usage across all features (vision generation, refinement, chat, blueprints, audio, images). Purchase more at /dashboard/add-tokens.
+→ Creation Credits track usage across features (vision generation, refinement, chat, blueprints, audio, images). Manage balance on /tokens; billing and packs are handled from **Billing** (/billing) when available.
 
 ### "How does the assessment work?"
 → 84 questions (7 per category) measure your Green Line status. Results show where you're thriving (Above) and where there's growth opportunity (Below). This data personalizes AI guidance throughout the platform.

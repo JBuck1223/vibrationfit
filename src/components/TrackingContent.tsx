@@ -555,7 +555,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
                     {journalData.slice(0, 3).map((entry, index) => (
                       <Link 
                         key={entry.id} 
-                        href={`/journal/${entry.id}`}
+                        href={`/journal?expand=${encodeURIComponent(entry.id)}`}
                         className="block"
                       >
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 transition-colors">
@@ -596,7 +596,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
           <Card className="p-6">
             <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mb-6 text-center md:text-left">
               <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
-              <Link href="/dashboard/activity" className="w-full md:w-auto">
+              <Link href="/activity" className="w-full md:w-auto">
                 <Button variant="ghost" size="sm" className="w-full md:w-auto">
                   View All
                   <ArrowRight className="w-4 h-4 ml-2" />
@@ -704,7 +704,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
                 of {storageQuotaGB} GB total
               </p>
               <Button variant="secondary" size="sm" asChild className="mt-6">
-                <Link href="/dashboard/storage">
+                <Link href="/storage">
                   Storage Dashboard
                 </Link>
               </Button>

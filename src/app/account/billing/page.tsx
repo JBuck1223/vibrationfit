@@ -123,15 +123,9 @@ function BillingContent() {
   }
 
   return (
-    <Container size="xl" className="pb-12">
+    <Container size="xl" className="pt-2 pb-12">
       <Stack gap="md">
-        <header className="pt-1 text-center">
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Billing</h1>
-          <p className="text-sm text-neutral-500 mt-1.5 max-w-md mx-auto">
-            Subscription, payment methods, and invoices.
-          </p>
-        </header>
-
+        <h1 className="sr-only">Billing</h1>
         {intensive && <IntensiveOverview intensive={intensive} />}
 
         <PlanOverview

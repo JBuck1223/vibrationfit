@@ -214,7 +214,7 @@ async function resolveTokenPackProduct(
     amount: price.unit_amount,
     currency: price.currency || 'usd',
     features,
-    redirectAfterSuccess: '/dashboard/tokens?purchase=success',
+    redirectAfterSuccess: '/tokens?purchase=success',
     stripePriceId,
     stripePriceEnvKey,
     metadata: {

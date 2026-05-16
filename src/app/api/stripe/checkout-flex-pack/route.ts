@@ -62,12 +62,12 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const successUrl =
       productKey === 'tokens'
-        ? `${appUrl}/dashboard/tokens?purchase=success`
-        : `${appUrl}/dashboard/storage?purchase=success`
+        ? `${appUrl}/tokens?purchase=success`
+        : `${appUrl}/storage?purchase=success`
     const cancelUrl =
       productKey === 'tokens'
-        ? `${appUrl}/dashboard/add-tokens?purchase=canceled`
-        : `${appUrl}/dashboard/storage?purchase=canceled`
+        ? `${appUrl}/tokens?purchase=canceled`
+        : `${appUrl}/storage?purchase=canceled`
 
     const session = await createFlexiblePackCheckoutSession({
       userId: user.id,

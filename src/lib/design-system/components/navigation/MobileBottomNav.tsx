@@ -103,7 +103,7 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
         title: 'Tracking',
         items: [
           { name: 'Tracking', href: '/tracking', icon: TrendingUp },
-          { name: 'Activity', href: '/dashboard/activity', icon: Activity },
+          { name: 'Activity', href: '/activity', icon: Activity },
           { name: 'Abundance Tracker', href: '/abundance-tracker', icon: DollarSign },
           { name: 'Badges', href: '/snapshot/me', icon: Award },
         ]
@@ -111,10 +111,10 @@ export const MobileBottomNav = React.forwardRef<HTMLDivElement, MobileBottomNavP
       {
         title: 'System',
         items: [
-          { name: 'Tokens', href: '/dashboard/tokens', icon: Zap },
-          { name: 'Storage', href: '/dashboard/storage', icon: HardDrive },
+          { name: 'Tokens', href: '/tokens', icon: Zap },
+          { name: 'Storage', href: '/storage', icon: HardDrive },
           { name: 'Support', href: '/support', icon: Headset },
-          { name: 'Settings', href: '/account/settings', icon: Settings },
+          { name: 'Account', href: '/account', icon: Settings },
         ]
       }
     ]

@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
       priceId: pack.priceId,
       packId,
       tokensAmount: pack.tokens,
-      successUrl: `${appUrl}/dashboard/tokens?purchase=success`,
-      cancelUrl: `${appUrl}/dashboard/add-tokens?purchase=canceled`,
+      successUrl: `${appUrl}/tokens?purchase=success`,
+      cancelUrl: `${appUrl}/tokens?purchase=canceled`,
     })
 
     return NextResponse.json({ sessionId: session.id, url: session.url })
