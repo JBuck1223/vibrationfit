@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Card, Badge, Button, Spinner } from '@/lib/design-system/components'
-import { CreditCard, Calendar, Coins, HardDrive, AlertTriangle, RotateCcw, ArrowUpRight, ArrowDownRight, Users, User, Check, Crown, Zap, Shield, Tag, X, Loader2 } from 'lucide-react'
+import { CreditCard, Calendar, Coins, HardDrive, AlertTriangle, RotateCcw, ArrowUpRight, ArrowDownRight, Home, User, Check, Crown, Zap, Shield, Tag, X, Loader2 } from 'lucide-react'
 import { formatPrice, formatTokensShort, formatStorage, PRICING, TOKEN_GRANTS, STORAGE_QUOTAS } from '@/lib/billing/config'
 
 import { toast } from 'sonner'
@@ -118,14 +118,14 @@ export default function PlanOverview({
 
   if (!subscription || !subscription.tier) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <CreditCard className="w-5 h-5 text-neutral-400" />
-          <h3 className="text-lg font-bold text-white">Vision Pro Membership</h3>
+      <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <CreditCard className="w-5 h-5 text-neutral-500 shrink-0" aria-hidden />
+          <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">Vision Pro Membership</h3>
         </div>
-        <p className="text-neutral-400 text-center py-6">No active membership</p>
-        <Button variant="primary" className="w-full" onClick={() => window.location.href = '/#pricing'}>
-          View Plans
+        <p className="text-sm text-neutral-500 text-center py-6">No active membership</p>
+        <Button variant="primary" className="w-full justify-center" onClick={() => { window.location.href = '/#pricing' }}>
+          View plans
         </Button>
       </Card>
     )
@@ -368,14 +368,21 @@ export default function PlanOverview({
     if (upgradeState === 'idle' || !isActive) {
       if (upgradeState !== 'idle' && !isActive) return null
       return (
-        <div className={`${bgColor} border ${borderColor} rounded-xl p-4 flex items-center justify-between`}>
-          <div>
+        <div className={`${bgColor} border ${borderColor} rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}>
+          <div className="min-w-0">
             <p className="text-sm font-medium text-white">{label}</p>
-            <p className="text-xs text-neutral-400">{sublabel}</p>
+            <p className="text-xs text-neutral-500 mt-0.5 leading-snug">{sublabel}</p>
           </div>
-          <Button variant={buttonVariant} size="sm" onClick={() => handlePlanChangeClick(flow)}>
-            {buttonText}
-            {icon}
+          <Button
+            variant={buttonVariant}
+            size="sm"
+            className="w-full shrink-0 justify-center sm:w-auto sm:min-w-[10rem]"
+            onClick={() => handlePlanChangeClick(flow)}
+          >
+            <span className="inline-flex items-center justify-center gap-1.5">
+              {buttonText}
+              {icon}
+            </span>
           </Button>
         </div>
       )
@@ -429,7 +436,7 @@ export default function PlanOverview({
               storage: is28Day ? STORAGE_QUOTAS.HOUSEHOLD_28DAY : STORAGE_QUOTAS.HOUSEHOLD_ANNUAL,
               seats: 2,
               billingCycle: is28Day ? '28-Day' : 'Annual',
-              Icon: Users,
+              Icon: Home,
               accentColor: '#BF00FF',
             }
           case 'individual':
@@ -493,18 +500,19 @@ export default function PlanOverview({
       })()
 
       return (
-        <div ref={planChangeRef} className="rounded-2xl border-2 overflow-hidden" style={{ borderColor: `${accentColor}33`, background: `linear-gradient(135deg, ${accentColor}08, transparent)` }}>
-          <div className="p-5">
-            <div className="text-center mb-5">
-              <PlanIcon className="w-10 h-10 mx-auto mb-3" style={{ color: accentColor }} />
-              <h4 className="text-xl font-bold text-white">{targetPlan.name}</h4>
+        <div ref={planChangeRef} className="rounded-2xl border border-neutral-800 overflow-hidden bg-neutral-900/40">
+          <div className="p-4 md:p-5">
+            <div className="text-center mb-4 md:mb-5">
+              <PlanIcon className="w-9 h-9 md:w-10 md:h-10 mx-auto mb-2" style={{ color: accentColor }} />
+              <h4 className="text-lg md:text-xl font-semibold text-white leading-tight">{targetPlan.name}</h4>
               {isDowngrade && (
-                <p className="text-xs text-amber-400 mt-1">Plan change</p>
+                <p className="text-xs text-amber-400/90 mt-1">Plan change</p>
               )}
             </div>
 
-            <div className="rounded-xl overflow-hidden border border-neutral-700 mb-4">
-              <table className="w-full text-sm table-fixed border-collapse">
+            <div className="rounded-xl overflow-hidden border border-neutral-800 mb-4 -mx-0.5 sm:mx-0">
+              <div className="overflow-x-auto min-w-0">
+              <table className="w-full text-sm table-fixed border-collapse min-w-[280px]">
                 <thead>
                   <tr className="bg-neutral-800">
                     <th className="w-1/3 text-left text-xs font-semibold text-neutral-400 px-3 py-2.5 border-b border-r border-neutral-700"></th>
@@ -525,6 +533,7 @@ export default function PlanOverview({
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {isIndividualDowngrade && (
@@ -576,14 +585,14 @@ export default function PlanOverview({
             {isHouseholdUpgrade && (
               <div className="mb-4">
                 <div className="text-center mb-3">
-                  <Users className="w-5 h-5 text-[#BF00FF] mx-auto mb-1.5" />
+                  <Home className="w-5 h-5 text-[#BF00FF] mx-auto mb-1.5" />
                   <h5 className="text-sm font-semibold text-white">Invite Your Household Member</h5>
                   <p className="text-xs text-neutral-400 mt-1">
                     They&apos;ll receive an email to create their own account and join your household.
                   </p>
                 </div>
                 <div className="space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <input
                       type="text"
                       value={partnerFirst}
@@ -633,8 +642,8 @@ export default function PlanOverview({
                         <span className="font-medium text-white">{formatPrice(PARTNER_INTENSIVE_PRICE)}</span>
                       </div>
 
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                        <div className="relative flex-1 min-w-0">
                           <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
                           <input
                             type="text"
@@ -661,6 +670,7 @@ export default function PlanOverview({
                           <Button
                             variant="outline"
                             size="sm"
+                            className="w-full sm:w-auto shrink-0 justify-center"
                             onClick={handleApplyCoupon}
                             disabled={!couponCode.trim() || couponLoading}
                           >
@@ -773,13 +783,14 @@ export default function PlanOverview({
               </label>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={resetUpgradeState}>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2 pt-1">
+              <Button variant="ghost" size="sm" className="w-full justify-center sm:w-auto" onClick={resetUpgradeState}>
                 Cancel
               </Button>
               <Button
                 variant={isDowngrade ? 'outline' : 'primary'}
                 size="sm"
+                className="w-full justify-center sm:w-auto"
                 onClick={handlePlanChangeConfirm}
                 disabled={!agreedToTerms}
               >
@@ -804,80 +815,87 @@ export default function PlanOverview({
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-6 gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <CreditCard className="w-5 h-5 text-[#39FF14] flex-shrink-0" />
-          <h3 className="text-lg font-bold text-white">Vision Pro Membership</h3>
-          {getStatusBadge(subscription.status, subscription.cancelAtPeriodEnd)}
+    <Card variant="outlined" className="p-4 md:p-6 border-neutral-800 bg-neutral-900/30">
+      <div className="mb-5 md:mb-6 space-y-4">
+        <div className="flex flex-col items-center gap-2 text-center md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-x-2">
+          <div className="hidden min-w-0 md:block" aria-hidden="true" />
+          <div className="flex min-w-0 flex-col items-center px-1">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+              <CreditCard className="w-5 h-5 text-[#39FF14] shrink-0" aria-hidden />
+              <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">
+                {tier.name}
+              </h3>
+            </div>
+            <div className="text-sm text-neutral-500 mt-2">
+              {formatPrice(price)}{intervalLabel}
+              {tier.isHouseholdPlan && ' (Household)'}
+            </div>
+          </div>
+          <div className="flex shrink-0 justify-center md:justify-end">
+            {getStatusBadge(subscription.status, subscription.cancelAtPeriodEnd)}
+          </div>
         </div>
-        <div className="flex-shrink-0">
+        <div className="flex justify-center">
           {subscription.cancelAtPeriodEnd ? (
             <Button
               variant="primary"
               size="sm"
+              className="w-full max-w-sm justify-center md:w-auto md:max-w-none md:min-w-[12rem]"
               onClick={onResume}
               disabled={isResuming}
             >
-              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5 shrink-0" />
               {isResuming ? 'Resuming...' : 'Resume'}
             </Button>
           ) : (
             <Button
               variant="danger"
               size="sm"
+              className="w-full max-w-sm justify-center md:w-auto md:max-w-none md:min-w-[12rem]"
               onClick={onCancel}
               disabled={isCanceling}
             >
-              {isCanceling ? 'Canceling...' : 'Cancel Membership'}
+              {isCanceling ? 'Canceling...' : 'Cancel membership'}
             </Button>
           )}
         </div>
       </div>
 
-      <div className="mb-6">
-        <div className="text-2xl font-bold text-white mb-1">{tier.name}</div>
-        <div className="text-sm text-neutral-400">
-          {formatPrice(price)}{intervalLabel}
-          {tier.isHouseholdPlan && ' (Household)'}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-neutral-900 rounded-xl p-3">
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-1">
-            <Calendar className="w-3.5 h-3.5" />
-            {isTrialing ? 'First Billing' : 'Period'}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-5 md:mb-6">
+        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            {isTrialing ? 'First billing' : 'Period'}
           </div>
-          <div className="text-sm font-medium text-white">
+          <div className="text-xs sm:text-sm font-medium text-white leading-snug break-words">
             {isTrialing
               ? formatDate(subscription.currentPeriodEnd)
-              : `${formatDate(subscription.currentPeriodStart)} - ${formatDate(subscription.currentPeriodEnd)}`
+              : `${formatDate(subscription.currentPeriodStart)} \u2013 ${formatDate(subscription.currentPeriodEnd)}`
             }
           </div>
         </div>
-        <div className="bg-neutral-900 rounded-xl p-3">
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-1">
-            <Coins className="w-3.5 h-3.5" />
-            VIVA Tokens
+        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
+            <Coins className="w-3.5 h-3.5 shrink-0" />
+            VIVA tokens
           </div>
           <div className="text-sm font-medium text-[#39FF14]">
             {formatTokensShort(tokenGrant)}
           </div>
         </div>
-        <div className="bg-neutral-900 rounded-xl p-3">
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-1">
-            <HardDrive className="w-3.5 h-3.5" />
+        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
+            <HardDrive className="w-3.5 h-3.5 shrink-0" />
             Storage
           </div>
           <div className="text-sm font-medium text-white">
             {formatStorage(tier.storageQuotaGb)}
           </div>
         </div>
-        <div className="bg-neutral-900 rounded-xl p-3">
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-1">
-            <CreditCard className="w-3.5 h-3.5" />
-            {isTrialing ? 'First Charge' : 'Next Charge'}
+        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
+            <CreditCard className="w-3.5 h-3.5 shrink-0" />
+            {isTrialing ? 'First charge' : 'Next charge'}
           </div>
           <div className="text-sm font-medium text-white">
             {upcomingInvoice
@@ -888,7 +906,7 @@ export default function PlanOverview({
       </div>
 
       {subscription.cancelAtPeriodEnd && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 flex items-start gap-3">
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 md:p-4 mb-5 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-yellow-400">
@@ -902,13 +920,13 @@ export default function PlanOverview({
       )}
 
       {!subscription.cancelAtPeriodEnd && (
-        <div className="space-y-3 mb-6">
+        <div className="space-y-3 mb-5">
           {is28Day ? renderPlanChangeBlock(
             'annual',
             'Switch to Annual Billing',
             `Save with annual billing at ${formatPrice(tier.isHouseholdPlan ? PRICING.HOUSEHOLD_ANNUAL : PRICING.SOLO_ANNUAL)}/year`,
             'Upgrade to Annual',
-            <ArrowUpRight className="w-4 h-4 ml-1" />,
+            <ArrowUpRight className="w-4 h-4 shrink-0" />,
             'border-[#00FFFF]/20',
             'bg-[#00FFFF]/5',
           ) : renderPlanChangeBlock(
@@ -916,7 +934,7 @@ export default function PlanOverview({
             'Switch to 28-Day Billing',
             `${formatPrice(tier.isHouseholdPlan ? PRICING.HOUSEHOLD_28DAY : PRICING.SOLO_28DAY)}/28 days`,
             'Switch to 28-Day',
-            <ArrowDownRight className="w-4 h-4 ml-1" />,
+            <ArrowDownRight className="w-4 h-4 shrink-0" />,
             'border-amber-500/20',
             'bg-amber-500/5',
             'outline',
@@ -927,7 +945,7 @@ export default function PlanOverview({
             'Switch to Household',
             'Proration + $200 partner intensive \u00b7 2 members',
             'Upgrade to Household',
-            <Users className="w-4 h-4 ml-1" />,
+            <Home className="w-4 h-4 shrink-0" />,
             'border-[#BF00FF]/20',
             'bg-[#BF00FF]/5',
           ) : renderPlanChangeBlock(
@@ -935,7 +953,7 @@ export default function PlanOverview({
             'Switch to Individual',
             'Remove household members and switch to a solo plan',
             'Switch to Individual',
-            <User className="w-4 h-4 ml-1" />,
+            <User className="w-4 h-4 shrink-0" />,
             'border-amber-500/20',
             'bg-amber-500/5',
             'outline',

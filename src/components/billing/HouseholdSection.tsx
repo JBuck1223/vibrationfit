@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Card, Badge, Button, Spinner } from '@/lib/design-system/components'
-import { Users, UserPlus, Mail, X, Crown, Zap, Tag, Check, Loader2, Sparkles } from 'lucide-react'
+import { Home, User, UserPlus, Mail, X, Zap, Tag, Check, Loader2, Sparkles } from 'lucide-react'
 import { formatPrice, PRICING } from '@/lib/billing/config'
 import { toast } from 'sonner'
 
@@ -212,13 +212,13 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Users className="w-5 h-5 text-[#00FFFF]" />
-          <h3 className="text-lg font-bold text-white">{household.name}</h3>
+    <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+      <div className="mb-5 text-center">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-1">
+          <Home className="w-5 h-5 text-[#00FFFF] shrink-0" aria-hidden />
+          <h3 className="text-lg md:text-xl font-semibold text-white break-words">{household.name}</h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           {paidSeats > 0 && (
             <Badge variant="neutral" className="text-xs">
               {paidSeats} add-on seat{paidSeats > 1 ? 's' : ''}
@@ -231,8 +231,8 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
       </div>
 
       {activeMembers.length > 0 && (
-        <div className="mb-6">
-          <div className="text-xs text-neutral-400 uppercase tracking-wide mb-3">Members</div>
+        <div className="mb-5">
+          <div className="text-[11px] text-neutral-500 uppercase tracking-wide mb-2">Members</div>
           <div className="space-y-2">
             {activeMembers.map((member) => {
               const name = member.profile?.first_name
@@ -242,14 +242,12 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
               return (
                 <div
                   key={member.user_id}
-                  className="flex items-center justify-between bg-neutral-900 rounded-xl px-4 py-3"
+                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-neutral-950/80 rounded-xl px-3 py-3 sm:px-4 border border-neutral-800/80"
                 >
-                  <div className="flex items-center gap-3">
-                    {member.role === 'admin' ? (
-                      <Crown className="w-4 h-4 text-[#FFFF00] flex-shrink-0" />
-                    ) : (
-                      <Users className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-                    )}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <User
+                      className={`w-4 h-4 flex-shrink-0 ${member.role === 'admin' ? 'text-[#FFFF00]' : 'text-neutral-500'}`}
+                    />
                     <div>
                       <span className="text-sm font-medium text-white">{name}</span>
                       {member.profile?.email && (
@@ -257,7 +255,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                     {intensive && (
                       <div className="flex items-center gap-1.5 text-xs rounded-full px-2.5 py-1 bg-[#39FF14]/10 border border-[#39FF14]/20">
                         <Sparkles className="w-3 h-3 text-[#39FF14]" />
@@ -280,15 +278,15 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
       )}
 
       {pendingInvitations.length > 0 && (
-        <div className="mb-6">
-          <div className="text-xs text-neutral-400 uppercase tracking-wide mb-3">Pending Invitations</div>
+        <div className="mb-5">
+          <div className="text-[11px] text-neutral-500 uppercase tracking-wide mb-2">Pending invitations</div>
           <div className="space-y-2">
             {pendingInvitations.map((inv) => (
               <div
                 key={inv.id}
-                className="flex items-center justify-between bg-neutral-900 rounded-xl px-4 py-3"
+                className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-neutral-950/80 rounded-xl px-3 py-3 sm:px-4 border border-neutral-800/80"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <Mail className="w-4 h-4 text-neutral-500 flex-shrink-0" />
                   <div>
                     <span className="text-sm text-white">{inv.invited_email}</span>
@@ -298,10 +296,12 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                   </div>
                 </div>
                 {isAdmin && (
+                  <div className="flex justify-end sm:justify-end sm:shrink-0">
                   <button
                     onClick={() => handleCancelInvitation(inv.id)}
                     disabled={cancelingId === inv.id}
-                    className="p-1.5 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400 hover:text-red-400"
+                    className="p-2 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400 hover:text-red-400 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    aria-label="Cancel invitation"
                   >
                     {cancelingId === inv.id ? (
                       <Spinner size="sm" />
@@ -309,6 +309,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                       <X className="w-4 h-4" />
                     )}
                   </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -317,20 +318,22 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
       )}
 
       {isAdmin && !showAddForm && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowAddForm(true)}
-          className="w-full"
-        >
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add Household Member
-        </Button>
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAddForm(true)}
+            className="w-full max-w-sm justify-center md:w-auto md:max-w-none"
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add Household Member
+          </Button>
+        </div>
       )}
 
       {isAdmin && showAddForm && (
-        <div className="rounded-2xl border-2 border-[#00FFFF]/20 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(0,255,255,0.03), transparent)' }}>
-          <div className="p-5">
+        <div className="rounded-2xl border border-neutral-800 overflow-hidden bg-neutral-950/40">
+          <div className="p-4 md:p-5">
             <div className="text-center mb-4">
               <UserPlus className="w-8 h-8 text-[#00FFFF] mx-auto mb-2" />
               <h4 className="text-lg font-bold text-white">Add Household Member</h4>
@@ -340,7 +343,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
             </div>
 
             <div className="space-y-2.5 mb-4">
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <input
                   type="text"
                   value={firstName}
@@ -379,8 +382,8 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                 <span className="font-medium text-white">{formatPrice(INTENSIVE_PRICE)}</span>
               </div>
 
-              <div className="flex gap-2 mb-2">
-                <div className="relative flex-1">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <div className="relative flex-1 min-w-0">
                   <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
                   <input
                     type="text"
@@ -407,6 +410,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto shrink-0 justify-center"
                     onClick={handleApplyCoupon}
                     disabled={!couponCode.trim() || couponLoading}
                   >
@@ -475,13 +479,14 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
               </label>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={resetForm}>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2 pt-1">
+              <Button variant="ghost" size="sm" className="w-full justify-center sm:w-auto" onClick={resetForm}>
                 Cancel
               </Button>
               <Button
                 variant="primary"
                 size="sm"
+                className="w-full justify-center sm:w-auto"
                 onClick={handleAddMember}
                 disabled={!agreedToTerms || adding}
               >
@@ -498,7 +503,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
       )}
 
       {isAdmin && paidSeats > 0 && !showAddForm && (
-        <div className="bg-neutral-900 rounded-xl p-4 mt-4">
+        <div className="bg-neutral-950/80 rounded-xl p-3 mt-4 border border-neutral-800/80">
           <p className="text-xs text-neutral-400">
             <span className="text-white font-medium">{INCLUDED_SEATS} included</span> + <span className="text-white font-medium">{paidSeats} add-on</span> seat{paidSeats > 1 ? 's' : ''} at {formatPrice(seatPrice)}{seatIntervalLabel} each
           </p>

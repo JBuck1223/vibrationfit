@@ -76,65 +76,67 @@ export default function PaymentMethodsList({ paymentMethods, onRefresh, onAddCar
   }
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white">Payment Methods</h3>
-        <Button variant="ghost" size="sm" onClick={onAddCard}>
-          <Plus className="w-4 h-4 mr-1" />
-          Add Card
+    <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+      <div className="mb-4 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-lg md:text-xl font-semibold text-white leading-snug text-center sm:text-left">Payment methods</h3>
+        <Button variant="outline" size="sm" className="w-full justify-center sm:w-auto shrink-0" onClick={onAddCard}>
+          <Plus className="w-4 h-4 mr-1.5 shrink-0" />
+          Add card
         </Button>
       </div>
 
       {paymentMethods.length === 0 ? (
-        <p className="text-neutral-500 text-sm text-center py-4">No saved payment methods</p>
+        <p className="text-neutral-500 text-sm text-center py-6">No saved payment methods</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {paymentMethods.map(pm => (
             <div
               key={pm.id}
-              className="flex items-center justify-between bg-neutral-900 rounded-xl p-4"
+              className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-neutral-950/80 rounded-xl p-3 sm:p-4 border border-neutral-800/80"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-neutral-800 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-neutral-300" />
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-neutral-900 flex items-center justify-center border border-neutral-800 shrink-0">
+                  <CreditCard className="w-4 h-4 text-neutral-400" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="text-sm font-medium text-white">
                       {brandIcon(pm.brand)} ****{pm.last4}
                     </span>
                     {pm.isDefault && (
                       <span className="inline-flex items-center gap-1 text-xs text-[#39FF14] font-medium">
-                        <Star className="w-3 h-3 fill-current" /> Default
+                        <Star className="w-3 h-3 fill-current shrink-0" /> Default
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-neutral-400">
+                  <div className="text-xs text-neutral-500 mt-0.5">
                     Expires {pm.expMonth}/{pm.expYear}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:justify-end sm:shrink-0">
                 {!pm.isDefault && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
+                    className="w-full justify-center sm:min-w-0"
                     onClick={() => handleSetDefault(pm.id)}
                     disabled={actionId === pm.id}
                   >
-                    Set Default
+                    Set default
                   </Button>
                 )}
                 {!pm.isDefault && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-red-400 hover:text-red-300"
+                    className="w-full justify-center sm:w-auto text-red-400 hover:text-red-300 min-h-[44px] sm:min-h-0"
                     onClick={() => handleRemove(pm.id)}
                     disabled={actionId === pm.id}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4 mr-2 sm:mr-0 shrink-0" />
+                    <span className="sm:hidden">Remove</span>
                   </Button>
                 )}
               </div>

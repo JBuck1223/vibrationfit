@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { Input, Button, Checkbox } from '@/lib/design-system/components'
-import { Loader2, Users } from 'lucide-react'
+import { Loader2, Home } from 'lucide-react'
 import { formatPhoneDisplay, parsePhoneInput, phoneToE164 } from '@/lib/phone-format'
 
 interface CheckoutFormProps {
@@ -182,7 +182,7 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
       {isHousehold && (
         <div className="border-2 border-[#39FF14]/20 rounded-2xl p-5 space-y-4 bg-[#39FF14]/5">
           <div className="flex items-center gap-2 mb-1">
-            <Users className="w-5 h-5 text-[#39FF14]" />
+            <Home className="w-5 h-5 text-[#39FF14]" />
             <h3 className="text-lg font-bold text-white">Second Household Member</h3>
           </div>
           <p className="text-sm text-neutral-400">
