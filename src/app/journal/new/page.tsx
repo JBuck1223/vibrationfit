@@ -248,7 +248,7 @@ export default function NewJournalEntryPage() {
 
       // Auto-verify MAP commitment for journal
       try {
-        const { autoVerifyClient } = await import('@/lib/map/auto-verify')
+        const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
         autoVerifyClient('journal')
       } catch {}
 

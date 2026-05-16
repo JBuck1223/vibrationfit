@@ -118,7 +118,7 @@ export const AudioPlayer = React.forwardRef<HTMLAudioElement, AudioPlayerProps>(
             { onConflict: 'user_id,area,activation_date', ignoreDuplicates: true },
           )
 
-          const { autoVerifyClient } = await import('@/lib/map/auto-verify')
+          const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
           autoVerifyClient('vision-audio')
         }
       } catch (error) {
