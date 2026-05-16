@@ -18,9 +18,9 @@ import { createClient } from '@/lib/supabase/client'
 import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
 
 const PROFILE_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile-1080p.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile--5-15-26-1080p.mp4'
 const PROFILE_INTRO_POSTER =
-  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile-thumb.0000000.jpg'
+  'https://media.vibrationfit.com/site-assets/video/intensive/03-profile--5-15-26-thumb.0000000.jpg'
 
 export default function IntensiveProfileNewPage() {
   const router = useRouter()

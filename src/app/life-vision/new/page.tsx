@@ -19,9 +19,9 @@ import { VISION_CATEGORIES, ORDERED_VISION_CATEGORIES, META_CATEGORY_KEYS, getCa
 import { createClient } from '@/lib/supabase/client'
 
 const VISION_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder-1080p.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder--5-15-26-1080p.mp4'
 const VISION_INTRO_POSTER =
-  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder-thumb.0000000.jpg'
+  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder--5-15-26-thumb.0000000.jpg'
 
 interface CategoryProgress {
   [key: string]: {

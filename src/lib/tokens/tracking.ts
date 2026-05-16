@@ -55,29 +55,51 @@ const TOKEN_COSTS_LEGACY: Record<string, { input: number; output: number }> = {
 }
 
 /**
- * Normalize OpenAI model names by removing date suffixes
- * Example: gpt-4o-2024-08-06 → gpt-4o
+ * Normalize model names returned by providers/gateways:
+ *  - Strips OpenAI date suffix (gpt-4o-2024-08-06 -> gpt-4o, gpt-4o-mini-2024-07-18 -> gpt-4o-mini)
+ *  - Strips Vercel AI Gateway provider prefix (google/gemini-2.5-pro -> gemini-2.5-pro,
+ *    openai/gpt-4o -> gpt-4o, anthropic/claude-3-5-sonnet -> claude-3-5-sonnet)
+ *
+ * This lets us keep a single canonical row per model in ai_model_pricing.
  */
 function normalizeModelName(model: string): string {
-  // Remove date patterns like -YYYY-MM-DD or -YYYY-MM
-  return model.replace(/-\d{4}-\d{2}(-\d{2})?$/, '')
+  if (!model) return model
+  let normalized = model
+  // Strip Vercel AI Gateway / provider prefix (single segment ending in '/')
+  // e.g. "google/gemini-2.5-pro" -> "gemini-2.5-pro"
+  normalized = normalized.replace(/^(google|openai|anthropic|meta|mistral|deepseek|xai|cohere|perplexity)\//i, '')
+  // Strip OpenAI date suffix: -YYYY-MM or -YYYY-MM-DD at end
+  normalized = normalized.replace(/-\d{4}-\d{2}(-\d{2})?$/, '')
+  return normalized
 }
 
 /**
- * Calculate accurate token cost from ai_model_pricing table
- * Falls back to legacy hardcoded costs if model not found
+ * Round a USD value (cents) to 4 decimal places matching the
+ * numeric(12,4) column precision in token_usage.calculated_cost_cents.
+ */
+function roundCents(cents: number): number {
+  return Math.round(cents * 10000) / 10000
+}
+
+/**
+ * Calculate accurate cost (in cents) from ai_model_pricing table.
+ * Handles all unit_type values currently stored in the DB:
+ *   - text models: input_price_per_1m / output_price_per_1m (per 1M tokens)
+ *   - whisper:     unit_type = 'minute' | 'second',  price_per_unit
+ *   - tts:         unit_type = 'character' | 'per_1k_chars',  price_per_unit
+ *   - images:      unit_type = 'image' | starts with 'image_',  price_per_unit
+ *
+ * Falls back to hardcoded legacy table only if no active pricing row exists.
  */
 async function calculateAccurateTokenCost(
   supabase: any,
-  model: string, 
-  inputTokens: number, 
+  model: string,
+  inputTokens: number,
   outputTokens: number,
   audioSeconds?: number
 ): Promise<number> {
-  // Normalize model name (strip date suffixes from OpenAI responses)
   const normalizedModel = normalizeModelName(model)
-  
-  // Query ai_model_pricing for accurate costs
+
   const { data: pricing } = await supabase
     .from('ai_model_pricing')
     .select('*')
@@ -86,25 +108,34 @@ async function calculateAccurateTokenCost(
     .single()
 
   if (pricing) {
-    // Audio models (Whisper)
-    if (pricing.unit_type === 'second' && audioSeconds) {
-      return Math.round(audioSeconds * pricing.price_per_unit * 100)
+    const unit = (pricing.unit_type ?? '') as string
+    const pricePerUnit = Number(pricing.price_per_unit ?? 0)
+
+    // Whisper / audio transcription — price per minute or per second
+    if (unit === 'minute' && audioSeconds) {
+      return roundCents((audioSeconds / 60) * pricePerUnit * 100)
     }
-    
-    // Image models (DALL-E)
-    if (pricing.unit_type === 'image') {
-      return Math.round(pricing.price_per_unit * 100)
+    if (unit === 'second' && audioSeconds) {
+      return roundCents(audioSeconds * pricePerUnit * 100)
     }
-    
-    // TTS models (character-based)
-    if (pricing.unit_type === 'character' && inputTokens) {
-      return Math.round((inputTokens / 1000) * pricing.price_per_unit * 100)
+
+    // Image models — flat price per image (DALL-E rows use 'image_1024x1024' etc.)
+    if (unit === 'image' || unit.startsWith('image_')) {
+      return roundCents(pricePerUnit * 100)
     }
-    
-    // Text models (GPT) - pricing is per 1M tokens
-    const inputCost = (inputTokens / 1000000) * pricing.input_price_per_1m
-    const outputCost = (outputTokens / 1000000) * pricing.output_price_per_1m
-    return Math.round((inputCost + outputCost) * 100)
+
+    // TTS — character-based pricing. DB stores either 'character' (per char)
+    // or 'per_1k_chars' (price for 1000 characters). Input chars passed via inputTokens.
+    if ((unit === 'character' || unit === 'per_1k_chars') && inputTokens > 0) {
+      return roundCents((inputTokens / 1000) * pricePerUnit * 100)
+    }
+
+    // Text / chat models — pricing per 1M tokens
+    const inputPricePer1m = Number(pricing.input_price_per_1m ?? 0)
+    const outputPricePer1m = Number(pricing.output_price_per_1m ?? 0)
+    const inputCost = (inputTokens / 1_000_000) * inputPricePer1m
+    const outputCost = (outputTokens / 1_000_000) * outputPricePer1m
+    return roundCents((inputCost + outputCost) * 100)
   }
 
   // Fallback to legacy costs if model not in pricing table
@@ -219,19 +250,22 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
     // Default to server client for API routes (has proper permissions)
     // If supabaseClient is provided, use it (allows override for testing)
     const supabase = supabaseClient || await createServerClient()
-    
+
     // Calculate accurate cost from ai_model_pricing table
     // Normalize model name before storing and calculating costs
     const normalizedModel = normalizeModelName(usage.model_used)
-    
+
+    // Audio seconds may be supplied either at the top level (preferred) or in metadata (legacy callers)
+    const audioSeconds = usage.audio_seconds ?? (usage.metadata?.audio_seconds as number | undefined)
+
     const accurateCostCents = await calculateAccurateTokenCost(
       supabase,
-      normalizedModel, 
-      usage.input_tokens || 0, 
+      normalizedModel,
+      usage.input_tokens || 0,
       usage.output_tokens || 0,
-      usage.metadata?.audio_seconds
+      audioSeconds
     )
-    
+
     // Determine effective tokens (use override if no input/output tokens provided)
     let effectiveTokens = usage.tokens_used
     if ((usage.input_tokens || 0) + (usage.output_tokens || 0) > 0) {
@@ -251,6 +285,15 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
       }
     }
 
+    // If the pricing table did not produce a cost but the caller supplied a
+    // known cost (e.g. provider returned an exact charge), prefer it.
+    const finalCalculatedCostCents =
+      accurateCostCents > 0
+        ? accurateCostCents
+        : (usage.actual_cost_cents && usage.actual_cost_cents > 0
+            ? roundCents(usage.actual_cost_cents)
+            : 0)
+
     // 1. Insert audit trail record (for user history)
     const { error: auditError } = await supabase
       .from('token_usage')
@@ -259,11 +302,11 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
         action_type: usage.action_type,
         model_used: normalizedModel,
         tokens_used: effectiveTokens,
-        calculated_cost_cents: accurateCostCents, // Accurate cost from ai_model_pricing
+        calculated_cost_cents: finalCalculatedCostCents, // Accurate cost from ai_model_pricing (fallback: caller-provided actual)
         input_tokens: usage.input_tokens || 0,
         output_tokens: usage.output_tokens || 0,
         // Audio-specific fields
-        audio_seconds: usage.audio_seconds || null,
+        audio_seconds: audioSeconds ?? null,
         audio_duration_formatted: usage.audio_duration_formatted || null,
         // OpenAI reconciliation fields
         openai_request_id: usage.openai_request_id,
