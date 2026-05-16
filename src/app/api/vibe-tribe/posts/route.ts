@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { extractAndStoreMentions, getMentionedUsersForPosts } from '@/lib/vibe-tribe/mention-utils'
+import { autoVerifyOccurrence } from '@/lib/map/auto-verify'
 
 /**
  * GET /api/vibe-tribe/posts
@@ -260,6 +261,9 @@ export async function POST(request: NextRequest) {
       user.id,
       { post_id: newPost.id }
     )
+
+    // Auto-verify MAP commitment for vibe tribe engagement
+    autoVerifyOccurrence(user.id, 'vibe-tribe').catch(() => {})
 
     return NextResponse.json({
       success: true,

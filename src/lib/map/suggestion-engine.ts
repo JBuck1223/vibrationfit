@@ -24,6 +24,7 @@ export interface SuggestedCommitment {
   deepLink: string
   rationale: string
   tier: SuggestionTier
+  activityType: string
 }
 
 /**
@@ -69,6 +70,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
     deepLink: '/life-vision',
     rationale: 'Daily immersion in your vision rewires your default emotional state toward above the Green Line.',
     tier: 'base',
+    activityType: 'vision_audio',
   })
 
   suggestions.push({
@@ -79,6 +81,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
     deepLink: '/journal/new',
     rationale: 'Journaling creates evidence of your shift and surfaces wobbles before they take hold.',
     tier: 'base',
+    activityType: 'journal_entry',
   })
 
   suggestions.push({
@@ -89,6 +92,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
     deepLink: '/vibe-tribe',
     rationale: 'Community connection accelerates alignment shifts and keeps you accountable.',
     tier: 'base',
+    activityType: 'vibe_tribe_engage',
   })
 
   suggestions.push({
@@ -99,6 +103,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
     deepLink: '/alignment-gym',
     rationale: 'Live coaching keeps momentum on your toughest categories.',
     tier: 'base',
+    activityType: 'alignment_gym',
   })
 
   // ── SUPPLEMENTS: extra reps on below/transition areas ─────────────
@@ -118,6 +123,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
       deepLink: '/life-vision',
       rationale: `${displayName} is ${severity}. Targeted reps accelerate the shift above the line.`,
       tier: 'supplement',
+      activityType: 'vision_audio',
     })
   }
 
@@ -138,6 +144,7 @@ export function suggestionsToPayloads(
     title: s.title,
     description: s.description,
     cadence: s.cadence,
+    activity_type: s.activityType,
   }))
 }
 

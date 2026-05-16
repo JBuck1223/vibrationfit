@@ -248,6 +248,9 @@ export default function VisionBoardPage() {
         user_id: user.id,
         area: 'vision_board',
       })
+
+      const { autoVerifyClient } = await import('@/lib/map/auto-verify')
+      autoVerifyClient('vision-board')
     }
     recordActivation()
   }, [])
