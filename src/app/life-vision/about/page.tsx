@@ -11,9 +11,9 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { Target, Compass, Lightbulb, Sparkles, Headphones, Image, BookOpen, Repeat } from 'lucide-react'
 
 const VISION_INTRO_VIDEO =
-  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder-1080p.mp4'
+  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder--5-15-26-1080p.mp4'
 const VISION_INTRO_POSTER =
-  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder-thumb.0000000.jpg'
+  'https://media.vibrationfit.com/site-assets/video/intensive/05-vision-builder--5-15-26-thumb.0000000.jpg'
 
 export default function LifeVisionAboutPage() {
   return (
