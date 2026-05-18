@@ -461,8 +461,9 @@ export default function AlignmentGymPage() {
                     <Clock className="w-4 h-4 text-primary-500" />
                     <span>
                       {new Date(nextSession.scheduled_at).toLocaleTimeString(undefined, {
-                        hour: '2-digit',
+                        hour: 'numeric',
                         minute: '2-digit',
+                        timeZoneName: 'short',
                       })}
                     </span>
                   </div>
