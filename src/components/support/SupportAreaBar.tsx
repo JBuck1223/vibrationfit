@@ -1,11 +1,16 @@
 'use client'
 
-import { MessageSquare, List, Plus } from 'lucide-react'
+import { MessageSquare, List, Plus, Megaphone } from 'lucide-react'
 import { AreaBar, type AreaBarTab } from '@/lib/design-system/components'
 
 const TABS: AreaBarTab[] = [
   {
-    label: 'All tickets',
+    label: 'Updates',
+    path: '/support/announcements',
+    icon: Megaphone,
+  },
+  {
+    label: 'My Tickets',
     path: '/support/tickets',
     icon: List,
     exactPath: true,

@@ -35,6 +35,9 @@ export const USER_FOLDERS = {
   supportVideoRecordings: 'support/video-recordings',
   supportAudioRecordings: 'support/audio-recordings',
   supportAttachments: 'support/attachments',
+  // Support announcements (admin-posted screen recordings, files)
+  announcementVideoRecordings: 'announcements/video-recordings',
+  announcementAttachments: 'announcements/attachments',
   // Alignment Gym session notes & comments
   sessionNotes: 'sessions/notes',
   sessionComments: 'sessions/comments',
@@ -777,6 +780,25 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     },
     supportAttachments: {
       maxSize: 100 * 1024 * 1024, // 100MB for support attachments
+      types: [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        'video/mp4', 'video/quicktime', 'video/webm',
+        'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg',
+        'application/pdf',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain', 'text/csv',
+      ],
+    },
+    announcementVideoRecordings: {
+      maxSize: 5 * 1024 * 1024 * 1024,
+      types: [
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
+    },
+    announcementAttachments: {
+      maxSize: 100 * 1024 * 1024,
       types: [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
         'video/mp4', 'video/quicktime', 'video/webm',
