@@ -122,44 +122,49 @@ export default function AnnouncementsPage() {
               <div
                 key={announcement.id}
                 onClick={() => router.push(`/support/announcements/${announcement.id}`)}
-                className="cursor-pointer hover:bg-white/[0.03] transition-colors px-5 py-4"
+                className="cursor-pointer hover:bg-white/[0.03] transition-colors px-4 sm:px-5 py-4"
               >
-                <div className="flex items-start gap-4">
-                  {/* Date column */}
-                  <div className="flex-shrink-0 w-10 text-center pt-0.5">
-                    {announcement.is_pinned ? (
-                      <Pin className="w-4 h-4 text-primary-500 mx-auto" />
-                    ) : (
-                      <p className="text-xs text-neutral-500">{formatDate(announcement.published_at)}</p>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-base font-medium text-white truncate">
-                        {announcement.title}
-                      </p>
+                <div className="flex gap-3 sm:gap-4">
+                  {/* Pin icon — desktop only, left of content */}
+                  {announcement.is_pinned && (
+                    <div className="hidden sm:flex flex-shrink-0 items-center">
+                      <Pin className="w-4 h-4 text-primary-500" />
                     </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    {/* Top line: date/pin (mobile) left, video icon + badge right */}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 text-[11px]">
+                        {announcement.is_pinned ? (
+                          <Pin className="w-3.5 h-3.5 text-primary-500 sm:hidden" />
+                        ) : null}
+                        <span className="text-neutral-500">{formatDate(announcement.published_at)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {announcement.attachments.length > 0 && (
+                          <span className="text-neutral-500">
+                            {hasMediaAttachments(announcement.attachments) ? (
+                              <Video className="w-3.5 h-3.5" />
+                            ) : (
+                              <Paperclip className="w-3.5 h-3.5" />
+                            )}
+                          </span>
+                        )}
+                        <span className={`inline-flex text-[10px] px-1.5 py-0.5 rounded-full border ${getCategoryStyle(announcement.category)}`}>
+                          {getCategoryLabel(announcement.category)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <p className="text-sm sm:text-base font-medium text-white truncate mb-0.5">
+                      {announcement.title}
+                    </p>
+                    {/* Description preview */}
                     <p className="text-[13px] text-neutral-300 leading-relaxed line-clamp-2">
                       {announcement.content}
                     </p>
-                  </div>
-
-                  {/* Meta */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {announcement.attachments.length > 0 && (
-                      <span className="text-neutral-500">
-                        {hasMediaAttachments(announcement.attachments) ? (
-                          <Video className="w-3.5 h-3.5" />
-                        ) : (
-                          <Paperclip className="w-3.5 h-3.5" />
-                        )}
-                      </span>
-                    )}
-                    <span className={`inline-flex text-[10px] px-1.5 py-0.5 rounded-full border ${getCategoryStyle(announcement.category)}`}>
-                      {getCategoryLabel(announcement.category)}
-                    </span>
                   </div>
                 </div>
               </div>

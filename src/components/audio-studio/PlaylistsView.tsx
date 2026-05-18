@@ -251,7 +251,7 @@ export function PlaylistsView() {
           </div>
 
           {showCreate && (
-            <div className="mb-4 flex gap-2">
+            <div className="mb-4 space-y-2">
               <input
                 type="text"
                 placeholder="Playlist name"
@@ -261,24 +261,28 @@ export function PlaylistsView() {
                   if (e.key === 'Enter') handleCreate()
                   if (e.key === 'Escape') { setShowCreate(false); setNewName('') }
                 }}
-                className="flex-1 rounded-xl border border-white/10 bg-neutral-900 px-4 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                className="w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                 autoFocus
               />
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleCreate}
-                disabled={!newName.trim() || creating}
-              >
-                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create'}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setShowCreate(false); setNewName('') }}
-              >
-                Cancel
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCreate}
+                  disabled={!newName.trim() || creating}
+                  className="flex-1"
+                >
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setShowCreate(false); setNewName('') }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
 
