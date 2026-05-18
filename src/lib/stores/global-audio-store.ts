@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
+import { getCachedAudio } from '@/lib/storage/audio-offline-cache'
 
 interface GlobalAudioState {
   tracks: AudioTrack[]
@@ -35,6 +36,26 @@ interface GlobalAudioState {
 let _audio: HTMLAudioElement | null = null
 let _preloadAudio: HTMLAudioElement | null = null
 let _preloadedSrc: string | null = null
+const _blobUrls = new Map<string, string>()
+
+async function resolveTrackUrl(track: AudioTrack): Promise<string> {
+  const existing = _blobUrls.get(track.id)
+  if (existing) return existing
+  try {
+    const blob = await getCachedAudio(track.id)
+    if (blob) {
+      const blobUrl = URL.createObjectURL(blob)
+      _blobUrls.set(track.id, blobUrl)
+      return blobUrl
+    }
+  } catch {}
+  return track.url
+}
+
+function revokeBlobUrls() {
+  _blobUrls.forEach(url => URL.revokeObjectURL(url))
+  _blobUrls.clear()
+}
 
 function getAudio(): HTMLAudioElement {
   if (!_audio && typeof window !== 'undefined') {
@@ -49,17 +70,26 @@ export function getGlobalAudioElement(): HTMLAudioElement | null {
   return _audio
 }
 
-function preloadNextTrack(nextUrl: string | undefined) {
-  if (!nextUrl || nextUrl === _preloadedSrc) return
-  if (!_preloadAudio && typeof window !== 'undefined') {
-    _preloadAudio = new Audio()
-    _preloadAudio.preload = 'auto'
-    _preloadAudio.volume = 0
-  }
-  if (_preloadAudio) {
-    _preloadAudio.src = nextUrl
-    _preloadedSrc = nextUrl
-  }
+function preloadNextTrack(nextTrack: AudioTrack | undefined) {
+  if (!nextTrack) return
+  resolveTrackUrl(nextTrack).then(url => {
+    if (!url || url === _preloadedSrc) return
+    if (!_preloadAudio && typeof window !== 'undefined') {
+      _preloadAudio = new Audio()
+      _preloadAudio.preload = 'auto'
+      _preloadAudio.volume = 0
+    }
+    if (_preloadAudio) {
+      _preloadAudio.src = url
+      _preloadedSrc = url
+    }
+  })
+}
+
+async function loadAndPlay(audio: HTMLAudioElement, track: AudioTrack) {
+  const url = await resolveTrackUrl(track)
+  audio.src = url
+  audio.play().catch(() => {})
 }
 
 function wireAudioEvents() {
@@ -100,14 +130,12 @@ function wireAudioEvents() {
     const nextIndex = s.currentIndex + 1
     if (nextIndex < s.tracks.length) {
       useGlobalAudioStore.setState({ currentIndex: nextIndex, currentTime: 0, isBuffering: true })
-      audio.src = s.tracks[nextIndex].url
-      audio.play().catch(() => {})
-      preloadNextTrack(s.tracks[nextIndex + 1]?.url)
+      loadAndPlay(audio, s.tracks[nextIndex])
+      preloadNextTrack(s.tracks[nextIndex + 1])
     } else if (repeatMode === 'all' && s.tracks.length > 0) {
       useGlobalAudioStore.setState({ currentIndex: 0, currentTime: 0, isBuffering: true })
-      audio.src = s.tracks[0].url
-      audio.play().catch(() => {})
-      preloadNextTrack(s.tracks[1]?.url)
+      loadAndPlay(audio, s.tracks[0])
+      preloadNextTrack(s.tracks[1])
     } else {
       useGlobalAudioStore.setState({ isPlaying: false })
     }
@@ -158,9 +186,8 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       isShuffled: false,
       shuffleOrder: [],
     })
-    audio.src = tracks[startIndex].url
-    audio.play().catch(() => {})
-    preloadNextTrack(tracks[startIndex + 1]?.url)
+    loadAndPlay(audio, tracks[startIndex])
+    preloadNextTrack(tracks[startIndex + 1])
   },
 
   playTrack: (index) => {
@@ -168,9 +195,8 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
     if (index < 0 || index >= s.tracks.length) return
     const audio = getAudio()
     set({ currentIndex: index, currentTime: 0, isBuffering: true })
-    audio.src = s.tracks[index].url
-    audio.play().catch(() => {})
-    preloadNextTrack(s.tracks[index + 1]?.url)
+    loadAndPlay(audio, s.tracks[index])
+    preloadNextTrack(s.tracks[index + 1])
   },
 
   stop: () => {
@@ -178,6 +204,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
     audio.pause()
     audio.removeAttribute('src')
     if (_preloadAudio) { _preloadAudio.src = ''; _preloadedSrc = null }
+    revokeBlobUrls()
     set({
       tracks: [],
       currentIndex: 0,
@@ -218,10 +245,9 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
     }
     const audio = getAudio()
     set({ currentIndex: nextIndex, currentTime: 0, isBuffering: true })
-    audio.src = s.tracks[nextIndex].url
-    audio.play().catch(() => {})
+    loadAndPlay(audio, s.tracks[nextIndex])
     const followingIndex = nextIndex + 1 < s.tracks.length ? nextIndex + 1 : (s.repeatMode === 'all' ? 0 : undefined)
-    if (followingIndex !== undefined) preloadNextTrack(s.tracks[followingIndex]?.url)
+    if (followingIndex !== undefined) preloadNextTrack(s.tracks[followingIndex])
   },
 
   skipPrev: () => {
@@ -238,9 +264,8 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       else return
     }
     set({ currentIndex: prevIndex, currentTime: 0, isBuffering: true })
-    audio.src = s.tracks[prevIndex].url
-    audio.play().catch(() => {})
-    preloadNextTrack(s.tracks[prevIndex + 1]?.url)
+    loadAndPlay(audio, s.tracks[prevIndex])
+    preloadNextTrack(s.tracks[prevIndex + 1])
   },
 
   setRepeatMode: (mode) => set({ repeatMode: mode }),

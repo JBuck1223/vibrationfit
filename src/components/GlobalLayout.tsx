@@ -107,7 +107,7 @@ function isPathAccessibleForIntensive(
     return intensive.first_journal_entry
   }
   
-  // Step 11: My Activation Plan
+  // Step 11: MAP — My Alignment Plan
   if (pathname.startsWith('/intensive/map')) {
     return intensive.first_journal_entry
   }

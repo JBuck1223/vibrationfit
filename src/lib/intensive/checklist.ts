@@ -22,7 +22,7 @@ export type IntensiveStepType =
   | 'vision_board_completed'     // Step 9: Vision Board
   | 'first_journal_entry'        // Step 10: Journal
   // Phase 6: Completion
-  | 'activation_protocol_completed' // Step 11: My Activation Plan
+  | 'activation_protocol_completed' // Step 11: MAP — My Alignment Plan
   | 'unlock_completed'           // Step 12: Full Platform Unlock
 
 export async function markIntensiveStep(step: IntensiveStepType) {

@@ -18,6 +18,9 @@ import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/visio
 import { EmbeddedPlayer, type MixDetails } from '@/lib/design-system/components'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { SyncedLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
+import { PlaylistsView } from '@/components/audio-studio/PlaylistsView'
+import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet'
+import type { SourceType } from '@/lib/services/playlistService'
 
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
@@ -183,6 +186,19 @@ export default function AudioListenPage() {
   const [musicTracks, setMusicTracks] = useState<any[]>([])
   const [musicLoading, setMusicLoading] = useState(false)
   const [musicCategoryFilter, setMusicCategoryFilter] = useState<string>('all')
+
+  // Add to Playlist sheet state
+  const [playlistSheetOpen, setPlaylistSheetOpen] = useState(false)
+  const [playlistSheetTrack, setPlaylistSheetTrack] = useState<BaseAudioTrack | null>(null)
+  const [playlistSheetSourceType, setPlaylistSheetSourceType] = useState<SourceType>('life_vision')
+  const [playlistSheetSourceId, setPlaylistSheetSourceId] = useState('')
+
+  const handleAddToPlaylist = (track: BaseAudioTrack, sourceType: SourceType) => {
+    setPlaylistSheetTrack(track)
+    setPlaylistSheetSourceType(sourceType)
+    setPlaylistSheetSourceId(track.id)
+    setPlaylistSheetOpen(true)
+  }
 
   // Stats
   const [totalPlays, setTotalPlays] = useState(0)
@@ -355,7 +371,7 @@ export default function AudioListenPage() {
         const storyTitle = story.title || 'Untitled Story'
         tracks.forEach((track, idx) => {
           options.push({
-            id: `generated-${track.id}`,
+            id: track.id,
             label: tracks.length > 1 ? `${storyTitle} (${idx + 1}/${tracks.length})` : storyTitle,
             sublabel: '',
             url: track.audio_url,
@@ -613,11 +629,13 @@ export default function AudioListenPage() {
     <Container size="xl">
       <Stack gap="lg">
         <h1 className="sr-only">
-          {contentType === 'stories'
-            ? 'Listen to Stories'
-            : contentType === 'music'
-              ? 'Listen to Music'
-              : 'Listen to Your Vision'}
+          {contentType === 'playlists'
+            ? 'My Playlists'
+            : contentType === 'stories'
+              ? 'Listen to Stories'
+              : contentType === 'music'
+                ? 'Listen to Music'
+                : 'Listen to Your Vision'}
         </h1>
 
         {/* ── Life Vision Player ── */}
@@ -773,6 +791,7 @@ export default function AudioListenPage() {
                         </div>
                       </div>
                     }
+                    onAddToPlaylist={(track) => handleAddToPlaylist(track, 'life_vision')}
                   />
                 ) : (
                   <Card variant="glass" className="p-8 text-center">
@@ -944,6 +963,7 @@ export default function AudioListenPage() {
                           </div>
                         </div>
                       }
+                      onAddToPlaylist={(track) => handleAddToPlaylist(track, 'story')}
                     />
                     <div className="flex justify-center mt-4">
                       <Button variant="ghost" size="sm" asChild>
@@ -1032,6 +1052,7 @@ export default function AudioListenPage() {
                       </div>
                     </div>
                   }
+                  onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
                 />
                 {activeMusicCatalogRow?.synced_lyrics && (
                   <SyncedLyricsDisplay
@@ -1050,7 +1071,22 @@ export default function AudioListenPage() {
           </section>
         )}
 
+        {/* -- Playlists -- */}
+        {contentType === 'playlists' && (
+          <section>
+            <PlaylistsView />
+          </section>
+        )}
+
       </Stack>
+
+      <AddToPlaylistSheet
+        isOpen={playlistSheetOpen}
+        onClose={() => setPlaylistSheetOpen(false)}
+        track={playlistSheetTrack}
+        sourceType={playlistSheetSourceType}
+        sourceId={playlistSheetSourceId}
+      />
 
       <DeleteConfirmationDialog
         isOpen={showDeleteDialog}

@@ -126,7 +126,7 @@ export const userNavigation: (NavItem | NavGroup)[] = [
     name: 'MAP',
     href: '/map',
     icon: Map,
-    description: 'My Activation Plan - Your 28-day roadmap',
+    description: 'MAP - Your alignment actions',
   },
   {
     name: 'Profile',
@@ -355,6 +355,7 @@ export const adminNavigation: NavItem[] = [
     description: 'Tickets, inbox, and notifications',
     children: [
       { name: 'Support Board', href: '/admin/crm/support/board', icon: Headset, description: 'Support tickets board' },
+      { name: 'Announcements', href: '/admin/support/announcements', icon: Megaphone, description: 'Member-facing announcements and how-tos' },
       { name: 'Inbox', href: '/admin/inbox', icon: Inbox, description: 'Unified email and SMS inbox' },
       { name: 'Inbox – All', href: '/admin/inbox/all', icon: Inbox, description: 'All channels in one stream' },
       { name: 'Inbox – Email', href: '/admin/inbox/email', icon: Mail, description: 'Email threads only' },
@@ -566,7 +567,7 @@ export const mobileNavigation: NavItem[] = [
     name: 'MAP',
     href: '/map',
     icon: Map,
-    description: 'My Activation Plan',
+    description: 'MAP - Your alignment actions',
   },
   {
     name: 'Audio',

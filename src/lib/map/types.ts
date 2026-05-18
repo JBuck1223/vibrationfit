@@ -141,6 +141,7 @@ export interface Commitment {
   start_date: string | null
   end_date: string | null
   status: CommitmentStatus
+  activity_type: string | null
   imported_from_map_item_id: string | null
   created_at: string
   updated_at: string
@@ -157,6 +158,7 @@ export interface CreateCommitmentPayload {
   cadence?: Cadence | null
   start_date?: string | null
   end_date?: string | null
+  activity_type?: string | null
 }
 
 export interface UpdateCommitmentPayload {

@@ -1,13 +1,12 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { Map, CalendarDays, LayoutGrid, Target } from 'lucide-react'
+import { Map, Target, History } from 'lucide-react'
 import { AreaBar } from '@/lib/design-system/components'
 
 const TABS = [
-  { label: 'Today', path: '/map', icon: Target },
-  { label: 'Week', path: '/map/week', icon: CalendarDays },
-  { label: 'Portfolio', path: '/map/portfolio', icon: LayoutGrid },
+  { label: 'MAP', path: '/map', icon: Target },
+  { label: 'History', path: '/map/history', icon: History },
 ]
 
 export function MapAreaBar() {
@@ -15,7 +14,8 @@ export function MapAreaBar() {
 
   const isCommitmentDetail = /^\/map\/c\/[^/]+/.test(pathname)
   const isTargetDetail = /^\/map\/t\/[^/]+/.test(pathname)
-  const isDetailPage = isCommitmentDetail || isTargetDetail
+  const isNewPage = pathname === '/map/new'
+  const isDetailPage = isCommitmentDetail || isTargetDetail || isNewPage
 
   return (
     <AreaBar
