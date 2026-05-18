@@ -115,10 +115,10 @@ export default function MapHistoryPage() {
     return (
       <Container size="xl">
         <Stack gap="lg">
-          <h1 className="text-2xl font-bold text-white">MAP History</h1>
+          <h1 className="text-2xl font-bold text-white">History</h1>
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center py-12">
             <History className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">No MAP History Yet</h2>
+            <h2 className="text-xl font-bold text-white mb-2">No History Yet</h2>
             <p className="text-sm text-neutral-400 mb-6 max-w-md mx-auto">
               Your MAP history will appear here as you create and evolve your plans.
             </p>
@@ -139,7 +139,7 @@ export default function MapHistoryPage() {
       <Stack gap="lg">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">MAP History</h1>
+            <h1 className="text-2xl font-bold text-white">History</h1>
             <p className="text-sm text-neutral-500 mt-1">
               {versions.length} version{versions.length !== 1 ? 's' : ''} of your Activation Plan
             </p>
@@ -147,7 +147,7 @@ export default function MapHistoryPage() {
           <Button variant="primary" size="sm" asChild>
             <Link href="/map/new">
               <Plus className="w-4 h-4 mr-1" />
-              New MAP
+              Reset MAP
             </Link>
           </Button>
         </div>
