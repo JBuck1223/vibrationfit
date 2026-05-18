@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat,
-  Edit2, Download, CheckCircle, Loader2, Mic, Music, Waves,
+  Edit2, Download, CheckCircle, Loader2, Mic, Music, Waves, Save, Plus, Trash2,
 } from 'lucide-react'
 import { cn } from '../../shared-utils'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
@@ -12,9 +12,32 @@ import { colors } from '../../../tokens'
 import { TrackArtwork } from './TrackArtwork'
 import type { AudioTrack } from '../types'
 
+function Tip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <span className="relative group/tip">
+      {children}
+      <span className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-1.5 whitespace-nowrap rounded bg-neutral-900 border border-neutral-700 px-2 py-1 text-[10px] text-neutral-200 opacity-0 group-hover/tip:opacity-100 transition-opacity z-50">
+        {label}
+      </span>
+    </span>
+  )
+}
+
 const VOICE_NAMES: Record<string, string> = {
   alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral',
   echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage',
+}
+
+function triggerFileSave(blob: Blob, title: string) {
+  const filename = title.replace(/[^a-zA-Z0-9\s\-_.]/g, '').trim().replace(/\s+/g, '-') + '.mp3'
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export interface MixDetails {
@@ -35,9 +58,12 @@ interface EmbeddedPlayerProps {
   trackCount?: number
   createdDate?: string
   onRename?: (newName: string) => void
+  onDelete?: () => void
   voiceId?: string
   mixDetails?: MixDetails | null
   headerContent?: React.ReactNode
+  onAddToPlaylist?: (track: AudioTrack, index: number) => void
+  onRemoveTrack?: (track: AudioTrack, index: number) => void
 }
 
 function formatTime(seconds: number): string {
@@ -56,9 +82,12 @@ export function EmbeddedPlayer({
   trackCount,
   createdDate,
   onRename,
+  onDelete,
   voiceId,
   mixDetails,
   headerContent,
+  onAddToPlaylist,
+  onRemoveTrack,
 }: EmbeddedPlayerProps) {
   const storeTracks = useGlobalAudioStore(s => s.tracks)
   const storeIndex = useGlobalAudioStore(s => s.currentIndex)
@@ -87,6 +116,34 @@ export function EmbeddedPlayer({
   const { cachedTrackIds, downloadingTrackIds, downloadTrack, downloadAllTracks, removeTrack } = useAudioOffline(tracks)
   const allCached = tracks.length > 0 && tracks.every(t => cachedTrackIds.has(t.id))
   const anyDownloading = downloadingTrackIds.size > 0
+  const [savingTrackIds, setSavingTrackIds] = useState<Set<string>>(new Set())
+
+  const saveTrackToDevice = useCallback(async (track: AudioTrack) => {
+    setSavingTrackIds(prev => new Set(prev).add(track.id))
+    try {
+      const response = await fetch(`/api/audio/download?trackId=${encodeURIComponent(track.id)}`)
+      if (!response.ok && track.url) {
+        const fallback = await fetch(track.url)
+        if (!fallback.ok) throw new Error('Download failed')
+        const blob = await fallback.blob()
+        triggerFileSave(blob, track.title)
+        return
+      }
+      if (!response.ok) throw new Error('Download failed')
+      const blob = await response.blob()
+      triggerFileSave(blob, track.title)
+    } catch (err) {
+      console.error('Save to device failed:', err)
+    } finally {
+      setSavingTrackIds(prev => { const n = new Set(prev); n.delete(track.id); return n })
+    }
+  }, [])
+
+  const saveAllToDevice = useCallback(async () => {
+    for (const track of tracks) {
+      await saveTrackToDevice(track)
+    }
+  }, [tracks, saveTrackToDevice])
 
   const isThisSetActive = storeTracks.length === tracks.length &&
     tracks.length > 0 &&
@@ -235,12 +292,34 @@ export function EmbeddedPlayer({
           {headerContent}
         </div>
       ) : (setIcon || setName) ? (
-        <div className="bg-black/40 px-5 pt-5 pb-4 border-b border-neutral-800/60">
+        <div className="relative bg-black/40 px-5 pt-5 pb-4 border-b border-neutral-800/60">
+          {(onRename || onDelete) && (
+            <div className="absolute top-3 right-3 flex items-center gap-0.5">
+              {onRename && (
+                <button
+                  onClick={handleStartEdit}
+                  className="p-2 text-neutral-500 hover:text-white transition-colors rounded-lg"
+                  aria-label="Rename"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={onDelete}
+                  className="p-2 text-neutral-500 hover:text-[#FF0040] transition-colors rounded-lg"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
           {setIcon && (
             <div className="flex justify-center mb-3">{setIcon}</div>
           )}
           {setName && (
-            <div className="flex justify-center items-center mb-1.5">
+            <div className="flex justify-center items-center mb-1.5 w-full">
               {isEditingName ? (
                 <input
                   type="text"
@@ -255,19 +334,8 @@ export function EmbeddedPlayer({
                   className="bg-neutral-800 text-white px-3 py-1 rounded-lg text-base md:text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-md w-full"
                 />
               ) : (
-                <h3
-                  className={`group/title text-white font-semibold text-lg text-center${onRename ? ' cursor-pointer' : ''}`}
-                  onClick={onRename ? handleStartEdit : undefined}
-                  role={onRename ? 'button' : undefined}
-                  tabIndex={onRename ? 0 : undefined}
-                >
+                <h3 className="text-white font-semibold text-lg text-center">
                   {setName}
-                  {onRename && (
-                    <Edit2
-                      className="inline-block w-3 h-3 ml-1 -translate-y-1 text-neutral-400 hover:text-white cursor-pointer opacity-100 md:opacity-0 md:group-hover/title:opacity-100 transition-opacity"
-                      onClick={handleStartEdit}
-                    />
-                  )}
                 </h3>
               )}
             </div>
@@ -413,7 +481,7 @@ export function EmbeddedPlayer({
 
       {/* ── Track list ── */}
       <div className={cn(panelBg, 'border-t border-neutral-800/60 px-3 py-3')}>
-        <div className="flex justify-center mb-2">
+        <div className="flex justify-center gap-2 mb-2 flex-wrap">
           <button
             onClick={() => allCached ? tracks.forEach(t => removeTrack(t.id)) : downloadAllTracks(tracks)}
             disabled={anyDownloading}
@@ -433,7 +501,24 @@ export function EmbeddedPlayer({
             ) : (
               <Download className="w-3.5 h-3.5" />
             )}
-            {allCached ? 'Available Offline' : anyDownloading ? 'Downloading...' : 'Download for Offline'}
+            {allCached ? 'Available Offline' : anyDownloading ? 'Caching...' : 'Play Offline'}
+          </button>
+          <button
+            onClick={() => saveAllToDevice()}
+            disabled={savingTrackIds.size > 0}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+              savingTrackIds.size > 0
+                ? 'text-neutral-500 bg-neutral-800 cursor-wait'
+                : 'text-neutral-300 bg-neutral-800 hover:bg-neutral-700'
+            )}
+          >
+            {savingTrackIds.size > 0 ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            {savingTrackIds.size > 0 ? 'Downloading...' : 'Download MP3s'}
           </button>
         </div>
         <div className="space-y-0.5 max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
@@ -474,27 +559,73 @@ export function EmbeddedPlayer({
                     </div>
                   )}
                 </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    trackCached ? removeTrack(track.id) : downloadTrack(track)
-                  }}
-                  disabled={trackDownloading}
-                  title={trackCached ? 'Remove offline copy' : trackDownloading ? 'Downloading...' : 'Download for offline'}
-                  className={cn(
-                    'p-1.5 rounded-lg transition-colors flex-shrink-0',
-                    trackCached ? 'text-primary-500/70 hover:text-primary-500' : 'text-neutral-500 hover:text-neutral-300',
-                    trackDownloading && 'cursor-wait'
-                  )}
-                >
-                  {trackDownloading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : trackCached ? (
-                    <CheckCircle className="w-3.5 h-3.5" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                </button>
+                {onAddToPlaylist && (
+                  <Tip label="Add to playlist">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAddToPlaylist(track, index)
+                      }}
+                      className="p-1.5 rounded-lg transition-colors flex-shrink-0 text-neutral-500 hover:text-primary-500"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </Tip>
+                )}
+                <Tip label={trackCached ? 'Remove offline copy' : trackDownloading ? 'Caching...' : 'Play offline'}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      trackCached ? removeTrack(track.id) : downloadTrack(track)
+                    }}
+                    disabled={trackDownloading}
+                    className={cn(
+                      'p-1.5 rounded-lg transition-colors flex-shrink-0',
+                      trackCached ? 'text-primary-500/70 hover:text-primary-500' : 'text-neutral-500 hover:text-neutral-300',
+                      trackDownloading && 'cursor-wait'
+                    )}
+                  >
+                    {trackDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : trackCached ? (
+                      <CheckCircle className="w-3.5 h-3.5" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </Tip>
+                <Tip label="Download MP3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      saveTrackToDevice(track)
+                    }}
+                    disabled={savingTrackIds.has(track.id)}
+                    className={cn(
+                      'p-1.5 rounded-lg transition-colors flex-shrink-0 text-neutral-500 hover:text-neutral-300',
+                      savingTrackIds.has(track.id) && 'cursor-wait'
+                    )}
+                  >
+                    {savingTrackIds.has(track.id) ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Save className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </Tip>
+                {onRemoveTrack && (
+                  <Tip label="Remove">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemoveTrack(track, index)
+                      }}
+                      className="p-1.5 rounded-lg transition-colors flex-shrink-0 text-neutral-600 hover:text-[#FF0040]"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </Tip>
+                )}
               </div>
             )
           })}

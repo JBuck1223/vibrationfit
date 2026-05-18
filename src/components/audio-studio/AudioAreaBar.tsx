@@ -2,7 +2,7 @@
 
 import {
   Headphones, Wand2,
-  Target, Library, Music2,
+  Target, Library, Music2, ListMusic,
   AudioLines, Mic, Sliders, Clock,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
@@ -27,12 +27,14 @@ const CONTENT_TYPES = [
   { value: 'life-vision', label: 'Life Vision', icon: Target },
   { value: 'stories', label: 'Stories', icon: Library },
   { value: 'music', label: 'Music', icon: Music2 },
+  { value: 'playlists', label: 'Playlists', icon: ListMusic },
 ]
 
 const LISTEN_CONTENT_SUBTEXT: Record<string, string> = {
   'life-vision': 'Play your Life Vision audio sets and voice recordings.',
   'stories': 'Play narrated audio from your completed stories.',
   'music': 'Stream VibrationFit original music on your favorite platform.',
+  'playlists': 'Play and manage your custom playlists.',
 }
 
 const CREATE_TOOL_SUBTEXT: Record<string, string> = {

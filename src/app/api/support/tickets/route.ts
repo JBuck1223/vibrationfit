@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
 
     let query = adminClient
       .from('support_tickets')
-      .select('*, user_accounts(full_name, email)')
+      .select('*, user_accounts(full_name, email), support_ticket_replies(attachments)')
       .order('created_at', { ascending: false })
 
     if (!isAdmin) {

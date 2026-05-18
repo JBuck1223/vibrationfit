@@ -516,7 +516,7 @@ export function MediaRecorderComponent({
       if (mode === 'screen') {
         // Screen capture: display + microphone so users can narrate what they need support with
         const displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
           audio: false // Mic is more reliable for voiceover; system audio support varies by browser
         })
         const micStream = await navigator.mediaDevices.getUserMedia(
@@ -634,6 +634,11 @@ export function MediaRecorderComponent({
       // Lower bitrate for speech-only recordings to reduce file size and speed up transcription
       if (mode === 'audio' && (recordingPurpose === 'transcriptOnly' || recordingPurpose === 'quick')) {
         recorderOptions.audioBitsPerSecond = 48000 // 48kbps - plenty for speech/Whisper
+      }
+
+      // Higher bitrate for screen recordings to keep text sharp
+      if (mode === 'screen') {
+        recorderOptions.videoBitsPerSecond = 5_000_000 // 5Mbps - crisp text and UI details
       }
 
       const mediaRecorder = new MediaRecorder(stream, recorderOptions)
@@ -1126,7 +1131,7 @@ export function MediaRecorderComponent({
         <div className={`transition-all ${
           (mode === 'video' || mode === 'screen') && (isRecording || isPreparing)
             ? 'rounded-xl overflow-hidden bg-black border border-neutral-800'
-            : `bg-neutral-900 border-2 rounded-2xl ${isRecording ? 'border-[#FF0040]' : 'border-[#39FF14]'}`
+            : `bg-[#111] border rounded-2xl ${isRecording ? 'border-[#FF0040]' : 'border-neutral-700'}`
         } ${
           (mode === 'video' || mode === 'screen') && (isRecording || isPreparing)
             ? 'p-0'
@@ -1475,15 +1480,16 @@ export function MediaRecorderComponent({
             </div>
           )}
 
-          {/* Microphone Selector (when not recording and multiple mics available) - centered, width from content */}
+          {/* Microphone Selector (when not recording and multiple mics available) */}
           {!isRecording && countdown === null && !hasSavedRecording && audioDevices.length > 1 && (
-            <div className="mb-4 flex justify-center" ref={micDropdownRef}>
-              <div className="relative inline-block">
+            <div className="mb-4" ref={micDropdownRef}>
+              <label className="block text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2 text-center">Microphone</label>
+              <div className="relative w-full">
                 <button
                   type="button"
                   onClick={() => setIsMicDropdownOpen(!isMicDropdownOpen)}
                   disabled={isRecording}
-                  className={`inline-flex items-center gap-2 pl-4 pr-10 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left whitespace-nowrap ${
+                  className={`w-full flex items-center gap-2 pl-4 pr-10 py-2.5 text-sm rounded-xl bg-[#404040] border border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
                     selectedMic
                       ? 'text-white'
                       : 'text-[#9CA3AF]'
@@ -1499,14 +1505,14 @@ export function MediaRecorderComponent({
                 {isMicDropdownOpen && !isRecording && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsMicDropdownOpen(false)} aria-hidden />
-                    <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-1 min-w-[280px] w-max max-w-[min(100vw-2rem,400px)] bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain py-2">
+                    <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-[#404040] border border-[#666666] rounded-xl shadow-xl max-h-48 overflow-y-auto overscroll-contain py-1">
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedMic('')
                           setIsMicDropdownOpen(false)
                         }}
-                        className={`w-full px-6 py-2.5 text-left text-sm transition-colors ${!selectedMic ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'}`}
+                        className={`w-full px-4 py-2 text-left text-sm transition-colors ${!selectedMic ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-white/[0.05]'}`}
                       >
                         Default microphone
                       </button>
@@ -1521,8 +1527,8 @@ export function MediaRecorderComponent({
                               setSelectedMic(device.deviceId)
                               setIsMicDropdownOpen(false)
                             }}
-                            className={`w-full px-6 py-2.5 text-left text-sm transition-colors ${
-                              isSelected ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'
+                            className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                              isSelected ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-white/[0.05]'
                             }`}
                           >
                             {label}
@@ -1539,15 +1545,14 @@ export function MediaRecorderComponent({
           {/* Control Buttons */}
           {!isRecording && countdown === null && !hasSavedRecording && (
             <div className="flex justify-center gap-3">
-              <Button
+              <button
+                type="button"
                 onClick={startRecording}
-                variant="primary"
-                size="sm"
-                className="gap-2 w-full md:w-auto"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#39FF14] px-6 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:bg-[#39FF14]/80 active:opacity-80"
               >
                 {mode === 'screen' ? <Monitor className="w-4 h-4" /> : mode === 'video' ? <Video className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 Start Recording
-              </Button>
+              </button>
             </div>
           )}
         </div>
@@ -1555,7 +1560,7 @@ export function MediaRecorderComponent({
 
       {/* Quick Mode - Just show transcript when ready (no player) */}
       {recordingPurpose === 'quick' && transcript && !isTranscribing && (
-        <div className="bg-neutral-900 border-2 border-[#14B8A6]/50 rounded-2xl p-6">
+        <div className="bg-[#111] border border-[#14B8A6]/30 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-3">
             <Check className="w-5 h-5 text-[#14B8A6]" />
             <h3 className="text-lg font-semibold text-[#14B8A6]">Transcript Ready</h3>
@@ -1597,7 +1602,7 @@ export function MediaRecorderComponent({
 
       {/* Recorded Media Preview - Hidden in quick mode (no playback needed) */}
       {recordedBlob && recordedUrl && recordingPurpose !== 'quick' && (
-        <div className={recordingPurpose === 'support' ? 'space-y-4' : 'bg-neutral-900 border-2 border-[#FFB701] rounded-2xl p-6 space-y-4'}>
+        <div className={recordingPurpose === 'support' ? 'space-y-4' : 'bg-[#111] border border-amber-500/30 rounded-2xl p-6 space-y-4'}>
           {recordingPurpose !== 'support' && (
             <>
               <h3 className="text-lg font-semibold text-white mb-2">Recording Complete</h3>
