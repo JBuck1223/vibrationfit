@@ -55,7 +55,10 @@ export function useAudioOffline(tracks: AudioTrack[]): UseAudioOfflineReturn {
     })
 
     try {
-      const response = await fetch(`/api/audio/download?trackId=${encodeURIComponent(track.id)}`)
+      let response = await fetch(`/api/audio/download?trackId=${encodeURIComponent(track.id)}`)
+      if (!response.ok && track.url) {
+        response = await fetch(track.url)
+      }
       if (!response.ok) throw new Error(`Download failed: ${response.status}`)
 
       const contentLength = response.headers.get('Content-Length')

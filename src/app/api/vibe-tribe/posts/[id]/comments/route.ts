@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNotification } from '@/lib/notifications/config'
 import { VibeComment } from '@/lib/vibe-tribe/types'
 import { extractAndStoreMentions, getMentionedUsersForComments } from '@/lib/vibe-tribe/mention-utils'
+import { autoVerifyOccurrence } from '@/lib/map/auto-verify'
 
 /**
  * GET /api/vibe-tribe/posts/[id]/comments
@@ -227,6 +228,9 @@ export async function POST(
         commentPreview,
       },
     }).catch(err => console.error('Vibe Tribe comment notification error:', err))
+
+    // Auto-verify MAP commitment for vibe tribe engagement
+    autoVerifyOccurrence(user.id, 'vibe-tribe').catch(() => {})
 
     return NextResponse.json({
       success: true,

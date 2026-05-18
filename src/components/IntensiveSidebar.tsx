@@ -371,7 +371,7 @@ export function IntensiveSidebar() {
         { 
           id: 'activation', 
           stepNumber: 11,
-          title: 'My Activation Plan', 
+          title: 'MAP — My Alignment Plan', 
           href: '/intensive/map', 
           icon: Rocket,
           phase: 'Completion',

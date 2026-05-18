@@ -526,7 +526,7 @@ export default function IntensiveMapPage() {
               {completing ? (
                 <><Spinner size="sm" className="mr-2" />Activating...</>
               ) : (
-                <><Unlock className="w-5 h-5 mr-2" />Activate My MAP ({selectedCount} commitment{selectedCount !== 1 ? 's' : ''})</>
+                <><Unlock className="w-5 h-5 mr-2" />Activate MAP ({selectedCount} commitment{selectedCount !== 1 ? 's' : ''})</>
               )}
             </Button>
           </div>
@@ -543,7 +543,7 @@ export default function IntensiveMapPage() {
               {completing ? (
                 <><Spinner size="sm" className="mr-2" />Activating...</>
               ) : (
-                <><Unlock className="w-5 h-5 mr-2" />Activate My MAP ({selectedCount})</>
+                <><Unlock className="w-5 h-5 mr-2" />Activate MAP ({selectedCount})</>
               )}
             </Button>
           </div>
@@ -576,14 +576,14 @@ export default function IntensiveMapPage() {
           />
         </div>
 
-        {/* Build My MAP CTA */}
+        {/* Build MAP CTA */}
         {!isAlreadyCompleted && (
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
             <div className="py-6">
               <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-7 h-7 text-white" />
               </div>
-              <h2 className="text-xl md:text-2xl font-bold mb-2 text-white">Build My MAP with VIVA</h2>
+              <h2 className="text-xl md:text-2xl font-bold mb-2 text-white">Build MAP with VIVA</h2>
               <p className="text-sm text-neutral-400 mb-6 max-w-md mx-auto">
                 VIVA will analyze your assessment, identify where you stand on the Green Line, and build your personalized MAP commitments.
               </p>
@@ -594,7 +594,7 @@ export default function IntensiveMapPage() {
                 className="w-full sm:w-auto justify-center gap-2"
               >
                 <Sparkles className="w-5 h-5" />
-                Build My MAP with VIVA
+                Build MAP with VIVA
               </Button>
             </div>
           </Card>

@@ -137,6 +137,9 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
           { user_id: user.id, area: 'vision_audio', activation_date: today },
           { onConflict: 'user_id,area,activation_date', ignoreDuplicates: true },
         )
+
+        const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+        autoVerifyClient('vision-audio')
       }
     } catch (error) {
       console.error('Failed to track audio play:', error)

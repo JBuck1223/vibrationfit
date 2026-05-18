@@ -126,7 +126,7 @@ export const userNavigation: (NavItem | NavGroup)[] = [
     name: 'MAP',
     href: '/map',
     icon: Map,
-    description: 'My Activation Plan - Your 28-day roadmap',
+    description: 'MAP - Your alignment actions',
   },
   {
     name: 'Profile',
@@ -566,7 +566,7 @@ export const mobileNavigation: NavItem[] = [
     name: 'MAP',
     href: '/map',
     icon: Map,
-    description: 'My Activation Plan',
+    description: 'MAP - Your alignment actions',
   },
   {
     name: 'Audio',

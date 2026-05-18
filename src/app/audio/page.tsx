@@ -355,7 +355,7 @@ export default function AudioListenPage() {
         const storyTitle = story.title || 'Untitled Story'
         tracks.forEach((track, idx) => {
           options.push({
-            id: `generated-${track.id}`,
+            id: track.id,
             label: tracks.length > 1 ? `${storyTitle} (${idx + 1}/${tracks.length})` : storyTitle,
             sublabel: '',
             url: track.audio_url,
