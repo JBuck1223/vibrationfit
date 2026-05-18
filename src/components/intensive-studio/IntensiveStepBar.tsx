@@ -48,7 +48,7 @@ const STEP_ROUTES: StepRoute[] = [
   { pathPrefix: '/intensive/journal', areaName: 'Journal', areaIcon: BookOpen, stepNumber: 10, stepLabel: 'First Journal Entry', subtitle: '' },
 
   // Completion
-  { pathPrefix: '/intensive/map', areaName: 'Activation Plan', areaIcon: Map, stepNumber: 11, stepLabel: 'My Activation Plan', subtitle: '' },
+  { pathPrefix: '/intensive/map', areaName: 'MAP', areaIcon: Map, stepNumber: 11, stepLabel: 'MAP — My Alignment Plan', subtitle: '' },
   { pathPrefix: '/intensive/journey', areaName: 'Journey', areaIcon: Compass, stepNumber: 0, stepLabel: '', subtitle: '' },
   { pathPrefix: '/intensive/unlock', areaName: 'Unlock', areaIcon: Unlock, stepNumber: 12, stepLabel: 'Full Platform Unlock', subtitle: "Let's capture your journey and unlock your full membership." },
 ]

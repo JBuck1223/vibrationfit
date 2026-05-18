@@ -433,7 +433,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
           </Card>
         )}
 
-        {/* MAP Card - My Activation Plan */}
+        {/* MAP Card */}
           <Card className="relative overflow-hidden p-0">
             {/* Background map pattern */}
             <div className="absolute inset-0 opacity-10">
@@ -470,7 +470,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                   <h2 className="text-2xl font-bold text-white mb-2">
                     <span className="text-[#39FF14] font-mono tracking-wider">MAP</span>
                     <span className="text-neutral-400 mx-2 hidden md:inline">·</span>
-                    <span className="block md:inline">My Activation Plan</span>
+                    <span className="block md:inline">My Alignment Plan</span>
                   </h2>
                   <p className="text-neutral-300 text-sm">Your daily rhythm for living The Life I Choose.</p>
                 </div>
@@ -490,7 +490,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
                       <circle cx="12" cy="12" r="10" />
                       <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" fillOpacity="0.3" />
                     </svg>
-                    View My MAP
+                    View MAP
                   </Link>
                 </Button>
               </div>
