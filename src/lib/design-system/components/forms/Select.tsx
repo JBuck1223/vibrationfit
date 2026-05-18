@@ -97,7 +97,7 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
             onClick={() => !disabled && setIsOpen(!isOpen)}
             disabled={disabled}
             className={cn(
-              'w-full pl-4 pr-12 py-3 rounded-xl border-2 hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left',
+              'w-full pl-4 pr-12 py-2.5 text-sm rounded-xl border border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left',
               'bg-[#404040]',
               disabled && 'opacity-50 cursor-not-allowed',
               !selectedOption && 'text-[#9CA3AF]',
