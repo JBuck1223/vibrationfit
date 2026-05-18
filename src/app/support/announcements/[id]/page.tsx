@@ -143,7 +143,7 @@ export default function AnnouncementDetailPage() {
                   if (kind === 'video') {
                     return (
                       <div key={idx} className="rounded-xl overflow-hidden border border-white/[0.06]">
-                        <Video src={url} variant="inline" />
+                        <Video src={url} variant="card" />
                       </div>
                     )
                   }
