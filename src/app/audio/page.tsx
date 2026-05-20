@@ -17,7 +17,7 @@ import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 import { EmbeddedPlayer, type MixDetails } from '@/lib/design-system/components'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
-import { SyncedLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
+import { SyncedLyricsDisplay, PlainLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
 import { PlaylistsView } from '@/components/audio-studio/PlaylistsView'
 import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet'
 import type { SourceType } from '@/lib/services/playlistService'
@@ -43,30 +43,121 @@ const ENTITY_META: Record<string, { label: string; badgeColor: string; icon: Rea
   schedule_block: { label: 'Schedule', badgeColor: 'text-orange-400 bg-orange-500/20 border-orange-500/30', icon: Clock },
 }
 
+const STREAMING_ICONS: Record<string, React.ReactNode> = {
+  spotify: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+    </svg>
+  ),
+  apple: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+    </svg>
+  ),
+  amazon: (
+    <svg viewBox="0 0 448 512" fill="currentColor" className="w-5 h-5">
+      <path d="M257.2 162.7c-48.7 1.8-169.5 15.5-169.5 117.5 0 109.5 138.3 114 183.5 43.2 6.5 10.2 35.4 37.5 45.3 46.8l56.8-56S341 288.9 341 261.4V114.3C341 89 316.5 32 228.7 32 140.7 32 94 87 94 136.3l73.5 6.8c16.3-49.5 54.2-49.5 54.2-49.5 40.7-.1 35.5 29.8 35.5 69.1zm0 86.8c0 80-84.2 68-84.2 17.2 0-47.2 50.5-56.7 84.2-57.8v40.6zm136 163.5c-7.7 10-70 67-174.5 67S34.2 408.5 9.7 379c-6.8-7.7 1-11.4 5.8-8.5 56.2 17.7 155.2 50.7 257.5-11.5 8.6-5.2 17.2 2.1 10.2 12.9z" />
+    </svg>
+  ),
+  youtube: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    </svg>
+  ),
+  soundcloud: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <path d="M1.175 12.225c-.051 0-.094.046-.101.1l-.233 2.154.233 2.105c.007.058.05.098.101.098.05 0 .09-.04.099-.098l.255-2.105-.27-2.154c-.009-.057-.048-.1-.098-.1zm-.899.828c-.06 0-.091.037-.104.094L0 14.479l.172 1.308c.013.06.045.094.104.094.057 0 .089-.035.104-.094l.197-1.308-.197-1.332c-.015-.06-.047-.094-.104-.094zm1.844-1.475c-.067 0-.12.06-.12.128l-.19 2.773.19 2.65c0 .068.053.12.12.12s.12-.052.126-.12l.215-2.65-.215-2.773c-.006-.068-.059-.128-.126-.128zm.943-.39c-.075 0-.135.065-.142.135l-.17 3.163.17 2.786c.007.075.067.135.142.135.074 0 .134-.06.142-.135l.195-2.786-.195-3.164c-.008-.074-.068-.134-.142-.134zm.964-.125c-.083 0-.15.074-.157.149l-.15 3.288.15 2.836c.007.082.074.149.157.149.082 0 .15-.067.157-.149l.172-2.836-.172-3.288c-.008-.082-.075-.149-.157-.149zm1.012.12c-.09 0-.165.082-.172.164l-.135 3.168.135 2.86c.007.09.082.165.172.165.09 0 .164-.075.172-.165l.154-2.86-.154-3.168c-.008-.09-.082-.164-.172-.164zm1.02-.17c-.098 0-.18.09-.187.18l-.12 3.338.12 2.874c.007.097.09.18.188.18.097 0 .18-.083.187-.18l.135-2.874-.135-3.337c-.008-.098-.09-.18-.188-.18zm4.307-1.05c-.046 0-.09.008-.135.022a6.093 6.093 0 00-5.643-3.773c-.596 0-1.17.093-1.697.262-.2.064-.254.128-.254.253v9.617c0 .135.105.248.239.262h7.49c1.39 0 2.519-1.12 2.519-2.51s-1.13-2.508-2.52-2.508z" />
+    </svg>
+  ),
+}
+
 function MusicStreamingLinks({ track }: { track: Record<string, unknown> }) {
   const links = [
     { key: 'spotify', url: track.spotify_url as string | undefined, label: 'Spotify', color: 'hover:text-[#1DB954]' },
     { key: 'apple', url: track.apple_music_url as string | undefined, label: 'Apple Music', color: 'hover:text-[#FC3C44]' },
     { key: 'amazon', url: track.amazon_music_url as string | undefined, label: 'Amazon', color: 'hover:text-[#25D1DA]' },
     { key: 'youtube', url: track.youtube_music_url as string | undefined, label: 'YouTube', color: 'hover:text-[#FF0000]' },
-    { key: 'tidal', url: track.tidal_url as string | undefined, label: 'Tidal', color: 'hover:text-white' },
-    { key: 'deezer', url: track.deezer_url as string | undefined, label: 'Deezer', color: 'hover:text-[#A238FF]' },
     { key: 'soundcloud', url: track.soundcloud_url as string | undefined, label: 'SoundCloud', color: 'hover:text-[#FF5500]' },
   ].filter(l => l.url)
   if (links.length === 0) return null
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-3">
+      <span className="text-[10px] text-neutral-500">Stream on</span>
       {links.map(l => (
         <a
           key={l.key}
           href={l.url}
           target="_blank"
           rel="noopener noreferrer"
-          className={`px-2 py-1 rounded-full text-[10px] font-medium bg-neutral-800 border border-neutral-700 text-neutral-400 ${l.color} hover:border-neutral-500 transition-colors`}
+          title={l.label}
+          className={`text-neutral-500 ${l.color} transition-colors`}
         >
-          {l.label}
+          {STREAMING_ICONS[l.key]}
         </a>
       ))}
+    </div>
+  )
+}
+
+function MusicCategoryDropdown({ value, onChange, categories }: { value: string; onChange: (v: string) => void; categories: string[] }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [isOpen])
+
+  const sorted = categories.sort((a, b) => {
+    const catA = VISION_CATEGORIES.find(c => c.key === a)
+    const catB = VISION_CATEGORIES.find(c => c.key === b)
+    return (catA?.order ?? 99) - (catB?.order ?? 99)
+  })
+
+  const selectedLabel = value === 'all' ? 'All Songs' : (VISION_CATEGORIES.find(c => c.key === value)?.label || value)
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className="flex items-center gap-1.5 bg-[#404040] border border-[#666] hover:border-neutral-500 text-white text-xs rounded-xl pl-3 pr-2 py-1.5 focus:outline-none focus:border-primary-500 transition-colors cursor-pointer"
+      >
+        {selectedLabel}
+        <ChevronDown className={`w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 z-20 mt-1.5 min-w-[160px] py-1.5 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+            <button
+              type="button"
+              onClick={() => { onChange('all'); setIsOpen(false) }}
+              className={`w-full px-4 py-2 text-left text-sm transition-colors ${value === 'all' ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'}`}
+            >
+              All Songs
+            </button>
+            {sorted.map(tag => {
+              const cat = VISION_CATEGORIES.find(c => c.key === tag)
+              const isSelected = value === tag
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => { onChange(tag); setIsOpen(false) }}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors ${isSelected ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'}`}
+                >
+                  {cat?.label || tag}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -648,6 +739,8 @@ export default function AudioListenPage() {
         url: t.preview_url,
         thumbnail: t.artwork_url || '',
         sectionKey: 'music',
+        syncedLyrics: t.synced_lyrics || undefined,
+        plainLyrics: t.plain_lyrics || undefined,
       }))
     return { musicTagCategories: allTaggedCategories, musicPlayerTracks: tracksForPlayer }
   }, [contentType, musicTracks, musicCategoryFilter])
@@ -711,6 +804,7 @@ export default function AudioListenPage() {
                     mapActivityType="vision_audio"
                     setName={getSetDisplayName(selectedSet)}
                     setIconKey="life_vision"
+                    contentCategory="life_vision"
                     voiceId={selectedSet.voice_id}
                     mixDetails={(() => {
                       const md = selectedSet.metadata as any
@@ -919,6 +1013,7 @@ export default function AudioListenPage() {
                           ? selectedStory.entity_type
                           : 'custom'
                       }
+                      contentCategory="story"
                       trackCount={storyPlaybackTracks.length}
                       createdDate={new Date(selectedStory.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       voiceId={storyAudioMix?.voice_id}
@@ -1160,74 +1255,71 @@ export default function AudioListenPage() {
                 <p className="text-xs text-neutral-500 mt-1">Try another category or add preview URLs in the catalog.</p>
               </Card>
             ) : (
-              <div className="max-w-2xl mx-auto w-full">
-                <EmbeddedPlayer
-                  tracks={musicPlayerTracks}
-                  mapActivityType="music_listen"
-                  setName="VibrationFit Music"
-                  setIconKey="music"
-                  trackCount={musicPlayerTracks.length}
-                  headerContent={
+              <div className="w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center">
+                {/* Left spacer on desktop grid */}
+                <div className="hidden lg:block" />
+                {/* Centered player */}
+                <div className="max-w-2xl mx-auto w-full lg:mx-0 lg:max-w-none">
+                  <EmbeddedPlayer
+                    tracks={musicPlayerTracks}
+                    mapActivityType="music_listen"
+                    setName="VibrationFit Music"
+                    setIconKey="music"
+                    contentCategory="music"
+                    trackCount={musicPlayerTracks.length}
+                    onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
+                    headerContent={
                     <div>
                       <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
-                        <h3 className="text-center text-lg font-semibold text-white">Play My Music</h3>
-                        {musicTagCategories.length > 0 && (
-                          <div className="flex items-center gap-1.5 flex-wrap justify-center mt-3">
-                            <button
-                              type="button"
-                              onClick={() => setMusicCategoryFilter('all')}
-                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                                musicCategoryFilter === 'all'
-                                  ? 'bg-primary-500/20 text-primary-500 border border-primary-500/30'
-                                  : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
-                              }`}
-                            >
-                              All
-                            </button>
-                            {musicTagCategories
-                              .sort((a, b) => {
-                                const catA = VISION_CATEGORIES.find(c => c.key === a)
-                                const catB = VISION_CATEGORIES.find(c => c.key === b)
-                                return (catA?.order ?? 99) - (catB?.order ?? 99)
-                              })
-                              .map(tag => {
-                                const cat = VISION_CATEGORIES.find(c => c.key === tag)
-                                const CatIcon = cat?.icon
-                                return (
-                                  <button
-                                    key={tag}
-                                    type="button"
-                                    onClick={() => setMusicCategoryFilter(tag)}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${
-                                      musicCategoryFilter === tag
-                                        ? 'bg-primary-500/20 text-primary-500 border border-primary-500/30'
-                                        : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
-                                    }`}
-                                  >
-                                    {CatIcon && <CatIcon className="w-3 h-3" />}
-                                    {cat?.label || tag}
-                                  </button>
-                                )
-                              })}
+                        <div className="flex items-center justify-between gap-3">
+                          <h3 className="text-lg font-semibold text-white">Vibration Fit Music</h3>
+                          {musicTagCategories.length > 0 && (
+                            <MusicCategoryDropdown
+                              value={musicCategoryFilter}
+                              onChange={setMusicCategoryFilter}
+                              categories={musicTagCategories}
+                            />
+                          )}
+                        </div>
+                        {musicTracks.length > 0 && (
+                          <div className="flex items-center justify-center gap-1.5 flex-wrap mt-2.5">
+                            <MusicStreamingLinks track={musicTracks[0]} />
                           </div>
                         )}
                       </div>
-                    </div>
-                  }
-                  onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
-                />
-                {activeMusicCatalogRow?.synced_lyrics && (
-                  <SyncedLyricsDisplay
-                    syncedLyrics={activeMusicCatalogRow.synced_lyrics}
-                    className="mt-4"
+                    }
                   />
-                )}
-                {activeMusicCatalogRow && (
-                  <div className="mt-4 px-1">
-                    <p className="text-xs text-neutral-500 mb-2">Stream full tracks on your favorite service</p>
-                    <MusicStreamingLinks track={activeMusicCatalogRow} />
-                  </div>
-                )}
+                  {/* Mobile: lyrics below player */}
+                  {activeMusicCatalogRow && (activeMusicCatalogRow.synced_lyrics || activeMusicCatalogRow.plain_lyrics) && (
+                    <div className="lg:hidden mt-4">
+                      {activeMusicCatalogRow.synced_lyrics ? (
+                        <SyncedLyricsDisplay
+                          syncedLyrics={activeMusicCatalogRow.synced_lyrics}
+                          plainText={activeMusicCatalogRow.plain_lyrics || undefined}
+                        />
+                      ) : activeMusicCatalogRow.plain_lyrics ? (
+                        <PlainLyricsDisplay
+                          lyrics={activeMusicCatalogRow.plain_lyrics}
+                        />
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+                {/* Desktop: lyrics to the right */}
+                <div className="hidden lg:block sticky top-4 self-start">
+                  {activeMusicCatalogRow && (activeMusicCatalogRow.synced_lyrics || activeMusicCatalogRow.plain_lyrics) ? (
+                    activeMusicCatalogRow.synced_lyrics ? (
+                      <SyncedLyricsDisplay
+                        syncedLyrics={activeMusicCatalogRow.synced_lyrics}
+                        plainText={activeMusicCatalogRow.plain_lyrics || undefined}
+                      />
+                    ) : activeMusicCatalogRow.plain_lyrics ? (
+                      <PlainLyricsDisplay
+                        lyrics={activeMusicCatalogRow.plain_lyrics}
+                      />
+                    ) : null
+                  ) : null}
+                </div>
               </div>
             )}
           </section>

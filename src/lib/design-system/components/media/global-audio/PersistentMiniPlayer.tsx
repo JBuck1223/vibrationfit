@@ -97,7 +97,7 @@ export function PersistentMiniPlayer() {
                 {currentTrack.title}
               </p>
               <p className="text-xs text-neutral-400 truncate">
-                {setName || currentTrack.artist || 'VibrationFit'}
+                {setName || currentTrack.artist || 'Vibration Fit'}
               </p>
             </div>
           </div>
@@ -146,7 +146,6 @@ export function PersistentMiniPlayer() {
 
           <div className="hidden md:flex items-center gap-3 text-xs text-neutral-500 flex-shrink-0">
             <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
-            <span>{currentIndex + 1} / {tracks.length}</span>
           </div>
         </div>
       </div>

@@ -14,6 +14,8 @@ export type AreaStatsResponse = {
 
 const VALID_AREAS = [
   'vision-audio',
+  'story-listen',
+  'music-listen',
   'journal',
   'daily-paper',
   'alignment-gym',
@@ -203,8 +205,16 @@ async function getActiveDatesForArea(
     }
 
     case 'vision-audio':
+    case 'story-listen':
+    case 'music-listen':
     case 'vision-board': {
-      const dbArea = area === 'vision-audio' ? 'vision_audio' : 'vision_board'
+      const dbAreaMap: Record<string, string> = {
+        'vision-audio': 'vision_audio',
+        'story-listen': 'story_listen',
+        'music-listen': 'music_listen',
+        'vision-board': 'vision_board',
+      }
+      const dbArea = dbAreaMap[area]!
       const { data } = await supabase
         .from('area_activations')
         .select('activation_date')

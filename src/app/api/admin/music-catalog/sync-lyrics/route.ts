@@ -36,8 +36,8 @@ async function compressAudio(inputBuffer: Buffer<ArrayBuffer>, inputExt: string)
     const proc = spawn('ffmpeg', [
       '-i', inputPath,
       '-ac', '1',
-      '-ar', '16000',
-      '-b:a', '64k',
+      '-ar', '44100',
+      '-b:a', '192k',
       '-y',
       outputPath,
     ])
