@@ -56,6 +56,8 @@ export interface Story {
   error_message: string | null
   generation_count: number
   display_order: number
+  pending_content: string | null
+  pending_title: string | null
   created_at: string
   updated_at: string
 }
@@ -87,6 +89,8 @@ export interface UpdateStoryPayload {
   metadata?: StoryMetadata
   display_order?: number
   error_message?: string | null
+  pending_content?: string | null
+  pending_title?: string | null
 }
 
 // Component props

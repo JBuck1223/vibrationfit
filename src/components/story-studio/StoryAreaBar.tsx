@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Library, PenLine, Target, Image, BookOpen, Lightbulb, FileText } from 'lucide-react'
+import { Library, PenLine, RefreshCw, Target, Image, BookOpen, Lightbulb, FileText } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useStoryStudio } from './StoryStudioContext'
@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react'
 const TABS = [
   { label: 'All Stories', path: '/story', icon: Library },
   { label: 'Create', path: '/story/new', icon: PenLine },
+  { label: 'Update', path: '/story/update', icon: RefreshCw },
 ]
 
 const SOURCE_FILTERS = [
@@ -31,25 +32,40 @@ const ENTITY_ICONS: Record<string, typeof Target> = {
 export function StoryAreaBar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { stories } = useStoryStudio()
+  const { stories, updateTargetId, setUpdateTargetId } = useStoryStudio()
 
   const isStoryList = pathname === '/story' || pathname === '/story/'
-  const isStoryDetail = !isStoryList && pathname !== '/story/new' && /^\/story\/[^/]+$/.test(pathname)
+  const isStoryDetail = !isStoryList && pathname !== '/story/new' && pathname !== '/story/update' && /^\/story\/[^/]+$/.test(pathname)
+  const isUpdatePage = pathname === '/story/update' || pathname === '/story/update/'
 
   const currentStoryId = isStoryDetail ? (pathname.split('/').pop() || '') : ''
   const currentStory = stories.find(s => s.id === currentStoryId)
 
   const [activeFilter, setActiveFilter] = useState(currentStory?.entity_type || 'all')
+
   useEffect(() => {
     if (currentStory) setActiveFilter(currentStory.entity_type)
   }, [currentStory])
 
+  // For the update page, select the first completed story by default
+  useEffect(() => {
+    if (isUpdatePage && !updateTargetId && stories.length > 0) {
+      const completed = stories.find(s => s.status === 'completed')
+      if (completed) setUpdateTargetId(completed.id)
+    }
+  }, [isUpdatePage, stories, updateTargetId, setUpdateTargetId])
+
+  const showSelector = isStoryDetail || isUpdatePage
+
   let versionSelectors: AreaBarVersionSelector[] | undefined
 
-  if (isStoryDetail) {
+  if (showSelector) {
     const filteredByType = activeFilter === 'all'
       ? stories
       : stories.filter(s => s.entity_type === activeFilter)
+
+    const selectorStoryId = isUpdatePage ? (updateTargetId || '') : currentStoryId
+    const selectorStory = stories.find(s => s.id === selectorStoryId)
 
     versionSelectors = [
       {
@@ -71,18 +87,26 @@ export function StoryAreaBar() {
       {
         id: 'story-selector',
         label: 'Story',
-        icon: currentStory ? (ENTITY_ICONS[currentStory.entity_type] || FileText) : FileText,
+        icon: selectorStory ? (ENTITY_ICONS[selectorStory.entity_type] || FileText) : FileText,
         position: 'contextRow',
         searchable: true,
-        options: filteredByType.map(story => ({
-          id: story.id,
-          label: story.title || 'Untitled Story',
-          sublabel: `${story.word_count ? `${story.word_count.toLocaleString()} words · ` : ''}${new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-          icon: ENTITY_ICONS[story.entity_type] || FileText,
-        })),
-        selectedId: currentStoryId,
+        options: filteredByType
+          .filter(s => s.status === 'completed')
+          .map(story => ({
+            id: story.id,
+            label: story.title || 'Untitled Story',
+            sublabel: `${story.word_count ? `${story.word_count.toLocaleString()} words · ` : ''}${new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+            icon: ENTITY_ICONS[story.entity_type] || FileText,
+            badge: story.pending_content ? 'Pending' : undefined,
+            badgeVariant: story.pending_content ? ('draft' as const) : undefined,
+          })),
+        selectedId: selectorStoryId,
         onSelect: (id: string) => {
-          if (id !== currentStoryId) router.push(`/story/${id}`)
+          if (isUpdatePage) {
+            setUpdateTargetId(id)
+          } else if (id !== currentStoryId) {
+            router.push(`/story/${id}`)
+          }
         },
       },
     ]

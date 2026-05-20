@@ -145,7 +145,7 @@ export default function MapHistoryPage() {
             </p>
           </div>
           <Button variant="primary" size="sm" asChild>
-            <Link href="/map/new">
+            <Link href="/map/update/custom">
               <Plus className="w-4 h-4 mr-1" />
               Reset MAP
             </Link>

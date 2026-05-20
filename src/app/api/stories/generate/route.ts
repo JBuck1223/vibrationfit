@@ -30,6 +30,7 @@ import {
   buildFlipIdentityPrompt,
 } from '@/lib/viva/prompts/identity-statement-prompt'
 import type { StoryEntityType } from '@/lib/stories/types'
+import { createFreshStoryRecord } from '@/lib/stories/create-story-record'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -211,6 +212,25 @@ export async function POST(request: NextRequest) {
 
     console.log(`[StoryGenerate] Using model ${VISION_MODEL} (Gemini via gateway)`)
 
+    const initialMetadata: Record<string, unknown> = {
+      ...(body.selectedCategories ? { selected_categories: body.selectedCategories } : {}),
+      ...(body.categoryData ? { category_data: body.categoryData } : {}),
+      ...(body.focusNotes ? { focus_notes: body.focusNotes } : {}),
+      ...(body.customMode ? { custom_mode: body.customMode } : {}),
+      ...(sourceInput ? { source_input: sourceInput } : {}),
+    }
+
+    const { id: storyId } = await createFreshStoryRecord(supabase, {
+      userId: user.id,
+      entityType,
+      entityId,
+      title,
+      metadata: initialMetadata,
+      status: 'generating',
+    })
+
+    console.log(`[StoryGenerate] Created fresh story record: ${storyId}`)
+
     const result = streamText({
       model: gateway(VISION_MODEL),
       system: systemPrompt,
@@ -222,55 +242,25 @@ export async function POST(request: NextRequest) {
         const wordCount = text?.split(/\s+/).length || 0
         console.log(`[StoryGenerate] Completed in ${elapsedMs}ms, ${wordCount} words, type=${entityType}`)
 
-        const { data: existingStory } = await supabase
-          .from('stories')
-          .select('id, generation_count, metadata')
-          .eq('entity_type', entityType)
-          .eq('entity_id', entityId)
-          .eq('user_id', user.id)
-          .maybeSingle()
-
         const metadata = {
-          ...(existingStory?.metadata || {}),
-          ...(body.selectedCategories ? { selected_categories: body.selectedCategories } : {}),
-          ...(body.categoryData ? { category_data: body.categoryData } : {}),
-          ...(body.focusNotes ? { focus_notes: body.focusNotes } : {}),
-          ...(body.customMode ? { custom_mode: body.customMode } : {}),
-          ...(sourceInput ? { source_input: sourceInput } : {}),
+          ...initialMetadata,
           prompt_version: 'universal-v1',
           model_used: response?.modelId || VISION_MODEL,
         }
 
-        if (existingStory) {
-          await supabase
-            .from('stories')
-            .update({
-              title,
-              metadata,
-              content: text,
-              word_count: wordCount,
-              source: 'ai_generated',
-              status: 'completed',
-              generation_count: (existingStory.generation_count || 0) + 1,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingStory.id)
-        } else {
-          await supabase
-            .from('stories')
-            .insert({
-              user_id: user.id,
-              entity_type: entityType,
-              entity_id: entityId,
-              title,
-              metadata,
-              content: text,
-              word_count: wordCount,
-              source: 'ai_generated',
-              status: 'completed',
-              generation_count: 1,
-            })
-        }
+        await supabase
+          .from('stories')
+          .update({
+            title,
+            metadata,
+            content: text,
+            word_count: wordCount,
+            source: 'ai_generated',
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', storyId)
+          .eq('user_id', user.id)
 
         if (usage) {
           trackTokenUsage({
@@ -297,6 +287,7 @@ export async function POST(request: NextRequest) {
     return new Response(result.textStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
+        'X-Story-Id': storyId,
         'X-Story-Entity-Type': entityType,
         'X-Story-Entity-Id': entityId || '',
         'Cache-Control': 'no-cache, no-transform',

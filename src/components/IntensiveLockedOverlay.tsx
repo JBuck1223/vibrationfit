@@ -46,7 +46,7 @@ export function IntensiveLockedOverlay() {
           stepNumber: 0,
           title: 'Start Your Intensive',
           href: '/intensive/start',
-          totalSteps: 12
+          totalSteps: 14
         })
         return
       }
@@ -67,20 +67,22 @@ export function IntensiveLockedOverlay() {
       // Step 8 completion from checklist fields
       const step8Complete = !!checklist.voice_recording_completed || !!checklist.voice_recording_skipped
 
-      // Determine next step (12-step flow)
+      // Determine next step (14-step flow)
       const steps = [
         { id: 'settings', stepNumber: 1, title: 'Account Settings', href: '/intensive/account/settings', completed: hasSettings },
         { id: 'intake', stepNumber: 2, title: 'Baseline Intake', href: '/intensive/intake', completed: !!checklist.intake_completed },
         { id: 'profile', stepNumber: 3, title: 'Create Profile', href: '/intensive/profile/new', completed: !!checklist.profile_completed },
-        { id: 'assessment', stepNumber: 4, title: 'Take Assessment', href: '/intensive/assessment/new', completed: !!checklist.assessment_completed },
-        { id: 'vision', stepNumber: 5, title: 'Create Life Vision', href: '/intensive/life-vision/create', completed: !!checklist.vision_built },
-        { id: 'audio', stepNumber: 6, title: 'Generate Audio', href: '/intensive/audio/generate', completed: !!checklist.audio_generated },
-        { id: 'record', stepNumber: 7, title: 'Record Your Voice', href: '/intensive/audio/record', completed: step8Complete },
-        { id: 'mix', stepNumber: 8, title: 'Create Audio Mix', href: '/intensive/audio/mix', completed: !!checklist.audios_generated },
-        { id: 'board', stepNumber: 9, title: 'Vision Board', href: '/intensive/vision-board/about', completed: !!checklist.vision_board_completed },
-        { id: 'journal', stepNumber: 10, title: 'First Journal Entry', href: '/intensive/journal/about', completed: !!checklist.first_journal_entry },
-        { id: 'activate', stepNumber: 11, title: 'My Activation Plan', href: '/intensive/map', completed: !!checklist.activation_protocol_completed },
-        { id: 'unlock', stepNumber: 12, title: 'Unlock Platform', href: '/intensive/unlock', completed: !!checklist.unlock_completed },
+        { id: 'vision', stepNumber: 4, title: 'Create Life Vision', href: '/intensive/life-vision/create', completed: !!checklist.vision_built },
+        { id: 'audio', stepNumber: 5, title: 'Generate Audio', href: '/intensive/audio/generate', completed: !!checklist.audio_generated },
+        { id: 'record', stepNumber: 6, title: 'Record Your Voice', href: '/intensive/audio/record', completed: step8Complete },
+        { id: 'mix', stepNumber: 7, title: 'Create Audio Mix', href: '/intensive/audio/mix', completed: !!checklist.audios_generated },
+        { id: 'board', stepNumber: 8, title: 'Vision Board', href: '/intensive/vision-board/about', completed: !!checklist.vision_board_completed },
+        { id: 'journal', stepNumber: 9, title: 'First Journal Entry', href: '/intensive/journal/about', completed: !!checklist.first_journal_entry },
+        { id: 'vibe_post', stepNumber: 10, title: 'First Vibe Post', href: '/intensive/vibe-tribe/post', completed: !!checklist.first_vibe_post },
+        { id: 'vibe_engage', stepNumber: 11, title: 'Engage in Tribe', href: '/intensive/vibe-tribe/engage', completed: !!checklist.vibe_engagement },
+        { id: 'gym_tour', stepNumber: 12, title: 'Alignment Gym', href: '/intensive/alignment-gym', completed: !!checklist.alignment_gym_toured },
+        { id: 'activate', stepNumber: 13, title: 'My Alignment Plan', href: '/intensive/map', completed: !!checklist.activation_protocol_completed },
+        { id: 'unlock', stepNumber: 14, title: 'Unlock Platform', href: '/intensive/unlock', completed: !!checklist.unlock_completed },
       ]
 
       const next = steps.find(s => !s.completed)
@@ -89,7 +91,7 @@ export function IntensiveLockedOverlay() {
           stepNumber: next.stepNumber, 
           title: next.title, 
           href: next.href,
-          totalSteps: 12
+          totalSteps: 14
         })
       }
     } finally {
@@ -138,7 +140,7 @@ export function IntensiveLockedOverlay() {
           ) : nextStep ? (
             <>
               This page unlocks after you complete <span className="text-white font-medium">{nextStep.title}</span>. 
-              Stay on track with your 12-step activation journey!
+              Stay on track with your 14-step activation journey!
             </>
           ) : (
             <>

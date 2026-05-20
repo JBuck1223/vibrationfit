@@ -17,30 +17,29 @@ export interface IntensiveData {
   // Step completion booleans (14-step flow)
   intake_completed: boolean
   profile_completed: boolean
-  assessment_completed: boolean
   vision_built: boolean
-  vision_refined: boolean
   audio_generated: boolean
   audios_generated: boolean
   vision_board_completed: boolean
   first_journal_entry: boolean
-  call_scheduled: boolean
-  calibration_call_completed: boolean
+  first_vibe_post: boolean
+  vibe_engagement: boolean
+  alignment_gym_toured: boolean
   activation_protocol_completed: boolean
   unlock_completed: boolean
+  // Soft-deprecated (retained in DB for historical data)
+  assessment_completed?: boolean
   // Step completion timestamps
   intake_completed_at?: string | null
   profile_completed_at?: string | null
-  assessment_completed_at?: string | null
   vision_built_at?: string | null
-  vision_refined_at?: string | null
   audio_generated_at?: string | null
   audios_generated_at?: string | null
   vision_board_completed_at?: string | null
   first_journal_entry_at?: string | null
-  call_scheduled_at?: string | null
-  call_scheduled_time?: string | null
-  calibration_call_completed_at?: string | null
+  first_vibe_post_at?: string | null
+  vibe_engagement_at?: string | null
+  alignment_gym_toured_at?: string | null
   activation_protocol_completed_at?: string | null
   unlock_completed_at?: string | null
 }

@@ -1,8 +1,22 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { VisionTarget, Commitment, CommitmentOccurrence } from '@/lib/map/types'
+import {
+  partitionCommitments,
+  groupSystemByPillar,
+  groupCustomByLifeCategory,
+} from '@/lib/map/commitment-classification'
+import { todayDateString } from '@/lib/map/map-date-utils'
+import type { MapViewMode } from '@/lib/map/map-date-utils'
+import type { VisionTarget, Commitment, CommitmentOccurrence, UserMap, MapCategory, OccurrenceStatus } from '@/lib/map/types'
 
 export interface CommitmentStats {
   thisWeekCompleted: number
@@ -14,16 +28,39 @@ export interface CommitmentStats {
 }
 
 interface MapStudioContextValue {
+  maps: UserMap[]
+  activeMap: UserMap | null
+  activeMapVersion: number | null
+  draftMap: UserMap | null
+
   targets: VisionTarget[]
   commitments: Commitment[]
+  activeCommitments: Commitment[]
+  systemCommitments: Commitment[]
+  customCommitments: Commitment[]
+  commitmentsByPillar: Record<MapCategory, Commitment[]>
+  commitmentsByLifeCategory: Record<string, Commitment[]>
+
   todayOccurrences: CommitmentOccurrence[]
+  dateOccurrences: CommitmentOccurrence[]
   recentOccurrences: CommitmentOccurrence[]
   commitmentStats: Map<string, CommitmentStats>
   loading: boolean
+
+  selectedDate: string
+  viewMode: MapViewMode
+  setSelectedDate: (date: string) => void
+  setViewMode: (mode: MapViewMode) => void
+
+  refreshMaps: () => Promise<void>
   refreshTargets: () => Promise<void>
   refreshCommitments: () => Promise<void>
   refreshOccurrences: () => Promise<void>
   refreshAll: () => Promise<void>
+  loadOccurrencesForDate: (date: string) => Promise<CommitmentOccurrence[]>
+  loadOccurrencesForRange: (from: string, to: string) => Promise<CommitmentOccurrence[]>
+  ensureOccurrencesForDate: (date: string) => Promise<void>
+  verifyOccurrence: (id: string, status: OccurrenceStatus, note?: string) => Promise<void>
 }
 
 const MapStudioContext = createContext<MapStudioContextValue | null>(null)
@@ -35,12 +72,30 @@ export function useMapStudio() {
 }
 
 export function MapStudioProvider({ children }: { children: React.ReactNode }) {
+  const [maps, setMaps] = useState<UserMap[]>([])
   const [targets, setTargets] = useState<VisionTarget[]>([])
   const [commitments, setCommitments] = useState<Commitment[]>([])
   const [todayOccurrences, setTodayOccurrences] = useState<CommitmentOccurrence[]>([])
+  const [dateOccurrences, setDateOccurrences] = useState<CommitmentOccurrence[]>([])
   const [recentOccurrences, setRecentOccurrences] = useState<CommitmentOccurrence[]>([])
   const [commitmentStats, setCommitmentStats] = useState<Map<string, CommitmentStats>>(new Map())
   const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDateState] = useState(todayDateString)
+  const [viewMode, setViewModeState] = useState<MapViewMode>('day')
+
+  const loadMaps = useCallback(async () => {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) return
+
+    const { data } = await supabase
+      .from('user_maps')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('version_number', { ascending: false })
+
+    if (data) setMaps(data)
+  }, [])
 
   const loadTargets = useCallback(async () => {
     const supabase = createClient()
@@ -71,14 +126,35 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
     if (data) setCommitments(data)
   }, [])
 
+  const loadOccurrencesForDate = useCallback(async (date: string) => {
+    const res = await fetch(`/api/map/occurrences?date=${date}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.occurrences || []) as CommitmentOccurrence[]
+  }, [])
+
+  const loadOccurrencesForRange = useCallback(async (from: string, to: string) => {
+    const res = await fetch(`/api/map/occurrences?from=${from}&to=${to}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.occurrences || []) as CommitmentOccurrence[]
+  }, [])
+
+  const ensureOccurrencesForDateFn = useCallback(async (date: string) => {
+    await fetch('/api/map/occurrences/ensure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date }),
+    })
+  }, [])
+
   const loadOccurrences = useCallback(async () => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) return
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = todayDateString()
 
-    // Today's occurrences
     const { data: todayData } = await supabase
       .from('commitment_occurrences')
       .select('*, commitment:commitments(*)')
@@ -88,7 +164,6 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
 
     if (todayData) setTodayOccurrences(todayData)
 
-    // Last 30 days of occurrences for stats
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
@@ -106,29 +181,114 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const refreshDateOccurrences = useCallback(async (date: string) => {
+    await ensureOccurrencesForDateFn(date)
+    const occs = await loadOccurrencesForDate(date)
+    setDateOccurrences(occs)
+    if (date === todayDateString()) {
+      setTodayOccurrences(occs)
+    }
+  }, [ensureOccurrencesForDateFn, loadOccurrencesForDate])
+
+  const verifyOccurrence = useCallback(async (
+    id: string,
+    status: OccurrenceStatus,
+    note?: string,
+  ) => {
+    const res = await fetch('/api/map/occurrences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status, note }),
+    })
+    if (!res.ok) throw new Error('Failed to verify')
+    await refreshDateOccurrences(selectedDate)
+    await loadOccurrences()
+  }, [selectedDate, refreshDateOccurrences, loadOccurrences])
+
   const loadAll = useCallback(async () => {
     setLoading(true)
-    await Promise.all([loadTargets(), loadCommitments(), loadOccurrences()])
+    await Promise.all([loadMaps(), loadTargets(), loadCommitments(), loadOccurrences()])
     setLoading(false)
-  }, [loadTargets, loadCommitments, loadOccurrences])
+  }, [loadMaps, loadTargets, loadCommitments, loadOccurrences])
+
+  const refreshAll = useCallback(async () => {
+    await loadAll()
+    await refreshDateOccurrences(selectedDate)
+  }, [loadAll, refreshDateOccurrences, selectedDate])
 
   useEffect(() => {
     loadAll()
   }, [loadAll])
 
+  useEffect(() => {
+    if (loading) return
+    refreshDateOccurrences(selectedDate)
+  }, [selectedDate, loading, refreshDateOccurrences])
+
+  const setSelectedDate = useCallback((date: string) => {
+    setSelectedDateState(date)
+  }, [])
+
+  const setViewMode = useCallback((mode: MapViewMode) => {
+    setViewModeState(mode)
+  }, [])
+
+  const activeMap = maps.find(m => m.is_active && !m.is_draft) ?? null
+  const activeMapVersion = activeMap?.version_number ?? null
+  const draftMap = maps.find(m => m.is_draft) ?? null
+
+  const activeCommitments = useMemo(
+    () => commitments.filter(c => c.status === 'active'),
+    [commitments],
+  )
+
+  const { system: systemCommitments, custom: customCommitments } = useMemo(
+    () => partitionCommitments(activeCommitments),
+    [activeCommitments],
+  )
+
+  const commitmentsByPillar = useMemo(
+    () => groupSystemByPillar(systemCommitments),
+    [systemCommitments],
+  )
+
+  const commitmentsByLifeCategory = useMemo(
+    () => groupCustomByLifeCategory(customCommitments),
+    [customCommitments],
+  )
+
   return (
     <MapStudioContext.Provider
       value={{
+        maps,
+        activeMap,
+        activeMapVersion,
+        draftMap,
         targets,
         commitments,
+        activeCommitments,
+        systemCommitments,
+        customCommitments,
+        commitmentsByPillar,
+        commitmentsByLifeCategory,
         todayOccurrences,
+        dateOccurrences,
         recentOccurrences,
         commitmentStats,
         loading,
+        selectedDate,
+        viewMode,
+        setSelectedDate,
+        setViewMode,
+        refreshMaps: loadMaps,
         refreshTargets: loadTargets,
         refreshCommitments: loadCommitments,
         refreshOccurrences: loadOccurrences,
-        refreshAll: loadAll,
+        refreshAll,
+        loadOccurrencesForDate,
+        loadOccurrencesForRange,
+        ensureOccurrencesForDate: ensureOccurrencesForDateFn,
+        verifyOccurrence,
       }}
     >
       {children}
@@ -141,14 +301,12 @@ function computeStats(occurrences: CommitmentOccurrence[]): Map<string, Commitme
   const now = new Date()
   const todayStr = now.toISOString().split('T')[0]
 
-  // Week boundaries (Monday-based)
   const day = now.getDay()
   const mondayOffset = day === 0 ? -6 : 1 - day
   const weekStart = new Date(now)
   weekStart.setDate(now.getDate() + mondayOffset)
   const weekStartStr = weekStart.toISOString().split('T')[0]
 
-  // Group by commitment
   const byCommitment = new Map<string, CommitmentOccurrence[]>()
   for (const occ of occurrences) {
     const existing = byCommitment.get(occ.commitment_id) || []
@@ -157,7 +315,6 @@ function computeStats(occurrences: CommitmentOccurrence[]): Map<string, Commitme
   }
 
   for (const [commitmentId, occs] of byCommitment) {
-    // Sort by date descending for streak calculation
     const sorted = [...occs].sort((a, b) => b.occurred_on.localeCompare(a.occurred_on))
 
     const thisWeek = occs.filter(o => o.occurred_on >= weekStartStr)
@@ -168,7 +325,6 @@ function computeStats(occurrences: CommitmentOccurrence[]): Map<string, Commitme
     const last30Total = occs.length
     const hitRate = last30Total > 0 ? Math.round((last30Completed / last30Total) * 100) : 0
 
-    // Current streak: consecutive 'yes' days from most recent
     let currentStreak = 0
     for (const occ of sorted) {
       if (occ.status === 'yes') {

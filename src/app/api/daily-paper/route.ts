@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
 
 const dailyPaperPayloadSchema = z.object({
   entryDate: z
@@ -194,6 +195,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       throw error
+    }
+
+    // Mark today's MAP Daily Paper commitment occurrence when entry is for today
+    const today = new Date().toISOString().split('T')[0]
+    if (entryDate === today) {
+      autoVerifyOccurrenceByActivityType(userId, 'daily_paper', today).catch(
+        () => {},
+      )
     }
 
     return NextResponse.json(

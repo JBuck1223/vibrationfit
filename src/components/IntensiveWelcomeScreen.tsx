@@ -39,8 +39,7 @@ export function IntensiveWelcomeScreen({ onStart }: IntensiveWelcomeScreenProps)
       title: 'Phase 1: Foundation',
       icon: User,
       items: [
-        'Complete your profile',
-        'Take vibration assessment'
+        'Complete your profile'
       ]
     },
     {

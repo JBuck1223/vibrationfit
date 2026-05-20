@@ -210,26 +210,10 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       setIsOpen(false)
     }
 
-    const handlePrevMonth = () => {
-      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
-    }
-
-    const handleNextMonth = () => {
-      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
-    }
-
-    const handleYearSelect = (year: number) => {
-      setCurrentMonth(new Date(year, currentMonth.getMonth()))
-      setIsYearDropdownOpen(false)
-    }
-
-    const handleMonthSelect = (monthIndex: number) => {
-      setCurrentMonth(new Date(currentMonth.getFullYear(), monthIndex))
-      setIsMonthDropdownOpen(false)
-    }
-
-    const currentYear = new Date().getFullYear()
-    const years = Array.from({ length: 101 }, (_, i) => currentYear - i)
+    const calendarYear = new Date().getFullYear()
+    const minYear = minDate ? parseLocalDate(minDate).getFullYear() : calendarYear - 100
+    const maxYear = maxDate ? parseLocalDate(maxDate).getFullYear() : calendarYear
+    const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i)
 
     // Month options
     const months = [
@@ -239,6 +223,50 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
 
     const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth)
     const monthName = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(currentMonth)
+
+    const isMonthInRange = (monthIndex: number, yearValue = year) => {
+      const monthStart = formatLocalISO(new Date(yearValue, monthIndex, 1))
+      const monthEnd = formatLocalISO(new Date(yearValue, monthIndex + 1, 0))
+      if (minDate && monthEnd < minDate) return false
+      if (maxDate && monthStart > maxDate) return false
+      return true
+    }
+
+    const canGoPrevMonth = isMonthInRange(
+      month === 0 ? 11 : month - 1,
+      month === 0 ? year - 1 : year
+    )
+
+    const canGoNextMonth = isMonthInRange(
+      month === 11 ? 0 : month + 1,
+      month === 11 ? year + 1 : year
+    )
+
+    const handlePrevMonth = () => {
+      if (!canGoPrevMonth) return
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
+    }
+
+    const handleNextMonth = () => {
+      if (!canGoNextMonth) return
+      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+    }
+
+    const handleYearSelect = (yearValue: number) => {
+      let monthIndex = currentMonth.getMonth()
+      if (!isMonthInRange(monthIndex, yearValue)) {
+        monthIndex = months.findIndex((_, index) => isMonthInRange(index, yearValue))
+        if (monthIndex < 0) monthIndex = 0
+      }
+      setCurrentMonth(new Date(yearValue, monthIndex))
+      setIsYearDropdownOpen(false)
+    }
+
+    const handleMonthSelect = (monthIndex: number) => {
+      if (!isMonthInRange(monthIndex)) return
+      setCurrentMonth(new Date(currentMonth.getFullYear(), monthIndex))
+      setIsMonthDropdownOpen(false)
+    }
 
     // Check if date is disabled
     const isDateDisabled = (day: number) => {
@@ -321,7 +349,13 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                className="inline-flex items-center justify-center rounded-full transition-all duration-300 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 p-2"
+                disabled={!canGoPrevMonth}
+                className={cn(
+                  'inline-flex items-center justify-center rounded-full transition-all duration-300 border-2 p-2',
+                  canGoPrevMonth
+                    ? 'bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80'
+                    : 'bg-transparent text-neutral-600 border-neutral-800 cursor-not-allowed opacity-40'
+                )}
               >
                 <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
               </button>
@@ -346,20 +380,26 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                         onClick={() => setIsMonthDropdownOpen(false)}
                       />
                       <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 w-40 max-h-48 overflow-y-auto bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl py-2">
-                        {months.map((month, index) => (
+                        {months.map((monthLabel, index) => {
+                          const monthEnabled = isMonthInRange(index)
+                          return (
                           <button
                             key={index}
                             type="button"
-                            onClick={() => handleMonthSelect(index)}
+                            onClick={() => monthEnabled && handleMonthSelect(index)}
+                            disabled={!monthEnabled}
                             className={`w-full px-4 py-2 text-left transition-colors ${
-                              index === currentMonth.getMonth()
+                              !monthEnabled
+                                ? 'text-neutral-600 cursor-not-allowed'
+                                : index === currentMonth.getMonth()
                                 ? 'bg-primary-500/20 text-primary-500 font-semibold'
                                 : 'text-white hover:bg-[#333]'
                             }`}
                           >
-                            {month}
+                            {monthLabel}
                           </button>
-                        ))}
+                          )
+                        })}
                       </div>
                     </>
                   )}
@@ -406,7 +446,13 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
               <button
                 type="button"
                 onClick={handleNextMonth}
-                className="inline-flex items-center justify-center rounded-full transition-all duration-300 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-2 border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80 p-2"
+                disabled={!canGoNextMonth}
+                className={cn(
+                  'inline-flex items-center justify-center rounded-full transition-all duration-300 border-2 p-2',
+                  canGoNextMonth
+                    ? 'bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80'
+                    : 'bg-transparent text-neutral-600 border-neutral-800 cursor-not-allowed opacity-40'
+                )}
               >
                 <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
               </button>

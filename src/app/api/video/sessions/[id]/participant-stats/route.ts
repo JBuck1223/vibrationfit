@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
 
 export async function POST(
   request: NextRequest,
@@ -73,6 +74,8 @@ export async function POST(
           hostParticipant.id,
           hostParticipant.joined_at,
           action,
+          user.id,
+          sessionId,
           camera_on_percent,
           mic_on_percent
         )
@@ -89,6 +92,8 @@ export async function POST(
       participant.id,
       participant.joined_at,
       action,
+      user.id,
+      sessionId,
       camera_on_percent,
       mic_on_percent
     )
@@ -103,6 +108,8 @@ async function updateParticipantStats(
   participantId: string,
   existingJoinedAt: string | null,
   action: string,
+  userId: string,
+  sessionId: string,
   camera_on_percent?: number,
   mic_on_percent?: number
 ) {
@@ -125,6 +132,25 @@ async function updateParticipantStats(
         { error: 'Failed to update participant stats' },
         { status: 500 }
       )
+    }
+
+    const { data: session } = await supabase
+      .from('video_sessions')
+      .select('session_type, title')
+      .eq('id', sessionId)
+      .single()
+
+    const isAlignmentGym =
+      session?.session_type === 'alignment_gym' ||
+      (session?.title?.toLowerCase().includes('alignment gym') ?? false)
+
+    if (isAlignmentGym) {
+      const joinedDate = now.split('T')[0]
+      autoVerifyOccurrenceByActivityType(
+        userId,
+        'alignment_gym',
+        joinedDate,
+      ).catch(() => {})
     }
 
     return NextResponse.json({ 

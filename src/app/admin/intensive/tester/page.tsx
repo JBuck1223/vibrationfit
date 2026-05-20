@@ -20,7 +20,6 @@ import {
   Settings,
   FileText,
   User,
-  ClipboardCheck,
   Sparkles,
   Music,
   Mic,
@@ -29,12 +28,16 @@ import {
   BookOpen,
   Unlock,
   CheckCircle,
-  Circle,
   Lock,
   RefreshCw,
   UserPlus,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Undo2,
+  MessageSquare,
+  Heart,
+  Dumbbell,
+  Map
 } from 'lucide-react'
 
 interface IntensiveUser {
@@ -60,19 +63,21 @@ interface Progress {
 }
 
 const STEP_ICONS = [
-  Rocket,     // 0 - Start
-  Settings,   // 1 - Settings
-  FileText,   // 2 - Intake
-  User,       // 3 - Profile
-  ClipboardCheck, // 4 - Assessment
-  Sparkles,   // 5 - Build Vision
-  Music,      // 6 - Generate Audio
-  Mic,        // 7 - Record Voice
-  Sliders,    // 8 - Audio Mix
-  ImageIcon,  // 9 - Vision Board
-  BookOpen,   // 10 - Journal
-  Rocket,     // 11 - My Activation Plan
-  Unlock      // 12 - Unlock
+  Rocket,         // 0 - Start
+  Settings,       // 1 - Settings
+  FileText,       // 2 - Intake
+  User,           // 3 - Profile
+  Sparkles,       // 4 - Build Vision
+  Music,          // 5 - Generate Audio
+  Mic,            // 6 - Record Voice
+  Sliders,        // 7 - Audio Mix
+  ImageIcon,      // 8 - Vision Board
+  BookOpen,       // 9 - Journal
+  MessageSquare,  // 10 - First Vibe Tribe Post
+  Heart,          // 11 - Engage in Vibe Tribe
+  Dumbbell,       // 12 - Alignment Gym Tour
+  Map,            // 13 - My Activation Plan
+  Unlock,         // 14 - Unlock
 ]
 
 const STEP_PHASES: Record<number, string> = {
@@ -80,15 +85,17 @@ const STEP_PHASES: Record<number, string> = {
   1: 'Setup',
   2: 'Setup',
   3: 'Foundation',
-  4: 'Foundation',
-  5: 'Vision Creation',
+  4: 'Vision Creation',
+  5: 'Audio',
   6: 'Audio',
   7: 'Audio',
-  8: 'Audio',
+  8: 'Activation',
   9: 'Activation',
-  10: 'Activation',
-  11: 'Completion',
-  12: 'Completion'
+  10: 'Community',
+  11: 'Community',
+  12: 'Community',
+  13: 'Completion',
+  14: 'Completion',
 }
 
 export default function IntensiveTesterPage() {
@@ -100,7 +107,7 @@ export default function IntensiveTesterPage() {
   const [progress, setProgress] = useState<Progress | null>(null)
   const [stepDefinitions, setStepDefinitions] = useState<StepDefinition[]>([])
   const [completedCount, setCompletedCount] = useState(0)
-  const [totalSteps, setTotalSteps] = useState(13)
+  const [totalSteps, setTotalSteps] = useState(15)
   const [percentage, setPercentage] = useState(0)
   
   const [loading, setLoading] = useState(true)
@@ -174,6 +181,49 @@ export default function IntensiveTesterPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load progress')
       setProgress(null)
+    }
+  }
+
+  const handleUndoStep = async (stepNumber: number) => {
+    if (!selectedUserId) return
+
+    const stepName = stepDefinitions[stepNumber]?.name ?? `Step ${stepNumber}`
+    const cascadeMsg =
+      stepNumber < 14
+        ? ` This will also reset steps ${stepNumber + 1}–14.`
+        : ''
+
+    if (
+      !confirm(
+        `Reset "${stepName}" (step ${stepNumber}) for this user?${cascadeMsg}`
+      )
+    ) {
+      return
+    }
+
+    setActionLoading(stepNumber)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/intensive/undo-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUserId, stepNumber }),
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'Failed to undo step')
+      }
+
+      const data = await response.json()
+      setSuccessMessage(data.message)
+      await loadUserProgress(selectedUserId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to undo step')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -317,7 +367,7 @@ export default function IntensiveTesterPage() {
     setSuccessMessage(null)
 
     try {
-      for (const step of [0, 1, 2, 3, 4]) {
+      for (const step of [0, 1, 2, 3]) {
         if (isStepComplete(step)) continue
         const response = await fetch('/api/admin/intensive/advance-step', {
           method: 'POST',
@@ -329,7 +379,7 @@ export default function IntensiveTesterPage() {
           throw new Error(errData.error || `Failed at step ${step}`)
         }
       }
-      setSuccessMessage('Seeded Steps 0–4: Start, Settings, Intake, Profile & Assessment')
+      setSuccessMessage('Seeded Steps 0–3: Start, Settings, Intake & Profile')
       await loadUserProgress(selectedUserId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to seed profile data')
@@ -405,7 +455,7 @@ export default function IntensiveTesterPage() {
 
   const getNextAvailableStep = (): number | null => {
     if (!progress) return null
-    for (let i = 0; i <= 12; i++) {
+    for (let i = 0; i <= 14; i++) {
       if (!isStepComplete(i) && !isStepLocked(i)) {
         return i
       }
@@ -436,7 +486,7 @@ export default function IntensiveTesterPage() {
   }
 
   // Group steps by phase
-  const phases = ['Start', 'Setup', 'Foundation', 'Vision Creation', 'Audio', 'Activation', 'Completion']
+  const phases = ['Start', 'Setup', 'Foundation', 'Vision Creation', 'Audio', 'Activation', 'Community', 'Completion']
 
   return (
     <Container size="xl">
@@ -665,7 +715,7 @@ export default function IntensiveTesterPage() {
                                     {step.name}
                                   </span>
                                 </div>
-                                {index === 8 && (
+                                {index === 6 && (
                                   <span className="text-xs text-neutral-500">(Optional)</span>
                                 )}
                               </div>
@@ -673,9 +723,27 @@ export default function IntensiveTesterPage() {
 
                             <div className="flex items-center gap-2">
                               {complete && (
-                                <Badge variant="success" className="text-xs">
-                                  Done
-                                </Badge>
+                                <>
+                                  <Badge variant="success" className="text-xs">
+                                    Done
+                                  </Badge>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleUndoStep(index)}
+                                    disabled={actionLoading !== null}
+                                    title={`Reset step ${index} and later steps`}
+                                  >
+                                    {actionLoading === index ? (
+                                      <Spinner size="sm" />
+                                    ) : (
+                                      <>
+                                        <Undo2 className="w-4 h-4 mr-1" />
+                                        Undo
+                                      </>
+                                    )}
+                                  </Button>
+                                </>
                               )}
                               {!complete && !locked && (
                                 <Button
@@ -722,7 +790,7 @@ export default function IntensiveTesterPage() {
                     ) : (
                       <Sparkles className="w-4 h-4 mr-2" />
                     )}
-                    Seed Profile & Assessment
+                    Seed Start Through Profile
                   </Button>
                   <Button
                     variant="ghost"

@@ -5,11 +5,17 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Stack, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal } from '@/lib/design-system/components'
+import Link from 'next/link'
+import { Container, Stack, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, TimePicker } from '@/lib/design-system/components'
 import { Check, Globe } from 'lucide-react'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import {
+  DEFAULT_WEEKLY_DIGEST_TIME,
+  normalizeReminderTimeForPicker,
+  reminderTimeToPostgresTime,
+} from '@/lib/map/reminder-time'
 
 export default function AccountSettingsPage() {
   const router = useRouter()
@@ -34,6 +40,17 @@ export default function AccountSettingsPage() {
   const [smsOptIn, setSmsOptIn] = useState(true)
   const [emailOptIn, setEmailOptIn] = useState(true)
   
+  // MAP weekly digest (stored on active user_maps row)
+  const [activeMapId, setActiveMapId] = useState<string | null>(null)
+  const [originalWeeklyPrefs, setOriginalWeeklyPrefs] = useState<{
+    email: boolean
+    sms: boolean
+    time: string
+  } | null>(null)
+  const [mapWeeklyEmail, setMapWeeklyEmail] = useState(true)
+  const [mapWeeklySms, setMapWeeklySms] = useState(true)
+  const [mapWeeklyTime, setMapWeeklyTime] = useState(DEFAULT_WEEKLY_DIGEST_TIME)
+  
   // Modal state for opt-out confirmation
   const [showOptOutModal, setShowOptOutModal] = useState(false)
   const [pendingOptOut, setPendingOptOut] = useState<'sms' | 'email' | null>(null)
@@ -55,7 +72,15 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     if (!originalAccount) return
     
-    const changed = 
+    const weeklyDirty =
+      !!activeMapId &&
+      !!originalWeeklyPrefs &&
+      (mapWeeklyEmail !== originalWeeklyPrefs.email ||
+        mapWeeklySms !== originalWeeklyPrefs.sms ||
+        normalizeReminderTimeForPicker(mapWeeklyTime) !==
+          normalizeReminderTimeForPicker(originalWeeklyPrefs.time))
+
+    const changed =
       firstName !== (originalAccount.first_name || '') ||
       lastName !== (originalAccount.last_name || '') ||
       email !== (originalAccount.email || '') ||
@@ -63,10 +88,11 @@ export default function AccountSettingsPage() {
       dateOfBirth !== (originalAccount.date_of_birth || '') ||
       timezone !== (originalAccount.timezone || '') ||
       smsOptIn !== (originalAccount.sms_opt_in ?? true) ||
-      emailOptIn !== (originalAccount.email_opt_in ?? true)
+      emailOptIn !== (originalAccount.email_opt_in ?? true) ||
+      weeklyDirty
     
     setHasChanges(changed)
-  }, [firstName, lastName, email, phone, dateOfBirth, timezone, smsOptIn, emailOptIn, originalAccount])
+  }, [firstName, lastName, email, phone, dateOfBirth, timezone, smsOptIn, emailOptIn, mapWeeklyEmail, mapWeeklySms, mapWeeklyTime, originalAccount, activeMapId, originalWeeklyPrefs])
 
   const fetchUserData = async () => {
     try {
@@ -114,6 +140,34 @@ export default function AccountSettingsPage() {
         setTimezone(userTz)
         setSmsOptIn(true)
         setEmailOptIn(true)
+
+        const { data: activeMap } = await supabase
+          .from('user_maps')
+          .select('id, map_weekly_reminder_email, map_weekly_reminder_sms, map_weekly_reminder_time')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .eq('is_draft', false)
+          .maybeSingle()
+
+        if (activeMap?.id) {
+          setActiveMapId(activeMap.id)
+          const em = (activeMap as { map_weekly_reminder_email?: boolean | null }).map_weekly_reminder_email ?? true
+          const sm = (activeMap as { map_weekly_reminder_sms?: boolean | null }).map_weekly_reminder_sms ?? true
+          const tm =
+            normalizeReminderTimeForPicker(
+              (activeMap as { map_weekly_reminder_time?: string | null }).map_weekly_reminder_time,
+            ) || DEFAULT_WEEKLY_DIGEST_TIME
+          setMapWeeklyEmail(!!em)
+          setMapWeeklySms(!!sm)
+          setMapWeeklyTime(tm)
+          setOriginalWeeklyPrefs({ email: !!em, sms: !!sm, time: tm })
+        } else {
+          setActiveMapId(null)
+          setOriginalWeeklyPrefs(null)
+          setMapWeeklyEmail(true)
+          setMapWeeklySms(true)
+          setMapWeeklyTime(DEFAULT_WEEKLY_DIGEST_TIME)
+        }
 
         // Auto-save detected timezone if the user doesn't have one stored yet
         if (!accountData.timezone && detectedTz) {
@@ -243,6 +297,26 @@ export default function AccountSettingsPage() {
         .eq('id', user.id)
 
       if (accountError) throw accountError
+
+      const weeklyDirtyForSave =
+        !!activeMapId &&
+        !!originalWeeklyPrefs &&
+        (mapWeeklyEmail !== originalWeeklyPrefs.email ||
+          mapWeeklySms !== originalWeeklyPrefs.sms ||
+          normalizeReminderTimeForPicker(mapWeeklyTime) !==
+            normalizeReminderTimeForPicker(originalWeeklyPrefs.time))
+
+      if (weeklyDirtyForSave && activeMapId) {
+        const { error: mapErr } = await supabase
+          .from('user_maps')
+          .update({
+            map_weekly_reminder_email: mapWeeklyEmail,
+            map_weekly_reminder_sms: mapWeeklySms,
+            map_weekly_reminder_time: reminderTimeToPostgresTime(mapWeeklyTime),
+          })
+          .eq('id', activeMapId)
+        if (mapErr) throw mapErr
+      }
 
       // Update email separately if changed (requires auth update)
       if (email !== originalAccount?.email) {
@@ -441,6 +515,58 @@ export default function AccountSettingsPage() {
               </div>
               {!phone && (
                 <p className="text-xs text-neutral-500 mt-2">Add a phone number to enable SMS</p>
+              )}
+            </div>
+
+            {/* MAP Weekly Reminders (stored on active user_maps) */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                MAP weekly reminders
+              </label>
+              {activeMapId ? (
+                <>
+                  <p className="text-xs text-neutral-500 mb-2">
+                    Saved on your active MAP. Send time uses your MAP time zone.
+                  </p>
+                  <div className="mt-2 flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
+                    <div className="flex shrink-0 items-center gap-6">
+                      <Checkbox
+                        checked={mapWeeklyEmail}
+                        onChange={(e) => setMapWeeklyEmail(e.target.checked)}
+                        label="Email"
+                      />
+                      <Checkbox
+                        checked={mapWeeklySms}
+                        onChange={(e) => setMapWeeklySms(e.target.checked)}
+                        label="SMS"
+                        disabled={!phone}
+                      />
+                    </div>
+                    {(mapWeeklyEmail || mapWeeklySms) && (
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
+                          at
+                        </span>
+                        <TimePicker
+                          size="sm"
+                          placeholder="Time"
+                          value={normalizeReminderTimeForPicker(mapWeeklyTime) || undefined}
+                          onChange={v => setMapWeeklyTime(v)}
+                          popoverAlign="end"
+                          className="w-[8.5rem] shrink-0"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-neutral-500">
+                  Weekly digest options are stored on your active MAP. Open{' '}
+                  <Link href="/map" className="text-primary-400 hover:underline">
+                    MAP
+                  </Link>{' '}
+                  when you have an active plan to change them here.
+                </p>
               )}
             </div>
           </div>

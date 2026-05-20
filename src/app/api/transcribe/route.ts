@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { formatTranscript, type TranscriptionWord } from '@/lib/audio/format-transcript-paragraphs'
 
 export const maxDuration = 300
 
@@ -101,8 +102,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    const words = (transcription.words ?? null) as TranscriptionWord[] | null
+    const transcript = formatTranscript(transcription.text, words)
+
     return NextResponse.json({
-      transcript: transcription.text,
+      transcript,
       duration: transcription.duration,
       language: transcription.language,
       words: transcription.words,

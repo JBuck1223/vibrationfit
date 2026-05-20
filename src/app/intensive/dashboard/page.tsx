@@ -4,17 +4,16 @@ import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
-// completeIntensive no longer needed; step 12 marks the intensive as completed
+// completeIntensive no longer needed; step 14 marks the intensive as completed
 import { checkUserHasPassword } from '@/lib/auth/check-password'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 // IntensiveCompletionScreen removed; graduates are redirected to /dashboard
-import { getStepInfo, getNextStep } from '@/lib/intensive/step-mapping'
+import { getStepInfo, getNextStep as getNextStepMapping } from '@/lib/intensive/step-mapping'
 import { toast } from 'sonner'
 import { 
   Clock, 
   CheckCircle, 
   User,
-  ClipboardCheck,
   Sparkles,
   Music,
   Mic,
@@ -31,7 +30,10 @@ import {
   FileText,
   Unlock,
   HelpCircle,
-  Share2
+  Share2,
+  MessageSquarePlus,
+  Heart,
+  Flame
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -44,7 +46,7 @@ import {
   Spinner,
   Stack
 } from '@/lib/design-system/components'
-import { fetchAssessments } from '@/lib/services/assessmentService'
+// Assessment removed from intensive; fetchAssessments no longer needed here
 
 interface IntensivePurchase {
   id: string
@@ -62,23 +64,18 @@ interface IntensiveChecklist {
   started_at: string | null
   
   // Phase 1: Setup (Steps 1-2)
-  // Step 1 (Settings) is checked via user_accounts table directly
   intake_completed: boolean
   intake_completed_at: string | null
   
-  // Phase 2: Foundation (Steps 3-4)
+  // Phase 2: Foundation (Step 3)
   profile_completed: boolean
   profile_completed_at: string | null
-  assessment_completed: boolean
-  assessment_completed_at: string | null
   
-  // Phase 3: Vision (Step 5)
+  // Phase 3: Vision (Step 4)
   vision_built: boolean
   vision_built_at: string | null
-  vision_refined: boolean
-  vision_refined_at: string | null
   
-  // Phase 4: Audio (Steps 6-8)
+  // Phase 4: Audio (Steps 5-7)
   audio_generated: boolean
   audio_generated_at: string | null
   voice_recording_completed: boolean
@@ -88,15 +85,21 @@ interface IntensiveChecklist {
   audios_generated: boolean
   audios_generated_at: string | null
   
-  // Phase 5: Activation (Steps 9-10)
+  // Phase 5: Activation (Steps 8-9)
   vision_board_completed: boolean
   vision_board_completed_at: string | null
   first_journal_entry: boolean
   first_journal_entry_at: string | null
-  call_scheduled: boolean
-  call_scheduled_at: string | null
   
-  // Phase 6: Completion (Steps 11-12)
+  // Phase 6: Community (Steps 10-12)
+  first_vibe_post: boolean
+  first_vibe_post_at: string | null
+  vibe_engagement: boolean
+  vibe_engagement_at: string | null
+  alignment_gym_toured: boolean
+  alignment_gym_toured_at: string | null
+  
+  // Phase 7: Completion (Steps 13-14)
   activation_protocol_completed: boolean
   activation_protocol_completed_at: string | null
   unlock_completed: boolean
@@ -133,8 +136,6 @@ function IntensiveDashboardContent() {
   const [hoursRemaining, setHoursRemaining] = useState<number>(72)
   const [settingsComplete, setSettingsComplete] = useState(false)
   const [settingsCompletedAt, setSettingsCompletedAt] = useState<string | null>(null)
-  const [assessmentInProgressId, setAssessmentInProgressId] = useState<string | null>(null)
-  const [assessmentLatestCompletedId, setAssessmentLatestCompletedId] = useState<string | null>(null)
   const [isSuperAdminUser, setIsSuperAdminUser] = useState(false)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   const toastShownRef = useRef(false)
@@ -178,12 +179,12 @@ function IntensiveDashboardContent() {
       toastShownRef.current = true
       
       const stepInfo = getStepInfo(completedStep)
-      const nextStepInfo = getNextStep()
+      const nextStepInfo = getNextStepMapping(completedStep)
       
       if (stepInfo) {
         const message = nextStepInfo 
-          ? `Step ${stepInfo.stepNumber} of 12 complete – "${stepInfo.title}"\nYour next step, "${nextStepInfo.title}," is now unlocked.`
-          : `Step ${stepInfo.stepNumber} of 12 complete – "${stepInfo.title}"`
+          ? `Step ${stepInfo.stepNumber} of 14 complete – "${stepInfo.title}"\nYour next step, "${nextStepInfo.title}," is now unlocked.`
+          : `Step ${stepInfo.stepNumber} of 14 complete – "${stepInfo.title}"`
         
         toast.success(message, {
           duration: 5000,
@@ -302,12 +303,8 @@ function IntensiveDashboardContent() {
             intake_completed_at: showComplete ? mockTimestamp : null,
             profile_completed: showComplete,
             profile_completed_at: showComplete ? mockTimestamp : null,
-            assessment_completed: showComplete,
-            assessment_completed_at: showComplete ? mockTimestamp : null,
             vision_built: showComplete,
             vision_built_at: showComplete ? mockTimestamp : null,
-            vision_refined: showComplete,
-            vision_refined_at: showComplete ? mockTimestamp : null,
             audio_generated: showComplete,
             audio_generated_at: showComplete ? mockTimestamp : null,
             voice_recording_skipped: false,
@@ -320,8 +317,12 @@ function IntensiveDashboardContent() {
             vision_board_completed_at: showComplete ? mockTimestamp : null,
             first_journal_entry: showComplete,
             first_journal_entry_at: showComplete ? mockTimestamp : null,
-            call_scheduled: showComplete,
-            call_scheduled_at: showComplete ? mockTimestamp : null,
+            first_vibe_post: showComplete,
+            first_vibe_post_at: showComplete ? mockTimestamp : null,
+            vibe_engagement: showComplete,
+            vibe_engagement_at: showComplete ? mockTimestamp : null,
+            alignment_gym_toured: showComplete,
+            alignment_gym_toured_at: showComplete ? mockTimestamp : null,
             activation_protocol_completed: showComplete,
             activation_protocol_completed_at: showComplete ? mockTimestamp : null,
             unlock_completed: showComplete,
@@ -336,22 +337,6 @@ function IntensiveDashboardContent() {
       }
 
       setChecklist(checklistData)
-
-      // Fetch assessment state for conditional step labels (Start / Continue / View Results)
-      try {
-        const { assessments } = await fetchAssessments()
-        const inProgress = assessments?.find((a: { status: string }) => a.status === 'in_progress')
-        const completedList = assessments?.filter((a: { status: string }) => a.status === 'completed') || []
-        const sortedCompleted = [...completedList].sort((a, b) => {
-          const tA = (a as unknown as { completed_at?: string }).completed_at ? new Date((a as unknown as { completed_at: string }).completed_at).getTime() : 0
-          const tB = (b as unknown as { completed_at?: string }).completed_at ? new Date((b as unknown as { completed_at: string }).completed_at).getTime() : 0
-          return tB - tA
-        })
-        setAssessmentInProgressId(inProgress?.id ?? null)
-        setAssessmentLatestCompletedId(sortedCompleted[0]?.id ?? null)
-      } catch (e) {
-        console.error('Error fetching assessments for dashboard:', e)
-      }
 
       setIntensive({
         id: checklistData.intensive_id,
@@ -523,7 +508,7 @@ function IntensiveDashboardContent() {
         locked: !settingsComplete
       },
       
-      // Phase 2: Foundation (Steps 3-4)
+      // Phase 2: Foundation (Step 3)
       {
         id: 'profile',
         stepNumber: 3,
@@ -537,26 +522,11 @@ function IntensiveDashboardContent() {
         viewHref: '/intensive/profile/new',
         locked: !(checklist.intake_completed || false)
       },
-      {
-        id: 'assessment',
-        stepNumber: 4,
-        title: 'Vibration Assessment',
-        description: 'Discover your current vibration score and insights',
-        icon: ClipboardCheck,
-        phase: 'Foundation',
-        completed: checklist.assessment_completed,
-        completedAt: checklist.assessment_completed_at,
-        href: '/intensive/assessment/new',
-        viewHref: '/intensive/assessment/new',
-        locked: !checklist.profile_completed,
-        actionLabel: assessmentInProgressId ? 'Continue Assessment' : 'Start Assessment',
-        viewLabel: 'View Results'
-      },
       
-      // Phase 3: Vision (Step 5)
+      // Phase 3: Vision (Step 4)
       {
         id: 'build_vision',
-        stepNumber: 5,
+        stepNumber: 4,
         title: 'Create Your Life Vision',
         description: 'Create your comprehensive vision across all 12 life categories',
         icon: Sparkles,
@@ -565,13 +535,13 @@ function IntensiveDashboardContent() {
         completedAt: checklist.vision_built_at,
         href: '/intensive/life-vision/create',
         viewHref: '/intensive/life-vision/create',
-        locked: !checklist.assessment_completed
+        locked: !checklist.profile_completed
       },
       
-      // Phase 4: Audio (Steps 6-8)
+      // Phase 4: Audio (Steps 5-7)
       {
         id: 'generate_audio',
-        stepNumber: 6,
+        stepNumber: 5,
         title: 'Generate Vision Audio',
         description: 'Create voice-only audio of your vision',
         icon: Music,
@@ -584,7 +554,7 @@ function IntensiveDashboardContent() {
       },
       {
         id: 'record_audio',
-        stepNumber: 7,
+        stepNumber: 6,
         title: 'Record Your Voice',
         description: 'Optionally record sections in your own voice',
         icon: Mic,
@@ -598,7 +568,7 @@ function IntensiveDashboardContent() {
       },
       {
         id: 'mix_audio',
-        stepNumber: 8,
+        stepNumber: 7,
         title: 'Create Audio Mix',
         description: 'Mix your vision audio with music and frequencies',
         icon: Sliders,
@@ -610,10 +580,10 @@ function IntensiveDashboardContent() {
         locked: !checklist.audio_generated || !(checklist.voice_recording_completed || checklist.voice_recording_skipped)
       },
       
-      // Phase 5: Activation (Steps 9-10)
+      // Phase 5: Activation (Steps 8-9)
       {
         id: 'vision_board',
-        stepNumber: 9,
+        stepNumber: 8,
         title: 'Create Vision Board',
         description: 'Build your visual board with one image per life category',
         icon: ImageIcon,
@@ -626,7 +596,7 @@ function IntensiveDashboardContent() {
       },
       {
         id: 'journal',
-        stepNumber: 10,
+        stepNumber: 9,
         title: 'First Journal Entry',
         description: 'Start your conscious creation journal practice',
         icon: BookOpen,
@@ -638,23 +608,64 @@ function IntensiveDashboardContent() {
         locked: !checklist.vision_board_completed
       },
       
-      // Phase 6: Completion (Steps 11-12)
+      // Phase 6: Community (Steps 10-12)
+      {
+        id: 'first_vibe_post',
+        stepNumber: 10,
+        title: 'First Vibe Tribe Post',
+        description: 'Introduce yourself and make your first post in Vibe Tribe',
+        icon: MessageSquarePlus,
+        phase: 'Community',
+        completed: checklist.first_vibe_post,
+        completedAt: checklist.first_vibe_post_at,
+        href: '/intensive/vibe-tribe/post',
+        viewHref: '/intensive/vibe-tribe/post',
+        locked: !checklist.first_journal_entry
+      },
+      {
+        id: 'vibe_engagement',
+        stepNumber: 11,
+        title: 'Engage in Vibe Tribe',
+        description: 'Show up for another member — heart or comment on their post (not your own)',
+        icon: Heart,
+        phase: 'Community',
+        completed: checklist.vibe_engagement,
+        completedAt: checklist.vibe_engagement_at,
+        href: '/intensive/vibe-tribe/engage',
+        viewHref: '/intensive/vibe-tribe/engage',
+        locked: !checklist.first_vibe_post
+      },
+      {
+        id: 'alignment_gym_tour',
+        stepNumber: 12,
+        title: 'Alignment Gym',
+        description: 'Take a guided tour of the weekly Alignment Gym sessions',
+        icon: Flame,
+        phase: 'Community',
+        completed: checklist.alignment_gym_toured,
+        completedAt: checklist.alignment_gym_toured_at,
+        href: '/intensive/alignment-gym',
+        viewHref: '/intensive/alignment-gym',
+        locked: !checklist.vibe_engagement
+      },
+      
+      // Phase 7: Completion (Steps 13-14)
       {
         id: 'activation_protocol',
-        stepNumber: 11,
+        stepNumber: 13,
         title: 'My Activation Plan',
-        description: 'Your personalized 28-day MAP',
+        description: 'Starter MAP: vision audio, journal, Vibe Tribe, Alignment Gym',
         icon: Rocket,
         phase: 'Completion',
         completed: checklist.activation_protocol_completed,
         completedAt: checklist.activation_protocol_completed_at,
         href: '/intensive/map',
         viewHref: '/intensive/map',
-        locked: !checklist.first_journal_entry
+        locked: !checklist.alignment_gym_toured
       },
       {
         id: 'unlock',
-        stepNumber: 12,
+        stepNumber: 14,
         title: 'Full Platform Unlock',
         description: 'Unlock the complete Vibration Fit platform',
         icon: Unlock,
@@ -746,15 +757,15 @@ function IntensiveDashboardContent() {
   const nextStep = getNextStep()
   const currentPhase = getCurrentPhase()
   
-  // Calculate current step number (first incomplete step or 12 if all complete)
-  const currentStepNumber = nextStep ? nextStep.stepNumber : 12
+  // Calculate current step number (first incomplete step or 14 if all complete)
+  const currentStepNumber = nextStep ? nextStep.stepNumber : 14
 
   return (
     <Container size="xl">
       <Stack gap="lg">
         <div className="flex justify-center">
           <Badge variant="premium" className="text-xs md:text-sm">
-            Current Phase: {currentPhase} · Step {currentStepNumber} of 12
+            Current Phase: {currentPhase} · Step {currentStepNumber} of 14
           </Badge>
         </div>
 
@@ -863,7 +874,7 @@ function IntensiveDashboardContent() {
 
         {/* Step Checklist by Phase */}
         <div className="space-y-8">
-          {['Setup', 'Foundation', 'Vision Creation', 'Audio', 'Activation', 'Completion'].map(phase => {
+          {['Setup', 'Foundation', 'Vision Creation', 'Audio', 'Activation', 'Community', 'Completion'].map(phase => {
             const phaseSteps = steps.filter(s => s.phase === phase)
             const phaseCompleted = phaseSteps.filter(s => s.completed).length
             const phaseProgress = Math.round((phaseCompleted / phaseSteps.length) * 100)

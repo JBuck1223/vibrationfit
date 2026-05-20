@@ -2,8 +2,14 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import {
+  formatSnapshotDateLabel,
+  getEarliestBoardSnapshotDate,
+  resolveBoardSnapshot,
+  type VisionBoardStatusEvent,
+} from '@/lib/vision-board/snapshot'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryGrid, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, Spinner, Input, Textarea, FileUpload, ImageLightbox, type ImageLightboxImage } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryGrid, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, Spinner, Input, Textarea, FileUpload, ImageLightbox, DatePicker, type ImageLightboxImage } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { useAreaStats } from '@/hooks/useAreaStats'
@@ -214,6 +220,11 @@ export default function VisionBoardPage() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [bulkStatusChanging, setBulkStatusChanging] = useState(false)
+
+  const [snapshotDate, setSnapshotDate] = useState<string | null>(null)
+  const [statusEvents, setStatusEvents] = useState<VisionBoardStatusEvent[]>([])
+  const [snapshotLoading, setSnapshotLoading] = useState(false)
+  const isSnapshotMode = snapshotDate !== null
   
   // Use standardized delete functionality
   const {
@@ -239,6 +250,48 @@ export default function VisionBoardPage() {
   }, [])
 
   useEffect(() => {
+    if (!snapshotDate) {
+      setStatusEvents([])
+      return
+    }
+
+    const fetchStatusEvents = async () => {
+      setSnapshotLoading(true)
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
+        if (!user) return
+
+        const { data, error } = await supabase
+          .from('vision_board_item_status_events')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('changed_at', { ascending: false })
+
+        if (error) throw error
+        setStatusEvents(data || [])
+      } catch (error) {
+        console.error('Error fetching vision board status events:', error)
+      } finally {
+        setSnapshotLoading(false)
+      }
+    }
+
+    fetchStatusEvents()
+  }, [snapshotDate])
+
+  useEffect(() => {
+    if (!isSnapshotMode) return
+    setBulkMode(false)
+    setSelectedItemIds(new Set())
+    setExpandedItemId(null)
+    setEditingItemId(null)
+    setEditFormData(null)
+    setDetailModalIndex(null)
+  }, [isSnapshotMode])
+
+  useEffect(() => {
     const recordActivation = async () => {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -250,7 +303,7 @@ export default function VisionBoardPage() {
       })
 
       const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
-      autoVerifyClient('vision-board')
+      autoVerifyClient({ activityType: 'vision_board_view' })
     }
     recordActivation()
   }, [])
@@ -280,7 +333,12 @@ export default function VisionBoardPage() {
     }
   }
 
-  const filteredItems = items
+  const boardItems = useMemo(() => {
+    if (!snapshotDate) return items
+    return resolveBoardSnapshot(items, statusEvents, snapshotDate)
+  }, [items, statusEvents, snapshotDate])
+
+  const filteredItems = boardItems
     .filter(item => {
       // Show all if 'all' is selected, show none if empty array, otherwise filter by selected categories
       const categoryMatch = selectedCategories.includes('all') || 
@@ -303,10 +361,10 @@ export default function VisionBoardPage() {
   }, [filteredItems, columnCount])
 
 
-  const totalItems = items?.length || 0
-  const actualizedItems = items?.filter(item => item.status === 'actualized').length || 0
-  const activeItems = items?.filter(item => item.status === 'active').length || 0
-  const inactiveItems = items?.filter(item => item.status === 'inactive').length || 0
+  const totalItems = boardItems?.length || 0
+  const actualizedItems = boardItems?.filter(item => item.status === 'actualized').length || 0
+  const activeItems = boardItems?.filter(item => item.status === 'active').length || 0
+  const inactiveItems = boardItems?.filter(item => item.status === 'inactive').length || 0
 
   const toggleStatus = (status: string) => {
     if (status === 'all') {
@@ -373,6 +431,7 @@ export default function VisionBoardPage() {
   }, [detailModalIndex, filteredItems.length])
 
   const updateItemStatus = async (itemId: string, newStatus: string) => {
+    if (isSnapshotMode) return
     try {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -381,10 +440,7 @@ export default function VisionBoardPage() {
 
       const { error } = await supabase
         .from('vision_board_items')
-        .update({
-          status: newStatus,
-          actualized_at: newStatus === 'actualized' ? new Date().toISOString() : null
-        })
+        .update({ status: newStatus })
         .eq('id', itemId)
 
       if (error) throw error
@@ -396,7 +452,9 @@ export default function VisionBoardPage() {
             ? { 
                 ...item, 
                 status: newStatus,
-                actualized_at: newStatus === 'actualized' ? new Date().toISOString() : item.actualized_at
+                actualized_at: newStatus === 'actualized'
+                  ? (item.actualized_at ?? new Date().toISOString())
+                  : item.actualized_at
               }
             : item
         )
@@ -407,12 +465,16 @@ export default function VisionBoardPage() {
         p_user_id: user.id,
         p_status: newStatus 
       })
+
+      const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+      autoVerifyClient({ activityType: 'vision_board_update' })
     } catch (error) {
       console.error('Error updating item status:', error)
     }
   }
 
   const cycleItemStatus = async (itemId: string) => {
+    if (isSnapshotMode) return
     try {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -430,10 +492,7 @@ export default function VisionBoardPage() {
 
       const { error } = await supabase
         .from('vision_board_items')
-        .update({
-          status: newStatus,
-          actualized_at: newStatus === 'actualized' ? new Date().toISOString() : null
-        })
+        .update({ status: newStatus })
         .eq('id', itemId)
 
       if (error) throw error
@@ -445,7 +504,9 @@ export default function VisionBoardPage() {
             ? { 
                 ...item, 
                 status: newStatus,
-                actualized_at: newStatus === 'actualized' ? new Date().toISOString() : item.actualized_at
+                actualized_at: newStatus === 'actualized'
+                  ? (item.actualized_at ?? new Date().toISOString())
+                  : item.actualized_at
               }
             : item
         )
@@ -456,12 +517,16 @@ export default function VisionBoardPage() {
         p_user_id: user.id,
         p_status: newStatus 
       })
+
+      const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+      autoVerifyClient({ activityType: 'vision_board_update' })
     } catch (error) {
       console.error('Error updating item status:', error)
     }
   }
 
   const handleDeleteItem = (itemId: string) => {
+    if (isSnapshotMode) return
     const item = items.find(i => i.id === itemId)
     if (item) {
       initiateDelete(item)
@@ -500,7 +565,7 @@ export default function VisionBoardPage() {
   }
 
   const bulkUpdateStatus = async (newStatus: string) => {
-    if (selectedItemIds.size === 0) return
+    if (isSnapshotMode || selectedItemIds.size === 0) return
     setBulkStatusChanging(true)
     try {
       const supabase = createClient()
@@ -511,10 +576,7 @@ export default function VisionBoardPage() {
       const ids = Array.from(selectedItemIds)
       const { error } = await supabase
         .from('vision_board_items')
-        .update({
-          status: newStatus,
-          actualized_at: newStatus === 'actualized' ? new Date().toISOString() : null
-        })
+        .update({ status: newStatus })
         .in('id', ids)
 
       if (error) throw error
@@ -525,7 +587,9 @@ export default function VisionBoardPage() {
             ? {
                 ...item,
                 status: newStatus,
-                actualized_at: newStatus === 'actualized' ? new Date().toISOString() : item.actualized_at
+                actualized_at: newStatus === 'actualized'
+                  ? (item.actualized_at ?? new Date().toISOString())
+                  : item.actualized_at
               }
             : item
         )
@@ -537,6 +601,9 @@ export default function VisionBoardPage() {
           p_status: newStatus
         })
       }
+
+      const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+      autoVerifyClient({ activityType: 'vision_board_update' })
 
       setSelectedItemIds(new Set())
     } catch (error) {
@@ -647,6 +714,7 @@ export default function VisionBoardPage() {
   }
 
   const startEditing = (item: any) => {
+    if (isSnapshotMode) return
     setDetailModalIndex(null)
     const idx = filteredItems.findIndex(i => i.id === item.id)
     if (idx !== -1) {
@@ -1558,32 +1626,34 @@ export default function VisionBoardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-1">
-        <Button
-          variant="danger"
-          size="sm"
-          className="text-xs w-full justify-center"
-          onClick={(e) => {
-            e.stopPropagation()
-            handleDeleteItem(item.id)
-          }}
-        >
-          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-          Delete
-        </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          className="text-xs w-full justify-center"
-          onClick={(e) => {
-            e.stopPropagation()
-            startEditing(item)
-          }}
-        >
-          <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-          Edit
-        </Button>
-      </div>
+      {!isSnapshotMode && (
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <Button
+            variant="danger"
+            size="sm"
+            className="text-xs w-full justify-center"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDeleteItem(item.id)
+            }}
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            Delete
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            className="text-xs w-full justify-center"
+            onClick={(e) => {
+              e.stopPropagation()
+              startEditing(item)
+            }}
+          >
+            <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+            Edit
+          </Button>
+        </div>
+      )}
     </div>
   )
 
@@ -1645,16 +1715,35 @@ export default function VisionBoardPage() {
 
   const getActiveFilterCount = () => {
     let count = 0
-    // Count if category filter is active (not 'all' and has selections)
+    if (isSnapshotMode) count += 1
     if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
       count += 1
     }
-    // Count if status filter is active (not 'all' and has selections)
     if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
       count += 1
     }
     return count
   }
+
+  const todayLocalDate = useMemo(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }, [])
+
+  const snapshotMinDate = useMemo(
+    () => getEarliestBoardSnapshotDate(items),
+    [items]
+  )
+
+  useEffect(() => {
+    if (!snapshotDate || !snapshotMinDate) return
+    if (snapshotDate < snapshotMinDate || snapshotDate > todayLocalDate) {
+      setSnapshotDate(null)
+    }
+  }, [snapshotDate, snapshotMinDate, todayLocalDate])
 
   return (
     <Container size="xl" className="pt-1 pb-6 overflow-x-hidden">
@@ -1671,30 +1760,60 @@ export default function VisionBoardPage() {
           totalItems={totalItems}
         />
 
+        {isSnapshotMode && snapshotDate && (
+          <div className="rounded-2xl border border-[#BF00FF]/30 bg-[#BF00FF]/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <Calendar className="w-5 h-5 text-[#BF00FF] flex-shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Viewing your board as of {formatSnapshotDateLabel(snapshotDate)}
+                </p>
+                <p className="text-xs text-neutral-400">
+                  Status badges reflect that date. Evidence shows for actualized items.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSnapshotDate(null)}
+              className="self-start sm:self-auto"
+            >
+              Back to today
+            </Button>
+          </div>
+        )}
+
         {/* Filter Toggle Button and View Toggle */}
         <div className="flex items-center justify-between">
           <div className="flex-1 flex justify-start">
-            <button
-              onClick={() => router.push('/vision-board/new')}
-              className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
-              aria-label="Add Creation"
-            >
-              <Plus className="w-6 h-6 text-[#39FF14]" />
-            </button>
+            {!isSnapshotMode ? (
+              <button
+                onClick={() => router.push('/vision-board/new')}
+                className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
+                aria-label="Add Creation"
+              >
+                <Plus className="w-6 h-6 text-[#39FF14]" />
+              </button>
+            ) : (
+              <div className="w-12 h-12" aria-hidden="true" />
+            )}
           </div>
           <div className="flex items-center gap-2">
+            {!isSnapshotMode && (
+              <Button
+                variant={bulkMode ? 'danger' : 'ghost'}
+                size="sm"
+                onClick={toggleBulkMode}
+                className="flex items-center gap-2"
+                aria-label={bulkMode ? 'Cancel selection mode' : 'Select items'}
+              >
+                <ListChecks className="w-4 h-4" />
+                <span className="hidden sm:inline">{bulkMode ? 'Cancel' : 'Select'}</span>
+              </Button>
+            )}
             <Button
-              variant={bulkMode ? 'danger' : 'ghost'}
-              size="sm"
-              onClick={toggleBulkMode}
-              className="flex items-center gap-2"
-              aria-label={bulkMode ? 'Cancel selection mode' : 'Select items'}
-            >
-              <ListChecks className="w-4 h-4" />
-              <span className="hidden sm:inline">{bulkMode ? 'Cancel' : 'Select'}</span>
-            </Button>
-            <Button
-              variant="primary"
+              variant={showFilters || getActiveFilterCount() > 0 ? 'primary' : 'ghost'}
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-2"
@@ -1702,6 +1821,11 @@ export default function VisionBoardPage() {
             >
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">Filter</span>
+              {getActiveFilterCount() > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-black/30 text-xs font-semibold">
+                  {getActiveFilterCount()}
+                </span>
+              )}
             </Button>
             <Button
               variant="secondary"
@@ -1791,6 +1915,7 @@ export default function VisionBoardPage() {
                 }
               }}
               lifeVisionCategoryStrip
+              desktopColumnCount={6}
             />
           </Card>
 
@@ -1846,12 +1971,40 @@ export default function VisionBoardPage() {
                 ))}
               </div>
           </Card>
+
+          {/* Time Travel Filter */}
+          <Card variant="elevated" className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Time travel</h3>
+              {isSnapshotMode && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSnapshotDate(null)}
+                >
+                  Back to today
+                </Button>
+              )}
+            </div>
+            {snapshotMinDate ? (
+              <DatePicker
+                value={snapshotDate ?? ''}
+                onChange={(date) => setSnapshotDate(date || null)}
+                minDate={snapshotMinDate}
+                maxDate={todayLocalDate}
+              />
+            ) : (
+              <p className="text-sm text-neutral-500">
+                Add a creation to your board to use time travel.
+              </p>
+            )}
+          </Card>
           </div>
         )}
 
         {/* Vision Board Content */}
         <div id="content" className="overflow-hidden">
-        {loading ? (
+        {loading || (isSnapshotMode && snapshotLoading) ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <Spinner size="lg" />
           </div>
@@ -2372,32 +2525,34 @@ export default function VisionBoardPage() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        className="text-xs w-full justify-center"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          initiateDelete(currentItem)
-                        }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                        Delete
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="text-xs w-full justify-center"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          startEditing(currentItem)
-                        }}
-                      >
-                        <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                        Edit
-                      </Button>
-                    </div>
+                    {!isSnapshotMode && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className="text-xs w-full justify-center"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            initiateDelete(currentItem)
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                          Delete
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="text-xs w-full justify-center"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startEditing(currentItem)
+                          }}
+                        >
+                          <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                          Edit
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Thumbnail strip */}
@@ -2694,6 +2849,7 @@ export default function VisionBoardPage() {
           showCopyButton={false}
           showThumbnails={editImagePreview.images.length > 1}
         />
+
       </Stack>
     </Container>
   )

@@ -11,7 +11,7 @@ const TABS = [
   { label: 'Update', path: '/profile/create', icon: PenLine },
 ]
 
-const CREATE_AREA_ROUTES = ['/profile/create', '/profile/new', '/profile/compare']
+const CREATE_AREA_ROUTES = ['/profile/create', '/profile/new']
 
 export function ProfileAreaBar() {
   const pathname = usePathname()

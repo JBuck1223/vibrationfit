@@ -11,7 +11,6 @@ import { Button } from '@/lib/design-system/components'
 import { 
   LayoutDashboard,
   User,
-  ClipboardCheck,
   Sparkles,
   Music,
   Mic,
@@ -33,7 +32,10 @@ import {
   Clock,
   LogOut,
   CreditCard,
-  Headset
+  Headset,
+  MessageSquarePlus,
+  Heart,
+  Flame
 } from 'lucide-react'
 
 type Step = {
@@ -254,7 +256,7 @@ export function IntensiveSidebar() {
           icon: Rocket,
           phase: 'Start',
           completed: !!checklist.started_at,
-          locked: false // Always accessible
+          locked: false
         },
         // Phase 1: Setup
         { 
@@ -289,33 +291,23 @@ export function IntensiveSidebar() {
           completed: !!checklist.profile_completed,
           locked: !checklist.intake_completed 
         },
-        { 
-          id: 'assessment', 
-          stepNumber: 4,
-          title: 'Assessment', 
-          href: '/intensive/assessment/new',
-          icon: ClipboardCheck,
-          phase: 'Foundation',
-          completed: !!checklist.assessment_completed,
-          locked: !checklist.profile_completed 
-        },
 
         // Phase 3: Vision Creation
         { 
           id: 'vision', 
-          stepNumber: 5,
+          stepNumber: 4,
           title: 'Life Vision',
           href: '/intensive/life-vision/create',
           icon: Sparkles,
           phase: 'Vision',
           completed: !!checklist.vision_built,
-          locked: !checklist.assessment_completed 
+          locked: !checklist.profile_completed 
         },
 
         // Phase 4: Audio
         { 
           id: 'generate_audio', 
-          stepNumber: 6,
+          stepNumber: 5,
           title: 'Generate Audio', 
           href: '/intensive/audio/generate', 
           icon: Music,
@@ -325,7 +317,7 @@ export function IntensiveSidebar() {
         },
         { 
           id: 'record_audio', 
-          stepNumber: 7,
+          stepNumber: 6,
           title: 'Record Voice', 
           href: '/intensive/audio/record', 
           icon: Mic,
@@ -336,7 +328,7 @@ export function IntensiveSidebar() {
         },
         { 
           id: 'mix_audio', 
-          stepNumber: 8,
+          stepNumber: 7,
           title: 'Audio Mix', 
           href: '/intensive/audio/mix', 
           icon: Sliders,
@@ -348,7 +340,7 @@ export function IntensiveSidebar() {
         // Phase 5: Activation
         { 
           id: 'vision_board', 
-          stepNumber: 9,
+          stepNumber: 8,
           title: 'Vision Board', 
           href: '/intensive/vision-board/about', 
           icon: ImageIcon,
@@ -358,7 +350,7 @@ export function IntensiveSidebar() {
         },
         { 
           id: 'journal', 
-          stepNumber: 10,
+          stepNumber: 9,
           title: 'Journal', 
           href: '/intensive/journal/about', 
           icon: BookOpen,
@@ -367,20 +359,52 @@ export function IntensiveSidebar() {
           locked: !checklist.vision_board_completed 
         },
 
-        // Phase 6: Completion
+        // Phase 6: Community
+        { 
+          id: 'first_vibe_post', 
+          stepNumber: 10,
+          title: 'First Vibe Post', 
+          href: '/intensive/vibe-tribe/post', 
+          icon: MessageSquarePlus,
+          phase: 'Community',
+          completed: !!checklist.first_vibe_post,
+          locked: !checklist.first_journal_entry 
+        },
+        { 
+          id: 'vibe_engagement', 
+          stepNumber: 11,
+          title: 'Engage in Tribe', 
+          href: '/intensive/vibe-tribe/engage', 
+          icon: Heart,
+          phase: 'Community',
+          completed: !!checklist.vibe_engagement,
+          locked: !checklist.first_vibe_post 
+        },
+        { 
+          id: 'alignment_gym_tour', 
+          stepNumber: 12,
+          title: 'Alignment Gym', 
+          href: '/intensive/alignment-gym', 
+          icon: Flame,
+          phase: 'Community',
+          completed: !!checklist.alignment_gym_toured,
+          locked: !checklist.vibe_engagement 
+        },
+
+        // Phase 7: Completion
         { 
           id: 'activation', 
-          stepNumber: 11,
+          stepNumber: 13,
           title: 'MAP — My Alignment Plan', 
           href: '/intensive/map', 
           icon: Rocket,
           phase: 'Completion',
           completed: !!checklist.activation_protocol_completed,
-          locked: !checklist.first_journal_entry 
+          locked: !checklist.alignment_gym_toured 
         },
         { 
           id: 'unlock', 
-          stepNumber: 12,
+          stepNumber: 14,
           title: 'Unlock Platform', 
           href: '/intensive/unlock', 
           icon: Unlock,
@@ -423,6 +447,7 @@ export function IntensiveSidebar() {
     { name: 'Vision', steps: steps.filter(s => s.phase === 'Vision') },
     { name: 'Audio', steps: steps.filter(s => s.phase === 'Audio') },
     { name: 'Activation', steps: steps.filter(s => s.phase === 'Activation') },
+    { name: 'Community', steps: steps.filter(s => s.phase === 'Community') },
     { name: 'Completion', steps: steps.filter(s => s.phase === 'Completion') },
   ]
 
@@ -559,7 +584,7 @@ export function IntensiveSidebar() {
                 
                 {/* Subtext */}
                 <p className="text-[10px] text-white text-center leading-relaxed">
-                  You're still in the Intensive. Keep going until you complete all 12 steps.
+                  You're still in the Intensive. Keep going until you complete all 14 steps.
                 </p>
               </div>
             )}
