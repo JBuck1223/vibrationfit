@@ -1,24 +1,36 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { OUTBOUND_URL } from '@/lib/urls'
-import type { UserMap, UserMapItem } from './types'
 import { getActivityDefinition } from './activities'
 
 const APP_BASE_URL = OUTBOUND_URL
 
-interface ScheduleParams {
-  map: UserMap & { items: UserMapItem[] }
-  userId: string
-  phone: string
+interface ReminderCommitment {
+  id: string
+  activity_type: string | null
+  title: string
+  notify_sms: boolean
+  notify_email: boolean
+  reminder_time: string | null
+  reminder_days: number[] | null
+}
+
+interface UserAccount {
+  id: string
+  phone: string | null
+  email: string | null
+  sms_opt_in: boolean
+  email_opt_in: boolean
+  timezone: string
 }
 
 /**
- * Generates scheduled_messages rows for all SMS-enabled items in a MAP.
- * Clears existing MAP notifications for this user first.
+ * Generates scheduled_messages rows for all reminder-enabled commitments for a user.
+ * Supports both SMS and email. Clears existing per-activity MAP reminders first.
  */
-export async function scheduleMapNotifications({ map, userId, phone }: ScheduleParams) {
+export async function scheduleCommitmentReminders(userId: string) {
   const supabase = createAdminClient()
 
-  // Clear existing MAP notifications for this user
+  // Clear existing per-activity MAP reminders for this user
   await supabase
     .from('scheduled_messages')
     .delete()
@@ -26,10 +38,24 @@ export async function scheduleMapNotifications({ map, userId, phone }: ScheduleP
     .eq('related_entity_type', 'map')
     .eq('status', 'pending')
 
-  const smsItems = (map.items ?? []).filter(item => item.notify_sms)
-  if (smsItems.length === 0) return { scheduled: 0 }
+  const { data: commitments } = await supabase
+    .from('commitments')
+    .select('id, activity_type, title, notify_sms, notify_email, reminder_time, reminder_days')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .or('notify_sms.eq.true,notify_email.eq.true')
 
-  const rows = buildScheduledRows(smsItems, map, userId, phone)
+  if (!commitments || commitments.length === 0) return { scheduled: 0 }
+
+  const { data: account } = await supabase
+    .from('user_accounts')
+    .select('id, phone, email, sms_opt_in, email_opt_in, timezone')
+    .eq('id', userId)
+    .single()
+
+  if (!account) return { scheduled: 0 }
+
+  const rows = buildScheduledRows(commitments as ReminderCommitment[], account as UserAccount)
   if (rows.length === 0) return { scheduled: 0 }
 
   const { error } = await supabase
@@ -37,7 +63,7 @@ export async function scheduleMapNotifications({ map, userId, phone }: ScheduleP
     .insert(rows)
 
   if (error) {
-    console.error('Error inserting MAP scheduled messages:', error)
+    console.error('Error inserting commitment reminder messages:', error)
     throw error
   }
 
@@ -45,55 +71,111 @@ export async function scheduleMapNotifications({ map, userId, phone }: ScheduleP
 }
 
 function buildScheduledRows(
-  items: UserMapItem[],
-  map: UserMap,
-  userId: string,
-  phone: string,
+  commitments: ReminderCommitment[],
+  account: UserAccount,
 ) {
   const rows: Array<Record<string, unknown>> = []
   const now = new Date()
-
-  // Determine the Monday of the current week
   const weekStart = getMonday(now)
 
-  // Schedule for current week and next week (14 days of coverage)
   for (let weekOffset = 0; weekOffset < 2; weekOffset++) {
-    for (const item of items) {
-      if (!item.time_of_day) continue
+    for (const commitment of commitments) {
+      const activityDef = commitment.activity_type
+        ? getActivityDefinition(commitment.activity_type)
+        : null
+      if (activityDef?.usesPublishedSchedule) continue
 
-      for (const dow of item.days_of_week) {
+      if (!commitment.reminder_time) continue
+
+      const days = commitment.reminder_days
+      if (!days || days.length === 0) continue
+
+      for (const dow of days) {
         const scheduledFor = computeScheduleTime(
           weekStart,
           weekOffset,
           dow,
-          item.time_of_day,
-          map.timezone,
+          commitment.reminder_time,
+          account.timezone || 'America/New_York',
         )
 
-        // Only schedule future messages
         if (scheduledFor <= now) continue
 
-        const activityDef = getActivityDefinition(item.activity_type)
-        const link = `${APP_BASE_URL}${item.deep_link || activityDef?.defaultDeepLink || '/map'}`
-        const template = activityDef?.smsTemplate || `Time for: ${item.label}! {link}`
-        const body = template.replace('{link}', link)
+        const link = `${APP_BASE_URL}${activityDef?.defaultDeepLink || '/map'}`
+        const smsTemplate = activityDef?.smsTemplate || `Time for: ${commitment.title}! {link}`
+        const smsBody = smsTemplate.replace('{link}', link)
 
-        rows.push({
-          message_type: 'sms',
-          recipient_phone: phone,
-          recipient_user_id: userId,
-          related_entity_type: 'map',
-          related_entity_id: map.id,
-          subject: null,
-          body,
-          scheduled_for: scheduledFor.toISOString(),
-          status: 'pending',
-        })
+        // SMS row
+        if (commitment.notify_sms && account.sms_opt_in && account.phone) {
+          rows.push({
+            message_type: 'sms',
+            recipient_phone: account.phone,
+            recipient_user_id: account.id,
+            related_entity_type: 'map',
+            related_entity_id: commitment.id,
+            subject: null,
+            body: smsBody,
+            scheduled_for: scheduledFor.toISOString(),
+            status: 'pending',
+          })
+        }
+
+        // Email row
+        if (commitment.notify_email && account.email_opt_in !== false && account.email) {
+          const emailSubject = `Reminder: ${commitment.title}`
+          const emailHtml = buildReminderEmailHtml(commitment.title, link)
+          rows.push({
+            message_type: 'email',
+            recipient_email: account.email,
+            recipient_user_id: account.id,
+            related_entity_type: 'map',
+            related_entity_id: commitment.id,
+            subject: emailSubject,
+            body: emailHtml,
+            text_body: `${commitment.title}\n\n${link}`,
+            scheduled_for: scheduledFor.toISOString(),
+            status: 'pending',
+          })
+        }
       }
     }
   }
 
   return rows
+}
+
+function buildReminderEmailHtml(title: string, link: string): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /></head>
+<body style="margin:0; padding:0; background-color:#000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#000000;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; background-color:#0A0A0A; border-radius:16px; border:1px solid #1A1A1A;">
+          <tr>
+            <td style="padding: 28px 24px;">
+              <p style="margin:0 0 8px; font-size:13px; color:#737373; text-transform:uppercase; letter-spacing:0.1em;">MAP Reminder</p>
+              <h1 style="margin:0 0 20px; font-size:20px; font-weight:700; color:#ffffff;">${title}</h1>
+              <a href="${link}" style="display:inline-block; padding:12px 24px; background-color:#39FF14; color:#000000; font-size:14px; font-weight:600; text-decoration:none; border-radius:10px;">
+                Go Now
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 24px 20px;">
+              <p style="margin:0; font-size:11px; color:#525252;">
+                <a href="${APP_BASE_URL}/account/settings" style="color:#525252; text-decoration:underline;">Manage reminders</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim()
 }
 
 function getMonday(date: Date): Date {
@@ -115,105 +197,77 @@ function computeScheduleTime(
   timeOfDay: string,
   timezone: string,
 ): Date {
-  // dayOfWeek: 0=Sun, 1=Mon ... 6=Sat
-  // weekStart is Monday (dayOfWeek=1)
   const mondayDow = 1
   let dayDiff = dayOfWeek - mondayDow
-  if (dayDiff < 0) dayDiff += 7 // Sunday wraps to end
+  if (dayDiff < 0) dayDiff += 7
 
   const targetDate = new Date(weekStart)
   targetDate.setDate(targetDate.getDate() + dayDiff + weekOffset * 7)
 
   const [hours, minutes] = timeOfDay.split(':').map(Number)
 
-  // Build an ISO-style string in the user's local date, then convert via timezone offset
   const year = targetDate.getFullYear()
   const month = String(targetDate.getMonth() + 1).padStart(2, '0')
   const day = String(targetDate.getDate()).padStart(2, '0')
   const h = String(hours).padStart(2, '0')
   const m = String(minutes).padStart(2, '0')
 
-  // Use Intl to find the UTC offset for the target date in the user's timezone
   const localStr = `${year}-${month}-${day}T${h}:${m}:00`
 
   try {
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
       hour12: false,
     })
 
-    // Create a date at the local time and find what UTC time corresponds
     const utcGuess = new Date(localStr + 'Z')
     const parts = formatter.formatToParts(utcGuess)
-    const getPart = (type: string) => parts.find(p => p.type === type)?.value || '0'
-    const formattedHour = parseInt(getPart('hour'), 10)
-    const hourDiff = formattedHour - utcGuess.getUTCHours()
+    const formattedHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10)
+    const formattedMin = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10)
 
-    // Adjust: if the formatted time in the target TZ differs from what we want,
-    // shift the UTC time accordingly
-    const wantedHour = hours
-    const currentTzHour = formattedHour
-    const correction = wantedHour - currentTzHour
-
+    const correction = hours - formattedHour
     const result = new Date(utcGuess.getTime() + correction * 60 * 60 * 1000)
 
-    // Also correct minutes if needed
-    const formattedMin = parseInt(getPart('minute'), 10)
     if (formattedMin !== minutes) {
       result.setTime(result.getTime() + (minutes - formattedMin) * 60 * 1000)
     }
 
     return result
   } catch {
-    // Fallback: treat as UTC
     return new Date(localStr + 'Z')
   }
 }
 
 /**
- * Re-schedule notifications for all active MAPs (called by cron).
+ * Re-schedule reminders for all users with active reminder-enabled commitments.
+ * Called by the daily cron.
  */
 export async function refreshAllMapNotifications() {
   const supabase = createAdminClient()
 
-  const { data: activeMaps, error } = await supabase
-    .from('user_maps')
-    .select('*, items:user_map_items(*)')
-    .eq('is_active', true)
-    .eq('is_draft', false)
+  const { data: activeCommitments, error } = await supabase
+    .from('commitments')
+    .select('user_id')
+    .eq('status', 'active')
+    .or('notify_sms.eq.true,notify_email.eq.true')
 
-  if (error || !activeMaps) {
-    console.error('Error fetching active maps for refresh:', error)
+  if (error || !activeCommitments) {
+    console.error('Error fetching commitments for notification refresh:', error)
     return { refreshed: 0, errors: 0 }
   }
 
+  const uniqueUserIds = [...new Set(activeCommitments.map(c => c.user_id))]
   let refreshed = 0
   let errors = 0
 
-  for (const map of activeMaps) {
-    const { data: account } = await supabase
-      .from('user_accounts')
-      .select('phone, sms_opt_in')
-      .eq('id', map.user_id)
-      .single()
-
-    if (!account?.phone || !account?.sms_opt_in) continue
-
+  for (const userId of uniqueUserIds) {
     try {
-      await scheduleMapNotifications({
-        map: map as UserMap & { items: UserMapItem[] },
-        userId: map.user_id,
-        phone: account.phone,
-      })
+      await scheduleCommitmentReminders(userId)
       refreshed++
     } catch (err) {
-      console.error(`Error refreshing notifications for map ${map.id}:`, err)
+      console.error(`Error refreshing notifications for user ${userId}:`, err)
       errors++
     }
   }

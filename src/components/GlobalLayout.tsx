@@ -77,29 +77,39 @@ function isPathAccessibleForIntensive(
     return intensive.intake_completed
   }
   
-  // Step 4: Assessment
+  // Legacy assessment routes — redirect handles these, allow access if profile is done
   if (pathname.startsWith('/intensive/assessment')) {
     return intensive.profile_completed
   }
   
-  // Step 5: Life Vision
+  // Step 4: Life Vision
   if (pathname.startsWith('/intensive/life-vision')) {
-    return intensive.assessment_completed
+    return intensive.profile_completed
   }
   
-  // Steps 6-8: Audio
+  // Steps 5-7: Audio
   if (pathname.startsWith('/intensive/audio')) {
     return intensive.vision_built
   }
   
-  // Step 9: Vision Board
+  // Step 8: Vision Board
   if (pathname.startsWith('/intensive/vision-board')) {
     return intensive.audio_generated || intensive.audios_generated
   }
   
-  // Step 10: Journal
+  // Step 9: Journal
   if (pathname.startsWith('/intensive/journal')) {
     return intensive.vision_board_completed
+  }
+  
+  // Steps 10-11: Vibe Tribe
+  if (pathname.startsWith('/intensive/vibe-tribe')) {
+    return intensive.first_journal_entry
+  }
+  
+  // Step 12: Alignment Gym Tour
+  if (pathname.startsWith('/intensive/alignment-gym')) {
+    return intensive.vibe_engagement
   }
   
   // Legacy calibration routes — redirect handles these, but allow access if journal is done
@@ -107,12 +117,12 @@ function isPathAccessibleForIntensive(
     return intensive.first_journal_entry
   }
   
-  // Step 11: MAP — My Alignment Plan
+  // Step 13: MAP — My Alignment Plan
   if (pathname.startsWith('/intensive/map')) {
-    return intensive.first_journal_entry
+    return intensive.alignment_gym_toured
   }
 
-  // Step 12: Unlock
+  // Step 14: Unlock
   if (pathname.startsWith('/intensive/unlock')) {
     return intensive.activation_protocol_completed
   }
@@ -122,11 +132,13 @@ function isPathAccessibleForIntensive(
   if (pathname.startsWith('/profile')) return intensive.intake_completed
   if (pathname.startsWith('/assessment')) return intensive.profile_completed
   if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) return intensive.vision_built
-  if (pathname.startsWith('/life-vision')) return intensive.assessment_completed
+  if (pathname.startsWith('/life-vision')) return intensive.profile_completed
   if (pathname.startsWith('/vision-board')) return intensive.audio_generated || intensive.audios_generated
   if (pathname.startsWith('/journal')) return intensive.vision_board_completed
-  if (pathname.startsWith('/map')) return intensive.first_journal_entry
-  if (pathname.startsWith('/activation-protocol')) return intensive.first_journal_entry
+  if (pathname.startsWith('/vibe-tribe')) return intensive.first_journal_entry
+  if (pathname.startsWith('/alignment-gym')) return intensive.vibe_engagement
+  if (pathname.startsWith('/map')) return intensive.alignment_gym_toured
+  if (pathname.startsWith('/activation-protocol')) return intensive.alignment_gym_toured
   if (pathname.startsWith('/audio')) return intensive.vision_built
   
   // Main Dashboard - accessible after intensive is fully complete (unlock step done)

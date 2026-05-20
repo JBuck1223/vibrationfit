@@ -19,6 +19,7 @@ import {
   buildFocusStoryFromCategoriesPrompt,
   type CategoryContent,
 } from '@/lib/viva/prompts/focus-story-prompt'
+import { createFreshStoryRecord } from '@/lib/stories/create-story-record'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -88,6 +89,23 @@ export async function POST(request: NextRequest) {
 
     console.log(`[FocusGenerateV2] Using model ${VISION_MODEL} (Gemini via gateway)`)
 
+    const categoryLabels = selectedCategories.map(
+      c => c.charAt(0).toUpperCase() + c.slice(1)
+    )
+    const generatedTitle = `Life Vision Focus – ${categoryLabels.join(' | ')}`
+
+    const { id: storyId } = await createFreshStoryRecord(supabase, {
+      userId: user.id,
+      entityType: 'life_vision',
+      entityId: visionId,
+      title: generatedTitle,
+      metadata: {
+        selected_categories: selectedCategories,
+        category_data: categoryData,
+      },
+      status: 'generating',
+    })
+
     // Stream the response using Gemini via Vercel AI Gateway
     const result = streamText({
       model: gateway(VISION_MODEL),
@@ -100,48 +118,23 @@ export async function POST(request: NextRequest) {
         const wordCount = text?.split(/\s+/).length || 0
         console.log(`[FocusGenerateV2] Completed in ${elapsedMs}ms, ${wordCount} words`)
 
-        // Create or update story record
-        const { data: existingStory } = await supabase
+        await supabase
           .from('stories')
-          .select('id, generation_count, metadata')
-          .eq('entity_type', 'life_vision')
-          .eq('entity_id', visionId)
+          .update({
+            title: generatedTitle,
+            metadata: {
+              selected_categories: selectedCategories,
+              category_data: categoryData,
+              prompt_version: 'focus-v2',
+              model_used: response?.modelId || VISION_MODEL,
+            },
+            content: text,
+            word_count: wordCount,
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', storyId)
           .eq('user_id', user.id)
-          .maybeSingle()
-
-        if (existingStory) {
-          await supabase
-            .from('stories')
-            .update({
-              metadata: {
-                ...existingStory.metadata,
-                selected_categories: selectedCategories,
-                category_data: categoryData
-              },
-              content: text,
-              word_count: wordCount,
-              status: 'completed',
-              generation_count: (existingStory.generation_count || 0) + 1,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingStory.id)
-        } else {
-          await supabase
-            .from('stories')
-            .insert({
-              user_id: user.id,
-              entity_type: 'life_vision',
-              entity_id: visionId,
-              metadata: {
-                selected_categories: selectedCategories,
-                category_data: categoryData
-              },
-              content: text,
-              word_count: wordCount,
-              status: 'completed',
-              generation_count: 1
-            })
-        }
 
         if (usage) {
           trackTokenUsage({
@@ -167,6 +160,7 @@ export async function POST(request: NextRequest) {
 
     return result.toTextStreamResponse({
       headers: {
+        'X-Story-Id': storyId,
         'Cache-Control': 'no-cache, no-transform',
       }
     })

@@ -31,6 +31,8 @@ export const USER_FOLDERS = {
   abundance: 'abundance',
   // Stories (for life vision and vision board)
   storyAudioRecordings: 'stories/audio-recordings',
+  // Songs (songwriter feature)
+  songs: 'songs',
   // Support requests (screen/video clips, voice memos, and file attachments)
   supportVideoRecordings: 'support/video-recordings',
   supportAudioRecordings: 'support/audio-recordings',

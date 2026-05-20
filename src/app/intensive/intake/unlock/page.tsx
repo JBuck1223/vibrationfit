@@ -30,14 +30,16 @@ import {
   Keyboard,
   Settings,
   User,
-  ClipboardCheck,
   Music,
   Mic,
   Sliders,
   Image as ImageIcon,
   BookOpen,
   Rocket,
-  Unlock
+  Unlock,
+  MessageSquare,
+  Users,
+  Activity
 } from 'lucide-react'
 
 import { 
@@ -670,13 +672,13 @@ export default function IntensiveUnlockPage() {
           />
         </div>
 
-        {/* 12-Step Journey Completed */}
+        {/* 14-Step Journey Completed */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <div className="text-center">
-              <h3 className="text-lg font-bold text-white mb-1">Your 12-Step Journey Complete</h3>
+              <h3 className="text-lg font-bold text-white mb-1">Your 14-Step Journey Complete</h3>
               <div className="text-sm text-neutral-400 space-y-2 max-w-2xl mx-auto">
-                <p>You&apos;ve completed all 12 steps. This page does two things:</p>
+                <p>You&apos;ve completed all 14 steps. This page does two things:</p>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>Captures your before/after results and experience,</li>
                   <li>Unlocks your full Vibration Fit platform access as a Graduate.</li>
@@ -722,12 +724,6 @@ export default function IntensiveUnlockPage() {
                     <User className="w-3.5 h-3.5" />
                     <span>Create Profile</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-400">
-                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">4</span>
-                    <ClipboardCheck className="w-3.5 h-3.5" />
-                    <span>Vibration Assessment</span>
-                  </div>
                 </div>
               </div>
 
@@ -741,7 +737,7 @@ export default function IntensiveUnlockPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">5</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">4</span>
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Build Life Vision</span>
                   </div>
@@ -758,19 +754,19 @@ export default function IntensiveUnlockPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">6</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">5</span>
                     <Music className="w-3.5 h-3.5" />
                     <span>Generate Audio</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">7</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">6</span>
                     <Mic className="w-3.5 h-3.5" />
                     <span>Record Voice (Optional)</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">8</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">7</span>
                     <Sliders className="w-3.5 h-3.5" />
                     <span>Create Audio Mix</span>
                   </div>
@@ -787,15 +783,44 @@ export default function IntensiveUnlockPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">9</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">8</span>
                     <ImageIcon className="w-3.5 h-3.5" />
                     <span>Vision Board</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">10</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">9</span>
                     <BookOpen className="w-3.5 h-3.5" />
                     <span>Journal Entry</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Community */}
+              <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-5 h-5 text-[#EC4899]" />
+                  <span className="font-semibold text-white">Community</span>
+                  <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">10</span>
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>First Vibe Tribe Post</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">11</span>
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Engage in Vibe Tribe</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    <span className="text-xs font-mono text-neutral-600 w-4">12</span>
+                    <Activity className="w-3.5 h-3.5" />
+                    <span>Alignment Gym Tour</span>
                   </div>
                 </div>
               </div>
@@ -810,13 +835,13 @@ export default function IntensiveUnlockPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">11</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">13</span>
                     <Rocket className="w-3.5 h-3.5" />
                     <span>My Activation Plan</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    <span className="text-xs font-mono text-neutral-600 w-4">12</span>
+                    <span className="text-xs font-mono text-neutral-600 w-4">14</span>
                     <Unlock className="w-3.5 h-3.5" />
                     <span>Unlock Platform</span>
                   </div>

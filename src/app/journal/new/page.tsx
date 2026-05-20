@@ -9,6 +9,13 @@ import { SavedRecordings } from '@/components/SavedRecordings'
 import { UploadProgress } from '@/components/UploadProgress'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { JournalSuccessScreen } from '@/components/JournalSuccessScreen'
+import {
+  RecoverableTranscriptsBanner,
+  type RecoverableTranscriptItem,
+} from '@/components/journal/RecoverableTranscriptsBanner'
+import { dismissRecoverableForSavedRecordings } from '@/lib/journal/recoverable-transcripts-client'
+
+const RESTORE_SESSION_KEY = 'vf_restore_transcript'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, Save } from 'lucide-react'
@@ -46,12 +53,49 @@ export default function NewJournalEntryPage() {
     categories: [] as string[]
   })
 
+  const applyRestoredTranscript = (item: RecoverableTranscriptItem) => {
+    setFormData((prev) => ({
+      ...prev,
+      content: prev.content.trim()
+        ? `${prev.content.trim()}\n\n${item.transcript}`
+        : item.transcript,
+    }))
+    setAudioRecordings((prev) => {
+      const exists = prev.some((r) => r.url === item.audioUrl)
+      if (exists) return prev
+      return [
+        ...prev,
+        {
+          url: item.audioUrl,
+          transcript: item.transcript,
+          type: 'audio' as const,
+          category: 'journal',
+          created_at: item.transcribedAt,
+        },
+      ]
+    })
+  }
+
   // Set initial date after mount to avoid hydration mismatch
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
       date: new Date().toLocaleDateString('en-CA') // YYYY-MM-DD format in local timezone
     }))
+  }, [])
+
+  // Restore unsaved transcript passed from journal list (or prior session)
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(RESTORE_SESSION_KEY)
+      if (!raw) return
+      sessionStorage.removeItem(RESTORE_SESSION_KEY)
+      const item = JSON.parse(raw) as RecoverableTranscriptItem
+      if (item?.transcript) applyRestoredTranscript(item)
+    } catch {
+      /* ignore invalid session payload */
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Check if user is in intensive mode
@@ -239,6 +283,8 @@ export default function NewJournalEntryPage() {
 
       if (error) throw error
 
+      dismissRecoverableForSavedRecordings(allRecordings)
+
       // Update user stats (non-critical – don't block save on failure)
       try {
         await supabase.rpc('increment_journal_stats', { p_user_id: user.id })
@@ -249,7 +295,7 @@ export default function NewJournalEntryPage() {
       // Auto-verify MAP commitment for journal
       try {
         const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
-        autoVerifyClient('journal')
+        autoVerifyClient({ activityType: 'journal_entry' })
       } catch {}
 
 
@@ -358,6 +404,8 @@ export default function NewJournalEntryPage() {
                   })}
                 </div>
               </section>
+
+              <RecoverableTranscriptsBanner onRestore={applyRestoredTranscript} />
 
               <CategoryGrid
                 title="Tag life categories"

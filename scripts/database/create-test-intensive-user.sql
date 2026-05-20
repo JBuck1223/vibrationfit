@@ -180,12 +180,14 @@ BEGIN
     -- All steps start as false (not completed)
     intake_completed,
     profile_completed,
-    assessment_completed,
     vision_built,
     audio_generated,
     audios_generated,
     vision_board_completed,
     first_journal_entry,
+    first_vibe_post,
+    vibe_engagement,
+    alignment_gym_toured,
     activation_protocol_completed,
     unlock_completed,
     created_at,
@@ -197,12 +199,14 @@ BEGIN
     'pending', -- Status: pending (not started yet)
     false, -- intake_completed
     false, -- profile_completed
-    false, -- assessment_completed
     false, -- vision_built
     false, -- audio_generated
     false, -- audios_generated
     false, -- vision_board_completed
     false, -- first_journal_entry
+    false, -- first_vibe_post
+    false, -- vibe_engagement
+    false, -- alignment_gym_toured
     false, -- activation_protocol_completed
     false, -- unlock_completed
     NOW(),

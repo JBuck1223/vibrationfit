@@ -20,7 +20,6 @@ import {
   Settings, 
   FileText,
   User, 
-  ClipboardCheck, 
   Sparkles, 
   Music, 
   Mic,
@@ -31,7 +30,10 @@ import {
   Unlock,
   ArrowRight,
   CheckCircle,
-  Clock
+  Clock,
+  MessageSquare,
+  Users,
+  Activity
 } from 'lucide-react'
 
 const INTENSIVE_START_VIDEO =
@@ -141,7 +143,7 @@ export default function IntensiveStartPage() {
   }
 
 
-  // 12-step journey phases
+  // 14-step journey phases
   const phases = [
     {
       name: 'Setup',
@@ -158,7 +160,6 @@ export default function IntensiveStartPage() {
       color: 'text-[#5EC49A]',
       steps: [
         { num: 3, title: 'Create Profile', icon: User },
-        { num: 4, title: 'Vibration Assessment', icon: ClipboardCheck },
       ]
     },
     {
@@ -166,7 +167,7 @@ export default function IntensiveStartPage() {
       icon: Sparkles,
       color: 'text-[#2DD4BF]',
       steps: [
-        { num: 5, title: 'Build Life Vision', icon: Sparkles },
+        { num: 4, title: 'Build Life Vision', icon: Sparkles },
       ]
     },
     {
@@ -174,9 +175,9 @@ export default function IntensiveStartPage() {
       icon: Music,
       color: 'text-[#8B5CF6]',
       steps: [
-        { num: 6, title: 'Generate Audio', icon: Music },
-        { num: 7, title: 'Record Voice (Optional)', icon: Mic },
-        { num: 8, title: 'Create Audio Mix', icon: Sliders },
+        { num: 5, title: 'Generate Audio', icon: Music },
+        { num: 6, title: 'Record Voice (Optional)', icon: Mic },
+        { num: 7, title: 'Create Audio Mix', icon: Sliders },
       ]
     },
     {
@@ -184,8 +185,18 @@ export default function IntensiveStartPage() {
       icon: ImageIcon,
       color: 'text-[#FFB701]',
       steps: [
-        { num: 9, title: 'Vision Board', icon: ImageIcon },
-        { num: 10, title: 'Journal Entry', icon: BookOpen },
+        { num: 8, title: 'Vision Board', icon: ImageIcon },
+        { num: 9, title: 'Journal Entry', icon: BookOpen },
+      ]
+    },
+    {
+      name: 'Community',
+      icon: Users,
+      color: 'text-[#EC4899]',
+      steps: [
+        { num: 10, title: 'First Vibe Tribe Post', icon: MessageSquare },
+        { num: 11, title: 'Engage in Vibe Tribe', icon: Users },
+        { num: 12, title: 'Alignment Gym Tour', icon: Activity },
       ]
     },
     {
@@ -193,8 +204,8 @@ export default function IntensiveStartPage() {
       icon: Rocket,
       color: 'text-primary-500',
       steps: [
-        { num: 11, title: 'My Activation Plan', icon: Rocket },
-        { num: 12, title: 'Unlock Platform', icon: Unlock },
+        { num: 13, title: 'My Activation Plan', icon: Rocket },
+        { num: 14, title: 'Unlock Platform', icon: Unlock },
       ]
     }
   ]
@@ -245,11 +256,11 @@ export default function IntensiveStartPage() {
           )}
         </div>
 
-        {/* Your Journey - 12 Steps Overview */}
+        {/* Your Journey - 14 Steps Overview */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Your 12-Step Journey
+              Your 14-Step Journey
             </Text>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -289,7 +300,7 @@ export default function IntensiveStartPage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  When you click "Start," your 72-hour focus window begins. Most people complete their 12 steps inside this window because focused energy is powerful. If life happens and you need more time, take it. The timer is for motivation, not pressure.
+                  When you click "Start," your 72-hour focus window begins. Most people complete their 14 steps inside this window because focused energy is powerful. If life happens and you need more time, take it. The timer is for motivation, not pressure.
                 </p>
               </Stack>
 
@@ -313,7 +324,7 @@ export default function IntensiveStartPage() {
                   </Text>
                 </Inline>
                 <div className="text-sm text-neutral-300 leading-relaxed space-y-2">
-                  <p>When you complete all 12 steps, you graduate from the Intensive. That graduation unlocks the full Vibration Fit platform, including:</p>
+                  <p>When you complete all 14 steps, you graduate from the Intensive. That graduation unlocks the full Vibration Fit platform, including:</p>
                   <ul className="list-none space-y-1 pl-0">
                     <li>– Advanced Audio Suite</li>
                     <li>– The Alignment Gym (weekly live coaching)</li>

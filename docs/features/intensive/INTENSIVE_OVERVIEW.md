@@ -1,24 +1,24 @@
 # 72-Hour Activation Intensive
 
-**Last Updated:** May 13, 2026  
+**Last Updated:** May 18, 2026  
 **Status:** Active / In Development
 
 ---
 
 ## Overview
 
-The **72-Hour Activation Intensive** is VibrationFit's flagship onboarding program. It's a guided, time-boxed experience that takes users through 12 sequential steps to establish their complete conscious creation system: Life Vision, Audio Suite, Vision Board, Journal practice, and daily activation protocol.
+The **72-Hour Activation Intensive** is VibrationFit's flagship onboarding program. It's a guided, time-boxed experience that takes users through 14 sequential steps to establish their complete conscious creation system: Life Vision, Audio Suite, Vision Board, Journal practice, community engagement, and daily activation protocol.
 
 ### Key Characteristics
 
 - **Duration:** 72 hours (timer starts when user begins Step 0)
-- **Steps:** 12 sequential steps across 6 phases
+- **Steps:** 14 sequential steps across 7 phases
 - **Gate-Locked:** Each step unlocks only after the previous step is completed
 - **Outcome:** Upon completion, users unlock full platform access including Advanced Audio Suite, Alignment Gym, and Vibe Tribe
 
 ---
 
-## The 12-Step Flow
+## The 14-Step Flow
 
 ### Phase 1: Setup (Steps 1-2)
 
@@ -28,40 +28,47 @@ The **72-Hour Activation Intensive** is VibrationFit's flagship onboarding progr
 | 1 | Account Settings | Name, email, phone, profile picture | `user_accounts` table | First name, last name, phone filled |
 | 2 | Baseline Intake | Pre-intensive questionnaire | `intake_completed` | 11 rating + 2 text questions answered |
 
-### Phase 2: Foundation (Steps 3-4)
+### Phase 2: Foundation (Step 3)
 
 | Step | Name | Description | Checklist Field | Completion Criteria |
 |------|------|-------------|-----------------|---------------------|
 | 3 | Create Profile | Comprehensive life profile | `profile_completed` | Profile saved with demographics, lifestyle, clarity/contrast statements |
-| 4 | Vibration Assessment | 12-category assessment | `assessment_completed` | All 84 questions answered (7 per category) |
 
-### Phase 3: Vision (Step 5)
-
-| Step | Name | Description | Checklist Field | Completion Criteria |
-|------|------|-------------|-----------------|---------------------|
-| 5 | Build Vision | Create Life Vision across 12 categories | `vision_built` | Forward + 12 categories + Conclusion written |
-
-### Phase 4: Audio (Steps 6-8)
+### Phase 3: Vision (Step 4)
 
 | Step | Name | Description | Checklist Field | Completion Criteria |
 |------|------|-------------|-----------------|---------------------|
-| 6 | Generate Audio | AI-generated voice narration | `audio_generated` | Audio tracks generated for all sections |
-| 7 | Record Voice | User voice recording (Optional) | `audio_generated` (shared) | User records own voice OR skips |
-| 8 | Audio Mix | Add music and frequencies | `audios_generated` | Mixed audio tracks created |
+| 4 | Build Vision | Create Life Vision across 12 categories | `vision_built` | Forward + 12 categories + Conclusion written |
 
-### Phase 5: Activation (Steps 9-10)
+### Phase 4: Audio (Steps 5-7)
 
 | Step | Name | Description | Checklist Field | Completion Criteria |
 |------|------|-------------|-----------------|---------------------|
-| 9 | Vision Board | Visual board with images | `vision_board_completed` | At least one image per life category (12 total) |
-| 10 | Journal Entry | First conscious creation journal | `first_journal_entry` | One journal entry created |
+| 5 | Generate Audio | VIVA-generated voice narration | `audio_generated` | Audio tracks generated for all sections |
+| 6 | Record Voice | User voice recording (Optional) | `audio_generated` (shared) | User records own voice OR skips |
+| 7 | Audio Mix | Add music and frequencies | `audios_generated` | Mixed audio tracks created |
 
-### Phase 6: Completion (Steps 11-12)
+### Phase 5: Activation (Steps 8-9)
 
 | Step | Name | Description | Checklist Field | Completion Criteria |
 |------|------|-------------|-----------------|---------------------|
-| 11 | My Activation Plan (MAP) | 28-day daily activation protocol | `activation_protocol_completed` | User reviews and commits to protocol |
-| 12 | Platform Unlock | Post-intensive survey + unlock | `unlock_completed` | Survey completed, platform unlocked |
+| 8 | Vision Board | Visual board with images | `vision_board_completed` | At least one image per life category (12 total) |
+| 9 | Journal Entry | First conscious creation journal | `first_journal_entry` | One journal entry created |
+
+### Phase 6: Community (Steps 10-12)
+
+| Step | Name | Description | Checklist Field | Completion Criteria |
+|------|------|-------------|-----------------|---------------------|
+| 10 | First Vibe Tribe Post | User's first post in Vibe Tribe community | `first_vibe_tribe_post` | One post published in Vibe Tribe |
+| 11 | Engage in Vibe Tribe | Interact with community members | `vibe_tribe_engaged` | Responded to or liked at least one other member's post |
+| 12 | Alignment Gym Tour | Tour of the Alignment Gym space | `alignment_gym_toured` | Visited Alignment Gym and completed onboarding |
+
+### Phase 7: Completion (Steps 13-14)
+
+| Step | Name | Description | Checklist Field | Completion Criteria |
+|------|------|-------------|-----------------|---------------------|
+| 13 | My Activation Plan (MAP) | 28-day daily activation protocol | `activation_protocol_completed` | User reviews and commits to protocol |
+| 14 | Platform Unlock | Post-intensive survey + unlock | `unlock_completed` | Survey completed, platform unlocked |
 
 ---
 
@@ -80,14 +87,14 @@ The **72-Hour Activation Intensive** is VibrationFit's flagship onboarding progr
 - **Primary tracking table** for step completion
 - One row per user per intensive
 - Boolean flags + timestamps for each step
-- Fields: `started_at`, `intake_completed`, `profile_completed`, `assessment_completed`, `vision_built`, `audio_generated`, `audios_generated`, `vision_board_completed`, `first_journal_entry`, `activation_protocol_completed`, `unlock_completed`
+- Fields: `started_at`, `intake_completed`, `profile_completed`, `vision_built`, `audio_generated`, `audios_generated`, `vision_board_completed`, `first_journal_entry`, `first_vibe_tribe_post`, `vibe_tribe_engaged`, `alignment_gym_toured`, `activation_protocol_completed`, `unlock_completed`
 - Status: 'pending' | 'in_progress' | 'completed'
 
 #### `intensive_responses`
 Unified table for intake/survey data across three phases:
 
 1. **`pre_intensive`** - Initial baseline intake (Step 2)
-2. **`post_intensive`** - Unlock survey (Step 12)
+2. **`post_intensive`** - Unlock survey (Step 14)
 
 **Key Fields:**
 - Rating questions (0-10): vision_clarity, vibrational_harmony, vibrational_constraints_clarity, vision_iteration_ease, audio_iteration_ease, vision_board_management, journey_capturing, roadmap_clarity, transformation_tracking
@@ -100,11 +107,12 @@ Unified table for intake/survey data across three phases:
 
 - `user_accounts` - Step 1 completion check
 - `user_profiles` - Step 3 data
-- `assessment_results` + `assessment_responses` - Step 4 data
-- `vision_versions` - Step 5 data
-- `audio_sets` + `audio_tracks` - Steps 6-8 data
-- `vision_board_items` - Step 9 data
-- `journal_entries` - Step 10 data
+- `vision_versions` - Step 4 data
+- `audio_sets` + `audio_tracks` - Steps 5-7 data
+- `vision_board_items` - Step 8 data
+- `journal_entries` - Step 9 data
+- `vibe_tribe_posts` - Step 10 data
+- `vibe_tribe_interactions` - Step 11 data
 
 ---
 
@@ -143,10 +151,13 @@ Unified table for intake/survey data across three phases:
 | `/intensive/start` | Start button and timer initiation |
 | `/intensive/dashboard` | Main checklist view with progress |
 | `/intensive/intake` | Pre-intensive survey (Step 2) |
-| `/intensive/intake/unlock` | Post-intensive survey (Step 12) |
+| `/intensive/intake/unlock` | Post-intensive survey (Step 14) |
 | `/intensive/welcome` | Welcome/intro screen |
 | `/intensive/builder` | Vision building interface |
-| `/activation-protocol` | 28-day MAP page (Step 11) |
+| `/intensive/vibe-tribe/post` | First Vibe Tribe post (Step 10) |
+| `/intensive/vibe-tribe/engage` | Vibe Tribe engagement (Step 11) |
+| `/intensive/alignment-gym` | Alignment Gym tour (Step 12) |
+| `/activation-protocol` | 28-day MAP page (Step 13) |
 
 ### Admin Pages
 
@@ -225,20 +236,22 @@ After completing the intensive, users follow the **My Activation Plan (MAP)** - 
 Each step creates appropriate sample data:
 - Step 2: Creates intake responses
 - Step 3: Creates full profile with demographics
-- Step 4: Creates assessment with 84 sample responses
-- Step 5: Creates vision with all 14 sections
-- Step 6: Creates audio set + tracks
-- Step 8: Marks audio as mixed
-- Step 9: Creates 12 vision board items
-- Step 10: Creates 3 journal entries (text, voice, video)
-- Step 11: Marks activation protocol complete
-- Step 12: Marks unlock complete, sets status to 'completed'
+- Step 4: Creates vision with all 14 sections
+- Step 5: Creates audio set + tracks
+- Step 7: Marks audio as mixed
+- Step 8: Creates 12 vision board items
+- Step 9: Creates 3 journal entries (text, voice, video)
+- Step 10: Creates first Vibe Tribe post
+- Step 11: Marks Vibe Tribe engagement complete
+- Step 12: Marks Alignment Gym tour complete
+- Step 13: Marks activation protocol complete
+- Step 14: Marks unlock complete, sets status to 'completed'
 
 ---
 
 ## Completion Flow
 
-1. User completes Step 12 (Unlock survey)
+1. User completes Step 14 (Unlock survey)
 2. `intensive_checklist.status` set to 'completed'
 3. `intensive_checklist.completed_at` timestamp recorded
 4. `order_items.completion_status` set to 'completed'
@@ -268,7 +281,7 @@ Users who complete the intensive unlock:
 ### Step Locking
 - Steps unlock sequentially
 - Each step checks previous step's completion boolean
-- Step 7 (Record Voice) is optional but shares completion with Step 6
+- Step 6 (Record Voice) is optional but shares completion with Step 5
 
 ### RLS Policies
 - Users can only access their own intensive data
@@ -280,12 +293,14 @@ Users who complete the intensive unlock:
 ## Current Development Status
 
 ### Completed
-- 12-step flow implementation
+- 14-step flow implementation
 - Dashboard with progress tracking
 - All step pages functional
 - Admin tester tool
 - Intake/unlock surveys
 - Timer system
+- Vibe Tribe community integration (Steps 10-11)
+- Alignment Gym tour (Step 12)
 
 ### In Progress
 - Video testimonial capture

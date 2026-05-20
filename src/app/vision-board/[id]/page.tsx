@@ -237,6 +237,8 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
           p_user_id: user.id,
           p_status: formData.status 
         })
+        const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+        autoVerifyClient({ activityType: 'vision_board_update' })
       }
 
       setIsEditing(false)

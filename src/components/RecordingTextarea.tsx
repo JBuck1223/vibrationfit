@@ -1,7 +1,11 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Mic, Video, Loader2, X, Square, Check, Trash2, RotateCcw } from 'lucide-react'
+import { Mic, Video, Loader2, X, Square, Check, Trash2, RotateCcw, Pilcrow } from 'lucide-react'
+import {
+  formatTranscriptParagraphs,
+  transcriptLooksLikeWallOfText,
+} from '@/lib/audio/format-transcript-paragraphs'
 import { Textarea, Button } from '@/lib/design-system/components'
 import { VIVALoadingOverlay } from '@/lib/design-system/components/overlays'
 import { MediaRecorderComponent } from './MediaRecorder'
@@ -843,17 +847,30 @@ export function RecordingTextarea({
         />
       </div>
 
-      {/* Clear button - below the text block */}
-      {value && !hideClear && !isQuickRecording && !isUploading && !isOverlayVisible && !disabled && (
-        <div className="flex justify-start -mt-1">
-          <button
-            type="button"
-            onClick={() => onChange('')}
-            className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-red-400 transition-colors px-1 py-1 rounded"
-          >
-            <Trash2 className="w-3 h-3" />
-            Clear
-          </button>
+      {/* Format / clear - below the text block */}
+      {value && !isQuickRecording && !isUploading && !isOverlayVisible && !disabled && (
+        <div className="flex flex-wrap items-center gap-3 -mt-1">
+          {transcriptLooksLikeWallOfText(value) && (
+            <button
+              type="button"
+              onClick={() => onChange(formatTranscriptParagraphs(value))}
+              className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-[#39FF14] transition-colors px-1 py-1 rounded"
+              title="Break into paragraphs using sentence breaks (no VIVA)"
+            >
+              <Pilcrow className="w-3 h-3" />
+              Format paragraphs
+            </button>
+          )}
+          {!hideClear && (
+            <button
+              type="button"
+              onClick={() => onChange('')}
+              className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-red-400 transition-colors px-1 py-1 rounded"
+            >
+              <Trash2 className="w-3 h-3" />
+              Clear
+            </button>
+          )}
         </div>
       )}
 

@@ -11,6 +11,7 @@ import { Toaster } from 'sonner'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import { ReferralBanner } from '@/components/ReferralBanner'
 import { GlobalAudioPlayerShell } from '@/lib/design-system/components'
+import { NavigationProgress } from '@/components/NavigationProgress'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -64,6 +65,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <PixelScripts />
+        <NavigationProgress />
         <ImpersonationBanner />
         <ReferralBanner />
         <AuthProvider>

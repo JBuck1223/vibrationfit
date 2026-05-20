@@ -27,7 +27,6 @@ import {
   Headphones,
   BookOpen,
   Image as ImageIcon,
-  ClipboardCheck,
   Sparkles,
   Quote,
   Video,
@@ -103,7 +102,6 @@ const STEP_ICONS: Record<string, React.ElementType> = {
   settings: Settings,
   intake: FileText,
   profile: User,
-  assessment: ClipboardCheck,
   build_vision: Sparkles,
   generate_audio: Music,
   record_audio: Mic,
@@ -241,7 +239,7 @@ export default function IntensiveJourneyPage() {
         <Stack gap="lg">
           <Card className="p-4 md:p-6 lg:p-8 text-center">
             <p className="text-neutral-400 mb-6 text-sm md:text-base">
-              No completed intensive found. Complete all 12 steps to unlock your journey recap.
+              No completed intensive found. Complete all 14 steps to unlock your journey recap.
             </p>
             <Button variant="primary" size="sm" onClick={() => router.push('/dashboard')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -298,7 +296,7 @@ export default function IntensiveJourneyPage() {
     <Container size="xl">
       <Stack gap="lg">
         <div className="flex flex-wrap justify-center gap-3">
-          <Badge variant="success">12 / 12 Steps Complete</Badge>
+          <Badge variant="success">14 / 14 Steps Complete</Badge>
           {avgImprovement && Number(avgImprovement) > 0 && (
             <Badge variant="premium">
               <TrendingUp className="w-3 h-3 mr-1" />
@@ -377,7 +375,7 @@ function JourneyTimeline({
       <Stack gap="md">
         <div className="text-center">
           <h3 className="text-lg md:text-xl font-bold text-white mb-1">
-            Your 12-Step Journey
+            Your 14-Step Journey
           </h3>
           <p className="text-sm text-neutral-400">
             Started {formatDate(checklist.started_at)} {formatTime(checklist.started_at) && `at ${formatTime(checklist.started_at)}`}
@@ -601,11 +599,6 @@ function ActivitySnapshot({
       icon: BookOpen,
       label: 'Journal Entries',
       value: `${stats.journal_entries_count ?? 0}`,
-    },
-    {
-      icon: ClipboardCheck,
-      label: 'Assessment',
-      value: stats.assessment_completed ? 'Completed' : 'Not started',
     },
     {
       icon: User,

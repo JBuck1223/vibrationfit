@@ -86,11 +86,19 @@ STYLE DIRECTION:
             { status: 400 }
           )
         }
+        const journalPrompt = `${prompt}
+
+STYLE DIRECTION FOR JOURNAL EVIDENCE IMAGE:
+- Create one cohesive scene that captures the feeling of the journal moment (symbolic, atmospheric, or photorealistic)
+- Focus on environments, people (if relevant), objects, light, and color — not on rendering the journal words themselves
+- Do NOT include any written text, words, letters, signs, logos, captions, watermarks, or typography in the image
+- Avoid posters, book pages, phone screens, or UI mockups that would require legible text`
+
         result = await generateImage({
           userId: user.id,
-          prompt,
+          prompt: journalPrompt,
           quality: quality || 'standard',
-          style: style || 'vivid',
+          style: style || 'natural',
           context: 'journal',
           model,
           dimension: dimension || 'square',

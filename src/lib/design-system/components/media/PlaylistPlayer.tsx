@@ -27,6 +27,8 @@ interface PlaylistPlayerProps {
   hideSetHeader?: boolean
   /** Flatten outer chrome (use inside a parent card) */
   embedded?: boolean
+  /** MAP activity to verify on listen (default: vision_audio) */
+  mapActivityType?: 'vision_audio' | 'story_audio' | 'music_listen'
 }
 
 export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({ 
@@ -46,6 +48,7 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
   hideCurrentTrack = false,
   hideSetHeader = false,
   embedded = false,
+  mapActivityType = 'vision_audio',
 }) => {
   const isGlass = variant === 'glass'
   const isApp = variant === 'app'
@@ -129,22 +132,16 @@ export const PlaylistPlayer: React.FC<PlaylistPlayerProps> = ({
       const { data: { session } } = await supabase.auth.getSession()
       const user = session?.user
 
-      await supabase.rpc('increment_audio_play', { p_track_id: trackId })
-
       if (user) {
-        const today = new Date().toISOString().split('T')[0]
-        await supabase.from('area_activations').upsert(
-          { user_id: user.id, area: 'vision_audio', activation_date: today },
-          { onConflict: 'user_id,area,activation_date', ignoreDuplicates: true },
-        )
-
-        const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
-        autoVerifyClient('vision-audio')
+        const { trackMapAudioListen } = await import('@/lib/map/track-map-listen')
+        await trackMapAudioListen(trackId, mapActivityType)
+      } else {
+        await supabase.rpc('increment_audio_play', { p_track_id: trackId })
       }
     } catch (error) {
       console.error('Failed to track audio play:', error)
     }
-  }, [])
+  }, [mapActivityType])
 
   const checkAndTrackPlay = useCallback(() => {
     const audio = audioRef.current

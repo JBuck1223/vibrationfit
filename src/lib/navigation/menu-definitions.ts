@@ -43,6 +43,7 @@ import {
   DollarSign,
   Database,
   Code,
+  Archive,
   LayoutDashboard,
   UserCog,
   Boxes,
@@ -549,6 +550,7 @@ export const adminNavigation: NavItem[] = [
     description: 'Developer tools and documentation',
     children: [
       { name: 'Design System', href: '/design-system', icon: Palette, description: 'Component library showcase' },
+      { name: 'Legacy Pages', href: '/admin/legacy', icon: Archive, description: 'Old routes pending studio migration decisions' },
       { name: 'Sitemap', href: '/sitemap', icon: Layers, description: 'Complete site navigation map' },
       { name: 'Email Test', href: '/admin/emails/test', icon: Mail, description: 'Send test emails from admin' },
       { name: 'Recording Recovery', href: '/admin/recording-recovery', icon: HardDrive, description: 'Recover local IndexedDB recordings' },

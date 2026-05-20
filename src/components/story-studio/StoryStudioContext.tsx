@@ -15,6 +15,8 @@ interface StoryStudioContextValue {
   activePill: string
   setActivePill: (value: string) => void
   refreshStories: () => Promise<void>
+  updateTargetId: string | null
+  setUpdateTargetId: (id: string) => void
 }
 
 const StoryStudioContext = createContext<StoryStudioContextValue | null>(null)
@@ -30,6 +32,7 @@ export function StoryStudioProvider({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true)
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
   const [activePill, setActivePill] = useState('all')
+  const [updateTargetId, setUpdateTargetId] = useState<string | null>(null)
 
   useEffect(() => {
     loadStories()
@@ -76,6 +79,8 @@ export function StoryStudioProvider({ children }: { children: React.ReactNode })
         activePill,
         setActivePill,
         refreshStories: loadStories,
+        updateTargetId,
+        setUpdateTargetId,
       }}
     >
       {children}

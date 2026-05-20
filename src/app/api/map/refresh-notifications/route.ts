@@ -9,8 +9,9 @@ const CRON_SECRET = process.env.CRON_SECRET
 /**
  * GET /api/map/refresh-notifications
  * 
- * Cron endpoint (daily at midnight UTC) that refreshes SMS notifications
- * for all users with active MAPs. Generates the next 2 weeks of messages.
+ * Cron endpoint (daily at midnight UTC) that refreshes per-commitment
+ * reminder notifications (SMS + email) for all users with active
+ * commitments. Generates the next 2 weeks of messages.
  */
 export async function GET(request: NextRequest) {
   try {

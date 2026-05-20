@@ -3,7 +3,7 @@
 import {
   Headphones, Wand2,
   Target, Library, Music2, ListMusic,
-  AudioLines, Mic, Sliders, Clock,
+  AudioLines, Mic, Sliders, Clock, PenTool,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
@@ -14,9 +14,10 @@ const TABS = [
   { label: 'Create', path: '/audio/create', icon: Wand2 },
 ]
 
-const CREATE_AREA_ROUTES = ['/audio/create', '/audio/generate', '/audio/mix', '/audio/record', '/audio/queue']
+const CREATE_AREA_ROUTES = ['/audio/create', '/audio/songwriter', '/audio/generate', '/audio/mix', '/audio/record', '/audio/queue']
 
 const SECONDARY_TABS = [
+  { label: 'Songwriter', path: '/audio/songwriter', icon: PenTool },
   { label: 'Generate', path: '/audio/generate', icon: AudioLines },
   { label: 'Record', path: '/audio/record', icon: Mic },
   { label: 'Mix', path: '/audio/mix', icon: Sliders },
@@ -24,20 +25,26 @@ const SECONDARY_TABS = [
 ]
 
 const CONTENT_TYPES = [
-  { value: 'life-vision', label: 'Life Vision', icon: Target },
-  { value: 'stories', label: 'Stories', icon: Library },
-  { value: 'music', label: 'Music', icon: Music2 },
-  { value: 'playlists', label: 'Playlists', icon: ListMusic },
+  { value: 'life-vision', label: 'Life Vision', icon: Target, path: '/audio' },
+  { value: 'stories', label: 'Stories', icon: Library, path: '/audio/stories' },
+  { value: 'songs', label: 'Songs', icon: PenTool, path: '/audio/songs' },
+  { value: 'music', label: 'Music', icon: Music2, path: '/audio/music' },
+  { value: 'playlists', label: 'Playlists', icon: ListMusic, path: '/audio/playlists' },
 ]
+
+const LISTEN_AREA_ROUTES = ['/audio', '/audio/stories', '/audio/songs', '/audio/music', '/audio/playlists']
 
 const LISTEN_CONTENT_SUBTEXT: Record<string, string> = {
   'life-vision': 'Play your Life Vision audio sets and voice recordings.',
   'stories': 'Play narrated audio from your completed stories.',
+  'songs': 'Play your VIVA-generated songs.',
   'music': 'Stream VibrationFit original music on your favorite platform.',
   'playlists': 'Play and manage your custom playlists.',
 }
 
 const CREATE_TOOL_SUBTEXT: Record<string, string> = {
+  '/audio/songwriter':
+    'Create original songs from your emotional truth — powered by the Emotional Songwriting Framework.',
   '/audio/generate':
     'Generate VIVA narration of your Life Vision or Story.',
   '/audio/record':
@@ -59,14 +66,14 @@ const SOURCE_FILTERS = [
 export function AudioAreaBar() {
   const pathname = usePathname()
   const {
-    listenContentType, setListenContentType,
+    listenContentType,
     listenStoryFilter, setListenStoryFilter,
     vision, allVisions, switchVision,
     storiesWithAudio,
     activeBatchCount,
   } = useAudioStudio()
 
-  const isListen = pathname === '/audio' || pathname === '/audio/'
+  const isListen = LISTEN_AREA_ROUTES.some(r => pathname === r || pathname === r + '/')
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
   const isOnSecondaryPage = SECONDARY_TABS.some(t => pathname === t.path || pathname.startsWith(t.path + '/'))
 
@@ -75,12 +82,11 @@ export function AudioAreaBar() {
   let versionSelectors: AreaBarVersionSelector[] | undefined
 
   if (isListen) {
-    // Context Nav: content type tabs (buttons, not links)
     contextNav = CONTENT_TYPES.map(ct => ({
       label: ct.label,
       icon: ct.icon,
+      path: ct.path,
       isActive: listenContentType === ct.value,
-      onClick: () => setListenContentType(ct.value),
     }))
 
     contextText = LISTEN_CONTENT_SUBTEXT[listenContentType] ?? LISTEN_CONTENT_SUBTEXT['life-vision']
@@ -153,6 +159,9 @@ export function AudioAreaBar() {
     }
   }
 
+  const isListenSubPage = isListen && pathname !== '/audio' && pathname !== '/audio/'
+  const needsParentHighlight = isOnSecondaryPage || isListenSubPage
+
   return (
     <AreaBar
       area={{ name: 'Audio Studio', icon: Headphones }}
@@ -161,7 +170,7 @@ export function AudioAreaBar() {
       contextText={contextText}
       versionSelectors={versionSelectors}
       keepTabActive={!isOnSecondaryPage}
-      activeParentPath={isOnSecondaryPage ? '/audio/create' : undefined}
+      activeParentPath={isOnSecondaryPage ? '/audio/create' : isListenSubPage ? '/audio' : undefined}
       variant="default"
       appLikePrimaryTabs
     />

@@ -2,16 +2,16 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getOccurrenceDates, toDateString, parseDateString } from './cadence'
 import type { Cadence } from './types'
 
-const WINDOW_DAYS = 14
-const GRACE_HOURS = 48
+const WINDOW_FORWARD_DAYS = 14
+const WINDOW_BACKWARD_DAYS = 30
+const EXPIRE_AFTER_DAYS = 7
 
 /**
  * Materialize commitment_occurrences for all active recurring commitments
- * within a 14-day rolling window. Idempotent via UNIQUE(commitment_id, occurred_on).
- *
- * Also expires stale pending occurrences older than the grace window.
+ * within a rolling window (30 days back, 14 days forward).
+ * Idempotent via UNIQUE(commitment_id, occurred_on).
  */
-export async function generateOccurrences(userId?: string) {
+export async function generateOccurrences(userId?: string, anchorDate?: string) {
   const supabase = createAdminClient()
 
   let query = supabase
@@ -30,43 +30,21 @@ export async function generateOccurrences(userId?: string) {
     return { generated: 0, expired: 0 }
   }
 
-  const today = new Date()
-  const rangeEnd = new Date(today)
-  rangeEnd.setDate(rangeEnd.getDate() + WINDOW_DAYS)
+  const anchor = anchorDate ? parseDateString(anchorDate) : new Date()
+  const rangeStart = new Date(anchor)
+  rangeStart.setDate(rangeStart.getDate() - WINDOW_BACKWARD_DAYS)
+  const rangeEnd = new Date(anchor)
+  rangeEnd.setDate(rangeEnd.getDate() + WINDOW_FORWARD_DAYS)
 
   let totalGenerated = 0
 
   for (const commitment of commitments) {
-    if (commitment.type !== 'recurring' || !commitment.cadence) continue
-
-    const cadence = commitment.cadence as Cadence
-    const rangeStart = commitment.start_date
-      ? new Date(Math.max(parseDateString(commitment.start_date).getTime(), today.getTime()))
-      : today
-
-    const effectiveEnd = commitment.end_date
-      ? new Date(Math.min(parseDateString(commitment.end_date).getTime(), rangeEnd.getTime()))
-      : rangeEnd
-
-    if (rangeStart > effectiveEnd) continue
-
-    const dates = getOccurrenceDates(cadence, rangeStart, effectiveEnd)
-
-    if (dates.length === 0) continue
-
-    const rows = dates.map(d => ({
-      commitment_id: commitment.id,
-      user_id: commitment.user_id,
-      occurred_on: toDateString(d),
-      status: 'pending',
-    }))
-
-    const { data: inserted } = await supabase
-      .from('commitment_occurrences')
-      .upsert(rows, { onConflict: 'commitment_id,occurred_on', ignoreDuplicates: true })
-      .select('id')
-
-    totalGenerated += inserted?.length ?? 0
+    totalGenerated += await materializeCommitmentOccurrences(
+      supabase,
+      commitment,
+      rangeStart,
+      rangeEnd,
+    )
   }
 
   const totalExpired = await expireStaleOccurrences(supabase, userId)
@@ -74,13 +52,88 @@ export async function generateOccurrences(userId?: string) {
   return { generated: totalGenerated, expired: totalExpired }
 }
 
+export async function ensureOccurrencesForDate(userId: string, date: string) {
+  const supabase = createAdminClient()
+
+  const { data: commitments } = await supabase
+    .from('commitments')
+    .select('id, user_id, type, cadence, start_date, end_date')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+
+  if (!commitments) return { generated: 0 }
+
+  const target = parseDateString(date)
+  let generated = 0
+
+  for (const commitment of commitments) {
+    generated += await materializeCommitmentOccurrences(
+      supabase,
+      commitment,
+      target,
+      target,
+    )
+  }
+
+  return { generated }
+}
+
+async function materializeCommitmentOccurrences(
+  supabase: ReturnType<typeof createAdminClient>,
+  commitment: {
+    id: string
+    user_id: string
+    type: string
+    cadence: unknown
+    start_date: string | null
+    end_date: string | null
+  },
+  rangeStart: Date,
+  rangeEnd: Date,
+): Promise<number> {
+  if (commitment.type !== 'recurring' || !commitment.cadence) return 0
+
+  const cadence = commitment.cadence as Cadence
+  const commitmentStart = commitment.start_date
+    ? parseDateString(commitment.start_date)
+    : rangeStart
+
+  const effectiveStart = new Date(
+    Math.max(commitmentStart.getTime(), rangeStart.getTime()),
+  )
+  const effectiveEnd = commitment.end_date
+    ? new Date(
+        Math.min(parseDateString(commitment.end_date).getTime(), rangeEnd.getTime()),
+      )
+    : rangeEnd
+
+  if (effectiveStart > effectiveEnd) return 0
+
+  const dates = getOccurrenceDates(cadence, effectiveStart, effectiveEnd)
+  if (dates.length === 0) return 0
+
+  const rows = dates.map(d => ({
+    commitment_id: commitment.id,
+    user_id: commitment.user_id,
+    occurred_on: toDateString(d),
+    status: 'pending' as const,
+  }))
+
+  const { data: inserted } = await supabase
+    .from('commitment_occurrences')
+    .upsert(rows, { onConflict: 'commitment_id,occurred_on', ignoreDuplicates: true })
+    .select('id')
+
+  return inserted?.length ?? 0
+}
+
 async function expireStaleOccurrences(
   supabase: ReturnType<typeof createAdminClient>,
   userId?: string,
 ): Promise<number> {
-  const graceDate = new Date()
-  graceDate.setHours(graceDate.getHours() - GRACE_HOURS)
-  const cutoff = toDateString(graceDate)
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - EXPIRE_AFTER_DAYS)
+  const cutoff = toDateString(cutoffDate)
 
   let query = supabase
     .from('commitment_occurrences')

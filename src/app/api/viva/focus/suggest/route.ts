@@ -20,6 +20,7 @@ import {
   type FocusHighlight,
   type VisionSections 
 } from '@/lib/viva/prompts'
+import { createFreshStoryRecord } from '@/lib/stories/create-story-record'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -133,60 +134,16 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Create or update story record
-    const { data: existingStory } = await supabase
-      .from('stories')
-      .select('id, metadata')
-      .eq('entity_type', 'life_vision')
-      .eq('entity_id', visionId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    let storyId: string
-
-    if (existingStory) {
-      // Update existing
-      const { error: updateError } = await supabase
-        .from('stories')
-        .update({
-          metadata: {
-            ...existingStory.metadata,
-            suggested_highlights: highlights,
-            selected_highlights: highlights // Default to all selected
-          },
-          status: 'draft',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingStory.id)
-
-      if (updateError) {
-        console.error('[FocusSuggest] Failed to update story:', updateError)
-        throw updateError
-      }
-      storyId = existingStory.id
-    } else {
-      // Create new
-      const { data: newStory, error: insertError } = await supabase
-        .from('stories')
-        .insert({
-          user_id: user.id,
-          entity_type: 'life_vision',
-          entity_id: visionId,
-          metadata: {
-            suggested_highlights: highlights,
-            selected_highlights: highlights // Default to all selected
-          },
-          status: 'draft'
-        })
-        .select('id')
-        .single()
-
-      if (insertError || !newStory) {
-        console.error('[FocusSuggest] Failed to create story:', insertError)
-        throw insertError || new Error('Failed to create story record')
-      }
-      storyId = newStory.id
-    }
+    const { id: storyId } = await createFreshStoryRecord(supabase, {
+      userId: user.id,
+      entityType: 'life_vision',
+      entityId: visionId,
+      metadata: {
+        suggested_highlights: highlights,
+        selected_highlights: highlights,
+      },
+      status: 'draft',
+    })
 
     if (result.usage) {
       trackTokenUsage({

@@ -386,15 +386,16 @@ const CATEGORIES = ['Fun', 'Health', 'Travel', 'Love', 'Family', 'Social', 'Home
 
 const PHASE_COLORS = {
   Setup: C.secondary, Foundation: C.primary, 'Vision Creation': C.accent,
-  Audio: C.accent, Activation: C.primary, Completion: C.energy,
+  Audio: C.accent, Activation: C.primary, Community: C.secondary, Completion: C.energy,
 };
 
 const STEP_COLORS = [
   C.secondary, C.secondary,
-  C.primary, C.primary,
+  C.primary,
   C.accent,
   C.accent, C.accent, C.accent,
   C.primary, C.primary,
+  C.secondary, C.secondary, C.primary,
   C.energy, C.energy,
 ];
 
@@ -403,7 +404,7 @@ function buildAssets() {
   const add = (path, gen) => assets.push({ path: path + '.png', generate: gen });
 
   // ── SHARED ──────────────────────────────────────────────
-  for (let i = 1; i <= 12; i++) {
+  for (let i = 1; i <= 14; i++) {
     add(`shared/step-badge-${String(i).padStart(2, '0')}`, () => stepBadgeAsset(i, STEP_COLORS[i - 1]));
   }
   for (const [name, color] of Object.entries(PHASE_COLORS)) {
@@ -429,9 +430,9 @@ function buildAssets() {
 
   // ── 01 DASHBOARD ────────────────────────────────────────
   add('01-dashboard/title-72hr-activation', () => titleAsset('72-Hour Activation Intensive', C.primary));
-  add('01-dashboard/subtitle-12-step-path', () => subtitleAsset('Your 12-Step Activation Path', C.white));
+  add('01-dashboard/subtitle-14-step-path', () => subtitleAsset('Your 14-Step Activation Path', C.white));
   add('01-dashboard/timer-72hr', () => timerAsset('Time Remaining', C.primary));
-  add('01-dashboard/label-step-x-of-12', () => pillBadgeAsset('Step 1 of 12', C.accent));
+  add('01-dashboard/label-step-x-of-14', () => pillBadgeAsset('Step 1 of 14', C.accent));
 
   add('01-dashboard/deliverable-life-vision', () => featureCardAsset('Crystal-Clear Life Vision', 'Written vision across 12 life categories', C.secondary));
   add('01-dashboard/deliverable-audio-tracks', () => featureCardAsset('Personalized Audio Tracks', 'Your future-self voice tracks', C.accent));
@@ -470,129 +471,132 @@ function buildAssets() {
   add('03-profile/flow-map', () => flowStepAsset('Activation Plan', C.energy));
   add('03-profile/label-audio-option', () => pillBadgeAsset('Audio Option Available', C.accent));
 
-  // ── 04 ASSESSMENT ───────────────────────────────────────
-  add('04-assessment/title', () => titleAsset('Vibration Assessment', C.secondary));
-  add('04-assessment/subtitle', () => subtitleAsset('Your Alignment X-Ray Across 12 Categories', C.secondary));
-  add('04-assessment/the-green-line', () => dividerLineAsset(C.primary, 1400));
-  add('04-assessment/label-above-green-line', () => titleAsset('Above the Green Line', C.primary, 48));
-  add('04-assessment/label-below-green-line', () => titleAsset('Below the Green Line', C.contrast, 48));
-  add('04-assessment/word-aligned', () => labelAsset('Aligned', C.primary, 36));
-  add('04-assessment/word-thriving', () => labelAsset('Thriving', C.primary, 36));
-  add('04-assessment/word-flow', () => labelAsset('Flow', C.primary, 36));
-  add('04-assessment/word-clarity', () => labelAsset('Clarity', C.primary, 36));
-  add('04-assessment/word-contrast', () => labelAsset('Contrast', C.contrast, 36));
-  add('04-assessment/word-constraint', () => labelAsset('Constraint', C.contrast, 36));
-  add('04-assessment/word-awareness', () => labelAsset('Awareness', C.contrast, 36));
-  add('04-assessment/word-growth-edge', () => labelAsset('Growth Edge', C.contrast, 36));
-  add('04-assessment/label-vibration-score', () => pillBadgeAsset('Vibration Score', C.primary));
+  // ── 04 LIFE VISION ──────────────────────────────────────
+  add('04-life-vision/title', () => titleAsset('Life Vision Builder', C.accent));
+  add('04-life-vision/subtitle', () => subtitleAsset('The Heart of VibrationFit', C.white));
+  add('04-life-vision/card-clarity', () => featureCardAsset('Clarity', "What you know you want more of", C.secondary));
+  add('04-life-vision/card-contrast', () => featureCardAsset('Contrast', "What you're done with", C.orange));
+  add('04-life-vision/label-the-life-i-choose', () => titleAsset('The Life I Choose', C.primary, 56));
+  add('04-life-vision/label-get-me-started', () => pillBadgeAsset('Get Me Started', C.accent));
+  add('04-life-vision/label-contrast-flip', () => labelAsset('VIVA flips your contrast into your vision', C.accent, 24));
+  add('04-life-vision/label-present-tense', () => pillBadgeAsset('Present Tense', C.primary));
+  add('04-life-vision/label-first-person', () => pillBadgeAsset('First Person', C.secondary));
+  add('04-life-vision/label-feeling-words', () => pillBadgeAsset('Feeling Words', C.accent));
+  add('04-life-vision/label-declaration', () => labelAsset("A Declaration, Not a Goal List", C.energy, 28));
 
-  // ── 05 LIFE VISION ──────────────────────────────────────
-  add('05-life-vision/title', () => titleAsset('Life Vision Builder', C.accent));
-  add('05-life-vision/subtitle', () => subtitleAsset('The Heart of VibrationFit', C.white));
-  add('05-life-vision/card-clarity', () => featureCardAsset('Clarity', "What you know you want more of", C.secondary));
-  add('05-life-vision/card-contrast', () => featureCardAsset('Contrast', "What you're done with", C.orange));
-  add('05-life-vision/label-the-life-i-choose', () => titleAsset('The Life I Choose', C.primary, 56));
-  add('05-life-vision/label-get-me-started', () => pillBadgeAsset('Get Me Started', C.accent));
-  add('05-life-vision/label-contrast-flip', () => labelAsset('VIVA flips your contrast into your vision', C.accent, 24));
-  add('05-life-vision/label-present-tense', () => pillBadgeAsset('Present Tense', C.primary));
-  add('05-life-vision/label-first-person', () => pillBadgeAsset('First Person', C.secondary));
-  add('05-life-vision/label-feeling-words', () => pillBadgeAsset('Feeling Words', C.accent));
-  add('05-life-vision/label-declaration', () => labelAsset("A Declaration, Not a Goal List", C.energy, 28));
+  // ── 05 GENERATE AUDIO ───────────────────────────────────
+  add('05-generate-audio/title', () => titleAsset('Generate Vision Audio', C.accent));
+  add('05-generate-audio/subtitle', () => subtitleAsset('Your Future Self Has a Voice', C.accent));
+  add('05-generate-audio/flow-written-vision', () => flowStepAsset('Written Vision', C.white));
+  add('05-generate-audio/flow-choose-voice', () => flowStepAsset('Choose a Voice', C.accent));
+  add('05-generate-audio/flow-14-sections', () => flowStepAsset('14 Audio Sections', C.primary));
+  add('05-generate-audio/card-morning', () => featureCardAsset('Morning Activation', 'Start your day tuned in', C.primary));
+  add('05-generate-audio/card-realtime', () => featureCardAsset('Real-Time Activation', 'Category boosts throughout the day', C.secondary));
+  add('05-generate-audio/card-sleep', () => featureCardAsset('Sleep Immersion', 'Drift off to your new reality', C.accent));
+  add('05-generate-audio/waveform-purple', () => waveformAsset(C.accent));
+  add('05-generate-audio/waveform-cyan', () => waveformAsset(C.secondary));
+  add('05-generate-audio/label-generate-audio-btn', () => pillBadgeAsset('Generate Audio', C.primary));
+  add('05-generate-audio/label-separate-tracks', () => pillBadgeAsset('Separate Tracks', C.secondary));
+  add('05-generate-audio/label-combined-track', () => pillBadgeAsset('Combined Track', C.accent));
+  add('05-generate-audio/label-both', () => pillBadgeAsset('Both', C.primary));
 
-  // ── 06 GENERATE AUDIO ───────────────────────────────────
-  add('06-generate-audio/title', () => titleAsset('Generate Vision Audio', C.accent));
-  add('06-generate-audio/subtitle', () => subtitleAsset('Your Future Self Has a Voice', C.accent));
-  add('06-generate-audio/flow-written-vision', () => flowStepAsset('Written Vision', C.white));
-  add('06-generate-audio/flow-choose-voice', () => flowStepAsset('Choose a Voice', C.accent));
-  add('06-generate-audio/flow-14-sections', () => flowStepAsset('14 Audio Sections', C.primary));
-  add('06-generate-audio/card-morning', () => featureCardAsset('Morning Activation', 'Start your day tuned in', C.primary));
-  add('06-generate-audio/card-realtime', () => featureCardAsset('Real-Time Activation', 'Category boosts throughout the day', C.secondary));
-  add('06-generate-audio/card-sleep', () => featureCardAsset('Sleep Immersion', 'Drift off to your new reality', C.accent));
-  add('06-generate-audio/waveform-purple', () => waveformAsset(C.accent));
-  add('06-generate-audio/waveform-cyan', () => waveformAsset(C.secondary));
-  add('06-generate-audio/label-generate-audio-btn', () => pillBadgeAsset('Generate Audio', C.primary));
-  add('06-generate-audio/label-separate-tracks', () => pillBadgeAsset('Separate Tracks', C.secondary));
-  add('06-generate-audio/label-combined-track', () => pillBadgeAsset('Combined Track', C.accent));
-  add('06-generate-audio/label-both', () => pillBadgeAsset('Both', C.primary));
+  // ── 06 RECORD VOICE ─────────────────────────────────────
+  add('06-record-voice/title', () => titleAsset('Record Your Own Voice', C.secondary));
+  add('06-record-voice/subtitle', () => subtitleAsset('Declare Your Future', C.primary));
+  add('06-record-voice/label-optional', () => pillBadgeAsset('Optional Step', C.energy));
+  add('06-record-voice/flow-read-script', () => flowStepAsset('Read Your Script', C.secondary));
+  add('06-record-voice/flow-record', () => flowStepAsset('Record', C.contrast));
+  add('06-record-voice/flow-edit-trim', () => flowStepAsset('Edit & Trim', C.accent));
+  add('06-record-voice/flow-save', () => flowStepAsset('Save', C.primary));
+  add('06-record-voice/label-keep-going', () => labelAsset("If you mess up, keep going!", C.energy, 28));
+  add('06-record-voice/label-your-voice', () => labelAsset('Your voice. Your vision. Your declaration.', C.accent, 24));
 
-  // ── 07 RECORD VOICE ─────────────────────────────────────
-  add('07-record-voice/title', () => titleAsset('Record Your Own Voice', C.secondary));
-  add('07-record-voice/subtitle', () => subtitleAsset('Declare Your Future', C.primary));
-  add('07-record-voice/label-optional', () => pillBadgeAsset('Optional Step', C.energy));
-  add('07-record-voice/flow-read-script', () => flowStepAsset('Read Your Script', C.secondary));
-  add('07-record-voice/flow-record', () => flowStepAsset('Record', C.contrast));
-  add('07-record-voice/flow-edit-trim', () => flowStepAsset('Edit & Trim', C.accent));
-  add('07-record-voice/flow-save', () => flowStepAsset('Save', C.primary));
-  add('07-record-voice/label-keep-going', () => labelAsset("If you mess up, keep going!", C.energy, 28));
-  add('07-record-voice/label-your-voice', () => labelAsset('Your voice. Your vision. Your declaration.', C.accent, 24));
+  // ── 07 AUDIO MIX ────────────────────────────────────────
+  add('07-audio-mix/title', () => titleAsset('Audio Mixing', C.accent));
+  add('07-audio-mix/subtitle', () => subtitleAsset('From Voice Memo to Cinematic Soundtrack', C.secondary));
+  add('07-audio-mix/label-your-voice', () => labelAsset('Your Voice', C.accent, 32));
+  add('07-audio-mix/label-background-music', () => labelAsset('Background Music', C.secondary, 32));
+  add('07-audio-mix/label-70-pct', () => titleAsset('70%', C.accent, 64));
+  add('07-audio-mix/label-30-pct', () => titleAsset('30%', C.secondary, 64));
+  add('07-audio-mix/card-sleep', () => featureCardAsset('Sleep', 'Deep relaxation', C.accent));
+  add('07-audio-mix/card-meditation', () => featureCardAsset('Meditation', 'Centered calm', C.secondary));
+  add('07-audio-mix/card-power', () => featureCardAsset('Power', 'Energized drive', C.primary));
+  add('07-audio-mix/card-custom', () => featureCardAsset('Custom', 'Build your own mix', C.energy));
+  add('07-audio-mix/label-recommended-combos', () => pillBadgeAsset('Recommended Combos', C.accent));
+  add('07-audio-mix/label-build-my-own', () => pillBadgeAsset('Build My Own', C.secondary));
+  add('07-audio-mix/waveform-voice', () => waveformAsset(C.accent, 600));
+  add('07-audio-mix/waveform-music', () => waveformAsset(C.secondary, 600));
+  add('07-audio-mix/label-generate-mix', () => pillBadgeAsset('Generate Mix', C.primary));
 
-  // ── 08 AUDIO MIX ────────────────────────────────────────
-  add('08-audio-mix/title', () => titleAsset('Audio Mixing', C.accent));
-  add('08-audio-mix/subtitle', () => subtitleAsset('From Voice Memo to Cinematic Soundtrack', C.secondary));
-  add('08-audio-mix/label-your-voice', () => labelAsset('Your Voice', C.accent, 32));
-  add('08-audio-mix/label-background-music', () => labelAsset('Background Music', C.secondary, 32));
-  add('08-audio-mix/label-70-pct', () => titleAsset('70%', C.accent, 64));
-  add('08-audio-mix/label-30-pct', () => titleAsset('30%', C.secondary, 64));
-  add('08-audio-mix/card-sleep', () => featureCardAsset('Sleep', 'Deep relaxation', C.accent));
-  add('08-audio-mix/card-meditation', () => featureCardAsset('Meditation', 'Centered calm', C.secondary));
-  add('08-audio-mix/card-power', () => featureCardAsset('Power', 'Energized drive', C.primary));
-  add('08-audio-mix/card-custom', () => featureCardAsset('Custom', 'Build your own mix', C.energy));
-  add('08-audio-mix/label-recommended-combos', () => pillBadgeAsset('Recommended Combos', C.accent));
-  add('08-audio-mix/label-build-my-own', () => pillBadgeAsset('Build My Own', C.secondary));
-  add('08-audio-mix/waveform-voice', () => waveformAsset(C.accent, 600));
-  add('08-audio-mix/waveform-music', () => waveformAsset(C.secondary, 600));
-  add('08-audio-mix/label-generate-mix', () => pillBadgeAsset('Generate Mix', C.primary));
+  // ── 08 VISION BOARD ─────────────────────────────────────
+  add('08-vision-board/title', () => titleAsset('Vision Board', C.primary));
+  add('08-vision-board/subtitle', () => subtitleAsset('Your Vision Gets a Face', C.primary));
+  add('08-vision-board/label-one-per-category', () => labelAsset('One Image Per Life Category', C.primary, 28));
+  add('08-vision-board/label-viva-ideas', () => pillBadgeAsset('Get VIVA Ideas', C.accent));
+  add('08-vision-board/label-create-own', () => pillBadgeAsset('Create Your Own', C.secondary));
+  add('08-vision-board/label-generate-viva', () => pillBadgeAsset('Generate with VIVA', C.accent));
+  add('08-vision-board/label-3-ideas-per-cat', () => labelAsset('3 Tailored Ideas Per Category', C.accent, 24));
 
-  // ── 09 VISION BOARD ─────────────────────────────────────
-  add('09-vision-board/title', () => titleAsset('Vision Board', C.primary));
-  add('09-vision-board/subtitle', () => subtitleAsset('Your Vision Gets a Face', C.primary));
-  add('09-vision-board/label-one-per-category', () => labelAsset('One Image Per Life Category', C.primary, 28));
-  add('09-vision-board/label-viva-ideas', () => pillBadgeAsset('Get VIVA Ideas', C.accent));
-  add('09-vision-board/label-create-own', () => pillBadgeAsset('Create Your Own', C.secondary));
-  add('09-vision-board/label-generate-viva', () => pillBadgeAsset('Generate with VIVA', C.accent));
-  add('09-vision-board/label-3-ideas-per-cat', () => labelAsset('3 Tailored Ideas Per Category', C.accent, 24));
+  // ── 09 JOURNAL ──────────────────────────────────────────
+  add('09-journal/title', () => titleAsset('Journal', C.secondary));
+  add('09-journal/subtitle', () => subtitleAsset('Your Transformation Evidence', C.secondary));
+  add('09-journal/label-conscious-creation-log', () => labelAsset('Your Conscious Creation Log', C.secondary, 28));
+  add('09-journal/pill-text', () => pillBadgeAsset('Text', C.secondary));
+  add('09-journal/pill-voice', () => pillBadgeAsset('Voice', C.accent));
+  add('09-journal/pill-video', () => pillBadgeAsset('Video', C.primary));
+  add('09-journal/pill-images', () => pillBadgeAsset('Images', C.energy));
+  add('09-journal/prompt-win', () => promptCardAsset('A win you\'ve had recently, big or small', C.primary));
+  add('09-journal/prompt-different', () => promptCardAsset('Something that feels different since starting', C.secondary));
+  add('09-journal/prompt-contrast', () => promptCardAsset('Contrast you\'re processing and learning from', C.accent));
+  add('09-journal/prompt-appreciating', () => promptCardAsset('Things you\'re appreciating right now', C.energy));
+  add('09-journal/label-tag-categories', () => labelAsset('Tag entries by Life Category', C.light, 22));
 
-  // ── 10 JOURNAL ──────────────────────────────────────────
-  add('10-journal/title', () => titleAsset('Journal', C.secondary));
-  add('10-journal/subtitle', () => subtitleAsset('Your Transformation Evidence', C.secondary));
-  add('10-journal/label-conscious-creation-log', () => labelAsset('Your Conscious Creation Log', C.secondary, 28));
-  add('10-journal/pill-text', () => pillBadgeAsset('Text', C.secondary));
-  add('10-journal/pill-voice', () => pillBadgeAsset('Voice', C.accent));
-  add('10-journal/pill-video', () => pillBadgeAsset('Video', C.primary));
-  add('10-journal/pill-images', () => pillBadgeAsset('Images', C.energy));
-  add('10-journal/prompt-win', () => promptCardAsset('A win you\'ve had recently, big or small', C.primary));
-  add('10-journal/prompt-different', () => promptCardAsset('Something that feels different since starting', C.secondary));
-  add('10-journal/prompt-contrast', () => promptCardAsset('Contrast you\'re processing and learning from', C.accent));
-  add('10-journal/prompt-appreciating', () => promptCardAsset('Things you\'re appreciating right now', C.energy));
-  add('10-journal/label-tag-categories', () => labelAsset('Tag entries by Life Category', C.light, 22));
+  // ── 10 FIRST VIBE TRIBE POST ────────────────────────────
+  add('10-vibe-tribe-post/title', () => titleAsset('First Vibe Tribe Post', C.secondary));
+  add('10-vibe-tribe-post/subtitle', () => subtitleAsset('Share Your Journey With the Community', C.secondary));
+  add('10-vibe-tribe-post/label-your-first-post', () => labelAsset('Your First Post to the Tribe', C.secondary, 28));
+  add('10-vibe-tribe-post/label-share-a-win', () => pillBadgeAsset('Share a Win', C.primary));
+  add('10-vibe-tribe-post/label-ask-for-support', () => pillBadgeAsset('Ask for Support', C.accent));
 
-  // ── 11 MAP ──────────────────────────────────────────────
-  add('11-map/title', () => titleAsset('My Activation Plan', C.primary));
-  add('11-map/subtitle', () => subtitleAsset('Your MAP to Consistent Vision Activation', C.primary));
-  add('11-map/card-morning', () => numberedCardAsset('AM', 'Morning Activation', 'Listen to your vision audio + set intention', C.primary));
-  add('11-map/card-daytime', () => numberedCardAsset('PM', 'Real-Time Activation', 'Category boosts + journal wins', C.energy));
-  add('11-map/card-evening', () => numberedCardAsset('ZZ', 'Sleep Immersion', 'Vision audio as you drift off', C.accent));
-  add('11-map/badge-day-3', () => milestoneAsset('Day 3', C.dim, false));
-  add('11-map/badge-day-7', () => milestoneAsset('Day 7', C.primary, false));
-  add('11-map/badge-day-14', () => milestoneAsset('Day 14', C.secondary, false));
-  add('11-map/badge-day-21', () => milestoneAsset('Day 21', C.energy, false));
-  add('11-map/badge-day-28', () => milestoneAsset('Day 28', C.accent, true));
-  add('11-map/label-28-days', () => titleAsset('28 Days', C.primary, 64));
-  add('11-map/label-daily-weekly', () => labelAsset('Daily Activations + Weekly Alignment', C.light, 24));
-  add('11-map/label-continue-unlock', () => pillBadgeAsset('Continue to Unlock Platform', C.primary));
+  // ── 11 ENGAGE VIBE TRIBE ────────────────────────────────
+  add('11-vibe-tribe-engage/title', () => titleAsset('Engage in Vibe Tribe', C.secondary));
+  add('11-vibe-tribe-engage/subtitle', () => subtitleAsset('Connect With Real Humans Doing This Work', C.secondary));
+  add('11-vibe-tribe-engage/label-respond', () => pillBadgeAsset('Respond to a Post', C.primary));
+  add('11-vibe-tribe-engage/label-encourage', () => pillBadgeAsset('Encourage Someone', C.accent));
 
-  // ── 12 UNLOCK ───────────────────────────────────────────
-  add('12-unlock/title', () => titleAsset('Platform Unlock', C.energy));
-  add('12-unlock/subtitle', () => subtitleAsset('You Are a VibrationFit Graduate', C.energy));
-  add('12-unlock/label-you-did-the-work', () => labelAsset('You Did the Work', C.primary, 36));
-  add('12-unlock/label-graduation-moment', () => labelAsset('This Is Your Graduation Moment', C.energy, 28));
-  add('12-unlock/unlock-advanced-audio', () => featureCardAsset('Advanced Audio Suite', 'Now unlocked', C.accent));
-  add('12-unlock/unlock-alignment-gym', () => featureCardAsset('Alignment Gym', 'Now unlocked', C.secondary));
-  add('12-unlock/unlock-vibe-tribe', () => featureCardAsset('Vibe Tribe Community', 'Now unlocked', C.primary));
-  add('12-unlock/unlock-full-platform', () => featureCardAsset('Full Platform Access', 'Now unlocked', C.energy));
-  add('12-unlock/label-unlock-platform', () => pillBadgeAsset('Unlock Platform', C.primary));
-  add('12-unlock/label-welcome', () => titleAsset('Welcome to VibrationFit Membership', C.primary, 44));
-  add('12-unlock/label-12-of-12', () => pillBadgeAsset('12 of 12 Complete', C.primary));
+  // ── 12 ALIGNMENT GYM TOUR ──────────────────────────────
+  add('12-alignment-gym/title', () => titleAsset('Alignment Gym Tour', C.primary));
+  add('12-alignment-gym/subtitle', () => subtitleAsset('Your Weekly Alignment Space', C.primary));
+  add('12-alignment-gym/label-live-sessions', () => pillBadgeAsset('Live Sessions', C.secondary));
+  add('12-alignment-gym/label-replays', () => pillBadgeAsset('Replays Available', C.accent));
+
+  // ── 13 MAP ──────────────────────────────────────────────
+  add('13-map/title', () => titleAsset('My Activation Plan', C.primary));
+  add('13-map/subtitle', () => subtitleAsset('Your MAP to Consistent Vision Activation', C.primary));
+  add('13-map/card-morning', () => numberedCardAsset('AM', 'Morning Activation', 'Listen to your vision audio + set intention', C.primary));
+  add('13-map/card-daytime', () => numberedCardAsset('PM', 'Real-Time Activation', 'Category boosts + journal wins', C.energy));
+  add('13-map/card-evening', () => numberedCardAsset('ZZ', 'Sleep Immersion', 'Vision audio as you drift off', C.accent));
+  add('13-map/badge-day-3', () => milestoneAsset('Day 3', C.dim, false));
+  add('13-map/badge-day-7', () => milestoneAsset('Day 7', C.primary, false));
+  add('13-map/badge-day-14', () => milestoneAsset('Day 14', C.secondary, false));
+  add('13-map/badge-day-21', () => milestoneAsset('Day 21', C.energy, false));
+  add('13-map/badge-day-28', () => milestoneAsset('Day 28', C.accent, true));
+  add('13-map/label-28-days', () => titleAsset('28 Days', C.primary, 64));
+  add('13-map/label-daily-weekly', () => labelAsset('Daily Activations + Weekly Alignment', C.light, 24));
+  add('13-map/label-continue-unlock', () => pillBadgeAsset('Continue to Unlock Platform', C.primary));
+
+  // ── 14 UNLOCK ───────────────────────────────────────────
+  add('14-unlock/title', () => titleAsset('Platform Unlock', C.energy));
+  add('14-unlock/subtitle', () => subtitleAsset('You Are a VibrationFit Graduate', C.energy));
+  add('14-unlock/label-you-did-the-work', () => labelAsset('You Did the Work', C.primary, 36));
+  add('14-unlock/label-graduation-moment', () => labelAsset('This Is Your Graduation Moment', C.energy, 28));
+  add('14-unlock/unlock-advanced-audio', () => featureCardAsset('Advanced Audio Suite', 'Now unlocked', C.accent));
+  add('14-unlock/unlock-alignment-gym', () => featureCardAsset('Alignment Gym', 'Now unlocked', C.secondary));
+  add('14-unlock/unlock-vibe-tribe', () => featureCardAsset('Vibe Tribe Community', 'Now unlocked', C.primary));
+  add('14-unlock/unlock-full-platform', () => featureCardAsset('Full Platform Access', 'Now unlocked', C.energy));
+  add('14-unlock/label-unlock-platform', () => pillBadgeAsset('Unlock Platform', C.primary));
+  add('14-unlock/label-welcome', () => titleAsset('Welcome to VibrationFit Membership', C.primary, 44));
+  add('14-unlock/label-14-of-14', () => pillBadgeAsset('14 of 14 Complete', C.primary));
 
   return assets;
 }

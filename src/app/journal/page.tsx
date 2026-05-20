@@ -8,7 +8,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import { Plus, FileText, ChevronDown, Filter, BookOpen, Flame, Shield, Search, X, Edit, Trash2, ImageOff, Play } from 'lucide-react'
-import { JournalEditModal, type JournalEditEntry } from '@/components/journal'
+import { JournalEditModal, RecoverableTranscriptsBanner, type JournalEditEntry } from '@/components/journal'
 import { useEffect, useState, useRef, useMemo } from 'react'
 
 function JournalImage({ src, alt, className, onClick, loading }: {
@@ -205,6 +205,23 @@ export default function JournalPage() {
       setUser(user)
 
       if (page === 1) {
+        try {
+          const { MAP_ACTIVATION_AREAS, recordMapAreaActivation } = await import(
+            '@/lib/map/track-activation'
+          )
+          const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+          await recordMapAreaActivation(
+            supabase,
+            user.id,
+            MAP_ACTIVATION_AREAS.journal_review,
+          )
+          autoVerifyClient({ activityType: 'journal_review' })
+        } catch {
+          // best-effort MAP verify
+        }
+      }
+
+      if (page === 1) {
         supabase.from('journal_entries').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
           .then(({ count }) => setTotalEntries(count ?? 0))
       }
@@ -365,6 +382,17 @@ export default function JournalPage() {
             freezeOpen={freezeOpen}
             setFreezeOpen={setFreezeOpen}
             freezeRef={freezeRef}
+          />
+
+          <RecoverableTranscriptsBanner
+            onRestore={(item) => {
+              try {
+                sessionStorage.setItem('vf_restore_transcript', JSON.stringify(item))
+              } catch {
+                /* sessionStorage unavailable */
+              }
+              router.push('/journal/new')
+            }}
           />
 
           <div className="flex items-center justify-between">

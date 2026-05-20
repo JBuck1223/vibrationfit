@@ -67,7 +67,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
     description: 'Listen to your Life Vision audio daily to stay anchored in the life you\'re creating.',
     category: 'activations',
     cadence: { kind: 'daily' },
-    deepLink: '/life-vision',
+    deepLink: '/audio?listen=life-vision',
     rationale: 'Daily immersion in your vision rewires your default emotional state toward above the Green Line.',
     tier: 'base',
     activityType: 'vision_audio',
@@ -86,7 +86,8 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
 
   suggestions.push({
     title: 'Vibe Tribe Engagement',
-    description: 'Share a post, celebrate a win, or engage with the community for support and accountability.',
+    description:
+      'Show up for someone else in the Tribe — heart a post or leave a brief comment on another member\'s win, wobble, or vision.',
     category: 'connections',
     cadence: { kind: 'days_per_week', count: 2 },
     deepLink: '/vibe-tribe',
@@ -97,7 +98,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
 
   suggestions.push({
     title: 'Alignment Gym Session',
-    description: 'Attend the live weekly session or watch the replay.',
+    description: 'Attend live or open the session page after; both count. Times are in Alignment Gym.',
     category: 'sessions',
     cadence: { kind: 'days_per_week', count: 1 },
     deepLink: '/alignment-gym',
@@ -120,7 +121,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
       description: `Extra activation reps on ${displayName}: listen to your ${displayName} vision audio, journal insights about how you feel shifting, abundance connections, and any wobbles. We have tools to help you work through those.`,
       category: 'activations',
       cadence: { kind: 'days_per_week', count: isBelow ? 3 : 2 },
-      deepLink: '/life-vision',
+      deepLink: '/audio?listen=life-vision',
       rationale: `${displayName} is ${severity}. Targeted reps accelerate the shift above the line.`,
       tier: 'supplement',
       activityType: 'vision_audio',

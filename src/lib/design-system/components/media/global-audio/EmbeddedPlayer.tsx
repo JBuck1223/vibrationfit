@@ -65,6 +65,8 @@ interface EmbeddedPlayerProps {
   headerContent?: React.ReactNode
   onAddToPlaylist?: (track: AudioTrack, index: number) => void
   onRemoveTrack?: (track: AudioTrack, index: number) => void
+  /** MAP activity to verify on listen; inferred from setIconKey when omitted */
+  mapActivityType?: 'vision_audio' | 'story_audio' | 'music_listen' | 'song_listen'
 }
 
 function formatTime(seconds: number): string {
@@ -90,6 +92,7 @@ export function EmbeddedPlayer({
   headerContent,
   onAddToPlaylist,
   onRemoveTrack,
+  mapActivityType: mapActivityTypeProp,
 }: EmbeddedPlayerProps) {
   const storeTracks = useGlobalAudioStore(s => s.tracks)
   const storeIndex = useGlobalAudioStore(s => s.currentIndex)
@@ -119,6 +122,14 @@ export function EmbeddedPlayer({
   const allCached = tracks.length > 0 && tracks.every(t => cachedTrackIds.has(t.id))
   const anyDownloading = downloadingTrackIds.size > 0
   const [savingTrackIds, setSavingTrackIds] = useState<Set<string>>(new Set())
+  const hasTrackedListenRef = useRef(false)
+  const mapActivityType =
+    mapActivityTypeProp ??
+    (setIconKey === 'stories'
+      ? 'story_audio'
+      : setIconKey === 'music'
+        ? 'music_listen'
+        : 'vision_audio')
 
   const saveTrackToDevice = useCallback(async (track: AudioTrack) => {
     setSavingTrackIds(prev => new Set(prev).add(track.id))
@@ -158,6 +169,19 @@ export function EmbeddedPlayer({
   const currentTime = isThisSetActive ? storeCurrentTime : 0
   const duration = isThisSetActive ? storeDuration : 0
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+
+  useEffect(() => {
+    hasTrackedListenRef.current = false
+  }, [activeTrack?.id, mapActivityType])
+
+  useEffect(() => {
+    if (!isThisSetActive || !activeTrack || hasTrackedListenRef.current) return
+    if (currentTime < 5) return
+    hasTrackedListenRef.current = true
+    void import('@/lib/map/track-map-listen').then(({ trackMapAudioListen }) =>
+      trackMapAudioListen(activeTrack.id, mapActivityType),
+    )
+  }, [isThisSetActive, activeTrack, currentTime, mapActivityType])
 
   useEffect(() => {
     if (!isThisSetActive || !activeTrack) return

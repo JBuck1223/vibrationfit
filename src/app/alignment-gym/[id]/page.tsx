@@ -127,6 +127,13 @@ export default function AlignmentGymSessionPage() {
       }
       setSession(s)
       setError(null)
+
+      try {
+        const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+        autoVerifyClient({ activityType: 'alignment_gym' })
+      } catch {
+        // best-effort MAP verify
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load session')
       setSession(null)

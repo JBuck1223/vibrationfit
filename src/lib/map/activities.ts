@@ -1,16 +1,16 @@
 import {
   Sun,
-  Moon,
-  Zap,
   FileText,
   BookOpen,
   Image,
   UsersRound,
   Video,
   Heart,
-  Target,
   Headphones,
   DollarSign,
+  Eye,
+  BookMarked,
+  Music2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { MapCategory } from './types'
@@ -25,82 +25,82 @@ export interface ActivityDefinition {
   defaultDaysOfWeek: number[]
   defaultTimeOfDay: string | null
   smsTemplate: string
+  /** When true, MAP hides cadence/day pickers and per-commitment reminders (e.g. Alignment Gym). */
+  usesPublishedSchedule?: boolean
 }
 
 export const ACTIVITY_DEFINITIONS: ActivityDefinition[] = [
   // ── Activations ──
+  // "How many times did I show up and engage with my tools?"
   {
-    type: 'morning_vision',
-    label: 'Morning Vision + Daily Paper',
-    description: 'Read your Life Vision, scan your Vision Board, and complete your Daily Paper.',
-    icon: Sun,
+    type: 'vision_audio',
+    label: 'Vision Audio Listen',
+    description: 'Listen to your Life Vision audio or a category-specific track.',
+    icon: Headphones,
     category: 'activations',
-    defaultDeepLink: '/daily-paper/new',
+    defaultDeepLink: '/audio?listen=life-vision',
     defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
-    defaultTimeOfDay: '07:00',
-    smsTemplate: 'Time for your Morning Vision + Daily Paper! Start your day aligned: {link}',
+    defaultTimeOfDay: '07:30',
+    smsTemplate: 'Listen to your Vision Audio: {link}',
   },
   {
-    type: 'realtime_activation',
-    label: 'Real-Time Category Activation',
-    description: 'Listen to your Vision Audio before a key moment and make one micro decision from that place.',
-    icon: Zap,
+    type: 'story_audio',
+    label: 'Story Audio Listen',
+    description: 'Listen to one of your Focus Stories.',
+    icon: BookMarked,
+    category: 'activations',
+    defaultDeepLink: '/audio?listen=stories',
+    defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
+    defaultTimeOfDay: null,
+    smsTemplate: 'Listen to your Focus Story: {link}',
+  },
+  {
+    type: 'music_listen',
+    label: 'Music Listen',
+    description: 'Listen to VibrationFit music.',
+    icon: Music2,
+    category: 'activations',
+    defaultDeepLink: '/audio?listen=music',
+    defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
+    defaultTimeOfDay: null,
+    smsTemplate: 'Listen to VibrationFit music: {link}',
+  },
+  {
+    type: 'vision_read',
+    label: 'Life Vision Read',
+    description: 'Read through your Life Vision.',
+    icon: Eye,
     category: 'activations',
     defaultDeepLink: '/life-vision',
-    defaultDaysOfWeek: [1, 2, 3, 4, 5],
-    defaultTimeOfDay: '12:00',
-    smsTemplate: 'Activation reminder: Listen to your Vision Audio before your next key moment. {link}',
-  },
-  {
-    type: 'night_immersion',
-    label: 'Night Sleep Immersion + Evidence Journal',
-    description: 'Read your Life Vision, journal evidence of alignment, update your Vision Board, and sleep to your immersion track.',
-    icon: Moon,
-    category: 'activations',
-    defaultDeepLink: '/journal/new',
     defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
-    defaultTimeOfDay: '21:00',
-    smsTemplate: 'Time for your Night Immersion. Journal your evidence and drift off to your vision: {link}',
-  },
-
-  // ── Connections ──
-  {
-    type: 'vibe_tribe_post',
-    label: 'Vibe Tribe Post',
-    description: 'Share a win, wobble, vision, or collaboration with the community.',
-    icon: UsersRound,
-    category: 'connections',
-    defaultDeepLink: '/vibe-tribe/new',
-    defaultDaysOfWeek: [3],
-    defaultTimeOfDay: '10:00',
-    smsTemplate: 'Time for your Vibe Tribe post! Share with the community: {link}',
+    defaultTimeOfDay: null,
+    smsTemplate: 'Read through your Life Vision: {link}',
   },
   {
-    type: 'vibe_tribe_engage',
-    label: 'Vibe Tribe Engagement',
-    description: 'Comment on or heart posts from fellow members.',
-    icon: Heart,
-    category: 'connections',
-    defaultDeepLink: '/vibe-tribe',
-    defaultDaysOfWeek: [2, 4],
-    defaultTimeOfDay: '10:00',
-    smsTemplate: 'Drop into the Vibe Tribe and connect with the community: {link}',
+    type: 'vision_board_view',
+    label: 'Vision Board View',
+    description: 'View your Vision Board and spend time with the life you\'re building.',
+    icon: Image,
+    category: 'activations',
+    defaultDeepLink: '/vision-board',
+    defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
+    defaultTimeOfDay: null,
+    smsTemplate: 'View your Vision Board: {link}',
   },
-
-  // ── Sessions ──
   {
-    type: 'alignment_gym',
-    label: 'Alignment Gym',
-    description: 'Attend the live weekly group coaching session or watch the replay.',
-    icon: Video,
-    category: 'sessions',
-    defaultDeepLink: '/alignment-gym',
-    defaultDaysOfWeek: [4],
-    defaultTimeOfDay: '19:00',
-    smsTemplate: 'The Alignment Gym is on! Join live or catch the replay: {link}',
+    type: 'journal_review',
+    label: 'Journal Review',
+    description: 'Read back through your journal entries — revisit evidence, patterns, and wins.',
+    icon: Sun,
+    category: 'activations',
+    defaultDeepLink: '/journal',
+    defaultDaysOfWeek: [0],
+    defaultTimeOfDay: null,
+    smsTemplate: 'Review your journal entries: {link}',
   },
 
   // ── Creations ──
+  // "What objects exist because of me?"
   {
     type: 'journal_entry',
     label: 'Journal Entry',
@@ -110,7 +110,7 @@ export const ACTIVITY_DEFINITIONS: ActivityDefinition[] = [
     defaultDeepLink: '/journal/new',
     defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
     defaultTimeOfDay: '21:00',
-    smsTemplate: 'Time for your Journal entry. Capture what aligned today: {link}',
+    smsTemplate: 'Capture what aligned today: {link}',
   },
   {
     type: 'daily_paper',
@@ -121,40 +121,18 @@ export const ACTIVITY_DEFINITIONS: ActivityDefinition[] = [
     defaultDeepLink: '/daily-paper/new',
     defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
     defaultTimeOfDay: '07:00',
-    smsTemplate: 'Start your day with a Daily Paper entry: {link}',
+    smsTemplate: 'Start your day with a Daily Paper: {link}',
   },
   {
     type: 'vision_board_update',
     label: 'Vision Board Update',
-    description: 'Review tiles, mark actualized items, add new desires.',
+    description: 'Add new desires, mark actualized items, or refresh your tiles.',
     icon: Image,
     category: 'creations',
     defaultDeepLink: '/vision-board',
     defaultDaysOfWeek: [0],
     defaultTimeOfDay: '10:00',
-    smsTemplate: 'Time to update your Vision Board. Review and refresh your desires: {link}',
-  },
-  {
-    type: 'vision_audio',
-    label: 'Vision Audio Listen',
-    description: 'Listen to your full Life Vision audio or a category-specific track.',
-    icon: Headphones,
-    category: 'creations',
-    defaultDeepLink: '/life-vision',
-    defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
-    defaultTimeOfDay: '07:30',
-    smsTemplate: 'Listen to your Vision Audio and step into The Life I Choose: {link}',
-  },
-  {
-    type: 'life_vision_update',
-    label: 'Life Vision Review',
-    description: 'Read through and refine your Life Vision.',
-    icon: Target,
-    category: 'creations',
-    defaultDeepLink: '/life-vision',
-    defaultDaysOfWeek: [0],
-    defaultTimeOfDay: '09:00',
-    smsTemplate: 'Take a moment to review and refine your Life Vision: {link}',
+    smsTemplate: 'Update your Vision Board: {link}',
   },
   {
     type: 'abundance_tracker',
@@ -165,12 +143,77 @@ export const ACTIVITY_DEFINITIONS: ActivityDefinition[] = [
     defaultDeepLink: '/abundance-tracker',
     defaultDaysOfWeek: [5],
     defaultTimeOfDay: '18:00',
-    smsTemplate: 'Log your abundance moments for the week: {link}',
+    smsTemplate: 'Log your abundance moments: {link}',
+  },
+
+  // ── Connections ──
+  // "How many times did I interact with the community?"
+  {
+    type: 'vibe_tribe_post',
+    label: 'Vibe Tribe Post',
+    description: 'Share a win, wobble, vision, or collaboration with the community.',
+    icon: UsersRound,
+    category: 'connections',
+    defaultDeepLink: '/vibe-tribe/new',
+    defaultDaysOfWeek: [3],
+    defaultTimeOfDay: '10:00',
+    smsTemplate: 'Share with the community: {link}',
+  },
+  {
+    type: 'vibe_tribe_engage',
+    label: 'Vibe Tribe Engagement',
+    description:
+      'Witness and respond to other members — heart a post or leave a short comment. Presence counts; it must be on someone else\'s post, not only your own.',
+    icon: Heart,
+    category: 'connections',
+    defaultDeepLink: '/vibe-tribe',
+    defaultDaysOfWeek: [2, 4],
+    defaultTimeOfDay: '10:00',
+    smsTemplate: 'Connect with the community: {link}',
+  },
+
+  // ── Sessions ──
+  // "How often am I showing up to live coaching?"
+  {
+    type: 'alignment_gym',
+    label: 'Alignment Gym',
+    description:
+      'Attending live or opening the session page after counts as complete. Schedule is in Alignment Gym.',
+    icon: Video,
+    category: 'sessions',
+    defaultDeepLink: '/alignment-gym',
+    defaultDaysOfWeek: [4],
+    defaultTimeOfDay: '19:00',
+    smsTemplate: 'Alignment Gym: {link}',
+    usesPublishedSchedule: true,
   },
 ]
 
 export function getActivityDefinition(type: string): ActivityDefinition | undefined {
   return ACTIVITY_DEFINITIONS.find(a => a.type === type)
+}
+
+/**
+ * Browse/view routes for creation activities when the occurrence is already complete.
+ * Create flows use defaultDeepLink; completed rows should open the library instead.
+ */
+const MAP_COMPLETED_VIEW_LINKS: Record<string, string> = {
+  journal_entry: '/journal',
+  daily_paper: '/daily-paper',
+  vibe_tribe_post: '/vibe-tribe',
+}
+
+/** Deep link for MAP day rows — create URL when pending, view URL when done. */
+export function getMapActivityDeepLink(
+  activityType: string,
+  options?: { completed?: boolean },
+): string {
+  const def = getActivityDefinition(activityType)
+  if (!def) return '/map'
+  if (options?.completed && MAP_COMPLETED_VIEW_LINKS[activityType]) {
+    return MAP_COMPLETED_VIEW_LINKS[activityType]
+  }
+  return def.defaultDeepLink
 }
 
 export function getActivitiesByCategory(category: MapCategory): ActivityDefinition[] {

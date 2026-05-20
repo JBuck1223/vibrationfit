@@ -17,19 +17,24 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const date = searchParams.get('date') || new Date().toISOString().split('T')[0]
+    const date = searchParams.get('date')
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
     const commitmentId = searchParams.get('commitment_id')
 
     let query = supabase
       .from('commitment_occurrences')
-      .select('*, commitment:commitments(id, title, category, type, cadence, vision_target_id)')
+      .select('*, commitment:commitments(id, title, category, type, cadence, vision_target_id, activity_type)')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
+      .order('occurred_on', { ascending: true })
 
     if (commitmentId) {
       query = query.eq('commitment_id', commitmentId)
+    } else if (from && to) {
+      query = query.gte('occurred_on', from).lte('occurred_on', to)
     } else {
-      query = query.eq('occurred_on', date)
+      const singleDate = date || new Date().toISOString().split('T')[0]
+      query = query.eq('occurred_on', singleDate)
     }
 
     const { data: occurrences, error } = await query
@@ -93,16 +98,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to verify' }, { status: 500 })
     }
 
-    if (status === 'yes' && occurrence?.commitment) {
-      const today = new Date().toISOString().split('T')[0]
+    if (status === 'yes' && occurrence?.occurred_on) {
       await supabase
         .from('area_activations')
         .upsert(
           {
             user_id: user.id,
             area: 'map',
-            activation_date: today,
-            metadata: { commitment_id: occurrence.commitment.id },
+            activation_date: occurrence.occurred_on,
+            metadata: { commitment_id: occurrence.commitment_id },
           },
           { onConflict: 'user_id,area,activation_date' }
         )

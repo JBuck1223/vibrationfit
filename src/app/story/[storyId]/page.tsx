@@ -35,6 +35,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useStory } from '@/lib/stories'
 import type { UpdateStoryPayload } from '@/lib/stories'
+import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
   life_vision: { label: 'Life Vision', icon: Target, badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30' },
@@ -120,11 +121,24 @@ export default function StoryDetailPage({
       })
   }, [story?.id, story?.entity_type, story?.entity_id, supabase])
 
+  // Reset audio UI when navigating between stories
+  useEffect(() => {
+    setAudioOptions([])
+    setSelectedAudioId(null)
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setDuration(0)
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ''
+    }
+  }, [storyId])
+
   // Load audio options when story is available
   useEffect(() => {
     if (!story) return
     loadAudioOptions()
-  }, [story?.id, story?.audio_set_id, story?.user_audio_url])
+  }, [story?.id, story?.audio_set_id, story?.user_audio_url, story?.content])
 
   async function loadAudioOptions() {
     if (!story) return
@@ -133,12 +147,16 @@ export default function StoryDetailPage({
     if (story.audio_set_id) {
       const { data: tracks } = await supabase
         .from('audio_tracks')
-        .select('id, audio_url, voice_id, section_key')
+        .select('id, audio_url, voice_id, section_key, text_content, content_hash')
         .eq('audio_set_id', story.audio_set_id)
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
 
-      if (tracks && tracks.length > 0) {
+      const currentTracks = (tracks || []).filter(track =>
+        storyTextMatchesTrack(story.content, track.text_content)
+      )
+
+      if (currentTracks.length > 0) {
         const { data: audioSet } = await supabase
           .from('audio_sets')
           .select('name, voice_id, variant')
@@ -148,10 +166,10 @@ export default function StoryDetailPage({
         const voiceName = audioSet?.voice_id ? (VOICE_DISPLAY_NAMES[audioSet.voice_id] || audioSet.voice_id) : 'VIVA'
         const setName = audioSet?.name || 'Generated Audio'
 
-        tracks.forEach((track, idx) => {
+        currentTracks.forEach((track, idx) => {
           options.push({
             id: `generated-${track.id}`,
-            label: tracks.length > 1 ? `${setName} (${idx + 1}/${tracks.length})` : setName,
+            label: currentTracks.length > 1 ? `${setName} (${idx + 1}/${currentTracks.length})` : setName,
             sublabel: `${voiceName} narration`,
             url: track.audio_url,
             icon: Headphones,
@@ -173,9 +191,10 @@ export default function StoryDetailPage({
     }
 
     setAudioOptions(options)
-    if (options.length > 0 && !selectedAudioId) {
-      setSelectedAudioId(options[0].id)
-    }
+    setSelectedAudioId(prev => {
+      if (options.some(option => option.id === prev)) return prev
+      return options.length > 0 ? options[0].id : null
+    })
   }
 
   // Wire up audio element

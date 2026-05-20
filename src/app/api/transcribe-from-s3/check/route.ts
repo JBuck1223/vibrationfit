@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
+import {
+  formatTranscript,
+  transcriptLooksCollapsed,
+  type TranscriptionWord,
+} from '@/lib/audio/format-transcript-paragraphs'
 
 export const runtime = 'nodejs'
 
@@ -48,9 +53,16 @@ export async function POST(request: NextRequest) {
       const bodyString = await response.Body.transformToString()
       const sidecar = JSON.parse(bodyString)
 
+      const words = (sidecar.words ?? null) as TranscriptionWord[] | null
+      const raw = (sidecar.transcript_raw ?? '').trim()
+      const saved = (sidecar.transcript ?? '').trim()
+      const sourceRaw = raw || (transcriptLooksCollapsed(saved) ? '' : saved)
+      const transcript = formatTranscript(sourceRaw || saved, words) || sourceRaw || saved
+
       return NextResponse.json({
         found: true,
-        transcript: sidecar.transcript,
+        transcript,
+        transcript_raw: raw,
         duration: sidecar.duration,
         language: sidecar.language,
         words: sidecar.words,

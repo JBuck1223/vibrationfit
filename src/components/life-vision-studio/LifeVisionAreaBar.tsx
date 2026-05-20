@@ -19,7 +19,6 @@ const TABS = [
 const CREATE_AREA_ROUTES = [
   '/life-vision/create',
   '/life-vision/new',
-  '/life-vision/manual',
   '/life-vision/refine',
 ]
 
@@ -175,13 +174,11 @@ export function LifeVisionAreaBar() {
       || pathname.startsWith('/life-vision/new/')
     const isRefineFlow = /^\/life-vision\/[^/]+\/refine/.test(pathname)
       || pathname.startsWith('/life-vision/refine')
-      || /^\/life-vision\/[^/]+\/draft/.test(pathname)
-      || pathname.startsWith('/life-vision/manual')
+    || /^\/life-vision\/[^/]+\/draft/.test(pathname)
 
     const isOnRefineSubpage = /^\/life-vision\/[^/]+\/refine/.test(pathname)
       || pathname.startsWith('/life-vision/refine')
     const isOnCommitSubpage = /^\/life-vision\/[^/]+\/draft/.test(pathname)
-      || pathname.startsWith('/life-vision/manual')
     const isOnAssemblyPage = pathname === '/life-vision/new/assembly' || pathname.startsWith('/life-vision/new/assembly/')
     const isOnCategoryPage = isFreshFlow && !isOnAssemblyPage
 
@@ -191,7 +188,7 @@ export function LifeVisionAreaBar() {
       const handleRefineNav = () => {
         if (draftId) { router.push(`/life-vision/${draftId}/refine`); return }
         if (activeVisionId) { router.push(`/life-vision/${activeVisionId}/refine`); return }
-        router.push('/life-vision/refine/new')
+        router.push('/life-vision/create')
       }
 
       const handleCommitNav = () => {

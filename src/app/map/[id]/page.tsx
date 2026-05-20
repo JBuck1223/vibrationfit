@@ -193,7 +193,9 @@ export default function MapViewPage() {
             >
               {statusStyle.label}
             </span>
-            {items.some(i => i.notify_sms) && (
+            {items.some(
+              i => i.notify_sms && !getActivityDefinition(i.activity_type)?.usesPublishedSchedule,
+            ) && (
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30">
                 <Bell className="w-3 h-3" />
                 SMS Reminders
@@ -333,7 +335,7 @@ export default function MapViewPage() {
                                 {DAY_LABELS[d]}
                               </span>
                             ))}
-                            {item.time_of_day && (
+                            {item.time_of_day && !def?.usesPublishedSchedule && (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-neutral-800 text-neutral-300">
                                 {formatTime(item.time_of_day)}
                               </span>
@@ -341,11 +343,12 @@ export default function MapViewPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          {item.notify_sms ? (
-                            <Bell className="w-4 h-4 text-[#39FF14]" />
-                          ) : (
-                            <BellOff className="w-4 h-4 text-neutral-600" />
-                          )}
+                          {!def?.usesPublishedSchedule &&
+                            (item.notify_sms ? (
+                              <Bell className="w-4 h-4 text-[#39FF14]" />
+                            ) : (
+                              <BellOff className="w-4 h-4 text-neutral-600" />
+                            ))}
                           {item.deep_link && (
                             <Link
                               href={item.deep_link}

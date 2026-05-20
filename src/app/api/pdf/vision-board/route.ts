@@ -57,10 +57,21 @@ function getCategoryLabel(key: string): string {
   return category?.label || key
 }
 
+/** 6-char hex without #; falls back if invalid (matches /api/pdf/vision pattern). */
+function normalizeHexParam(value: string | null, fallback: string): string {
+  const raw = (value || fallback).replace(/^#/, '')
+  return /^[0-9A-Fa-f]{6}$/.test(raw) ? raw : fallback
+}
+
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams
     const preview = searchParams.get('preview') === 'true'
+
+    const primary = normalizeHexParam(searchParams.get('primary'), '000000')
+    const accent = normalizeHexParam(searchParams.get('accent'), '9CA3AF')
+    const textHex = normalizeHexParam(searchParams.get('text'), '1F1F1F')
+    const bgHex = normalizeHexParam(searchParams.get('bg'), 'FFFFFF')
     
     // Filter params
     const categoriesParam = searchParams.get('categories') // comma-separated or 'all'
@@ -261,7 +272,7 @@ export async function GET(req: NextRequest) {
             ${imageUrl 
               ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)}" class="item-image" />`
               : `<div class="item-image-placeholder">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#${accent}" stroke-width="1.5">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                     <circle cx="8.5" cy="8.5" r="1.5"/>
                     <polyline points="21,15 16,10 5,21"/>
@@ -377,8 +388,8 @@ export async function GET(req: NextRequest) {
 
     html, body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #FFFFFF;
-      color: #1F1F1F;
+      background: #${bgHex};
+      color: #${textHex};
       font-size: ${preview ? '12px' : '10pt'};
       line-height: 1.4;
       ${preview ? 'width: 100%; height: 100%; margin: 0; padding: 0;' : ''}
@@ -389,7 +400,7 @@ export async function GET(req: NextRequest) {
         ? `width: 100%; min-height: 100%; padding: 20px;` 
         : `width: ${pageWidth}; ${outputFormat === 'image' ? `height: ${pageHeight}; max-height: ${pageHeight}; overflow: hidden;` : `min-height: ${pageHeight};`} padding: ${outputFormat === 'image' ? '20px' : '0.4in'};`
       }
-      background: #FFFFFF;
+      background: #${bgHex};
       box-sizing: border-box;
     }
 
@@ -400,19 +411,19 @@ export async function GET(req: NextRequest) {
       align-items: flex-start;
       margin-bottom: 20px;
       padding-bottom: 12px;
-      border-bottom: 2px solid #199D67;
+      border-bottom: 2px solid #${accent};
     }
 
     .header-left h1 {
       font-size: 22pt;
       font-weight: 700;
-      color: #199D67;
+      color: #${primary};
       margin-bottom: 4px;
     }
 
     .header-left .subtitle {
       font-size: 10pt;
-      color: #6B7280;
+      color: #${accent};
     }
 
     .header-right {
@@ -422,12 +433,12 @@ export async function GET(req: NextRequest) {
     .header-right .user-name {
       font-size: 11pt;
       font-weight: 600;
-      color: #1F1F1F;
+      color: #${textHex};
     }
 
     .header-right .date {
       font-size: 9pt;
-      color: #6B7280;
+      color: #${accent};
     }
 
     /* Stats bar */
@@ -436,7 +447,7 @@ export async function GET(req: NextRequest) {
       gap: 16px;
       margin-bottom: 16px;
       padding: 10px 16px;
-      background: #F9FAFB;
+      background: color-mix(in srgb, #${textHex} 6%, #${bgHex});
       border-radius: 8px;
     }
 
@@ -454,13 +465,13 @@ export async function GET(req: NextRequest) {
 
     .stat-label {
       font-size: 9pt;
-      color: #6B7280;
+      color: #${accent};
     }
 
     .stat-value {
       font-size: 10pt;
       font-weight: 600;
-      color: #1F1F1F;
+      color: #${textHex};
     }
 
     /* Items grid */
@@ -470,8 +481,8 @@ export async function GET(req: NextRequest) {
     }
 
     .item-card {
-      background: ${showItemNames ? '#FFFFFF' : 'transparent'};
-      border: ${showItemNames ? '1px solid #E5E7EB' : 'none'};
+      background: ${showItemNames ? `color-mix(in srgb, #${textHex} 4%, #${bgHex})` : 'transparent'};
+      border: ${showItemNames ? `1px solid color-mix(in srgb, #${accent} 45%, #${bgHex})` : 'none'};
       border-radius: ${roundedCorners ? '8px' : '0'};
       overflow: hidden;
       break-inside: avoid;
@@ -481,7 +492,7 @@ export async function GET(req: NextRequest) {
       position: relative;
       width: 100%;
       aspect-ratio: 4/3;
-      background: ${showItemNames ? '#F3F4F6' : 'transparent'};
+      background: ${showItemNames ? `color-mix(in srgb, #${textHex} 8%, #${bgHex})` : 'transparent'};
       ${!showItemNames ? `border-radius: ${roundedCorners ? '8px' : '0'};` : ''}
     }
 
@@ -498,7 +509,7 @@ export async function GET(req: NextRequest) {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: ${showItemNames ? '#F3F4F6' : '#E5E7EB'};
+      background: ${showItemNames ? `color-mix(in srgb, #${textHex} 8%, #${bgHex})` : `color-mix(in srgb, #${accent} 35%, #${bgHex})`};
       ${!showItemNames ? `border-radius: ${roundedCorners ? '8px' : '0'};` : ''}
     }
 
@@ -522,7 +533,7 @@ export async function GET(req: NextRequest) {
     .item-name {
       font-size: 9pt;
       font-weight: 600;
-      color: #1F1F1F;
+      color: #${textHex};
       margin-bottom: 2px;
       line-height: 1.2;
       overflow: hidden;
@@ -534,7 +545,7 @@ export async function GET(req: NextRequest) {
 
     .item-description {
       font-size: 7pt;
-      color: #6B7280;
+      color: #${accent};
       margin-bottom: 4px;
       line-height: 1.3;
       overflow: hidden;
@@ -546,7 +557,7 @@ export async function GET(req: NextRequest) {
 
     .item-categories {
       font-size: 7pt;
-      color: #199D67;
+      color: #${primary};
       font-weight: 500;
     }
 
@@ -560,12 +571,12 @@ export async function GET(req: NextRequest) {
       font-weight: 600;
       margin-bottom: 10px;
       padding-bottom: 6px;
-      border-bottom: 1px solid #E5E7EB;
+      border-bottom: 1px solid color-mix(in srgb, #${accent} 45%, #${bgHex});
     }
 
     .no-items {
       text-align: center;
-      color: #9CA3AF;
+      color: #${accent};
       padding: 40px;
       font-style: italic;
     }
@@ -574,10 +585,10 @@ export async function GET(req: NextRequest) {
     .footer {
       margin-top: 20px;
       padding-top: 10px;
-      border-top: 1px solid #E5E7EB;
+      border-top: 1px solid color-mix(in srgb, #${accent} 45%, #${bgHex});
       text-align: center;
       font-size: 8pt;
-      color: #9CA3AF;
+      color: #${accent};
     }
 
     .footer img {
@@ -612,7 +623,7 @@ export async function GET(req: NextRequest) {
 
     <div class="stats-bar">
       <div class="stat">
-        <div class="stat-dot" style="background: #1F1F1F;"></div>
+        <div class="stat-dot" style="background: #${textHex};"></div>
         <span class="stat-label">Total:</span>
         <span class="stat-value">${totalItems}</span>
       </div>
