@@ -12,7 +12,9 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
+import { IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { markIntensiveStep } from '@/lib/intensive/checklist'
+import { useIntensiveStepCompleteModal } from '@/lib/intensive/use-step-complete-modal'
 import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { createClient } from '@/lib/supabase/client'
 import { VibeTag, VIBE_TAG_CONFIG, VIBE_TAGS } from '@/lib/vibe-tribe/types'
@@ -50,6 +52,8 @@ const TAG_DESCRIPTIONS: Record<VibeTag, string> = {
 export default function IntensiveVibePostPage() {
   const router = useRouter()
   const { setCompletedAt } = useIntensiveStep()
+  const { isOpen, stepId, completeAndShowModal, showModalForChecklistKey, closeModal } =
+    useIntensiveStepCompleteModal()
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [hasPosted, setHasPosted] = useState(false)
@@ -193,8 +197,7 @@ export default function IntensiveVibePostPage() {
 
       if (response.ok) {
         setHasPosted(true)
-        await markIntensiveStep('first_vibe_post')
-        invalidateIntensiveSnapshot()
+        await completeAndShowModal('first_vibe_post')
         setLocalCompletedAt(new Date().toISOString())
       } else {
         const error = await response.json()
@@ -251,7 +254,11 @@ export default function IntensiveVibePostPage() {
                   <p className="text-xs text-neutral-400">Next up: learn how to engage with the community.</p>
                 </div>
               </div>
-              <Button variant="primary" size="sm" onClick={() => router.push('/intensive/vibe-tribe/engage')}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => showModalForChecklistKey('first_vibe_post')}
+              >
                 Continue<ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -520,6 +527,12 @@ export default function IntensiveVibePostPage() {
         )}
 
       </div>
+
+      <IntensiveStepCompleteModal
+        isOpen={isOpen}
+        onClose={closeModal}
+        stepId={stepId || 'first_vibe_post'}
+      />
     </Container>
   )
 }

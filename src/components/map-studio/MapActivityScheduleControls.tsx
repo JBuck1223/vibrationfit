@@ -16,7 +16,6 @@ const BUILDER_DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const
 export function MapActivityScheduleControls({
   sel,
   isDaily,
-  pillarColor,
   activityType,
   hasPhone,
   smsOptIn,
@@ -25,7 +24,6 @@ export function MapActivityScheduleControls({
 }: {
   sel: BuilderSelection
   isDaily: boolean
-  pillarColor: string
   activityType: string
   hasPhone: boolean
   smsOptIn: boolean
@@ -98,10 +96,9 @@ export function MapActivityScheduleControls({
                   cannotTurnOn ? 'cursor-not-allowed opacity-35' : ''
                 } ${
                   isOn
-                    ? 'text-black'
+                    ? 'bg-primary-500 text-black ring-1 ring-primary-500/50'
                     : 'bg-neutral-800/70 text-neutral-500 hover:bg-neutral-700'
                 }`}
-                style={isOn ? { backgroundColor: pillarColor } : undefined}
               >
                 {label}
               </button>

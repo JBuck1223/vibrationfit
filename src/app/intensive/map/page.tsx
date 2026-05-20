@@ -18,31 +18,19 @@ import { MapSystemBuilder } from '@/components/map-studio/MapSystemBuilder'
 import { PILLAR_META } from '@/lib/map/map-pillar-config'
 import { INTENSIVE_DEFAULT_SELECTIONS } from '@/lib/map/intensive-map-config'
 import { getActivityDefinition } from '@/lib/map/activities'
-import {
-  Headphones,
-  BookOpen,
-  Heart,
-  Video,
-  Bell,
-  Sparkles,
-  Unlock,
-  BookMarked,
-  Music2,
-  Eye,
-  Image,
-  FileText,
-  DollarSign,
-  Sun,
-} from 'lucide-react'
+import { formatCadenceLabel } from '@/lib/map/map-builder-cadence'
+import { Headphones, BookOpen, Heart, Video, Bell } from 'lucide-react'
 
 function IntensiveMapExplainer() {
   const starterItems = INTENSIVE_DEFAULT_SELECTIONS.map(def => {
     const activity = getActivityDefinition(def.activityType)
     const pillar = activity?.category
     return {
+      key: def.activityType,
       label: activity?.label ?? def.activityType,
       pillar: pillar ? PILLAR_META[pillar].verb : '',
       color: pillar ? PILLAR_META[pillar].color : '#39FF14',
+      cadence: formatCadenceLabel(def.cadenceJson),
       icon:
         def.activityType === 'vision_audio'
           ? Headphones
@@ -55,91 +43,55 @@ function IntensiveMapExplainer() {
   })
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-2xl mx-auto text-center space-y-3">
+    <div className="space-y-4">
+      <div className="max-w-2xl mx-auto text-center space-y-2">
         <h1 className="text-2xl font-bold text-white">Your Starter MAP</h1>
         <p className="text-sm text-neutral-400 leading-relaxed">
-          MAP stands for <span className="text-white font-medium">My Alignment Plan</span> — your weekly
-          rhythm of practices that keep you aligned. We pre-built this from what you already did in the
-          Intensive: vision audio, journal, Vibe Tribe, and Alignment Gym.
+          <span className="text-white font-medium">My Alignment Plan</span> — your weekly rhythm from the
+          Intensive. Review below, tune cadence and reminders, then activate.
         </p>
       </div>
 
-      <Card className="bg-neutral-900/50 border-neutral-800 p-5">
-        <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-neutral-500 mb-3">
-          Pre-selected for you
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {starterItems.map(({ label, pillar, color, icon: Icon }) => (
-            <div
-              key={label}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-neutral-800/40 border border-neutral-800/80"
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" style={{ color }} />
-              <div className="min-w-0">
-                <p className="text-sm text-white font-medium truncate">{label}</p>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color }}>
-                  {pillar}
-                </p>
+      <Card className="bg-neutral-900/50 border-neutral-800 p-4 sm:p-5">
+        <div className="space-y-3">
+          <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-neutral-500">
+            Pre-selected for you
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {starterItems.map(({ key, label, pillar, color, cadence, icon: Icon }) => (
+              <div
+                key={key}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-neutral-800/40 border border-neutral-800/80"
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" style={{ color }} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-white font-medium truncate">{label}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-500">{pillar}</p>
+                </div>
+                <span className="shrink-0 rounded-md bg-primary-500/10 px-2 py-0.5 text-[10px] font-semibold text-primary-400 border border-primary-500/25">
+                  {cadence}
+                </span>
               </div>
+            ))}
+          </div>
+
+          <div className="flex items-start gap-2.5 pt-3 border-t border-neutral-800/80">
+            <Bell className="w-4 h-4 text-primary-400 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0 space-y-1">
+              <p className="text-xs font-medium text-neutral-300">Schedule your nudges</p>
+              <p className="text-[11px] text-neutral-500 leading-relaxed">
+                Under each commitment: Email or SMS, days, and time. Optional Monday weekly digest at the
+                bottom. Alignment Gym follows its published session schedule.
+              </p>
+              <p className="text-[11px] text-neutral-600">
+                SMS requires a phone number —{' '}
+                <Link href="/intensive/account/settings" className="text-primary-400 hover:underline">
+                  Account Settings
+                </Link>
+              </p>
             </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="bg-[#101010] border-[#1F1F1F] p-5">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#00FFFF]/10 flex items-center justify-center flex-shrink-0">
-            <Bell className="w-5 h-5 text-[#00FFFF]" />
           </div>
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-white">Schedule your nudges</p>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Under each commitment you can turn on Email or SMS reminders, pick days and times, and set
-              an optional Monday weekly digest. Alignment Gym uses its published session schedule instead
-              of custom reminders.
-            </p>
-            <p className="text-xs text-neutral-500">
-              SMS needs a phone number —{' '}
-              <Link href="/intensive/account/settings" className="text-primary-400 hover:underline">
-                update Account Settings
-              </Link>{' '}
-              if you have not already.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="bg-neutral-900/50 border-neutral-800 p-6">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 rounded-xl bg-[#39FF14]/10 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-[#39FF14]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">More rituals after graduation</p>
-            <p className="text-xs text-neutral-400">
-              Your MAP can grow with additional activations and creations — not fewer reminders.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[
-            { icon: BookMarked, label: 'Story Audio Listens', color: '#39FF14' },
-            { icon: Music2, label: 'VibrationFit Music', color: '#39FF14' },
-            { icon: Eye, label: 'Life Vision Reads', color: '#39FF14' },
-            { icon: Image, label: 'Vision Board Reviews', color: '#39FF14' },
-            { icon: Sun, label: 'Journal Reviews', color: '#39FF14' },
-            { icon: FileText, label: 'Daily Paper', color: '#FFFF00' },
-            { icon: Image, label: 'Vision Board Updates', color: '#FFFF00' },
-            { icon: DollarSign, label: 'Abundance Tracker', color: '#FFFF00' },
-          ].map(({ icon: Icon, label, color }) => (
-            <div key={label} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-neutral-800/40">
-              <Icon className="w-4 h-4 flex-shrink-0" style={{ color }} />
-              <span className="text-xs text-neutral-400">{label}</span>
-              <Unlock className="w-3 h-3 text-neutral-600 ml-auto flex-shrink-0" />
-            </div>
-          ))}
         </div>
       </Card>
     </div>

@@ -10,6 +10,21 @@ export const CADENCE_OPTIONS = [
 
 export const CADENCE_SELECT_OPTIONS = CADENCE_OPTIONS.map(o => ({ value: o.value, label: o.label }))
 
+export function formatCadenceLabel(cadenceJson: string): string {
+  const match = CADENCE_OPTIONS.find(o => o.value === cadenceJson)
+  if (match) return match.label
+  try {
+    const c = JSON.parse(cadenceJson) as { kind?: string; count?: number }
+    if (c.kind === 'daily') return 'Every day'
+    if (c.kind === 'days_per_week' && typeof c.count === 'number') {
+      return `${c.count}x per week`
+    }
+  } catch {
+    // ignore
+  }
+  return ''
+}
+
 export function daysForCadence(cadenceJson: string): number[] {
   try {
     const c = JSON.parse(cadenceJson)

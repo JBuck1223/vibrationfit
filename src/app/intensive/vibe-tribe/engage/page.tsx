@@ -1,18 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Container, Button, Spinner, Card, Stack } from '@/lib/design-system/components'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
-import { markIntensiveStep } from '@/lib/intensive/checklist'
-import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
+import { IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { useIntensiveStepCompleteModal } from '@/lib/intensive/use-step-complete-modal'
 import { VibeTribeFeedLayout } from '@/components/vibe-tribe/VibeTribeFeedLayout'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, Heart, MessageCircle, ArrowRight } from 'lucide-react'
 
 export default function IntensiveVibeEngagePage() {
-  const router = useRouter()
   const { setCompletedAt } = useIntensiveStep()
+  const { isOpen, stepId, completeAndShowModal, showModalForChecklistKey, closeModal } =
+    useIntensiveStepCompleteModal()
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [userProfile, setUserProfile] = useState<{ id: string; full_name: string | null; profile_picture_url: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -97,8 +97,7 @@ export default function IntensiveVibeEngagePage() {
         const engaged = await checkEngagement(authUser.id)
         if (engaged) {
           setHasEngaged(true)
-          await markIntensiveStep('vibe_engagement')
-          invalidateIntensiveSnapshot()
+          await completeAndShowModal('vibe_engagement')
           setLocalCompletedAt(new Date().toISOString())
         }
       }
@@ -113,13 +112,12 @@ export default function IntensiveVibeEngagePage() {
       const engaged = await checkEngagement(user.id)
       if (engaged) {
         setHasEngaged(true)
-        await markIntensiveStep('vibe_engagement')
-        invalidateIntensiveSnapshot()
+        await completeAndShowModal('vibe_engagement')
         setLocalCompletedAt(new Date().toISOString())
       }
     }, 5000)
     return () => clearInterval(interval)
-  }, [user, hasEngaged])
+  }, [user, hasEngaged, completeAndShowModal])
 
   if (loading) {
     return <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center"><Spinner size="lg" /></Container>
@@ -181,7 +179,11 @@ export default function IntensiveVibeEngagePage() {
                   <p className="text-xs text-neutral-400">Next up: get to know the Alignment Gym.</p>
                 </div>
               </div>
-              <Button variant="primary" size="sm" onClick={() => router.push('/intensive/alignment-gym')}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => showModalForChecklistKey('vibe_engagement')}
+              >
                 Continue<ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -197,6 +199,12 @@ export default function IntensiveVibeEngagePage() {
           />
         )}
       </Stack>
+
+      <IntensiveStepCompleteModal
+        isOpen={isOpen}
+        onClose={closeModal}
+        stepId={stepId || 'vibe_engagement'}
+      />
     </Container>
   )
 }
