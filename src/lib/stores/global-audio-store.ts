@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import { getCachedAudio } from '@/lib/storage/audio-offline-cache'
 
+export type AudioContentCategory = 'life_vision' | 'story' | 'music'
+
 interface GlobalAudioState {
   tracks: AudioTrack[]
   currentIndex: number
@@ -11,12 +13,13 @@ interface GlobalAudioState {
   duration: number
   setName: string
   setIconKey: string
+  contentCategory: AudioContentCategory
   repeatMode: 'off' | 'all' | 'one'
   isShuffled: boolean
   shuffleOrder: number[]
   isDrawerOpen: boolean
 
-  play: (tracks: AudioTrack[], startIndex?: number, setName?: string, setIconKey?: string) => void
+  play: (tracks: AudioTrack[], startIndex?: number, setName?: string, setIconKey?: string, contentCategory?: AudioContentCategory) => void
   playTrack: (index: number) => void
   stop: () => void
   pause: () => void
@@ -90,6 +93,40 @@ async function loadAndPlay(audio: HTMLAudioElement, track: AudioTrack) {
   const url = await resolveTrackUrl(track)
   audio.src = url
   audio.play().catch(() => {})
+  trackPlayEvent(track)
+}
+
+const CATEGORY_TO_AREA: Record<AudioContentCategory, string> = {
+  life_vision: 'vision_audio',
+  story: 'story_listen',
+  music: 'music_listen',
+}
+
+async function trackPlayEvent(track: AudioTrack) {
+  try {
+    const { createClient } = await import('@/lib/supabase/client')
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
+    if (!user) return
+
+    await supabase.rpc('increment_audio_play', { p_track_id: track.id })
+
+    const category = useGlobalAudioStore.getState().contentCategory
+    const area = CATEGORY_TO_AREA[category]
+    const today = new Date().toISOString().split('T')[0]
+    await supabase.from('area_activations').upsert(
+      { user_id: user.id, area, activation_date: today },
+      { onConflict: 'user_id,area,activation_date', ignoreDuplicates: true },
+    )
+
+    if (category === 'life_vision') {
+      const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+      autoVerifyClient('vision-audio')
+    }
+  } catch {
+    // Tracking is non-critical; don't disrupt playback
+  }
 }
 
 function wireAudioEvents() {
@@ -166,12 +203,13 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
   duration: 0,
   setName: '',
   setIconKey: '',
+  contentCategory: 'life_vision',
   repeatMode: 'off',
   isShuffled: false,
   shuffleOrder: [],
   isDrawerOpen: false,
 
-  play: (tracks, startIndex = 0, setName, setIconKey) => {
+  play: (tracks, startIndex = 0, setName, setIconKey, contentCategory) => {
     if (tracks.length === 0) return
     const audio = getAudio()
     set({
@@ -183,6 +221,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       duration: 0,
       setName: setName ?? '',
       setIconKey: setIconKey ?? '',
+      contentCategory: contentCategory ?? 'life_vision',
       isShuffled: false,
       shuffleOrder: [],
     })
@@ -214,6 +253,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       duration: 0,
       setName: '',
       setIconKey: '',
+      contentCategory: 'life_vision',
       repeatMode: 'off',
       isShuffled: false,
       shuffleOrder: [],

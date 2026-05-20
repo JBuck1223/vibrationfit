@@ -6,4 +6,7 @@ export interface AudioTrack {
   url: string
   thumbnail?: string
   variant?: string // Optional: 'sleep', 'meditation', 'energy' for background mixing
+  sectionKey?: string
+  syncedLyrics?: unknown
+  plainLyrics?: string
 }

@@ -13,6 +13,7 @@ interface InlineTrackListProps {
   setIcon?: React.ReactNode
   setName?: string
   setIconKey?: string
+  contentCategory?: 'life_vision' | 'story' | 'music'
   trackCount?: number
   createdDate?: string
   onRename?: (newName: string) => void
@@ -32,6 +33,7 @@ export function InlineTrackList({
   setIcon,
   setName,
   setIconKey,
+  contentCategory,
   trackCount,
   createdDate,
   onRename,
@@ -95,7 +97,7 @@ export function InlineTrackList({
         playTrackAction(index)
       }
     } else {
-      playAction(tracks, index, setName, setIconKey)
+      playAction(tracks, index, setName, setIconKey, contentCategory)
     }
   }
 

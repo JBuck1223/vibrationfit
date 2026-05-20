@@ -5,6 +5,8 @@ import type { AreaStatsResponse } from '@/app/api/area-stats/route'
 
 export type AreaSlug =
   | 'vision-audio'
+  | 'story-listen'
+  | 'music-listen'
   | 'journal'
   | 'daily-paper'
   | 'alignment-gym'
@@ -50,6 +52,8 @@ export function useAreaStats(area: AreaSlug) {
 export function useAllAreaStats() {
   const areas: AreaSlug[] = [
     'vision-audio',
+    'story-listen',
+    'music-listen',
     'journal',
     'daily-paper',
     'alignment-gym',

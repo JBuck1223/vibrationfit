@@ -55,6 +55,7 @@ interface EmbeddedPlayerProps {
   setIcon?: React.ReactNode
   setName?: string
   setIconKey?: string
+  contentCategory?: 'life_vision' | 'story' | 'music'
   trackCount?: number
   createdDate?: string
   onRename?: (newName: string) => void
@@ -79,6 +80,7 @@ export function EmbeddedPlayer({
   setIcon,
   setName,
   setIconKey,
+  contentCategory,
   trackCount,
   createdDate,
   onRename,
@@ -230,7 +232,7 @@ export function EmbeddedPlayer({
     if (isThisSetActive) {
       togglePlayPause()
     } else {
-      playAction(tracks, 0, setName, setIconKey)
+      playAction(tracks, 0, setName, setIconKey, contentCategory)
     }
   }
 
@@ -242,7 +244,7 @@ export function EmbeddedPlayer({
         playTrackAction(index)
       }
     } else {
-      playAction(tracks, index, setName, setIconKey)
+      playAction(tracks, index, setName, setIconKey, contentCategory)
     }
   }
 
@@ -399,7 +401,7 @@ export function EmbeddedPlayer({
             {activeTrack?.title || tracks[0]?.title || 'Select a track'}
           </h3>
           <p className="text-sm text-neutral-400 mt-1 truncate">
-            {setName || activeTrack?.artist || 'VibrationFit'}
+            {setName || activeTrack?.artist || 'Vibration Fit'}
           </p>
         </div>
 
