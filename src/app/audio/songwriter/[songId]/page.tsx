@@ -175,7 +175,7 @@ export default function SongDetailPage() {
                       {track.title || `Version ${track.version}`}
                     </span>
                     {track.genres?.slice(0, 2).map(g => (
-                      <Badge key={g} variant="default" className="text-[10px]">{g}</Badge>
+                      <Badge key={g} variant="neutral" className="text-[10px]">{g}</Badge>
                     ))}
                   </div>
                   <div className="flex items-center gap-1.5">

@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
             title,
             lyrics: text,
             status: 'lyrics_complete',
-            generation_count: supabase.rpc ? 1 : 1,
+            generation_count: 1,
             metadata: {
               prompt_version: 'songwriter-v1',
               model_used: response?.modelId || SONGWRITER_MODEL,
@@ -159,9 +159,11 @@ export async function POST(request: NextRequest) {
           .eq('user_id', user.id)
 
         // Increment generation count
-        await supabase.rpc('increment_song_generation_count', { song_id_param: songId }).catch(() => {
+        try {
+          await supabase.rpc('increment_song_generation_count', { song_id_param: songId })
+        } catch {
           // Fallback: non-critical if RPC doesn't exist yet
-        })
+        }
 
         if (usage) {
           trackTokenUsage({

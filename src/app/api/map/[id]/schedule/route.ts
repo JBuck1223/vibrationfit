@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { scheduleMapNotifications } from '@/lib/map/notifications'
-import type { UserMap, UserMapItem } from '@/lib/map/types'
-
+import { scheduleCommitmentReminders } from '@/lib/map/notifications'
 interface RouteParams {
   params: Promise<{ id: string }>
 }
@@ -58,11 +56,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const result = await scheduleMapNotifications({
-      map: map as UserMap & { items: UserMapItem[] },
-      userId: user.id,
-      phone: account.phone,
-    })
+    const result = await scheduleCommitmentReminders(user.id)
 
     return NextResponse.json({
       success: true,

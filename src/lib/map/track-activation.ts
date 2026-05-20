@@ -17,6 +17,7 @@ export type MapAudioActivityType =
   | 'vision_audio'
   | 'story_audio'
   | 'music_listen'
+  | 'song_listen'
 
 const SET_ICON_TO_AUDIO_ACTIVITY: Record<string, MapAudioActivityType> = {
   life_vision: 'vision_audio',
