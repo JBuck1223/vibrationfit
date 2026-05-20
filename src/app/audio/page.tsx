@@ -1287,6 +1287,7 @@ export default function AudioListenPage() {
                           </div>
                         )}
                       </div>
+                    </div>
                     }
                   />
                   {/* Mobile: lyrics below player */}
