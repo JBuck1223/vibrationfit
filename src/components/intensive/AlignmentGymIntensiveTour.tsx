@@ -1,12 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Flame, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
-import { Button, Card, Spinner } from '@/lib/design-system/components'
+import { Button, Card, Spinner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import type { AlignmentGymTourAnchor } from '@/components/alignment-gym/AlignmentGymHub'
-import { markIntensiveStep } from '@/lib/intensive/checklist'
-import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
+import { useIntensiveStepCompleteModal } from '@/lib/intensive/use-step-complete-modal'
 
 type TourPhase = 'intro' | 'walkthrough'
 
@@ -48,7 +46,7 @@ export function AlignmentGymIntensiveTour({
   alreadyCompleted: boolean
   onActiveAnchorChange: (anchor: AlignmentGymTourAnchor | null) => void
 }) {
-  const router = useRouter()
+  const { isOpen, stepId, completeAndShowModal, closeModal } = useIntensiveStepCompleteModal()
   const [phase, setPhase] = useState<TourPhase>('intro')
   const [stepIndex, setStepIndex] = useState(0)
   const [completing, setCompleting] = useState(false)
@@ -72,14 +70,18 @@ export function AlignmentGymIntensiveTour({
 
   const handleFinish = async () => {
     setCompleting(true)
-    await markIntensiveStep('alignment_gym_toured')
-    invalidateIntensiveSnapshot()
     onActiveAnchorChange(null)
-    router.push('/intensive/map')
+    await completeAndShowModal('alignment_gym_toured')
+    setCompleting(false)
   }
 
   return (
     <>
+      <IntensiveStepCompleteModal
+        isOpen={isOpen}
+        onClose={closeModal}
+        stepId={stepId || 'alignment_gym_tour'}
+      />
       {phase === 'intro' && (
         <div className={`${INTENSIVE_MAIN_BOUNDS} z-[100] flex items-center justify-center p-4`}>
           <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]" aria-hidden />

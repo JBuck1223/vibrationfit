@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryLabel, isValidVisionCategory } from '@/lib/design-system/vision-categories'
+import { IntensiveAudioStepCompletionWatcher } from '@/components/intensive/IntensiveAudioStepCompletionWatcher'
 
 type BatchStatus = 'pending' | 'processing' | 'completed' | 'partial_success' | 'failed'
 
@@ -933,6 +934,8 @@ export default function AudioQueueBatchPage({
           </div>
         </div>
       )}
+
+      <IntensiveAudioStepCompletionWatcher />
     </Container>
   )
 }
