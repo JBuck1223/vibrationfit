@@ -547,7 +547,9 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <h3 className="text-lg font-bold text-white mb-4">Daily Practice</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {([
-              { area: 'vision-audio' as AreaSlug, title: 'Vision Audio', icon: Headphones, theme: 'green' as const, href: '/audio', cta: 'Listen', ctaDone: 'Listen again' },
+              { area: 'vision-audio' as AreaSlug, title: 'Life Vision', icon: Headphones, theme: 'green' as const, href: '/audio', cta: 'Listen', ctaDone: 'Listen again' },
+              { area: 'story-listen' as AreaSlug, title: 'Stories', icon: BookOpen, theme: 'purple' as const, href: '/audio', cta: 'Listen', ctaDone: 'Listen again' },
+              { area: 'music-listen' as AreaSlug, title: 'Music', icon: Music, theme: 'teal' as const, href: '/audio', cta: 'Listen', ctaDone: 'Listen again' },
               { area: 'journal' as AreaSlug, title: 'Journal', icon: BookOpen, theme: 'yellow' as const, href: '/journal/new', cta: 'Open Journal', ctaDone: 'Write again' },
               { area: 'daily-paper' as AreaSlug, title: 'Daily Paper', icon: FileText, theme: 'yellow' as const, href: '/daily-paper/new', cta: 'Open Daily Paper', ctaDone: 'Review' },
               { area: 'alignment-gym' as AreaSlug, title: 'Alignment Gym', icon: VideoIcon, theme: 'teal' as const, href: '/alignment-gym', cta: 'Join Session', ctaDone: 'Watch Replay', streakUnit: 'weeks' as const },

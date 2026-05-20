@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useRef, useCallback, useEffect, useState } from 'react'
-import { Play, Pause, SkipBack, SkipForward, ChevronDown, X, Shuffle, Repeat, Loader2 } from 'lucide-react'
+import React, { useRef, useCallback, useEffect, useState, useMemo } from 'react'
+import { Play, Pause, SkipBack, SkipForward, ChevronDown, X, Shuffle, Repeat, Loader2, AlignLeft } from 'lucide-react'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { colors } from '../../../tokens'
 import { TrackArtwork } from './TrackArtwork'
 import { cn } from '../../shared-utils'
+import { SyncedLyricsDisplay, PlainLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
+import type { SyncedLyrics } from '@/lib/utils/lyrics-alignment'
 
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
@@ -38,6 +40,7 @@ export function AudioDrawerPlayer() {
   const isBuffering = useGlobalAudioStore(s => s.isBuffering)
 
   const [showPlaylist, setShowPlaylist] = useState(false)
+  const [showLyrics, setShowLyrics] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
   const touchStartY = useRef(0)
   const touchCurrentY = useRef(0)
@@ -46,11 +49,14 @@ export function AudioDrawerPlayer() {
 
   const currentTrack = tracks[currentIndex] ?? null
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const isMusicTrack = currentTrack?.sectionKey === 'music'
+  const hasLyrics = isMusicTrack && !!(currentTrack?.syncedLyrics || currentTrack?.plainLyrics)
 
   useEffect(() => {
     if (isDrawerOpen) {
       document.body.style.overflow = 'hidden'
       setShowPlaylist(false)
+      setShowLyrics(false)
     } else {
       document.body.style.overflow = ''
     }
@@ -162,7 +168,7 @@ export function AudioDrawerPlayer() {
                 {currentTrack.title}
               </h3>
               <p className="text-sm text-neutral-400 mt-1 truncate">
-                {setName || currentTrack.artist || 'VibrationFit'}
+                {setName || currentTrack.artist || 'Vibration Fit'}
               </p>
             </div>
 
@@ -234,15 +240,29 @@ export function AudioDrawerPlayer() {
               </button>
             </div>
 
-            {tracks.length > 1 && (
-              <button
-                onClick={() => setShowPlaylist(prev => !prev)}
-                className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-              >
-                {currentIndex + 1} of {tracks.length} &middot; {showPlaylist ? 'Hide Playlist' : 'View Playlist'}
-                <ChevronDown className={cn('w-3 h-3 transition-transform duration-200', showPlaylist && 'rotate-180')} />
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {tracks.length > 1 && (
+                <button
+                  onClick={() => { setShowPlaylist(prev => !prev); setShowLyrics(false) }}
+                  className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                >
+                  {currentIndex + 1} of {tracks.length} &middot; {showPlaylist ? 'Hide Playlist' : 'View Playlist'}
+                  <ChevronDown className={cn('w-3 h-3 transition-transform duration-200', showPlaylist && 'rotate-180')} />
+                </button>
+              )}
+              {hasLyrics && (
+                <button
+                  onClick={() => { setShowLyrics(prev => !prev); setShowPlaylist(false) }}
+                  className={cn(
+                    'flex items-center gap-1.5 text-xs transition-colors',
+                    showLyrics ? 'text-primary-500' : 'text-neutral-500 hover:text-neutral-300'
+                  )}
+                >
+                  <AlignLeft className="w-3 h-3" />
+                  {showLyrics ? 'Hide Lyrics' : 'Lyrics'}
+                </button>
+              )}
+            </div>
           </div>
 
           {showPlaylist && tracks.length > 1 && (
@@ -286,6 +306,23 @@ export function AudioDrawerPlayer() {
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {showLyrics && hasLyrics && currentTrack && (
+            <div className="border-t border-neutral-800/60 px-2 py-3">
+              {currentTrack.syncedLyrics ? (
+                <SyncedLyricsDisplay
+                  syncedLyrics={currentTrack.syncedLyrics as SyncedLyrics}
+                  plainText={currentTrack.plainLyrics}
+                  defaultExpanded
+                />
+              ) : currentTrack.plainLyrics ? (
+                <PlainLyricsDisplay
+                  lyrics={currentTrack.plainLyrics}
+                  defaultExpanded
+                />
+              ) : null}
             </div>
           )}
         </div>

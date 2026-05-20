@@ -1,13 +1,62 @@
 'use client'
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
-import { AlignLeft, ChevronUp } from 'lucide-react'
+import { AlignLeft, ChevronUp, Copy, Check } from 'lucide-react'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import type { SyncedLyrics, TimedLine } from '@/lib/utils/lyrics-alignment'
 
-interface SyncedLyricsDisplayProps {
-  syncedLyrics: SyncedLyrics
-  className?: string
+function LyricsPanelHeader({
+  isExpanded,
+  onToggle,
+  plainText,
+}: {
+  isExpanded: boolean
+  onToggle: () => void
+  plainText?: string
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!plainText) return
+    try {
+      await navigator.clipboard.writeText(plainText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {}
+  }, [plainText])
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+    >
+      <span className="flex items-center gap-2 text-sm font-medium text-neutral-300">
+        <AlignLeft className="w-4 h-4 text-neutral-500" />
+        Lyrics
+      </span>
+      <span className="flex items-center gap-1.5">
+        {plainText && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={handleCopy}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCopy(e as unknown as React.MouseEvent) }}
+            className="p-1 rounded-md text-neutral-500 hover:text-neutral-300 hover:bg-white/[0.06] transition-colors"
+            title="Copy lyrics"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+          </span>
+        )}
+        <ChevronUp
+          className={`w-4 h-4 text-neutral-500 transition-transform duration-200 ${
+            isExpanded ? '' : 'rotate-180'
+          }`}
+        />
+      </span>
+    </button>
+  )
 }
 
 function findActiveLine(lines: TimedLine[], time: number): number {
@@ -30,12 +79,18 @@ function findActiveLine(lines: TimedLine[], time: number): number {
   return result
 }
 
-export function SyncedLyricsDisplay({ syncedLyrics, className = '' }: SyncedLyricsDisplayProps) {
+interface SyncedLyricsDisplayProps {
+  syncedLyrics: SyncedLyrics
+  plainText?: string
+  className?: string
+  defaultExpanded?: boolean
+}
+
+export function SyncedLyricsDisplay({ syncedLyrics, plainText, className = '', defaultExpanded = true }: SyncedLyricsDisplayProps) {
   const currentTime = useGlobalAudioStore(s => s.currentTime)
-  const isPlaying = useGlobalAudioStore(s => s.isPlaying)
   const seekTo = useGlobalAudioStore(s => s.seekTo)
 
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
   const containerRef = useRef<HTMLDivElement>(null)
   const lineRefs = useRef<Map<number, HTMLButtonElement>>(new Map())
   const lastScrolledLine = useRef(-1)
@@ -81,25 +136,17 @@ export function SyncedLyricsDisplay({ syncedLyrics, className = '' }: SyncedLyri
     [seekTo],
   )
 
+  const copyText = plainText || lines.map(l => l.text).join('\n')
+
   if (lines.length === 0) return null
 
   return (
     <div className={`rounded-2xl border border-neutral-800 bg-embedded-panel overflow-hidden ${className}`}>
-      <button
-        type="button"
-        onClick={() => setIsExpanded(prev => !prev)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
-      >
-        <span className="flex items-center gap-2 text-sm font-medium text-neutral-300">
-          <AlignLeft className="w-4 h-4 text-neutral-500" />
-          Lyrics
-        </span>
-        <ChevronUp
-          className={`w-4 h-4 text-neutral-500 transition-transform duration-200 ${
-            isExpanded ? '' : 'rotate-180'
-          }`}
-        />
-      </button>
+      <LyricsPanelHeader
+        isExpanded={isExpanded}
+        onToggle={() => setIsExpanded(prev => !prev)}
+        plainText={copyText}
+      />
 
       {isExpanded && (
         <div
@@ -140,7 +187,50 @@ export function SyncedLyricsDisplay({ syncedLyrics, className = '' }: SyncedLyri
             })}
           </div>
 
-          {/* Fade-out gradient at top and bottom */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-[var(--color-embedded-panel,#141414)] to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[var(--color-embedded-panel,#141414)] to-transparent" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface PlainLyricsDisplayProps {
+  lyrics: string
+  className?: string
+  defaultExpanded?: boolean
+}
+
+export function PlainLyricsDisplay({ lyrics, className = '', defaultExpanded = true }: PlainLyricsDisplayProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
+
+  if (!lyrics.trim()) return null
+
+  const lyricsLines = lyrics.split('\n')
+
+  return (
+    <div className={`rounded-2xl border border-neutral-800 bg-embedded-panel overflow-hidden ${className}`}>
+      <LyricsPanelHeader
+        isExpanded={isExpanded}
+        onToggle={() => setIsExpanded(prev => !prev)}
+        plainText={lyrics}
+      />
+
+      {isExpanded && (
+        <div className="relative max-h-[360px] overflow-y-auto scroll-smooth px-5 pb-6 pt-2 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
+          <div className="flex flex-col items-center gap-1">
+            {lyricsLines.map((line, idx) => (
+              <p
+                key={idx}
+                className={`w-full rounded-lg px-3 py-1.5 text-center text-base font-normal ${
+                  line.trim() ? 'text-neutral-300' : 'h-4'
+                }`}
+              >
+                {line || '\u00A0'}
+              </p>
+            ))}
+          </div>
+
           <div className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-[var(--color-embedded-panel,#141414)] to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[var(--color-embedded-panel,#141414)] to-transparent" />
         </div>

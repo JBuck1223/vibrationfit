@@ -89,7 +89,7 @@ function alignWords(
 ): TimedWord[] {
   const result: TimedWord[] = []
   let wIdx = 0
-  const WINDOW = 8
+  const WINDOW = 25
 
   for (const rawWord of lyricWords) {
     const normalizedLyric = normalize(rawWord)

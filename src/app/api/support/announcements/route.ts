@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
 
     query = query
       .order('is_pinned', { ascending: false })
+      .order('pin_order', { ascending: true })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
