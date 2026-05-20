@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { scheduleMapNotifications } from '@/lib/map/notifications'
+import { scheduleCommitmentReminders } from '@/lib/map/notifications'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -60,16 +60,10 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       .eq('id', user.id)
       .single()
 
-    if (account?.phone && account?.sms_opt_in) {
-      try {
-        await scheduleMapNotifications({
-          map: { ...map, is_active: true, is_draft: false },
-          userId: user.id,
-          phone: account.phone,
-        })
-      } catch (notifErr) {
-        console.error('Error scheduling notifications (map still activated):', notifErr)
-      }
+    try {
+      await scheduleCommitmentReminders(user.id)
+    } catch (notifErr) {
+      console.error('Error scheduling reminders (map still activated):', notifErr)
     }
 
     const { data: updatedMap } = await supabase
