@@ -16,6 +16,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'focus_story_generation': 'Focus Story Generation',
   'story_refinement': 'Story Refinement',
   'incantation_generation': 'Incantation Generation',
+  'song_lyrics_generation': 'Song Lyrics Generation',
   
   // VIVA Chat & Prompts
   'chat_conversation': 'VIVA Chat',
