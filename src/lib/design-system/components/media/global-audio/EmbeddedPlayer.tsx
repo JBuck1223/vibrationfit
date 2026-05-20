@@ -65,7 +65,7 @@ interface EmbeddedPlayerProps {
   onAddToPlaylist?: (track: AudioTrack, index: number) => void
   onRemoveTrack?: (track: AudioTrack, index: number) => void
   /** MAP activity to verify on listen; inferred from setIconKey when omitted */
-  mapActivityType?: 'vision_audio' | 'story_audio' | 'music_listen'
+  mapActivityType?: 'vision_audio' | 'story_audio' | 'music_listen' | 'song_listen'
 }
 
 function formatTime(seconds: number): string {
