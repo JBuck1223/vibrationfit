@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
             title,
             lyrics: text,
             status: 'lyrics_complete',
-            generation_count: supabase.rpc ? 1 : 1,
+            generation_count: 1,
             metadata: {
               prompt_version: 'songwriter-v1',
               model_used: response?.modelId || SONGWRITER_MODEL,
