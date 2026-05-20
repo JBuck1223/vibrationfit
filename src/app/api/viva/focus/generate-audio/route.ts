@@ -27,13 +27,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { visionId, storyContent, voice = 'nova' } = body
+    const { visionId, storyId, storyContent, voice = 'nova' } = body
 
-    if (!visionId || !storyContent) {
-      return NextResponse.json({ error: 'visionId and storyContent are required' }, { status: 400 })
+    if (!storyContent) {
+      return NextResponse.json({ error: 'storyContent is required' }, { status: 400 })
     }
 
-    console.log(`[FocusGenerateAudio] Starting for vision ${visionId}, ${storyContent.length} chars`)
+    if (!storyId && !visionId) {
+      return NextResponse.json({ error: 'storyId or visionId is required' }, { status: 400 })
+    }
+
+    console.log(`[FocusGenerateAudio] Starting for story ${storyId || 'unknown'}, ${storyContent.length} chars`)
 
     // Validate token balance for TTS (1 token per character approximately)
     const estimatedTokens = storyContent.length
@@ -46,14 +50,33 @@ export async function POST(request: NextRequest) {
       }, { status: tokenValidation.status })
     }
 
-    // Get the story record
-    const { data: story } = await supabase
-      .from('stories')
-      .select('id, audio_set_id')
-      .eq('entity_type', 'life_vision')
-      .eq('entity_id', visionId)
-      .eq('user_id', user.id)
-      .maybeSingle()
+    let story: { id: string; audio_set_id: string | null; entity_id: string } | null = null
+
+    if (storyId) {
+      const { data } = await supabase
+        .from('stories')
+        .select('id, audio_set_id, entity_id')
+        .eq('id', storyId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      story = data
+    } else {
+      const { data } = await supabase
+        .from('stories')
+        .select('id, audio_set_id, entity_id')
+        .eq('user_id', user.id)
+        .eq('entity_type', 'life_vision')
+        .eq('entity_id', visionId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+      story = data?.[0] ?? null
+    }
+
+    if (!story) {
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 })
+    }
+
+    const resolvedVisionId = visionId || story.entity_id
 
     // Create audio_set for this story if needed
     let audioSetId = story?.audio_set_id
@@ -63,9 +86,9 @@ export async function POST(request: NextRequest) {
         .from('audio_sets')
         .insert({
           user_id: user.id,
-          vision_id: visionId,
+          vision_id: resolvedVisionId,
           content_type: 'story',
-          content_id: story?.id,
+          content_id: story.id,
           name: 'Focus Story',
           description: 'Day-in-the-life narrative',
           variant: 'standard',
@@ -87,7 +110,9 @@ export async function POST(request: NextRequest) {
     // Generate audio using existing infrastructure
     const audioResults = await generateAudioTracks({
       userId: user.id,
-      visionId: visionId,
+      contentType: 'story',
+      contentId: story.id,
+      visionId: resolvedVisionId,
       sections: [{ sectionKey: 'focus_story', text: storyContent }],
       voice: voice,
       format: 'mp3',
@@ -106,16 +131,15 @@ export async function POST(request: NextRequest) {
     console.log(`[FocusGenerateAudio] Complete in ${elapsedMs}ms`)
 
     // Update story with audio reference
-    if (story?.id) {
-      await supabase
-        .from('stories')
-        .update({
-          audio_set_id: audioSetId,
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', story.id)
-    }
+    await supabase
+      .from('stories')
+      .update({
+        audio_set_id: audioSetId,
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', story.id)
+      .eq('user_id', user.id)
 
     return NextResponse.json({
       audioSetId,

@@ -89,16 +89,18 @@ export async function getIntensiveProgress(intensiveId: string): Promise<number>
   if (!data) return 0
   
   const steps = [
+    'intake_completed',
     'profile_completed',
-    'assessment_completed',
-    'call_scheduled',
     'vision_built',
-    'vision_refined',
     'audio_generated',
+    'audios_generated',
     'vision_board_completed',
     'first_journal_entry',
-    'calibration_call_completed',
+    'first_vibe_post',
+    'vibe_engagement',
+    'alignment_gym_toured',
     'activation_protocol_completed',
+    'unlock_completed',
   ]
   
   const completed = steps.filter(step => data[step]).length

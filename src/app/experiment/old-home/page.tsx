@@ -503,7 +503,7 @@ export default function HomePage() {
                         <div className="text-right">
                           <p className="text-xs text-neutral-400 mb-1">Overall Progress</p>
                           <p className="text-2xl font-bold text-[#14B8A6]">25%</p>
-                          <p className="text-xs text-neutral-400 mt-1">3 of 12 steps</p>
+                          <p className="text-xs text-neutral-400 mt-1">3 of 14 steps</p>
                         </div>
                       </div>
                       <div className="w-full bg-neutral-700 rounded-full h-2">

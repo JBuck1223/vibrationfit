@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Rocket, Mail, CheckCircle, HelpCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { Target, User, Headphones, BookOpen, ImageIcon, Settings, ClipboardList, ClipboardCheck, Map, Unlock, Compass, Gauge } from 'lucide-react'
+import { Target, User, Headphones, BookOpen, ImageIcon, Settings, ClipboardList, Map, Unlock, Compass } from 'lucide-react'
 import { useIntensiveStep } from './IntensiveStepContext'
 
 interface StepRoute {
@@ -19,10 +19,10 @@ interface StepRoute {
 
 const STEP_ROUTES: StepRoute[] = [
   // Pre-onboarding
-  { pathPrefix: '/intensive/welcome', areaName: 'Activation Intensive', areaIcon: Rocket, stepNumber: 0, stepLabel: '', subtitle: 'Your 12-step journey to creating and activating the life you truly desire.' },
-  { pathPrefix: '/intensive/start', areaName: 'Activation Intensive', areaIcon: Rocket, stepNumber: 0, stepLabel: 'Start Intensive', subtitle: 'Your 12-step journey to creating and activating the life you truly desire begins now.' },
+  { pathPrefix: '/intensive/welcome', areaName: 'Activation Intensive', areaIcon: Rocket, stepNumber: 0, stepLabel: '', subtitle: 'Your 14-step journey to creating and activating the life you truly desire.' },
+  { pathPrefix: '/intensive/start', areaName: 'Activation Intensive', areaIcon: Rocket, stepNumber: 0, stepLabel: 'Start Intensive', subtitle: 'Your 14-step journey to creating and activating the life you truly desire begins now.' },
   { pathPrefix: '/intensive/check-email', areaName: 'Check Email', areaIcon: Mail, stepNumber: 0, stepLabel: '', subtitle: 'Your payment was successful!' },
-  { pathPrefix: '/intensive/dashboard', areaName: 'Activation Intensive', areaIcon: Rocket, stepNumber: 0, stepLabel: '', subtitle: 'Follow each step in order. Complete all 12 to graduate.' },
+  { pathPrefix: '/intensive/dashboard', areaName: 'Activation Intensive', areaIcon: Rocket, stepNumber: 0, stepLabel: '', subtitle: 'Follow each step in order. Complete all 14 to graduate.' },
 
   // Setup
   { pathPrefix: '/intensive/account/settings', areaName: 'Account Settings', areaIcon: Settings, stepNumber: 1, stepLabel: 'Account Settings', subtitle: 'Manage your personal information and preferences' },
@@ -30,27 +30,39 @@ const STEP_ROUTES: StepRoute[] = [
 
   // Foundation
   { pathPrefix: '/intensive/profile', areaName: 'My Profile', areaIcon: User, stepNumber: 3, stepLabel: 'Create Your Profile', subtitle: 'Your profile is the foundation of your journey with Vibration Fit.' },
-  { pathPrefix: '/intensive/assessment/new', areaName: 'Assessment', areaIcon: Gauge, stepNumber: 4, stepLabel: 'Vibration Assessment', subtitle: 'Discover where you stand in each area of your life.' },
-  { pathPrefix: '/intensive/assessment', areaName: 'Assessment', areaIcon: ClipboardCheck, stepNumber: 4, stepLabel: 'Vibration Assessment', subtitle: 'Discover where you stand in each area of your life and unlock personalized insights.' },
 
   // Vision Creation
-  { pathPrefix: '/intensive/life-vision/create', areaName: 'Life Vision', areaIcon: Target, stepNumber: 5, stepLabel: 'Create Your Life Vision', subtitle: 'Your Life Vision is the blueprint for the life you choose to create.' },
-  { pathPrefix: '/intensive/life-vision', areaName: 'Life Vision', areaIcon: Target, stepNumber: 5, stepLabel: 'Life Vision', subtitle: '' },
+  { pathPrefix: '/intensive/life-vision/create', areaName: 'Life Vision', areaIcon: Target, stepNumber: 4, stepLabel: 'Create Your Life Vision', subtitle: 'Your Life Vision is the blueprint for the life you choose to create.' },
+  { pathPrefix: '/intensive/life-vision', areaName: 'Life Vision', areaIcon: Target, stepNumber: 4, stepLabel: 'Life Vision', subtitle: '' },
 
   // Audio (more specific prefixes first)
-  { pathPrefix: '/intensive/audio/generate', areaName: 'Audio Studio', areaIcon: Headphones, stepNumber: 6, stepLabel: 'Generate Vision Audio', subtitle: '' },
-  { pathPrefix: '/intensive/audio/record', areaName: 'Audio Studio', areaIcon: Headphones, stepNumber: 7, stepLabel: 'Record Your Voice', subtitle: '' },
-  { pathPrefix: '/intensive/audio/mix', areaName: 'Audio Studio', areaIcon: Headphones, stepNumber: 8, stepLabel: 'Create Audio Mix', subtitle: '' },
-  { pathPrefix: '/intensive/audio', areaName: 'Audio Studio', areaIcon: Headphones, stepNumber: 6, stepLabel: 'Vision Audio', subtitle: '' },
+  { pathPrefix: '/intensive/audio/generate', areaName: 'Audio Studio', areaIcon: Headphones, stepNumber: 5, stepLabel: 'Generate Vision Audio', subtitle: '' },
+  { pathPrefix: '/intensive/audio/record', areaName: 'Audio Studio', areaIcon: Headphones, stepNumber: 6, stepLabel: 'Record Your Voice', subtitle: '' },
+  { pathPrefix: '/intensive/audio/mix', areaName: 'Audio Studio', areaIcon: Headphones, stepNumber: 7, stepLabel: 'Create Audio Mix', subtitle: '' },
+  { pathPrefix: '/intensive/audio', areaName: 'Audio Studio', areaIcon: Headphones, stepNumber: 5, stepLabel: 'Vision Audio', subtitle: '' },
 
   // Activation
-  { pathPrefix: '/intensive/vision-board', areaName: 'Vision Board', areaIcon: ImageIcon, stepNumber: 9, stepLabel: 'Create Vision Board', subtitle: '' },
-  { pathPrefix: '/intensive/journal', areaName: 'Journal', areaIcon: BookOpen, stepNumber: 10, stepLabel: 'First Journal Entry', subtitle: '' },
+  { pathPrefix: '/intensive/vision-board', areaName: 'Vision Board', areaIcon: ImageIcon, stepNumber: 8, stepLabel: 'Create Vision Board', subtitle: '' },
+  { pathPrefix: '/intensive/journal', areaName: 'Journal', areaIcon: BookOpen, stepNumber: 9, stepLabel: 'First Journal Entry', subtitle: '' },
+
+  // Community
+  { pathPrefix: '/intensive/vibe-tribe/post', areaName: 'Vibe Tribe', areaIcon: User, stepNumber: 10, stepLabel: 'First Vibe Tribe Post', subtitle: 'Introduce yourself to the community.' },
+  { pathPrefix: '/intensive/vibe-tribe/engage', areaName: 'Vibe Tribe', areaIcon: User, stepNumber: 11, stepLabel: 'Engage in Vibe Tribe', subtitle: 'Witness and respond to another member\'s post — a heart or a few words of real support.' },
+  { pathPrefix: '/intensive/vibe-tribe', areaName: 'Vibe Tribe', areaIcon: User, stepNumber: 10, stepLabel: 'Vibe Tribe', subtitle: '' },
+  { pathPrefix: '/intensive/alignment-gym', areaName: 'Alignment Gym', areaIcon: Target, stepNumber: 12, stepLabel: 'Alignment Gym', subtitle: 'Your weekly live session to stay aligned.' },
 
   // Completion
-  { pathPrefix: '/intensive/map', areaName: 'MAP', areaIcon: Map, stepNumber: 11, stepLabel: 'MAP — My Alignment Plan', subtitle: '' },
+  {
+    pathPrefix: '/intensive/map',
+    areaName: 'MAP',
+    areaIcon: Map,
+    stepNumber: 13,
+    stepLabel: 'MAP — My Alignment Plan',
+    subtitle:
+      'Turn your Intensive rituals into a starter MAP — vision audio, journal, Vibe Tribe, and Alignment Gym.',
+  },
   { pathPrefix: '/intensive/journey', areaName: 'Journey', areaIcon: Compass, stepNumber: 0, stepLabel: '', subtitle: '' },
-  { pathPrefix: '/intensive/unlock', areaName: 'Unlock', areaIcon: Unlock, stepNumber: 12, stepLabel: 'Full Platform Unlock', subtitle: "Let's capture your journey and unlock your full membership." },
+  { pathPrefix: '/intensive/unlock', areaName: 'Unlock', areaIcon: Unlock, stepNumber: 14, stepLabel: 'Full Platform Unlock', subtitle: "Let's capture your journey and unlock your full membership." },
 ]
 
 function resolveStep(pathname: string): StepRoute {
@@ -152,7 +164,7 @@ export function IntensiveStepBar({ subtitle: subtitleOverride }: IntensiveStepBa
             <div className="w-full rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]">
               <div className="flex w-full items-center justify-center gap-2 px-4 py-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500">
-                  Step {stepNumber} of 12
+                  Step {stepNumber} of 14
                 </span>
                 {completedAt && (
                   <>
@@ -186,7 +198,7 @@ export function IntensiveStepBar({ subtitle: subtitleOverride }: IntensiveStepBa
               <div className="rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]">
                 <div className="flex items-center justify-center gap-2.5 px-5 py-2">
                   <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500">
-                    Step {stepNumber} of 12
+                    Step {stepNumber} of 14
                   </span>
                 </div>
               </div>

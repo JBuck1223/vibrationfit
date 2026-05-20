@@ -1,5 +1,5 @@
 // Utility functions for updating intensive checklist
-// Updated for 12-step Activation Intensive flow
+// Updated for 14-step Activation Intensive flow
 
 import { createClient } from '@/lib/supabase/client'
 import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
@@ -11,19 +11,22 @@ export type IntensiveStepType =
   | 'intake_completed'           // Step 2: Baseline Intake
   // Phase 2: Foundation
   | 'profile_completed'          // Step 3: Profile
-  | 'assessment_completed'       // Step 4: Assessment
   // Phase 3: Vision Creation
-  | 'vision_built'               // Step 5: Build Life Vision
+  | 'vision_built'               // Step 4: Build Life Vision
   // Phase 4: Audio
-  | 'audio_generated'            // Step 6: Generate Audio
-  // Step 7: Record Audio - optional, uses audio_generated or can be skipped
-  | 'audios_generated'           // Step 8: Audio Mix
+  | 'audio_generated'            // Step 5: Generate Audio
+  // Step 6: Record Audio - optional, uses audio_generated or can be skipped
+  | 'audios_generated'           // Step 7: Audio Mix
   // Phase 5: Activation
-  | 'vision_board_completed'     // Step 9: Vision Board
-  | 'first_journal_entry'        // Step 10: Journal
-  // Phase 6: Completion
-  | 'activation_protocol_completed' // Step 11: MAP — My Alignment Plan
-  | 'unlock_completed'           // Step 12: Full Platform Unlock
+  | 'vision_board_completed'     // Step 8: Vision Board
+  | 'first_journal_entry'        // Step 9: Journal
+  // Phase 6: Community
+  | 'first_vibe_post'            // Step 10: First Vibe Tribe Post
+  | 'vibe_engagement'            // Step 11: Engage in Vibe Tribe
+  | 'alignment_gym_toured'       // Step 12: Alignment Gym Tour
+  // Phase 7: Completion
+  | 'activation_protocol_completed' // Step 13: MAP — My Alignment Plan
+  | 'unlock_completed'           // Step 14: Full Platform Unlock
 
 export async function markIntensiveStep(step: IntensiveStepType) {
   try {
@@ -122,7 +125,7 @@ export async function isInIntensiveMode(): Promise<boolean> {
 }
 
 /**
- * Get step progress for the 12-step intensive
+ * Get step progress for the 14-step intensive
  * Returns an object with each step's completion status
  */
 export async function getIntensiveStepProgress(): Promise<Record<IntensiveStepType, boolean> | null> {
@@ -144,12 +147,14 @@ export async function getIntensiveStepProgress(): Promise<Record<IntensiveStepTy
     return {
       intake_completed: checklist.intake_completed || false,
       profile_completed: checklist.profile_completed || false,
-      assessment_completed: checklist.assessment_completed || false,
       vision_built: checklist.vision_built || false,
       audio_generated: checklist.audio_generated || false,
       audios_generated: checklist.audios_generated || false,
       vision_board_completed: checklist.vision_board_completed || false,
       first_journal_entry: checklist.first_journal_entry || false,
+      first_vibe_post: checklist.first_vibe_post || false,
+      vibe_engagement: checklist.vibe_engagement || false,
+      alignment_gym_toured: checklist.alignment_gym_toured || false,
       activation_protocol_completed: checklist.activation_protocol_completed || false,
       unlock_completed: checklist.unlock_completed || false,
     }

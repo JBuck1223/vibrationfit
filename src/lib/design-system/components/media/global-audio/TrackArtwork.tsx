@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Image from 'next/image'
-import { RefreshCw } from 'lucide-react'
+import { Music2, RefreshCw } from 'lucide-react'
 import { getStoryEntityArtworkIcon, isStoryEntityTypeKey } from '@/lib/stories/story-entity-artwork-icon'
 import { getVisionCategoryIcon, isValidVisionCategory } from '../../../vision-categories'
 import type { AudioTrack } from '../types'
@@ -19,6 +19,15 @@ interface TrackArtworkProps {
 export function TrackArtwork({ track, iconKey, size, className = '' }: TrackArtworkProps) {
   const sectionKey = (track as unknown as Record<string, unknown>).sectionKey as string | undefined
   const key = sectionKey || iconKey
+
+  if (key === 'music' && !track.thumbnail) {
+    const iconSize = Math.round(size * 0.45)
+    return (
+      <div className={`relative flex items-center justify-center bg-black ${className}`} style={{ width: size, height: size }}>
+        <Music2 className="text-[#39FF14]" style={{ width: iconSize, height: iconSize }} />
+      </div>
+    )
+  }
 
   if (key && !track.thumbnail && isStoryEntityTypeKey(key)) {
     const Icon = getStoryEntityArtworkIcon(key)

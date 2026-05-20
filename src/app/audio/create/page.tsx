@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Container, Stack, Card } from '@/lib/design-system/components'
-import { AudioLines, ChevronRight, Mic, Sliders, Clock } from 'lucide-react'
+import { AudioLines, ChevronRight, Mic, Sliders, Clock, Music2 } from 'lucide-react'
 
 interface CreateTile {
   title: string
@@ -17,6 +17,15 @@ interface CreateTile {
 }
 
 const CREATE_TILES: CreateTile[] = [
+  {
+    title: 'Songwriter',
+    description: 'Create original songs from your visions, journals, and life experiences with VIVA.',
+    icon: Music2,
+    iconColor: 'text-[#FFFF00]',
+    iconBg: 'bg-[#FFFF00]/15',
+    hoverBg: 'hover:bg-[#FFFF00]/[0.11]',
+    path: '/audio/songwriter',
+  },
   {
     title: 'Generate Voice Audio',
     description: 'Generate voice narration from your Life Vision or Stories with VIVA voices.',

@@ -138,7 +138,7 @@ export default function IntensiveWelcomePage() {
               The Activation Intensive is a guided, step-by-step process designed to help you clarify your vision, create powerful activation tools, and establish the daily practices that will transform your life.
             </p>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
-              Over 12 carefully sequenced steps, you'll build everything you need to become a vibrational match to the life you truly desire. Each step unlocks the next, ensuring you have a solid foundation before moving forward.
+              Over 14 carefully sequenced steps, you'll build everything you need to become a vibrational match to the life you truly desire. Each step unlocks the next, ensuring you have a solid foundation before moving forward.
             </p>
           </Stack>
         </Card>
@@ -158,7 +158,7 @@ export default function IntensiveWelcomePage() {
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  Set up your account, complete your baseline intake, build your profile, and take your vibration assessment. This establishes where you are right now.
+                  Set up your account, complete your baseline intake, and build your profile. This establishes where you are right now.
                 </p>
               </Stack>
 
@@ -210,9 +210,6 @@ export default function IntensiveWelcomePage() {
             <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
               <p>
                 <span className="text-white font-semibold">Complete Profile</span> - A comprehensive snapshot of where you are across all 12 life categories.
-              </p>
-              <p>
-                <span className="text-white font-semibold">Vibration Assessment</span> - Deep insights into your current vibrational state and patterns.
               </p>
               <p>
                 <span className="text-white font-semibold">Life Vision</span> - A detailed, emotionally-charged vision of your ideal life across all categories.

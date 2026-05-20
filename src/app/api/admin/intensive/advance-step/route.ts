@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { assessmentQuestions, filterQuestionsByProfile } from '@/lib/assessment/questions'
 import { triggerEvent } from '@/lib/messaging/events'
 
 // Create admin client that bypasses RLS
@@ -13,21 +12,23 @@ function getAdminClient() {
   })
 }
 
-// Step definitions for the 12-step intensive
+// Step definitions for the 14-step intensive
 const STEP_DEFINITIONS = [
   { step: 0, name: 'Start Intensive', checklistField: 'started_at' },
   { step: 1, name: 'Account Settings', checklistField: null }, // Uses user_accounts
   { step: 2, name: 'Baseline Intake', checklistField: 'intake_completed' },
   { step: 3, name: 'Profile', checklistField: 'profile_completed' },
-  { step: 4, name: 'Assessment', checklistField: 'assessment_completed' },
-  { step: 5, name: 'Build Vision', checklistField: 'vision_built' },
-  { step: 6, name: 'Generate Audio', checklistField: 'audio_generated' },
-  { step: 7, name: 'Record Voice', checklistField: 'voice_recording_completed' },
-  { step: 8, name: 'Audio Mix', checklistField: 'audios_generated' },
-  { step: 9, name: 'Vision Board', checklistField: 'vision_board_completed' },
-  { step: 10, name: 'Journal', checklistField: 'first_journal_entry' },
-  { step: 11, name: 'My Activation Plan', checklistField: 'activation_protocol_completed' },
-  { step: 12, name: 'Unlock Platform', checklistField: 'unlock_completed' },
+  { step: 4, name: 'Build Vision', checklistField: 'vision_built' },
+  { step: 5, name: 'Generate Audio', checklistField: 'audio_generated' },
+  { step: 6, name: 'Record Voice', checklistField: 'voice_recording_completed' },
+  { step: 7, name: 'Audio Mix', checklistField: 'audios_generated' },
+  { step: 8, name: 'Vision Board', checklistField: 'vision_board_completed' },
+  { step: 9, name: 'Journal', checklistField: 'first_journal_entry' },
+  { step: 10, name: 'First Vibe Tribe Post', checklistField: 'first_vibe_post' },
+  { step: 11, name: 'Engage in Vibe Tribe', checklistField: 'vibe_engagement' },
+  { step: 12, name: 'Alignment Gym Tour', checklistField: 'alignment_gym_toured' },
+  { step: 13, name: 'My Activation Plan', checklistField: 'activation_protocol_completed' },
+  { step: 14, name: 'Unlock Platform', checklistField: 'unlock_completed' },
 ]
 
 // Life categories for vision and other features
@@ -62,8 +63,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'userId and stepNumber are required' }, { status: 400 })
     }
 
-    if (stepNumber < 0 || stepNumber > 12) {
-      return NextResponse.json({ error: 'stepNumber must be between 0 and 12' }, { status: 400 })
+    if (stepNumber < 0 || stepNumber > 14) {
+      return NextResponse.json({ error: 'stepNumber must be between 0 and 14' }, { status: 400 })
     }
 
     // Use admin client to bypass RLS
@@ -100,31 +101,37 @@ export async function POST(request: NextRequest) {
         await advanceStep3_Profile(adminClient, userId, now)
         break
       case 4:
-        await advanceStep4_Assessment(adminClient, userId, now)
+        await advanceStep4_BuildVision(adminClient, userId, now)
         break
       case 5:
-        await advanceStep5_BuildVision(adminClient, userId, now)
+        await advanceStep5_GenerateAudio(adminClient, userId, now)
         break
       case 6:
-        await advanceStep6_GenerateAudio(adminClient, userId, now)
+        // Step 6 (Record Voice) is optional - admin advance marks it as completed
         break
       case 7:
-        // Step 7 is optional - admin advance marks it as completed (recorded)
+        await advanceStep7_AudioMix(adminClient, userId, now)
         break
       case 8:
-        await advanceStep8_AudioMix(adminClient, userId, now)
+        await advanceStep8_VisionBoard(adminClient, userId, now)
         break
       case 9:
-        await advanceStep9_VisionBoard(adminClient, userId, now)
+        await advanceStep9_Journal(adminClient, userId, now)
         break
       case 10:
-        await advanceStep10_Journal(adminClient, userId, now)
+        // Step 10 (First Vibe Tribe Post) - checklist flag only
         break
       case 11:
-        await advanceStep11_ActivationProtocol(adminClient, checklist.id, now)
+        // Step 11 (Engage in Vibe Tribe) - checklist flag only
         break
       case 12:
-        await advanceStep12_Unlock(adminClient, checklist, now)
+        // Step 12 (Alignment Gym Tour) - checklist flag only
+        break
+      case 13:
+        await advanceStep13_ActivationProtocol(adminClient, checklist.id, now)
+        break
+      case 14:
+        await advanceStep14_Unlock(adminClient, checklist, now)
 
         // Fire exit event to cancel the onboarding sequence
         {
@@ -371,160 +378,8 @@ async function advanceStep3_Profile(
   }
 }
 
-// Step 4: Create assessment using real question bank + profile-based filtering
-async function advanceStep4_Assessment(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  now: string
-) {
-  // Get the user's full profile (needed for conditional question filtering)
-  const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (profileError || !profile) {
-    throw new Error('No active profile found. Complete Step 3 (Profile) first.')
-  }
-
-  // Check if active assessment already exists
-  const { data: existing } = await supabase
-    .from('assessment_results')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .maybeSingle()
-
-  if (existing) return // Assessment already exists
-
-  // Deactivate any previous assessments
-  await supabase
-    .from('assessment_results')
-    .update({ is_active: false })
-    .eq('user_id', userId)
-
-  // Remove any leftover draft assessments (unique constraint: one draft per user)
-  await supabase
-    .from('assessment_results')
-    .delete()
-    .eq('user_id', userId)
-    .eq('is_draft', true)
-
-  // Create assessment as in_progress (matching normal flow)
-  const { data: assessment, error: assessmentError } = await supabase
-    .from('assessment_results')
-    .insert({
-      user_id: userId,
-      profile_version_id: profile.id,
-      status: 'in_progress',
-      assessment_version: 1,
-      max_possible_score: 420,
-      started_at: now,
-      is_active: false,
-      is_draft: true
-    })
-    .select()
-    .single()
-
-  if (assessmentError || !assessment) {
-    console.error('Failed to create assessment:', assessmentError)
-    throw new Error(`Failed to create assessment: ${assessmentError?.message || 'No data returned'}`)
-  }
-
-  // Filter real questions by the user's profile (handles conditional logic
-  // for has_children, relationship_status, employment_type)
-  const allQuestions = assessmentQuestions.flatMap(cat => cat.questions)
-  const filteredQuestions = filterQuestionsByProfile(allQuestions, profile)
-
-  // Realistic score patterns per category for the mock user profile:
-  // - Married, 2 kids, Employee, $100-250k income, active lifestyle
-  // - Generally above the green line, with money & health as growth areas
-  const categoryScoreTargets: Record<string, number[]> = {
-    fun:          [4, 4, 5, 3, 4, 4, 3],  // 27 - transition/above
-    travel:       [4, 5, 4, 3, 4, 4, 3],  // 27 - transition/above
-    home:         [4, 4, 3, 4, 5, 4, 4],  // 28 - above
-    family:       [4, 3, 4, 5, 3, 4, 4],  // 27 - transition/above
-    love:         [4, 4, 5, 3, 4, 4, 5],  // 29 - above
-    health:       [3, 4, 3, 3, 3, 4, 3],  // 23 - transition
-    money:        [3, 3, 4, 3, 3, 3, 3],  // 22 - transition
-    work:         [4, 4, 3, 4, 5, 4, 3],  // 27 - transition/above
-    social:       [4, 4, 5, 3, 4, 4, 3],  // 27 - transition/above
-    stuff:        [4, 5, 3, 4, 4, 4, 3],  // 27 - transition/above
-    giving:       [4, 3, 4, 5, 3, 4, 4],  // 27 - transition/above
-    spirituality: [4, 4, 5, 3, 4, 4, 4],  // 28 - above
-  }
-
-  // Track question index per category for score assignment
-  const categoryIndices: Record<string, number> = {}
-
-  // Build responses from real questions with realistic option selections
-  const responses = filteredQuestions.map(question => {
-    const category = question.category
-    if (categoryIndices[category] === undefined) categoryIndices[category] = 0
-    const qIndex = categoryIndices[category]++
-
-    const targetValue = categoryScoreTargets[category]?.[qIndex] ?? 4
-
-    // Find the real option matching the target value (skip custom "None of these" option)
-    const option = question.options.find(o => o.value === targetValue && !o.isCustom)
-      || question.options.find(o => !o.isCustom && o.value > 0)!
-
-    return {
-      assessment_id: assessment.id,
-      question_id: question.id,
-      question_text: question.text,
-      category: question.category,
-      response_value: option.value,
-      response_text: option.text,
-      response_emoji: option.emoji || null,
-      green_line: option.greenLine
-    }
-  })
-
-  if (responses.length !== 84) {
-    console.warn(`Expected 84 responses but got ${responses.length} after profile filtering`)
-  }
-
-  // Insert all responses (DB trigger auto-recalculates scores)
-  const { error: responsesError } = await supabase
-    .from('assessment_responses')
-    .insert(responses)
-
-  if (responsesError) {
-    console.error('Failed to create assessment responses:', responsesError)
-    throw new Error(`Failed to create assessment responses: ${responsesError.message}`)
-  }
-
-  // Complete the assessment (matching normal PATCH flow)
-  await supabase
-    .from('assessment_results')
-    .update({ is_active: false })
-    .eq('user_id', userId)
-    .neq('id', assessment.id)
-
-  const { error: completeError } = await supabase
-    .from('assessment_results')
-    .update({
-      status: 'completed',
-      completed_at: now,
-      is_draft: false,
-      is_active: true,
-      updated_at: now
-    })
-    .eq('id', assessment.id)
-
-  if (completeError) {
-    console.error('Failed to complete assessment:', completeError)
-    throw new Error(`Failed to complete assessment: ${completeError.message}`)
-  }
-}
-
-// Step 5: Create vision
-async function advanceStep5_BuildVision(
+// Step 4: Create vision
+async function advanceStep4_BuildVision(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -563,8 +418,8 @@ async function advanceStep5_BuildVision(
   })
 }
 
-// Step 6: Generate audio
-async function advanceStep6_GenerateAudio(
+// Step 5: Generate audio
+async function advanceStep5_GenerateAudio(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -641,8 +496,8 @@ async function advanceStep6_GenerateAudio(
     .eq('id', vision.id)
 }
 
-// Step 8: Audio mix
-async function advanceStep8_AudioMix(
+// Step 7: Audio mix
+async function advanceStep7_AudioMix(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -658,8 +513,8 @@ async function advanceStep8_AudioMix(
     .eq('user_id', userId)
 }
 
-// Step 9: Vision board
-async function advanceStep9_VisionBoard(
+// Step 8: Vision board
+async function advanceStep8_VisionBoard(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -689,8 +544,8 @@ async function advanceStep9_VisionBoard(
   await supabase.from('vision_board_items').insert(items)
 }
 
-// Step 10: Journal entries (3 entries: written, voice, video)
-async function advanceStep10_Journal(
+// Step 9: Journal entries (3 entries: written, voice, video)
+async function advanceStep9_Journal(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   now: string
@@ -764,8 +619,8 @@ Tomorrow I'll dive into building my actual vision. I can't wait to see what emer
   })
 }
 
-// Step 11: Activation protocol
-async function advanceStep11_ActivationProtocol(
+// Step 13: Activation protocol
+async function advanceStep13_ActivationProtocol(
   supabase: Awaited<ReturnType<typeof createClient>>,
   checklistId: string,
   now: string
@@ -780,8 +635,8 @@ async function advanceStep11_ActivationProtocol(
     .eq('id', checklistId)
 }
 
-// Step 12: Unlock platform
-async function advanceStep12_Unlock(
+// Step 14: Unlock platform
+async function advanceStep14_Unlock(
   supabase: Awaited<ReturnType<typeof createClient>>,
   checklist: { id: string; intensive_id: string },
   now: string
@@ -864,19 +719,21 @@ export async function GET(request: NextRequest) {
       step1: settingsComplete,
       step2: !!checklist.intake_completed,
       step3: !!checklist.profile_completed,
-      step4: !!checklist.assessment_completed,
-      step5: !!checklist.vision_built,
-      step6: !!checklist.audio_generated,
-      step7: !!checklist.voice_recording_completed || !!checklist.voice_recording_skipped,
-      step8: !!checklist.audios_generated,
-      step9: !!checklist.vision_board_completed,
-      step10: !!checklist.first_journal_entry,
-      step11: !!checklist.activation_protocol_completed,
-      step12: !!checklist.unlock_completed
+      step4: !!checklist.vision_built,
+      step5: !!checklist.audio_generated,
+      step6: !!checklist.voice_recording_completed || !!checklist.voice_recording_skipped,
+      step7: !!checklist.audios_generated,
+      step8: !!checklist.vision_board_completed,
+      step9: !!checklist.first_journal_entry,
+      step10: !!checklist.first_vibe_post,
+      step11: !!checklist.vibe_engagement,
+      step12: !!checklist.alignment_gym_toured,
+      step13: !!checklist.activation_protocol_completed,
+      step14: !!checklist.unlock_completed
     }
 
     const completedCount = Object.values(progress).filter(Boolean).length
-    const totalSteps = 13 // 0-12
+    const totalSteps = 15 // 0-14
 
     return NextResponse.json({
       checklist,

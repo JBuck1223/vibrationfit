@@ -504,6 +504,33 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (loading || !vision) return
+    const recordVisionRead = async () => {
+      const supabase = createClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const user = session?.user
+      if (!user) return
+      try {
+        const { MAP_ACTIVATION_AREAS, recordMapAreaActivation } = await import(
+          '@/lib/map/track-activation'
+        )
+        const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+        await recordMapAreaActivation(
+          supabase,
+          user.id,
+          MAP_ACTIVATION_AREAS.life_vision,
+        )
+        autoVerifyClient({ activityType: 'vision_read' })
+      } catch {
+        // best-effort MAP verify
+      }
+    }
+    recordVisionRead()
+  }, [loading, vision?.id])
+
   // Reload audio tracks when the AreaBar audio set selector changes
   useEffect(() => {
     if (!vision) return

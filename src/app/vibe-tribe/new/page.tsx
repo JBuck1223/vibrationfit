@@ -82,6 +82,15 @@ export default function VibeTribeNewPage() {
       
       setUser(user)
 
+      // Check if user is admin (admins can always access this page)
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      
+      const isAdmin = account?.role === 'admin' || account?.role === 'super_admin'
+
       // Check if user has already posted
       const { data: posts } = await supabase
         .from('vibe_posts')
@@ -90,7 +99,7 @@ export default function VibeTribeNewPage() {
         .eq('is_deleted', false)
         .limit(1)
       
-      if (posts && posts.length > 0) {
+      if (posts && posts.length > 0 && !isAdmin) {
         setHasPosted(true)
         // Already posted, redirect to main feed
         router.push('/vibe-tribe')

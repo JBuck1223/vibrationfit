@@ -2,8 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconvert'
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
-import crypto from 'crypto'
 import fs from 'fs'
+import { hashContent } from '@/lib/audio/content-hash'
 import path from 'path'
 import { execSync } from 'child_process'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
@@ -33,17 +33,8 @@ export interface GeneratedTrackResult {
 const BUCKET_NAME = 'vibration-fit-client-storage'
 const CDN_PREFIX = 'https://media.vibrationfit.com'
 
-function normalizeText(text: string): string {
-  return text
-    .replace(/\s+/g, ' ')
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
-    .trim()
-}
-
-export function hashContent(text: string): string {
-  const normalized = normalizeText(text)
-  return crypto.createHash('sha256').update(normalized).digest('hex')
-}
+export { hashContent } from '@/lib/audio/content-hash'
+export { normalizeText } from '@/lib/audio/content-normalize'
 
 async function triggerBackgroundMixing(params: {
   trackId: string
@@ -550,18 +541,22 @@ export async function generateAudioTracks(params: {
       continue
     }
 
-    // If track already exists in this set and is completed, skip
-    if (existingInSet && !force && existingInSet.status === 'completed') {
+    // If track already exists in this set and is completed with matching content, skip
+    if (
+      existingInSet &&
+      !force &&
+      existingInSet.status === 'completed' &&
+      existingInSet.content_hash === contentHash
+    ) {
       console.log(`[Track] Track already in this audio set for ${section.sectionKey}`)
       results.push({ sectionKey: section.sectionKey, status: 'skipped', audioUrl: existingInSet.audio_url, s3Key: existingInSet.s3_key })
       await updateBatchProgress()
       continue
     }
 
-    // STEP 2: Check if a matching track exists in ANY other set (same voice, same content)
-    // This allows reusing TTS audio across focused sets AND across vision versions
-    // (e.g. unchanged sections carried over from a parent vision)
-    const { data: existingElsewhere, error: existingElsewhereError } = await supabase
+    // STEP 2: Check if a matching track exists in another set (same voice, same content).
+    // Life vision sections can reuse across versions; story narration stays scoped to stories.
+    let existingElsewhereQuery = supabase
       .from('audio_tracks')
       .select('*')
       .eq('user_id', userId)
@@ -570,6 +565,12 @@ export async function generateAudioTracks(params: {
       .eq('content_hash', contentHash)
       .eq('status', 'completed')
       .neq('audio_set_id', targetAudioSetId)
+
+    if (isStory) {
+      existingElsewhereQuery = existingElsewhereQuery.eq('content_type', 'story')
+    }
+
+    const { data: existingElsewhere, error: existingElsewhereError } = await existingElsewhereQuery
       .limit(1)
       .maybeSingle()
 

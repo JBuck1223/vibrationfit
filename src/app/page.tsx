@@ -809,11 +809,11 @@ export default function HomePage() {
                     {/* Header Section - PageHero style */}
                     <div className="text-center space-y-2">
                       <Text size="xs" className="text-[#39FF14] uppercase tracking-wider font-semibold">72-Hour Activation Intensive</Text>
-                      <Heading level={4} className="text-white">Your 12-Step Activation Path</Heading>
-                      <Text size="xs" className="text-neutral-400 max-w-md mx-auto">Follow each step in order. Complete all 12 to graduate and unlock your Advanced Audio Suite, Alignment Gym, and Vibe Tribe access.</Text>
+                      <Heading level={4} className="text-white">Your 14-Step Activation Path</Heading>
+                      <Text size="xs" className="text-neutral-400 max-w-md mx-auto">Follow each step in order. Complete all 14 to graduate and unlock your Advanced Audio Suite, Alignment Gym, and Vibe Tribe access.</Text>
                       <div className="pt-2">
                         <span className="inline-flex items-center gap-2 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-full px-3 py-1 text-xs font-semibold text-[#BF00FF]">
-                          Current Phase: Foundation · Step 3 of 12
+                          Current Phase: Foundation · Step 3 of 14
                         </span>
                       </div>
                     </div>
@@ -832,7 +832,7 @@ export default function HomePage() {
                         <div className="text-right">
                           <Text size="xs" className="text-neutral-400 mb-1">Overall Progress</Text>
                           <Text size="2xl" className="font-bold text-[#14B8A6]">17%</Text>
-                          <Text size="xs" className="text-neutral-400 mt-1">2 of 12 steps</Text>
+                          <Text size="xs" className="text-neutral-400 mt-1">2 of 14 steps</Text>
                         </div>
                       </div>
                       <div className="w-full bg-neutral-700 rounded-full h-3">
@@ -903,7 +903,7 @@ export default function HomePage() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <h6 className="text-sm font-bold text-white">Foundation</h6>
-                        <span className="text-xs bg-neutral-600/50 text-neutral-300 px-2 py-1 rounded-full">0/2 Complete</span>
+                        <span className="text-xs bg-neutral-600/50 text-neutral-300 px-2 py-1 rounded-full">0/1 Complete</span>
                       </div>
                       <div className="space-y-2">
                         {/* Step 3 - Active/Unlocked */}
@@ -918,24 +918,6 @@ export default function HomePage() {
                                 <Text size="xs" className="text-neutral-500">Build your life profile</Text>
                               </div>
                               <button className="text-[10px] bg-[#39FF14] text-black px-2 py-1 rounded-full font-semibold">Start</button>
-                            </div>
-                          </div>
-                        </div>
-                        {/* Step 4 - Locked */}
-                        <div className="rounded-lg overflow-hidden border border-neutral-700/50 opacity-50">
-                          <div className="flex">
-                            <div className="w-10 flex-shrink-0 flex items-center justify-center bg-neutral-700">
-                              <span className="text-sm font-bold text-white">4</span>
-                            </div>
-                            <div className="flex-1 p-2 flex items-center justify-between">
-                              <div>
-                                <Text size="xs" className="font-semibold text-neutral-400">Vibration Assessment</Text>
-                                <Text size="xs" className="text-neutral-600">Discover your vibration score</Text>
-                              </div>
-                              <div className="flex items-center gap-1 text-neutral-500">
-                                <Lock className="w-3 h-3" />
-                                <span className="text-[10px]">Locked</span>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -1003,7 +985,7 @@ export default function HomePage() {
                     {/* Completion Message */}
                     <div className="text-center bg-gradient-to-r from-[#39FF14]/5 to-[#14B8A6]/5 border border-[#39FF14]/20 rounded-xl p-3">
                       <Text size="xs" className="text-neutral-300">
-                        <strong className="text-[#39FF14]">Complete all 12 steps</strong> to unlock Advanced Audio Suite, Alignment Gym + Vibe Tribe
+                        <strong className="text-[#39FF14]">Complete all 14 steps</strong> to unlock Advanced Audio Suite, Alignment Gym + Vibe Tribe
                       </Text>
                     </div>
                   </div>

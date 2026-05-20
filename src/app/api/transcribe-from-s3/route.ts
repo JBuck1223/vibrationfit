@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import OpenAI from 'openai'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { formatTranscript, type TranscriptionWord } from '@/lib/audio/format-transcript-paragraphs'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -128,6 +129,10 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    const words = (transcription.words ?? null) as TranscriptionWord[] | null
+    const transcriptRaw = transcription.text.trim()
+    const transcript = formatTranscript(transcriptRaw, words)
+
     // Save transcript as a sidecar file next to the audio in S3
     // If the browser loses connection before receiving the response, the transcript is still recoverable
     const transcriptKey = s3Key.replace(/\.[^.]+$/, '.transcript.json')
@@ -137,7 +142,8 @@ export async function POST(request: NextRequest) {
         Key: transcriptKey,
         ContentType: 'application/json',
         Body: JSON.stringify({
-          transcript: transcription.text,
+          transcript,
+          transcript_raw: transcriptRaw,
           duration: transcription.duration,
           language: transcription.language,
           words: transcription.words,
@@ -151,7 +157,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      transcript: transcription.text,
+      transcript,
       duration: transcription.duration,
       language: transcription.language,
       words: transcription.words,

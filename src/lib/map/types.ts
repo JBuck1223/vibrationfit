@@ -142,6 +142,10 @@ export interface Commitment {
   end_date: string | null
   status: CommitmentStatus
   activity_type: string | null
+  notify_sms: boolean
+  notify_email: boolean
+  reminder_time: string | null
+  reminder_days: number[] | null
   imported_from_map_item_id: string | null
   created_at: string
   updated_at: string

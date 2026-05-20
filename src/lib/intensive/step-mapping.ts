@@ -1,5 +1,5 @@
 /**
- * Step Mapping Utility for the 12-Step Intensive Journey
+ * Step Mapping Utility for the 14-Step Intensive Journey
  * 
  * Maps step IDs to display names, hrefs, and navigation info
  * for consistent messaging across all intensive step pages.
@@ -20,7 +20,7 @@ export interface IntensiveStepInfo {
 }
 
 /**
- * All 12 steps of the Activation Intensive, in order
+ * All 14 steps of the Activation Intensive, in order
  */
 export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   // Phase 1: Setup (Steps 1-2)
@@ -47,7 +47,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     phase: 'Setup'
   },
 
-  // Phase 2: Foundation (Steps 3-4)
+  // Phase 2: Foundation (Step 3)
   profile: {
     id: 'profile',
     stepNumber: 3,
@@ -56,25 +56,14 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     completedAtKey: 'profile_completed_at',
     href: '/intensive/profile/new',
     viewHref: '/intensive/profile/new',
-    nextStepId: 'assessment',
-    phase: 'Foundation'
-  },
-  assessment: {
-    id: 'assessment',
-    stepNumber: 4,
-    title: 'Vibration Assessment',
-    checklistKey: 'assessment_completed',
-    completedAtKey: 'assessment_completed_at',
-    href: '/intensive/assessment/new',
-    viewHref: '/intensive/assessment/new',
     nextStepId: 'build_vision',
     phase: 'Foundation'
   },
 
-  // Phase 3: Vision Creation (Step 5)
+  // Phase 3: Vision Creation (Step 4)
   build_vision: {
     id: 'build_vision',
-    stepNumber: 5,
+    stepNumber: 4,
     title: 'Create Your Life Vision',
     checklistKey: 'vision_built',
     completedAtKey: 'vision_built_at',
@@ -84,10 +73,10 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     phase: 'Vision Creation'
   },
 
-  // Phase 4: Audio (Steps 6-8)
+  // Phase 4: Audio (Steps 5-7)
   generate_audio: {
     id: 'generate_audio',
-    stepNumber: 6,
+    stepNumber: 5,
     title: 'Generate Vision Audio',
     checklistKey: 'audio_generated',
     completedAtKey: 'audio_generated_at',
@@ -98,7 +87,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   },
   record_audio: {
     id: 'record_audio',
-    stepNumber: 7,
+    stepNumber: 6,
     title: 'Record Your Voice',
     checklistKey: 'audio_generated',
     completedAtKey: 'audio_generated_at',
@@ -109,7 +98,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   },
   mix_audio: {
     id: 'mix_audio',
-    stepNumber: 8,
+    stepNumber: 7,
     title: 'Create Audio Mix',
     checklistKey: 'audios_generated',
     completedAtKey: 'audios_generated_at',
@@ -119,10 +108,10 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
     phase: 'Audio'
   },
 
-  // Phase 5: Activation (Steps 9-10)
+  // Phase 5: Activation (Steps 8-9)
   vision_board: {
     id: 'vision_board',
-    stepNumber: 9,
+    stepNumber: 8,
     title: 'Create Vision Board',
     checklistKey: 'vision_board_completed',
     completedAtKey: 'vision_board_completed_at',
@@ -133,20 +122,55 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   },
   journal: {
     id: 'journal',
-    stepNumber: 10,
+    stepNumber: 9,
     title: 'First Journal Entry',
     checklistKey: 'first_journal_entry',
     completedAtKey: 'first_journal_entry_at',
     href: '/intensive/journal/about',
     viewHref: '/intensive/journal/about',
-    nextStepId: 'activation_protocol',
+    nextStepId: 'first_vibe_post',
     phase: 'Activation'
   },
 
-  // Phase 6: Completion (Steps 11-12)
+  // Phase 6: Community (Steps 10-12)
+  first_vibe_post: {
+    id: 'first_vibe_post',
+    stepNumber: 10,
+    title: 'First Vibe Tribe Post',
+    checklistKey: 'first_vibe_post',
+    completedAtKey: 'first_vibe_post_at',
+    href: '/intensive/vibe-tribe/post',
+    viewHref: '/intensive/vibe-tribe/post',
+    nextStepId: 'vibe_engagement',
+    phase: 'Community'
+  },
+  vibe_engagement: {
+    id: 'vibe_engagement',
+    stepNumber: 11,
+    title: 'Engage in Vibe Tribe',
+    checklistKey: 'vibe_engagement',
+    completedAtKey: 'vibe_engagement_at',
+    href: '/intensive/vibe-tribe/engage',
+    viewHref: '/intensive/vibe-tribe/engage',
+    nextStepId: 'alignment_gym_tour',
+    phase: 'Community'
+  },
+  alignment_gym_tour: {
+    id: 'alignment_gym_tour',
+    stepNumber: 12,
+    title: 'Alignment Gym',
+    checklistKey: 'alignment_gym_toured',
+    completedAtKey: 'alignment_gym_toured_at',
+    href: '/intensive/alignment-gym',
+    viewHref: '/intensive/alignment-gym',
+    nextStepId: 'activation_protocol',
+    phase: 'Community'
+  },
+
+  // Phase 7: Completion (Steps 13-14)
   activation_protocol: {
     id: 'activation_protocol',
-    stepNumber: 11,
+    stepNumber: 13,
     title: 'MAP — My Alignment Plan',
     checklistKey: 'activation_protocol_completed',
     completedAtKey: 'activation_protocol_completed_at',
@@ -157,7 +181,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   },
   unlock: {
     id: 'unlock',
-    stepNumber: 12,
+    stepNumber: 14,
     title: 'Full Platform Unlock',
     checklistKey: 'unlock_completed',
     completedAtKey: 'unlock_completed_at',

@@ -16,8 +16,6 @@ UPDATE intensive_checklist
 SET 
   profile_completed = false,
   profile_completed_at = NULL,
-  assessment_completed = false,
-  assessment_completed_at = NULL,
   vision_built = false,
   vision_built_at = NULL,
   audio_generated = false,
@@ -26,8 +24,16 @@ SET
   vision_board_completed_at = NULL,
   first_journal_entry = false,
   first_journal_entry_at = NULL,
+  first_vibe_post = false,
+  first_vibe_post_at = NULL,
+  vibe_engagement = false,
+  vibe_engagement_at = NULL,
+  alignment_gym_toured = false,
+  alignment_gym_toured_at = NULL,
   activation_protocol_completed = false,
-  activation_protocol_completed_at = NULL
+  activation_protocol_completed_at = NULL,
+  unlock_completed = false,
+  unlock_completed_at = NULL
 WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');
 
 
@@ -38,8 +44,9 @@ WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com
 
 -- OPTION 3: Fast-forward to 90% complete (test completion flow)
 -- UPDATE intensive_checklist SET 
---   profile_completed = true, assessment_completed = true,
+--   profile_completed = true,
 --   vision_built = true, audio_generated = true,
 --   vision_board_completed = true, first_journal_entry = true,
+--   first_vibe_post = true, vibe_engagement = true, alignment_gym_toured = true,
 --   activation_protocol_completed = true
 -- WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your-email@example.com');

@@ -99,5 +99,16 @@ export {
   buildFlipIdentityPrompt,
 } from './identity-statement-prompt'
 
+// Incantations (short, punchy, rhythmic declarations for vocal repetition)
+export {
+  INCANTATION_SYSTEM_PROMPT,
+  INCANTATION_EXAMPLES,
+  buildIncantationPrompt,
+  type IncantationFramework,
+  type IncantationInput,
+  type IncantationVariant,
+  type IncantationExample,
+} from './incantation-prompt'
+
 // Shared Components
 export { VIVA_PERSONA, VIVA_PERSONA_WITH_GOLDEN_RULES } from './shared/viva-persona'

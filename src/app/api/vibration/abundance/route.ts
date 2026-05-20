@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createVibrationalEventFromSource } from '@/lib/vibration/service'
+import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
 
 export async function GET() {
   try {
@@ -163,6 +164,10 @@ export async function POST(request: Request) {
     if (insertError || !abundanceEvent) {
       return NextResponse.json({ error: insertError?.message || 'Failed to log abundance event.' }, { status: 500 })
     }
+
+    autoVerifyOccurrenceByActivityType(user.id, 'abundance_tracker', date).catch(
+      () => {},
+    )
 
     if (Array.isArray(audioRecordings) && audioRecordings.length > 0) {
       const { error: audioError } = await supabase

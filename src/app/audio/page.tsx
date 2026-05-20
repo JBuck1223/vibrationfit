@@ -21,6 +21,7 @@ import { SyncedLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDispl
 import { PlaylistsView } from '@/components/audio-studio/PlaylistsView'
 import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet'
 import type { SourceType } from '@/lib/services/playlistService'
+import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
@@ -304,6 +305,60 @@ export default function AudioListenPage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // Songs state
+  const [userSongs, setUserSongs] = useState<any[]>([])
+  const [userSongsLoading, setUserSongsLoading] = useState(false)
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null)
+  const [songTracks, setSongTracks] = useState<BaseAudioTrack[]>([])
+  const [songTracksLoading, setSongTracksLoading] = useState(false)
+  const [songDropdownOpen, setSongDropdownOpen] = useState(false)
+
+  const shouldLoadSongs = contentType === 'songs' && userSongs.length === 0 && !userSongsLoading
+  useEffect(() => {
+    if (shouldLoadSongs) loadUserSongs()
+  }, [shouldLoadSongs])
+
+  useEffect(() => {
+    if (selectedSongId) loadSongTracks(selectedSongId)
+  }, [selectedSongId])
+
+  async function loadUserSongs() {
+    setUserSongsLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('songs')
+      .select('id, title, status, created_at, entity_type')
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (data) {
+      setUserSongs(data)
+      if (data.length > 0 && !selectedSongId) setSelectedSongId(data[0].id)
+    }
+    setUserSongsLoading(false)
+  }
+
+  async function loadSongTracks(songId: string) {
+    setSongTracksLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('song_tracks')
+      .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite')
+      .eq('song_id', songId)
+      .order('created_at')
+    if (data) {
+      setSongTracks(data.filter((t: any) => t.mp3_url).map((t: any) => ({
+        id: t.id,
+        title: t.title || `Version ${t.version}`,
+        artist: userSongs.find(s => s.id === songId)?.title || 'VIVA Song',
+        duration: t.duration_ms ? t.duration_ms / 1000 : 180,
+        url: t.mp3_url,
+        thumbnail: t.cover_url || undefined,
+      })))
+    }
+    setSongTracksLoading(false)
+  }
+
   useEffect(() => {
     if (contentType === 'music' && musicTracks.length === 0 && !musicLoading) loadMusicCatalog()
   }, [contentType])
@@ -364,15 +419,18 @@ export default function AudioListenPage() {
       }
 
       const { data: tracks } = await supabase
-        .from('audio_tracks').select('id, audio_url, voice_id, section_key')
+        .from('audio_tracks').select('id, audio_url, voice_id, section_key, text_content')
         .eq('audio_set_id', audioSetId).eq('status', 'completed')
         .order('created_at', { ascending: false })
-      if (tracks && tracks.length > 0) {
+      const currentTracks = (tracks || []).filter(track =>
+        storyTextMatchesTrack(story.content, track.text_content)
+      )
+      if (currentTracks.length > 0) {
         const storyTitle = story.title || 'Untitled Story'
-        tracks.forEach((track, idx) => {
+        currentTracks.forEach((track, idx) => {
           options.push({
             id: track.id,
-            label: tracks.length > 1 ? `${storyTitle} (${idx + 1}/${tracks.length})` : storyTitle,
+            label: currentTracks.length > 1 ? `${storyTitle} (${idx + 1}/${currentTracks.length})` : storyTitle,
             sublabel: '',
             url: track.audio_url,
             icon: Headphones,
@@ -633,9 +691,11 @@ export default function AudioListenPage() {
             ? 'My Playlists'
             : contentType === 'stories'
               ? 'Listen to Stories'
-              : contentType === 'music'
-                ? 'Listen to Music'
-                : 'Listen to Your Vision'}
+              : contentType === 'songs'
+                ? 'My Songs'
+                : contentType === 'music'
+                  ? 'Listen to Music'
+                  : 'Listen to Your Vision'}
         </h1>
 
         {/* ── Life Vision Player ── */}
@@ -648,6 +708,7 @@ export default function AudioListenPage() {
                 ) : audioTracks.length > 0 ? (
                   <EmbeddedPlayer
                     tracks={audioTracks}
+                    mapActivityType="vision_audio"
                     setName={getSetDisplayName(selectedSet)}
                     setIconKey="life_vision"
                     voiceId={selectedSet.voice_id}
@@ -851,6 +912,7 @@ export default function AudioListenPage() {
                   <>
                     <EmbeddedPlayer
                       tracks={storyPlaybackTracks}
+                      mapActivityType="story_audio"
                       setName={selectedStory.title || 'Story'}
                       setIconKey={
                         selectedStory.entity_type in ENTITY_META
@@ -981,6 +1043,105 @@ export default function AudioListenPage() {
           </section>
         )}
 
+        {/* ── Songs ── */}
+        {contentType === 'songs' && (
+          <section>
+            {userSongsLoading ? (
+              <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+            ) : userSongs.length === 0 ? (
+              <Card variant="glass" className="p-6 text-center">
+                <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                <p className="text-neutral-400 mb-4">No songs yet. Create one with the Songwriter.</p>
+                <Button variant="primary" size="sm" asChild>
+                  <Link href="/audio/songwriter"><Plus className="w-4 h-4 mr-2" />Create Song</Link>
+                </Button>
+              </Card>
+            ) : (
+              <div className="max-w-2xl mx-auto w-full">
+                {songTracksLoading ? (
+                  <div className="rounded-2xl bg-embedded-panel border border-neutral-800 flex items-center justify-center py-12"><Spinner size="lg" /></div>
+                ) : selectedSongId && songTracks.length > 0 ? (
+                  <EmbeddedPlayer
+                    tracks={songTracks}
+                    mapActivityType="song_listen"
+                    setName={userSongs.find(s => s.id === selectedSongId)?.title || 'Song'}
+                    setIconKey="music"
+                    trackCount={songTracks.length}
+                    headerContent={
+                      <div>
+                        <div className="bg-[#0c0c0c] px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
+                          <h3 className="text-center text-lg font-semibold text-white">Play My Songs</h3>
+                        </div>
+                        <div className="bg-embedded-panel px-3 py-2.5 md:px-4">
+                          <div className="relative w-full">
+                            <button
+                              type="button"
+                              onClick={() => setSongDropdownOpen(prev => !prev)}
+                              className="flex w-full min-h-11 items-center justify-between gap-2 rounded-[10px] border border-white/10 bg-white/[0.04] px-2.5 py-2 text-left text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] transition-[background-color,border-color] active:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-primary-500/25 sm:px-3"
+                            >
+                              <div className="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
+                                <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                                  <Music2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#39FF14]" />
+                                </div>
+                                <div className="min-w-0 flex-1 text-left">
+                                  <p className="line-clamp-2 text-[13px] font-medium leading-snug text-white/95 sm:text-sm">
+                                    {userSongs.find(s => s.id === selectedSongId)?.title || 'Untitled Song'}
+                                  </p>
+                                  <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-neutral-500 sm:text-xs">
+                                    {songTracks.length} version{songTracks.length !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              </div>
+                              <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-neutral-500 sm:h-4 sm:w-4 ${songDropdownOpen ? 'rotate-180' : ''} transition-transform duration-200`} />
+                            </button>
+                            {songDropdownOpen && (
+                              <>
+                                <div className="fixed inset-0 z-10" onClick={() => setSongDropdownOpen(false)} />
+                                <div className="absolute z-20 left-0 right-0 mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-neutral-700/80 bg-embedded-panel py-1 shadow-2xl">
+                                  {userSongs.map(song => {
+                                    const isSelected = song.id === selectedSongId
+                                    return (
+                                      <div
+                                        key={song.id}
+                                        onClick={() => { setSelectedSongId(song.id); setSongDropdownOpen(false) }}
+                                        className={`px-3 py-2.5 text-left transition-colors cursor-pointer ${isSelected ? 'bg-primary-500/10' : 'hover:bg-neutral-800/80'}`}
+                                      >
+                                        <div className="flex items-center gap-2.5">
+                                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[#39FF14]/10">
+                                            <Music2 className="w-3 h-3 text-[#39FF14]" />
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <p className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-neutral-200'}`}>
+                                              {song.title || 'Untitled Song'}
+                                            </p>
+                                            <p className="text-[11px] text-neutral-500">
+                                              {new Date(song.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </p>
+                                          </div>
+                                          {isSelected && <CheckCircle className="w-4 h-4 text-primary-400 shrink-0" />}
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  />
+                ) : (
+                  <Card variant="glass" className="p-6 text-center">
+                    <Music2 className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
+                    <p className="text-sm text-neutral-400">Select a song to play</p>
+                  </Card>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
         {/* ── Music Catalog ── */}
         {contentType === 'music' && (
           <section>
@@ -1002,8 +1163,9 @@ export default function AudioListenPage() {
               <div className="max-w-2xl mx-auto w-full">
                 <EmbeddedPlayer
                   tracks={musicPlayerTracks}
+                  mapActivityType="music_listen"
                   setName="VibrationFit Music"
-                  setIconKey="forward"
+                  setIconKey="music"
                   trackCount={musicPlayerTracks.length}
                   headerContent={
                     <div>

@@ -579,20 +579,19 @@ function ConversationPanel({ messages, onCompose }: {
 
 function IntensiveChecklist({ checklist }: { checklist: any }) {
   const steps = [
-    { key: 'profile_completed', label: 'Profile Completed' },
-    { key: 'assessment_completed', label: 'Assessment Completed' },
     { key: 'intake_completed', label: 'Intake Completed' },
-    { key: 'unlock_completed', label: 'Unlock Completed' },
-    { key: 'voice_recording_completed', label: 'Voice Recording' },
-    { key: 'vision_drafted', label: 'Vision Drafted' },
+    { key: 'profile_completed', label: 'Profile Completed' },
     { key: 'vision_built', label: 'Vision Built' },
-    { key: 'vision_refined', label: 'Vision Refined' },
     { key: 'audio_generated', label: 'Audio Generated' },
+    { key: 'voice_recording_completed', label: 'Voice Recording' },
+    { key: 'audios_generated', label: 'Audio Mix' },
     { key: 'vision_board_completed', label: 'Vision Board' },
     { key: 'first_journal_entry', label: 'First Journal Entry' },
-    { key: 'call_scheduled', label: 'Call Scheduled' },
-    { key: 'calibration_call_completed', label: 'Calibration Call' },
+    { key: 'first_vibe_post', label: 'First Vibe Post' },
+    { key: 'vibe_engagement', label: 'Vibe Engagement' },
+    { key: 'alignment_gym_toured', label: 'Alignment Gym Tour' },
     { key: 'activation_protocol_completed', label: 'Activation Protocol' },
+    { key: 'unlock_completed', label: 'Unlock Completed' },
   ]
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

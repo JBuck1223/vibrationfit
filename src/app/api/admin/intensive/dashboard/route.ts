@@ -7,15 +7,17 @@ const STEP_CHECKLIST_KEYS = [
   { step: 1, name: 'Account Settings', key: null },
   { step: 2, name: 'Baseline Intake', key: 'intake_completed' },
   { step: 3, name: 'Create Profile', key: 'profile_completed' },
-  { step: 4, name: 'Vibration Assessment', key: 'assessment_completed' },
-  { step: 5, name: 'Build Vision', key: 'vision_built' },
-  { step: 6, name: 'Generate Audio', key: 'audio_generated' },
-  { step: 7, name: 'Record Voice', key: 'voice_recording_completed' },
-  { step: 8, name: 'Audio Mix', key: 'audios_generated' },
-  { step: 9, name: 'Vision Board', key: 'vision_board_completed' },
-  { step: 10, name: 'First Journal', key: 'first_journal_entry' },
-  { step: 11, name: 'Activation Plan', key: 'activation_protocol_completed' },
-  { step: 12, name: 'Full Unlock', key: 'unlock_completed' },
+  { step: 4, name: 'Build Vision', key: 'vision_built' },
+  { step: 5, name: 'Generate Audio', key: 'audio_generated' },
+  { step: 6, name: 'Record Voice', key: 'voice_recording_completed' },
+  { step: 7, name: 'Audio Mix', key: 'audios_generated' },
+  { step: 8, name: 'Vision Board', key: 'vision_board_completed' },
+  { step: 9, name: 'First Journal', key: 'first_journal_entry' },
+  { step: 10, name: 'First Vibe Tribe Post', key: 'first_vibe_post' },
+  { step: 11, name: 'Engage in Vibe Tribe', key: 'vibe_engagement' },
+  { step: 12, name: 'Alignment Gym Tour', key: 'alignment_gym_toured' },
+  { step: 13, name: 'Activation Plan', key: 'activation_protocol_completed' },
+  { step: 14, name: 'Full Unlock', key: 'unlock_completed' },
 ]
 
 function isStepComplete(checklist: Record<string, unknown>, step: typeof STEP_CHECKLIST_KEYS[number]): boolean {
@@ -27,7 +29,7 @@ function isStepComplete(checklist: Record<string, unknown>, step: typeof STEP_CH
 
 function getCurrentStep(checklist: Record<string, unknown>): { stepNumber: number; stepName: string } {
   if (checklist.status === 'completed') {
-    return { stepNumber: 13, stepName: 'Completed' }
+    return { stepNumber: 15, stepName: 'Completed' }
   }
   if (!checklist.started_at) {
     return { stepNumber: 0, stepName: 'Not Started' }
@@ -40,7 +42,7 @@ function getCurrentStep(checklist: Record<string, unknown>): { stepNumber: numbe
     }
   }
 
-  return { stepNumber: 13, stepName: 'Completed' }
+  return { stepNumber: 15, stepName: 'Completed' }
 }
 
 function getCompletedStepCount(checklist: Record<string, unknown>): number {
@@ -132,8 +134,8 @@ export async function GET(request: NextRequest) {
         current_step_number: stepNumber,
         current_step_name: stepName,
         completed_steps: completedSteps,
-        total_steps: 12,
-        progress_pct: Math.round((completedSteps / 12) * 100),
+        total_steps: 14,
+        progress_pct: Math.round((completedSteps / 14) * 100),
         started_at: checklist.started_at,
         completed_at: checklist.completed_at,
         created_at: checklist.created_at,
@@ -168,7 +170,7 @@ export async function GET(request: NextRequest) {
         name: s.name,
         count: stepCounts[s.step] || 0,
       })),
-      { step: 13, name: 'Completed', count: stepCounts[13] || 0 },
+      { step: 15, name: 'Completed', count: stepCounts[15] || 0 },
     ]
 
     const totals = {

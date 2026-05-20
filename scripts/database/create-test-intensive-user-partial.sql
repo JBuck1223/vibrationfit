@@ -24,22 +24,26 @@ DECLARE
   
   -- Phase 2: Foundation
   v_profile_done BOOLEAN := TRUE;        -- Step 3: Profile
-  v_assessment_done BOOLEAN := TRUE;     -- Step 4: Assessment
   
   -- Phase 3: Vision
-  v_vision_built_done BOOLEAN := TRUE;   -- Step 5: Build Life Vision (TEST FROM HERE)
+  v_vision_built_done BOOLEAN := TRUE;   -- Step 4: Build Life Vision (TEST FROM HERE)
   
   -- Phase 4: Audio
-  v_audio_generated_done BOOLEAN := FALSE; -- Step 6: Generate Audio
-  v_audios_mixed_done BOOLEAN := FALSE;    -- Step 8: Audio Mix
+  v_audio_generated_done BOOLEAN := FALSE; -- Step 5: Generate Audio
+  v_audios_mixed_done BOOLEAN := FALSE;    -- Step 7: Audio Mix
   
   -- Phase 5: Activation
-  v_vision_board_done BOOLEAN := FALSE;    -- Step 9: Vision Board
-  v_journal_done BOOLEAN := FALSE;         -- Step 10: First Journal Entry
+  v_vision_board_done BOOLEAN := FALSE;    -- Step 8: Vision Board
+  v_journal_done BOOLEAN := FALSE;         -- Step 9: First Journal Entry
   
-  -- Phase 6: Completion
-  v_activation_protocol_done BOOLEAN := FALSE; -- Step 11: My Activation Plan
-  v_unlock_done BOOLEAN := FALSE;              -- Step 12: Platform Unlock
+  -- Phase 6: Community
+  v_first_vibe_post_done BOOLEAN := FALSE;     -- Step 10: First Vibe Tribe Post
+  v_vibe_engagement_done BOOLEAN := FALSE;     -- Step 11: Engage in Vibe Tribe
+  v_alignment_gym_toured_done BOOLEAN := FALSE; -- Step 12: Alignment Gym Tour
+  
+  -- Phase 7: Completion
+  v_activation_protocol_done BOOLEAN := FALSE; -- Step 13: My Activation Plan
+  v_unlock_done BOOLEAN := FALSE;              -- Step 14: Platform Unlock
   -- ============================================================================
 
   v_user_id UUID;
@@ -193,8 +197,6 @@ BEGIN
     -- Phase 2: Foundation
     profile_completed,
     profile_completed_at,
-    assessment_completed,
-    assessment_completed_at,
     
     -- Phase 3: Vision
     vision_built,
@@ -212,7 +214,15 @@ BEGIN
     first_journal_entry,
     first_journal_entry_at,
     
-    -- Phase 6: Completion
+    -- Phase 6: Community
+    first_vibe_post,
+    first_vibe_post_at,
+    vibe_engagement,
+    vibe_engagement_at,
+    alignment_gym_toured,
+    alignment_gym_toured_at,
+    
+    -- Phase 7: Completion
     activation_protocol_completed,
     activation_protocol_completed_at,
     unlock_completed,
@@ -234,26 +244,32 @@ BEGIN
     -- Phase 2
     v_profile_done,
     CASE WHEN v_profile_done THEN v_now - INTERVAL '50 minutes' ELSE NULL END,
-    v_assessment_done,
-    CASE WHEN v_assessment_done THEN v_now - INTERVAL '40 minutes' ELSE NULL END,
     
     -- Phase 3
     v_vision_built_done,
-    CASE WHEN v_vision_built_done THEN v_now - INTERVAL '30 minutes' ELSE NULL END,
+    CASE WHEN v_vision_built_done THEN v_now - INTERVAL '40 minutes' ELSE NULL END,
     
     -- Phase 4
     v_audio_generated_done,
-    CASE WHEN v_audio_generated_done THEN v_now - INTERVAL '15 minutes' ELSE NULL END,
+    CASE WHEN v_audio_generated_done THEN v_now - INTERVAL '20 minutes' ELSE NULL END,
     v_audios_mixed_done,
-    CASE WHEN v_audios_mixed_done THEN v_now - INTERVAL '10 minutes' ELSE NULL END,
+    CASE WHEN v_audios_mixed_done THEN v_now - INTERVAL '15 minutes' ELSE NULL END,
     
     -- Phase 5
     v_vision_board_done,
-    CASE WHEN v_vision_board_done THEN v_now - INTERVAL '8 minutes' ELSE NULL END,
+    CASE WHEN v_vision_board_done THEN v_now - INTERVAL '12 minutes' ELSE NULL END,
     v_journal_done,
-    CASE WHEN v_journal_done THEN v_now - INTERVAL '5 minutes' ELSE NULL END,
+    CASE WHEN v_journal_done THEN v_now - INTERVAL '10 minutes' ELSE NULL END,
     
     -- Phase 6
+    v_first_vibe_post_done,
+    CASE WHEN v_first_vibe_post_done THEN v_now - INTERVAL '8 minutes' ELSE NULL END,
+    v_vibe_engagement_done,
+    CASE WHEN v_vibe_engagement_done THEN v_now - INTERVAL '6 minutes' ELSE NULL END,
+    v_alignment_gym_toured_done,
+    CASE WHEN v_alignment_gym_toured_done THEN v_now - INTERVAL '4 minutes' ELSE NULL END,
+    
+    -- Phase 7
     v_activation_protocol_done,
     CASE WHEN v_activation_protocol_done THEN v_now - INTERVAL '2 minutes' ELSE NULL END,
     v_unlock_done,
@@ -277,14 +293,16 @@ BEGIN
   RAISE NOTICE '  [%] Step 1: Settings', CASE WHEN v_settings_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '  [%] Step 2: Intake', CASE WHEN v_intake_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '  [%] Step 3: Profile', CASE WHEN v_profile_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 4: Assessment', CASE WHEN v_assessment_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 5: Vision Built', CASE WHEN v_vision_built_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 6: Audio Generated', CASE WHEN v_audio_generated_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 8: Audio Mix', CASE WHEN v_audios_mixed_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 9: Vision Board', CASE WHEN v_vision_board_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 10: Journal', CASE WHEN v_journal_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 11: My Activation Plan', CASE WHEN v_activation_protocol_done THEN 'X' ELSE ' ' END;
-  RAISE NOTICE '  [%] Step 12: Unlock', CASE WHEN v_unlock_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 4: Build Vision', CASE WHEN v_vision_built_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 5: Generate Audio', CASE WHEN v_audio_generated_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 7: Audio Mix', CASE WHEN v_audios_mixed_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 8: Vision Board', CASE WHEN v_vision_board_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 9: Journal', CASE WHEN v_journal_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 10: First Vibe Tribe Post', CASE WHEN v_first_vibe_post_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 11: Engage Vibe Tribe', CASE WHEN v_vibe_engagement_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 12: Alignment Gym Tour', CASE WHEN v_alignment_gym_toured_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 13: My Activation Plan', CASE WHEN v_activation_protocol_done THEN 'X' ELSE ' ' END;
+  RAISE NOTICE '  [%] Step 14: Unlock', CASE WHEN v_unlock_done THEN 'X' ELSE ' ' END;
   RAISE NOTICE '';
   RAISE NOTICE 'Login via Magic Link to: %', v_test_email;
   RAISE NOTICE '========================================';

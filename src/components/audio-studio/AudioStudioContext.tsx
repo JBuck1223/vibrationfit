@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import type { Story } from '@/lib/stories/types'
@@ -108,6 +108,14 @@ interface AudioStudioContextValue {
   refreshAllBatches: () => Promise<void>
 }
 
+const LISTEN_PATH_MAP: Record<string, string> = {
+  '/audio': 'life-vision',
+  '/audio/stories': 'stories',
+  '/audio/songs': 'songs',
+  '/audio/music': 'music',
+  '/audio/playlists': 'playlists',
+}
+
 const AudioStudioContext = createContext<AudioStudioContextValue | null>(null)
 
 export function useAudioStudio() {
@@ -144,6 +152,18 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
   const [allBatchesLoading, setAllBatchesLoading] = useState(false)
 
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+
+  const listenContentTypeFromPath = useMemo(() => {
+    const clean = pathname.replace(/\/$/, '') || '/audio'
+    return LISTEN_PATH_MAP[clean] ?? null
+  }, [pathname])
+
+  useEffect(() => {
+    if (listenContentTypeFromPath) {
+      setListenContentType(listenContentTypeFromPath)
+    }
+  }, [listenContentTypeFromPath])
 
   const [player, setPlayer] = useState<PlayerState>({
     tracks: [],
@@ -404,17 +424,13 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => { loadStoriesWithAudio() }, [])
 
-  // Read source and listen params from URL on mount
+  // Read source params from URL on mount
   useEffect(() => {
     const urlSource = searchParams.get('source') as AudioSourceType
     const urlSourceId = searchParams.get('sourceId')
     if (urlSource && urlSourceId) {
       setSourceType(urlSource)
       setSourceId(urlSourceId)
-    }
-    const urlListen = searchParams.get('listen')
-    if (urlListen) {
-      setListenContentType(urlListen)
     }
   }, [searchParams])
 

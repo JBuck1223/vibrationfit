@@ -235,6 +235,11 @@ export function JournalEditForm({
         return
       }
 
+      const { dismissRecoverableForSavedRecordings } = await import(
+        '@/lib/journal/recoverable-transcripts-client'
+      )
+      dismissRecoverableForSavedRecordings(audioRecordings)
+
       setUploadProgress((prev) => ({ ...prev, isVisible: false }))
       onSuccess()
     } catch (err) {

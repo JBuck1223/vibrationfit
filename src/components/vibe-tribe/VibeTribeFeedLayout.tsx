@@ -34,9 +34,10 @@ interface VibeTribeFeedLayoutProps {
   initialFilter?: VibeTag | 'all'
   userProfile?: UserProfile | null
   hasPostedBefore?: boolean
+  onPostCreated?: (post: VibePost) => void
 }
 
-export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = 'all', userProfile, hasPostedBefore = true }: VibeTribeFeedLayoutProps) {
+export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = 'all', userProfile, hasPostedBefore = true, onPostCreated: onPostCreatedProp }: VibeTribeFeedLayoutProps) {
   const [posts, setPosts] = useState<VibePost[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -203,6 +204,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
   const handlePostCreated = (post: VibePost) => {
     setPosts(prev => [post, ...prev])
     window.scrollTo({ top: 0, behavior: 'smooth' })
+    onPostCreatedProp?.(post)
   }
 
   const handlePostDeleted = (postId: string) => {

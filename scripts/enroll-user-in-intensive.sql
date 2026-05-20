@@ -59,7 +59,7 @@ SELECT
   oi.activation_deadline,
   oi.completion_status,
   ic.profile_completed,
-  ic.assessment_completed
+  ic.vision_built
 FROM order_items oi
 JOIN orders o ON o.id = oi.order_id
 JOIN auth.users u ON o.user_id = u.id

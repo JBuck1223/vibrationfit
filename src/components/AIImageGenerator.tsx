@@ -52,6 +52,15 @@ export function AIImageGenerator({
   const [editPrompt, setEditPrompt] = useState<string>('')
   const [isEditingGenerated, setIsEditingGenerated] = useState(false)
   const [originalImage, setOriginalImage] = useState<string | null>(null)
+  const [lastGeneratedDimension, setLastGeneratedDimension] = useState<ImageDimension | null>(null)
+
+  const previewAspectClass: Record<ImageDimension, string> = {
+    square: 'aspect-square',
+    landscape_4_3: 'aspect-[4/3]',
+    landscape_16_9: 'aspect-video',
+    portrait_4_3: 'aspect-[3/4]',
+    portrait_16_9: 'aspect-[9/16]',
+  }
 
   // Refs for scrolling
   const containerRef = useRef<HTMLDivElement>(null)
@@ -120,11 +129,14 @@ export function AIImageGenerator({
     }
   }, [type, title, description, visionText])
 
-  // Auto-populate journal description when journalText changes
+  // Seed journal description once (do not overwrite user edits with full entry text)
   useEffect(() => {
-    if (type === 'journal' && journalText) {
-      setCustomJournalDescription(journalText)
-    }
+    if (type !== 'journal' || !journalText?.trim()) return
+    setCustomJournalDescription((prev) => {
+      if (prev.trim()) return prev
+      const excerpt = journalText.trim().slice(0, 400)
+      return `An artistic scene inspired by this journal moment (no text in the image): ${excerpt}${journalText.length > 400 ? '...' : ''}`
+    })
   }, [type, journalText])
 
   // Handle file preview for edit mode (with HEIC/HEIF conversion)
@@ -296,6 +308,7 @@ export function AIImageGenerator({
       console.log('✅ Image response received:', { imageUrl: data.imageUrl, mode, isEditingGenerated })
       
       setGeneratedImage(data.imageUrl)
+      setLastGeneratedDimension(selectedDimension)
       setRevisedPrompt(data.revisedPrompt)
       
       // Reset editing state
@@ -347,6 +360,7 @@ export function AIImageGenerator({
     setIsEditingGenerated(false)
     setEditPrompt('')
     setOriginalImage(null)
+    setLastGeneratedDimension(null)
   }
 
   const handleEditGeneratedImage = () => {
@@ -435,7 +449,7 @@ export function AIImageGenerator({
               <Textarea
                 value={customJournalDescription}
                 onChange={(e) => setCustomJournalDescription(e.target.value)}
-                placeholder="Describe the image you want to create based on your journal entry..."
+                placeholder="Describe the scene you want (mood, setting, symbols). Do not ask for words or text in the image — VIVA works best with visual descriptions only."
                 className="min-h-[100px]"
                 disabled={generating}
               />
@@ -634,11 +648,15 @@ export function AIImageGenerator({
       ) : (
         <div className="space-y-4">
           {/* Generated Image Preview */}
-          <div className="relative group">
+          <div
+            className={`relative group overflow-hidden rounded-xl border-2 border-primary-500 shadow-lg bg-neutral-900 ${
+              previewAspectClass[lastGeneratedDimension || selectedDimension]
+            }`}
+          >
             <img
               src={generatedImage}
               alt="Generated"
-              className="w-full rounded-xl border-2 border-primary-500 shadow-lg"
+              className="h-full w-full object-contain"
             />
             <button
               type="button"
@@ -648,6 +666,10 @@ export function AIImageGenerator({
               <X className="w-4 h-4 text-white" />
             </button>
           </div>
+          <p className="text-xs text-neutral-500 text-center">
+            Aspect ratio:{' '}
+            {dimensionOptions.find((d) => d.id === (lastGeneratedDimension || selectedDimension))?.ratio}
+          </p>
 
           {/* Revised Prompt (if available) */}
           {revisedPrompt && revisedPrompt !== prompt && (
