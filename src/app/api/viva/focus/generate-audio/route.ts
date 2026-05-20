@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       sections: [{ sectionKey: 'focus_story', text: storyContent }],
       voice: voice,
       format: 'mp3',
-      audioSetId: audioSetId,
+      audioSetId: audioSetId ?? undefined,
       audioSetName: 'Focus Story',
       variant: 'standard'
     })
