@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { CheckCircle, ArrowRight } from 'lucide-react'
-import { Container, Button, Spinner, Card } from '@/lib/design-system/components'
+import { Container, Button, Spinner, Card, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { useIntensiveStepCompleteModal } from '@/lib/intensive/use-step-complete-modal'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 import {
   AlignmentGymHub,
@@ -13,8 +13,8 @@ import { AlignmentGymIntensiveTour } from '@/components/intensive/AlignmentGymIn
 import { createClient } from '@/lib/supabase/client'
 
 export default function IntensiveAlignmentGymPage() {
-  const router = useRouter()
   const { setCompletedAt } = useIntensiveStep()
+  const { isOpen, stepId, showModalForChecklistKey, closeModal } = useIntensiveStepCompleteModal()
   const [loading, setLoading] = useState(true)
   const [isCompleted, setIsCompleted] = useState(false)
   const [completedAt, setLocalCompletedAt] = useState<string | null>(null)
@@ -76,7 +76,11 @@ export default function IntensiveAlignmentGymPage() {
                   <p className="text-xs text-neutral-400">Next up: build your Alignment Plan.</p>
                 </div>
               </div>
-              <Button variant="primary" size="sm" onClick={() => router.push('/intensive/map')}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => showModalForChecklistKey('alignment_gym_toured')}
+              >
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -94,6 +98,12 @@ export default function IntensiveAlignmentGymPage() {
       <AlignmentGymIntensiveTour
         alreadyCompleted={isCompleted}
         onActiveAnchorChange={setActiveTourAnchor}
+      />
+
+      <IntensiveStepCompleteModal
+        isOpen={isOpen}
+        onClose={closeModal}
+        stepId={stepId || 'alignment_gym_tour'}
       />
     </div>
   )

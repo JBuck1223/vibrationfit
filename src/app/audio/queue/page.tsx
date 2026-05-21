@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useAudioStudio } from '@/components/audio-studio'
 import { createClient } from '@/lib/supabase/client'
 import { getVisionCategoryLabel, isValidVisionCategory } from '@/lib/design-system/vision-categories'
+import { IntensiveAudioStepCompletionWatcher } from '@/components/intensive/IntensiveAudioStepCompletionWatcher'
 
 interface Voice {
   id: string
@@ -378,6 +379,8 @@ export default function AudioQueuePage() {
         message="This will permanently delete this generation batch and any associated tracks. This action cannot be undone."
         isDeleting={deleting}
       />
+
+      <IntensiveAudioStepCompletionWatcher />
     </Container>
   )
 }

@@ -461,7 +461,6 @@ function PillarPicker({
                   <MapActivityScheduleControls
                     sel={sel}
                     isDaily={isDailyCadence(sel.cadenceJson)}
-                    pillarColor={meta.color}
                     activityType={activity.type}
                     hasPhone={hasPhone}
                     smsOptIn={smsOptIn}
