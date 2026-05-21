@@ -53,6 +53,10 @@ export async function PATCH(
     if (body.start_date !== undefined) updates.start_date = body.start_date
     if (body.end_date !== undefined) updates.end_date = body.end_date
     if (body.status !== undefined) updates.status = body.status
+    if (body.notify_sms !== undefined) updates.notify_sms = body.notify_sms
+    if (body.notify_email !== undefined) updates.notify_email = body.notify_email
+    if (body.reminder_time !== undefined) updates.reminder_time = body.reminder_time
+    if (body.reminder_days !== undefined) updates.reminder_days = body.reminder_days
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 })

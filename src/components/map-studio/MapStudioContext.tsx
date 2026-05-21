@@ -30,14 +30,15 @@ export interface CommitmentStats {
 interface MapStudioContextValue {
   maps: UserMap[]
   activeMap: UserMap | null
-  activeMapVersion: number | null
   draftMap: UserMap | null
 
   targets: VisionTarget[]
   commitments: Commitment[]
+  planCommitments: Commitment[]
   activeCommitments: Commitment[]
   systemCommitments: Commitment[]
   customCommitments: Commitment[]
+  customActiveCommitments: Commitment[]
   commitmentsByPillar: Record<MapCategory, Commitment[]>
   commitmentsByLifeCategory: Record<string, Commitment[]>
 
@@ -46,6 +47,10 @@ interface MapStudioContextValue {
   recentOccurrences: CommitmentOccurrence[]
   commitmentStats: Map<string, CommitmentStats>
   loading: boolean
+  planSnapshotLoading: boolean
+  isHistoricalPlan: boolean
+  earliestPlanDate: string | null
+  selectablePlanDates: ReadonlySet<string>
 
   selectedDate: string
   viewMode: MapViewMode
@@ -57,6 +62,7 @@ interface MapStudioContextValue {
   refreshCommitments: () => Promise<void>
   refreshOccurrences: () => Promise<void>
   refreshAll: () => Promise<void>
+  refreshPlanForDate: (date: string) => Promise<void>
   loadOccurrencesForDate: (date: string) => Promise<CommitmentOccurrence[]>
   loadOccurrencesForRange: (from: string, to: string) => Promise<CommitmentOccurrence[]>
   ensureOccurrencesForDate: (date: string) => Promise<void>
@@ -75,6 +81,10 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
   const [maps, setMaps] = useState<UserMap[]>([])
   const [targets, setTargets] = useState<VisionTarget[]>([])
   const [commitments, setCommitments] = useState<Commitment[]>([])
+  const [planCommitments, setPlanCommitments] = useState<Commitment[]>([])
+  const [planSnapshotLoading, setPlanSnapshotLoading] = useState(false)
+  const [earliestPlanDate, setEarliestPlanDate] = useState<string | null>(null)
+  const [selectablePlanDates, setSelectablePlanDates] = useState<ReadonlySet<string>>(new Set())
   const [todayOccurrences, setTodayOccurrences] = useState<CommitmentOccurrence[]>([])
   const [dateOccurrences, setDateOccurrences] = useState<CommitmentOccurrence[]>([])
   const [recentOccurrences, setRecentOccurrences] = useState<CommitmentOccurrence[]>([])
@@ -111,6 +121,19 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
     if (data) setTargets(data)
   }, [])
 
+  const loadSelectablePlanDates = useCallback(async () => {
+    const res = await fetch('/api/map/selectable-dates')
+    if (!res.ok) return
+    const data = await res.json()
+    const dates = (data.dates || []) as string[]
+    setSelectablePlanDates(new Set(dates))
+    if (dates.length > 0) {
+      setEarliestPlanDate(dates[0])
+    } else {
+      setEarliestPlanDate(null)
+    }
+  }, [])
+
   const loadCommitments = useCallback(async () => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
@@ -120,11 +143,12 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
       .from('commitments')
       .select('*')
       .eq('user_id', session.user.id)
-      .in('status', ['active', 'paused'])
+      .eq('status', 'active')
       .order('created_at', { ascending: false })
 
     if (data) setCommitments(data)
-  }, [])
+    await loadSelectablePlanDates()
+  }, [loadSelectablePlanDates])
 
   const loadOccurrencesForDate = useCallback(async (date: string) => {
     const res = await fetch(`/api/map/occurrences?date=${date}`)
@@ -205,6 +229,28 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
     await loadOccurrences()
   }, [selectedDate, refreshDateOccurrences, loadOccurrences])
 
+  const refreshPlanForDate = useCallback(async (date: string) => {
+    const today = todayDateString()
+    if (date >= today) {
+      setPlanSnapshotLoading(false)
+      await loadCommitments()
+      return
+    }
+
+    setPlanSnapshotLoading(true)
+    try {
+      const res = await fetch(`/api/map/snapshot?date=${date}`)
+      if (!res.ok) return
+      const data = await res.json()
+      setPlanCommitments((data.plan || []) as Commitment[])
+      if (data.meta?.earliestDate) {
+        setEarliestPlanDate(data.meta.earliestDate)
+      }
+    } finally {
+      setPlanSnapshotLoading(false)
+    }
+  }, [loadCommitments])
+
   const loadAll = useCallback(async () => {
     setLoading(true)
     await Promise.all([loadMaps(), loadTargets(), loadCommitments(), loadOccurrences()])
@@ -223,7 +269,15 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return
     refreshDateOccurrences(selectedDate)
-  }, [selectedDate, loading, refreshDateOccurrences])
+    void refreshPlanForDate(selectedDate)
+  }, [selectedDate, loading, refreshDateOccurrences, refreshPlanForDate])
+
+  useEffect(() => {
+    const today = todayDateString()
+    if (selectedDate >= today) {
+      setPlanCommitments(commitments)
+    }
+  }, [commitments, selectedDate])
 
   const setSelectedDate = useCallback((date: string) => {
     setSelectedDateState(date)
@@ -234,8 +288,10 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const activeMap = maps.find(m => m.is_active && !m.is_draft) ?? null
-  const activeMapVersion = activeMap?.version_number ?? null
   const draftMap = maps.find(m => m.is_draft) ?? null
+
+  const todayStr = todayDateString()
+  const isHistoricalPlan = selectedDate < todayStr
 
   const activeCommitments = useMemo(
     () => commitments.filter(c => c.status === 'active'),
@@ -243,7 +299,12 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
   )
 
   const { system: systemCommitments, custom: customCommitments } = useMemo(
-    () => partitionCommitments(activeCommitments),
+    () => partitionCommitments(planCommitments),
+    [planCommitments],
+  )
+
+  const customActiveCommitments = useMemo(
+    () => partitionCommitments(activeCommitments).custom,
     [activeCommitments],
   )
 
@@ -262,13 +323,14 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
       value={{
         maps,
         activeMap,
-        activeMapVersion,
         draftMap,
         targets,
         commitments,
+        planCommitments,
         activeCommitments,
         systemCommitments,
         customCommitments,
+        customActiveCommitments,
         commitmentsByPillar,
         commitmentsByLifeCategory,
         todayOccurrences,
@@ -276,6 +338,10 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
         recentOccurrences,
         commitmentStats,
         loading,
+        planSnapshotLoading,
+        isHistoricalPlan,
+        earliestPlanDate,
+        selectablePlanDates,
         selectedDate,
         viewMode,
         setSelectedDate,
@@ -285,6 +351,7 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
         refreshCommitments: loadCommitments,
         refreshOccurrences: loadOccurrences,
         refreshAll,
+        refreshPlanForDate,
         loadOccurrencesForDate,
         loadOccurrencesForRange,
         ensureOccurrencesForDate: ensureOccurrencesForDateFn,

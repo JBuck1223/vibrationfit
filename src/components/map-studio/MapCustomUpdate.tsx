@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Stack,
@@ -9,9 +9,11 @@ import {
   Spinner,
   Select,
 } from '@/lib/design-system/components'
-import { Plus, Pause, Play, Trash2 } from 'lucide-react'
+import { Plus, Archive, Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 import { useMapStudio } from './MapStudioContext'
+import { isCustomCommitment } from '@/lib/map/commitment-classification'
 import { LIFE_CATEGORY_KEYS, getVisionCategory } from '@/lib/design-system/vision-categories'
+import type { Commitment } from '@/lib/map/types'
 
 const CADENCE_OPTIONS = [
   { value: JSON.stringify({ kind: 'daily' }), label: 'Every day' },
@@ -25,7 +27,10 @@ const PICKER_CATEGORIES = LIFE_CATEGORY_KEYS
 
 export function MapCustomUpdate() {
   const router = useRouter()
-  const { customCommitments, refreshAll } = useMapStudio()
+  const { customActiveCommitments, refreshAll } = useMapStudio()
+  const [archivedCommitments, setArchivedCommitments] = useState<Commitment[]>([])
+  const [archivedLoading, setArchivedLoading] = useState(true)
+  const [showArchived, setShowArchived] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
@@ -33,6 +38,24 @@ export function MapCustomUpdate() {
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  const loadArchived = useCallback(async () => {
+    setArchivedLoading(true)
+    try {
+      const res = await fetch('/api/map/commitments?status=archived')
+      if (!res.ok) return
+      const data = await res.json()
+      const all = (data.commitments || []) as Commitment[]
+      setArchivedCommitments(all.filter(isCustomCommitment))
+    } finally {
+      setArchivedLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadArchived()
+  }, [loadArchived, customActiveCommitments])
 
   const handleCreate = async () => {
     if (!title.trim() || !category) return
@@ -52,6 +75,7 @@ export function MapCustomUpdate() {
       if (res.ok) {
         await fetch('/api/map/generate-occurrences', { method: 'POST' })
         await refreshAll()
+        await loadArchived()
         setTitle('')
         setDescription('')
         setCategory('')
@@ -63,15 +87,32 @@ export function MapCustomUpdate() {
     }
   }
 
-  const handleStatus = async (id: string, status: 'active' | 'paused' | 'archived') => {
+  const handleArchive = async (id: string) => {
     setUpdating(id)
     try {
       await fetch(`/api/map/commitments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: 'archived' }),
       })
       await refreshAll()
+      await loadArchived()
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const handleRestore = async (id: string) => {
+    setUpdating(id)
+    try {
+      await fetch(`/api/map/commitments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' }),
+      })
+      await fetch('/api/map/generate-occurrences', { method: 'POST' })
+      await refreshAll()
+      await loadArchived()
     } finally {
       setUpdating(null)
     }
@@ -82,12 +123,21 @@ export function MapCustomUpdate() {
     try {
       await fetch(`/api/map/commitments/${id}`, { method: 'DELETE' })
       await refreshAll()
+      await loadArchived()
+      setDeleteConfirmId(null)
     } finally {
       setUpdating(null)
     }
   }
 
-  const grouped = customCommitments.reduce<Record<string, typeof customCommitments>>((acc, c) => {
+  const grouped = customActiveCommitments.reduce<Record<string, typeof customActiveCommitments>>((acc, c) => {
+    const key = c.category || 'other'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(c)
+    return acc
+  }, {})
+
+  const archivedGrouped = archivedCommitments.reduce<Record<string, Commitment[]>>((acc, c) => {
     const key = c.category || 'other'
     if (!acc[key]) acc[key] = []
     acc[key].push(c)
@@ -100,7 +150,7 @@ export function MapCustomUpdate() {
         <div>
           <h1 className="text-2xl font-bold text-white">Custom Actions</h1>
           <p className="text-sm text-neutral-500 mt-1">
-            Personal commitments tagged to your life categories.
+            Personal commitments on your MAP. Archive removes them from Day view; restore anytime.
           </p>
         </div>
         {!showForm && (
@@ -169,7 +219,7 @@ export function MapCustomUpdate() {
 
       {Object.keys(grouped).length === 0 && !showForm ? (
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center py-10">
-          <p className="text-sm text-neutral-500">No custom actions yet. Add your first personal commitment.</p>
+          <p className="text-sm text-neutral-500">No active custom actions. Add your first personal commitment.</p>
         </Card>
       ) : (
         Object.entries(grouped).map(([catKey, items]) => {
@@ -179,52 +229,140 @@ export function MapCustomUpdate() {
               <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">{cat?.label || catKey}</p>
               <div className="space-y-2">
                 {items.map(c => (
-                  <div
+                  <CommitmentRow
                     key={c.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-neutral-900/50 border border-neutral-800"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white truncate">{c.title}</p>
-                      <p className="text-xs text-neutral-600 capitalize">{c.status}</p>
-                    </div>
-                    {c.status === 'active' && (
-                      <button
-                        type="button"
-                        onClick={() => handleStatus(c.id, 'paused')}
-                        disabled={updating === c.id}
-                        className="p-1.5 text-neutral-500 hover:text-amber-400"
-                        aria-label="Pause"
-                      >
-                        {updating === c.id ? <Spinner size="sm" /> : <Pause className="w-4 h-4" />}
-                      </button>
-                    )}
-                    {c.status === 'paused' && (
-                      <button
-                        type="button"
-                        onClick={() => handleStatus(c.id, 'active')}
-                        disabled={updating === c.id}
-                        className="p-1.5 text-neutral-500 hover:text-primary-400"
-                        aria-label="Resume"
-                      >
-                        {updating === c.id ? <Spinner size="sm" /> : <Play className="w-4 h-4" />}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(c.id)}
-                      disabled={updating === c.id}
-                      className="p-1.5 text-neutral-500 hover:text-red-400"
-                      aria-label="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                    commitment={c}
+                    updating={updating === c.id}
+                    deleteConfirmId={deleteConfirmId}
+                    onArchive={() => handleArchive(c.id)}
+                    onDeleteRequest={() => setDeleteConfirmId(c.id)}
+                    onDeleteConfirm={() => handleDelete(c.id)}
+                    onDeleteCancel={() => setDeleteConfirmId(null)}
+                  />
                 ))}
               </div>
             </div>
           )
         })
       )}
+
+      <div className="border-t border-neutral-800 pt-4">
+        <button
+          type="button"
+          onClick={() => setShowArchived(!showArchived)}
+          className="flex items-center gap-2 text-sm font-medium text-neutral-400 hover:text-white"
+        >
+          {showArchived ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          Archived ({archivedLoading ? '...' : archivedCommitments.length})
+        </button>
+        {showArchived && (
+          <div className="mt-4 space-y-4">
+            {archivedLoading ? (
+              <Spinner size="sm" />
+            ) : archivedCommitments.length === 0 ? (
+              <p className="text-sm text-neutral-600">No archived custom actions.</p>
+            ) : (
+              Object.entries(archivedGrouped).map(([catKey, items]) => {
+                const cat = getVisionCategory(catKey as Parameters<typeof getVisionCategory>[0])
+                return (
+                  <div key={catKey}>
+                    <p className="text-xs text-neutral-600 uppercase tracking-wider mb-2">{cat?.label || catKey}</p>
+                    <div className="space-y-2">
+                      {items.map(c => (
+                        <div
+                          key={c.id}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-neutral-900/30 border border-neutral-800/80"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-neutral-400 truncate">{c.title}</p>
+                            <p className="text-xs text-neutral-600">Archived — not on MAP</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRestore(c.id)}
+                            disabled={updating === c.id}
+                            className="p-1.5 text-neutral-500 hover:text-primary-400"
+                            aria-label="Restore"
+                          >
+                            {updating === c.id ? <Spinner size="sm" /> : <RotateCcw className="w-4 h-4" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(c.id)}
+                            disabled={updating === c.id}
+                            className="p-1.5 text-neutral-500 hover:text-red-400"
+                            aria-label="Delete permanently"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
+      </div>
     </Stack>
+  )
+}
+
+function CommitmentRow({
+  commitment,
+  updating,
+  deleteConfirmId,
+  onArchive,
+  onDeleteRequest,
+  onDeleteConfirm,
+  onDeleteCancel,
+}: {
+  commitment: Commitment
+  updating: boolean
+  deleteConfirmId: string | null
+  onArchive: () => void
+  onDeleteRequest: () => void
+  onDeleteConfirm: () => void
+  onDeleteCancel: () => void
+}) {
+  const isDeleting = deleteConfirmId === commitment.id
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl bg-neutral-900/50 border border-neutral-800">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-white truncate">{commitment.title}</p>
+        <p className="text-xs text-neutral-600">On your MAP</p>
+      </div>
+      {isDeleting ? (
+        <div className="flex items-center gap-2">
+          <Button variant="danger" size="sm" onClick={onDeleteConfirm} disabled={updating}>
+            {updating ? <Spinner size="sm" /> : 'Delete'}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onDeleteCancel}>Cancel</Button>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onArchive}
+            disabled={updating}
+            className="p-1.5 text-neutral-500 hover:text-amber-400"
+            aria-label="Archive"
+          >
+            {updating ? <Spinner size="sm" /> : <Archive className="w-4 h-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={onDeleteRequest}
+            disabled={updating}
+            className="p-1.5 text-neutral-500 hover:text-red-400"
+            aria-label="Delete"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </>
+      )}
+    </div>
   )
 }

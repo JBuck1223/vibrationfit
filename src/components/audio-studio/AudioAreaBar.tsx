@@ -3,7 +3,7 @@
 import {
   Headphones, Wand2,
   Target, Library, Music2, ListMusic,
-  AudioLines, Mic, Sliders, Clock, PenTool,
+  AudioLines, Mic, Sliders, Clock,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
@@ -17,19 +17,19 @@ const TABS = [
 const CREATE_AREA_ROUTES = ['/audio/create', '/audio/songwriter', '/audio/generate', '/audio/mix', '/audio/record', '/audio/queue']
 
 const SECONDARY_TABS = [
-  { label: 'Songwriter', path: '/audio/songwriter', icon: PenTool },
   { label: 'Generate', path: '/audio/generate', icon: AudioLines },
   { label: 'Record', path: '/audio/record', icon: Mic },
   { label: 'Mix', path: '/audio/mix', icon: Sliders },
+  { label: 'Songwriter', path: '/audio/songwriter', icon: Music2 },
   { label: 'Queue', path: '/audio/queue', icon: Clock },
 ]
 
 const CONTENT_TYPES = [
   { value: 'life-vision', label: 'Life Vision', icon: Target, path: '/audio' },
   { value: 'stories', label: 'Stories', icon: Library, path: '/audio/stories' },
-  { value: 'songs', label: 'Songs', icon: PenTool, path: '/audio/songs' },
   { value: 'music', label: 'Music', icon: Music2, path: '/audio/music' },
   { value: 'playlists', label: 'Playlists', icon: ListMusic, path: '/audio/playlists' },
+  { value: 'songs', label: 'Songs', icon: Music2, path: '/audio/songs' },
 ]
 
 const LISTEN_AREA_ROUTES = ['/audio', '/audio/stories', '/audio/songs', '/audio/music', '/audio/playlists']

@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Check, X, Minus } from 'lucide-react'
 import { Spinner } from '@/lib/design-system/components'
 import { useMapStudio } from './MapStudioContext'
 import { useMapNavigation } from './use-map-navigation'
+import { MapDateTravelTrigger } from './MapDateTravelTrigger'
 import { isSystemCommitment } from '@/lib/map/commitment-classification'
 import { PILLAR_META } from '@/lib/map/map-pillar-config'
 import { getVisionCategory } from '@/lib/design-system/vision-categories'
@@ -36,7 +37,7 @@ export function MapWeekView() {
   const {
     loading,
     selectedDate,
-    activeCommitments,
+    planCommitments,
     loadOccurrencesForRange,
     verifyOccurrence,
     ensureOccurrencesForDate,
@@ -45,6 +46,10 @@ export function MapWeekView() {
   const [weekOccurrences, setWeekOccurrences] = useState<CommitmentOccurrence[]>([])
   const [loadingWeek, setLoadingWeek] = useState(false)
   const [weekAnchor, setWeekAnchor] = useState(selectedDate)
+
+  useEffect(() => {
+    setWeekAnchor(selectedDate)
+  }, [selectedDate])
 
   const weekDates = getWeekDatesForDate(weekAnchor)
   const todayStr = todayDateString()
@@ -79,7 +84,7 @@ export function MapWeekView() {
 
   const handleCellClick = async (
     occ: CommitmentOccurrence | undefined,
-    commitment: (typeof activeCommitments)[0],
+    commitment: (typeof planCommitments)[0],
   ) => {
     if (!occ || isSystemCommitment(commitment)) return
     const next: OccurrenceStatus = occ.status === 'yes' ? 'pending' : 'yes'
@@ -87,36 +92,46 @@ export function MapWeekView() {
     await loadWeek()
   }
 
+  const isCurrentWeek = weekDates.includes(todayStr)
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
-          className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800"
-        >
-          <ChevronLeft className="w-5 h-5 text-neutral-400" />
-        </button>
-        <div className="text-center">
-          <p className="text-sm font-medium text-white">{getWeekLabel(weekDates)}</p>
-          {weekAnchor !== todayStr && (
-            <button
-              type="button"
-              onClick={() => setWeekAnchor(todayStr)}
-              className="text-xs mt-0.5 hover:opacity-90 transition-opacity"
-              style={{ color: mapTodayStyles.primaryHex }}
-            >
-              This week
-            </button>
-          )}
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-0.5 sm:gap-1">
+          <button
+            type="button"
+            onClick={() => setWeekAnchor(addDays(weekAnchor, -7))}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+            aria-label="Previous week"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="text-center px-2 sm:px-3">
+            <MapDateTravelTrigger value={weekAnchor}>
+              <span className="text-sm sm:text-base font-medium text-white whitespace-nowrap cursor-pointer rounded-md px-1 hover:bg-white/5 transition-colors">
+                {getWeekLabel(weekDates)}
+              </span>
+            </MapDateTravelTrigger>
+            {!isCurrentWeek && (
+              <button
+                type="button"
+                onClick={() => setWeekAnchor(todayStr)}
+                className="text-[11px] mt-1 hover:opacity-90 transition-opacity"
+                style={{ color: mapTodayStyles.primaryHex }}
+              >
+                This week
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+            aria-label="Next week"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setWeekAnchor(addDays(weekAnchor, 7))}
-          className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800"
-        >
-          <ChevronRight className="w-5 h-5 text-neutral-400" />
-        </button>
       </div>
 
       {loadingWeek ? (
@@ -178,7 +193,7 @@ export function MapWeekView() {
               </tr>
             </thead>
             <tbody>
-              {activeCommitments.map(commitment => {
+              {planCommitments.map(commitment => {
                 const label = isSystemCommitment(commitment)
                   ? PILLAR_META[commitment.category]?.verb
                   : getVisionCategory(commitment.category as Parameters<typeof getVisionCategory>[0])?.label

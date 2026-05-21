@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, ArrowRight, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, CheckCircle2, Circle, XCircle, MinusCircle } from 'lucide-react'
 import { Button, Spinner } from '@/lib/design-system/components'
 import { useMapStudio } from './MapStudioContext'
 import { useMapNavigation } from './use-map-navigation'
 import { MapVerifyButtons } from './MapVerifyButtons'
-import { MapOccurrenceStatus } from './MapOccurrenceStatus'
+import { MapDateTravelTrigger } from './MapDateTravelTrigger'
 import { PILLAR_ORDER, PILLAR_META } from '@/lib/map/map-pillar-config'
 import { getActivityDefinition, getMapActivityDeepLink } from '@/lib/map/activities'
 import { getVisionCategory } from '@/lib/design-system/vision-categories'
@@ -17,6 +17,7 @@ import {
 } from '@/lib/map/map-date-utils'
 import type { Commitment, CommitmentOccurrence } from '@/lib/map/types'
 import { mapTodayStyles } from '@/lib/map/map-today-styles'
+import { getAdjacentSelectableDate } from '@/lib/map/snapshot'
 
 export function MapDayView() {
   const { navigateMap, today } = useMapNavigation()
@@ -24,13 +25,23 @@ export function MapDayView() {
     loading,
     selectedDate,
     dateOccurrences,
-    activeCommitments,
+    planCommitments,
+    isHistoricalPlan,
     systemCommitments,
     customCommitments,
     commitmentsByPillar,
     commitmentsByLifeCategory,
     verifyOccurrence,
+    selectablePlanDates,
   } = useMapStudio()
+
+  const sortedSelectableDates = useMemo(
+    () => [...selectablePlanDates].sort(),
+    [selectablePlanDates],
+  )
+  const prevSelectableDate = getAdjacentSelectableDate(selectedDate, -1, sortedSelectableDates)
+  const nextSelectableDate = getAdjacentSelectableDate(selectedDate, 1, sortedSelectableDates)
+  const canJumpToToday = selectablePlanDates.has(today)
 
   const isPast = selectedDate < today
   const isToday = selectedDate === today
@@ -43,7 +54,7 @@ export function MapDayView() {
     )
   }
 
-  if (activeCommitments.length === 0) {
+  if (planCommitments.length === 0) {
     return (
       <div className="text-center py-16 px-4">
         <h2 className="text-xl font-bold text-white mb-2">No commitments yet</h2>
@@ -70,212 +81,135 @@ export function MapDayView() {
   )
   const systemDone = systemOccs.filter(o => o.status === 'yes').length
   const customLogged = customOccs.filter(o => o.status === 'yes').length
-
+  const systemTotal = systemOccs.length > 0 ? systemOccs.length : systemCommitments.length
+  const customTotal = customOccs.length > 0 ? customOccs.length : customCommitments.length
   const customCategories = Object.keys(commitmentsByLifeCategory).sort()
   const hasCustomPendingPast = isPast && customOccs.some(o => o.status === 'pending')
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => navigateMap({ view: 'day', date: addDays(selectedDate, -1) })}
-          className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 transition-colors"
-          aria-label="Previous day"
-        >
-          <ChevronLeft className="w-5 h-5 text-neutral-400" />
-        </button>
-        <div className="flex-1 flex justify-center min-w-0 px-1">
-          <div
-            className={`text-center rounded-2xl min-w-0 w-max max-w-[min(100%,18rem)] py-2 ${
-              isToday ? 'px-5' : 'px-2'
-            }`}
-            style={
-              isToday
-                ? {
-                    backgroundColor: mapTodayStyles.dayChipBg,
-                    boxShadow: `0 0 0 2px ${mapTodayStyles.dayChipRing}, ${mapTodayStyles.dayChipShadow}`,
-                  }
-                : undefined
-            }
+    <div className="w-full space-y-4 sm:space-y-5">
+      {isHistoricalPlan && (
+        <p className="text-center text-xs text-neutral-500 px-1">
+          Plan on {formatDisplayDate(selectedDate)} — logs reflect that day.
+        </p>
+      )}
+
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-0.5 sm:gap-1">
+          <button
+            type="button"
+            onClick={() => prevSelectableDate && navigateMap({ view: 'day', date: prevSelectableDate })}
+            disabled={!prevSelectableDate}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+            aria-label="Previous day"
           >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="text-center px-2 sm:px-3">
             {isToday && (
-              <p
-                className="text-[10px] font-bold uppercase tracking-[0.2em] mb-0.5"
-                style={{ color: mapTodayStyles.primaryHex }}
-              >
+              <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-0.5">
                 Today
               </p>
             )}
-            <p className="text-sm font-semibold text-white truncate">
-              {formatDisplayDate(selectedDate)}
-            </p>
-            {!isToday && (
+            <MapDateTravelTrigger>
+              <span className="text-sm sm:text-base font-medium text-white whitespace-nowrap cursor-pointer rounded-md px-1 hover:bg-white/5 transition-colors">
+                {formatDisplayDate(selectedDate)}
+              </span>
+            </MapDateTravelTrigger>
+            {!isToday && canJumpToToday && (
               <button
                 type="button"
                 onClick={() => navigateMap({ view: 'day', date: today })}
-                className="text-xs mt-0.5 hover:opacity-90 transition-opacity"
-                style={{ color: mapTodayStyles.primaryHex }}
+                className="text-[11px] mt-1 text-neutral-500 hover:text-white transition-colors"
               >
-                Back to today
+                Jump to today
               </button>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => nextSelectableDate && navigateMap({ view: 'day', date: nextSelectableDate })}
+            disabled={!nextSelectableDate}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => navigateMap({ view: 'day', date: addDays(selectedDate, 1) })}
-          className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 transition-colors"
-          aria-label="Next day"
-        >
-          <ChevronRight className="w-5 h-5 text-neutral-400" />
-        </button>
       </div>
 
-      {(systemOccs.length > 0 || customOccs.length > 0) && (
-        <div className="flex flex-wrap items-center gap-4 text-xs">
-          {systemOccs.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-neutral-500">System</span>
-              <span className="font-medium text-neutral-300">
-                {systemDone}/{systemOccs.length} aligned
-              </span>
-            </div>
-          )}
-          {customOccs.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-neutral-500">Custom</span>
-              <span className="font-medium text-neutral-300">
-                {customLogged}/{customOccs.length} logged
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
       {hasCustomPendingPast && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-          <p className="text-xs text-amber-200/90">
-            Logging custom actions for {formatDisplayDate(selectedDate)} — update anything you did but forgot to record.
-          </p>
-        </div>
+        <p className="text-center text-[11px] text-amber-200/80 px-2">
+          Backfill custom logs for {formatDisplayDate(selectedDate)}.
+        </p>
       )}
 
-      {/* System — auto-tracked via platform activity */}
-      <section>
-        <div className="mb-3">
-          <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-neutral-500">
-            System
-          </p>
-          <p className="text-xs text-neutral-600 mt-0.5">
-            Tap to open the tool — tracking updates automatically. Log manually if needed.
-          </p>
-        </div>
-        <div className="space-y-4">
+      {/* System pillars */}
+      {systemCommitments.length > 0 && (
+        <section className="rounded-xl bg-neutral-900/40 overflow-hidden">
+          <div className="relative px-3 pt-3 pb-3">
+            <p className="absolute right-3 top-3 text-sm tabular-nums shrink-0">
+              <span style={{ color: mapTodayStyles.primaryHex }}>{systemDone}</span>
+              <span className="text-neutral-600">/{systemTotal}</span>
+            </p>
+            <div className="text-center px-10">
+              <p className="text-sm font-medium text-white">System MAP</p>
+              <p className="text-[11px] text-neutral-600 mt-0.5">
+                Tap a ritual to open — alignment tracks automatically.
+              </p>
+            </div>
+          </div>
+          <div className="px-2 pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
           {PILLAR_ORDER.map(pillar => {
             const meta = PILLAR_META[pillar]
             const pillarCommitments = commitmentsByPillar[pillar]
-            const primary = pillarCommitments[0]
-            const supplements = pillarCommitments.slice(1)
+            const pillarDone = pillarCommitments.filter(
+              c => occurrenceMap.get(c.id)?.status === 'yes',
+            ).length
 
-            if (!primary) {
+            if (pillarCommitments.length === 0) {
               return (
                 <div
                   key={pillar}
-                  className="rounded-2xl border border-dashed p-4"
-                  style={{ borderColor: `${meta.color}20` }}
+                  className="rounded-xl bg-neutral-900/35 flex flex-col h-full min-h-[5.5rem] overflow-hidden"
                 >
-                  <span
-                    className="text-[11px] uppercase tracking-[0.2em] font-bold"
-                    style={{ color: `${meta.color}50` }}
-                  >
-                    {meta.verb}
-                  </span>
-                  <p className="text-xs text-neutral-600 mt-1">
-                    Not set —{' '}
-                    <Link href="/map/update/system" className="text-primary-400 hover:underline">
-                      configure in Update
-                    </Link>
-                  </p>
+                  <PillarTitleHeader
+                    verb={meta.verb}
+                    color={meta.color}
+                    done={0}
+                    total={0}
+                  />
+                  <div className="px-3 py-3 text-center flex-1 flex items-center justify-center">
+                    <p className="text-[11px] text-neutral-600">
+                      <Link href="/map/update/system" className="hover:text-neutral-400 transition-colors">
+                        Set up
+                      </Link>
+                    </p>
+                  </div>
                 </div>
               )
             }
 
             return (
-              <div key={pillar} className="space-y-2">
-                <p
-                  className="text-[11px] uppercase tracking-[0.2em] font-bold"
-                  style={{ color: meta.color }}
-                >
-                  {meta.verb}
-                </p>
-                <SystemCommitmentRow
-                  commitment={primary}
-                  occurrence={occurrenceMap.get(primary.id)}
-                  pillarColor={meta.color}
-                  onVerify={async (status) => {
-                    const occ = occurrenceMap.get(primary.id)
-                    if (occ) await verifyOccurrence(occ.id, status)
-                  }}
+              <div
+                key={pillar}
+                className="rounded-xl bg-neutral-900/40 flex flex-col h-full overflow-hidden"
+              >
+                <PillarTitleHeader
+                  verb={meta.verb}
+                  color={meta.color}
+                  done={pillarDone}
+                  total={pillarCommitments.length}
                 />
-                {supplements.map(s => (
-                  <SystemCommitmentRow
-                    key={s.id}
-                    commitment={s}
-                    occurrence={occurrenceMap.get(s.id)}
-                    pillarColor={meta.color}
-                    supplement
-                    onVerify={async (status) => {
-                      const occ = occurrenceMap.get(s.id)
-                      if (occ) await verifyOccurrence(occ.id, status)
-                    }}
-                  />
-                ))}
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* Custom — manual Yes/No/Skip */}
-      <section>
-        <div className="mb-3">
-          <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-neutral-500">
-            Custom
-          </p>
-          <p className="text-xs text-neutral-600 mt-0.5">
-            Personal commitments you log yourself.
-          </p>
-        </div>
-        {customCategories.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-neutral-800 p-4 text-center">
-            <p className="text-xs text-neutral-600">
-              No personal commitments yet.{' '}
-              <Link href="/map/update/custom" className="text-primary-400 hover:underline">
-                Add one in Update
-              </Link>
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {customCategories.map(catKey => {
-              const cat = getVisionCategory(catKey as Parameters<typeof getVisionCategory>[0])
-              const items = commitmentsByLifeCategory[catKey]
-              const CatIcon = cat?.icon
-
-              return (
-                <div key={catKey} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    {CatIcon && <CatIcon className="w-3.5 h-3.5 text-neutral-500" />}
-                    <p className="text-[11px] uppercase tracking-[0.2em] font-bold text-neutral-400">
-                      {cat?.label || catKey}
-                    </p>
-                  </div>
-                  {items.map(c => (
-                    <CustomCommitmentRow
+                <div className="flex flex-col flex-1 gap-1 px-1.5 pt-2 pb-2">
+                  {pillarCommitments.map(c => (
+                    <SystemCommitmentRow
                       key={c.id}
                       commitment={c}
                       occurrence={occurrenceMap.get(c.id)}
+                      pillarColor={meta.color}
+                      compact
                       onVerify={async (status) => {
                         const occ = occurrenceMap.get(c.id)
                         if (occ) await verifyOccurrence(occ.id, status)
@@ -283,26 +217,130 @@ export function MapDayView() {
                     />
                   ))}
                 </div>
+              </div>
+            )
+          })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Custom */}
+      {customCommitments.length > 0 && (
+        <section className="rounded-xl bg-neutral-900/40 overflow-hidden">
+          <div className="relative px-3 pt-3 pb-2">
+            <p className="absolute right-3 top-3 text-sm tabular-nums shrink-0">
+              <span className="text-white">{customLogged}</span>
+              <span className="text-neutral-600">/{customTotal}</span>
+            </p>
+            <div className="text-center px-10">
+              <p className="text-sm font-medium text-white">Custom Commitments</p>
+              <p className="text-[11px] text-neutral-500 mt-0.5">
+                Tap yes when complete.
+              </p>
+            </div>
+          </div>
+          <div className="px-2 pb-2 space-y-3">
+            {customCategories.map(catKey => {
+              const cat = getVisionCategory(catKey as Parameters<typeof getVisionCategory>[0])
+              const items = commitmentsByLifeCategory[catKey]
+
+              return (
+                <div key={catKey}>
+                  <p className="text-[10px] text-neutral-600 px-2 py-1">
+                    {cat?.label || catKey}
+                  </p>
+                  <div className="rounded-lg bg-black/20 overflow-hidden">
+                    {items.map(c => (
+                      <CustomCommitmentRow
+                        key={c.id}
+                        commitment={c}
+                        occurrence={occurrenceMap.get(c.id)}
+                        onVerify={async (status) => {
+                          const occ = occurrenceMap.get(c.id)
+                          if (occ) await verifyOccurrence(occ.id, status)
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
               )
             })}
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   )
+}
+
+function PillarTitleHeader({
+  verb,
+  color,
+  done,
+  total,
+}: {
+  verb: string
+  color: string
+  done: number
+  total: number
+}) {
+  return (
+    <div
+      className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-3 shrink-0"
+      style={{ backgroundColor: `${color}18` }}
+    >
+      <p className="text-[13px] font-medium leading-tight" style={{ color }}>
+        {verb}
+      </p>
+      {total > 0 && (
+        <p className="text-[11px] text-neutral-500 tabular-nums shrink-0">
+          {done}/{total}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function MapStatusIndicator({
+  status,
+}: {
+  status: CommitmentOccurrence['status'] | 'none'
+}) {
+  if (status === 'yes') {
+    return (
+      <span className="inline-flex items-center gap-1 shrink-0">
+        <span className="text-[11px] font-medium text-primary-500">Complete</span>
+        <CheckCircle2
+          className="w-[18px] h-[18px] text-primary-500"
+          strokeWidth={2}
+          aria-hidden
+        />
+      </span>
+    )
+  }
+  if (status === 'no') {
+    return <XCircle className="w-[18px] h-[18px] shrink-0 text-red-400/85" strokeWidth={1.75} aria-label="Missed" />
+  }
+  if (status === 'skipped') {
+    return <MinusCircle className="w-[18px] h-[18px] shrink-0 text-neutral-500" strokeWidth={1.75} aria-label="Skipped" />
+  }
+  if (status === 'none') {
+    return <span className="w-[18px] h-[18px] shrink-0 flex items-center justify-center text-neutral-600 text-xs">—</span>
+  }
+  return <Circle className="w-[18px] h-[18px] shrink-0 text-neutral-600" strokeWidth={1.75} aria-label="Not yet" />
 }
 
 function SystemCommitmentRow({
   commitment,
   occurrence,
   pillarColor,
-  supplement = false,
+  compact = false,
   onVerify,
 }: {
   commitment: Commitment
   occurrence?: CommitmentOccurrence
   pillarColor?: string
-  supplement?: boolean
+  compact?: boolean
   onVerify: (status: 'yes' | 'no' | 'skipped') => Promise<void>
 }) {
   const [manualOpen, setManualOpen] = useState(false)
@@ -316,84 +354,40 @@ function SystemCommitmentRow({
     ? getMapActivityDeepLink(commitment.activity_type, { completed: isVerified })
     : '/map'
 
-  const cadenceLabel = commitment.cadence
-    ? commitment.cadence.kind === 'daily'
-      ? 'Daily'
-      : `${commitment.cadence.count}x/week`
-    : ''
-
   return (
-    <div
-      className={`rounded-2xl border overflow-hidden ${supplement ? 'ml-3' : ''}`}
-      style={{
-        borderColor: isVerified ? `${pillarColor}40` : '#1A1A1A',
-        backgroundColor: '#0A0A0A',
-      }}
-    >
-      {pillarColor && !supplement && (
-        <div className="h-0.5" style={{ backgroundColor: pillarColor }} />
-      )}
-      <div className="p-4">
-        <Link href={deepLink} className="block group">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              {Icon && (
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${pillarColor}10` }}
-                >
-                  <Icon className="w-5 h-5" style={{ color: pillarColor }} />
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-white group-hover:text-primary-300 transition-colors truncate">
-                  {commitment.title}
-                </p>
-                {cadenceLabel && (
-                  <p className="text-xs text-neutral-500">{cadenceLabel}</p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {occurrence ? (
-                <MapOccurrenceStatus status={status} />
-              ) : (
-                <span className="text-xs text-neutral-600">Not scheduled</span>
-              )}
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-neutral-800/60 group-hover:bg-primary-500/20 transition-colors">
-                <ArrowRight className="w-4 h-4 text-neutral-500 group-hover:text-primary-400" />
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {occurrence && (
-          <div className="mt-2 pt-2 border-t border-[#151515]">
-            <button
-              type="button"
-              onClick={() => setManualOpen(v => !v)}
-              className="flex items-center gap-1 text-[11px] text-neutral-600 hover:text-neutral-400 transition-colors"
-            >
-              <ChevronDown
-                className={`w-3 h-3 transition-transform ${manualOpen ? 'rotate-180' : ''}`}
-              />
-              Log manually
-            </button>
-            {manualOpen && (
-              <div className="mt-2 flex flex-col gap-1.5">
-                <p className="text-[10px] text-neutral-600">
-                  Use if you completed this outside the app or tracking did not update.
-                </p>
-                <MapVerifyButtons
-                  status={status}
-                  onVerify={onVerify}
-                  compact
-                />
-              </div>
-            )}
-          </div>
+    <div className="overflow-hidden rounded-lg bg-white/[0.03]">
+      <Link
+        href={deepLink}
+        className={`flex w-full items-center gap-2.5 transition-colors hover:bg-white/[0.04] active:bg-white/[0.06] ${
+          compact ? 'px-2.5 py-2' : 'px-3 py-2.5'
+        }`}
+      >
+        {Icon && pillarColor && (
+          <Icon className="w-4 h-4 shrink-0 opacity-70" style={{ color: pillarColor }} />
         )}
-      </div>
+        <span className="flex-1 min-w-0 text-[13px] text-neutral-200 truncate leading-tight">
+          {commitment.title}
+        </span>
+        <MapStatusIndicator status={occurrence ? status : 'none'} />
+      </Link>
+
+      {occurrence && manualOpen && (
+        <div className="px-2.5 pb-2 w-full">
+          <MapVerifyButtons status={status} onVerify={onVerify} compact />
+        </div>
+      )}
+      {occurrence && (
+        <button
+          type="button"
+          onClick={() => setManualOpen(v => !v)}
+          className="flex w-full items-center justify-center gap-0.5 text-[10px] text-neutral-600 hover:bg-white/[0.04] hover:text-neutral-500 py-1 transition-colors"
+        >
+          <span>{manualOpen ? 'Hide' : 'Manual log'}</span>
+          <ChevronDown
+            className={`w-3 h-3 transition-transform duration-200 ${manualOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+      )}
     </div>
   )
 }
@@ -409,27 +403,18 @@ function CustomCommitmentRow({
 }) {
   const status = occurrence?.status ?? 'pending'
 
-  const cadenceLabel = commitment.cadence
-    ? commitment.cadence.kind === 'daily'
-      ? 'Daily'
-      : `${commitment.cadence.count}x/week`
-    : ''
-
   return (
-    <div className="rounded-2xl border border-[#1A1A1A] bg-[#0A0A0A] p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-white truncate">{commitment.title}</p>
-          {cadenceLabel && (
-            <p className="text-xs text-neutral-500">{cadenceLabel}</p>
-          )}
+    <div className="flex flex-col gap-2 px-2.5 py-2.5 border-b border-white/[0.04] last:border-0 sm:flex-row sm:items-start sm:gap-3">
+      <p className="w-full text-[13px] text-neutral-200 leading-snug break-words sm:flex-1 sm:min-w-0">
+        {commitment.title}
+      </p>
+      {occurrence ? (
+        <div className="w-full shrink-0 sm:w-auto sm:pt-0.5">
+          <MapVerifyButtons status={status} onVerify={onVerify} compact />
         </div>
-        {occurrence ? (
-          <MapVerifyButtons status={status} onVerify={onVerify} />
-        ) : (
-          <span className="text-xs text-neutral-600">Not scheduled</span>
-        )}
-      </div>
+      ) : (
+        <span className="text-[10px] text-neutral-600 shrink-0">—</span>
+      )}
     </div>
   )
 }

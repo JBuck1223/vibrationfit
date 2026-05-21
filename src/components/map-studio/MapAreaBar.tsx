@@ -1,14 +1,13 @@
 'use client'
 
 import { usePathname, useSearchParams } from 'next/navigation'
-import { Map, Target, History, PenLine, Calendar, CalendarDays, LayoutGrid } from 'lucide-react'
+import { Map, Target, PenLine, Calendar, CalendarDays, LayoutGrid } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem } from '@/lib/design-system/components'
 import type { MapViewMode } from '@/lib/map/map-date-utils'
 
 const TABS = [
   { label: 'MAP', path: '/map', icon: Target },
   { label: 'Update', path: '/map/update', icon: PenLine },
-  { label: 'History', path: '/map/history', icon: History },
 ]
 
 const UPDATE_AREA_ROUTES = ['/map/update', '/map/update/system', '/map/update/custom']
@@ -18,8 +17,6 @@ export function MapAreaBar() {
   const searchParams = useSearchParams()
   const isMapTab = pathname === '/map' || pathname === '/map/'
   const isUpdateArea = UPDATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
-  const isHistoryTab = pathname === '/map/history' || pathname.startsWith('/map/history/')
-
   const isUpdateSystem = pathname === '/map/update/system'
   const isUpdateCustom = pathname === '/map/update/custom'
   const isUpdateLanding = pathname === '/map/update' || pathname === '/map/update/'
@@ -53,7 +50,7 @@ export function MapAreaBar() {
         isActive: currentView === 'month',
       },
     ]
-    contextText = 'Log what you did. Every yes is evidence you\'re living your vision.'
+    contextText = 'Run the reps. Future you will thank you.'
   } else if (isUpdateArea) {
     contextNav = [
       {
@@ -80,10 +77,8 @@ export function MapAreaBar() {
     } else if (isUpdateCustom) {
       contextText = 'Add personal commitments tagged to your life categories.'
     } else {
-      contextText = 'Configure your System MAP and Custom actions.'
+      contextText = 'Update your System MAP and Custom actions.'
     }
-  } else if (isHistoryTab) {
-    contextText = 'Your MAP history and alignment over time.'
   }
 
   const isOnUpdateSubPage = isUpdateSystem || isUpdateCustom
@@ -96,7 +91,7 @@ export function MapAreaBar() {
       contextText={contextText}
       variant="default"
       appLikePrimaryTabs
-      keepTabActive={isOnUpdateSubPage}
+      keepTabActive={isMapTab || isUpdateArea}
       activeParentPath={isOnUpdateSubPage ? '/map/update' : undefined}
     />
   )

@@ -63,6 +63,8 @@ interface EmbeddedPlayerProps {
   voiceId?: string
   mixDetails?: MixDetails | null
   headerContent?: React.ReactNode
+  /** Rendered below the now-playing track title (e.g. View Story link) */
+  nowPlayingAccessory?: React.ReactNode
   onAddToPlaylist?: (track: AudioTrack, index: number) => void
   onRemoveTrack?: (track: AudioTrack, index: number) => void
   /** MAP activity to verify on listen; inferred from setIconKey when omitted */
@@ -90,6 +92,7 @@ export function EmbeddedPlayer({
   voiceId,
   mixDetails,
   headerContent,
+  nowPlayingAccessory,
   onAddToPlaylist,
   onRemoveTrack,
   mapActivityType: mapActivityTypeProp,
@@ -424,9 +427,14 @@ export function EmbeddedPlayer({
           <h3 className="text-xl font-semibold text-white truncate">
             {activeTrack?.title || tracks[0]?.title || 'Select a track'}
           </h3>
-          <p className="text-sm text-neutral-400 mt-1 truncate">
-            {setName || activeTrack?.artist || 'Vibration Fit'}
-          </p>
+          {nowPlayingAccessory ? (
+            <div className="mt-2 flex justify-center">{nowPlayingAccessory}</div>
+          ) : null}
+          {contentCategory !== 'story' && (
+            <p className="text-sm text-neutral-400 mt-1 truncate">
+              {setName || activeTrack?.artist || 'Vibration Fit'}
+            </p>
+          )}
         </div>
 
         {/* Seek bar */}
