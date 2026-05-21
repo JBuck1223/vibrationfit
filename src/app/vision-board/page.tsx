@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import {
   formatSnapshotDateLabel,
@@ -2341,7 +2342,7 @@ export default function VisionBoardPage() {
         )}
 
 
-        {/* Lightbox Modal */}
+        {/* Lightbox Modal — portal to body so it paints above the sticky AreaBar */}
         {lightboxOpen && filteredItems.length > 0 && (() => {
           const currentItem = filteredItems[lightboxIndex]
           const imageUrl = (currentItem?.status === 'actualized' && currentItem?.actualized_image_url)
@@ -2349,7 +2350,7 @@ export default function VisionBoardPage() {
             : currentItem?.image_url
 
           if (boardMode === 'clean') {
-            return (
+            return createPortal(
               <div
                 className="fixed inset-0 bg-black z-50 flex items-center justify-center"
                 onClick={closeLightbox}
@@ -2405,11 +2406,12 @@ export default function VisionBoardPage() {
                     {lightboxIndex + 1} / {filteredItems.length}
                   </div>
                 )}
-              </div>
+              </div>,
+              document.body
             )
           }
 
-          return (
+          return createPortal(
             <div
               className="fixed inset-0 bg-black/95 z-50 flex items-start md:items-center justify-center px-3 pt-14 pb-6 md:p-4 overflow-y-auto"
               onClick={closeLightbox}
@@ -2601,7 +2603,8 @@ export default function VisionBoardPage() {
                   </button>
                 )}
               </div>
-            </div>
+            </div>,
+            document.body
           )
         })()}
 
