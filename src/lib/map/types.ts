@@ -146,6 +146,7 @@ export interface Commitment {
   notify_email: boolean
   reminder_time: string | null
   reminder_days: number[] | null
+  sort_order: number
   imported_from_map_item_id: string | null
   created_at: string
   updated_at: string
@@ -168,6 +169,7 @@ export interface CreateCommitmentPayload {
 export interface UpdateCommitmentPayload {
   title?: string
   description?: string | null
+  category?: string
   cadence?: Cadence | null
   start_date?: string | null
   end_date?: string | null
@@ -176,6 +178,7 @@ export interface UpdateCommitmentPayload {
   notify_email?: boolean
   reminder_time?: string | null
   reminder_days?: number[] | null
+  sort_order?: number
 }
 
 export type CommitmentChangeEventType =

@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, ChevronDown, CheckCircle2, Circle, XCircle, MinusCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, ArrowRight, CheckCircle2, Circle, XCircle, MinusCircle } from 'lucide-react'
 import { Button, Spinner } from '@/lib/design-system/components'
 import { useMapStudio } from './MapStudioContext'
 import { useMapNavigation } from './use-map-navigation'
@@ -15,12 +15,17 @@ import {
   addDays,
   formatDisplayDate,
 } from '@/lib/map/map-date-utils'
-import type { Commitment, CommitmentOccurrence } from '@/lib/map/types'
+import type { Commitment, CommitmentOccurrence, Cadence } from '@/lib/map/types'
+import { formatCadenceLabel } from '@/lib/map/map-builder-cadence'
 import { mapTodayStyles } from '@/lib/map/map-today-styles'
-import { getAdjacentSelectableDate } from '@/lib/map/snapshot'
+
+function formatCommitmentCadence(cadence: Cadence | null): string {
+  if (!cadence) return ''
+  return formatCadenceLabel(JSON.stringify(cadence))
+}
 
 export function MapDayView() {
-  const { navigateMap, today } = useMapNavigation()
+  const { goToDate, today } = useMapNavigation()
   const {
     loading,
     selectedDate,
@@ -35,16 +40,11 @@ export function MapDayView() {
     selectablePlanDates,
   } = useMapStudio()
 
-  const sortedSelectableDates = useMemo(
-    () => [...selectablePlanDates].sort(),
-    [selectablePlanDates],
-  )
-  const prevSelectableDate = getAdjacentSelectableDate(selectedDate, -1, sortedSelectableDates)
-  const nextSelectableDate = getAdjacentSelectableDate(selectedDate, 1, sortedSelectableDates)
-  const canJumpToToday = selectablePlanDates.has(today)
-
   const isPast = selectedDate < today
   const isToday = selectedDate === today
+
+  const canJumpToToday =
+    !isToday && (selectablePlanDates.size === 0 || selectablePlanDates.has(today))
 
   if (loading) {
     return (
@@ -98,9 +98,8 @@ export function MapDayView() {
         <div className="inline-flex items-center gap-0.5 sm:gap-1">
           <button
             type="button"
-            onClick={() => prevSelectableDate && navigateMap({ view: 'day', date: prevSelectableDate })}
-            disabled={!prevSelectableDate}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+            onClick={() => goToDate(addDays(selectedDate, -1))}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
             aria-label="Previous day"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -119,7 +118,7 @@ export function MapDayView() {
             {!isToday && canJumpToToday && (
               <button
                 type="button"
-                onClick={() => navigateMap({ view: 'day', date: today })}
+                onClick={() => goToDate(today)}
                 className="text-[11px] mt-1 text-neutral-500 hover:text-white transition-colors"
               >
                 Jump to today
@@ -128,8 +127,8 @@ export function MapDayView() {
           </div>
           <button
             type="button"
-            onClick={() => nextSelectableDate && navigateMap({ view: 'day', date: nextSelectableDate })}
-            disabled={!nextSelectableDate}
+            onClick={() => goToDate(addDays(selectedDate, 1))}
+            disabled={selectedDate >= today}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
             aria-label="Next day"
           >
@@ -289,7 +288,7 @@ function PillarTitleHeader({
       className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-3 shrink-0"
       style={{ backgroundColor: `${color}18` }}
     >
-      <p className="text-[13px] font-medium leading-tight" style={{ color }}>
+      <p className="text-[13px] font-medium leading-tight text-white">
         {verb}
       </p>
       {total > 0 && (
@@ -350,6 +349,7 @@ function SystemCommitmentRow({
   const Icon = activity?.icon
   const status = occurrence?.status ?? 'pending'
   const isVerified = status === 'yes'
+  const showGoArrow = !isVerified && status !== 'no' && status !== 'skipped'
   const deepLink = commitment.activity_type
     ? getMapActivityDeepLink(commitment.activity_type, { completed: isVerified })
     : '/map'
@@ -368,7 +368,11 @@ function SystemCommitmentRow({
         <span className="flex-1 min-w-0 text-[13px] text-neutral-200 truncate leading-tight">
           {commitment.title}
         </span>
-        <MapStatusIndicator status={occurrence ? status : 'none'} />
+        {showGoArrow ? (
+          <ArrowRight className="w-[18px] h-[18px] shrink-0 text-neutral-500" aria-hidden />
+        ) : (
+          <MapStatusIndicator status={occurrence ? status : 'none'} />
+        )}
       </Link>
 
       {occurrence && manualOpen && (
@@ -402,12 +406,18 @@ function CustomCommitmentRow({
   onVerify: (status: 'yes' | 'no' | 'skipped') => Promise<void>
 }) {
   const status = occurrence?.status ?? 'pending'
+  const cadenceLabel = formatCommitmentCadence(commitment.cadence)
 
   return (
     <div className="flex flex-col gap-2 px-2.5 py-2.5 border-b border-white/[0.04] last:border-0 sm:flex-row sm:items-start sm:gap-3">
-      <p className="w-full text-[13px] text-neutral-200 leading-snug break-words sm:flex-1 sm:min-w-0">
-        {commitment.title}
-      </p>
+      <div className="w-full sm:flex-1 sm:min-w-0">
+        <p className="text-[13px] text-neutral-200 leading-snug break-words">
+          {commitment.title}
+        </p>
+        {cadenceLabel ? (
+          <p className="text-[10px] text-neutral-600 mt-0.5">{cadenceLabel}</p>
+        ) : null}
+      </div>
       {occurrence ? (
         <div className="w-full shrink-0 sm:w-auto sm:pt-0.5">
           <MapVerifyButtons status={status} onVerify={onVerify} compact />

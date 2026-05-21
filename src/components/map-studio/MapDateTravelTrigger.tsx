@@ -20,12 +20,10 @@ export function MapDateTravelTrigger({
   className,
   popoverAlign = 'start',
 }: MapDateTravelTriggerProps) {
-  const { today, navigateMap } = useMapNavigation()
+  const { today, goToDate } = useMapNavigation()
   const {
     selectedDate,
     selectablePlanDates,
-    refreshPlanForDate,
-    setSelectedDate,
     planSnapshotLoading,
   } = useMapStudio()
 
@@ -35,11 +33,9 @@ export function MapDateTravelTrigger({
     (date: string) => {
       if (!date) return
       if (selectablePlanDates.size > 0 && !selectablePlanDates.has(date)) return
-      setSelectedDate(date)
-      navigateMap({ date })
-      void refreshPlanForDate(date)
+      goToDate(date)
     },
-    [navigateMap, refreshPlanForDate, setSelectedDate, selectablePlanDates],
+    [goToDate, selectablePlanDates],
   )
 
   if (selectablePlanDates.size === 0) {

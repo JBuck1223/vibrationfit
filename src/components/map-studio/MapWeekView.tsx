@@ -33,7 +33,7 @@ const STATUS_BG: Record<string, string> = {
 }
 
 export function MapWeekView() {
-  const { navigateMap } = useMapNavigation()
+  const { openDayView } = useMapNavigation()
   const {
     loading,
     selectedDate,
@@ -163,7 +163,7 @@ export function MapWeekView() {
                     >
                       <button
                         type="button"
-                        onClick={() => navigateMap({ view: 'day', date })}
+                        onClick={() => openDayView(date)}
                         className={`w-full rounded-lg py-1 ${
                           isToday ? 'font-bold text-white' : 'text-neutral-500 hover:text-white'
                         }`}
