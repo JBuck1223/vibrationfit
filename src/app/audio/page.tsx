@@ -10,7 +10,7 @@ import {
   Headphones, Moon, Zap, Flame, Shield,
   Sparkles, Mic, Music, Trash2, BookOpen, Image, Edit2,
   Volume2, Plus, Music2, ChevronDown, CheckCircle, Target, Lightbulb,
-  Clock, ChevronRight, Library,
+  Clock, ChevronRight, Library, AlertTriangle,
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
@@ -22,6 +22,17 @@ import { PlaylistsView } from '@/components/audio-studio/PlaylistsView'
 import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet'
 import type { SourceType } from '@/lib/services/playlistService'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
+import type { Story } from '@/lib/stories/types'
+
+function firstTrackIndexForStory(tracks: AudioTrack[], storyId: string) {
+  const prefix = `${storyId}:`
+  return tracks.findIndex(t => t.id.startsWith(prefix))
+}
+
+function storyIdFromTrackId(trackId: string): string | null {
+  const colon = trackId.indexOf(':')
+  return colon > 0 ? trackId.slice(0, colon) : null
+}
 
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
@@ -259,20 +270,16 @@ export default function AudioListenPage() {
   const [setToDelete, setSetToDelete] = useState<{ id: string; name: string } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  // Story audio state
+  // Story audio state — all filtered stories load into one player playlist
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
-  const [storyAudioTracks, setStoryAudioTracks] = useState<{ id: string; label: string; sublabel: string; url: string; icon: React.ElementType; iconColor: string }[]>([])
+  const [allStoriesPlayerTracks, setAllStoriesPlayerTracks] = useState<AudioTrack[]>([])
   const [storyAudioLoading, setStoryAudioLoading] = useState(false)
   const [storyDropdownOpen, setStoryDropdownOpen] = useState(false)
   const storyDropdownRef = useRef<HTMLDivElement>(null)
-  /** Linked story `audio_sets` row fields for mix pills (voice / background / frequency) — same shape as Life Vision. */
-  const [storyAudioMix, setStoryAudioMix] = useState<{
-    voice_id: string
-    variant: string
-    backgroundTrack?: string
-    frequencyTrack?: string
-    metadata: unknown
-  } | null>(null)
+  const playTrackAction = useGlobalAudioStore(s => s.playTrack)
+  const playPlaylistAction = useGlobalAudioStore(s => s.play)
+  const storeTracks = useGlobalAudioStore(s => s.tracks)
+  const storeIndex = useGlobalAudioStore(s => s.currentIndex)
 
   // Music catalog state
   const [musicTracks, setMusicTracks] = useState<any[]>([])
@@ -369,24 +376,127 @@ export default function AudioListenPage() {
 
   const VOICE_NAMES: Record<string, string> = { alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage' }
 
-  useEffect(() => {
-    if (storiesLoading) return
-    const visible = listenStoryFilter === 'all'
+  const filteredStories = useMemo(
+    () => (listenStoryFilter === 'all'
       ? stories
-      : stories.filter(s => s.entity_type === listenStoryFilter)
-    if (visible.length === 0) { setSelectedStoryId(null); return }
-    if (urlStoryId && visible.some(s => s.id === urlStoryId)) {
-      setSelectedStoryId(urlStoryId)
-      return
-    }
-    if (!selectedStoryId || !visible.some(s => s.id === selectedStoryId)) {
-      setSelectedStoryId(visible[0].id)
-    }
-  }, [stories, storiesLoading, listenStoryFilter, urlStoryId])
+      : stories.filter(s => s.entity_type === listenStoryFilter)),
+    [stories, listenStoryFilter],
+  )
+
+  const filteredStoryIds = useMemo(
+    () => filteredStories.map(s => s.id).join(','),
+    [filteredStories],
+  )
 
   useEffect(() => {
-    if (selectedStoryId) loadStoryAudio(selectedStoryId)
-  }, [selectedStoryId])
+    if (contentType !== 'stories') return
+    if (storiesLoading) return
+
+    let cancelled = false
+
+    async function fetchStoryTracksForPlayer(story: Story): Promise<AudioTrack[]> {
+      const supabase = createClient()
+      const tracks: AudioTrack[] = []
+      const storyTitle = story.title || 'Untitled Story'
+      const meta = ENTITY_META[story.entity_type] || ENTITY_META.custom!
+      const entityLabel = meta.label
+      const sectionKey = story.entity_type || 'custom'
+
+      let audioSetId = story.audio_set_id
+      if (!audioSetId) {
+        const { data: linkedSet } = await supabase
+          .from('audio_sets')
+          .select('id')
+          .eq('content_type', 'story')
+          .eq('content_id', story.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (linkedSet) audioSetId = linkedSet.id
+      }
+
+      if (audioSetId) {
+        const { data: trackRows } = await supabase
+          .from('audio_tracks')
+          .select('id, audio_url, text_content')
+          .eq('audio_set_id', audioSetId)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+
+        const currentTracks = (trackRows || []).filter(track =>
+          storyTextMatchesTrack(story.content, track.text_content),
+        )
+
+        currentTracks.forEach((track, idx) => {
+          if (!track.audio_url) return
+          tracks.push({
+            id: `${story.id}:track:${track.id}`,
+            title: currentTracks.length > 1
+              ? `${storyTitle} (${idx + 1}/${currentTracks.length})`
+              : storyTitle,
+            artist: entityLabel,
+            duration: 0,
+            url: track.audio_url,
+            thumbnail: '',
+            sectionKey,
+          })
+        })
+      }
+
+      if (story.user_audio_url) {
+        tracks.push({
+          id: `${story.id}:user-recording`,
+          title: `${storyTitle} · Personal Recording`,
+          artist: 'Your voice',
+          duration: 0,
+          url: story.user_audio_url,
+          thumbnail: '',
+          sectionKey,
+        })
+      }
+
+      return tracks
+    }
+
+    async function loadAllStoriesIntoPlayer() {
+      if (filteredStories.length === 0) {
+        setAllStoriesPlayerTracks([])
+        setSelectedStoryId(null)
+        setStoryAudioLoading(false)
+        return
+      }
+
+      setStoryAudioLoading(true)
+      setAllStoriesPlayerTracks([])
+
+      const batches = await Promise.all(
+        filteredStories.map(story => fetchStoryTracksForPlayer(story)),
+      )
+      if (cancelled) return
+
+      const merged = batches.flat()
+      setAllStoriesPlayerTracks(merged)
+      setStoryAudioLoading(false)
+
+      const pickDefaultStoryId = () => {
+        if (urlStoryId && filteredStories.some(s => s.id === urlStoryId)) return urlStoryId
+        const firstWithAudio = filteredStories.find((_, i) => (batches[i]?.length ?? 0) > 0)
+        return firstWithAudio?.id ?? filteredStories[0]?.id ?? null
+      }
+
+      const defaultStoryId = pickDefaultStoryId()
+      setSelectedStoryId(prev => {
+        if (prev && filteredStories.some(s => s.id === prev)) return prev
+        return defaultStoryId
+      })
+    }
+
+    void loadAllStoriesIntoPlayer()
+
+    return () => {
+      cancelled = true
+    }
+  }, [contentType, storiesLoading, filteredStoryIds, urlStoryId])
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -468,83 +578,44 @@ export default function AudioListenPage() {
     setMusicLoading(false)
   }
 
-  async function loadStoryAudio(storyId: string) {
-    setStoryAudioLoading(true)
-    setStoryAudioTracks([])
-    setStoryAudioMix(null)
-    const supabase = createClient()
-    const story = stories.find(s => s.id === storyId)
-    if (!story) { setStoryAudioLoading(false); return }
-    const options: typeof storyAudioTracks = []
-
-    // Find audio set: prefer direct link, fall back to content_id lookup
-    let audioSetId = story.audio_set_id
-    if (!audioSetId) {
-      const { data: linkedSet } = await supabase
-        .from('audio_sets')
-        .select('id')
-        .eq('content_type', 'story')
-        .eq('content_id', storyId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (linkedSet) audioSetId = linkedSet.id
-    }
-
-    if (audioSetId) {
-      const { data: setRow } = await supabase
-        .from('audio_sets')
-        .select('voice_id, variant, metadata')
-        .eq('id', audioSetId)
-        .maybeSingle()
-
-      if (setRow) {
-        const md = (setRow.metadata && typeof setRow.metadata === 'object' ? setRow.metadata : {}) as Record<string, unknown>
-        setStoryAudioMix({
-          voice_id: setRow.voice_id,
-          variant: String(setRow.variant || ''),
-          backgroundTrack: (md.background_track_name as string | undefined) || undefined,
-          frequencyTrack: (md.frequency_track_name as string | undefined) || (md.binaural_track_name as string | undefined) || undefined,
-          metadata: setRow.metadata,
-        })
-      }
-
-      const { data: tracks } = await supabase
-        .from('audio_tracks').select('id, audio_url, voice_id, section_key, text_content')
-        .eq('audio_set_id', audioSetId).eq('status', 'completed')
-        .order('created_at', { ascending: false })
-      const currentTracks = (tracks || []).filter(track =>
-        storyTextMatchesTrack(story.content, track.text_content)
-      )
-      if (currentTracks.length > 0) {
-        const storyTitle = story.title || 'Untitled Story'
-        currentTracks.forEach((track, idx) => {
-          options.push({
-            id: track.id,
-            label: currentTracks.length > 1 ? `${storyTitle} (${idx + 1}/${currentTracks.length})` : storyTitle,
-            sublabel: '',
-            url: track.audio_url,
-            icon: Headphones,
-            iconColor: 'bg-primary-500/20 text-primary-500',
-          })
-        })
-      }
-    }
-    if (story.user_audio_url) {
-      options.push({
-        id: 'user-recording',
-        label: 'Personal Recording',
-        sublabel: 'Your voice',
-        url: story.user_audio_url,
-        icon: Mic,
-        iconColor: 'bg-teal-500/20 text-teal-400',
-      })
-    }
-    setStoryAudioTracks(options)
-    setStoryAudioLoading(false)
-  }
-
   const selectedStory = stories.find(s => s.id === selectedStoryId)
+
+  const isStoriesPlaylistActive =
+    allStoriesPlayerTracks.length > 0
+    && storeTracks.length === allStoriesPlayerTracks.length
+    && storeTracks[0]?.id === allStoriesPlayerTracks[0]?.id
+
+  const playingStoryId = useMemo(() => {
+    if (!isStoriesPlaylistActive) return null
+    const track = storeTracks[storeIndex]
+    if (!track) return null
+    return storyIdFromTrackId(track.id)
+  }, [isStoriesPlaylistActive, storeTracks, storeIndex, allStoriesPlayerTracks])
+
+  useEffect(() => {
+    if (contentType !== 'stories' || !playingStoryId) return
+    if (stories.some(s => s.id === playingStoryId)) {
+      setSelectedStoryId(playingStoryId)
+    }
+  }, [contentType, playingStoryId, stories])
+
+  const playingStory = stories.find(s => s.id === playingStoryId)
+
+  const jumpToStoryInPlayer = (storyId: string) => {
+    setSelectedStoryId(storyId)
+    setStoryDropdownOpen(false)
+    const idx = firstTrackIndexForStory(allStoriesPlayerTracks, storyId)
+    if (idx < 0) return
+    const storeTracks = useGlobalAudioStore.getState().tracks
+    const isSamePlaylist = storeTracks.length === allStoriesPlayerTracks.length
+      && allStoriesPlayerTracks.length > 0
+      && storeTracks[0]?.id === allStoriesPlayerTracks[0]?.id
+    if (isSamePlaylist) {
+      playTrackAction(idx)
+    } else {
+      playPlaylistAction(allStoriesPlayerTracks, idx, 'My Stories', 'stories', 'story')
+    }
+  }
 
   async function loadTotalPlays() {
     const supabase = createClient()
@@ -643,22 +714,6 @@ export default function AudioListenPage() {
     return map[voiceId] || voiceId
   }
 
-  const storyMixDetails: MixDetails | null = useMemo(() => {
-    if (!storyAudioMix) return null
-    const md = storyAudioMix.metadata as { voice_volume?: number; bg_volume?: number; frequency_volume?: number; binaural_volume?: number } | null
-    const voiceVol = md?.voice_volume
-    const bgVol = md?.bg_volume
-    const freqVol = md?.frequency_volume ?? md?.binaural_volume
-    return {
-      voiceName: storyAudioMix.variant === 'personal' ? 'Personal' : getVoiceDisplayName(storyAudioMix.voice_id),
-      voiceVolume: voiceVol,
-      backgroundName: storyAudioMix.backgroundTrack,
-      bgVolume: bgVol,
-      binauralName: storyAudioMix.frequencyTrack,
-      binauralVolume: freqVol,
-    } as MixDetails
-  }, [storyAudioMix])
-
   /** Split "Voice + mix" style names for a compact two-line app picker. */
   const getAudioSetPickerLines = (label: string) => {
     const s = label.trim()
@@ -669,28 +724,10 @@ export default function AudioListenPage() {
     return { primary: s }
   }
 
-  const filteredStories = listenStoryFilter === 'all'
-    ? stories
-    : stories.filter(s => s.entity_type === listenStoryFilter)
-
   const { stats: practiceStats } = useAreaStats('vision-audio')
   const totalSets = audioSets.length
   const totalTracks = audioSets.reduce((sum, s) => sum + s.track_count, 0)
   const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
-
-  const storyPlaybackTracks: AudioTrack[] = useMemo(() => {
-    if (!selectedStory) return []
-    const sk = selectedStory.entity_type || 'custom'
-    return storyAudioTracks.map(t => ({
-      id: t.id,
-      title: t.label,
-      artist: t.sublabel,
-      duration: 0,
-      url: t.url,
-      thumbnail: '',
-      sectionKey: sk,
-    }))
-  }, [storyAudioTracks, selectedStory])
 
   const { musicTagCategories, musicPlayerTracks } = useMemo(() => {
     if (contentType !== 'music' || musicTracks.length === 0) {
@@ -992,36 +1029,45 @@ export default function AudioListenPage() {
               </Card>
             ) : (
               <div className="max-w-2xl mx-auto w-full">
-                {selectedStoryId && storyAudioLoading ? (
+                {storyAudioLoading ? (
                   <div className="rounded-2xl bg-embedded-panel border border-neutral-800 flex items-center justify-center py-12"><Spinner size="lg" /></div>
-                ) : selectedStoryId && storyPlaybackTracks.length === 0 ? (
+                ) : allStoriesPlayerTracks.length === 0 ? (
                   <div className="text-center py-6 rounded-2xl border border-neutral-800">
                     <Volume2 className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
-                    <p className="text-sm text-neutral-400">No audio available for this story</p>
+                    <p className="text-sm text-neutral-400">No audio available for these stories</p>
                     <Button variant="primary" size="sm" className="mt-3" asChild>
                       <Link href="/audio/create">Create Audio</Link>
                     </Button>
                   </div>
-                ) : selectedStoryId && selectedStory && storyPlaybackTracks.length > 0 ? (
+                ) : (
                   <>
                     <EmbeddedPlayer
-                      tracks={storyPlaybackTracks}
+                      tracks={allStoriesPlayerTracks}
                       mapActivityType="story_audio"
-                      setName={selectedStory.title || 'Story'}
-                      setIconKey={
-                        selectedStory.entity_type in ENTITY_META
-                          ? selectedStory.entity_type
-                          : 'custom'
-                      }
+                      setName="My Stories"
+                      setIconKey="stories"
                       contentCategory="story"
-                      trackCount={storyPlaybackTracks.length}
-                      createdDate={new Date(selectedStory.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      voiceId={storyAudioMix?.voice_id}
-                      mixDetails={storyMixDetails}
+                      trackCount={allStoriesPlayerTracks.length}
+                      nowPlayingAccessory={
+                        playingStory ? (
+                          <Link
+                            href={`/story/${playingStory.id}`}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-primary-400 transition-colors hover:text-primary-300"
+                          >
+                            <Library className="w-3.5 h-3.5" />
+                            View Story
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        ) : undefined
+                      }
                       headerContent={
                         <div>
                           <div className="bg-[#0c0c0c] px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
                             <h3 className="text-center text-lg font-semibold text-white">Play My Stories</h3>
+                            <p className="text-center text-xs text-neutral-500 mt-1">
+                              {filteredStories.length} {filteredStories.length === 1 ? 'story' : 'stories'}
+                              {' · '}{allStoriesPlayerTracks.length} {allStoriesPlayerTracks.length === 1 ? 'track' : 'tracks'}
+                            </p>
 
                             <ListenPracticeStatsRow
                               practiceStats={practiceStats}
@@ -1036,6 +1082,7 @@ export default function AudioListenPage() {
                             />
                           </div>
 
+                          {selectedStory && (
                           <div className="bg-embedded-panel px-3 py-2.5 md:px-4">
                             <div className="relative w-full" ref={storyDropdownRef}>
                               <button
@@ -1075,14 +1122,15 @@ export default function AudioListenPage() {
                                       const isSelected = story.id === selectedStoryId
                                       const meta = ENTITY_META[story.entity_type] || ENTITY_META.custom!
                                       const cats = (story.metadata?.selected_categories || []) as string[]
+                                      const storyTrackCount = allStoriesPlayerTracks.filter(t => t.id.startsWith(`${story.id}:`)).length
                                       return (
                                         <div
                                           key={story.id}
-                                          onClick={() => { setSelectedStoryId(story.id); setStoryDropdownOpen(false) }}
+                                          onClick={() => { if (storyTrackCount > 0) jumpToStoryInPlayer(story.id) }}
                                           className={[
                                             'px-3 py-2.5 text-left transition-colors',
                                             isSelected ? 'bg-primary-500/10' : 'hover:bg-neutral-800/80',
-                                            'cursor-pointer',
+                                            storyTrackCount > 0 ? 'cursor-pointer' : '',
                                           ].join(' ')}
                                         >
                                           <div className="flex items-center gap-2.5">
@@ -1090,7 +1138,45 @@ export default function AudioListenPage() {
                                               <meta.icon className="w-3.5 h-3.5" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                              <p className="truncate text-sm text-white">{story.title || 'Untitled Story'}</p>
+                                              <div className="flex items-start gap-2">
+                                                <p className="min-w-0 flex-1 truncate text-sm text-white">
+                                                  {story.title || 'Untitled Story'}
+                                                </p>
+                                                {storyTrackCount === 0 && (
+                                                  <Link
+                                                    href={`/audio/generate?source=story&sourceId=${story.id}`}
+                                                    onClick={e => {
+                                                      e.stopPropagation()
+                                                      setStoryDropdownOpen(false)
+                                                    }}
+                                                    className="hidden shrink-0 items-center gap-1 rounded-full border border-primary-500/30 bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-400 transition-colors hover:border-primary-500/50 hover:bg-primary-500/15 hover:text-primary-300 md:inline-flex"
+                                                  >
+                                                    <AlertTriangle className="h-3 w-3 shrink-0 text-[#FFFF00]" aria-hidden />
+                                                    <span className="text-neutral-400">No audio yet</span>
+                                                    <span className="text-primary-500/50" aria-hidden>·</span>
+                                                    <span>Create Audio</span>
+                                                  </Link>
+                                                )}
+                                              </div>
+                                              {storyTrackCount > 0 ? (
+                                                <p className="text-[11px] text-neutral-500 mt-0.5">
+                                                  {storyTrackCount} {storyTrackCount === 1 ? 'track' : 'tracks'} in playlist
+                                                </p>
+                                              ) : (
+                                                <Link
+                                                  href={`/audio/generate?source=story&sourceId=${story.id}`}
+                                                  onClick={e => {
+                                                    e.stopPropagation()
+                                                    setStoryDropdownOpen(false)
+                                                  }}
+                                                  className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full border border-primary-500/30 bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-400 transition-colors hover:border-primary-500/50 hover:bg-primary-500/15 hover:text-primary-300 md:hidden"
+                                                >
+                                                  <AlertTriangle className="h-3 w-3 shrink-0 text-[#FFFF00]" aria-hidden />
+                                                  <span className="text-neutral-400">No audio yet</span>
+                                                  <span className="text-primary-500/50" aria-hidden>·</span>
+                                                  <span>Create Audio</span>
+                                                </Link>
+                                              )}
                                               <div className="mt-0.5 flex flex-wrap items-center gap-1">
                                                 {cats.map(key => {
                                                   const cat = VISION_CATEGORIES.find(c => c.key === key)
@@ -1108,7 +1194,9 @@ export default function AudioListenPage() {
                                                 {new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                               </p>
                                             </div>
-                                            {isSelected && <CheckCircle className="h-4 w-4 shrink-0 text-primary-500" />}
+                                            {storyTrackCount > 0 && isSelected && (
+                                              <CheckCircle className="h-4 w-4 shrink-0 text-primary-500" />
+                                            )}
                                           </div>
                                         </div>
                                       )
@@ -1118,21 +1206,13 @@ export default function AudioListenPage() {
                               )}
                             </div>
                           </div>
+                          )}
                         </div>
                       }
                       onAddToPlaylist={(track) => handleAddToPlaylist(track, 'story')}
                     />
-                    <div className="flex justify-center mt-4">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/story/${selectedStory.id}`}>
-                          <Library className="w-4 h-4 mr-2" />
-                          View Story
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Link>
-                      </Button>
-                    </div>
                   </>
-                ) : null}
+                )}
               </div>
             )}
           </section>

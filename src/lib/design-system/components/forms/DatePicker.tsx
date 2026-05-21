@@ -15,6 +15,10 @@ interface DatePickerProps extends Omit<React.InputHTMLAttributes<HTMLInputElemen
   maxDate?: string // ISO date string
   /** Align calendar to trigger start (default) or end — use `end` for right-aligned controls so the popup stays inside narrow modals. */
   popoverAlign?: 'start' | 'end'
+  /** Custom clickable trigger instead of the default input field */
+  customTrigger?: React.ReactNode
+  /** When set, only these YYYY-MM-DD values are selectable (e.g. MAP active days) */
+  allowedDates?: ReadonlySet<string>
 }
 
 export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
@@ -28,7 +32,10 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       minDate,
       maxDate,
       popoverAlign = 'start',
+      customTrigger,
+      allowedDates,
       className = '',
+      disabled,
       ...props
     },
     ref
@@ -204,7 +211,8 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       // Check if date is within min/max range
       if (minDate && isoString < minDate) return
       if (maxDate && isoString > maxDate) return
-      
+      if (allowedDates && allowedDates.size > 0 && !allowedDates.has(isoString)) return
+
       setSelectedDate(newDate)
       onChange?.(isoString)
       setIsOpen(false)
@@ -224,11 +232,24 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
     const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth)
     const monthName = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(currentMonth)
 
+    const monthHasAllowedDate = (monthIndex: number, yearValue: number) => {
+      if (!allowedDates || allowedDates.size === 0) return true
+      const daysInMonth = new Date(yearValue, monthIndex + 1, 0).getDate()
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = formatLocalISO(new Date(yearValue, monthIndex, day))
+        if (allowedDates.has(dateStr)) return true
+      }
+      return false
+    }
+
     const isMonthInRange = (monthIndex: number, yearValue = year) => {
       const monthStart = formatLocalISO(new Date(yearValue, monthIndex, 1))
       const monthEnd = formatLocalISO(new Date(yearValue, monthIndex + 1, 0))
       if (minDate && monthEnd < minDate) return false
       if (maxDate && monthStart > maxDate) return false
+      if (allowedDates && allowedDates.size > 0 && !monthHasAllowedDate(monthIndex, yearValue)) {
+        return false
+      }
       return true
     }
 
@@ -273,6 +294,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       const dateStr = formatLocalISO(new Date(year, month, day))
       if (minDate && dateStr < minDate) return true
       if (maxDate && dateStr > maxDate) return true
+      if (allowedDates && allowedDates.size > 0 && !allowedDates.has(dateStr)) return true
       return false
     }
 
@@ -304,37 +326,63 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
           </label>
         )}
         
-        {/* Input Field */}
+        {/* Trigger */}
         <div className="relative" ref={triggerRef}>
-          <input
-            ref={ref}
-            type="text"
-            readOnly
-            value={formatDisplayDate(selectedDate)}
-            onClick={() => setIsOpen(!isOpen)}
-            placeholder="Select date..."
-            className={cn(
-              'w-full px-4 py-3 pr-10',
-              'bg-[#404040]',
-              'border-2',
-              'rounded-xl',
-              'text-white',
-              'placeholder-[#9CA3AF]',
-              'focus:outline-none',
-              'transition-all duration-200',
-              'cursor-pointer',
-              error
-                ? 'border-[#FF0040]'
-                : isOpen
-                ? 'border-[#39FF14]'
-                : 'border-[#666666]'
-            )}
-            {...props}
-          />
-          <CalendarDays 
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" 
-            strokeWidth={2.5}
-          />
+          {customTrigger ? (
+            <div
+              role="button"
+              tabIndex={disabled ? -1 : 0}
+              aria-label="Choose date"
+              aria-expanded={isOpen}
+              aria-haspopup="dialog"
+              onClick={() => {
+                if (!disabled) setIsOpen(open => !open)
+              }}
+              onKeyDown={e => {
+                if (disabled) return
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setIsOpen(open => !open)
+                }
+              }}
+              className={cn(disabled && 'pointer-events-none opacity-50')}
+            >
+              {customTrigger}
+            </div>
+          ) : (
+            <>
+              <input
+                ref={ref}
+                type="text"
+                readOnly
+                disabled={disabled}
+                value={formatDisplayDate(selectedDate)}
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                placeholder="Select date..."
+                className={cn(
+                  'w-full px-4 py-3 pr-10',
+                  'bg-[#404040]',
+                  'border-2',
+                  'rounded-xl',
+                  'text-white',
+                  'placeholder-[#9CA3AF]',
+                  'focus:outline-none',
+                  'transition-all duration-200',
+                  'cursor-pointer',
+                  error
+                    ? 'border-[#FF0040]'
+                    : isOpen
+                    ? 'border-[#39FF14]'
+                    : 'border-[#666666]'
+                )}
+                {...props}
+              />
+              <CalendarDays
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none"
+                strokeWidth={2.5}
+              />
+            </>
+          )}
         </div>
 
         {/* Calendar Dropdown - portaled so it appears above cards/overflow */}

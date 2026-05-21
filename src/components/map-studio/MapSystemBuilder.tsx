@@ -208,54 +208,17 @@ export function MapSystemBuilder({
       const user = session?.user
       if (!user) { setError('Please log in.'); return }
 
-      await supabase.from('user_maps').update({ is_active: false }).eq('user_id', user.id).eq('is_active', true)
-
-      const { count } = await supabase
-        .from('user_maps')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('is_draft', false)
-
-      const nextVersion = (count ?? 0) + 1
-
-      const { data: newMap, error: mapError } = await supabase
-        .from('user_maps')
-        .insert({
-          user_id: user.id,
-          title: `MAP v${nextVersion}`,
-          is_draft: false,
-          is_active: true,
-          version_number: nextVersion,
-          timezone: userTimezone,
-          map_weekly_reminder_email: weeklyDigestEmail,
-          map_weekly_reminder_sms: weeklyDigestSms,
-          map_weekly_reminder_time: reminderTimeToPostgresTime(weeklyDigestTime),
-        })
-        .select('id')
-        .single()
-
-      if (mapError || !newMap) throw mapError || new Error('Failed to create MAP')
-
-      await supabase
-        .from('commitments')
-        .update({ status: 'archived' })
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .in('category', PILLAR_ORDER)
-
       const commitmentRows = PILLAR_ORDER.flatMap(pillar =>
         selections[pillar].map(sel => {
           const activity = getActivityDefinition(sel.activityType)
           if (!activity) return null
           return {
-            user_id: user.id,
             category: pillar,
             type: 'recurring' as const,
             title: activity.label,
             description: activity.description,
             cadence: JSON.parse(sel.cadenceJson),
             activity_type: sel.activityType,
-            status: 'active' as const,
             notify_sms: activity.usesPublishedSchedule ? false : sel.notifySms,
             notify_email: activity.usesPublishedSchedule ? false : sel.notifyEmail,
             reminder_time: activity.usesPublishedSchedule
@@ -272,8 +235,25 @@ export function MapSystemBuilder({
         })
       ).filter(Boolean)
 
-      const { error: commitError } = await supabase.from('commitments').insert(commitmentRows)
-      if (commitError) throw commitError
+      const activateRes = await fetch('/api/map/activate-system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'My MAP',
+          timezone: userTimezone,
+          map_weekly_reminder_email: weeklyDigestEmail,
+          map_weekly_reminder_sms: weeklyDigestSms,
+          map_weekly_reminder_time: weeklyDigestTime,
+          commitments: commitmentRows,
+        }),
+      })
+
+      if (!activateRes.ok) {
+        const errBody = await activateRes.json().catch(() => ({}))
+        throw new Error(
+          (errBody as { error?: string }).error || 'Failed to activate MAP',
+        )
+      }
 
       await fetch('/api/map/generate-occurrences', { method: 'POST' })
       await fetch('/api/map/schedule-reminders', { method: 'POST' }).catch(() => {})

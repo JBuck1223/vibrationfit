@@ -18,15 +18,6 @@ interface CreateTile {
 
 const CREATE_TILES: CreateTile[] = [
   {
-    title: 'Songwriter',
-    description: 'Create original songs from your visions, journals, and life experiences with VIVA.',
-    icon: Music2,
-    iconColor: 'text-[#FFFF00]',
-    iconBg: 'bg-[#FFFF00]/15',
-    hoverBg: 'hover:bg-[#FFFF00]/[0.11]',
-    path: '/audio/songwriter',
-  },
-  {
     title: 'Generate Voice Audio',
     description: 'Generate voice narration from your Life Vision or Stories with VIVA voices.',
     icon: AudioLines,
@@ -54,6 +45,15 @@ const CREATE_TILES: CreateTile[] = [
     path: '/audio/mix',
   },
   {
+    title: 'Songwriter',
+    description: 'Create original songs from your visions, journals, and life experiences with VIVA.',
+    icon: Music2,
+    iconColor: 'text-[#FFFF00]',
+    iconBg: 'bg-[#FFFF00]/15',
+    hoverBg: 'hover:bg-[#FFFF00]/[0.11]',
+    path: '/audio/songwriter',
+  },
+  {
     title: 'Generation Queue',
     description: 'Track the progress of your audio generation and mixing jobs.',
     icon: Clock,
@@ -73,7 +73,7 @@ export default function CreatePage() {
       <Stack gap="md">
         <h1 className="sr-only">Create Audio</h1>
 
-        <div className="grid grid-cols-1 gap-2 sm:gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5 lg:gap-3">
           {CREATE_TILES.map(tile => {
             const TileIcon = tile.icon
             return (
@@ -84,21 +84,23 @@ export default function CreatePage() {
               >
                 <Card
                   variant="glass"
-                  className={`flex h-full min-h-[5.5rem] items-center gap-3 p-3.5 shadow-none transition-[border-color,background-color,transform] duration-200 sm:min-h-0 sm:p-4 md:p-4 lg:p-4 hover:border-neutral-500 ${tile.hoverBg} active:scale-[0.99]`}
+                  className={`flex h-full min-h-[5.5rem] items-center gap-3 p-3.5 shadow-none transition-[border-color,background-color,transform] duration-200 sm:min-h-0 sm:p-4 lg:flex-col lg:items-center lg:gap-2.5 lg:p-3 lg:text-center hover:border-neutral-500 ${tile.hoverBg} active:scale-[0.99]`}
                 >
                   <div
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${tile.iconBg}`}
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full lg:h-10 lg:w-10 ${tile.iconBg}`}
                   >
                     <TileIcon className={`h-5 w-5 ${tile.iconColor}`} aria-hidden />
                   </div>
-                  <div className="min-w-0 flex-1 py-0.5">
-                    <h3 className="text-sm font-semibold leading-snug text-white">{tile.title}</h3>
-                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-neutral-500">
+                  <div className="min-w-0 flex-1 py-0.5 lg:flex-none lg:w-full">
+                    <h3 className="text-sm font-semibold leading-snug text-white lg:text-[13px]">
+                      {tile.title}
+                    </h3>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-neutral-500 lg:line-clamp-3 lg:text-[11px]">
                       {tile.description}
                     </p>
                   </div>
                   <ChevronRight
-                    className="h-5 w-5 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400"
+                    className="h-5 w-5 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400 lg:hidden"
                     aria-hidden
                   />
                 </Card>
