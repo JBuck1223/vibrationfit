@@ -172,6 +172,42 @@ export interface UpdateCommitmentPayload {
   start_date?: string | null
   end_date?: string | null
   status?: CommitmentStatus
+  notify_sms?: boolean
+  notify_email?: boolean
+  reminder_time?: string | null
+  reminder_days?: number[] | null
+}
+
+export type CommitmentChangeEventType =
+  | 'created'
+  | 'updated'
+  | 'archived'
+  | 'deleted'
+  | 'resumed'
+
+export type CommitmentChangeSource =
+  | 'system_activate'
+  | 'custom_create'
+  | 'custom_update'
+  | 'custom_archive'
+  | 'custom_delete'
+  | 'auto'
+
+export interface CommitmentChangeEvent {
+  id: string
+  commitment_id: string | null
+  user_id: string
+  event_type: CommitmentChangeEventType
+  state: Commitment
+  changed_at: string
+  source: CommitmentChangeSource
+  map_activation_id: string | null
+}
+
+export interface ResolvedMapPlanSnapshotMeta {
+  isHistorical: boolean
+  earliestDate: string | null
+  date: string
 }
 
 // -- Occurrences --------------------------------------------------------------

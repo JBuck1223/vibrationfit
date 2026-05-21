@@ -32,12 +32,31 @@ const STATUS_CONFIG: Record<
 export function MapOccurrenceStatus({
   status,
   compact = false,
+  variant = 'badge',
 }: {
   status: OccurrenceStatus
   compact?: boolean
+  variant?: 'badge' | 'minimal'
 }) {
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending
   const Icon = config.icon
+
+  if (variant === 'minimal') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 text-[11px] font-medium tabular-nums ${
+          status === 'yes'
+            ? 'text-primary-400'
+            : status === 'no'
+              ? 'text-red-400/90'
+              : 'text-neutral-500'
+        }`}
+      >
+        <Icon className="w-3 h-3 shrink-0 opacity-80" />
+        {config.label}
+      </span>
+    )
+  }
 
   return (
     <div

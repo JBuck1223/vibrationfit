@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback, type CSSProperties } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
 import { Spinner } from '@/lib/design-system/components'
+import { cn } from '@/lib/design-system/components/shared-utils'
 import { useMapStudio } from './MapStudioContext'
 import { useMapNavigation } from './use-map-navigation'
+import { MapDateTravelTrigger } from './MapDateTravelTrigger'
 import {
   getMonthGrid,
   getMonthLabel,
@@ -12,7 +14,84 @@ import {
   todayDateString,
 } from '@/lib/map/map-date-utils'
 import type { CommitmentOccurrence } from '@/lib/map/types'
-import { mapTodayStyles } from '@/lib/map/map-today-styles'
+
+const WEEKDAYS_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const
+const WEEKDAYS_FULL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
+
+const RING_RADIUS = 15
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
+
+function MapMonthDayRing({
+  dayNum,
+  yes,
+  total,
+  isSelected,
+  isToday,
+  showTrack,
+}: {
+  dayNum: number
+  yes: number
+  total: number
+  isSelected: boolean
+  isToday: boolean
+  showTrack: boolean
+}) {
+  const progress = total > 0 ? Math.min(1, yes / total) : 0
+  const strokeDashoffset = RING_CIRCUMFERENCE * (1 - progress)
+  const allDone = total > 0 && yes === total
+
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      {showTrack && (
+        <svg
+          className="absolute inset-0 h-full w-full -rotate-90"
+          viewBox="0 0 36 36"
+          aria-hidden
+        >
+          <circle
+            cx="18"
+            cy="18"
+            r={RING_RADIUS}
+            fill="none"
+            className="stroke-neutral-700"
+            strokeWidth="2.5"
+          />
+          {total > 0 && (
+            <circle
+              cx="18"
+              cy="18"
+              r={RING_RADIUS}
+              fill="none"
+              className={cn(
+                'stroke-primary-500 transition-[stroke-dashoffset] duration-300',
+                allDone && 'stroke-primary-400',
+              )}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeDasharray={RING_CIRCUMFERENCE}
+              strokeDashoffset={strokeDashoffset}
+            />
+          )}
+        </svg>
+      )}
+      <span
+        className={cn(
+          'absolute inset-[4px] flex items-center justify-center rounded-full text-sm font-medium tabular-nums transition-colors',
+          allDone && 'bg-primary-500',
+          isSelected && !allDone && 'bg-primary-500 text-black font-semibold',
+          !allDone && isToday && 'text-primary-400',
+          !allDone && !isToday && 'text-neutral-200',
+        )}
+      >
+        {allDone ? (
+          <CheckCircle2 className="h-5 w-5 text-black" strokeWidth={2} aria-hidden />
+        ) : (
+          <span className={cn(isSelected && 'text-black font-semibold')}>{dayNum}</span>
+        )}
+      </span>
+    </div>
+  )
+}
 
 export function MapMonthView() {
   const { navigateMap } = useMapNavigation()
@@ -21,11 +100,19 @@ export function MapMonthView() {
     selectedDate,
     loadOccurrencesForRange,
     ensureOccurrencesForDate,
+    selectablePlanDates,
   } = useMapStudio()
 
   const initial = monthFromDateStr(selectedDate)
   const [year, setYear] = useState(initial.year)
   const [month, setMonth] = useState(initial.month)
+
+  useEffect(() => {
+    const next = monthFromDateStr(selectedDate)
+    setYear(next.year)
+    setMonth(next.month)
+  }, [selectedDate])
+
   const [monthOccurrences, setMonthOccurrences] = useState<CommitmentOccurrence[]>([])
   const [loadingMonth, setLoadingMonth] = useState(false)
 
@@ -79,22 +166,40 @@ export function MapMonthView() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
+      <div className="flex min-h-[36vh] items-center justify-center">
         <Spinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <button type="button" onClick={prevMonth} className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800">
-          <ChevronLeft className="w-5 h-5 text-neutral-400" />
-        </button>
-        <p className="text-sm font-medium text-white">{getMonthLabel(year, month)}</p>
-        <button type="button" onClick={nextMonth} className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800">
-          <ChevronRight className="w-5 h-5 text-neutral-400" />
-        </button>
+    <div className="mx-auto w-full max-w-xl space-y-4">
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-0.5 sm:gap-1">
+          <button
+            type="button"
+            onClick={prevMonth}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="text-center px-2 sm:px-3">
+            <MapDateTravelTrigger>
+              <span className="text-sm sm:text-base font-medium text-white whitespace-nowrap cursor-pointer rounded-md px-1 hover:bg-white/5 transition-colors">
+                {getMonthLabel(year, month)}
+              </span>
+            </MapDateTravelTrigger>
+          </div>
+          <button
+            type="button"
+            onClick={nextMonth}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+            aria-label="Next month"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {loadingMonth ? (
@@ -102,80 +207,70 @@ export function MapMonthView() {
           <Spinner size="md" />
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-neutral-500 uppercase">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-              <div key={d} className="py-1">{d}</div>
+        <div className="rounded-2xl bg-neutral-900/40 p-3 sm:p-4">
+          <div className="mb-2 grid grid-cols-7 gap-1.5 text-center">
+            {WEEKDAYS_FULL.map((label, i) => (
+              <div
+                key={label}
+                className="py-1 text-[11px] font-medium text-neutral-500 sm:text-xs"
+              >
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span>
+              </div>
             ))}
           </div>
-          <div className="space-y-1">
+
+          <div className="space-y-1.5">
             {weeks.map((week, wi) => (
-              <div key={wi} className="grid grid-cols-7 gap-1">
+              <div key={wi} className="grid grid-cols-7 gap-1.5">
                 {week.map((dateStr, di) => {
                   if (!dateStr) {
-                    return <div key={`empty-${wi}-${di}`} className="aspect-square" />
+                    return <div key={`empty-${wi}-${di}`} className="min-h-[3.5rem] sm:min-h-[3.75rem]" />
                   }
+
                   const summary = summaryByDate.get(dateStr)
                   const isToday = dateStr === todayStr
                   const isSelected = dateStr === selectedDate
+                  const hasActiveMap =
+                    selectablePlanDates.size > 0 && selectablePlanDates.has(dateStr)
                   const dayNum = new Date(dateStr + 'T12:00:00').getDate()
-
-                  const cellSurface: CSSProperties =
-                    isSelected
-                      ? {
-                          backgroundColor: mapTodayStyles.monthSelectedBg,
-                          boxShadow: `0 0 0 2px ${mapTodayStyles.monthSelectedRing}, ${mapTodayStyles.monthSelectedShadow}`,
-                        }
-                      : isToday
-                        ? {
-                            backgroundColor: mapTodayStyles.monthTodayBg,
-                            boxShadow: `0 0 0 2px ${mapTodayStyles.monthTodayRing}, ${mapTodayStyles.monthTodayShadow}`,
-                          }
-                        : {}
+                  const logged = summary?.yes ?? 0
+                  const total = summary?.total ?? 0
 
                   return (
                     <button
                       key={dateStr}
                       type="button"
+                      disabled={!hasActiveMap}
                       onClick={() => navigateMap({ view: 'day', date: dateStr })}
-                      className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
-                        !isSelected && !isToday
-                          ? 'bg-neutral-900/50 hover:bg-neutral-800'
-                          : ''
-                      }`}
-                      style={cellSurface}
+                      aria-label={
+                        total > 0 && logged === total
+                          ? `${dayNum}: all ${total} completed`
+                          : total > 0
+                            ? `${dayNum}: ${logged} of ${total} completed`
+                            : `${dayNum}`
+                      }
+                      className={cn(
+                        'flex min-h-[3.5rem] sm:min-h-[3.75rem] items-center justify-center rounded-xl p-1 transition-all active:scale-[0.98]',
+                        !hasActiveMap && 'cursor-not-allowed opacity-25',
+                        hasActiveMap && !isSelected && 'hover:bg-neutral-800/50',
+                      )}
                     >
-                      {isToday && (
-                        <span
-                          className="text-[8px] font-bold uppercase tracking-wider leading-none"
-                          style={{ color: mapTodayStyles.primaryHex }}
-                        >
-                          Today
-                        </span>
-                      )}
-                      <span
-                        className="text-sm font-medium"
-                        style={{
-                          color:
-                            isToday || isSelected
-                              ? mapTodayStyles.primaryHex
-                              : '#ffffff',
-                        }}
-                      >
-                        {dayNum}
-                      </span>
-                      {summary && summary.total > 0 && (
-                        <span className="text-[9px] text-neutral-500">
-                          {summary.yes}/{summary.total}
-                        </span>
-                      )}
+                      <MapMonthDayRing
+                        dayNum={dayNum}
+                        yes={logged}
+                        total={total}
+                        isSelected={isSelected}
+                        isToday={isToday}
+                        showTrack={hasActiveMap}
+                      />
                     </button>
                   )
                 })}
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   )
