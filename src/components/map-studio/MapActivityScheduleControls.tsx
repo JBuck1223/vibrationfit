@@ -53,8 +53,8 @@ export function MapActivityScheduleControls({
 
   return (
     <div className="mt-2 w-full min-w-0 rounded-xl border border-neutral-800/70 bg-black/25 p-3">
-      <div className="flex min-w-0 flex-col gap-2.5 md:flex-row md:flex-nowrap md:items-center md:gap-3 md:overflow-x-auto">
-        <div className="w-full min-w-0 shrink-0 md:w-44">
+      <div className="flex min-w-0 flex-col gap-2.5 xl:flex-row xl:flex-wrap xl:items-center xl:gap-3">
+        <div className="w-full min-w-0 shrink-0 xl:w-44">
           <Select
             options={CADENCE_SELECT_OPTIONS}
             value={sel.cadenceJson}
@@ -106,7 +106,7 @@ export function MapActivityScheduleControls({
           })}
         </div>
 
-        <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 md:w-auto md:flex-nowrap">
+        <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 xl:w-auto">
           <button
             type="button"
             onClick={() => onReminderChange(activityType, { notifyEmail: !sel.notifyEmail })}
