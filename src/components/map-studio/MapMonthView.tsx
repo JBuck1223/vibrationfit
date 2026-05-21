@@ -140,10 +140,7 @@ export function MapMonthView() {
   const loadMonth = useCallback(async () => {
     setLoadingMonth(true)
     try {
-      await Promise.all([
-        ensureOccurrencesForDate(monthStart),
-        ensureOccurrencesForDate(todayStr),
-      ])
+      await ensureOccurrencesForDate(todayStr)
       const occs = await loadOccurrencesForRange(monthStart, monthEnd)
       setMonthOccurrences(occs)
     } finally {
@@ -173,8 +170,17 @@ export function MapMonthView() {
     }
   }
 
+  const hasSelectableRegistry = selectablePlanDates.size > 0
+
+  function dayHadActivePlan(dateStr: string): boolean {
+    if (dateStr > todayStr) return false
+    if (hasSelectableRegistry) return selectablePlanDates.has(dateStr)
+    return hasLivePlan && dateStr === todayStr
+  }
+
   const summaryByDate = new Map<string, { yes: number; total: number }>()
   for (const occ of monthOccurrences) {
+    if (!dayHadActivePlan(occ.occurred_on)) continue
     const cur = summaryByDate.get(occ.occurred_on) || { yes: 0, total: 0 }
     cur.total++
     if (occ.status === 'yes') cur.yes++
@@ -248,16 +254,12 @@ export function MapMonthView() {
                   const summary = summaryByDate.get(dateStr)
                   const isToday = dateStr === todayStr
                   const isSelected = dateStr === selectedDate
-                  const isFuture = dateStr > todayStr
                   const dayNum = new Date(dateStr + 'T12:00:00').getDate()
                   const logged = summary?.yes ?? 0
                   const total = summary?.total ?? 0
-                  const inSelectableSet =
-                    selectablePlanDates.size > 0 && selectablePlanDates.has(dateStr)
-                  const canOpenDay =
-                    !isFuture &&
-                    (inSelectableSet || total > 0 || (hasLivePlan && isToday))
-                  const showRing = canOpenDay
+                  const hadPlan = dayHadActivePlan(dateStr)
+                  const canOpenDay = hadPlan
+                  const showRing = hadPlan && total > 0
 
                   return (
                     <button

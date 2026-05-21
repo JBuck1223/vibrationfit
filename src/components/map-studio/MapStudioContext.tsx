@@ -64,6 +64,7 @@ interface MapStudioContextValue {
   refreshOccurrences: () => Promise<void>
   refreshAll: () => Promise<void>
   refreshPlanForDate: (date: string) => Promise<void>
+  refreshDateOccurrences: (date: string) => Promise<void>
   loadOccurrencesForDate: (date: string) => Promise<CommitmentOccurrence[]>
   loadOccurrencesForRange: (from: string, to: string) => Promise<CommitmentOccurrence[]>
   ensureOccurrencesForDate: (date: string) => Promise<void>
@@ -362,6 +363,7 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
         refreshOccurrences: loadOccurrences,
         refreshAll,
         refreshPlanForDate,
+        refreshDateOccurrences,
         loadOccurrencesForDate,
         loadOccurrencesForRange,
         ensureOccurrencesForDate: ensureOccurrencesForDateFn,

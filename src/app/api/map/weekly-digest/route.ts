@@ -171,6 +171,8 @@ function formatCadence(cadence: { kind: string; count?: number } | null): string
   if (!cadence) return 'weekly'
   if (cadence.kind === 'daily') return 'daily'
   if (cadence.kind === 'days_per_week' && cadence.count) return `${cadence.count}x/week`
+  if (cadence.kind === 'biweekly') return 'every 2 weeks'
+  if (cadence.kind === 'every_4_weeks' || cadence.kind === 'monthly') return 'every 4 weeks'
   return 'weekly'
 }
 

@@ -45,13 +45,20 @@ export async function POST(request: NextRequest) {
       ? reminderTimeToPostgresTime(body.map_weekly_reminder_time)
       : null
 
+    const commitments = body.commitments.map(c => ({
+      ...c,
+      reminder_time: c.reminder_time
+        ? reminderTimeToPostgresTime(c.reminder_time)
+        : null,
+    }))
+
     const { data, error } = await supabase.rpc('activate_system_map', {
       p_title: body.title ?? 'My MAP',
       p_timezone: body.timezone ?? 'America/New_York',
       p_map_weekly_reminder_email: body.map_weekly_reminder_email ?? true,
       p_map_weekly_reminder_sms: body.map_weekly_reminder_sms ?? true,
       p_map_weekly_reminder_time: weeklyTime,
-      p_commitments: body.commitments,
+      p_commitments: commitments,
     })
 
     if (error) {
