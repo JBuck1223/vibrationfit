@@ -49,6 +49,7 @@ export async function PATCH(
 
     if (body.title !== undefined) updates.title = body.title.trim()
     if (body.description !== undefined) updates.description = body.description?.trim() || null
+    if (body.category !== undefined) updates.category = body.category.trim()
     if (body.cadence !== undefined) updates.cadence = body.cadence
     if (body.start_date !== undefined) updates.start_date = body.start_date
     if (body.end_date !== undefined) updates.end_date = body.end_date
@@ -57,6 +58,7 @@ export async function PATCH(
     if (body.notify_email !== undefined) updates.notify_email = body.notify_email
     if (body.reminder_time !== undefined) updates.reminder_time = body.reminder_time
     if (body.reminder_days !== undefined) updates.reminder_days = body.reminder_days
+    if (body.sort_order !== undefined) updates.sort_order = body.sort_order
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 })

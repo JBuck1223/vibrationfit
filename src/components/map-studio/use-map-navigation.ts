@@ -1,57 +1,75 @@
 'use client'
 
 import { useCallback, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useMapStudio } from './MapStudioContext'
 import { todayDateString } from '@/lib/map/map-date-utils'
 import type { MapViewMode } from '@/lib/map/map-date-utils'
 
-function parseDateParam(value: string | null): string | null {
-  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
-  return null
-}
-
+/** MAP day/week/month navigation via studio context (no URL query params). */
 export function useMapNavigation() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const {
+    selectedDate,
+    viewMode,
+    setSelectedDate,
+    setViewMode,
+    refreshPlanForDate,
+    selectablePlanDates,
+  } = useMapStudio()
 
-  const viewMode = useMemo((): MapViewMode => {
-    const view = searchParams.get('view')
-    if (view === 'week' || view === 'month') return view
-    return 'day'
-  }, [searchParams])
+  const today = todayDateString()
 
-  const urlDate = useMemo(
-    () => parseDateParam(searchParams.get('date')),
-    [searchParams],
+  const sortedDates = useMemo(
+    () => [...selectablePlanDates].sort(),
+    [selectablePlanDates],
   )
 
-  const buildMapPath = useCallback(
-    (options: { view?: MapViewMode; date?: string | null }) => {
-      const params = new URLSearchParams()
-      const view = options.view ?? viewMode
-      const date = options.date !== undefined ? options.date : urlDate
-
-      if (view !== 'day') params.set('view', view)
-      if (date) params.set('date', date)
-
-      const qs = params.toString()
-      return qs ? `/map?${qs}` : '/map'
+  const goToDate = useCallback(
+    (date: string) => {
+      setSelectedDate(date)
+      void refreshPlanForDate(date)
     },
-    [viewMode, urlDate],
+    [setSelectedDate, refreshPlanForDate],
   )
 
-  const navigateMap = useCallback(
-    (options: { view?: MapViewMode; date?: string | null }) => {
-      router.replace(buildMapPath(options), { scroll: false })
+  const prevSelectableDate = useMemo(() => {
+    const idx = sortedDates.indexOf(selectedDate)
+    if (idx > 0) return sortedDates[idx - 1]
+    if (idx < 0 && sortedDates.length > 0) {
+      const earlier = sortedDates.filter(d => d < selectedDate)
+      return earlier.length > 0 ? earlier[earlier.length - 1] : null
+    }
+    return null
+  }, [sortedDates, selectedDate])
+
+  const nextSelectableDate = useMemo(() => {
+    const idx = sortedDates.indexOf(selectedDate)
+    if (idx >= 0 && idx < sortedDates.length - 1) return sortedDates[idx + 1]
+    if (idx < 0 && sortedDates.length > 0) {
+      const later = sortedDates.filter(d => d > selectedDate)
+      return later.length > 0 ? later[0] : null
+    }
+    return null
+  }, [sortedDates, selectedDate])
+
+  const openDayView = useCallback(
+    (date: string) => {
+      setViewMode('day')
+      setSelectedDate(date)
+      void refreshPlanForDate(date)
     },
-    [router, buildMapPath],
+    [setViewMode, setSelectedDate, refreshPlanForDate],
   )
 
   return {
+    selectedDate,
     viewMode,
-    urlDate,
-    today: todayDateString(),
-    buildMapPath,
-    navigateMap,
+    today,
+    setViewMode,
+    goToDate,
+    openDayView,
+    prevSelectableDate,
+    nextSelectableDate,
   }
 }
+
+export type { MapViewMode }

@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   useMemo,
@@ -59,7 +60,7 @@ interface MapStudioContextValue {
 
   refreshMaps: () => Promise<void>
   refreshTargets: () => Promise<void>
-  refreshCommitments: () => Promise<void>
+  refreshCommitments: () => Promise<Commitment[]>
   refreshOccurrences: () => Promise<void>
   refreshAll: () => Promise<void>
   refreshPlanForDate: (date: string) => Promise<void>
@@ -81,6 +82,7 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
   const [maps, setMaps] = useState<UserMap[]>([])
   const [targets, setTargets] = useState<VisionTarget[]>([])
   const [commitments, setCommitments] = useState<Commitment[]>([])
+  const commitmentsRef = useRef<Commitment[]>([])
   const [planCommitments, setPlanCommitments] = useState<Commitment[]>([])
   const [planSnapshotLoading, setPlanSnapshotLoading] = useState(false)
   const [earliestPlanDate, setEarliestPlanDate] = useState<string | null>(null)
@@ -134,20 +136,24 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const loadCommitments = useCallback(async () => {
+  const loadCommitments = useCallback(async (): Promise<Commitment[]> => {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) return
+    if (!session?.user) return []
 
     const { data } = await supabase
       .from('commitments')
       .select('*')
       .eq('user_id', session.user.id)
       .eq('status', 'active')
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false })
 
-    if (data) setCommitments(data)
+    const rows = data ?? []
+    setCommitments(rows)
+    commitmentsRef.current = rows
     await loadSelectablePlanDates()
+    return rows
   }, [loadSelectablePlanDates])
 
   const loadOccurrencesForDate = useCallback(async (date: string) => {
@@ -233,7 +239,8 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
     const today = todayDateString()
     if (date >= today) {
       setPlanSnapshotLoading(false)
-      await loadCommitments()
+      const active = await loadCommitments()
+      setPlanCommitments(active)
       return
     }
 
@@ -242,10 +249,13 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(`/api/map/snapshot?date=${date}`)
       if (!res.ok) return
       const data = await res.json()
-      setPlanCommitments((data.plan || []) as Commitment[])
+      const snapshotPlan = (data.plan || []) as Commitment[]
       if (data.meta?.earliestDate) {
         setEarliestPlanDate(data.meta.earliestDate)
       }
+      // Fall back to current active commitments when no historical snapshot
+      // exists — lets the user backfill past days for recently added commitments.
+      setPlanCommitments(snapshotPlan.length > 0 ? snapshotPlan : commitmentsRef.current)
     } finally {
       setPlanSnapshotLoading(false)
     }

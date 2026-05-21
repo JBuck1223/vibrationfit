@@ -1,87 +1,49 @@
 'use client'
 
-import { usePathname, useSearchParams } from 'next/navigation'
-import { Map, Target, PenLine, Calendar, CalendarDays, LayoutGrid } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Map, Eye, PenLine, Calendar, CalendarDays, LayoutGrid } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem } from '@/lib/design-system/components'
-import type { MapViewMode } from '@/lib/map/map-date-utils'
+import { useMapStudio } from './MapStudioContext'
 
 const TABS = [
-  { label: 'MAP', path: '/map', icon: Target },
+  { label: 'View', path: '/map', icon: Eye },
   { label: 'Update', path: '/map/update', icon: PenLine },
 ]
 
-const UPDATE_AREA_ROUTES = ['/map/update', '/map/update/system', '/map/update/custom']
-
 export function MapAreaBar() {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const { viewMode, setViewMode } = useMapStudio()
   const isMapTab = pathname === '/map' || pathname === '/map/'
-  const isUpdateArea = UPDATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
-  const isUpdateSystem = pathname === '/map/update/system'
-  const isUpdateCustom = pathname === '/map/update/custom'
-  const isUpdateLanding = pathname === '/map/update' || pathname === '/map/update/'
+  const isUpdateArea = pathname.startsWith('/map/update')
 
   let contextNav: AreaBarContextNavItem[] | undefined
   let contextText: string | undefined
 
   if (isMapTab) {
-    const viewParam = searchParams.get('view')
-    const currentView: MapViewMode =
-      viewParam === 'week' || viewParam === 'month' ? viewParam : 'day'
-    const dateQs = searchParams.get('date') ? `&date=${searchParams.get('date')}` : ''
-    const dateOnlyQs = searchParams.get('date') ? `?date=${searchParams.get('date')}` : ''
     contextNav = [
       {
         label: 'Day',
-        path: '/map' + dateOnlyQs,
+        onClick: () => setViewMode('day'),
         icon: Calendar,
-        isActive: currentView === 'day',
+        isActive: viewMode === 'day',
       },
       {
         label: 'Week',
-        path: `/map?view=week${dateQs}`,
+        onClick: () => setViewMode('week'),
         icon: CalendarDays,
-        isActive: currentView === 'week',
+        isActive: viewMode === 'week',
       },
       {
         label: 'Month',
-        path: `/map?view=month${dateQs}`,
+        onClick: () => setViewMode('month'),
         icon: LayoutGrid,
-        isActive: currentView === 'month',
+        isActive: viewMode === 'month',
       },
     ]
     contextText = 'Run the reps. Future you will thank you.'
   } else if (isUpdateArea) {
-    contextNav = [
-      {
-        label: 'Overview',
-        path: '/map/update',
-        icon: Map,
-        isActive: isUpdateLanding,
-      },
-      {
-        label: 'System',
-        path: '/map/update/system',
-        icon: Target,
-        isActive: isUpdateSystem,
-      },
-      {
-        label: 'Custom',
-        path: '/map/update/custom',
-        icon: PenLine,
-        isActive: isUpdateCustom,
-      },
-    ]
-    if (isUpdateSystem) {
-      contextText = 'Choose your alignment tools for each pillar.'
-    } else if (isUpdateCustom) {
-      contextText = 'Add personal commitments tagged to your life categories.'
-    } else {
-      contextText = 'Update your System MAP and Custom actions.'
-    }
+    contextText = 'Choose your rituals and personal commitments.'
   }
-
-  const isOnUpdateSubPage = isUpdateSystem || isUpdateCustom
 
   return (
     <AreaBar
@@ -92,7 +54,6 @@ export function MapAreaBar() {
       variant="default"
       appLikePrimaryTabs
       keepTabActive={isMapTab || isUpdateArea}
-      activeParentPath={isOnUpdateSubPage ? '/map/update' : undefined}
     />
   )
 }

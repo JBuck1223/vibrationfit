@@ -1,12 +1,18 @@
 'use client'
 
-import { Container } from '@/lib/design-system/components'
-import { MapSystemBuilder } from '@/components/map-studio/MapSystemBuilder'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Container, Spinner } from '@/lib/design-system/components'
 
-export default function MapUpdateSystemPage() {
+export default function MapUpdateSystemRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/map/update') }, [router])
+
   return (
     <Container size="xl">
-      <MapSystemBuilder redirectTo="/map/update" />
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
     </Container>
   )
 }

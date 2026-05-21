@@ -14,6 +14,7 @@ import {
   todayDateString,
 } from '@/lib/map/map-date-utils'
 import type { CommitmentOccurrence } from '@/lib/map/types'
+import { mapTodayStyles } from '@/lib/map/map-today-styles'
 
 const WEEKDAYS_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const
 const WEEKDAYS_FULL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
@@ -27,66 +28,76 @@ function MapMonthDayRing({
   total,
   isSelected,
   isToday,
-  showTrack,
+  showRing,
 }: {
   dayNum: number
   yes: number
   total: number
   isSelected: boolean
   isToday: boolean
-  showTrack: boolean
+  showRing: boolean
 }) {
   const progress = total > 0 ? Math.min(1, yes / total) : 0
-  const strokeDashoffset = RING_CIRCUMFERENCE * (1 - progress)
   const allDone = total > 0 && yes === total
+  const strokeDashoffset = RING_CIRCUMFERENCE * (1 - progress)
+  const showProgressRing = showRing && !isSelected
 
   return (
     <div className="relative h-11 w-11 shrink-0">
-      {showTrack && (
+      {showProgressRing && (
         <svg
           className="absolute inset-0 h-full w-full -rotate-90"
           viewBox="0 0 36 36"
           aria-hidden
         >
-          <circle
-            cx="18"
-            cy="18"
-            r={RING_RADIUS}
-            fill="none"
-            className="stroke-neutral-700"
-            strokeWidth="2.5"
-          />
-          {total > 0 && (
+          {!allDone && (
             <circle
               cx="18"
               cy="18"
               r={RING_RADIUS}
               fill="none"
-              className={cn(
-                'stroke-primary-500 transition-[stroke-dashoffset] duration-300',
-                allDone && 'stroke-primary-400',
-              )}
+              className="stroke-neutral-600"
+              strokeWidth="2.5"
+            />
+          )}
+          {total > 0 && !allDone && (
+            <circle
+              cx="18"
+              cy="18"
+              r={RING_RADIUS}
+              fill="none"
+              stroke={mapTodayStyles.primaryHex}
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeDasharray={RING_CIRCUMFERENCE}
               strokeDashoffset={strokeDashoffset}
+              className="transition-[stroke-dashoffset] duration-300"
+            />
+          )}
+          {allDone && (
+            <circle
+              cx="18"
+              cy="18"
+              r={RING_RADIUS}
+              fill="none"
+              stroke={mapTodayStyles.primaryHex}
+              strokeWidth="2.5"
             />
           )}
         </svg>
       )}
       <span
         className={cn(
-          'absolute inset-[4px] flex items-center justify-center rounded-full text-sm font-medium tabular-nums transition-colors',
-          allDone && 'bg-primary-500',
+          'absolute inset-[4px] z-10 flex items-center justify-center rounded-full text-sm font-medium tabular-nums transition-colors',
           isSelected && !allDone && 'bg-primary-500 text-black font-semibold',
-          !allDone && isToday && 'text-primary-400',
-          !allDone && !isToday && 'text-neutral-200',
+          !allDone && isToday && !isSelected && 'text-primary-400',
+          !allDone && !isToday && !isSelected && 'text-neutral-200',
         )}
       >
         {allDone ? (
           <CheckCircle2 className="h-5 w-5 text-black" strokeWidth={2} aria-hidden />
         ) : (
-          <span className={cn(isSelected && 'text-black font-semibold')}>{dayNum}</span>
+          <span className={cn(isSelected && 'font-semibold text-black')}>{dayNum}</span>
         )}
       </span>
     </div>
@@ -94,13 +105,14 @@ function MapMonthDayRing({
 }
 
 export function MapMonthView() {
-  const { navigateMap } = useMapNavigation()
+  const { openDayView } = useMapNavigation()
   const {
     loading,
     selectedDate,
     loadOccurrencesForRange,
     ensureOccurrencesForDate,
     selectablePlanDates,
+    activeCommitments,
   } = useMapStudio()
 
   const initial = monthFromDateStr(selectedDate)
@@ -123,16 +135,21 @@ export function MapMonthView() {
   const lastDay = new Date(year, month + 1, 0).getDate()
   const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
+  const hasLivePlan = activeCommitments.length > 0
+
   const loadMonth = useCallback(async () => {
     setLoadingMonth(true)
     try {
-      await ensureOccurrencesForDate(monthStart)
+      await Promise.all([
+        ensureOccurrencesForDate(monthStart),
+        ensureOccurrencesForDate(todayStr),
+      ])
       const occs = await loadOccurrencesForRange(monthStart, monthEnd)
       setMonthOccurrences(occs)
     } finally {
       setLoadingMonth(false)
     }
-  }, [monthStart, monthEnd, loadOccurrencesForRange, ensureOccurrencesForDate])
+  }, [monthStart, monthEnd, todayStr, loadOccurrencesForRange, ensureOccurrencesForDate])
 
   useEffect(() => {
     if (!loading) loadMonth()
@@ -231,18 +248,23 @@ export function MapMonthView() {
                   const summary = summaryByDate.get(dateStr)
                   const isToday = dateStr === todayStr
                   const isSelected = dateStr === selectedDate
-                  const hasActiveMap =
-                    selectablePlanDates.size > 0 && selectablePlanDates.has(dateStr)
+                  const isFuture = dateStr > todayStr
                   const dayNum = new Date(dateStr + 'T12:00:00').getDate()
                   const logged = summary?.yes ?? 0
                   const total = summary?.total ?? 0
+                  const inSelectableSet =
+                    selectablePlanDates.size > 0 && selectablePlanDates.has(dateStr)
+                  const canOpenDay =
+                    !isFuture &&
+                    (inSelectableSet || total > 0 || (hasLivePlan && isToday))
+                  const showRing = canOpenDay
 
                   return (
                     <button
                       key={dateStr}
                       type="button"
-                      disabled={!hasActiveMap}
-                      onClick={() => navigateMap({ view: 'day', date: dateStr })}
+                      disabled={!canOpenDay}
+                      onClick={() => openDayView(dateStr)}
                       aria-label={
                         total > 0 && logged === total
                           ? `${dayNum}: all ${total} completed`
@@ -252,8 +274,8 @@ export function MapMonthView() {
                       }
                       className={cn(
                         'flex min-h-[3.5rem] sm:min-h-[3.75rem] items-center justify-center rounded-xl p-1 transition-all active:scale-[0.98]',
-                        !hasActiveMap && 'cursor-not-allowed opacity-25',
-                        hasActiveMap && !isSelected && 'hover:bg-neutral-800/50',
+                        !canOpenDay && 'cursor-not-allowed opacity-25',
+                        canOpenDay && !isSelected && 'hover:bg-neutral-800/50',
                       )}
                     >
                       <MapMonthDayRing
@@ -262,7 +284,7 @@ export function MapMonthView() {
                         total={total}
                         isSelected={isSelected}
                         isToday={isToday}
-                        showTrack={hasActiveMap}
+                        showRing={showRing}
                       />
                     </button>
                   )
