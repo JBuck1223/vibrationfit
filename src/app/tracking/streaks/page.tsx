@@ -12,6 +12,7 @@ import {
   TrendingUp,
   UsersRound,
   Image,
+  DollarSign,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -31,7 +32,7 @@ const STREAK_AREAS: {
   { area: 'journal', title: 'Journal', icon: PenTool, theme: 'yellow', href: '/journal/new', cta: 'Open Journal', ctaDone: 'Write again' },
   { area: 'daily-paper', title: 'Daily Paper', icon: FileText, theme: 'yellow', href: '/daily-paper/new', cta: 'Open Daily Paper', ctaDone: 'Review' },
   { area: 'alignment-gym', title: 'Alignment Gym', icon: Video, theme: 'teal', href: '/alignment-gym', cta: 'Join Session', ctaDone: 'Watch Replay', streakUnit: 'weeks' },
-  { area: 'abundance-tracker', title: 'Abundance', icon: TrendingUp, theme: 'green', href: '/abundance-tracker/new', cta: 'Log Abundance', ctaDone: 'Log another' },
+  { area: 'abundance-tracker', title: 'Abundance', icon: DollarSign, theme: 'green', href: '/abundance-tracker/new', cta: 'Log Abundance', ctaDone: 'Log another' },
   { area: 'vibe-tribe', title: 'Vibe Tribe', icon: UsersRound, theme: 'purple', href: '/vibe-tribe', cta: 'Share', ctaDone: 'Back to Tribe' },
   { area: 'vision-board', title: 'Vision Board', icon: Image, theme: 'green', href: '/vision-board', cta: 'Open Vision Board', ctaDone: 'View Board' },
 ]
@@ -52,7 +53,7 @@ export default function TrackingStreaksPage() {
   return (
     <Container size="xl">
       <Stack gap="md">
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {STREAK_AREAS.map(({ area, title, icon, theme, href, cta, ctaDone, streakUnit }) => {
             const s = allStats[area]
             return (
@@ -61,7 +62,7 @@ export default function TrackingStreaksPage() {
                 title={title}
                 icon={icon}
                 theme={theme}
-                inline
+                compact
                 todayCompleted={s?.todayCompleted ?? false}
                 currentStreak={s?.currentStreak ?? 0}
                 streakUnit={streakUnit}
