@@ -159,7 +159,7 @@ function getWeeklyPeriodTally(
     o =>
       o.commitment_id === commitment.id &&
       compareDateStr(o.occurred_on, start) >= 0 &&
-      compareDateStr(o.occurred_on, end) <= 0,
+      compareDateStr(o.occurred_on, anchorDate) <= 0,
   )
   const completed = inPeriod.filter(o => o.status === 'yes').length
 
@@ -198,7 +198,7 @@ function getIntervalStatus(
       o.commitment_id === commitment.id &&
       o.status === 'yes' &&
       compareDateStr(o.occurred_on, start) >= 0 &&
-      compareDateStr(o.occurred_on, end) <= 0,
+      compareDateStr(o.occurred_on, anchorDate) <= 0,
   )
     ? 1
     : 0

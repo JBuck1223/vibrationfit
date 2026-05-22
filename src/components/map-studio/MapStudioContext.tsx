@@ -15,6 +15,7 @@ import {
   groupSystemByPillar,
   groupCustomByLifeCategory,
 } from '@/lib/map/commitment-classification'
+import { toDateString } from '@/lib/map/cadence'
 import { todayDateString } from '@/lib/map/map-date-utils'
 import type { MapViewMode } from '@/lib/map/map-date-utils'
 import type { VisionTarget, Commitment, CommitmentOccurrence, UserMap, MapCategory, OccurrenceStatus } from '@/lib/map/types'
@@ -197,7 +198,7 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
 
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+    const thirtyDaysAgoStr = toDateString(thirtyDaysAgo)
 
     const { data: recentData } = await supabase
       .from('commitment_occurrences')
@@ -378,13 +379,13 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
 function computeStats(occurrences: CommitmentOccurrence[]): Map<string, CommitmentStats> {
   const stats = new Map<string, CommitmentStats>()
   const now = new Date()
-  const todayStr = now.toISOString().split('T')[0]
+  const todayStr = toDateString(now)
 
   const day = now.getDay()
   const mondayOffset = day === 0 ? -6 : 1 - day
   const weekStart = new Date(now)
   weekStart.setDate(now.getDate() + mondayOffset)
-  const weekStartStr = weekStart.toISOString().split('T')[0]
+  const weekStartStr = toDateString(weekStart)
 
   const byCommitment = new Map<string, CommitmentOccurrence[]>()
   for (const occ of occurrences) {

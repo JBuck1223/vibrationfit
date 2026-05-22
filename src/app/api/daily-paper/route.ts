@@ -197,13 +197,9 @@ export async function POST(request: NextRequest) {
       throw error
     }
 
-    // Mark today's MAP Daily Paper commitment occurrence when entry is for today
-    const today = new Date().toISOString().split('T')[0]
-    if (entryDate === today) {
-      autoVerifyOccurrenceByActivityType(userId, 'daily_paper', today).catch(
-        () => {},
-      )
-    }
+    autoVerifyOccurrenceByActivityType(userId, 'daily_paper', entryDate).catch(
+      () => {},
+    )
 
     return NextResponse.json(
       {
