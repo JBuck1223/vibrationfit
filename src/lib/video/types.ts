@@ -79,6 +79,7 @@ export interface VideoSessionParticipant {
   mic_on_percent?: number
   is_host: boolean
   attended: boolean
+  replay_viewed_at?: string
   created_at: string
   updated_at: string
 }
