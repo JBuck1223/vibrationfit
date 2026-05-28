@@ -75,7 +75,13 @@ export function getMapDisplayStatus(map: Pick<UserMap, 'is_draft' | 'is_active'>
 
 // -- Cadence ------------------------------------------------------------------
 
-export type CadenceKind = 'daily' | 'days_per_week'
+export type CadenceKind =
+  | 'daily'
+  | 'days_per_week'
+  | 'biweekly'
+  | 'every_4_weeks'
+  /** @deprecated Use every_4_weeks — kept for existing rows */
+  | 'monthly'
 
 export interface DailyCadence {
   kind: 'daily'
@@ -86,7 +92,31 @@ export interface DaysPerWeekCadence {
   count: number
 }
 
-export type Cadence = DailyCadence | DaysPerWeekCadence
+export interface BiweeklyCadence {
+  kind: 'biweekly'
+}
+
+/** Once per 28-day cycle (Vibration Fit billing / Alignment Gym cadence). */
+export interface Every4WeeksCadence {
+  kind: 'every_4_weeks'
+}
+
+/** @deprecated Alias for every_4_weeks */
+export interface MonthlyCadence {
+  kind: 'monthly'
+}
+
+export type Cadence =
+  | DailyCadence
+  | DaysPerWeekCadence
+  | BiweeklyCadence
+  | Every4WeeksCadence
+  | MonthlyCadence
+
+/** Vibration Fit standard interval lengths (days). */
+export const MAP_FOUR_WEEK_CYCLE_DAYS = 28
+export const MAP_BIWEEKLY_CYCLE_DAYS = 14
+export const MAP_DUE_SOON_DAYS_BEFORE_CYCLE = 7
 
 // -- Vision Targets -----------------------------------------------------------
 
@@ -217,6 +247,13 @@ export interface ResolvedMapPlanSnapshotMeta {
 
 export type OccurrenceStatus = 'pending' | 'yes' | 'no' | 'skipped'
 
+export interface OccurrenceJournalPreview {
+  id: string
+  title: string | null
+  content: string
+  date: string
+}
+
 export interface CommitmentOccurrence {
   id: string
   commitment_id: string
@@ -225,9 +262,11 @@ export interface CommitmentOccurrence {
   status: OccurrenceStatus
   verified_at: string | null
   note: string | null
+  journal_entry_id: string | null
   created_at: string
   updated_at: string
   commitment?: Commitment
+  journal?: OccurrenceJournalPreview | null
 }
 
 // -- Constants ----------------------------------------------------------------

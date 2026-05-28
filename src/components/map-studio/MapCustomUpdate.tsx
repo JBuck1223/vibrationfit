@@ -1,7 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -28,17 +27,9 @@ import { Plus, Archive, Trash2, RotateCcw, ChevronDown, ChevronUp, GripVertical,
 import { useMapStudio } from './MapStudioContext'
 import { ToggleSection } from './MapSystemBuilder'
 import { isCustomCommitment } from '@/lib/map/commitment-classification'
-import { formatCadenceLabel } from '@/lib/map/map-builder-cadence'
+import { CUSTOM_CADENCE_OPTIONS, formatCadenceLabel } from '@/lib/map/map-builder-cadence'
 import { LIFE_CATEGORY_KEYS, getVisionCategory } from '@/lib/design-system/vision-categories'
 import type { Cadence, Commitment } from '@/lib/map/types'
-
-const CADENCE_OPTIONS = [
-  { value: JSON.stringify({ kind: 'daily' }), label: 'Every day' },
-  { value: JSON.stringify({ kind: 'days_per_week', count: 5 }), label: '5x per week' },
-  { value: JSON.stringify({ kind: 'days_per_week', count: 3 }), label: '3x per week' },
-  { value: JSON.stringify({ kind: 'days_per_week', count: 2 }), label: '2x per week' },
-  { value: JSON.stringify({ kind: 'days_per_week', count: 1 }), label: '1x per week' },
-]
 
 const PICKER_CATEGORIES = LIFE_CATEGORY_KEYS
 
@@ -48,13 +39,13 @@ function formatCommitmentCadence(cadence: Cadence | null): string {
 }
 
 function cadenceToSelectValue(cadence: Cadence | null): string {
-  if (!cadence) return CADENCE_OPTIONS[0].value
+  if (!cadence) return CUSTOM_CADENCE_OPTIONS[0].value
   const json = JSON.stringify(cadence)
-  const exact = CADENCE_OPTIONS.find(o => o.value === json)
+  const exact = CUSTOM_CADENCE_OPTIONS.find(o => o.value === json)
   if (exact) return exact.value
-  if (cadence.kind === 'daily') return CADENCE_OPTIONS[0].value
+  if (cadence.kind === 'daily') return CUSTOM_CADENCE_OPTIONS[0].value
   if (cadence.kind === 'days_per_week') {
-    const match = CADENCE_OPTIONS.find(o => {
+    const match = CUSTOM_CADENCE_OPTIONS.find(o => {
       try {
         const p = JSON.parse(o.value) as { kind?: string; count?: number }
         return p.kind === 'days_per_week' && p.count === cadence.count
@@ -62,9 +53,15 @@ function cadenceToSelectValue(cadence: Cadence | null): string {
         return false
       }
     })
-    return match?.value ?? CADENCE_OPTIONS[0].value
+    return match?.value ?? CUSTOM_CADENCE_OPTIONS[0].value
   }
-  return CADENCE_OPTIONS[0].value
+  if (cadence.kind === 'biweekly') {
+    return JSON.stringify({ kind: 'biweekly' })
+  }
+  if (cadence.kind === 'every_4_weeks' || cadence.kind === 'monthly') {
+    return JSON.stringify({ kind: 'every_4_weeks' })
+  }
+  return CUSTOM_CADENCE_OPTIONS[0].value
 }
 
 export function MapCustomUpdate({
@@ -75,7 +72,6 @@ export function MapCustomUpdate({
   /** Renders inside alignment plan grid with title + Add in card header */
   embeddedInPlan?: boolean
 } = {}) {
-  const router = useRouter()
   const { customActiveCommitments, refreshAll, refreshCommitments } = useMapStudio()
 
   const sensors = useSensors(
@@ -119,7 +115,7 @@ export function MapCustomUpdate({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
-  const [cadenceJson, setCadenceJson] = useState(CADENCE_OPTIONS[0].value)
+  const [cadenceJson, setCadenceJson] = useState(CUSTOM_CADENCE_OPTIONS[0].value)
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [updating, setUpdating] = useState<string | null>(null)
@@ -130,7 +126,7 @@ export function MapCustomUpdate({
     setEditingId(null)
     setTitle('')
     setCategory('')
-    setCadenceJson(CADENCE_OPTIONS[0].value)
+    setCadenceJson(CUSTOM_CADENCE_OPTIONS[0].value)
     setDescription('')
   }, [])
 
@@ -185,7 +181,6 @@ export function MapCustomUpdate({
         await refreshAll()
         await loadArchived()
         resetFormFields()
-        router.push('/map')
       }
     } finally {
       setSaving(false)
@@ -457,6 +452,19 @@ export function MapCustomUpdate({
   return content
 }
 
+function getCommitmentSaveBlockerMessage(title: string, category: string): string | null {
+  if (!category && !title.trim()) {
+    return 'Select a life category and enter a title before saving.'
+  }
+  if (!category) {
+    return 'Select a life category before saving.'
+  }
+  if (!title.trim()) {
+    return 'Enter a title before saving.'
+  }
+  return null
+}
+
 function CustomCommitmentFormCard({
   heading,
   title,
@@ -486,8 +494,28 @@ function CustomCommitmentFormCard({
   onCancel: () => void
   saveLabel: string
 }) {
+  const [saveHint, setSaveHint] = useState<string | null>(null)
+  const blockerMessage = getCommitmentSaveBlockerMessage(title, category)
+  const canSave = !saving && blockerMessage === null
+
+  useEffect(() => {
+    if (canSave) setSaveHint(null)
+  }, [canSave])
+
+  const handleSaveAttempt = (e: FormEvent) => {
+    e.preventDefault()
+    if (saving) return
+    if (blockerMessage) {
+      setSaveHint(blockerMessage)
+      return
+    }
+    setSaveHint(null)
+    onSave()
+  }
+
   return (
     <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+      <form onSubmit={handleSaveAttempt}>
       <Stack gap="md">
         <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{heading}</p>
         <div>
@@ -523,7 +551,7 @@ function CustomCommitmentFormCard({
         </div>
         <div>
           <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Cadence</label>
-          <Select options={CADENCE_OPTIONS} value={cadenceJson} onChange={onCadenceChange} />
+          <Select options={CUSTOM_CADENCE_OPTIONS} value={cadenceJson} onChange={onCadenceChange} />
         </div>
         <div>
           <label className="text-xs text-neutral-500 uppercase tracking-wider block mb-1.5">Note (optional)</label>
@@ -534,13 +562,30 @@ function CustomCommitmentFormCard({
             rows={2}
           />
         </div>
-        <div className="flex gap-2">
-          <Button variant="primary" size="sm" onClick={onSave} disabled={saving || !title.trim() || !category}>
-            {saving ? <Spinner size="sm" /> : saveLabel}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              disabled={saving}
+              className={!canSave && !saving ? 'opacity-50 cursor-not-allowed' : undefined}
+              aria-disabled={!canSave}
+            >
+              {saving ? <Spinner size="sm" /> : saveLabel}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+          {saveHint && (
+            <p className="text-xs text-amber-200/90" role="status">
+              {saveHint}
+            </p>
+          )}
         </div>
       </Stack>
+      </form>
     </Card>
   )
 }

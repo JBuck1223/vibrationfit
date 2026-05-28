@@ -1,4 +1,22 @@
-import type { Cadence } from './types'
+import {
+  MAP_BIWEEKLY_CYCLE_DAYS,
+  MAP_FOUR_WEEK_CYCLE_DAYS,
+  type Cadence,
+} from './types'
+
+export function isEvery4WeeksCadence(cadence: Cadence): boolean {
+  return cadence.kind === 'every_4_weeks' || cadence.kind === 'monthly'
+}
+
+export function isIntervalCadence(cadence: Cadence): cadence is Cadence & { kind: 'biweekly' | 'every_4_weeks' | 'monthly' } {
+  return cadence.kind === 'biweekly' || isEvery4WeeksCadence(cadence)
+}
+
+export function intervalCycleDays(cadence: Cadence): number | null {
+  if (cadence.kind === 'biweekly') return MAP_BIWEEKLY_CYCLE_DAYS
+  if (isEvery4WeeksCadence(cadence)) return MAP_FOUR_WEEK_CYCLE_DAYS
+  return null
+}
 
 /**
  * Given a cadence and a date range, return all dates within [start, end]
@@ -8,10 +26,12 @@ export function getOccurrenceDates(
   cadence: Cadence,
   rangeStart: Date,
   rangeEnd: Date,
+  anchorStart?: Date,
 ): Date[] {
-  const dates: Date[] = []
+  const anchor = anchorStart ?? rangeStart
 
   if (cadence.kind === 'daily') {
+    const dates: Date[] = []
     const cursor = new Date(rangeStart)
     while (cursor <= rangeEnd) {
       dates.push(new Date(cursor))
@@ -24,7 +44,15 @@ export function getOccurrenceDates(
     return getDaysPerWeekOccurrences(cadence.count, rangeStart, rangeEnd)
   }
 
-  return dates
+  if (cadence.kind === 'biweekly') {
+    return getBiweeklyOccurrences(anchor, rangeStart, rangeEnd)
+  }
+
+  if (isEvery4WeeksCadence(cadence)) {
+    return getFixedIntervalOccurrences(anchor, rangeStart, rangeEnd, MAP_FOUR_WEEK_CYCLE_DAYS)
+  }
+
+  return []
 }
 
 /**
@@ -56,6 +84,39 @@ function getDaysPerWeekOccurrences(
   return dates
 }
 
+function getBiweeklyOccurrences(
+  anchorStart: Date,
+  rangeStart: Date,
+  rangeEnd: Date,
+): Date[] {
+  return getFixedIntervalOccurrences(
+    anchorStart,
+    rangeStart,
+    rangeEnd,
+    MAP_BIWEEKLY_CYCLE_DAYS,
+  )
+}
+
+function getFixedIntervalOccurrences(
+  anchorStart: Date,
+  rangeStart: Date,
+  rangeEnd: Date,
+  stepDays: number,
+): Date[] {
+  const dates: Date[] = []
+  const cursor = new Date(anchorStart)
+  while (cursor < rangeStart) {
+    cursor.setDate(cursor.getDate() + stepDays)
+  }
+  while (cursor <= rangeEnd) {
+    if (cursor >= anchorStart) {
+      dates.push(new Date(cursor))
+    }
+    cursor.setDate(cursor.getDate() + stepDays)
+  }
+  return dates
+}
+
 function getISOWeekStart(date: Date): Date {
   const d = new Date(date)
   const day = d.getDay()
@@ -74,7 +135,7 @@ export function getNextOccurrences(
 ): Date[] {
   const farEnd = new Date(fromDate)
   farEnd.setDate(farEnd.getDate() + count * 7 + 14)
-  const all = getOccurrenceDates(cadence, fromDate, farEnd)
+  const all = getOccurrenceDates(cadence, fromDate, farEnd, fromDate)
   return all.slice(0, count)
 }
 

@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { toDateString } from '@/lib/map/cadence'
 
 /**
  * Maps activity_type values on commitments to legacy area keys (area-stats / client).
@@ -30,7 +31,49 @@ function getActivityTypesForArea(areaKey: string): string[] {
 }
 
 /**
- * Mark the first pending occurrence for the given activity type on the given date.
+ * Find (or create) a pending occurrence for the given date and commitment.
+ * If no occurrence row exists for today, inserts one so the activity is
+ * recorded on the actual date it happened — never on a different day.
+ */
+async function findOrCreateOccurrence(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string,
+  date: string,
+  commitmentIds: string[],
+) {
+  const { data: existing } = await supabase
+    .from('commitment_occurrences')
+    .select('id, status')
+    .eq('user_id', userId)
+    .eq('occurred_on', date)
+    .in('commitment_id', commitmentIds)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (existing) {
+    return existing.status === 'pending' ? { id: existing.id } : null
+  }
+
+  const { data: inserted } = await supabase
+    .from('commitment_occurrences')
+    .insert({
+      commitment_id: commitmentIds[0],
+      user_id: userId,
+      occurred_on: date,
+      status: 'pending',
+    })
+    .select('id')
+    .single()
+
+  return inserted ?? null
+}
+
+/**
+ * Mark an occurrence as completed for the given activity type on the given
+ * date. Creates the occurrence row if one doesn't exist yet so that the
+ * completion is always recorded on the real date, not back-filled to some
+ * scheduled slot.
  */
 export async function autoVerifyOccurrenceByActivityType(
   userId: string,
@@ -38,7 +81,7 @@ export async function autoVerifyOccurrenceByActivityType(
   occurredOn?: string,
 ): Promise<{ verified: boolean; occurrenceId?: string }> {
   const supabase = createAdminClient()
-  const date = occurredOn ?? new Date().toISOString().split('T')[0]
+  const date = occurredOn ?? toDateString(new Date())
 
   const { data: commitments } = await supabase
     .from('commitments')
@@ -50,17 +93,7 @@ export async function autoVerifyOccurrenceByActivityType(
   if (!commitments?.length) return { verified: false }
 
   const commitmentIds = commitments.map((c) => c.id)
-
-  const { data: occurrence } = await supabase
-    .from('commitment_occurrences')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('occurred_on', date)
-    .eq('status', 'pending')
-    .in('commitment_id', commitmentIds)
-    .order('occurred_on', { ascending: true })
-    .limit(1)
-    .maybeSingle()
+  const occurrence = await findOrCreateOccurrence(supabase, userId, date, commitmentIds)
 
   if (!occurrence) return { verified: false }
 
@@ -88,7 +121,7 @@ export async function autoVerifyOccurrence(
   if (activityTypes.length === 0) return { verified: false }
 
   const supabase = createAdminClient()
-  const date = occurredOn ?? new Date().toISOString().split('T')[0]
+  const date = occurredOn ?? toDateString(new Date())
 
   const { data: commitments } = await supabase
     .from('commitments')
@@ -100,16 +133,7 @@ export async function autoVerifyOccurrence(
   if (!commitments?.length) return { verified: false }
 
   const commitmentIds = commitments.map((c) => c.id)
-
-  const { data: occurrence } = await supabase
-    .from('commitment_occurrences')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('occurred_on', date)
-    .eq('status', 'pending')
-    .in('commitment_id', commitmentIds)
-    .limit(1)
-    .maybeSingle()
+  const occurrence = await findOrCreateOccurrence(supabase, userId, date, commitmentIds)
 
   if (!occurrence) return { verified: false }
 
