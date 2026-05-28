@@ -398,6 +398,73 @@ function formatSessionTime(date: Date): string {
   return `${time} ${period} ET`
 }
 
+function formatSessionDayName(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    timeZone: 'America/New_York',
+  }).format(date)
+}
+
+function formatSessionDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(date)
+}
+
+// Read the ET wall-clock offset (in minutes) for a given moment, e.g. -240 (EDT) / -300 (EST).
+function getEtOffsetMinutes(date: Date): number {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'shortOffset',
+    year: 'numeric',
+  })
+  const offsetStr = fmt.formatToParts(date).find(p => p.type === 'timeZoneName')?.value || 'GMT-5'
+  const match = /GMT([+-])(\d{1,2})(?::?(\d{2}))?/.exec(offsetStr)
+  if (!match) return -300
+  const sign = match[1] === '-' ? -1 : 1
+  const h = parseInt(match[2], 10)
+  const min = parseInt(match[3] || '0', 10)
+  return sign * (h * 60 + min)
+}
+
+// Returns the Date representing 9:00 AM America/New_York on the calendar day
+// before the session's ET calendar day. DST-safe.
+function previousDayAt9amET(scheduledAt: Date): Date {
+  const dateFmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  })
+
+  const sessionEt = Object.fromEntries(
+    dateFmt.formatToParts(scheduledAt).map(p => [p.type, p.value])
+  )
+  const sy = parseInt(sessionEt.year, 10)
+  const sm = parseInt(sessionEt.month, 10) - 1
+  const sd = parseInt(sessionEt.day, 10)
+
+  // Anchor at noon UTC on the session's ET date, subtract a day, re-read ET date
+  // (avoids DST/midnight edge cases).
+  const noonAnchor = new Date(Date.UTC(sy, sm, sd, 12))
+  noonAnchor.setUTCDate(noonAnchor.getUTCDate() - 1)
+
+  const prevEt = Object.fromEntries(
+    dateFmt.formatToParts(noonAnchor).map(p => [p.type, p.value])
+  )
+  const py = parseInt(prevEt.year, 10)
+  const pm = parseInt(prevEt.month, 10) - 1
+  const pd = parseInt(prevEt.day, 10)
+
+  // 9 AM ET → UTC = (9*60 - offsetMinutes). Probe with noon UTC of the prev ET day
+  // for the correct offset (handles DST).
+  const probe = new Date(Date.UTC(py, pm, pd, 12))
+  const offsetMin = getEtOffsetMinutes(probe)
+
+  return new Date(Date.UTC(py, pm, pd, 0, 9 * 60 - offsetMin))
+}
+
 async function scheduleAlignmentGymReminders(
   session: Record<string, any>,
   hostName: string,
@@ -410,8 +477,11 @@ async function scheduleAlignmentGymReminders(
 
   const scheduledAt = new Date(session.scheduled_at)
   const oneHourBefore = new Date(scheduledAt.getTime() - 60 * 60 * 1000)
+  const dayBeforeAt9amEt = previousDayAt9amET(scheduledAt)
   const now = new Date()
   const sessionTime = formatSessionTime(scheduledAt)
+  const sessionDate = formatSessionDate(scheduledAt)
+  const sessionDayName = formatSessionDayName(scheduledAt)
 
   if (testMode) {
     let adminPhone: string | null = null
@@ -455,6 +525,24 @@ async function scheduleAlignmentGymReminders(
     })
     if (error) console.error('[alignment-gym] SMS reminder job insert error:', error.message)
     else console.log(`[alignment-gym] Scheduled 1hr SMS reminder for ${sessionTime}`)
+  }
+
+  // Normal mode: day-before 9 AM ET email reminder (segment resolved fresh when it fires).
+  // Skipped if the session is too close to schedule a meaningful prior-day reminder.
+  if (dayBeforeAt9amEt > now) {
+    const { error } = await admin.from('scheduled_messages').insert({
+      message_type: 'email',
+      notification_config_slug: 'alignment_gym_day_before_email',
+      notification_variables: { sessionDate, sessionTime, sessionDayName, joinLink },
+      related_entity_type: 'video_session',
+      related_entity_id: session.id,
+      scheduled_for: dayBeforeAt9amEt.toISOString(),
+      status: 'pending',
+      created_by: createdByUserId,
+      body: 'notification-job',
+    })
+    if (error) console.error('[alignment-gym] Day-before email job insert error:', error.message)
+    else console.log(`[alignment-gym] Scheduled day-before email for ${sessionDate} at ${sessionTime}`)
   }
 }
 
