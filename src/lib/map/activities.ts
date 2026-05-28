@@ -57,13 +57,13 @@ export const ACTIVITY_DEFINITIONS: ActivityDefinition[] = [
   {
     type: 'music_listen',
     label: 'Music Listen',
-    description: 'Listen to VibrationFit music.',
+    description: 'Listen to Vibration Fit music.',
     icon: Music2,
     category: 'activations',
     defaultDeepLink: '/audio?listen=music',
     defaultDaysOfWeek: [1, 2, 3, 4, 5, 6, 0],
     defaultTimeOfDay: null,
-    smsTemplate: 'Listen to VibrationFit music: {link}',
+    smsTemplate: 'Listen to Vibration Fit music: {link}',
   },
   {
     type: 'vision_read',

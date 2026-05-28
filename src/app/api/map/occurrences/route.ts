@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('commitment_occurrences')
-      .select('*, commitment:commitments(id, title, category, type, cadence, vision_target_id, activity_type)')
+      .select(
+        '*, commitment:commitments(id, title, category, type, cadence, vision_target_id, activity_type), journal:journal_entries(id, title, content, date)',
+      )
       .eq('user_id', user.id)
       .order('occurred_on', { ascending: true })
 
@@ -66,10 +68,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { id, status, note } = body as {
+    const { id, status, note, journal_entry_id } = body as {
       id: string
       status: OccurrenceStatus
       note?: string
+      journal_entry_id?: string | null
     }
 
     if (!id || !status) {
@@ -84,13 +87,16 @@ export async function PATCH(request: NextRequest) {
       verified_at: status === 'pending' ? null : new Date().toISOString(),
     }
     if (note !== undefined) updates.note = note
+    if (journal_entry_id !== undefined) updates.journal_entry_id = journal_entry_id
 
     const { data: occurrence, error } = await supabase
       .from('commitment_occurrences')
       .update(updates)
       .eq('id', id)
       .eq('user_id', user.id)
-      .select('*, commitment:commitments(id, title, category)')
+      .select(
+        '*, commitment:commitments(id, title, category), journal:journal_entries(id, title, content, date)',
+      )
       .single()
 
     if (error) {

@@ -13,7 +13,7 @@ const STATUS_CONFIG: Record<
     icon: Check,
   },
   pending: {
-    label: 'Not yet',
+    label: 'Open',
     className: 'text-neutral-400 bg-neutral-800/80 border-neutral-700',
     icon: Clock,
   },

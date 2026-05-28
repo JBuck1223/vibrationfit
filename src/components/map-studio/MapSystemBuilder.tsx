@@ -19,7 +19,9 @@ import {
   intensiveReminderDefaults,
   isIntensiveSelectableActivity,
 } from '@/lib/map/intensive-map-config'
+import { partitionCommitments } from '@/lib/map/commitment-classification'
 import {
+  builderSelectionsFromSystemCommitments,
   daysForCadence,
   maxSelectableDaysFromCadenceJson,
   type BuilderSelection,
@@ -94,7 +96,7 @@ export function MapSystemBuilder({
 }) {
   const isIntensive = variant === 'intensive-first-cycle'
   const router = useRouter()
-  const { refreshAll } = useMapStudio()
+  const { activeCommitments, loading: studioLoading, refreshAll } = useMapStudio()
   const [selections, setSelections] = useState<Record<MapCategory, BuilderSelection[]>>(() =>
     isIntensive ? buildIntensiveInitialSelections() : {
       activations: [],
@@ -103,6 +105,7 @@ export function MapSystemBuilder({
       sessions: [],
     },
   )
+  const [selectionsHydrated, setSelectionsHydrated] = useState(isIntensive)
   const [weeklyDigestEmail, setWeeklyDigestEmail] = useState(true)
   const [weeklyDigestSms, setWeeklyDigestSms] = useState(true)
   const [weeklyDigestTime, setWeeklyDigestTime] = useState(DEFAULT_WEEKLY_DIGEST_TIME)
@@ -159,6 +162,15 @@ export function MapSystemBuilder({
     loadPrefs()
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    if (isIntensive || selectionsHydrated || studioLoading) return
+    const { system } = partitionCommitments(activeCommitments)
+    if (system.length > 0) {
+      setSelections(builderSelectionsFromSystemCommitments(system))
+    }
+    setSelectionsHydrated(true)
+  }, [isIntensive, selectionsHydrated, studioLoading, activeCommitments])
 
   const toggleActivity = (pillar: MapCategory, activityType: string, defaultCadenceJson: string, activity: ActivityDefinition) => {
     setSelections(prev => {
@@ -231,7 +243,9 @@ export function MapSystemBuilder({
             notify_email: activity.usesPublishedSchedule ? false : sel.notifyEmail,
             reminder_time: activity.usesPublishedSchedule
               ? null
-              : normalizeReminderTimeForPicker(sel.reminderTime) || null,
+              : sel.reminderTime
+                ? reminderTimeToPostgresTime(sel.reminderTime)
+                : null,
             reminder_days: (() => {
               const maxD = maxSelectableDaysFromCadenceJson(sel.cadenceJson)
               const unique = [...new Set(sel.reminderDays)]
@@ -285,6 +299,8 @@ export function MapSystemBuilder({
       )
     : PILLAR_ORDER
 
+  const builderReady = isIntensive || selectionsHydrated
+
   return (
     <Stack gap="lg">
       {showHeader && (
@@ -295,11 +311,17 @@ export function MapSystemBuilder({
           <p className="text-sm text-neutral-500 mt-1">
             {isIntensive
               ? 'These are the practices you built in your Intensive — vision audio, journal, Vibe Tribe, and Alignment Gym. We pre-selected one commitment per area; adjust anything you want.'
-              : 'Select the actions you want to commit to in each area.'}
+              : 'Your current MAP is loaded below — adjust selections, cadence, and reminders, then save.'}
           </p>
         </div>
       )}
 
+      {!builderReady ? (
+        <div className="flex min-h-[24vh] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      ) : (
+      <>
       <div className={gridLayout ? 'grid min-w-0 grid-cols-1 lg:grid-cols-2 gap-5' : 'space-y-4'}>
         {visiblePillars.map(pillar => {
           const meta = PILLAR_META[pillar]
@@ -334,18 +356,18 @@ export function MapSystemBuilder({
       </div>
 
       <div className="border-t border-neutral-800 pt-6">
-      <div className="rounded-2xl border border-[#1A1A1A] bg-[#0A0A0A] overflow-hidden p-4">
-        <div className="flex items-center gap-2 mb-1">
+      <div className="rounded-2xl border border-[#1A1A1A] bg-[#0A0A0A] overflow-hidden p-4 text-center">
+        <div className="flex items-center justify-center gap-2 mb-1">
           <Bell className="w-4 h-4 text-neutral-400" />
           <span className="text-sm font-semibold text-white">Weekly MAP digest</span>
         </div>
-        <p className="text-xs text-neutral-600 mb-3 leading-relaxed md:mb-2">
+        <p className="text-xs text-neutral-600 mb-3 leading-relaxed md:mb-2 max-w-md mx-auto">
           {isIntensive
             ? 'Optional Monday summary of your week ahead — uses your account time zone.'
             : 'Monday summary of your week ahead — uses your MAP time zone.'}
         </p>
-        <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center md:gap-3">
-          <div className="grid w-full grid-cols-2 gap-2.5 md:flex md:w-auto md:gap-3">
+        <div className="flex flex-col items-center gap-2.5 md:flex-row md:flex-wrap md:justify-center md:items-center md:gap-3">
+          <div className="grid w-full max-w-[14rem] grid-cols-2 gap-2.5 md:flex md:w-auto md:max-w-none md:gap-3">
           <button
             type="button"
             onClick={() => setWeeklyDigestEmail(!weeklyDigestEmail)}
@@ -366,16 +388,17 @@ export function MapSystemBuilder({
           </button>
           </div>
           {(weeklyDigestEmail || weeklyDigestSms) && (
-            <TimePicker
-              size="sm"
-              value={normalizeReminderTimeForPicker(weeklyDigestTime) || undefined}
-              onChange={v => setWeeklyDigestTime(v)}
-              className="w-[8.5rem]"
-            />
+            <div className="w-full max-w-[8.5rem] shrink-0 md:w-[8.5rem]">
+              <TimePicker
+                size="sm"
+                value={normalizeReminderTimeForPicker(weeklyDigestTime) || undefined}
+                onChange={v => setWeeklyDigestTime(v)}
+              />
+            </div>
           )}
         </div>
         {isIntensive && !hasPhone && weeklyDigestSms && (
-          <p className="text-[10px] text-neutral-600 mt-2">
+          <p className="text-[10px] text-neutral-600 mt-2 max-w-md mx-auto">
             Add a phone number in Account Settings to receive weekly SMS.
           </p>
         )}
@@ -418,6 +441,8 @@ export function MapSystemBuilder({
             <p className="text-xs text-yellow-400/80 mt-2">Pick at least one action in each area.</p>
           )}
         </div>
+      )}
+      </>
       )}
     </Stack>
   )

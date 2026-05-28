@@ -1,16 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ComponentType, type CSSProperties } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, ChevronDown, ArrowRight, CheckCircle2, Circle, XCircle, MinusCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowRight, CheckCircle2, Map as MapIcon } from 'lucide-react'
 import { Button, Spinner } from '@/lib/design-system/components'
 import { useMapStudio } from './MapStudioContext'
 import { useMapNavigation } from './use-map-navigation'
-import { MapVerifyButtons } from './MapVerifyButtons'
+import { MapCompleteIndicator } from './MapCompleteIndicator'
+import { MapOccurrenceActions } from './MapOccurrenceActions'
+import { MapOccurrenceJournal } from './MapOccurrenceJournal'
+import { MapCompleteButton } from './MapCompleteButton'
 import { MapDateTravelTrigger } from './MapDateTravelTrigger'
 import { PILLAR_ORDER, PILLAR_META } from '@/lib/map/map-pillar-config'
 import { getActivityDefinition, getMapActivityDeepLink } from '@/lib/map/activities'
 import { getVisionCategory } from '@/lib/design-system/vision-categories'
+import {
+  getCommitmentCadenceStatus,
+  getTallyOccurrenceRange,
+  type CommitmentCadenceStatus,
+  type CommitmentPeriodTally,
+} from '@/lib/map/commitment-period-tally'
 import {
   addDays,
   formatDisplayDate,
@@ -24,7 +34,86 @@ function formatCommitmentCadence(cadence: Cadence | null): string {
   return formatCadenceLabel(JSON.stringify(cadence))
 }
 
+function PeriodTallyBadge({ tally }: { tally: CommitmentPeriodTally }) {
+  const met = tally.completed >= tally.target
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 shrink-0 tabular-nums font-medium leading-none text-[11px] ${
+        met ? 'text-primary-500' : 'text-neutral-500'
+      }`}
+      aria-label={
+        met
+          ? `${tally.completed} of ${tally.target} completed for this period`
+          : `${tally.completed} of ${tally.target} completed this period`
+      }
+    >
+      <span>
+        {tally.completed}/{tally.target}
+      </span>
+      {met ? (
+        <CheckCircle2 className="w-3.5 h-3.5 text-primary-500" strokeWidth={2} aria-hidden />
+      ) : null}
+    </span>
+  )
+}
+
+function CadenceStatusBadge({ status }: { status: CommitmentCadenceStatus }) {
+  if (status.mode === 'weekly' && status.periodTally) {
+    return <PeriodTallyBadge tally={status.periodTally} />
+  }
+
+  if (status.mode === 'interval' && status.periodTally) {
+    return (
+      <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+        <PeriodTallyBadge tally={status.periodTally} />
+        {status.dueSoon && status.daysUntilDue != null ? (
+          <span className="text-[10px] font-medium leading-tight text-amber-300/90">
+            Due in {status.daysUntilDue}d
+          </span>
+        ) : null}
+        {status.overdue ? (
+          <span className="text-[10px] font-medium leading-tight text-red-400/90">Overdue</span>
+        ) : null}
+      </div>
+    )
+  }
+
+  return null
+}
+
+function CommitmentInlineLabel({
+  title,
+  cadenceLabel,
+  icon: Icon,
+  iconColor,
+}: {
+  title: string
+  cadenceLabel: string
+  icon?: ComponentType<{ className?: string; style?: CSSProperties }>
+  iconColor?: string
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 items-start gap-2">
+      {Icon ? (
+        <Icon
+          className="w-4 h-4 shrink-0 opacity-70 mt-0.5"
+          style={iconColor ? { color: iconColor } : undefined}
+        />
+      ) : null}
+      <div className="min-w-0">
+        <p className="truncate text-[13px] font-medium leading-tight text-neutral-200">
+          {title}
+        </p>
+        {cadenceLabel ? (
+          <p className="text-[10px] text-neutral-500 mt-0.5 leading-tight">{cadenceLabel}</p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 export function MapDayView() {
+  const pathname = usePathname()
   const { goToDate, today } = useMapNavigation()
   const {
     loading,
@@ -38,7 +127,70 @@ export function MapDayView() {
     commitmentsByLifeCategory,
     verifyOccurrence,
     selectablePlanDates,
+    loadOccurrencesForRange,
+    refreshDateOccurrences,
   } = useMapStudio()
+
+  const [periodOccurrences, setPeriodOccurrences] = useState<CommitmentOccurrence[]>([])
+
+  /** Refresh occurrence state only — never bulk auto-verify (that marked everything complete). */
+  const refreshDayState = useCallback(async () => {
+    await refreshDateOccurrences(selectedDate)
+    const { from, to } = getTallyOccurrenceRange(selectedDate)
+    const occs = await loadOccurrencesForRange(from, to)
+    setPeriodOccurrences(occs)
+  }, [selectedDate, refreshDateOccurrences, loadOccurrencesForRange])
+
+  useEffect(() => {
+    const onReturn = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshDayState()
+      }
+    }
+    const onVerified = () => {
+      void refreshDayState()
+    }
+    window.addEventListener('focus', onReturn)
+    document.addEventListener('visibilitychange', onReturn)
+    window.addEventListener('pageshow', onReturn)
+    window.addEventListener('map:occurrence-verified', onVerified)
+    return () => {
+      window.removeEventListener('focus', onReturn)
+      document.removeEventListener('visibilitychange', onReturn)
+      window.removeEventListener('pageshow', onReturn)
+      window.removeEventListener('map:occurrence-verified', onVerified)
+    }
+  }, [refreshDayState])
+
+  useEffect(() => {
+    if (pathname === '/map' || pathname.startsWith('/map/')) {
+      void refreshDayState()
+    }
+  }, [pathname, refreshDayState])
+
+  const refreshPeriodOccurrences = useCallback(async () => {
+    const { from, to } = getTallyOccurrenceRange(selectedDate)
+    const occs = await loadOccurrencesForRange(from, to)
+    setPeriodOccurrences(occs)
+  }, [selectedDate, loadOccurrencesForRange])
+
+  const refreshAfterJournal = useCallback(async () => {
+    await refreshDateOccurrences(selectedDate)
+    await refreshPeriodOccurrences()
+  }, [selectedDate, refreshDateOccurrences, refreshPeriodOccurrences])
+
+  useEffect(() => {
+    void refreshPeriodOccurrences()
+  }, [refreshPeriodOccurrences])
+
+  const cadenceStatusByCommitmentId = useMemo(() => {
+    const map = new Map<string, CommitmentCadenceStatus>()
+    for (const c of planCommitments) {
+      const status = getCommitmentCadenceStatus(c, periodOccurrences, selectedDate)
+      if (status) map.set(c.id, status)
+    }
+    return map
+  }, [planCommitments, periodOccurrences, selectedDate])
 
   const isPast = selectedDate < today
   const isToday = selectedDate === today
@@ -57,9 +209,10 @@ export function MapDayView() {
   if (planCommitments.length === 0) {
     return (
       <div className="text-center py-16 px-4">
+        <MapIcon className="w-10 h-10 text-neutral-600 mx-auto mb-4" strokeWidth={1.5} />
         <h2 className="text-xl font-bold text-white mb-2">No commitments yet</h2>
         <p className="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
-          Set up your System MAP and Custom actions in Update, then track them here day by day.
+          Update your MAP commitments, then track them here daily.
         </p>
         <Button variant="primary" asChild>
           <Link href="/map/update">Go to Update</Link>
@@ -207,11 +360,15 @@ export function MapDayView() {
                       key={c.id}
                       commitment={c}
                       occurrence={occurrenceMap.get(c.id)}
+                      cadenceStatus={cadenceStatusByCommitmentId.get(c.id)}
                       pillarColor={meta.color}
                       compact
                       onVerify={async (status) => {
                         const occ = occurrenceMap.get(c.id)
-                        if (occ) await verifyOccurrence(occ.id, status)
+                        if (occ) {
+                          await verifyOccurrence(occ.id, status)
+                          await refreshPeriodOccurrences()
+                        }
                       }}
                     />
                   ))}
@@ -242,23 +399,34 @@ export function MapDayView() {
           <div className="px-2 pb-2 space-y-3">
             {customCategories.map(catKey => {
               const cat = getVisionCategory(catKey as Parameters<typeof getVisionCategory>[0])
+              const CategoryIcon = cat?.icon
               const items = commitmentsByLifeCategory[catKey]
 
               return (
                 <div key={catKey}>
-                  <p className="text-[10px] text-neutral-600 px-2 py-1">
-                    {cat?.label || catKey}
-                  </p>
+                  <div className="flex items-center gap-1.5 px-2 py-1">
+                    {CategoryIcon ? (
+                      <CategoryIcon className="w-3.5 h-3.5 shrink-0 text-neutral-500" aria-hidden />
+                    ) : null}
+                    <p className="text-[10px] text-neutral-600">
+                      {cat?.label || catKey}
+                    </p>
+                  </div>
                   <div className="rounded-lg bg-black/20 overflow-hidden">
                     {items.map(c => (
                       <CustomCommitmentRow
                         key={c.id}
                         commitment={c}
                         occurrence={occurrenceMap.get(c.id)}
+                        cadenceStatus={cadenceStatusByCommitmentId.get(c.id)}
                         onVerify={async (status) => {
                           const occ = occurrenceMap.get(c.id)
-                          if (occ) await verifyOccurrence(occ.id, status)
+                          if (occ) {
+                            await verifyOccurrence(occ.id, status)
+                            await refreshPeriodOccurrences()
+                          }
                         }}
+                        onJournalUpdated={refreshAfterJournal}
                       />
                     ))}
                   </div>
@@ -300,98 +468,67 @@ function PillarTitleHeader({
   )
 }
 
-function MapStatusIndicator({
-  status,
-}: {
-  status: CommitmentOccurrence['status'] | 'none'
-}) {
-  if (status === 'yes') {
-    return (
-      <span className="inline-flex items-center gap-1 shrink-0">
-        <span className="text-[11px] font-medium text-primary-500">Complete</span>
-        <CheckCircle2
-          className="w-[18px] h-[18px] text-primary-500"
-          strokeWidth={2}
-          aria-hidden
-        />
-      </span>
-    )
-  }
-  if (status === 'no') {
-    return <XCircle className="w-[18px] h-[18px] shrink-0 text-red-400/85" strokeWidth={1.75} aria-label="Missed" />
-  }
-  if (status === 'skipped') {
-    return <MinusCircle className="w-[18px] h-[18px] shrink-0 text-neutral-500" strokeWidth={1.75} aria-label="Skipped" />
-  }
-  if (status === 'none') {
-    return <span className="w-[18px] h-[18px] shrink-0 flex items-center justify-center text-neutral-600 text-xs">—</span>
-  }
-  return <Circle className="w-[18px] h-[18px] shrink-0 text-neutral-600" strokeWidth={1.75} aria-label="Not yet" />
-}
-
 function SystemCommitmentRow({
   commitment,
   occurrence,
+  cadenceStatus,
   pillarColor,
   compact = false,
   onVerify,
 }: {
   commitment: Commitment
   occurrence?: CommitmentOccurrence
+  cadenceStatus?: CommitmentCadenceStatus
   pillarColor?: string
   compact?: boolean
-  onVerify: (status: 'yes' | 'no' | 'skipped') => Promise<void>
+  onVerify: (status: 'yes' | 'pending') => Promise<void>
 }) {
-  const [manualOpen, setManualOpen] = useState(false)
   const activity = commitment.activity_type
     ? getActivityDefinition(commitment.activity_type)
     : null
   const Icon = activity?.icon
   const status = occurrence?.status ?? 'pending'
-  const isVerified = status === 'yes'
-  const showGoArrow = !isVerified && status !== 'no' && status !== 'skipped'
+  const doneToday = status === 'yes'
   const deepLink = commitment.activity_type
-    ? getMapActivityDeepLink(commitment.activity_type, { completed: isVerified })
+    ? getMapActivityDeepLink(commitment.activity_type, { completed: doneToday })
     : '/map'
+  const cadenceLabel = formatCommitmentCadence(commitment.cadence)
+
+  const rowPad = compact ? 'px-2.5 py-2' : 'px-3 py-2.5'
 
   return (
     <div className="overflow-hidden rounded-lg bg-white/[0.03]">
       <Link
         href={deepLink}
-        className={`flex w-full items-center gap-2.5 transition-colors hover:bg-white/[0.04] active:bg-white/[0.06] ${
-          compact ? 'px-2.5 py-2' : 'px-3 py-2.5'
-        }`}
+        className={`flex w-full items-center gap-2.5 transition-colors hover:bg-white/[0.04] active:bg-white/[0.06] ${rowPad}`}
       >
-        {Icon && pillarColor && (
-          <Icon className="w-4 h-4 shrink-0 opacity-70" style={{ color: pillarColor }} />
-        )}
-        <span className="flex-1 min-w-0 text-[13px] text-neutral-200 truncate leading-tight">
-          {commitment.title}
-        </span>
-        {showGoArrow ? (
-          <ArrowRight className="w-[18px] h-[18px] shrink-0 text-neutral-500" aria-hidden />
-        ) : (
-          <MapStatusIndicator status={occurrence ? status : 'none'} />
-        )}
+        <CommitmentInlineLabel
+          title={commitment.title}
+          cadenceLabel={cadenceLabel}
+          icon={Icon ?? undefined}
+          iconColor={pillarColor}
+        />
+        <div className="flex shrink-0 items-center gap-1.5">
+          {cadenceStatus ? <CadenceStatusBadge status={cadenceStatus} /> : null}
+          {occurrence ? (
+            doneToday ? (
+              <MapCompleteIndicator compact />
+            ) : (
+              <ArrowRight className="w-[18px] h-[18px] shrink-0 text-neutral-500" aria-hidden />
+            )
+          ) : (
+            <span className="text-[10px] text-neutral-600 shrink-0">—</span>
+          )}
+        </div>
       </Link>
 
-      {occurrence && manualOpen && (
-        <div className="px-2.5 pb-2 w-full">
-          <MapVerifyButtons status={status} onVerify={onVerify} compact />
-        </div>
-      )}
-      {occurrence && (
-        <button
-          type="button"
-          onClick={() => setManualOpen(v => !v)}
-          className="flex w-full items-center justify-center gap-0.5 text-[10px] text-neutral-600 hover:bg-white/[0.04] hover:text-neutral-500 py-1 transition-colors"
-        >
-          <span>{manualOpen ? 'Hide' : 'Manual log'}</span>
-          <ChevronDown
-            className={`w-3 h-3 transition-transform duration-200 ${manualOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-      )}
+      {occurrence ? (
+        <MapOccurrenceActions
+          status={status}
+          onVerify={onVerify}
+          manualLogHint="Click Mark Complete if you finished the activity but it did not update automatically."
+        />
+      ) : null}
     </div>
   )
 }
@@ -399,28 +536,37 @@ function SystemCommitmentRow({
 function CustomCommitmentRow({
   commitment,
   occurrence,
+  cadenceStatus,
   onVerify,
+  onJournalUpdated,
 }: {
   commitment: Commitment
   occurrence?: CommitmentOccurrence
-  onVerify: (status: 'yes' | 'no' | 'skipped') => Promise<void>
+  cadenceStatus?: CommitmentCadenceStatus
+  onVerify: (status: 'yes' | 'pending') => Promise<void>
+  onJournalUpdated: () => void | Promise<void>
 }) {
   const status = occurrence?.status ?? 'pending'
   const cadenceLabel = formatCommitmentCadence(commitment.cadence)
 
   return (
-    <div className="flex flex-col gap-2 px-2.5 py-2.5 border-b border-white/[0.04] last:border-0 sm:flex-row sm:items-start sm:gap-3">
-      <div className="w-full sm:flex-1 sm:min-w-0">
-        <p className="text-[13px] text-neutral-200 leading-snug break-words">
-          {commitment.title}
-        </p>
-        {cadenceLabel ? (
-          <p className="text-[10px] text-neutral-600 mt-0.5">{cadenceLabel}</p>
-        ) : null}
-      </div>
+    <div className="flex items-center gap-2 px-2.5 py-2.5 border-b border-white/[0.04] last:border-0">
+      <CommitmentInlineLabel
+        title={commitment.title}
+        cadenceLabel={cadenceLabel}
+      />
+      {cadenceStatus ? (
+        <CadenceStatusBadge status={cadenceStatus} />
+      ) : null}
       {occurrence ? (
-        <div className="w-full shrink-0 sm:w-auto sm:pt-0.5">
-          <MapVerifyButtons status={status} onVerify={onVerify} compact />
+        <div className="flex shrink-0 items-center gap-1">
+          <MapCompleteButton status={status} onVerify={onVerify} compact />
+          <MapOccurrenceJournal
+            occurrence={occurrence}
+            commitmentTitle={commitment.title}
+            lifeCategory={commitment.category}
+            onUpdated={onJournalUpdated}
+          />
         </div>
       ) : (
         <span className="text-[10px] text-neutral-600 shrink-0">—</span>

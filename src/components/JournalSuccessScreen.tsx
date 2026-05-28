@@ -12,7 +12,7 @@ interface JournalSuccessScreenProps {
 export function JournalSuccessScreen({ 
   onCreateAnother, 
   onViewJournal,
-  entryTitle 
+  entryTitle,
 }: JournalSuccessScreenProps) {
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">

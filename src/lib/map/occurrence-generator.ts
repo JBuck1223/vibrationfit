@@ -109,7 +109,7 @@ async function materializeCommitmentOccurrences(
 
   if (effectiveStart > effectiveEnd) return 0
 
-  const dates = getOccurrenceDates(cadence, effectiveStart, effectiveEnd)
+  const dates = getOccurrenceDates(cadence, effectiveStart, effectiveEnd, commitmentStart)
   if (dates.length === 0) return 0
 
   const rows = dates.map(d => ({
