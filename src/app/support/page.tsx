@@ -258,6 +258,7 @@ export default function SupportPage() {
                         { value: 'account', label: 'Account Help' },
                         { value: 'feature', label: 'Feature Request' },
                         { value: 'technical', label: 'Technical Assistance' },
+                        { value: 'coaching', label: 'Request Coaching' },
                         { value: 'other', label: 'Other' },
                       ]}
                       placeholder="Select a category"
