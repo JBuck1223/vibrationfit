@@ -56,6 +56,7 @@ const CATEGORY_OPTIONS = [
   { value: 'feature', label: 'Feature Request' },
   { value: 'bug', label: 'Bug Report' },
   { value: 'billing', label: 'Billing' },
+  { value: 'coaching', label: 'Coaching / Alignment Gym' },
   { value: 'other', label: 'Other' },
 ]
 

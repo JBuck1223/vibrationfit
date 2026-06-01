@@ -18,12 +18,20 @@ type CouponValidation = {
   error?: string
 }
 
+type SubscriptionDiscount = {
+  name: string | null
+  percentOff: number | null
+  amountOff: number | null
+  duration: string | null
+}
+
 type SubscriptionData = {
   id: string
   status: string
   currentPeriodStart: string | null
   currentPeriodEnd: string | null
   cancelAtPeriodEnd: boolean
+  discount?: SubscriptionDiscount | null
   tier: {
     id: string
     name: string
@@ -827,7 +835,20 @@ export default function PlanOverview({
               </h3>
             </div>
             <div className="text-sm text-neutral-500 mt-2">
-              {formatPrice(price)}{intervalLabel}
+              {subscription.discount?.percentOff ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="line-through">{formatPrice(price)}</span>
+                  <span className="text-[#39FF14] font-medium">
+                    {formatPrice(Math.round(price * (1 - subscription.discount.percentOff / 100)))}
+                    {intervalLabel}
+                  </span>
+                  <span className="text-xs bg-[#39FF14]/10 text-[#39FF14] px-1.5 py-0.5 rounded">
+                    {subscription.discount.percentOff}% off
+                  </span>
+                </span>
+              ) : (
+                <>{formatPrice(price)}{intervalLabel}</>
+              )}
               {tier.isHouseholdPlan && ' (Household)'}
             </div>
           </div>
