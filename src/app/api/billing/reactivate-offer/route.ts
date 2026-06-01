@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         items: [{ price: priceId, quantity: 1 }],
         trial_period_days: TRIAL_DAYS,
         default_payment_method: paymentMethodId,
-        coupon: couponId,
+        discounts: couponId ? [{ coupon: couponId }] : undefined,
         metadata: {
           product_type: 'vision_pro_continuity',
           tier_type: 'vision_pro_28day',
