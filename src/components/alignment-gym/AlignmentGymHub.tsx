@@ -47,7 +47,9 @@ import {
   Card,
   Spinner,
   Badge,
+  Modal,
 } from '@/lib/design-system/components'
+import { RequestCoachingForm } from '@/components/alignment-gym/RequestCoachingForm'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { createClient } from '@/lib/supabase/client'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
@@ -80,6 +82,7 @@ export function AlignmentGymHub({
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
   const [whatIsOpen, setWhatIsOpen] = useState(forceWhatIsOpen)
+  const [coachingOpen, setCoachingOpen] = useState(false)
   const freezeRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -576,6 +579,28 @@ export function AlignmentGymHub({
         )}
         </div>
 
+        <Card className="p-5 md:p-6 bg-gradient-to-br from-[#BF00FF]/[0.06] via-[#111] to-[#111] border-[#BF00FF]/30">
+          <div className="flex flex-col items-center text-center gap-3 md:flex-row md:items-center md:text-left md:gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#BF00FF]/20 flex items-center justify-center flex-shrink-0">
+              <HelpCircle className="w-6 h-6 text-[#BF00FF]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-white">Working through something?</h3>
+              <p className="text-sm text-neutral-400 mt-1">
+                Request coaching on a constraint or struggle. We may bring it into an upcoming live session.
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              onClick={() => setCoachingOpen(true)}
+              className="flex-shrink-0"
+            >
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Request Coaching
+            </Button>
+          </div>
+        </Card>
+
         <div data-alignment-gym-tour="replays" className={tourClass('replays')}>
         <Card className="p-4 md:p-6 lg:p-8">
           {pastSessions.length === 0 ? (
@@ -652,6 +677,17 @@ export function AlignmentGymHub({
         </div>
 
       </Stack>
+
+      {userId && (
+        <Modal
+          isOpen={coachingOpen}
+          onClose={() => setCoachingOpen(false)}
+          title="Request Coaching"
+          size="lg"
+        >
+          <RequestCoachingForm userId={userId} onClose={() => setCoachingOpen(false)} />
+        </Modal>
+      )}
     </Container>
   )
 }

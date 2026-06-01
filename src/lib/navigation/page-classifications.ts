@@ -101,6 +101,9 @@ export const PAGE_CLASSIFICATIONS = {
     '/account/billing',
     '/account/privacy',
     
+    // Member Offers
+    '/member/offers',
+    
     // Household Management
     '/household/settings',
     '/household/invite/[token]',

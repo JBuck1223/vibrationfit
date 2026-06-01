@@ -132,6 +132,7 @@ export async function GET() {
     let addons: any[] = []
     let upcomingInvoice: any = null
     let defaultPaymentMethod: any = null
+    let discount: any = null
 
     if (stripe && subscription.stripe_customer_id) {
       const tasks: Promise<void>[] = []
@@ -158,6 +159,17 @@ export async function GET() {
                   ? item.price.product
                   : (item.price.product as Stripe.Product)?.name || 'Add-on',
               }))
+
+            // Extract discount/coupon info if present
+            const subDiscount = (stripeSub as any).discount
+            if (subDiscount?.coupon) {
+              discount = {
+                name: subDiscount.coupon.name || null,
+                percentOff: subDiscount.coupon.percent_off || null,
+                amountOff: subDiscount.coupon.amount_off || null,
+                duration: subDiscount.coupon.duration || null,
+              }
+            }
 
             // Sync period dates from Stripe if DB is stale
             const subData = stripeSub as unknown as { current_period_start?: number; current_period_end?: number; cancel_at_period_end?: boolean }
@@ -237,6 +249,7 @@ export async function GET() {
         canceledAt: subscription.canceled_at,
         stripeSubscriptionId: subscription.stripe_subscription_id,
         tier: tierData,
+        discount,
       },
       addons,
       upcomingInvoice,
