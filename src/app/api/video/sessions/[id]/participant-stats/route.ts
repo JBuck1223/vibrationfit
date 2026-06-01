@@ -1,8 +1,8 @@
 /**
  * Participant Stats API
- * 
+ *
  * POST /api/video/sessions/[id]/participant-stats - Update participant join/leave stats
- * 
+ *
  * Used by VideoCall component to track attendance analytics:
  * - When participant joins: set joined_at, attended = true
  * - When participant leaves: set left_at, calculate duration_seconds
@@ -19,9 +19,11 @@ export async function POST(
   try {
     const { id: sessionId } = await params
     const supabase = await createClient()
-    
-    // Check auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -32,11 +34,10 @@ export async function POST(
     if (!action || !['join', 'leave'].includes(action)) {
       return NextResponse.json(
         { error: 'Invalid action. Must be "join" or "leave"' },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    // Find the participant record for this user in this session
     const { data: participant, error: findError } = await supabase
       .from('video_session_participants')
       .select('id, joined_at')
@@ -44,7 +45,6 @@ export async function POST(
       .eq('user_id', user.id)
       .single()
 
-    // If no participant record exists, check if user is the host
     if (findError || !participant) {
       const { data: session } = await supabase
         .from('video_sessions')
@@ -53,7 +53,6 @@ export async function POST(
         .single()
 
       if (session?.host_user_id === user.id) {
-        // Host - find their participant record by is_host flag
         const { data: hostParticipant } = await supabase
           .from('video_session_participants')
           .select('id, joined_at')
@@ -64,11 +63,10 @@ export async function POST(
         if (!hostParticipant) {
           return NextResponse.json(
             { error: 'Participant record not found' },
-            { status: 404 }
+            { status: 404 },
           )
         }
 
-        // Use host participant record
         return await updateParticipantStats(
           supabase,
           hostParticipant.id,
@@ -77,13 +75,13 @@ export async function POST(
           user.id,
           sessionId,
           camera_on_percent,
-          mic_on_percent
+          mic_on_percent,
         )
       }
 
       return NextResponse.json(
         { error: 'Participant record not found' },
-        { status: 404 }
+        { status: 404 },
       )
     }
 
@@ -95,7 +93,7 @@ export async function POST(
       user.id,
       sessionId,
       camera_on_percent,
-      mic_on_percent
+      mic_on_percent,
     )
   } catch (error) {
     console.error('Error in POST /api/video/sessions/[id]/participant-stats:', error)
@@ -111,12 +109,11 @@ async function updateParticipantStats(
   userId: string,
   sessionId: string,
   camera_on_percent?: number,
-  mic_on_percent?: number
+  mic_on_percent?: number,
 ) {
   const now = new Date().toISOString()
 
   if (action === 'join') {
-    // Update joined_at and mark as attended
     const { error: updateError } = await supabase
       .from('video_session_participants')
       .update({
@@ -130,7 +127,7 @@ async function updateParticipantStats(
       console.error('Error updating participant join stats:', updateError)
       return NextResponse.json(
         { error: 'Failed to update participant stats' },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
@@ -146,22 +143,19 @@ async function updateParticipantStats(
 
     if (isAlignmentGym) {
       const joinedDate = now.split('T')[0]
-      autoVerifyOccurrenceByActivityType(
-        userId,
-        'alignment_gym',
-        joinedDate,
-      ).catch(() => {})
+      autoVerifyOccurrenceByActivityType(userId, 'alignment_gym', joinedDate).catch(
+        () => {},
+      )
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       action: 'join',
-      joined_at: now 
+      joined_at: now,
     })
   }
 
   if (action === 'leave') {
-    // Calculate duration if we have a joined_at time
     let durationSeconds: number | null = null
     if (existingJoinedAt) {
       const joinedAt = new Date(existingJoinedAt)
@@ -178,7 +172,6 @@ async function updateParticipantStats(
       updateData.duration_seconds = durationSeconds
     }
 
-    // Include camera/mic stats if provided
     if (typeof camera_on_percent === 'number') {
       updateData.camera_on_percent = camera_on_percent
     }
@@ -195,15 +188,15 @@ async function updateParticipantStats(
       console.error('Error updating participant leave stats:', updateError)
       return NextResponse.json(
         { error: 'Failed to update participant stats' },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       action: 'leave',
       left_at: now,
-      duration_seconds: durationSeconds 
+      duration_seconds: durationSeconds,
     })
   }
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
-import { getActiveIntensiveClient } from '@/lib/intensive/utils-client'
+import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 import Link from 'next/link'
 import {
   Container,
@@ -15,6 +15,9 @@ import {
   IntensiveStepCompleteModal,
 } from '@/lib/design-system/components'
 import { MapSystemBuilder } from '@/components/map-studio/MapSystemBuilder'
+import { MapDayView } from '@/components/map-studio/MapDayView'
+import { useMapStudio } from '@/components/map-studio/MapStudioContext'
+import { todayDateString } from '@/lib/map/map-date-utils'
 import { PILLAR_META } from '@/lib/map/map-pillar-config'
 import { INTENSIVE_DEFAULT_SELECTIONS } from '@/lib/map/intensive-map-config'
 import { getActivityDefinition } from '@/lib/map/activities'
@@ -44,11 +47,10 @@ function IntensiveMapExplainer() {
 
   return (
     <div className="space-y-4">
-      <div className="max-w-2xl mx-auto text-center space-y-2">
-        <h1 className="text-2xl font-bold text-white">Your Starter MAP</h1>
-        <p className="text-sm text-neutral-400 leading-relaxed">
-          <span className="text-white font-medium">My Alignment Plan</span> — your weekly rhythm from the
-          Intensive. Review below, tune cadence and reminders, then activate.
+      <div className="w-full text-center space-y-2">
+        <h1 className="text-2xl font-bold text-white">Your MAP</h1>
+        <p className="text-sm text-neutral-400 leading-relaxed max-w-none">
+          <span className="text-white font-medium">My Alignment Plan</span> is your weekly rhythm. Review below, tune cadence and reminders, then activate.
         </p>
       </div>
 
@@ -98,20 +100,60 @@ function IntensiveMapExplainer() {
   )
 }
 
+function IntensiveMapGraduatePreview() {
+  const { setSelectedDate } = useMapStudio()
+
+  useEffect(() => {
+    setSelectedDate(todayDateString())
+  }, [setSelectedDate])
+
+  return (
+    <Stack gap="md">
+      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-5">
+        <p className="text-sm text-neutral-300 leading-relaxed text-center">
+          Your MAP begins once you graduate. Complete your intensive for access to all MAP
+          features and to start doing the daily reps.
+        </p>
+      </Card>
+      <MapDayView readOnly />
+    </Stack>
+  )
+}
+
 export default function IntensiveMapPage() {
   const router = useRouter()
+  const { setCompletedAt: setStepCompleted } = useIntensiveStep()
   const [loading, setLoading] = useState(true)
   const [intensiveId, setIntensiveId] = useState<string | null>(null)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [hasGraduated, setHasGraduated] = useState(false)
   const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
 
   const loadInitialData = useCallback(async () => {
     try {
-      const intensiveData = await getActiveIntensiveClient()
-      if (intensiveData) {
-        setIntensiveId(intensiveData.intensive_id)
-        if (intensiveData.activation_protocol_completed) {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: checklist } = await supabase
+        .from('intensive_checklist')
+        .select('intensive_id, activation_protocol_completed, activation_protocol_completed_at, unlock_completed')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress', 'completed'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (checklist) {
+        setIntensiveId(checklist.intensive_id)
+        if (checklist.unlock_completed) {
+          setHasGraduated(true)
+        }
+        if (checklist.activation_protocol_completed) {
           setIsAlreadyCompleted(true)
+          if (checklist.activation_protocol_completed_at) {
+            setStepCompleted(checklist.activation_protocol_completed_at)
+          }
         }
       }
     } catch (error) {
@@ -119,11 +161,18 @@ export default function IntensiveMapPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [setStepCompleted])
 
   useEffect(() => {
     loadInitialData()
-  }, [loadInitialData])
+    return () => setStepCompleted(null)
+  }, [loadInitialData, setStepCompleted])
+
+  useEffect(() => {
+    if (!loading && hasGraduated) {
+      router.replace('/map')
+    }
+  }, [loading, hasGraduated, router])
 
   const handleIntensiveActivateComplete = useCallback(async () => {
     if (!intensiveId) return
@@ -139,8 +188,9 @@ export default function IntensiveMapPage() {
 
     invalidateIntensiveSnapshot()
     setIsAlreadyCompleted(true)
+    setStepCompleted(completedTime)
     setShowStepCompleteModal(true)
-  }, [intensiveId])
+  }, [intensiveId, setStepCompleted])
 
   if (loading) {
     return (
@@ -156,29 +206,7 @@ export default function IntensiveMapPage() {
     <Container size="xl">
       <Stack gap="lg">
         {isAlreadyCompleted ? (
-          <>
-            <div className="max-w-2xl mx-auto text-center space-y-2">
-              <h1 className="text-2xl font-bold text-white">Your MAP</h1>
-              <p className="text-sm text-neutral-500">
-                Reminders and weekly digest are in Account Settings or on each commitment in MAP.
-              </p>
-            </div>
-            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] text-center">
-              <div className="py-6 px-4">
-                <p className="text-neutral-300 mb-4 text-sm">
-                  You already activated your starter MAP. Open it anytime to see today&apos;s actions.
-                </p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  <Button variant="primary" asChild>
-                    <Link href="/map">Open MAP</Link>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link href="/intensive/dashboard">Go to Dashboard</Link>
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </>
+          <IntensiveMapGraduatePreview />
         ) : (
           <>
             <IntensiveMapExplainer />

@@ -47,9 +47,9 @@ const STEP_ROUTES: StepRoute[] = [
 
   // Community
   { pathPrefix: '/intensive/vibe-tribe/post', areaName: 'Vibe Tribe', areaIcon: User, stepNumber: 10, stepLabel: 'First Vibe Tribe Post', subtitle: 'Introduce yourself to the community.' },
-  { pathPrefix: '/intensive/vibe-tribe/engage', areaName: 'Vibe Tribe', areaIcon: User, stepNumber: 11, stepLabel: 'Engage in Vibe Tribe', subtitle: 'Witness and respond to another member\'s post — a heart or a few words of real support.' },
+  { pathPrefix: '/intensive/vibe-tribe/engage', areaName: 'Vibe Tribe', areaIcon: User, stepNumber: 11, stepLabel: 'Engage in Vibe Tribe', subtitle: '' },
   { pathPrefix: '/intensive/vibe-tribe', areaName: 'Vibe Tribe', areaIcon: User, stepNumber: 10, stepLabel: 'Vibe Tribe', subtitle: '' },
-  { pathPrefix: '/intensive/alignment-gym', areaName: 'Alignment Gym', areaIcon: Target, stepNumber: 12, stepLabel: 'Alignment Gym', subtitle: 'Your weekly live session to stay aligned.' },
+  { pathPrefix: '/intensive/alignment-gym', areaName: 'Alignment Gym', areaIcon: Target, stepNumber: 12, stepLabel: 'Alignment Gym', subtitle: 'Weekly live group coaching to keep you aligned with your Life Vision.' },
 
   // Completion
   {
@@ -58,8 +58,7 @@ const STEP_ROUTES: StepRoute[] = [
     areaIcon: Map,
     stepNumber: 13,
     stepLabel: 'MAP — My Alignment Plan',
-    subtitle:
-      'Turn your Intensive rituals into a starter MAP — vision audio, journal, Vibe Tribe, and Alignment Gym.',
+    subtitle: '',
   },
   { pathPrefix: '/intensive/journey', areaName: 'Journey', areaIcon: Compass, stepNumber: 0, stepLabel: '', subtitle: '' },
   { pathPrefix: '/intensive/unlock', areaName: 'Unlock', areaIcon: Unlock, stepNumber: 14, stepLabel: 'Full Platform Unlock', subtitle: "Let's capture your journey and unlock your full membership." },
@@ -132,32 +131,23 @@ export function IntensiveStepBar({ subtitle: subtitleOverride }: IntensiveStepBa
   const resolved = resolveStep(pathname)
   const { areaName, areaIcon: AreaIcon, stepNumber, stepLabel } = resolved
   const { completedAt } = useIntensiveStep()
-
   const subtitle = subtitleOverride ?? resolved.subtitle
+  const displayTitle = stepLabel || areaName
 
   return (
     <>
       {/* Mobile */}
       <div className="md:hidden w-full min-w-0 border-b border-neutral-800/60 bg-neutral-850">
         <div
-          className="flex min-w-0 items-center gap-2 px-4 pb-2.5"
+          className="flex items-center justify-center gap-2.5 px-4 pb-2.5"
           style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
-              <AreaIcon className="h-4 w-4 text-[#39FF14]" />
-            </div>
-            <span className="min-w-0 truncate text-base font-bold tracking-tight text-white">
-              {areaName}
-            </span>
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+            <AreaIcon className="h-4 w-4 text-[#39FF14]" />
           </div>
-          <Link
-            href="/intensive/dashboard"
-            className="flex shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-800 active:bg-neutral-800 transition-colors text-xs font-medium text-neutral-400"
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            Dashboard
-          </Link>
+          <span className="max-w-[min(72vw,18rem)] truncate text-base font-bold tracking-tight text-white">
+            {displayTitle}
+          </span>
         </div>
         {(stepNumber > 0 || stepLabel) && (
           <div className="w-full min-w-0 px-3 pb-2.5">
@@ -191,7 +181,7 @@ export function IntensiveStepBar({ subtitle: subtitleOverride }: IntensiveStepBa
               <div className="w-9 h-9 rounded-xl bg-[#39FF14]/10 flex items-center justify-center">
                 <AreaIcon className="w-5 h-5 text-[#39FF14]" />
               </div>
-              <h1 className="text-xl font-bold text-white tracking-tight">{areaName}</h1>
+              <h1 className="text-xl font-bold text-white tracking-tight">{displayTitle}</h1>
               {completedAt && <CompleteBadge completedAt={completedAt} />}
             </div>
             {(stepNumber > 0 || stepLabel) && (

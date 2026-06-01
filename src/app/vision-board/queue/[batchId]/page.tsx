@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   Container,
@@ -12,6 +12,7 @@ import {
   Badge,
 } from '@/lib/design-system/components'
 import { Check, Loader2, Sparkles, Eye, X } from 'lucide-react'
+import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 
 type JobStatus = 'pending' | 'processing' | 'complete' | 'error'
 
@@ -46,6 +47,8 @@ function mapRowStatus(s: string, hasItem: boolean): JobStatus {
 
 export default function VisionBoardQueueBatchPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const isIntensivePath = pathname?.startsWith('/intensive') ?? false
   const params = useParams()
   const paramBatchId = typeof params?.batchId === 'string' ? params.batchId : null
 
@@ -109,9 +112,39 @@ export default function VisionBoardQueueBatchPage() {
         })
         .eq('id', bId)
       await updateVisionBoardIdeasTracking(items)
+
+      if (isIntensivePath) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            const { data: allItems } = await supabase
+              .from('vision_board_items')
+              .select('categories')
+              .eq('user_id', user.id)
+              .in('status', ['active', 'actualized'])
+
+            if (allItems) {
+              const coveredCategories = new Set<string>()
+              allItems.forEach(item => {
+                if (item.categories && Array.isArray(item.categories)) {
+                  item.categories.forEach((cat: string) => coveredCategories.add(cat))
+                }
+              })
+              const allCategoriesCovered = LIFE_CATEGORY_KEYS.every(cat => coveredCategories.has(cat))
+              if (allCategoriesCovered) {
+                const { markIntensiveStep } = await import('@/lib/intensive/checklist')
+                await markIntensiveStep('vision_board_completed')
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error checking intensive completion:', err)
+        }
+      }
+
       setAllComplete(true)
     },
-    []
+    [isIntensivePath]
   )
 
   useEffect(() => {
@@ -359,7 +392,7 @@ export default function VisionBoardQueueBatchPage() {
   ])
 
   const handleViewBoard = () => {
-    router.push('/vision-board')
+    router.push(isIntensivePath ? '/intensive/vision-board' : '/vision-board')
   }
 
   const completedCount = queueItems.filter(q => q.status === 'complete').length
@@ -370,12 +403,12 @@ export default function VisionBoardQueueBatchPage() {
   if (!paramBatchId) {
     return (
       <Container size="xl">
-        <Stack gap="md" className="text-center">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
           <h1 className="text-lg font-semibold text-white">Invalid queue</h1>
           <Button onClick={() => router.push('/vision-board/queue')} variant="primary">
             Back to queue
           </Button>
-        </Stack>
+        </div>
       </Container>
     )
   }
@@ -385,7 +418,7 @@ export default function VisionBoardQueueBatchPage() {
       <Container size="xl">
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
           <Spinner size="lg" />
-          <p className="text-neutral-400">Loading queue...</p>
+          <p className="text-neutral-400 text-sm">Loading queue...</p>
         </div>
       </Container>
     )
@@ -394,7 +427,7 @@ export default function VisionBoardQueueBatchPage() {
   if (!hasQueueData) {
     return (
       <Container size="xl">
-        <Stack gap="md">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6">
           <div className="text-center">
             <h1 className="text-lg font-semibold text-white">Queue not found</h1>
             <p className="text-sm text-neutral-400 mt-1 max-w-lg mx-auto">
@@ -409,166 +442,156 @@ export default function VisionBoardQueueBatchPage() {
               Go to VIVA Ideas
             </Button>
           </div>
-        </Stack>
+        </div>
       </Container>
     )
   }
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
-        <div className="text-center">
-          <h1 className="text-lg font-semibold text-white">
-            {allComplete
-              ? (totalCount === 1 ? 'Vision board item created' : 'Vision board items created')
-              : (totalCount === 1
-                  ? 'Creating your vision board item'
-                  : 'Creating your vision board items')}
-          </h1>
-          <p className="text-sm text-neutral-400 mt-1">
-            {allComplete
-              ? `Successfully added ${completedCount} item${completedCount === 1 ? '' : 's'} to your vision board.`
-              : (totalCount === 1
-                  ? 'Please wait while we add your item with VIVA-generated images.'
-                  : 'Please wait while we add your items with VIVA-generated images.')}
-          </p>
-          {allComplete && (
-            <div className="flex justify-center mt-4">
-              <Button onClick={handleViewBoard} variant="primary" className="gap-2">
-                <Eye className="w-4 h-4" />
-                View my vision board
-              </Button>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-6 md:p-8">
+          <div className="text-center space-y-3">
+            <div className="flex justify-center">
+              {allComplete ? (
+                <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
+                  <Check className="w-7 h-7 text-black" />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-primary-500/20 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-primary-500 animate-pulse" />
+                </div>
+              )}
             </div>
-          )}
+            <h1 className="text-xl font-semibold text-white">
+              {allComplete
+                ? (totalCount === 1 ? 'Vision Board Item Created' : 'Vision Board Items Created')
+                : (totalCount === 1
+                    ? 'Creating Your Vision Board Item'
+                    : 'Creating Your Vision Board Items')}
+            </h1>
+            <p className="text-sm text-neutral-400 max-w-md mx-auto">
+              {allComplete
+                ? `Successfully added ${completedCount} item${completedCount === 1 ? '' : 's'} to your vision board.`
+                : (totalCount === 1
+                    ? 'Please wait while we add your item with VIVA-generated images.'
+                    : 'Please wait while we add your items with VIVA-generated images.')}
+            </p>
+
+            {/* Progress bar */}
+            <div className="pt-2 space-y-2 max-w-sm mx-auto">
+              <div className="w-full bg-neutral-800 rounded-full h-2">
+                <div
+                  className="bg-primary-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercentage}%` }}
+                />
+              </div>
+              <div className="text-center text-xs text-neutral-400">
+                {completedCount}/{totalCount} complete
+                {errorCount > 0 && <span className="text-neutral-500 ml-2">({errorCount} error{errorCount !== 1 ? 's' : ''})</span>}
+              </div>
+            </div>
+
+            {allComplete && (
+              <div className="flex justify-center pt-2">
+                <Button onClick={handleViewBoard} variant="primary" className="gap-2">
+                  <Eye className="w-4 h-4" />
+                  View My Vision Board
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
-        <Card className="p-6">
-          <Stack gap="md">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Progress</h3>
-              <Badge variant="info" className="text-base px-4 py-2">
-                {completedCount} / {totalCount} complete
-              </Badge>
-            </div>
-
-            <div className="w-full bg-neutral-800 rounded-full h-3">
-              <div
-                className="bg-primary-500 h-3 rounded-full transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-neutral-400">
-                {errorCount > 0 && `${errorCount} error${errorCount !== 1 ? 's' : ''}`}
-              </span>
-              <span className="text-primary-500 font-semibold">{progressPercentage}%</span>
-            </div>
-          </Stack>
-        </Card>
-
-        <Stack gap="sm">
+        {/* Queue items */}
+        <div className="space-y-2">
           {queueItems.map((item, index) => {
-            const isActive = index === currentIndex
+            const isActive = index === currentIndex && !allComplete
             return (
-              <Card
+              <div
                 key={item.jobId}
                 className={`
-                  p-4 transition-all
-                  ${isActive ? 'border-2 border-primary-500' : ''}
-                  ${item.status === 'complete' ? 'bg-primary-500/5' : ''}
-                  ${item.status === 'error' ? 'bg-red-500/5' : ''}
+                  rounded-xl border p-4 transition-all
+                  ${isActive
+                    ? 'border-primary-500 bg-primary-500/5'
+                    : item.status === 'complete'
+                      ? 'border-[#2A2A2A] bg-[#161616]'
+                      : item.status === 'error'
+                        ? 'border-red-500/30 bg-red-500/5'
+                        : 'border-[#2A2A2A] bg-[#1A1A1A]'
+                  }
                 `}
               >
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 mt-1">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
                     {item.status === 'complete' && (
-                      <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
-                        <Check className="w-5 h-5 text-white" />
+                      <div className="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-black" />
                       </div>
                     )}
                     {item.status === 'processing' && (
-                      <div className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 text-primary-500 animate-spin" />
+                      <div className="w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 text-primary-500 animate-spin" />
                       </div>
                     )}
                     {item.status === 'error' && (
-                      <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                        <X className="w-4 h-4 text-red-500" aria-hidden />
+                      <div className="w-7 h-7 rounded-full bg-red-500/20 flex items-center justify-center">
+                        <X className="w-3.5 h-3.5 text-red-500" aria-hidden />
                       </div>
                     )}
                     {item.status === 'pending' && (
-                      <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center">
-                        <span className="text-neutral-500 text-sm">{index + 1}</span>
+                      <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center">
+                        <span className="text-neutral-500 text-xs font-medium">{index + 1}</span>
                       </div>
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-base font-semibold text-white">{item.name}</h4>
-                      <Badge variant="info" className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium text-white truncate">{item.name}</h4>
+                      <span className="text-[10px] uppercase tracking-wide text-neutral-500 shrink-0">
                         {item.categoryLabel}
-                      </Badge>
+                      </span>
                     </div>
-                    <p className="text-sm text-neutral-300 mb-2">{item.description}</p>
-
                     {item.status === 'processing' && (
-                      <div className="flex items-center gap-2 text-sm text-primary-500">
-                        <Sparkles className="w-4 h-4 animate-pulse" />
-                        <span>Generating image and creating item...</span>
-                      </div>
-                    )}
-                    {item.status === 'complete' && (
-                      <div className="flex items-center gap-2 text-sm text-primary-500">
-                        <Check className="w-4 h-4" />
-                        <span>Added to your vision board</span>
-                      </div>
+                      <p className="text-xs text-primary-500 mt-0.5">Generating image...</p>
                     )}
                     {item.status === 'error' && (
-                      <div className="text-sm text-red-400">
-                        Error: {item.error || 'Failed to create item'}
-                      </div>
+                      <p className="text-xs text-red-400 mt-0.5">{item.error || 'Failed to create item'}</p>
                     )}
                   </div>
                 </div>
-              </Card>
+              </div>
             )
           })}
-        </Stack>
+        </div>
 
+        {/* Completion card */}
         {allComplete && (
-          <Card className="p-6 bg-primary-500/5 border-primary-500/20">
-            <Stack gap="md" className="text-center">
-              <div className="flex justify-center">
-                <div className="w-16 h-16 rounded-full bg-primary-500 flex items-center justify-center">
-                  <Check className="w-10 h-10 text-white" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold text-white">All Done!</h3>
-              <p className="text-neutral-300">
-                {completedCount === 1
-                  ? '1 vision board item has been created and added to your board.'
-                  : `${completedCount} vision board items have been created and added to your board.`}
-                {errorCount > 0
-                  ? (errorCount === 1
-                      ? ' 1 item had an error.'
-                      : ` ${errorCount} items had errors.`)
-                  : ''}
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button onClick={handleViewBoard} variant="primary" className="gap-2">
-                  <Eye className="w-4 h-4" />
-                  View My Vision Board
-                </Button>
-                <Button onClick={() => router.push('/vision-board/ideas')} variant="outline">
-                  Add More Ideas
-                </Button>
-              </div>
-            </Stack>
-          </Card>
+          <div className="rounded-2xl border border-primary-500/20 bg-primary-500/5 p-6 text-center space-y-4">
+            <p className="text-sm text-neutral-300">
+              {completedCount === 1
+                ? '1 vision board item has been created and added to your board.'
+                : `${completedCount} vision board items have been created and added to your board.`}
+              {errorCount > 0
+                ? (errorCount === 1
+                    ? ' 1 item had an error.'
+                    : ` ${errorCount} items had errors.`)
+                : ''}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={handleViewBoard} variant="primary" className="gap-2">
+                <Eye className="w-4 h-4" />
+                View My Vision Board
+              </Button>
+              <Button onClick={() => router.push(isIntensivePath ? '/intensive/vision-board/ideas' : '/vision-board/ideas')} variant="outline">
+                Add More Ideas
+              </Button>
+            </div>
+          </div>
         )}
-      </Stack>
+      </div>
     </Container>
   )
 }

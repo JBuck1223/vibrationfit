@@ -48,8 +48,8 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
    * `brandGreenIcons`, and `wrapOnDesktop` when true.
    */
   lifeVisionCategoryStrip?: boolean
-  /** With `lifeVisionCategoryStrip` desktop grid: 6 or 7 columns (default 7). */
-  desktopColumnCount?: 6 | 7
+  /** With `lifeVisionCategoryStrip` desktop grid: 4, 6 or 7 columns (default 7). */
+  desktopColumnCount?: 4 | 6 | 7
 }
 
 const pillBase = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer'
@@ -225,11 +225,11 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
             <div className="scrollbar-hide w-full min-w-0 max-w-full max-md:overflow-x-auto md:overflow-visible">
               <div
                 className={cn(
-                  'gap-2 pb-1 max-md:px-4 md:min-w-0 md:w-full md:px-0',
+                  'gap-2 pb-1 max-md:px-4 md:min-w-0 md:w-full md:px-4',
                   gridDesktop
                     ? cn(
-                        'flex min-w-max items-center max-md:overflow-x-auto md:grid md:gap-2',
-                        desktopColumnCount === 6 ? 'md:grid-cols-6' : 'md:grid-cols-7'
+                        'flex min-w-max items-center max-md:overflow-x-auto md:grid md:min-w-0 md:gap-2',
+                        desktopColumnCount === 4 ? 'md:grid-cols-4' : desktopColumnCount === 6 ? 'md:grid-cols-6' : 'md:grid-cols-7'
                       )
                     : 'flex min-w-max items-center md:flex-wrap md:justify-center',
                 )}

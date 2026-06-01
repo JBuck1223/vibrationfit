@@ -7,6 +7,7 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { SidebarLayout, UserSidebar } from '@/components/Sidebar'
 import { IntensiveSidebar } from '@/components/IntensiveSidebar'
+import { IntensiveSidebarProvider } from '@/components/intensive-studio/IntensiveSidebarContext'
 import { IntensiveLockedOverlay } from '@/components/IntensiveLockedOverlay'
 import { cn } from '@/lib/utils'
 import { getPageType, isStudioRoute } from '@/lib/navigation'
@@ -283,16 +284,18 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
         const isAccessible = isPathAccessibleForIntensive(pathname, intensiveData, settingsComplete)
 
         return (
-          <div className="min-h-screen bg-black text-white">
-            <IntensiveSidebar />
-            <div className="min-w-0 md:ml-[280px]">
-              <PageLayout className={audioPageLayoutClass}>
-                {children}
-                <PlayerSpacer />
-              </PageLayout>
-              {!isAccessible && !isSuperAdmin && <IntensiveLockedOverlay />}
+          <IntensiveSidebarProvider>
+            <div className="min-h-screen bg-black text-white">
+              <IntensiveSidebar />
+              <div className="min-w-0 md:ml-[280px]">
+                <PageLayout className={audioPageLayoutClass}>
+                  {children}
+                  <PlayerSpacer />
+                </PageLayout>
+                {!isAccessible && !isSuperAdmin && <IntensiveLockedOverlay />}
+              </div>
             </div>
-          </div>
+          </IntensiveSidebarProvider>
         )
       }
 

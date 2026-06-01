@@ -28,10 +28,40 @@ import {
 import type { Commitment, CommitmentOccurrence, Cadence } from '@/lib/map/types'
 import { formatCadenceLabel } from '@/lib/map/map-builder-cadence'
 import { mapTodayStyles } from '@/lib/map/map-today-styles'
+import { createClient } from '@/lib/supabase/client'
 
 function formatCommitmentCadence(cadence: Cadence | null): string {
   if (!cadence) return ''
   return formatCadenceLabel(JSON.stringify(cadence))
+}
+
+/** Hide auto-verified Alignment Gym weekly tally until they attend a live session. */
+function cadenceStatusForIntensivePreview(
+  commitment: Commitment,
+  status: CommitmentCadenceStatus | undefined,
+  readOnly: boolean,
+  hasGymAttendance: boolean | null,
+): CommitmentCadenceStatus | undefined {
+  if (!status || !readOnly || commitment.activity_type !== 'alignment_gym') return status
+  if (hasGymAttendance) return status
+  return {
+    ...status,
+    loggedYesOnAnchorDate: false,
+    periodTally: status.periodTally
+      ? { ...status.periodTally, completed: 0 }
+      : undefined,
+  }
+}
+
+function countsAsDoneForIntensivePreview(
+  commitment: Commitment,
+  occurrence: CommitmentOccurrence | undefined,
+  readOnly: boolean,
+  hasGymAttendance: boolean | null,
+): boolean {
+  if (occurrence?.status !== 'yes') return false
+  if (!readOnly || commitment.activity_type !== 'alignment_gym') return true
+  return hasGymAttendance === true
 }
 
 function PeriodTallyBadge({ tally }: { tally: CommitmentPeriodTally }) {
@@ -112,7 +142,7 @@ function CommitmentInlineLabel({
   )
 }
 
-export function MapDayView() {
+export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
   const pathname = usePathname()
   const { goToDate, today } = useMapNavigation()
   const {
@@ -132,6 +162,46 @@ export function MapDayView() {
   } = useMapStudio()
 
   const [periodOccurrences, setPeriodOccurrences] = useState<CommitmentOccurrence[]>([])
+  const [hasAlignmentGymAttendance, setHasAlignmentGymAttendance] = useState<boolean | null>(
+    null,
+  )
+
+  useEffect(() => {
+    if (!readOnly) {
+      setHasAlignmentGymAttendance(null)
+      return
+    }
+
+    let cancelled = false
+    async function loadGymAttendance() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) {
+        if (!cancelled) setHasAlignmentGymAttendance(false)
+        return
+      }
+
+      const { count, error } = await supabase
+        .from('video_session_participants')
+        .select('id, video_sessions!inner(session_type, title)', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('attended', true)
+        .or('session_type.eq.alignment_gym,title.ilike.%alignment gym%', {
+          referencedTable: 'video_sessions',
+        })
+
+      if (!cancelled) {
+        setHasAlignmentGymAttendance(!error && (count ?? 0) > 0)
+      }
+    }
+
+    void loadGymAttendance()
+    return () => {
+      cancelled = true
+    }
+  }, [readOnly])
 
   /** Refresh occurrence state only — never bulk auto-verify (that marked everything complete). */
   const refreshDayState = useCallback(async () => {
@@ -212,11 +282,15 @@ export function MapDayView() {
         <MapIcon className="w-10 h-10 text-neutral-600 mx-auto mb-4" strokeWidth={1.5} />
         <h2 className="text-xl font-bold text-white mb-2">No commitments yet</h2>
         <p className="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
-          Update your MAP commitments, then track them here daily.
+          {readOnly
+            ? 'Activate your starter MAP below to preview your weekly rhythm.'
+            : 'Update your MAP commitments, then track them here daily.'}
         </p>
-        <Button variant="primary" asChild>
-          <Link href="/map/update">Go to Update</Link>
-        </Button>
+        {!readOnly && (
+          <Button variant="primary" asChild>
+            <Link href="/map/update">Go to Update</Link>
+          </Button>
+        )}
       </div>
     )
   }
@@ -232,12 +306,26 @@ export function MapDayView() {
   const customOccs = dateOccurrences.filter(o =>
     customCommitments.some(c => c.id === o.commitment_id),
   )
-  const systemDone = systemOccs.filter(o => o.status === 'yes').length
+  const systemDone = systemCommitments.filter(c =>
+    countsAsDoneForIntensivePreview(
+      c,
+      occurrenceMap.get(c.id),
+      readOnly,
+      hasAlignmentGymAttendance,
+    ),
+  ).length
   const customLogged = customOccs.filter(o => o.status === 'yes').length
   const systemTotal = systemOccs.length > 0 ? systemOccs.length : systemCommitments.length
   const customTotal = customOccs.length > 0 ? customOccs.length : customCommitments.length
   const customCategories = Object.keys(commitmentsByLifeCategory).sort()
   const hasCustomPendingPast = isPast && customOccs.some(o => o.status === 'pending')
+
+  const sectionTitleClass = readOnly
+    ? 'text-lg md:text-xl font-bold text-white'
+    : 'text-sm font-medium text-white'
+  const sectionSubtextClass = readOnly
+    ? 'text-sm text-neutral-400 mt-1 leading-relaxed'
+    : 'text-[11px] text-neutral-600 mt-0.5'
 
   return (
     <div className="w-full space-y-4 sm:space-y-5">
@@ -247,48 +335,50 @@ export function MapDayView() {
         </p>
       )}
 
+      {!readOnly && (
       <div className="flex justify-center">
-        <div className="inline-flex items-center gap-0.5 sm:gap-1">
-          <button
-            type="button"
-            onClick={() => goToDate(addDays(selectedDate, -1))}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
-            aria-label="Previous day"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="text-center px-2 sm:px-3">
-            {isToday && (
-              <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-0.5">
-                Today
-              </p>
-            )}
-            <MapDateTravelTrigger>
-              <span className="text-sm sm:text-base font-medium text-white whitespace-nowrap cursor-pointer rounded-md px-1 hover:bg-white/5 transition-colors">
-                {formatDisplayDate(selectedDate)}
-              </span>
-            </MapDateTravelTrigger>
-            {!isToday && canJumpToToday && (
-              <button
-                type="button"
-                onClick={() => goToDate(today)}
-                className="text-[11px] mt-1 text-neutral-500 hover:text-white transition-colors"
-              >
-                Jump to today
-              </button>
-            )}
+          <div className="inline-flex items-center gap-0.5 sm:gap-1">
+            <button
+              type="button"
+              onClick={() => goToDate(addDays(selectedDate, -1))}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+              aria-label="Previous day"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="text-center px-2 sm:px-3">
+              {isToday && (
+                <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider mb-0.5">
+                  Today
+                </p>
+              )}
+              <MapDateTravelTrigger>
+                <span className="text-sm sm:text-base font-medium text-white whitespace-nowrap cursor-pointer rounded-md px-1 hover:bg-white/5 transition-colors">
+                  {formatDisplayDate(selectedDate)}
+                </span>
+              </MapDateTravelTrigger>
+              {!isToday && canJumpToToday && (
+                <button
+                  type="button"
+                  onClick={() => goToDate(today)}
+                  className="text-[11px] mt-1 text-neutral-500 hover:text-white transition-colors"
+                >
+                  Jump to today
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => goToDate(addDays(selectedDate, 1))}
+              disabled={selectedDate >= today}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              aria-label="Next day"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => goToDate(addDays(selectedDate, 1))}
-            disabled={selectedDate >= today}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
-            aria-label="Next day"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
       </div>
+      )}
 
       {hasCustomPendingPast && (
         <p className="text-center text-[11px] text-amber-200/80 px-2">
@@ -304,10 +394,12 @@ export function MapDayView() {
               <span style={{ color: mapTodayStyles.primaryHex }}>{systemDone}</span>
               <span className="text-neutral-600">/{systemTotal}</span>
             </p>
-            <div className="text-center px-10">
-              <p className="text-sm font-medium text-white">System MAP</p>
-              <p className="text-[11px] text-neutral-600 mt-0.5">
-                Tap a ritual to open — alignment tracks automatically.
+            <div className="text-center px-6 sm:px-10">
+              <h2 className={sectionTitleClass}>System MAP</h2>
+              <p className={sectionSubtextClass}>
+                {readOnly
+                  ? 'Preview only — open rituals and log reps after you graduate.'
+                  : 'Tap a ritual to open — alignment tracks automatically.'}
               </p>
             </div>
           </div>
@@ -316,8 +408,13 @@ export function MapDayView() {
           {PILLAR_ORDER.map(pillar => {
             const meta = PILLAR_META[pillar]
             const pillarCommitments = commitmentsByPillar[pillar]
-            const pillarDone = pillarCommitments.filter(
-              c => occurrenceMap.get(c.id)?.status === 'yes',
+            const pillarDone = pillarCommitments.filter(c =>
+              countsAsDoneForIntensivePreview(
+                c,
+                occurrenceMap.get(c.id),
+                readOnly,
+                hasAlignmentGymAttendance,
+              ),
             ).length
 
             if (pillarCommitments.length === 0) {
@@ -334,9 +431,11 @@ export function MapDayView() {
                   />
                   <div className="px-3 py-3 text-center flex-1 flex items-center justify-center">
                     <p className="text-[11px] text-neutral-600">
-                      <Link href="/map/update/system" className="hover:text-neutral-400 transition-colors">
-                        Set up
-                      </Link>
+                      {readOnly ? '—' : (
+                        <Link href="/map/update/system" className="hover:text-neutral-400 transition-colors">
+                          Set up
+                        </Link>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -360,9 +459,15 @@ export function MapDayView() {
                       key={c.id}
                       commitment={c}
                       occurrence={occurrenceMap.get(c.id)}
-                      cadenceStatus={cadenceStatusByCommitmentId.get(c.id)}
+                      cadenceStatus={cadenceStatusForIntensivePreview(
+                        c,
+                        cadenceStatusByCommitmentId.get(c.id),
+                        readOnly,
+                        hasAlignmentGymAttendance,
+                      )}
                       pillarColor={meta.color}
                       compact
+                      readOnly={readOnly}
                       onVerify={async (status) => {
                         const occ = occurrenceMap.get(c.id)
                         if (occ) {
@@ -389,9 +494,9 @@ export function MapDayView() {
               <span className="text-white">{customLogged}</span>
               <span className="text-neutral-600">/{customTotal}</span>
             </p>
-            <div className="text-center px-10">
-              <p className="text-sm font-medium text-white">Custom Commitments</p>
-              <p className="text-[11px] text-neutral-500 mt-0.5">
+            <div className="text-center px-6 sm:px-10">
+              <h2 className={sectionTitleClass}>Custom Commitments</h2>
+              <p className={readOnly ? sectionSubtextClass : 'text-[11px] text-neutral-500 mt-0.5'}>
                 Tap yes when complete.
               </p>
             </div>
@@ -418,7 +523,13 @@ export function MapDayView() {
                         key={c.id}
                         commitment={c}
                         occurrence={occurrenceMap.get(c.id)}
-                        cadenceStatus={cadenceStatusByCommitmentId.get(c.id)}
+                        cadenceStatus={cadenceStatusForIntensivePreview(
+                          c,
+                          cadenceStatusByCommitmentId.get(c.id),
+                          readOnly,
+                          hasAlignmentGymAttendance,
+                        )}
+                        readOnly={readOnly}
                         onVerify={async (status) => {
                           const occ = occurrenceMap.get(c.id)
                           if (occ) {
@@ -474,6 +585,7 @@ function SystemCommitmentRow({
   cadenceStatus,
   pillarColor,
   compact = false,
+  readOnly = false,
   onVerify,
 }: {
   commitment: Commitment
@@ -481,6 +593,7 @@ function SystemCommitmentRow({
   cadenceStatus?: CommitmentCadenceStatus
   pillarColor?: string
   compact?: boolean
+  readOnly?: boolean
   onVerify: (status: 'yes' | 'pending') => Promise<void>
 }) {
   const activity = commitment.activity_type
@@ -495,34 +608,41 @@ function SystemCommitmentRow({
   const cadenceLabel = formatCommitmentCadence(commitment.cadence)
 
   const rowPad = compact ? 'px-2.5 py-2' : 'px-3 py-2.5'
+  const rowContent = (
+    <>
+      <CommitmentInlineLabel
+        title={commitment.title}
+        cadenceLabel={cadenceLabel}
+        icon={Icon ?? undefined}
+        iconColor={pillarColor}
+      />
+      <div className="flex shrink-0 items-center gap-1.5">
+        {cadenceStatus ? <CadenceStatusBadge status={cadenceStatus} /> : null}
+        {!readOnly && occurrence ? (
+          doneToday ? (
+            <MapCompleteIndicator compact />
+          ) : (
+            <ArrowRight className="w-[18px] h-[18px] shrink-0 text-neutral-500" aria-hidden />
+          )
+        ) : null}
+      </div>
+    </>
+  )
 
   return (
     <div className="overflow-hidden rounded-lg bg-white/[0.03]">
-      <Link
-        href={deepLink}
-        className={`flex w-full items-center gap-2.5 transition-colors hover:bg-white/[0.04] active:bg-white/[0.06] ${rowPad}`}
-      >
-        <CommitmentInlineLabel
-          title={commitment.title}
-          cadenceLabel={cadenceLabel}
-          icon={Icon ?? undefined}
-          iconColor={pillarColor}
-        />
-        <div className="flex shrink-0 items-center gap-1.5">
-          {cadenceStatus ? <CadenceStatusBadge status={cadenceStatus} /> : null}
-          {occurrence ? (
-            doneToday ? (
-              <MapCompleteIndicator compact />
-            ) : (
-              <ArrowRight className="w-[18px] h-[18px] shrink-0 text-neutral-500" aria-hidden />
-            )
-          ) : (
-            <span className="text-[10px] text-neutral-600 shrink-0">—</span>
-          )}
-        </div>
-      </Link>
+      {readOnly ? (
+        <div className={`flex w-full items-center gap-2.5 ${rowPad}`}>{rowContent}</div>
+      ) : (
+        <Link
+          href={deepLink}
+          className={`flex w-full items-center gap-2.5 transition-colors hover:bg-white/[0.04] active:bg-white/[0.06] ${rowPad}`}
+        >
+          {rowContent}
+        </Link>
+      )}
 
-      {occurrence ? (
+      {!readOnly && occurrence ? (
         <MapOccurrenceActions
           status={status}
           onVerify={onVerify}
@@ -537,12 +657,14 @@ function CustomCommitmentRow({
   commitment,
   occurrence,
   cadenceStatus,
+  readOnly = false,
   onVerify,
   onJournalUpdated,
 }: {
   commitment: Commitment
   occurrence?: CommitmentOccurrence
   cadenceStatus?: CommitmentCadenceStatus
+  readOnly?: boolean
   onVerify: (status: 'yes' | 'pending') => Promise<void>
   onJournalUpdated: () => void | Promise<void>
 }) {
@@ -558,7 +680,7 @@ function CustomCommitmentRow({
       {cadenceStatus ? (
         <CadenceStatusBadge status={cadenceStatus} />
       ) : null}
-      {occurrence ? (
+      {!readOnly && occurrence ? (
         <div className="flex shrink-0 items-center gap-1">
           <MapCompleteButton status={status} onVerify={onVerify} compact />
           <MapOccurrenceJournal
@@ -568,7 +690,7 @@ function CustomCommitmentRow({
             onUpdated={onJournalUpdated}
           />
         </div>
-      ) : (
+      ) : readOnly ? null : (
         <span className="text-[10px] text-neutral-600 shrink-0">—</span>
       )}
     </div>

@@ -153,7 +153,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
   return (
     <div className="space-y-4">
       
-      <p className="text-sm text-neutral-400">
+      <p className="text-sm text-neutral-400 text-center">
         Upload photos or videos to document your progress or achievements. (These won't affect your completion percentage.)
       </p>
 

@@ -8,16 +8,18 @@ import { getActiveProfileClient } from '@/lib/supabase/profile-client'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { Button } from '@/lib/design-system/components'
+import { useIntensiveSidebar } from '@/components/intensive-studio/IntensiveSidebarContext'
 import { 
   LayoutDashboard,
   User,
-  Sparkles,
-  Music,
+  Target,
+  Headphones,
   Mic,
   Sliders,
   ImageIcon,
   BookOpen,
   Rocket,
+  Map,
   Menu,
   X,
   ChevronRight,
@@ -35,7 +37,7 @@ import {
   Headset,
   MessageSquarePlus,
   Heart,
-  Flame
+  Video
 } from 'lucide-react'
 
 type Step = {
@@ -61,7 +63,7 @@ const INTENSIVE_DURATION_MS = 72 * 60 * 60 * 1000
 export function IntensiveSidebar() {
   const router = useRouter()
   const pathname = usePathname()
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const { mobileOpen, openMobileSidebar, closeMobileSidebar } = useIntensiveSidebar()
   const [steps, setSteps] = useState<Step[]>([])
   const [loading, setLoading] = useState(true)
   const [settingsComplete, setSettingsComplete] = useState(false)
@@ -189,7 +191,7 @@ export function IntensiveSidebar() {
           .from('vision_board_items')
           .select('categories')
           .eq('user_id', user.id)
-          .eq('status', 'active')
+          .in('status', ['active', 'actualized'])
 
         if (visionBoardItems && visionBoardItems.length > 0) {
           const coveredCategories = new Set<string>()
@@ -298,7 +300,7 @@ export function IntensiveSidebar() {
           stepNumber: 4,
           title: 'Life Vision',
           href: '/intensive/life-vision/create',
-          icon: Sparkles,
+          icon: Target,
           phase: 'Vision',
           completed: !!checklist.vision_built,
           locked: !checklist.profile_completed 
@@ -310,7 +312,7 @@ export function IntensiveSidebar() {
           stepNumber: 5,
           title: 'Generate Audio', 
           href: '/intensive/audio/generate', 
-          icon: Music,
+          icon: Headphones,
           phase: 'Audio',
           completed: !!checklist.audio_generated,
           locked: !checklist.vision_built 
@@ -385,7 +387,7 @@ export function IntensiveSidebar() {
           stepNumber: 12,
           title: 'Alignment Gym', 
           href: '/intensive/alignment-gym', 
-          icon: Flame,
+          icon: Video,
           phase: 'Community',
           completed: !!checklist.alignment_gym_toured,
           locked: !checklist.vibe_engagement 
@@ -397,7 +399,7 @@ export function IntensiveSidebar() {
           stepNumber: 13,
           title: 'MAP — My Alignment Plan', 
           href: '/intensive/map', 
-          icon: Rocket,
+          icon: Map,
           phase: 'Completion',
           completed: !!checklist.activation_protocol_completed,
           locked: !checklist.alignment_gym_toured 
@@ -486,7 +488,7 @@ export function IntensiveSidebar() {
             )}
           </div>
           <button
-            onClick={() => setMobileOpen(false)}
+            onClick={() => closeMobileSidebar()}
             className="md:hidden text-neutral-400 hover:text-white"
             aria-label="Close menu"
           >
@@ -597,7 +599,7 @@ export function IntensiveSidebar() {
         <button
           onClick={() => {
             router.push('/intensive/dashboard')
-            setMobileOpen(false)
+            closeMobileSidebar()
           }}
           className={`
             w-full flex items-center gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl
@@ -632,7 +634,7 @@ export function IntensiveSidebar() {
                     onClick={() => {
                       if (!step.locked) {
                         router.push(step.href)
-                        setMobileOpen(false)
+                        closeMobileSidebar()
                       }
                     }}
                     disabled={step.locked}
@@ -693,7 +695,7 @@ export function IntensiveSidebar() {
           <button
             onClick={() => {
               router.push('/account/billing')
-              setMobileOpen(false)
+              closeMobileSidebar()
             }}
             className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all duration-200"
           >
@@ -703,7 +705,7 @@ export function IntensiveSidebar() {
           <button
             onClick={() => {
               router.push('/support')
-              setMobileOpen(false)
+              closeMobileSidebar()
             }}
             className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all duration-200"
           >
@@ -730,8 +732,9 @@ export function IntensiveSidebar() {
     <>
       {/* Mobile Menu Button */}
       <button
-        onClick={() => setMobileOpen(true)}
+        onClick={openMobileSidebar}
         className="md:hidden fixed top-4 left-4 z-40 bg-neutral-800 p-2 rounded-lg border-2 border-neutral-700 hover:border-neutral-600"
+        style={{ top: 'calc(1rem + env(safe-area-inset-top, 0px))' }}
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5 text-white" />
@@ -741,7 +744,7 @@ export function IntensiveSidebar() {
       {mobileOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-          onClick={() => setMobileOpen(false)}
+          onClick={() => closeMobileSidebar()}
         />
       )}
 

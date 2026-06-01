@@ -304,13 +304,13 @@ export function MapSystemBuilder({
   return (
     <Stack gap="lg">
       {showHeader && (
-        <div>
+        <div className={isIntensive ? 'text-center' : undefined}>
           <h1 className="text-2xl font-bold text-white">
             {isIntensive ? 'Your Commitments For This First Cycle' : 'System MAP'}
           </h1>
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className={`text-sm text-neutral-500 mt-1${isIntensive ? ' leading-relaxed' : ''}`}>
             {isIntensive
-              ? 'These are the practices you built in your Intensive — vision audio, journal, Vibe Tribe, and Alignment Gym. We pre-selected one commitment per area; adjust anything you want.'
+              ? 'We pre-selected one commitment per area; adjust anything you want.'
               : 'Your current MAP is loaded below — adjust selections, cadence, and reminders, then save.'}
           </p>
         </div>

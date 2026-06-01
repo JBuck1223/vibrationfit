@@ -27,6 +27,49 @@ type VehicleOrToy = {
   ownership_status: 'paid_in_full' | 'own_with_payment' | 'leased' | 'borrowed'
 }
 
+const OWNERSHIP_STATUSES: VehicleOrToy['ownership_status'][] = [
+  'paid_in_full',
+  'own_with_payment',
+  'leased',
+  'borrowed',
+]
+
+function normalizeOwnershipStatus(value: unknown): VehicleOrToy['ownership_status'] {
+  if (
+    typeof value === 'string' &&
+    OWNERSHIP_STATUSES.includes(value as VehicleOrToy['ownership_status'])
+  ) {
+    return value as VehicleOrToy['ownership_status']
+  }
+  return 'paid_in_full'
+}
+
+function normalizeVehicleOrToyList(value: unknown): VehicleOrToy[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => {
+      const item = entry as Record<string, unknown>
+      let name = typeof item?.name === 'string' ? item.name : ''
+      if (!name && (typeof item?.make === 'string' || typeof item?.model === 'string')) {
+        name = [item.make, item.model].filter(Boolean).join(' ')
+      }
+      const yearRaw = item?.year_acquired ?? item?.year
+      return {
+        name,
+        year_acquired: yearRaw != null ? String(yearRaw) : null,
+        ownership_status: normalizeOwnershipStatus(item?.ownership_status),
+      }
+    })
+  }
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      return normalizeVehicleOrToyList(JSON.parse(value))
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
 export function PossessionsLifestyleSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false, saveError }: PossessionsLifestyleSectionProps) {
   const [isLifestyleCategoryDropdownOpen, setIsLifestyleCategoryDropdownOpen] = useState(false)
   const [openVehicleDropdowns, setOpenVehicleDropdowns] = useState<Map<number, boolean>>(new Map())
@@ -93,9 +136,8 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
     onProfileChange({ [field]: value })
   }
 
-  // Initialize vehicles and items arrays
-  const vehicles: VehicleOrToy[] = profile.vehicles || []
-  const items: VehicleOrToy[] = profile.items || []
+  const vehicles = normalizeVehicleOrToyList(profile.vehicles)
+  const items = normalizeVehicleOrToyList(profile.items)
 
   const handleVehicleChange = (index: number, field: keyof VehicleOrToy, value: string) => {
     const updated = [...vehicles]

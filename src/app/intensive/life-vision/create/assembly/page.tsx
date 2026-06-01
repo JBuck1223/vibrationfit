@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Button, Container, Stack, Spinner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
-import { CheckCircle, ArrowRight, AlertCircle, Sparkles, ChevronDown } from 'lucide-react'
+import { Card, Button, Container, Spinner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { CheckCircle, ArrowRight, AlertCircle, Sparkles, ChevronDown, type LucideIcon } from 'lucide-react'
 import { VISION_CATEGORIES, getVisionCategory, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 import { getBookendTemplate, determineWooLevel } from '@/lib/viva/bookend-templates'
 
@@ -167,16 +167,46 @@ export default function IntensiveAssemblyPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
-        <h2 className="text-lg md:text-xl font-bold text-white text-center">
-          {allReady
-            ? 'All 12 categories are ready. Review and commit your Life Vision.'
-            : `${readyCount} of 12 categories are ready.`}
-        </h2>
-
-        <p className="text-center text-sm text-neutral-500 leading-relaxed -mt-2">
-          We have automatically added a Forward and Conclusion along with your 12 life categories. These can be edited in the next step of the intensive.
-        </p>
+      <div className="-mt-6 md:-mt-8 flex flex-col gap-8 pt-8 pb-8">
+        <Card className={allReady ? '!p-8 border-2 border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-secondary-500/5' : '!p-8 border-neutral-800 bg-neutral-900/40'}>
+          <div className="flex flex-col items-center gap-6 text-center">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${allReady ? 'bg-primary-500' : 'bg-neutral-800'}`}>
+              {allReady
+                ? <CheckCircle className="w-6 h-6 text-black" />
+                : <Sparkles className="w-6 h-6 text-neutral-400" />}
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-white">
+                {allReady ? 'Ready to Commit' : `${readyCount} of 12 Categories Ready`}
+              </h2>
+              <p className="text-neutral-400 text-sm leading-relaxed max-w-md mx-auto">
+                {allReady
+                  ? 'Forward and Conclusion have been added automatically and can be edited in the next step. It\u2019s time to commit your vision!'
+                  : 'Complete the remaining categories, then come back to assemble.'}
+              </p>
+            </div>
+            {!visionId && allReady && (
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={handleCommit}
+                disabled={isCommitting}
+              >
+                {isCommitting ? (
+                  <>
+                    <Spinner size="sm" className="mr-2" />
+                    Assembling...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Commit My Vision
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </Card>
 
         {/* Missing categories warning */}
         {!allReady && !visionId && (
@@ -205,59 +235,52 @@ export default function IntensiveAssemblyPage() {
         <div className="space-y-3">
           {/* Forward */}
           {forwardText && (
-            <Card className="border-primary-500/20">
+            <Card className="overflow-hidden !p-0 border-primary-500/20">
               <button
                 onClick={() => toggleCategory('forward')}
-                className="w-full flex items-center justify-between gap-3"
+                className="w-full flex items-center justify-between gap-3 border-b border-neutral-800 bg-neutral-900/80 px-4 py-3"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-500/20">
-                    <CheckCircle className="w-4 h-4 text-primary-500" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-medium text-white">Forward</h3>
-                  </div>
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="h-4 w-4 shrink-0 text-[#39FF14]" strokeWidth={2.25} />
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-white">Forward</h3>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${expandedCategories.has('forward') ? 'rotate-180' : ''}`} />
               </button>
               {expandedCategories.has('forward') && (
-                <p className="text-neutral-300 text-sm leading-relaxed mt-4 whitespace-pre-wrap">{forwardText}</p>
+                <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap p-4 md:p-5">{forwardText}</p>
               )}
             </Card>
           )}
 
           {categories.map(cat => {
             const categoryData = getVisionCategory(cat.key)
-            const IconComponent = categoryData?.icon || Sparkles
+            const IconComponent: LucideIcon = categoryData?.icon || Sparkles
             const isExpanded = expandedCategories.has(cat.key)
 
             return (
               <Card
                 key={cat.key}
-                className={`${cat.ready ? 'border-primary-500/20' : 'border-red-500/20 opacity-70'}`}
+                className={`overflow-hidden !p-0 ${cat.ready ? 'border-primary-500/20' : 'border-red-500/20 opacity-70'}`}
               >
                 <button
                   onClick={() => cat.ready && toggleCategory(cat.key)}
-                  className="w-full flex items-center justify-between gap-3"
+                  className="w-full flex items-center justify-between gap-3 border-b border-neutral-800 bg-neutral-900/80 px-4 py-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cat.ready ? 'bg-primary-500/20' : 'bg-neutral-800'}`}>
-                      {cat.ready
-                        ? <CheckCircle className="w-4 h-4 text-primary-500" />
-                        : <IconComponent className="w-4 h-4 text-neutral-500" />}
-                    </div>
-                    <div className="text-left">
-                      <h3 className={`font-medium ${cat.ready ? 'text-white' : 'text-neutral-500'}`}>
-                        {cat.label}
-                      </h3>
-                    </div>
+                  <div className="flex items-center gap-2.5">
+                    <IconComponent className={`h-4 w-4 shrink-0 ${cat.ready ? 'text-[#39FF14]' : 'text-neutral-500'}`} strokeWidth={2.25} />
+                    <h3 className={`text-sm font-semibold uppercase tracking-[0.25em] ${cat.ready ? 'text-white' : 'text-neutral-500'}`}>
+                      {cat.label}
+                    </h3>
                   </div>
-                  {cat.ready && (
-                    <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                  )}
+                  <div className="flex items-center gap-2">
+                    {cat.ready && <CheckCircle className="w-3.5 h-3.5 text-primary-500" />}
+                    {cat.ready && (
+                      <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
                 </button>
                 {isExpanded && cat.text && (
-                  <p className="text-neutral-300 text-sm leading-relaxed mt-4 whitespace-pre-wrap">{cat.text}</p>
+                  <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap p-4 md:p-5">{cat.text}</p>
                 )}
               </Card>
             )
@@ -265,23 +288,19 @@ export default function IntensiveAssemblyPage() {
 
           {/* Conclusion */}
           {conclusionText && (
-            <Card className="border-primary-500/20">
+            <Card className="overflow-hidden !p-0 border-primary-500/20">
               <button
                 onClick={() => toggleCategory('conclusion')}
-                className="w-full flex items-center justify-between gap-3"
+                className="w-full flex items-center justify-between gap-3 border-b border-neutral-800 bg-neutral-900/80 px-4 py-3"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-500/20">
-                    <CheckCircle className="w-4 h-4 text-primary-500" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-medium text-white">Conclusion</h3>
-                  </div>
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle className="h-4 w-4 shrink-0 text-[#39FF14]" strokeWidth={2.25} />
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-white">Conclusion</h3>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${expandedCategories.has('conclusion') ? 'rotate-180' : ''}`} />
               </button>
               {expandedCategories.has('conclusion') && (
-                <p className="text-neutral-300 text-sm leading-relaxed mt-4 whitespace-pre-wrap">{conclusionText}</p>
+                <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap p-4 md:p-5">{conclusionText}</p>
               )}
             </Card>
           )}
@@ -289,12 +308,17 @@ export default function IntensiveAssemblyPage() {
 
         {/* Commit / Complete action */}
         {!visionId && allReady && (
-          <Card className="border-2 border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-secondary-500/5">
-            <div className="text-center py-4">
-              <h2 className="text-xl font-bold text-white mb-2">Ready to Commit</h2>
-              <p className="text-neutral-400 text-sm mb-6">
-                Forward, 12 categories, and Conclusion will be assembled into your active Life Vision.
-              </p>
+          <Card className="!p-8 border-2 border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-secondary-500/5">
+            <div className="flex flex-col items-center gap-6 text-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-500">
+                <CheckCircle className="w-6 h-6 text-black" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-white">Ready to Commit</h2>
+                <p className="text-neutral-400 text-sm leading-relaxed max-w-md mx-auto">
+                  Forward and Conclusion have been added automatically and can be edited in the next step. It{'\u2019'}s time to commit your vision!
+                </p>
+              </div>
               <Button
                 variant="primary"
                 size="lg"
@@ -347,7 +371,7 @@ export default function IntensiveAssemblyPage() {
             <p className="text-red-400">{error}</p>
           </Card>
         )}
-      </Stack>
+      </div>
 
       <IntensiveStepCompleteModal
         isOpen={showStepCompleteModal}

@@ -27,6 +27,24 @@ type Trip = {
   duration?: string | null
 }
 
+function normalizeTrips(value: unknown): Trip[] {
+  if (Array.isArray(value)) {
+    return value.map((trip) => ({
+      destination: typeof trip?.destination === 'string' ? trip.destination : '',
+      year: trip?.year ?? null,
+      duration: trip?.duration ?? null,
+    }))
+  }
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      return normalizeTrips(JSON.parse(value))
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
 export function TravelAdventureSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false, saveError }: TravelAdventureSectionProps) {
   const [isTravelFrequencyDropdownOpen, setIsTravelFrequencyDropdownOpen] = useState(false)
   const travelFrequencyDropdownRef = useRef<HTMLDivElement>(null)
@@ -60,8 +78,7 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
     onProfileChange({ [field]: value })
   }
 
-  // Initialize trips array
-  const trips: Trip[] = profile.trips || []
+  const trips = normalizeTrips(profile.trips)
 
   const handleTripChange = (index: number, field: keyof Trip, value: string) => {
     const updated = [...trips]

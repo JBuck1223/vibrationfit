@@ -342,6 +342,7 @@ export default function DailyPaperIndexPage() {
                   }
                 }}
                 lifeVisionCategoryStrip
+                desktopColumnCount={6}
               />
             </Card>
           </div>

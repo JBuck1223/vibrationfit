@@ -15,7 +15,7 @@ import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
@@ -141,12 +141,16 @@ function VisionBoardPracticeStatsRow({
 
 export default function VisionBoardPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const [isIntensivePath, setIsIntensivePath] = useState(false)
+  useEffect(() => { setIsIntensivePath(pathname.startsWith('/intensive/')) }, [pathname])
+
   const { stats: practiceStats } = useAreaStats('vision-board')
   const columnCount = useColumnCount()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'actualized'])
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'actualized', 'inactive'])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -338,6 +342,18 @@ export default function VisionBoardPage() {
     if (!snapshotDate) return items
     return resolveBoardSnapshot(items, statusEvents, snapshotDate)
   }, [items, statusEvents, snapshotDate])
+
+  const missingCategories = useMemo(() => {
+    if (!isIntensivePath) return []
+    const lifeCats = VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion')
+    const coveredCategories = new Set<string>()
+    items.forEach(item => {
+      if (item.categories && Array.isArray(item.categories) && ['active', 'actualized'].includes(item.status)) {
+        item.categories.forEach((cat: string) => coveredCategories.add(cat))
+      }
+    })
+    return lifeCats.filter(c => !coveredCategories.has(c.key))
+  }, [isIntensivePath, items])
 
   const filteredItems = boardItems
     .filter(item => {
@@ -1062,6 +1078,7 @@ export default function VisionBoardPage() {
               onCategoryClick={handleEditCategoryToggle}
               pillLabel="Tag life categories"
               lifeVisionCategoryStrip
+              desktopColumnCount={6}
               bleedClassName="-mx-4 sm:-mx-5 md:-mx-6 lg:-mx-8"
             />
 
@@ -1558,6 +1575,7 @@ export default function VisionBoardPage() {
             selectedCategories={editFormData.categories}
             onCategoryClick={handleEditCategoryToggle}
             lifeVisionCategoryStrip
+            desktopColumnCount={6}
           />
         </div>
 
@@ -1720,7 +1738,9 @@ export default function VisionBoardPage() {
     if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
       count += 1
     }
-    if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
+    const isDefaultStatus = selectedStatuses.length === 3 &&
+      selectedStatuses.includes('active') && selectedStatuses.includes('actualized') && selectedStatuses.includes('inactive')
+    if (!isDefaultStatus && selectedStatuses.length > 0) {
       count += 1
     }
     return count
@@ -1749,17 +1769,19 @@ export default function VisionBoardPage() {
   return (
     <Container size="xl" className="pt-1 pb-6 overflow-x-hidden">
       <Stack gap="lg">
-        <VisionBoardPracticeStatsRow
-          practiceStats={practiceStats}
-          statsExpanded={statsExpanded}
-          setStatsExpanded={setStatsExpanded}
-          freezeOpen={freezeOpen}
-          setFreezeOpen={setFreezeOpen}
-          freezeRef={freezeRef}
-          activeItems={activeItems}
-          actualizedItems={actualizedItems}
-          totalItems={totalItems}
-        />
+        {!isIntensivePath && (
+          <VisionBoardPracticeStatsRow
+            practiceStats={practiceStats}
+            statsExpanded={statsExpanded}
+            setStatsExpanded={setStatsExpanded}
+            freezeOpen={freezeOpen}
+            setFreezeOpen={setFreezeOpen}
+            freezeRef={freezeRef}
+            activeItems={activeItems}
+            actualizedItems={actualizedItems}
+            totalItems={totalItems}
+          />
+        )}
 
         {isSnapshotMode && snapshotDate && (
           <div className="rounded-2xl border border-[#BF00FF]/30 bg-[#BF00FF]/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1785,12 +1807,33 @@ export default function VisionBoardPage() {
           </div>
         )}
 
+        {/* Missing categories banner (intensive only) */}
+        {isIntensivePath && !loading && missingCategories.length > 0 && (
+          <div className="rounded-xl border border-neutral-700 bg-neutral-800/50 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-5 h-5 rounded-full bg-[#39FF14]/15 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-[#39FF14]">{missingCategories.length}</span>
+              </div>
+              <span className="text-xs font-medium text-neutral-300">
+                {missingCategories.length === 1 ? '1 category' : `${missingCategories.length} categories`} remaining to complete this step
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {missingCategories.map(cat => (
+                <span key={cat.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-700/60 border border-neutral-600 text-[10px] text-neutral-400">
+                  {cat.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Filter Toggle Button and View Toggle */}
         <div className="flex items-center justify-between">
           <div className="flex-1 flex justify-start">
             {!isSnapshotMode ? (
               <button
-                onClick={() => router.push('/vision-board/new')}
+                onClick={() => router.push(isIntensivePath ? '/intensive/vision-board/new' : '/vision-board/new')}
                 className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
                 aria-label="Add Creation"
               >
@@ -1823,7 +1866,7 @@ export default function VisionBoardPage() {
               <Filter className="w-4 h-4" />
               <span className="hidden sm:inline">Filter</span>
               {getActiveFilterCount() > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-black/30 text-xs font-semibold">
+                <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full border border-current text-xs font-semibold">
                   {getActiveFilterCount()}
                 </span>
               )}
@@ -1839,7 +1882,8 @@ export default function VisionBoardPage() {
                 if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
                   params.set('statuses', selectedStatuses.join(','))
                 }
-                router.push(`/vision-board/export${params.toString() ? '?' + params.toString() : ''}`)
+                const basePath = isIntensivePath ? '/intensive/vision-board/export' : '/vision-board/export'
+                router.push(`${basePath}${params.toString() ? '?' + params.toString() : ''}`)
               }}
               className="flex items-center gap-2"
               aria-label="Download PDF"
@@ -1973,33 +2017,34 @@ export default function VisionBoardPage() {
               </div>
           </Card>
 
-          {/* Time Travel Filter */}
-          <Card variant="elevated" className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-white">Time travel</h3>
-              {isSnapshotMode && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSnapshotDate(null)}
-                >
-                  Back to today
-                </Button>
+          {!isIntensivePath && (
+            <Card variant="elevated" className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white">Time travel</h3>
+                {isSnapshotMode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSnapshotDate(null)}
+                  >
+                    Back to today
+                  </Button>
+                )}
+              </div>
+              {snapshotMinDate ? (
+                <DatePicker
+                  value={snapshotDate ?? ''}
+                  onChange={(date) => setSnapshotDate(date || null)}
+                  minDate={snapshotMinDate}
+                  maxDate={todayLocalDate}
+                />
+              ) : (
+                <p className="text-sm text-neutral-500">
+                  Add a creation to your board to use time travel.
+                </p>
               )}
-            </div>
-            {snapshotMinDate ? (
-              <DatePicker
-                value={snapshotDate ?? ''}
-                onChange={(date) => setSnapshotDate(date || null)}
-                minDate={snapshotMinDate}
-                maxDate={todayLocalDate}
-              />
-            ) : (
-              <p className="text-sm text-neutral-500">
-                Add a creation to your board to use time travel.
-              </p>
-            )}
-          </Card>
+            </Card>
+          )}
           </div>
         )}
 
@@ -2333,7 +2378,7 @@ export default function VisionBoardPage() {
             <h3 className="text-xl font-semibold text-white mb-2">No items found</h3>
             <p className="text-neutral-400 mb-6">Try adjusting your filters or adding a creation.</p>
             <Button asChild>
-              <Link href="/vision-board/new">
+              <Link href={isIntensivePath ? '/intensive/vision-board/new' : '/vision-board/new'}>
                 <Plus className="w-5 h-5 mr-2" />
                 Add Creation
               </Link>

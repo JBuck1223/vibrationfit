@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Card, Input, Button, Container, Stack, Modal, FullBleed, IntensiveStepCompleteModal, CategoryGrid } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
@@ -20,7 +20,9 @@ const STATUS_OPTIONS = [
 
 export default function NewVisionBoardItemPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const isIntensivePage = pathname.startsWith('/intensive/')
   const isIntensiveUrlParam = searchParams.get('intensive') === 'true'
   const supabase = createClient()
   
@@ -212,21 +214,13 @@ export default function NewVisionBoardItemPage() {
             setShowStepCompleteModal(true)
             return
           } else {
-            // Show which categories still need items
-            const remaining = LIFE_CATEGORY_KEYS.filter(cat => !coveredCategories.has(cat))
-            // Convert keys to labels for display
-            const remainingLabels = remaining.map(key => {
-              const cat = VISION_CATEGORIES.find(c => c.key === key)
-              return cat ? cat.label : key
-            })
-            alert(`Great! ${remaining.length} more ${remaining.length === 1 ? 'category' : 'categories'} to go: ${remainingLabels.join(', ')}`)
-            router.push('/vision-board/new')
+            router.push(isIntensivePage ? '/intensive/vision-board' : '/vision-board/new')
             return
           }
         }
       }
 
-      router.push('/vision-board')
+      router.push(isIntensivePage ? '/intensive/vision-board' : '/vision-board')
     } catch (error) {
       console.error('Error creating vision board item:', error)
       alert('Failed to create vision board item')
@@ -403,12 +397,8 @@ export default function NewVisionBoardItemPage() {
                     selectedCategories={formData.categories}
                     onCategoryClick={handleCategoryToggle}
                     pillLabel="Tag life categories"
-                    getPillClassName={(key) =>
-                      isUserInIntensive && categoriesNeeded.includes(key)
-                        ? 'bg-primary-500/10 border-primary-500/50 text-primary-300'
-                        : undefined
-                    }
                     lifeVisionCategoryStrip
+                    desktopColumnCount={6}
                   />
                 </section>
               </FullBleed>

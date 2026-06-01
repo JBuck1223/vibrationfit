@@ -41,7 +41,8 @@ import {
   Unlock,
   MessageSquare,
   Users,
-  Activity
+  Activity,
+  AlertCircle,
 } from 'lucide-react'
 
 import { 
@@ -50,11 +51,31 @@ import {
   type IntakeQuestion 
 } from '@/lib/constants/intensive-intake-questions'
 import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
+import { PILLAR_ORDER, PILLAR_META } from '@/lib/map/map-pillar-config'
+import { emptyMapPillarActive } from '@/lib/map/compute-map-pillar-stats'
+import type { MapCategory, MapPillarActive } from '@/lib/map/types'
 
 const UNLOCK_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/14-unlock--5-15-26-1080p.mp4'
 const UNLOCK_POSTER =
   'https://media.vibrationfit.com/site-assets/video/intensive/14-unlock--5-15-26-thumb.0000000.jpg'
+
+const TESTIMONIAL_QUESTION_TEXT =
+  'What was your experience in completing the 72-Hour Activation Intensive?'
+
+function truncateForError(text: string, maxLength = 100): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= maxLength) return trimmed
+  return `${trimmed.slice(0, maxLength - 3)}...`
+}
+
+function scrollToUnlockField(fieldId: string) {
+  requestAnimationFrame(() => {
+    document
+      .getElementById(`unlock-question-${fieldId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  })
+}
 
 // Types
 interface IntensiveStats {
@@ -71,6 +92,16 @@ interface IntensiveStats {
   journal_entries_count: number
   profile_completion_percent: number
   profile_versions_count: number
+  vibe_posts_count: number
+  vibe_tribe_engaged: boolean
+  map_activated: boolean
+  map_commitments_count: number
+  map_pillar_active: MapPillarActive
+  map_all_pillars_active: boolean
+  alignment_gym_toured: boolean
+  alignment_gym_map_commitment: boolean
+  alignment_gym_schedule_label: string
+  alignment_gym_sessions_attended: number
   assessment_completed: boolean
   assessment_completed_count: number
   assessment_strengths_count: number
@@ -127,6 +158,9 @@ export default function IntensiveUnlockPage() {
   const [showTextInput, setShowTextInput] = useState(false)
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
   const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitErrorItems, setSubmitErrorItems] = useState<string[]>([])
+  const [highlightFieldIds, setHighlightFieldIds] = useState<string[]>([])
   const { setCompletedAt: setStepCompleted } = useIntensiveStep()
 
   useEffect(() => {
@@ -202,7 +236,24 @@ export default function IntensiveUnlockPage() {
       const statsResponse = await fetch('/api/intensive/stats')
       if (statsResponse.ok) {
         const { stats: userStats } = await statsResponse.json()
-        setStats(userStats)
+        setStats({
+          ...userStats,
+          vibe_posts_count: Number(userStats?.vibe_posts_count) || 0,
+          vibe_tribe_engaged: Boolean(userStats?.vibe_tribe_engaged),
+          map_activated: Boolean(userStats?.map_activated),
+          map_commitments_count: Number(userStats?.map_commitments_count) || 0,
+          map_pillar_active: {
+            activations: Boolean(userStats?.map_pillar_active?.activations),
+            creations: Boolean(userStats?.map_pillar_active?.creations),
+            connections: Boolean(userStats?.map_pillar_active?.connections),
+            sessions: Boolean(userStats?.map_pillar_active?.sessions),
+          },
+          map_all_pillars_active: Boolean(userStats?.map_all_pillars_active),
+          alignment_gym_toured: Boolean(userStats?.alignment_gym_toured),
+          alignment_gym_map_commitment: Boolean(userStats?.alignment_gym_map_commitment),
+          alignment_gym_schedule_label: String(userStats?.alignment_gym_schedule_label ?? ''),
+          alignment_gym_sessions_attended: Number(userStats?.alignment_gym_sessions_attended) || 0,
+        })
         
         // Auto-populate form based on objective data
         const autoFilled = autoPopulateFromStats(userStats)
@@ -230,13 +281,13 @@ export default function IntensiveUnlockPage() {
       data.vibrational_harmony = 10
     }
 
-    // Vibrational constraints - based on assessment completion
-    if (stats.assessment_completed) {
+    // Vibe Tribe - posted and engaged with other members
+    if (stats.vibe_posts_count > 0 && stats.vibe_tribe_engaged) {
       data.vibrational_constraints_clarity = 10
     }
 
-    // Vision iteration ease - if they have refinements
-    if (stats.total_refinements > 0) {
+    // Vision iteration ease - active Life Vision ready to clone as a Graduate
+    if (stats.visions_active > 0) {
       data.vision_iteration_ease = 10
     }
 
@@ -257,17 +308,13 @@ export default function IntensiveUnlockPage() {
       data.journey_capturing = 10
     }
 
-    // Roadmap clarity - if they have active visions
-    if (stats.visions_active > 0) {
+    // My Alignment Plan — active commitment in each of the four pillars
+    if (stats.map_all_pillars_active) {
       data.roadmap_clarity = 10
     }
 
-    // Transformation tracking - based on complete profile, assessment, vision, and vision board
-    const hasProfile = stats.profile_completion_percent >= 80
-    const hasAssessment = stats.assessment_completed
-    const hasVision = stats.visions_count > 0
-    const hasVisionBoard = stats.vision_board_items_count > 0
-    if (hasProfile && hasAssessment && hasVision && hasVisionBoard) {
+    // Alignment Gym (Q11) — tour complete (or MAP done, which requires gym in intensive flow)
+    if (stats.alignment_gym_toured || stats.map_activated) {
       data.transformation_tracking = 10
     }
 
@@ -292,53 +339,87 @@ export default function IntensiveUnlockPage() {
 
     switch (questionId) {
       case 'vision_clarity':
-        return `Our score for you is 10/10, as you have created ${stats.visions_count} vision${stats.visions_count !== 1 ? 's' : ''} with ${stats.total_refinements} refinement${stats.total_refinements !== 1 ? 's' : ''}.`
+        return 'Our score for you is 10/10, as you have created a Life Vision.'
       case 'vibrational_harmony':
         return `Our score for you is 10/10, as you have ${stats.visions_count} vision${stats.visions_count !== 1 ? 's' : ''}, ${stats.audio_sets_count} audio set${stats.audio_sets_count !== 1 ? 's' : ''}, and ${stats.vision_board_items_count} vision board item${stats.vision_board_items_count !== 1 ? 's' : ''}.`
       case 'vibrational_constraints_clarity':
-        if (stats.assessment_completed) {
-          return `Our score for you is 10/10, as you have completed your assessment across ${stats.assessment_strengths_count} life categor${stats.assessment_strengths_count !== 1 ? 'ies' : 'y'} with clear visibility into what supports and what constrains your vibration.`
+        if (stats.vibe_posts_count > 0 && stats.vibe_tribe_engaged) {
+          return 'Our score for you is 10/10, as you have posted in and engaged with the Vibe Tribe.'
         }
         return null
       case 'vision_iteration_ease':
-        return `Our score for you is 10/10, as you have an active vision that can easily be cloned and refined.`
+        return 'Our score for you is 10/10, as you can easily create and edit new versions of your active Life Vision upon graduation.'
       case 'audio_iteration_ease':
         return `Our score for you is 10/10, as you have created ${stats.audio_sets_count} audio set${stats.audio_sets_count !== 1 ? 's' : ''} with ${stats.audio_tracks_count} track${stats.audio_tracks_count !== 1 ? 's' : ''} with new generations ready at the click of a button.`
       case 'vision_board_management':
         return `Our score for you is 10/10, as you have ${stats.vision_board_items_count} item${stats.vision_board_items_count !== 1 ? 's' : ''} on your vision board with easy management and downloads.`
-      case 'journey_capturing':
-        return `Our score for you is 10/10, as you have ${stats.profile_versions_count} profile version${stats.profile_versions_count !== 1 ? 's' : ''}, ${stats.assessment_completed_count} assessment${stats.assessment_completed_count !== 1 ? 's' : ''}, ${stats.visions_count} life vision${stats.visions_count !== 1 ? 's' : ''}, ${stats.vision_board_items_count} vision board item${stats.vision_board_items_count !== 1 ? 's' : ''}, and ${stats.journal_entries_count} journal entr${stats.journal_entries_count !== 1 ? 'ies' : 'y'}.`
-      case 'roadmap_clarity':
-        return `Our score for you is 10/10, as you have an active activation protocol to activate your life vision.`
+      case 'journey_capturing': {
+        const profiles = stats.profile_versions_count ?? 0
+        const visions = stats.visions_count ?? 0
+        const boardItems = stats.vision_board_items_count ?? 0
+        const journals = stats.journal_entries_count ?? 0
+        return `Our score for you is 10/10, as you have ${profiles} profile version${profiles !== 1 ? 's' : ''}, ${visions} life vision${visions !== 1 ? 's' : ''}, ${boardItems} vision board item${boardItems !== 1 ? 's' : ''}, ${journals} journal entr${journals !== 1 ? 'ies' : 'y'}, and Vibe Tribe activity on your account - each easy to create new versions or add new entries.`
+      }
+      case 'roadmap_clarity': {
+        if (!stats.map_all_pillars_active) return null
+        return 'Our score for you is 10/10, because you have an active MAP (My Alignment Plan) with commitments in each of the four categories: Activations, Creations, Connections, & Sessions.'
+      }
       case 'transformation_tracking':
-        return `Our score for you is 10/10, as you have ${stats.profile_versions_count} profile version${stats.profile_versions_count !== 1 ? 's' : ''}, ${stats.assessment_completed_count} assessment${stats.assessment_completed_count !== 1 ? 's' : ''}, ${stats.visions_count} vision${stats.visions_count !== 1 ? 's' : ''}, and ${stats.journal_entries_count} journal entr${stats.journal_entries_count !== 1 ? 'ies' : 'y'} - each easy to create new versions or add new items.`
+        return 'Our score for you is 10/10, because you completed the Alignment Gym tour, have an Alignment Gym commitment on your MAP, and have access to all session replays.'
       default:
         return null
     }
   }
 
+  const clearSubmitValidation = () => {
+    setSubmitError(null)
+    setSubmitErrorItems([])
+    setHighlightFieldIds([])
+  }
+
   const updateFormData = (field: string, value: number | string | boolean | null) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    clearSubmitValidation()
   }
 
   const submitForm = async () => {
     if (!intensiveId) return
 
-    // Validate all required rating and multiple choice fields
-    const requiredQuestions = questions.filter(q => q.type === 'rating' || q.type === 'multiple_choice')
-    const missingFields = requiredQuestions.filter(q => formData[q.id] === null)
+    const testimonialQuestionNumber = questions.length + 1
+    const missing: { fieldId: string; label: string }[] = []
 
-    if (missingFields.length > 0) {
-      alert(`Please answer all questions. Missing: ${missingFields.map(q => q.label).join(', ')}`)
+    questions.forEach((q, index) => {
+      if (q.type !== 'rating' && q.type !== 'multiple_choice') return
+      if (formData[q.id] === null || formData[q.id] === '') {
+        const prompt = q.questionPost || q.label
+        missing.push({
+          fieldId: q.id,
+          label: `Question ${index + 1}: ${truncateForError(prompt)}`,
+        })
+      }
+    })
+
+    const hasTestimonial =
+      Boolean(testimonialVideoUrl) ||
+      Boolean(testimonialTranscript?.trim()) ||
+      Boolean((formData.biggest_shift as string)?.trim())
+
+    if (!hasTestimonial) {
+      missing.push({
+        fieldId: 'testimonial',
+        label: `Question ${testimonialQuestionNumber}: ${truncateForError(TESTIMONIAL_QUESTION_TEXT)} (record a video or type your response)`,
+      })
+    }
+
+    if (missing.length > 0) {
+      setSubmitError('Please complete the following before unlocking your platform:')
+      setSubmitErrorItems(missing.map(m => m.label))
+      setHighlightFieldIds(missing.map(m => m.fieldId))
+      scrollToUnlockField(missing[0].fieldId)
       return
     }
 
-    // Must have either video or text testimonial
-    if (!testimonialVideoUrl && !testimonialTranscript && !formData.biggest_shift) {
-      alert('Please record a video testimonial or type your response.')
-      return
-    }
-
+    clearSubmitValidation()
     setSubmitting(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -399,7 +480,9 @@ export default function IntensiveUnlockPage() {
 
     } catch (error) {
       console.error('Error submitting form:', error)
-      alert('Error submitting form. Please try again.')
+      setSubmitError('Something went wrong while unlocking. Please try again.')
+      setSubmitErrorItems([])
+      setHighlightFieldIds([])
     } finally {
       setSubmitting(false)
     }
@@ -433,7 +516,6 @@ export default function IntensiveUnlockPage() {
         return (
           <>
             <StatBadge icon={Target} label="Visions Created" value={stats.visions_count} />
-            <StatBadge icon={Sparkles} label="Refinements" value={stats.total_refinements} />
             {stats.visions_draft > 0 && (
               <StatBadge icon={FileText} label="In Draft" value={stats.visions_draft} />
             )}
@@ -449,10 +531,7 @@ export default function IntensiveUnlockPage() {
         )
       case 'vision_iteration_ease':
         return (
-          <>
-            <StatBadge icon={CheckCircle} label="Active Vision" value={stats.visions_active > 0 ? 'Yes' : 'No'} />
-            <StatBadge icon={Sparkles} label="Refinements" value={stats.total_refinements} />
-          </>
+          <StatBadge icon={Target} label="Active Life Vision" value={stats.visions_active > 0 ? 'Yes' : 'No'} />
         )
       case 'has_audio_tracks':
       case 'audio_iteration_ease':
@@ -470,41 +549,75 @@ export default function IntensiveUnlockPage() {
             <StatBadge icon={CheckCircle} label="With Images" value={stats.vision_board_images_count} />
           </>
         )
-      case 'vibrational_constraints_clarity':
+      case 'vibrational_constraints_clarity': {
+        const vibePosts = stats.vibe_posts_count ?? 0
+        const engaged = stats.vibe_tribe_engaged ?? false
         return (
           <>
-            <StatBadge icon={CheckCircle} label="Assessment" value={stats.assessment_completed ? 'Completed' : 'Pending'} />
-            <StatBadge icon={Target} label="Categories Assessed" value={stats.assessment_strengths_count} />
+            <StatBadge icon={Users} label="Vibe Tribe Posts" value={vibePosts} />
+            <StatBadge icon={MessageSquare} label="Engaged" value={engaged ? 'Yes' : 'No'} />
           </>
         )
-      case 'journey_capturing':
+      }
+      case 'journey_capturing': {
+        const vibePosts = stats.vibe_posts_count ?? 0
+        const engaged = stats.vibe_tribe_engaged ?? false
         return (
           <>
-            <StatBadge icon={FileText} label="Journal Entries" value={stats.journal_entries_count} />
+            <StatBadge icon={User} label="Profile Versions" value={stats.profile_versions_count ?? 0} />
+            <StatBadge icon={Target} label="Life Visions" value={stats.visions_count ?? 0} />
+            <StatBadge icon={Layout} label="Vision Board Items" value={stats.vision_board_items_count ?? 0} />
+            <StatBadge icon={FileText} label="Journal Entries" value={stats.journal_entries_count ?? 0} />
+            <StatBadge icon={Users} label="Vibe Tribe Posts" value={vibePosts} />
+            <StatBadge icon={MessageSquare} label="Vibe Tribe Engaged" value={engaged ? 'Yes' : 'No'} />
           </>
         )
-      case 'transformation_tracking':
+      }
+      case 'transformation_tracking': {
+        const schedule =
+          stats.alignment_gym_schedule_label ||
+          (stats.alignment_gym_toured || stats.alignment_gym_map_commitment
+            ? 'Committed to 1 live group coaching session per week'
+            : '')
+        if (!schedule) return null
+        return (
+          <StatBadge icon={Video} label="Alignment Gym" value={schedule} />
+        )
+      }
+      case 'roadmap_clarity': {
+        const pillars = stats.map_pillar_active ?? emptyMapPillarActive()
         return (
           <>
-            <StatBadge icon={Target} label="Profile Versions" value={stats.profile_versions_count} />
-            <StatBadge icon={CheckCircle} label="Assessments" value={stats.assessment_completed_count} />
-            <StatBadge icon={Target} label="Visions" value={stats.visions_count} />
-            <StatBadge icon={FileText} label="Journal" value={stats.journal_entries_count} />
+            {PILLAR_ORDER.map((pillar: MapCategory) => {
+              const meta = PILLAR_META[pillar]
+              const Icon = meta.exampleIcon
+              return (
+                <StatBadge
+                  key={pillar}
+                  icon={Icon}
+                  label={meta.label}
+                  value={pillars[pillar] ? 'Yes' : 'No'}
+                />
+              )
+            })}
           </>
         )
-      case 'roadmap_clarity':
-        return (
-          <>
-            <StatBadge icon={Target} label="Active Visions" value={stats.visions_active} />
-          </>
-        )
+      }
       default:
         return null
     }
   }
 
   // Rating selector with baseline comparison
-  const RatingSelector = ({ question, displayNumber }: { question: IntakeQuestion, displayNumber: number }) => {
+  const RatingSelector = ({
+    question,
+    displayNumber,
+    highlight,
+  }: {
+    question: IntakeQuestion
+    displayNumber: number
+    highlight?: boolean
+  }) => {
     const value = formData[question.id] as number | null
     const baselineValue = baseline[question.id] as number | null
     const improvement = value !== null && baselineValue !== null 
@@ -514,7 +627,12 @@ export default function IntensiveUnlockPage() {
     const scoreExplanation = getScoreExplanation(question.id)
 
     return (
-      <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
+      <div
+        id={`unlock-question-${question.id}`}
+        className={`border rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden ${
+          highlight ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-neutral-800'
+        }`}
+      >
         <div className="flex items-start gap-3 mb-4">
           <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
             {displayNumber}
@@ -583,13 +701,26 @@ export default function IntensiveUnlockPage() {
   }
 
   // Multiple choice selector with baseline comparison
-  const MultipleChoiceSelector = ({ question, displayNumber }: { question: IntakeQuestion, displayNumber: number }) => {
+  const MultipleChoiceSelector = ({
+    question,
+    displayNumber,
+    highlight,
+  }: {
+    question: IntakeQuestion
+    displayNumber: number
+    highlight?: boolean
+  }) => {
     const baselineValue = baseline[question.id] as string | null
     const statsInfo = getStatsForQuestion(question.id)
     const scoreExplanation = getScoreExplanation(question.id)
 
     return (
-      <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
+      <div
+        id={`unlock-question-${question.id}`}
+        className={`border rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden ${
+          highlight ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-neutral-800'
+        }`}
+      >
         <div className="flex items-start gap-3 mb-4">
           <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
             {displayNumber}
@@ -643,11 +774,26 @@ export default function IntensiveUnlockPage() {
   // Render question based on type with display number
   const renderQuestion = (question: IntakeQuestion, index: number) => {
     const displayNumber = index + 1
+    const highlight = highlightFieldIds.includes(question.id)
     switch (question.type) {
       case 'rating':
-        return <RatingSelector key={question.id} question={question} displayNumber={displayNumber} />
+        return (
+          <RatingSelector
+            key={question.id}
+            question={question}
+            displayNumber={displayNumber}
+            highlight={highlight}
+          />
+        )
       case 'multiple_choice':
-        return <MultipleChoiceSelector key={question.id} question={question} displayNumber={displayNumber} />
+        return (
+          <MultipleChoiceSelector
+            key={question.id}
+            question={question}
+            displayNumber={displayNumber}
+            highlight={highlight}
+          />
+        )
       default:
         return null
     }
@@ -693,7 +839,6 @@ export default function IntensiveUnlockPage() {
               {/* Setup */}
               <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <Settings className="w-5 h-5 text-neutral-400" />
                   <span className="font-semibold text-white">Setup</span>
                   <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
                 </div>
@@ -716,7 +861,6 @@ export default function IntensiveUnlockPage() {
               {/* Foundation */}
               <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <User className="w-5 h-5 text-[#5EC49A]" />
                   <span className="font-semibold text-white">Foundation</span>
                   <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
                 </div>
@@ -733,7 +877,6 @@ export default function IntensiveUnlockPage() {
               {/* Vision Creation */}
               <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-5 h-5 text-[#2DD4BF]" />
                   <span className="font-semibold text-white">Vision Creation</span>
                   <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
                 </div>
@@ -750,7 +893,6 @@ export default function IntensiveUnlockPage() {
               {/* Audio */}
               <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <Music className="w-5 h-5 text-[#8B5CF6]" />
                   <span className="font-semibold text-white">Audio</span>
                   <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
                 </div>
@@ -779,7 +921,6 @@ export default function IntensiveUnlockPage() {
               {/* Activation */}
               <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <ImageIcon className="w-5 h-5 text-[#FFB701]" />
                   <span className="font-semibold text-white">Activation</span>
                   <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
                 </div>
@@ -802,7 +943,6 @@ export default function IntensiveUnlockPage() {
               {/* Community */}
               <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className="w-5 h-5 text-[#EC4899]" />
                   <span className="font-semibold text-white">Community</span>
                   <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
                 </div>
@@ -831,7 +971,6 @@ export default function IntensiveUnlockPage() {
               {/* Completion */}
               <div className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800">
                 <div className="flex items-center gap-2 mb-3">
-                  <Rocket className="w-5 h-5 text-primary-500" />
                   <span className="font-semibold text-white">Completion</span>
                   <Badge variant="success" className="ml-auto text-xs">Complete</Badge>
                 </div>
@@ -840,7 +979,7 @@ export default function IntensiveUnlockPage() {
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
                     <span className="text-xs font-mono text-neutral-600 w-4">13</span>
                     <Rocket className="w-3.5 h-3.5" />
-                    <span>My Activation Plan</span>
+                    <span>My Alignment Plan</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <CheckCircle className="w-4 h-4 text-primary-500 flex-shrink-0" />
@@ -870,14 +1009,21 @@ export default function IntensiveUnlockPage() {
           {questions.map((q, index) => renderQuestion(q, index))}
 
           {/* Combined Video Testimonial / Text Response Section - Q12 */}
-          <div className="border border-neutral-800 rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden">
+          <div
+            id="unlock-question-testimonial"
+            className={`border rounded-lg p-4 md:p-6 bg-neutral-900/30 overflow-hidden ${
+              highlightFieldIds.includes('testimonial')
+                ? 'border-red-500/60 ring-1 ring-red-500/30'
+                : 'border-neutral-800'
+            }`}
+          >
             <div className="flex items-start gap-3 mb-4">
               <div className="flex-shrink-0 w-7 h-7 rounded bg-neutral-800 text-neutral-400 flex items-center justify-center font-semibold text-sm">
                 {questions.length + 1}
               </div>
               <div>
                 <label className="block text-sm md:text-base font-medium text-white">
-                  What feels most different for you after completing the 72-Hour Activation Intensive?
+                  {TESTIMONIAL_QUESTION_TEXT}
                 </label>
                 <p className="text-xs md:text-sm text-neutral-500 mt-1">
                   Share your experience in your own words! This helps others see what's possible.
@@ -926,7 +1072,10 @@ export default function IntensiveUnlockPage() {
                     submitLabel="Send"
                     recordingId={intensiveId ? `intensive-${intensiveId}-testimonial` : undefined}
                     onRecordingComplete={(blob, _transcript, _shouldSaveFile, s3Url) => {
-                      if (s3Url) setTestimonialVideoUrl(s3Url)
+                      if (s3Url) {
+                        setTestimonialVideoUrl(s3Url)
+                        clearSubmitValidation()
+                      }
                     }}
                     enableEditor={false}
                   />
@@ -967,6 +1116,27 @@ export default function IntensiveUnlockPage() {
               />
             </div>
           </div>
+
+          {submitError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 md:p-5"
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="text-sm font-medium text-red-200">{submitError}</p>
+                  {submitErrorItems.length > 0 && (
+                    <ul className="list-disc list-inside space-y-1 text-sm text-red-200/90">
+                      {submitErrorItems.map(item => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Ready to Graduate Section */}
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
