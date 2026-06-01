@@ -8,6 +8,7 @@ import {
   Clock,
   Play,
   CheckCircle,
+  Eye,
   ExternalLink,
   Presentation,
   Sparkles,
@@ -134,6 +135,12 @@ export default function AlignmentGymSessionPage() {
       } catch {
         // best-effort MAP verify
       }
+
+      if (s.status === 'completed') {
+        fetch(`/api/video/sessions/${sessionId}/replay-viewed`, {
+          method: 'POST',
+        }).catch(() => {})
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load session')
       setSession(null)
@@ -183,9 +190,11 @@ export default function AlignmentGymSessionPage() {
   }
 
   const scheduledDate = new Date(session.scheduled_at)
-  const userAttended = session.participants?.some(
-    p => p.user_id === userId && p.attended
+  const userParticipant = session.participants?.find(
+    p => p.user_id === userId
   )
+  const userAttended = userParticipant?.attended ?? false
+  const userViewedReplay = !userAttended && Boolean(userParticipant?.replay_viewed_at)
   const hasReplay =
     session.status === 'completed' && Boolean(session.recording_url)
   const isLive = session.status === 'live'
@@ -246,6 +255,12 @@ export default function AlignmentGymSessionPage() {
             {userAttended && (
               <Badge variant="success" className="text-xs">
                 You attended
+              </Badge>
+            )}
+            {userViewedReplay && (
+              <Badge className="text-xs bg-[#00FFFF]/15 text-[#00FFFF] border-[#00FFFF]/30">
+                <Eye className="w-3 h-3 mr-1 inline" />
+                Viewed replay
               </Badge>
             )}
             {isLive && (

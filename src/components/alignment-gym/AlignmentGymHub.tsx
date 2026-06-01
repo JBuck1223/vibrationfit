@@ -38,6 +38,7 @@ import {
   Shield,
   ChevronDown,
   Apple,
+  Eye,
 } from 'lucide-react'
 import { 
   PageHero, 
@@ -626,9 +627,11 @@ export function AlignmentGymHub({
                   const dayNum = scheduledDate.getDate()
                   const monthStr = scheduledDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
                   const weekday = scheduledDate.toLocaleDateString('en-US', { weekday: 'short' })
-                  const userAttended = session.participants?.some(
-                    (p: VideoSessionParticipant) => p.user_id === userId && p.attended
+                  const userParticipant = session.participants?.find(
+                    (p: VideoSessionParticipant) => p.user_id === userId
                   )
+                  const userAttended = userParticipant?.attended ?? false
+                  const userViewedReplay = !userAttended && Boolean(userParticipant?.replay_viewed_at)
 
                   return (
                     <div
@@ -661,6 +664,12 @@ export function AlignmentGymHub({
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-500/15 text-[10px] font-semibold text-primary-500 tracking-wide uppercase">
                                 <CheckCircle className="w-3 h-3" />
                                 Attended
+                              </span>
+                            )}
+                            {userViewedReplay && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#00FFFF]/10 text-[10px] font-semibold text-[#00FFFF] tracking-wide uppercase">
+                                <Eye className="w-3 h-3" />
+                                Viewed
                               </span>
                             )}
                             <PlayCircle className="w-5 h-5 text-neutral-600 group-hover:text-primary-500 transition-colors" />
