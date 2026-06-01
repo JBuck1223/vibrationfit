@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
+
+interface RouteContext {
+  params: Promise<{ id: string }>
+}
+
+export async function POST(request: NextRequest, context: RouteContext) {
+  try {
+    const { id: sessionId } = await context.params
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const admin = createAdminClient()
+
+    const { data: session, error: sessionError } = await admin
+      .from('video_sessions')
+      .select('id, status, session_type, title')
+      .eq('id', sessionId)
+      .single()
+
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+    }
+
+    if (!isAlignmentGymDirectorySession(session)) {
+      return NextResponse.json(
+        { error: 'Only Alignment Gym sessions support replay tracking' },
+        { status: 400 }
+      )
+    }
+
+    if (session.status !== 'completed') {
+      return NextResponse.json(
+        { error: 'Session is not completed yet' },
+        { status: 400 }
+      )
+    }
+
+    const now = new Date().toISOString()
+
+    const { data: existing } = await admin
+      .from('video_session_participants')
+      .select('id, replay_viewed_at')
+      .eq('session_id', sessionId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (existing) {
+      if (!existing.replay_viewed_at) {
+        await admin
+          .from('video_session_participants')
+          .update({ replay_viewed_at: now })
+          .eq('id', existing.id)
+      }
+    } else {
+      await admin.from('video_session_participants').insert({
+        session_id: sessionId,
+        user_id: user.id,
+        replay_viewed_at: now,
+      })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('Error in POST replay-viewed:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
