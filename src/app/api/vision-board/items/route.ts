@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateImage } from '@/lib/services/imageService'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+import { getHouseholdContext } from '@/lib/household/context'
 
 // Image generation (fal/DALL-E) often takes 20-60s; avoid Vercel killing the request
 export const maxDuration = 120
 
 /**
  * GET /api/vision-board/items
- * Fetch all vision board items for the authenticated user
+ * Fetch vision board items for the authenticated user.
+ *
+ * Query params:
+ *   scope=mine       (default) items the user created
+ *   scope=household  items shared with the user's household (by any member)
+ *   scope=all        union of the user's items and household-shared items
+ *
+ * Household-scoped items are enriched with `member` (creator attribution).
  */
 export async function GET(request: NextRequest) {
   try {
@@ -19,18 +27,59 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: items, error } = await supabase
-      .from('vision_board_items')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    const scope = (new URL(request.url).searchParams.get('scope') || 'mine') as
+      | 'mine'
+      | 'household'
+      | 'all'
+
+    // Always resolve household context so the client can decide whether to
+    // surface the household lens and attribute shared items.
+    const household = await getHouseholdContext(user.id)
+
+    let query = supabase.from('vision_board_items').select('*')
+
+    if (scope === 'mine' || !household) {
+      query = query.eq('user_id', user.id)
+    } else if (scope === 'household') {
+      query = query.eq('household_id', household.householdId)
+    } else {
+      // all: my items OR anything shared with my household
+      query = query.or(`user_id.eq.${user.id},household_id.eq.${household.householdId}`)
+    }
+
+    const { data: items, error } = await query.order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching vision board items:', error)
       return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 })
     }
 
-    return NextResponse.json({ items: items || [] })
+    // Attribute shared items to their creator so the UI can show "whose" it is
+    const enriched = (items || []).map((item) => ({
+      ...item,
+      isShared: !!item.household_id,
+      isMine: item.user_id === user.id,
+      member: household?.memberMap?.[item.user_id]
+        ? {
+            userId: item.user_id,
+            displayName: household.memberMap[item.user_id].displayName,
+            avatarUrl: household.memberMap[item.user_id].avatarUrl,
+            isSelf: item.user_id === user.id,
+          }
+        : null,
+    }))
+
+    return NextResponse.json({
+      items: enriched,
+      household: household
+        ? {
+            id: household.householdId,
+            name: household.householdName,
+            isMultiMember: household.isMultiMember,
+            members: household.members,
+          }
+        : null,
+    })
 
   } catch (error: any) {
     console.error('❌ VISION BOARD ITEMS GET ERROR:', error)
@@ -60,7 +109,8 @@ export async function POST(request: NextRequest) {
       description, 
       categories, 
       status = 'active',
-      generateImage: shouldGenerateImage = false 
+      generateImage: shouldGenerateImage = false,
+      shareWithHousehold = false,
     } = body
 
     // Validation
@@ -69,6 +119,15 @@ export async function POST(request: NextRequest) {
         { error: 'Name and description are required' },
         { status: 400 }
       )
+    }
+
+    // Resolve household if the creation should be shared with the household
+    let householdId: string | null = null
+    if (shareWithHousehold) {
+      const household = await getHouseholdContext(user.id)
+      if (household?.isMultiMember) {
+        householdId = household.householdId
+      }
     }
 
     let imageUrl = null
@@ -113,6 +172,7 @@ export async function POST(request: NextRequest) {
         image_url: imageUrl,
         categories: categories || [],
         status: status || 'active',
+        household_id: householdId,
       })
       .select()
       .single()
@@ -201,13 +261,35 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { id, ...updates } = body
+    // Strip non-column helper fields that GET enrichment may have added,
+    // and pull out the explicit sharing toggle.
+    const {
+      id,
+      shareWithHousehold,
+      member: _member,
+      isShared: _isShared,
+      isMine: _isMine,
+      ...updates
+    } = body
 
     if (!id) {
       return NextResponse.json({ error: 'Item ID required' }, { status: 400 })
     }
 
-    // Update the item
+    // Handle the "include in household" toggle explicitly
+    if (shareWithHousehold === true) {
+      const household = await getHouseholdContext(user.id)
+      if (household?.isMultiMember) {
+        updates.household_id = household.householdId
+      }
+    } else if (shareWithHousehold === false) {
+      // Only the creator can unshare (enforced again by RLS)
+      updates.household_id = null
+    }
+
+    // Update the item. We intentionally do NOT filter by user_id here:
+    // RLS allows the creator to edit their own items, and any active household
+    // member to collaboratively edit items shared with the household.
     const { data: updatedItem, error: updateError } = await supabase
       .from('vision_board_items')
       .update({
@@ -215,7 +297,6 @@ export async function PUT(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('user_id', user.id) // Ensure user owns this item
       .select()
       .single()
 
@@ -224,6 +305,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { error: 'Failed to update item' },
         { status: 500 }
+      )
+    }
+
+    if (!updatedItem) {
+      return NextResponse.json(
+        { error: 'Item not found or you do not have permission to edit it' },
+        { status: 404 }
       )
     }
 
@@ -261,11 +349,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Item ID required' }, { status: 400 })
     }
 
+    // RLS enforces permission: the creator can delete their own items, and for
+    // household-shared items the creator or a household admin can delete.
     const { error: deleteError } = await supabase
       .from('vision_board_items')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id) // Ensure user owns this item
 
     if (deleteError) {
       console.error('Error deleting vision board item:', deleteError)

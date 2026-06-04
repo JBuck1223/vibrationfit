@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
     const outputPath = join(tempDir, 'audio.mp3')
 
     try {
+      const execEnv = { ...process.env, PATH: `${process.env.PATH}:/opt/homebrew/bin:/usr/local/bin` }
+
       // Download audio-only via yt-dlp, convert to mp3
       await execFileAsync('yt-dlp', [
         '--no-playlist',
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest) {
         '--max-filesize', '50m',
         '-o', outputPath,
         url,
-      ], { timeout: 90_000 })
+      ], { timeout: 90_000, env: execEnv })
 
       const audioBuffer = await readFile(outputPath)
 
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
           '-show_entries', 'format=duration',
           '-of', 'csv=p=0',
           outputPath,
-        ])
+        ], { env: execEnv })
         const parsed = parseFloat(stdout.trim())
         if (!isNaN(parsed)) duration = parsed
       } catch {}
