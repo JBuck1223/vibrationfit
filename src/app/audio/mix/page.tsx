@@ -72,7 +72,13 @@ export default function AudioMixPage() {
   const router = useRouter()
   const pathname = usePathname()
   const pathPrefix = pathname.startsWith('/intensive/') ? '/intensive' : ''
-  const { refreshAudioSets, refreshBatches, sourceType, sourceId } = useAudioStudio()
+  const { refreshAudioSets, refreshBatches, sourceType, sourceId, allVisions, visionLoading } = useAudioStudio()
+
+  // Defer intensive mode detection to after mount to avoid hydration mismatch
+  const [isIntensivePath, setIsIntensivePath] = useState(false)
+  useEffect(() => {
+    setIsIntensivePath(pathname.startsWith('/intensive/'))
+  }, [pathname])
 
   // Source selection
   const [selectedSource, setSelectedSource] = useState<AudioSourceSelection | null>(null)
@@ -87,6 +93,25 @@ export default function AudioMixPage() {
   const step1Ref = useRef<HTMLDivElement>(null)
   const step2Ref = useRef<HTMLDivElement>(null)
   const step3Ref = useRef<HTMLDivElement>(null)
+
+  // Intensive mode: auto-select the active life vision as source
+  const [intensiveAutoSelected, setIntensiveAutoSelected] = useState(false)
+  useEffect(() => {
+    if (!isIntensivePath || intensiveAutoSelected || visionLoading || allVisions.length === 0) return
+    const activeVision = allVisions.find(v => v.is_active) ?? allVisions[0]
+    if (!activeVision) return
+    setIntensiveAutoSelected(true)
+    setSelectedSource({
+      sourceType: 'life_vision',
+      sourceId: activeVision.id,
+      vision: activeVision,
+    })
+    setExistingVoiceSets([])
+    setSelectedBaseVoiceSetId('')
+    setLoading(true)
+    setSourceSelectionEpoch(n => n + 1)
+    setCurrentStep(2)
+  }, [isIntensivePath, intensiveAutoSelected, visionLoading, allVisions])
 
   const scrollToStep = (ref: React.RefObject<HTMLDivElement | null>) => {
     requestAnimationFrame(() => {
@@ -311,7 +336,9 @@ export default function AudioMixPage() {
     setLoading(true)
     setSourceSelectionEpoch(n => n + 1)
     setCurrentStep(2)
-    scrollToStep(step2Ref)
+    if (!isIntensivePath) {
+      scrollToStep(step2Ref)
+    }
   }
 
   useEffect(() => {
@@ -402,6 +429,12 @@ export default function AudioMixPage() {
     })
 
     setExistingVoiceSets(voiceSets)
+
+    // Intensive mode: auto-select the only voice set and skip to mix step
+    if (isIntensivePath && voiceSets.length === 1) {
+      setSelectedBaseVoiceSetId(voiceSets[0].id)
+      setCurrentStep(3)
+    }
 
     // Load background tracks (excluding frequency enhancement tracks)
     const { data: tracks } = await supabase
@@ -875,6 +908,7 @@ export default function AudioMixPage() {
         <QueueStatusBanner />
 
         <div className="flex flex-col gap-4">
+          {!isIntensivePath && (
           <div ref={step1Ref}>
             <div className={currentStep === 1 ? 'block' : 'hidden'}>
               <AudioSourceSelector
@@ -903,8 +937,9 @@ export default function AudioMixPage() {
               />
             )}
           </div>
+          )}
 
-          {sourceComplete && currentStep >= 2 && (
+          {(isIntensivePath ? !!selectedSource : sourceComplete) && currentStep >= 2 && (
           <div ref={step2Ref}>
             {loading && currentStep === 2 ? (
               <div className="flex min-h-[20vh] items-center justify-center">
@@ -932,7 +967,7 @@ export default function AudioMixPage() {
           <div className="flex flex-col items-center text-center gap-1 pb-4 border-b border-neutral-800">
             <div className="flex items-center justify-center gap-2">
               <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center shrink-0">
-                2
+                {isIntensivePath ? 1 : 2}
               </span>
               <h2 className="text-lg font-semibold text-white">Select Base Voice</h2>
             </div>
@@ -1052,6 +1087,7 @@ export default function AudioMixPage() {
           </div>
 
           {/* Generate New Base Voice Button */}
+          {!isIntensivePath && (
           <div className="flex justify-center pt-2">
             <Button variant="outline" asChild>
               <Link href={`${pathPrefix}/audio/generate`} className="flex items-center gap-2">
@@ -1060,12 +1096,14 @@ export default function AudioMixPage() {
               </Link>
             </Button>
           </div>
+          )}
           </div>
         </Card>
               )
             ) : (
+              !(isIntensivePath && existingVoiceSets.length <= 1) && (
               <CompletedStepRow
-                step={2}
+                step={isIntensivePath ? 1 : 2}
                 label="Base voice"
                 value={baseVoiceSummaryValue}
                 onChange={() => {
@@ -1074,6 +1112,7 @@ export default function AudioMixPage() {
                   scrollToStep(step2Ref)
                 }}
               />
+              )
             )}
           </div>
           )}
@@ -1085,9 +1124,11 @@ export default function AudioMixPage() {
         <Card variant="glass" className="p-3 md:p-5 lg:p-6">
           <div className="flex flex-col items-center text-center gap-1 pb-4 border-b border-neutral-800">
             <div className="flex items-center justify-center gap-2">
+              {!isIntensivePath && (
               <span className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-500 text-sm font-semibold flex items-center justify-center shrink-0">
                 3
               </span>
+              )}
               <h2 className="text-lg font-semibold text-white">Create Your Mix</h2>
             </div>
             <p className="w-full text-sm text-neutral-400">

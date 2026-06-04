@@ -31,7 +31,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       accent: `
         bg-[#BF00FF] text-white font-semibold
         border-2 border-transparent
-        hover:bg-[rgba(191,0,255,0.1)] hover:text-[#BF00FF] hover:border-[rgba(191,0,255,0.2)]
+        hover:bg-[#9900cc]
         active:opacity-80
       `,
       draft: `

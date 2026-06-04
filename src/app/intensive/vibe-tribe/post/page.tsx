@@ -32,7 +32,6 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
-  CheckCircle,
 } from 'lucide-react'
 
 const ICON_MAP: Record<VibeTag, typeof Trophy> = {
@@ -52,8 +51,7 @@ const TAG_DESCRIPTIONS: Record<VibeTag, string> = {
 export default function IntensiveVibePostPage() {
   const router = useRouter()
   const { setCompletedAt } = useIntensiveStep()
-  const { isOpen, stepId, completeAndShowModal, showModalForChecklistKey, closeModal } =
-    useIntensiveStepCompleteModal()
+  const { isOpen, stepId, completeAndShowModal, closeModal } = useIntensiveStepCompleteModal()
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [hasPosted, setHasPosted] = useState(false)
@@ -243,28 +241,6 @@ export default function IntensiveVibePostPage() {
 
       <div className="space-y-8">
 
-        {/* Completion Banner */}
-        {hasPosted && (
-          <Card variant="outlined" className="bg-primary-500/5 border-primary-500/20">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-primary-500" />
-                <div>
-                  <p className="text-sm font-semibold text-primary-400">First post complete!</p>
-                  <p className="text-xs text-neutral-400">Next up: learn how to engage with the community.</p>
-                </div>
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => showModalForChecklistKey('first_vibe_post')}
-              >
-                Continue<ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
-        )}
-
         {/* Hero Video */}
         <div className="mx-auto w-full max-w-3xl">
           <OptimizedVideo
@@ -322,7 +298,7 @@ export default function IntensiveVibePostPage() {
         {/* Post Your First Share */}
         <div className="space-y-4" id="step-1-card">
           <Card className="p-8 bg-neutral-900/50 border-neutral-800">
-            <h2 className="text-xl font-semibold text-white mb-6">Post Your First Share</h2>
+            <h2 className="text-xl font-semibold text-white mb-6">Create First Post</h2>
 
             {/* Tag Selector */}
             <div className="mb-5">
@@ -377,6 +353,7 @@ export default function IntensiveVibePostPage() {
                     selectedCategories={selectedCategories}
                     onCategoryClick={handleCategoryToggle}
                     lifeVisionCategoryStrip
+                    desktopColumnCount={6}
                   />
                 </div>
               )}
@@ -521,7 +498,7 @@ export default function IntensiveVibePostPage() {
               onClick={scrollToStep1}
             >
               <ArrowRight className="w-4 h-4 mr-2 -rotate-90" />
-              Back to Step 1
+              Create Post
             </Button>
           </div>
         )}

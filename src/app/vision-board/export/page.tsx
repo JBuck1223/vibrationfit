@@ -4,8 +4,8 @@
 'use client'
 
 import { useEffect, useState, useMemo, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Download, Loader2, FileText, Eye, Filter, Image, FileImage, ArrowLeft, RefreshCw } from 'lucide-react'
+import { useSearchParams, usePathname } from 'next/navigation'
+import { Download, Loader2, FileText, Eye, Filter, Image, FileImage, ArrowLeft, RefreshCw, Sparkles } from 'lucide-react'
 import { Button, Spinner, CategoryGrid, Toggle } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -59,6 +59,8 @@ function previewAspectRatio(outputFormat: 'pdf' | 'image', paperSize: string, im
 
 function ExportPageContent() {
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const isIntensivePath = pathname?.startsWith('/intensive') ?? false
 
   const [outputFormat, setOutputFormat] = useState<'pdf' | 'image'>('pdf')
   const [paperSize, setPaperSize] = useState('letter-landscape')
@@ -83,7 +85,6 @@ function ExportPageContent() {
 
   const [isGenerating, setIsGenerating] = useState(false)
   const [iframeKey, setIframeKey] = useState(0)
-  const [showFilters, setShowFilters] = useState(false)
   const [itemCount, setItemCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -337,81 +338,34 @@ function ExportPageContent() {
     { key: 'primary', label: 'Title' },
     { key: 'accent', label: 'Lines' },
     { key: 'text', label: 'Text' },
-    { key: 'background', label: 'Background' },
+    { key: 'background', label: 'BG' },
   ]
 
   const aspectStyle = previewAspectRatio(outputFormat, paperSize, imageRatio)
 
   return (
     <div className="flex flex-col">
-      <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-3 md:p-4 mb-6 space-y-3 md:space-y-4">
-        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+      <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-4 md:p-5 mb-6 space-y-4">
+        {/* Top bar: back, format toggle, download */}
+        <div className="relative flex items-center justify-between gap-3">
           <Button asChild variant="outline" size="sm" className="shrink-0">
-            <Link href="/vision-board" className="flex items-center gap-2">
+            <Link href={isIntensivePath ? '/intensive/vision-board' : '/vision-board'} className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Vision Board</span>
+              <span className="hidden sm:inline">Back</span>
             </Link>
           </Button>
 
-          <div className="w-px h-6 bg-neutral-700 hidden sm:block" />
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">Theme</span>
-            {presetEntries.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => applyPreset(key)}
-                title={label}
-                className="group"
-              >
-                <div
-                  className="w-7 h-7 rounded-full border border-neutral-600 group-hover:border-neutral-400 transition-colors"
-                  style={{ backgroundColor: colorPresets[key].primary }}
-                />
-              </button>
-            ))}
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <Toggle
+              options={[
+                { value: 'pdf', label: 'PDF' },
+                { value: 'image', label: 'Image' },
+              ]}
+              value={outputFormat}
+              onChange={setOutputFormat}
+              size="sm"
+            />
           </div>
-
-          <div className="w-px h-6 bg-neutral-700 hidden sm:block" />
-
-          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">Custom</span>
-            {colorFields.map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-1.5 cursor-pointer" title={label}>
-                <input
-                  type="color"
-                  value={colors[key]}
-                  onChange={(e) => updateColor(key, e.target.value)}
-                  className="w-7 h-7 rounded-full cursor-pointer border border-neutral-600 hover:border-neutral-400 bg-transparent p-0 transition-colors [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
-                />
-                <span className="text-[11px] text-neutral-500 hidden md:inline">{label}</span>
-              </label>
-            ))}
-          </div>
-
-          <div className="w-px h-6 bg-neutral-700 hidden sm:block" />
-
-          <button
-            type="button"
-            onClick={() => setColors({ primary: '#000000', accent: '#9CA3AF', text: '#1F1F1F', background: '#FFFFFF' })}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition-colors"
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span className="hidden sm:inline">Reset</span>
-          </button>
-
-          <div className="flex-1 min-w-[8px]" />
-
-          <Toggle
-            options={[
-              { value: 'pdf', label: 'PDF' },
-              { value: 'image', label: 'Image' },
-            ]}
-            value={outputFormat}
-            onChange={setOutputFormat}
-            size="sm"
-          />
 
           <Button
             onClick={handleDownload}
@@ -423,242 +377,261 @@ function ExportPageContent() {
             {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Generating...
+                <span className="hidden sm:inline">Generating...</span>
               </>
             ) : (
               <>
-                {outputFormat === 'pdf' ? <FileText className="w-4 h-4" /> : <FileImage className="w-4 h-4" />}
-                Download {outputFormat.toUpperCase()}
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Download {outputFormat.toUpperCase()}</span>
               </>
             )}
           </Button>
         </div>
 
-        <div className="border-t border-neutral-700 pt-3 flex flex-col gap-3">
-          <p className="text-[10px] text-neutral-500">
-            {itemCount} item{itemCount !== 1 ? 's' : ''} matched · about {estimatedPages} {outputFormat === 'pdf' ? 'page' : 'image'}{estimatedPages !== 1 ? 's' : ''}
-          </p>
+        <p className="text-[11px] text-neutral-500 text-center">
+          {itemCount} item{itemCount !== 1 ? 's' : ''} · ~{estimatedPages} {outputFormat === 'pdf' ? 'page' : 'image'}{estimatedPages !== 1 ? 's' : ''}
+        </p>
 
-          <div className="flex flex-wrap items-start gap-4">
-            <div className="rounded-xl border border-neutral-700 p-3 min-w-0 flex-[1_1_280px] sm:min-w-[280px] sm:max-w-[360px]">
-              <h3 className="text-[10px] font-semibold text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
-                {outputFormat === 'pdf' ? (
-                  <>
-                    <FileText className="w-3.5 h-3.5 text-primary-500" />
-                    Paper
-                  </>
-                ) : (
-                  <>
-                    <Image className="w-3.5 h-3.5 text-primary-500" />
-                    Ratio
-                  </>
-                )}
-              </h3>
-              {outputFormat === 'pdf' ? (
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  {PAPER_SIZES.map(size => (
+        {/* Options grid: desktop = 3 cols (Paper+Display | Colors | Filters), mobile = stacked */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Column 1: Paper + Display */}
+          <div className="space-y-4 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4">
+            {/* Paper/Ratio */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-neutral-700" />
+                <h3 className="text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide">
+                  {outputFormat === 'pdf' ? (
+                    <><FileText className="w-3.5 h-3.5 text-primary-500" /> Paper</>
+                  ) : (
+                    <><Image className="w-3.5 h-3.5 text-primary-500" /> Ratio</>
+                  )}
+                </h3>
+                <div className="h-px flex-1 bg-neutral-700" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {(outputFormat === 'pdf' ? PAPER_SIZES : IMAGE_RATIOS).map(opt => {
+                  const isActive = outputFormat === 'pdf' ? paperSize === opt.value : imageRatio === opt.value
+                  return (
                     <button
-                      key={size.value}
+                      key={opt.value}
                       type="button"
-                      onClick={() => setPaperSize(size.value)}
-                      className={`px-3 py-2.5 rounded-lg text-left text-xs transition-all ${
-                        paperSize === size.value
+                      onClick={() => outputFormat === 'pdf' ? setPaperSize(opt.value) : setImageRatio(opt.value)}
+                      className={`px-3 py-2 rounded-xl text-left text-xs transition-all ${
+                        isActive
                           ? 'bg-primary-500/20 border border-primary-500 text-white'
-                          : 'bg-neutral-800 border border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                          : 'bg-neutral-800/60 border border-neutral-700 text-neutral-400 hover:border-neutral-600'
                       }`}
                     >
-                      <div className="font-medium">{size.label}</div>
-                      <div className="text-[10px] opacity-70">{size.desc}</div>
+                      <div className="font-medium">{opt.label}</div>
+                      <div className="text-[10px] opacity-70">{opt.desc}</div>
                     </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  {IMAGE_RATIOS.map(ratio => (
-                    <button
-                      key={ratio.value}
-                      type="button"
-                      onClick={() => setImageRatio(ratio.value)}
-                      className={`px-3 py-2.5 rounded-lg text-left text-xs transition-all ${
-                        imageRatio === ratio.value
-                          ? 'bg-primary-500/20 border border-primary-500 text-white'
-                          : 'bg-neutral-800 border border-neutral-700 text-neutral-400 hover:border-neutral-600'
-                      }`}
-                    >
-                      <div className="font-medium">{ratio.label}</div>
-                      <div className="text-[10px] opacity-70">{ratio.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                  )
+                })}
+              </div>
             </div>
 
-            <div className="rounded-xl border border-neutral-700 p-3 min-w-0 flex-[1.15_1_300px] sm:min-w-[300px] sm:max-w-[420px]">
-              <h3 className="text-[10px] font-semibold text-white mb-3 flex items-center gap-2 uppercase tracking-wide">
-                <Eye className="w-3.5 h-3.5 text-primary-500" />
-                Display
+            {/* Display */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-neutral-700" />
+                <h3 className="text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide">
+                  <Eye className="w-3.5 h-3.5 text-primary-500" /> Display
+                </h3>
+                <div className="h-px flex-1 bg-neutral-700" />
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <div className="text-[10px] text-neutral-500 mb-1.5 uppercase">Columns</div>
+                  <div className="flex gap-1.5">
+                    {COLUMN_OPTIONS.map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setColumns(opt.value)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          columns === opt.value
+                            ? 'bg-primary-500 text-black'
+                            : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+                  {[
+                    { key: 'showHeader', label: 'Title', checked: showHeader, onChange: setShowHeader, disabled: false },
+                    { key: 'showItemNames', label: 'Names', checked: showItemNames, onChange: setShowItemNames, disabled: false },
+                    { key: 'showDescriptions', label: 'Desc', checked: showDescriptions, onChange: setShowDescriptions, disabled: !showItemNames },
+                    { key: 'showCategories', label: 'Categories', checked: showCategories, onChange: setShowCategories, disabled: !showItemNames },
+                    { key: 'roundedCorners', label: 'Rounded', checked: roundedCorners, onChange: setRoundedCorners, disabled: false },
+                    { key: 'showBadges', label: 'Badges', checked: showBadges, onChange: setShowBadges, disabled: false },
+                  ].map(({ key, label, checked, onChange, disabled }) => (
+                    <label key={key} className={`flex items-center gap-2 cursor-pointer ${disabled ? 'opacity-40' : ''}`}>
+                      <button
+                        type="button"
+                        onClick={() => !disabled && onChange(!checked)}
+                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                          checked
+                            ? 'bg-[#39FF14] border-[#39FF14]'
+                            : 'bg-neutral-800 border-neutral-600'
+                        }`}
+                        disabled={disabled}
+                      >
+                        {checked && <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </button>
+                      <span className={`text-[11px] ${disabled ? 'text-neutral-600' : 'text-neutral-300'}`}>{label}</span>
+                    </label>
+                  ))}
+                  <label className="flex items-center gap-2 cursor-pointer col-span-3">
+                    <button
+                      type="button"
+                      onClick={() => setGroupByStatus(!groupByStatus)}
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        groupByStatus
+                          ? 'bg-[#39FF14] border-[#39FF14]'
+                          : 'bg-neutral-800 border-neutral-600'
+                      }`}
+                    >
+                      {groupByStatus && <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </button>
+                    <span className="text-[11px] text-neutral-300">Group by status</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 2: Colors */}
+          <div className="space-y-3 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-neutral-700" />
+              <h3 className="text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide">
+                <Sparkles className="w-3.5 h-3.5 text-primary-500" /> Colors
               </h3>
-              <div className="text-[10px] text-neutral-500 mb-1.5 uppercase">Columns</div>
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {COLUMN_OPTIONS.map(opt => (
+              <div className="h-px flex-1 bg-neutral-700" />
+            </div>
+            <div>
+              <div className="text-[10px] text-neutral-500 mb-1.5 uppercase text-center">Presets</div>
+              <div className="flex items-center justify-center gap-2">
+                {presetEntries.map(({ key, label }) => (
                   <button
-                    key={opt.value}
+                    key={key}
                     type="button"
-                    onClick={() => setColumns(opt.value)}
-                    className={`min-w-[2.25rem] px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      columns === opt.value
-                        ? 'bg-primary-500 text-black'
-                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                    }`}
+                    onClick={() => applyPreset(key)}
+                    title={label}
+                    className="group"
                   >
-                    {opt.label}
+                    <div
+                      className="w-8 h-8 rounded-full border-2 border-neutral-600 group-hover:border-neutral-400 transition-colors"
+                      style={{ backgroundColor: colorPresets[key].primary }}
+                    />
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2 w-full">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showHeader}
-                    onChange={(e) => setShowHeader(e.target.checked)}
-                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-800 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span className="text-[10px] text-neutral-300">Title</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showItemNames}
-                    onChange={(e) => setShowItemNames(e.target.checked)}
-                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-800 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span className="text-[10px] text-neutral-300">Names</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showDescriptions}
-                    onChange={(e) => setShowDescriptions(e.target.checked)}
-                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-800 text-primary-500 focus:ring-primary-500"
-                    disabled={!showItemNames}
-                  />
-                  <span className={`text-[10px] ${showItemNames ? 'text-neutral-300' : 'text-neutral-600'}`}>Desc</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showCategories}
-                    onChange={(e) => setShowCategories(e.target.checked)}
-                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-800 text-primary-500 focus:ring-primary-500"
-                    disabled={!showItemNames}
-                  />
-                  <span className={`text-[10px] ${showItemNames ? 'text-neutral-300' : 'text-neutral-600'}`}>Categories</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={roundedCorners}
-                    onChange={(e) => setRoundedCorners(e.target.checked)}
-                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-800 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span className="text-[10px] text-neutral-300">Rounded</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showBadges}
-                    onChange={(e) => setShowBadges(e.target.checked)}
-                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-800 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span className="text-[10px] text-neutral-300">Badges</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer col-span-2 sm:col-span-3">
-                  <input
-                    type="checkbox"
-                    checked={groupByStatus}
-                    onChange={(e) => setGroupByStatus(e.target.checked)}
-                    className="w-3 h-3 rounded border-neutral-600 bg-neutral-800 text-primary-500 focus:ring-primary-500"
-                  />
-                  <span className="text-[10px] text-neutral-300">Group by status</span>
-                </label>
+            </div>
+            <div>
+              <div className="text-[10px] text-neutral-500 mb-1.5 uppercase text-center">Custom</div>
+              <div className="flex items-end justify-center gap-4">
+                {colorFields.map(({ key, label }) => (
+                  <div key={key} className="flex flex-col items-center gap-1">
+                    <label className="cursor-pointer" title={label}>
+                      <input
+                        type="color"
+                        value={colors[key]}
+                        onChange={(e) => updateColor(key, e.target.value)}
+                        className="w-8 h-8 rounded-full cursor-pointer border-2 border-neutral-600 hover:border-neutral-400 bg-transparent p-0 transition-colors [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
+                      />
+                    </label>
+                    <span className="text-[9px] text-neutral-500">{label}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-center mt-2">
+                <button
+                  type="button"
+                  onClick={() => setColors({ primary: '#000000', accent: '#9CA3AF', text: '#1F1F1F', background: '#FFFFFF' })}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition-colors"
+                  title="Reset colors"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Reset
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="rounded-xl border border-neutral-700 p-3 flex-1 min-w-0">
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className="w-full flex items-center justify-between text-[10px] font-semibold text-white uppercase tracking-wide"
-              >
-                <span className="flex items-center gap-2">
-                  <Filter className="w-3.5 h-3.5 text-primary-500" />
-                  Filters
-                </span>
-                <span className="text-neutral-500 text-lg leading-none">{showFilters ? '\u2212' : '+'}</span>
-              </button>
-              {showFilters && (
-                <div className="mt-2 space-y-2">
-                  <div>
-                    <div className="text-[10px] text-neutral-500 mb-1 uppercase">Status</div>
-                    <div className="flex flex-wrap gap-1">
-                      {STATUS_OPTIONS.map(status => (
-                        <button
-                          key={status.value}
-                          type="button"
-                          onClick={() => toggleStatus(status.value)}
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-all ${
-                            selectedStatuses.includes(status.value) || selectedStatuses.includes('all')
-                              ? 'text-white'
-                              : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                          }`}
-                          style={{
-                            backgroundColor: (selectedStatuses.includes(status.value) || selectedStatuses.includes('all'))
-                              ? status.color
-                              : undefined
-                          }}
-                        >
-                          {status.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-neutral-500 mb-1 uppercase">Categories</div>
-                    <CategoryGrid
-                      categories={VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')}
-                      selectedCategories={selectedCategories.includes('all') ? VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key) : selectedCategories}
-                      onCategoryClick={toggleCategory}
-                      lifeVisionCategoryStrip
-                      desktopColumnCount={6}
-                    />
+          {/* Column 3: Filters (always open) */}
+          <div className="space-y-3 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-neutral-700" />
+              <h3 className="text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide">
+                <Filter className="w-3.5 h-3.5 text-primary-500" /> Filters
+              </h3>
+              <div className="h-px flex-1 bg-neutral-700" />
+            </div>
+            <div className="space-y-3">
+              <div>
+                <div className="text-[10px] text-neutral-500 mb-1.5 uppercase text-center">Status</div>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {STATUS_OPTIONS.map(status => (
                     <button
+                      key={status.value}
                       type="button"
-                      onClick={() => setSelectedCategories(['all'])}
-                      className="mt-1 text-[10px] text-primary-500 hover:text-primary-400"
+                      onClick={() => toggleStatus(status.value)}
+                      className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all ${
+                        selectedStatuses.includes(status.value) || selectedStatuses.includes('all')
+                          ? 'text-white'
+                          : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                      }`}
+                      style={{
+                        backgroundColor: (selectedStatuses.includes(status.value) || selectedStatuses.includes('all'))
+                          ? status.color
+                          : undefined
+                      }}
                     >
-                      Select All
+                      {status.label}
                     </button>
-                  </div>
+                  ))}
                 </div>
-              )}
+              </div>
+              <div>
+                <div className="text-[10px] text-neutral-500 mb-1.5 uppercase text-center">Categories</div>
+                <CategoryGrid
+                  categories={VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')}
+                  selectedCategories={selectedCategories.includes('all') ? VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key) : selectedCategories}
+                  onCategoryClick={toggleCategory}
+                  lifeVisionCategoryStrip
+                  desktopColumnCount={4}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategories(['all'])}
+                  className="mt-1.5 text-[11px] text-primary-500 hover:text-primary-400 w-full text-center"
+                >
+                  Select All
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="flex justify-center">
-        <div className="w-full max-w-4xl px-4 lg:px-8">
+        <div className="w-full max-w-4xl lg:px-8">
           {loading ? (
             <div
-              className="flex items-center justify-center w-full bg-neutral-900 rounded-lg border border-neutral-800"
-              style={{ aspectRatio: aspectStyle, minHeight: '400px' }}
+              className="flex items-center justify-center w-full bg-neutral-900 rounded-lg border border-neutral-800 md:min-h-[400px]"
+              style={{ aspectRatio: aspectStyle }}
             >
               <Spinner size="lg" />
             </div>
           ) : itemCount === 0 ? (
             <div
-              className="flex items-center justify-center w-full bg-neutral-100 rounded-lg border border-neutral-200"
-              style={{ aspectRatio: aspectStyle, minHeight: '400px' }}
+              className="flex items-center justify-center w-full bg-neutral-100 rounded-lg border border-neutral-200 md:min-h-[400px]"
+              style={{ aspectRatio: aspectStyle }}
             >
               <div className="text-center text-neutral-500">
                 <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -667,13 +640,14 @@ function ExportPageContent() {
             </div>
           ) : (
             <>
-              <iframe
-                key={iframeKey}
-                src={previewUrl}
-                className="border-0 bg-white rounded-lg shadow-2xl w-full mx-auto block"
-                style={{ aspectRatio: aspectStyle, minHeight: '400px' }}
-                title="Preview"
-              />
+              <div className="relative w-full overflow-hidden rounded-lg shadow-2xl" style={{ aspectRatio: aspectStyle }}>
+                <iframe
+                  key={iframeKey}
+                  src={previewUrl}
+                  className="border-0 bg-white absolute inset-0 w-[200%] h-[200%] origin-top-left scale-50 md:relative md:w-full md:h-full md:scale-100"
+                  title="Preview"
+                />
+              </div>
               <p className="text-[10px] text-neutral-500 text-center mt-2">
                 Preview is approximate. Download for final output.
               </p>

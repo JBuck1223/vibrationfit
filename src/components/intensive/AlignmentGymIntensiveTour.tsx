@@ -12,12 +12,12 @@ const WALKTHROUGH_STEPS: { id: AlignmentGymTourAnchor; title: string; body: stri
   {
     id: 'hero',
     title: 'The Alignment Gym hub',
-    body: 'This is your home for weekly live coaching — schedule, join, and track your reps in one place.',
+    body: 'This is your home for weekly live group coaching.',
   },
   {
     id: 'stats',
-    title: 'Your practice stats',
-    body: 'Streak and weekly reps show how consistently you are showing up. Attending live or opening a replay counts toward your MAP.',
+    title: 'Your stats',
+    body: 'Streak and weekly reps show how consistently you are showing up. Attending live or opening a replay counts.',
   },
   {
     id: 'what-is',
@@ -27,12 +27,12 @@ const WALKTHROUGH_STEPS: { id: AlignmentGymTourAnchor; title: string; body: stri
   {
     id: 'next-session',
     title: 'Next live session',
-    body: 'When a session is scheduled, it appears here — join live, or add it to your calendar so you do not miss it.',
+    body: 'The next session appears here \u2014 click the button when it\u2019s time to join live. Be sure to add this to your calendar.',
   },
   {
     id: 'replays',
     title: 'Session replays',
-    body: 'Miss a week? Watch a past session here. Opening a replay page also counts as showing up for your MAP.',
+    body: 'Miss a week? Watch a past session here. Watching a replay also counts as showing up.',
   },
 ]
 
@@ -50,9 +50,20 @@ export function AlignmentGymIntensiveTour({
   const [phase, setPhase] = useState<TourPhase>('intro')
   const [stepIndex, setStepIndex] = useState(0)
   const [completing, setCompleting] = useState(false)
+  const [tourDone, setTourDone] = useState(false)
 
   if (alreadyCompleted) {
     return null
+  }
+
+  if (tourDone) {
+    return (
+      <IntensiveStepCompleteModal
+        isOpen={isOpen}
+        onClose={closeModal}
+        stepId={stepId || 'alignment_gym_tour'}
+      />
+    )
   }
 
   const step = WALKTHROUGH_STEPS[stepIndex]
@@ -73,6 +84,7 @@ export function AlignmentGymIntensiveTour({
     onActiveAnchorChange(null)
     await completeAndShowModal('alignment_gym_toured')
     setCompleting(false)
+    setTourDone(true)
   }
 
   return (
@@ -98,8 +110,10 @@ export function AlignmentGymIntensiveTour({
               </div>
             </div>
             <p className="text-sm text-neutral-300 leading-relaxed mb-3">
-              Your weekly live session to stay calibrated — reconnect with your vision, clear what is in
-              the way, and leave with one aligned next step.
+              Your weekly live session to stay aligned. This is where we clear wobbles that are in the way of you experiencing your Life Vision.
+            </p>
+            <p className="text-sm text-neutral-300 leading-relaxed mb-3">
+              Think of your Profile as where you are now, your Life Vision as where you&apos;re headed, and wobbles as what&apos;s in the way. Experience the power of doing this together.
             </p>
             <p className="text-sm text-neutral-500 leading-relaxed mb-6">
               The page behind this overlay is the real Alignment Gym hub you will use after the

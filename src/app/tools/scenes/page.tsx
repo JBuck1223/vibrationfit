@@ -353,6 +353,7 @@ export default function ScenesToolPage() {
               onCategoryClick={handleCategorySelect}
               mode="completion"
               lifeVisionCategoryStrip
+              desktopColumnCount={6}
             />
           </div>
         </PageHero>

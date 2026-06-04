@@ -9,11 +9,11 @@ import {
   Stack,
   Inline,
   Text,
-  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { createClient } from '@/lib/supabase/client'
 import { BookOpen, Heart, Sparkles, Plus, Eye, Mic, Tag, TrendingUp, Lightbulb } from 'lucide-react'
+import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 
 const JOURNAL_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/11-journal-1080p.mp4'
@@ -21,11 +21,12 @@ const JOURNAL_POSTER =
   'https://media.vibrationfit.com/site-assets/video/intensive/11-journal-thumb.0000000.jpg'
 
 export default function IntensiveJournalAboutPage() {
-  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
-  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const { setCompletedAt: setStepBarCompletedAt } = useIntensiveStep()
+  const [hasEntry, setHasEntry] = useState(false)
 
   useEffect(() => {
     checkCompletionStatus()
+    return () => { setStepBarCompletedAt(null) }
   }, [])
 
   const checkCompletionStatus = async () => {
@@ -42,11 +43,9 @@ export default function IntensiveJournalAboutPage() {
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
 
-      if (checklist) {
-        if (checklist.first_journal_entry) {
-          setIsAlreadyCompleted(true)
-          setCompletedAt(checklist.first_journal_entry_at)
-        }
+      if (checklist?.first_journal_entry) {
+        setHasEntry(true)
+        setStepBarCompletedAt(checklist.first_journal_entry_at)
       }
     } catch (err) {
       console.error('Error checking completion status:', err)
@@ -56,13 +55,6 @@ export default function IntensiveJournalAboutPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {isAlreadyCompleted && completedAt && (
-          <IntensiveCompletionBanner 
-            stepTitle="First Journal Entry"
-            completedAt={completedAt}
-          />
-        )}
-
         {/* Video */}
         <div className="mx-auto w-full max-w-3xl">
           <OptimizedVideo
@@ -73,29 +65,22 @@ export default function IntensiveJournalAboutPage() {
           />
         </div>
         
-        {/* Action buttons */}
-        <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
-          {isAlreadyCompleted ? (
-            <Button variant="primary" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
+        {/* Action button */}
+        <div className="flex justify-center">
+          {hasEntry ? (
+            <Button variant="primary" size="sm" asChild className="flex items-center gap-2">
               <Link href="/intensive/journal">
                 <Eye className="w-4 h-4" />
-                View Journal
+                View Entry
               </Link>
             </Button>
           ) : (
-            <>
-              <Button variant="ghost" size="sm" asChild className="w-full md:w-auto md:flex-none">
-                <Link href="/intensive/journal">
-                  See All Entries
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild className="w-full md:w-auto md:flex-none flex items-center gap-2">
-                <Link href="/intensive/journal/new">
-                  <Plus className="w-4 h-4" />
-                  Add Entry
-                </Link>
-              </Button>
-            </>
+            <Button variant="primary" size="sm" asChild className="flex items-center gap-2">
+              <Link href="/intensive/journal/new">
+                <Plus className="w-4 h-4" />
+                Add Entry
+              </Link>
+            </Button>
           )}
         </div>
 
@@ -254,35 +239,31 @@ export default function IntensiveJournalAboutPage() {
           </Stack>
         </Card>
 
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md" className="text-center">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Ready to Journal?
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              You can&apos;t do this wrong. Start with one honest entry:
-            </p>
-            <Stack gap="xs" className="text-sm text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              <p>• Celebrate a win</p>
-              <p>• Process something that feels heavy</p>
-              <p>• Capture an insight from this 72-hour journey</p>
+        {!hasEntry && (
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+            <Stack gap="md" className="text-center">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Ready to Journal?
+              </Text>
+              <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
+                You can&apos;t do this wrong. Start with one honest entry:
+              </p>
+              <Stack gap="xs" className="text-sm text-neutral-300 leading-relaxed max-w-2xl mx-auto">
+                <p>• Celebrate a win</p>
+                <p>• Process something that feels heavy</p>
+                <p>• Capture an insight from this 72-hour journey</p>
+              </Stack>
+              <div className="flex justify-center">
+                <Button variant="primary" size="sm" className="justify-center" asChild>
+                  <Link href="/intensive/journal/new">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Entry
+                  </Link>
+                </Button>
+              </div>
             </Stack>
-            <Inline gap="sm" justify="center" className="flex-wrap">
-              <Button variant="primary" size="sm" className="justify-center" asChild>
-                <Link href="/intensive/journal/new">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Entry
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" className="justify-center" asChild>
-                <Link href="/intensive/journal">
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  See All Entries
-                </Link>
-              </Button>
-            </Inline>
-          </Stack>
-        </Card>
+          </Card>
+        )}
       </Stack>
     </Container>
   )

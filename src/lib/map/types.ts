@@ -6,6 +6,8 @@ import type { LifeCategoryKey } from '@/lib/design-system/vision-categories'
 
 export type MapCategory = 'creations' | 'activations' | 'connections' | 'sessions'
 
+export type MapPillarActive = Record<MapCategory, boolean>
+
 export interface UserMap {
   id: string
   user_id: string

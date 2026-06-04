@@ -12,8 +12,9 @@ import {
   FullBleed,
 } from '@/lib/design-system/components'
 import { CategoryGrid } from '@/lib/design-system'
-import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { VisionCategoryCard } from '@/app/life-vision/components/VisionCategoryCard'
+import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
+import { Sparkles } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 
 const VISION_SECTIONS = VISION_CATEGORIES
@@ -69,6 +70,7 @@ export default function IntensiveVisionViewPage({ params }: { params: Promise<{ 
       setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
     }
   }
+
 
   useEffect(() => {
     let isMounted = true
@@ -172,19 +174,30 @@ export default function IntensiveVisionViewPage({ params }: { params: Promise<{ 
         {selectedCategories.length > 0 ? (
           <>
             {selectedCategories.map((categoryKey) => {
-              const category = VISION_SECTIONS.find(cat => cat.key === categoryKey)
-              if (!category) return null
+              const categoryData = getVisionCategory(categoryKey as any)
+              if (!categoryData) return null
 
               const content = (vision[categoryKey as keyof VisionData] as string) || ''
+              const IconComponent: LucideIcon = categoryData.icon || Sparkles
 
               return (
-                <VisionCategoryCard
-                  key={categoryKey}
-                  category={category}
-                  content={content}
-                  vision={vision}
-                  editable={false}
-                />
+                <Card key={categoryKey} className="overflow-hidden !p-0 border-primary-500/20">
+                  <div className="flex items-center gap-2.5 border-b border-neutral-800 bg-neutral-900/80 px-4 py-3">
+                    <IconComponent className="h-4 w-4 shrink-0 text-[#39FF14]" strokeWidth={2.25} />
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-white">
+                      {categoryData.label}
+                    </h3>
+                  </div>
+                  <div className="px-5 py-4">
+                    {content?.trim() ? (
+                      <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
+                        {content}
+                      </p>
+                    ) : (
+                      <p className="text-neutral-500 text-sm text-center py-4">No content for this section yet.</p>
+                    )}
+                  </div>
+                </Card>
               )
             })}
           </>

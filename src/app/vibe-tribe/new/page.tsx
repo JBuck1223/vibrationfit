@@ -352,6 +352,7 @@ export default function VibeTribeNewPage() {
                       selectedCategories={selectedCategories}
                       onCategoryClick={handleCategoryToggle}
                       lifeVisionCategoryStrip
+                      desktopColumnCount={6}
                     />
                   </div>
                 )}

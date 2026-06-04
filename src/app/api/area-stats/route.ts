@@ -162,11 +162,13 @@ async function getActiveDatesForArea(
         .select('joined_at, video_sessions!inner(scheduled_at, session_type, title)')
         .eq('user_id', userId)
         .eq('attended', true)
-        .or('session_type.eq.alignment_gym,title.ilike.%alignment gym%', { referencedTable: 'video_sessions' })
+        .or('session_type.eq.alignment_gym,title.ilike.%alignment gym%', {
+          referencedTable: 'video_sessions',
+        })
         .order('joined_at', { ascending: false })
       const dateSet = new Set<string>()
       for (const row of data ?? []) {
-        const ts = row.joined_at || (row.video_sessions as any)?.scheduled_at
+        const ts = row.joined_at || (row.video_sessions as { scheduled_at?: string })?.scheduled_at
         if (ts) dateSet.add(toDateStr(new Date(ts)))
       }
       return Array.from(dateSet).sort().reverse()

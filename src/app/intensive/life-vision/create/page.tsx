@@ -156,7 +156,11 @@ export default function IntensiveCreateVisionPage() {
         if (existingVision) {
           setVisionStatus('completed')
         } else {
-          const hasActualVisionProgress = categoryStates && categoryStates.length > 0
+          const hasActualVisionProgress = categoryStates?.some(s =>
+            (s.clarity_keys && Array.isArray(s.clarity_keys) && s.clarity_keys.length > 0) ||
+            (s.get_me_started_text && s.get_me_started_text.trim().length > 0) ||
+            (s.category_vision_text && s.category_vision_text.trim().length > 0)
+          )
           if (hasActualVisionProgress) setVisionStatus('in_progress')
         }
       }

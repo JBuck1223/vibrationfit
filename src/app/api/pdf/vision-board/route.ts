@@ -444,6 +444,7 @@ export async function GET(req: NextRequest) {
     /* Stats bar */
     .stats-bar {
       display: flex;
+      justify-content: center;
       gap: 16px;
       margin-bottom: 16px;
       padding: 10px 16px;

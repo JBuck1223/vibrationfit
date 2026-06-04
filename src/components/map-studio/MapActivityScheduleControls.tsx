@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { Mail, MessageSquare } from 'lucide-react'
 import { Select, TimePicker } from '@/lib/design-system/components'
 import { getActivityDefinition } from '@/lib/map/activities'
@@ -36,17 +35,7 @@ export function MapActivityScheduleControls({
   const smsDisabled = !hasPhone || !smsOptIn
 
   if (usesPublishedSchedule) {
-    return (
-      <div className="mt-2 w-full min-w-0 rounded-xl border border-neutral-800/70 bg-black/25 p-3">
-        <p className="text-[11px] leading-snug text-neutral-500">
-          Attending live or opening the session page after counts as complete. Schedule and replays:{' '}
-          <Link href={sched?.defaultDeepLink ?? '/alignment-gym'} className="text-primary-400 hover:underline">
-            Alignment Gym
-          </Link>
-          .
-        </p>
-      </div>
-    )
+    return null
   }
 
   const channelsOn = sel.notifySms || sel.notifyEmail

@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle, ArrowRight } from 'lucide-react'
-import { Container, Button, Spinner, Card, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { useIntensiveStepCompleteModal } from '@/lib/intensive/use-step-complete-modal'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 import {
@@ -14,11 +13,12 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function IntensiveAlignmentGymPage() {
   const { setCompletedAt } = useIntensiveStep()
-  const { isOpen, stepId, showModalForChecklistKey, closeModal } = useIntensiveStepCompleteModal()
-  const [loading, setLoading] = useState(true)
+  const { isOpen, stepId, closeModal } = useIntensiveStepCompleteModal()
+  const [checklistReady, setChecklistReady] = useState(false)
   const [isCompleted, setIsCompleted] = useState(false)
   const [completedAt, setLocalCompletedAt] = useState<string | null>(null)
   const [activeTourAnchor, setActiveTourAnchor] = useState<AlignmentGymTourAnchor | null>(null)
+  const [hasGraduated, setHasGraduated] = useState(false)
 
   useEffect(() => {
     if (completedAt) setCompletedAt(completedAt)
@@ -26,79 +26,60 @@ export default function IntensiveAlignmentGymPage() {
   }, [completedAt, setCompletedAt])
 
   useEffect(() => {
-    loadChecklist()
+    let cancelled = false
+
+    async function loadChecklist() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user || cancelled) return
+
+        const { data } = await supabase
+          .from('intensive_checklist')
+          .select('alignment_gym_toured, alignment_gym_toured_at, unlock_completed')
+          .eq('user_id', user.id)
+          .in('status', ['pending', 'in_progress', 'completed'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (cancelled) return
+
+        if (data?.unlock_completed) {
+          setHasGraduated(true)
+        }
+        if (data?.alignment_gym_toured) {
+          setIsCompleted(true)
+          setLocalCompletedAt(data.alignment_gym_toured_at)
+        }
+      } finally {
+        if (!cancelled) setChecklistReady(true)
+      }
+    }
+
+    void loadChecklist()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const loadChecklist = async () => {
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await supabase
-        .from('intensive_checklist')
-        .select('alignment_gym_toured, alignment_gym_toured_at')
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (data?.alignment_gym_toured) {
-        setIsCompleted(true)
-        setLocalCompletedAt(data.alignment_gym_toured_at)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
-    )
-  }
-
-  const tourInProgress = !isCompleted
+  const tourInProgress = checklistReady && !isCompleted
 
   return (
     <div className="relative pt-6">
-      {isCompleted && (
-        <Container size="xl" className="pb-0">
-          <Card variant="outlined" className="mb-6 bg-primary-500/5 border-primary-500/20">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-primary-500" />
-                <div>
-                  <p className="text-sm font-semibold text-primary-400">Alignment Gym tour complete</p>
-                  <p className="text-xs text-neutral-400">Next up: build your Alignment Plan.</p>
-                </div>
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => showModalForChecklistKey('alignment_gym_toured')}
-              >
-                Continue
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </Card>
-        </Container>
-      )}
-
       <AlignmentGymHub
         activeTourAnchor={activeTourAnchor}
         forceWhatIsOpen={activeTourAnchor === 'what-is'}
         skipMapAutoVerify={tourInProgress}
+        statsUntilGraduation={!hasGraduated}
       />
 
-      <AlignmentGymIntensiveTour
-        alreadyCompleted={isCompleted}
-        onActiveAnchorChange={setActiveTourAnchor}
-      />
+      {checklistReady && (
+        <AlignmentGymIntensiveTour
+          alreadyCompleted={isCompleted}
+          onActiveAnchorChange={setActiveTourAnchor}
+        />
+      )}
 
       <IntensiveStepCompleteModal
         isOpen={isOpen}
