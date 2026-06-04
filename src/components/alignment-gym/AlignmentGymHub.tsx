@@ -198,7 +198,7 @@ export function AlignmentGymHub({
       setSessions(sessionsWithParticipants)
 
       const attendedSessions = sessionsWithParticipants.filter(session =>
-        session.participants?.some(p => p.attended),
+        session.participants?.some((p: VideoSessionParticipant) => p.attended),
       )
 
       setAttendanceStats({
