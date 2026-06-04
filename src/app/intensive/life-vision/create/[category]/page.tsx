@@ -4,8 +4,6 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import * as Diff from 'diff'
 import {
-  Sparkles,
-  Edit,
   Wand2,
   PenLine,
   ChevronRight,
@@ -22,6 +20,8 @@ import {
   FileCheck,
   ArrowRight,
   User,
+  Edit,
+  Sparkles,
 } from 'lucide-react'
 import {
   Badge,
@@ -30,7 +30,6 @@ import {
   Spinner,
   SaveButton,
   AutoResizeTextarea,
-  Icon,
   CategoryGrid,
   Container,
   Stack,
@@ -88,6 +87,7 @@ export default function IntensiveCreateCategoryPage() {
   const [includeActiveReference, setIncludeActiveReference] = useState(true)
   const [manualText, setManualText] = useState('')
   const [manualViewMode, setManualViewMode] = useState<'edit' | 'highlight'>('edit')
+  const [generatedBaselineText, setGeneratedBaselineText] = useState('')
   const [showManualCurrent, setShowManualCurrent] = useState(true)
   const [showManualNew, setShowManualNew] = useState(true)
   const hasActiveContent = !!(activeVision && (activeVision[categoryKey as keyof VisionData] as string)?.trim())
@@ -126,12 +126,13 @@ export default function IntensiveCreateCategoryPage() {
   const [editSelections, setEditSelections] = useState<Record<number, boolean>>({})
   const [proofreadLoading, setProofreadLoading] = useState(false)
   const [polishText, setPolishText] = useState('')
-  const [polishViewMode, setPolishViewMode] = useState<'edit' | 'highlight'>('edit')
 
   const categoryGridRef = useRef<HTMLDivElement>(null)
   const compareSectionRef = useRef<HTMLElement | null>(null)
+  const starterTextRef = useRef<HTMLDivElement>(null)
 
   const category = getVisionCategory(categoryKey as VisionCategoryKey)
+  const CategoryIcon = category?.icon
   // Full vision strip: Forward + 12 life areas + Conclusion (matches vision document order)
   const allCategories = ORDERED_VISION_CATEGORIES.filter(
     c => !(META_CATEGORY_KEYS as readonly string[]).includes(c.key)
@@ -226,7 +227,10 @@ export default function IntensiveCreateCategoryPage() {
 
       if (draftResult) {
         setDraftVision(draftResult)
-        setRefinedCategories(draftResult.refined_categories || [])
+        setRefinedCategories(prev => {
+          const merged = new Set([...prev, ...(draftResult.refined_categories || [])])
+          return Array.from(merged)
+        })
         // Only pre-populate Update field if draft has actual generated content
         // (different from active, meaning a VIVA generation already happened)
         if (draftValue.trim() && draftValue.trim() !== activeValue.trim()) {
@@ -241,6 +245,7 @@ export default function IntensiveCreateCategoryPage() {
         // Only pre-fill manualText if draft truly differs from active (prior generation)
         if (draftValue.trim() && draftValue.trim() !== activeValue.trim()) {
           setManualText(draftValue)
+          setGeneratedBaselineText(draftValue)
         } else {
           setManualText('')
         }
@@ -282,6 +287,7 @@ export default function IntensiveCreateCategoryPage() {
         if (categoryStateResult.category_vision_text) {
           setManualText(categoryStateResult.category_vision_text)
           setCurrentRefinement(categoryStateResult.category_vision_text)
+          setGeneratedBaselineText(categoryStateResult.category_vision_text)
         }
       }
 
@@ -313,6 +319,7 @@ export default function IntensiveCreateCategoryPage() {
     setIsGeneratingStarter(true)
     setGetMeStartedText('')
     setError(null)
+    setTimeout(() => starterTextRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
 
     try {
       const response = await fetch('/api/viva/imagination-starter', {
@@ -392,7 +399,7 @@ export default function IntensiveCreateCategoryPage() {
     if (mode === 'iterate_draft' && !draftVal.trim() && !activeVal.trim()) return
     if (mode === 'fresh' && !hasGenerateSignal) return
 
-    compareSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => compareSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
     saveCategoryState()
 
     const priorManual = manualText
@@ -483,6 +490,8 @@ export default function IntensiveCreateCategoryPage() {
             }
           }
         }
+        setGeneratedBaselineText(fullText)
+        setManualViewMode('edit')
         return
       }
 
@@ -522,6 +531,8 @@ export default function IntensiveCreateCategoryPage() {
           setManualText(fullText)
         }
       }
+      setGeneratedBaselineText(fullText)
+      setManualViewMode('edit')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to run VIVA')
     } finally {
@@ -529,13 +540,36 @@ export default function IntensiveCreateCategoryPage() {
       if (updateMethod === 'viva') {
         setShowInstructionsSection(false)
       }
+      if (!refinedCategories.includes(categoryKey)) {
+        setRefinedCategories(prev => [...prev, categoryKey])
+      }
     }
   }
 
   // Category navigation
   const isFirstCategory = currentIndex === 0
   const isLastCategory = currentIndex === allCategories.length - 1
+  const categoryActiveValue = activeVision ? ((activeVision[categoryKey as keyof VisionData] as string) || '') : ''
+  const isFirstTimeBuilder = !activeVision || !categoryActiveValue.trim()
+  const hasCategoryProgress =
+    refinedCategories.length > 0 ||
+    !!manualText.trim() ||
+    !!getMeStartedText.trim() ||
+    !!vivaSteeringText.trim()
+  const allCategoriesComplete = allCategories.every(c => refinedCategories.includes(c.key))
   const canReviewFromLast = isLastCategory && !!draftVision && refinedCategories.length > 0
+  const canContinueToAssembly = isFirstTimeBuilder && (
+    allCategoriesComplete || (isLastCategory && hasCategoryProgress)
+  )
+  const showContinueButton = isFirstTimeBuilder && (allCategoriesComplete || isLastCategory)
+  const nextButtonLabel = showContinueButton
+    ? 'Continue'
+    : isLastCategory && canReviewFromLast
+      ? 'Review'
+      : 'Next'
+  const nextButtonDisabled = isFirstTimeBuilder
+    ? !canContinueToAssembly
+    : isLastCategory && !canReviewFromLast
 
   const handleCategoryChange = (key: string) => {
     setGetMeStartedText('')
@@ -645,6 +679,16 @@ export default function IntensiveCreateCategoryPage() {
 
   const goToNextCategory = () => {
     saveCategoryState()
+    const completedKeys = new Set(refinedCategories)
+    if (manualText.trim()) completedKeys.add(categoryKey)
+    const allDoneNow = allCategories.every(c => completedKeys.has(c.key))
+    const canAssemblyNow = isFirstTimeBuilder && (
+      allDoneNow || (isLastCategory && hasCategoryProgress)
+    )
+    if (canAssemblyNow) {
+      router.push('/intensive/life-vision/create/assembly')
+      return
+    }
     if (currentIndex < allCategories.length - 1) {
       handleCategoryChange(allCategories[currentIndex + 1].key)
     } else if (canReviewFromLast && draftVision) {
@@ -711,21 +755,19 @@ export default function IntensiveCreateCategoryPage() {
     }
 
     setPolishText(polished)
-    setPolishViewMode('edit')
     setManualStep('polish')
   }
 
-  // Diff renderers
   const normalizeText = (text: string) => text.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim()
 
-  const renderAddedDiff = (oldText: string, newText: string) => {
-    const diff = Diff.diffSentences(oldText, newText)
+  const renderDiffHighlight = (baselineText: string, currentText: string) => {
+    const diff = Diff.diffSentences(normalizeText(baselineText), normalizeText(currentText))
     return (
       <div className="space-y-2 w-full">
         <div className="w-full px-4 py-3 bg-[#101010] border-2 border-neutral-800 rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
           {diff.map((part, i) => {
-            if (part.removed) return null
-            if (part.added) return <span key={i} className="bg-green-500/30 text-green-200 px-1 rounded">{part.value}</span>
+            if (part.removed) return <span key={i} className="bg-red-500/25 text-red-300 line-through px-0.5 rounded">{part.value}</span>
+            if (part.added) return <span key={i} className="bg-green-500/30 text-green-200 px-0.5 rounded">{part.value}</span>
             return <span key={i}>{part.value}</span>
           })}
         </div>
@@ -750,8 +792,8 @@ export default function IntensiveCreateCategoryPage() {
     )
   }
 
-  const activeValue = activeVision ? ((activeVision[categoryKey as keyof VisionData] as string) || '') : ''
-  const isFirstTime = !activeVision || !activeValue.trim()
+  const activeValue = categoryActiveValue
+  const isFirstTime = isFirstTimeBuilder
   const gridMode = draftVision?.parent_id ? 'draft' : 'completion'
 
   const nonDraftVisions = visions.filter(v => !v.is_draft)
@@ -798,7 +840,7 @@ export default function IntensiveCreateCategoryPage() {
     : sourceMode
 
   const vivaSteeringPlaceholder = effectiveMode === 'fresh'
-    ? 'Is anything missing? Add it here...'
+    ? `Describe your dream reality for ${category.label.toLowerCase()}...`
     : 'Tell VIVA how to refine this section...'
 
   const actionLabel =
@@ -910,21 +952,17 @@ export default function IntensiveCreateCategoryPage() {
         )}
 
         {/* Overarching Category Card */}
-        <Card>
-          {/* Card Header */}
-          <div className="mb-6 flex items-center gap-3 md:gap-4">
-            <div className="h-px flex-1 bg-neutral-800" />
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-500 md:h-8 md:w-8">
-                <Icon icon={category.icon} size="xs" color="#000000" />
-              </div>
-              <h3 className="text-sm font-medium uppercase tracking-[0.25em] text-neutral-400">
-                {category.label}
-              </h3>
-            </div>
-            <div className="h-px flex-1 bg-neutral-800" />
+        <Card className="overflow-hidden !p-0">
+          <div className="flex w-full items-center justify-center gap-2.5 border-b border-neutral-800 bg-neutral-900/80 px-4 py-3 md:px-6 md:py-3.5">
+            {CategoryIcon && (
+              <CategoryIcon className="h-4 w-4 shrink-0 text-[#39FF14]" strokeWidth={2.25} />
+            )}
+            <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-white">
+              {category.label}
+            </h3>
           </div>
 
+          <div className="p-4 md:p-6 lg:p-8">
           {/* Method Choice Cards — Update with VIVA vs Update Myself */}
           {!isFirstTime && sourceMode && (() => {
             const methodCards = [
@@ -988,7 +1026,6 @@ export default function IntensiveCreateCategoryPage() {
                         if (card.key === 'manual') {
                           setManualStep('write')
                           setManualText('')
-                          setManualViewMode('edit')
                           setProofreadEdits([])
                           setEditSelections({})
                           setPolishText('')
@@ -1026,183 +1063,8 @@ export default function IntensiveCreateCategoryPage() {
             )
           })()}
 
-          {/* Source Mode Cards — only shown for first-time users (no active content yet) */}
-          {sourceMode && isFirstTime && (
-            <div className="mb-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {(() => {
-                  const profileLabel = `Profile${profileVersionFromRpc != null ? ` v${profileVersionFromRpc}` : ''}`
-                  const activeLabel = `Vision V${activeVisionVersion}`
-                  const draftLabel = `Draft V${nonDraftVisions.length + 1}`
-                  type Tag = {
-                    key: 'Profile' | 'Active' | 'Draft'
-                    label: string
-                    showActiveBadge?: boolean
-                    on: boolean
-                    locked: boolean
-                    onToggle?: () => void
-                  }
-                  const cards: Array<{
-                    key: SourceMode
-                    icon: typeof Wand2
-                    title: string
-                    description: string
-                    disabled: boolean
-                    disabledReason: string
-                    tags: Tag[]
-                  }> = [
-                    {
-                      key: 'fresh',
-                      icon: Wand2,
-                      title: 'Generate Fresh',
-                      description: 'Your notes below are the primary signal. VIVA writes a new draft, enhanced by your profile.',
-                      disabled: false,
-                      disabledReason: '',
-                      tags: [
-                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
-                      ],
-                    },
-                    {
-                      key: 'refine_active',
-                      icon: RefreshCw,
-                      title: 'Refine Active',
-                      description: 'Your notes below are the primary signal. VIVA reshapes your active vision, enhanced by your profile.',
-                      disabled: !canRefineActive,
-                      disabledReason: 'No active vision text for this category yet.',
-                      tags: [
-                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
-                        { key: 'Active', label: activeLabel, showActiveBadge: true, on: true, locked: true },
-                      ],
-                    },
-                    {
-                      key: 'iterate_draft',
-                      icon: PenLine,
-                      title: 'Iterate on Draft',
-                      description: 'Your notes below are the primary signal. VIVA iterates your draft, with active and profile for context.',
-                      disabled: !canIterateDraft,
-                      disabledReason: 'No draft yet. Generate or refine first.',
-                      tags: [
-                        { key: 'Profile', label: profileLabel, on: includeProfile, locked: false, onToggle: () => setIncludeProfile(p => !p) },
-                        { key: 'Active', label: activeLabel, showActiveBadge: true, on: includeActiveReference, locked: false, onToggle: () => setIncludeActiveReference(p => !p) },
-                        { key: 'Draft', label: draftLabel, on: true, locked: true },
-                      ],
-                    },
-                  ]
-                  const tagOnStyles: Record<Tag['key'], string> = {
-                    Profile: 'border-[#00FFFF]/40 bg-[#00FFFF]/10 text-[#00FFFF]',
-                    Active: 'border-primary-500/40 bg-primary-500/10 text-primary-500',
-                    Draft: 'border-accent-500/40 bg-accent-500/10 text-accent-500',
-                  }
-                  const tagOffStyles = 'border-neutral-700 bg-neutral-900/60 text-neutral-500'
-
-                  return cards.map(card => {
-                    const isSelected = sourceMode === card.key
-                    const CardIcon = card.icon
-                    const interactive = isSelected && !card.disabled
-                    return (
-                      <div
-                        key={card.key}
-                        role="button"
-                        tabIndex={card.disabled ? -1 : 0}
-                        aria-pressed={isSelected}
-                        onClick={() => !card.disabled && setSourceMode(card.key)}
-                        onKeyDown={(e) => {
-                          if (card.disabled) return
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            setSourceMode(card.key)
-                          }
-                        }}
-                        title={card.disabled ? card.disabledReason : ''}
-                        className={`group relative text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
-                          card.disabled
-                            ? 'border-neutral-800 bg-neutral-900/40 opacity-50 cursor-not-allowed'
-                            : isSelected
-                              ? 'border-primary-500 bg-primary-500/5 shadow-[0_0_0_1px_rgba(57,255,20,0.15)] -translate-y-0.5'
-                              : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                            isSelected ? 'bg-primary-500 text-black' : 'bg-neutral-800 text-neutral-300 group-hover:text-white'
-                          }`}>
-                            <CardIcon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-200'}`}>
-                                {card.title}
-                              </h3>
-                              {isSelected && (
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-500">Selected</span>
-                              )}
-                            </div>
-                            <p className="text-xs text-neutral-400 leading-relaxed mt-1">
-                              {card.disabled ? card.disabledReason : card.description}
-                            </p>
-                            {!card.disabled && (
-                              <>
-                              <div className="flex flex-wrap items-center gap-1 mt-2">
-                                <span className="text-[10px] uppercase tracking-wide text-neutral-500 mr-0.5">Uses:</span>
-                                {card.tags.map(tag => {
-                                  const baseClasses = `inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors ${
-                                    tag.on ? tagOnStyles[tag.key] : tagOffStyles
-                                  }`
-                                  const content = (
-                                    <>
-                                      {tag.label}
-                                      {tag.showActiveBadge && tag.on && (
-                                        <span className="rounded-full bg-primary-500 text-black px-1 text-[9px] font-bold uppercase tracking-wide">Active</span>
-                                      )}
-                                      {!tag.on && <span className="text-[9px] uppercase">off</span>}
-                                    </>
-                                  )
-                                  if (interactive && !tag.locked && tag.onToggle) {
-                                    return (
-                                      <button
-                                        key={tag.key}
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          tag.onToggle?.()
-                                        }}
-                                        className={`${baseClasses} cursor-pointer hover:opacity-80`}
-                                        title={`Toggle ${tag.key} context`}
-                                      >
-                                        {content}
-                                      </button>
-                                    )
-                                  }
-                                  return (
-                                    <span
-                                      key={tag.key}
-                                      className={`${baseClasses} ${interactive && tag.locked ? 'opacity-90' : ''}`}
-                                      title={interactive && tag.locked ? `${tag.key} is required for this mode` : ''}
-                                    >
-                                      {content}
-                                    </span>
-                                  )
-                                })}
-                              </div>
-                              {interactive && (
-                                <p className="mt-1 text-[10px] italic text-neutral-500">
-                                  Click to add or remove sources
-                                </p>
-                              )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })
-                })()}
-              </div>
-            </div>
-          )}
-
           {/* VIVA Generate Mode: Add Only vs Complete Rewrite */}
-          {(updateMethod === 'viva' || (isFirstTime && sourceMode && sourceMode !== 'fresh')) && (() => {
+          {(updateMethod === 'viva') && (() => {
             const genModes = [
               { key: 'add' as const, title: 'Add Only', description: 'Weave new content into existing text' },
               { key: 'rewrite' as const, title: 'Complete Rewrite', description: 'Generate a full replacement' },
@@ -1281,16 +1143,17 @@ export default function IntensiveCreateCategoryPage() {
               {sourceMode === 'fresh' && updateMethod !== 'viva' && (
                 <>
                   <div>
-                    <h2 className="text-lg font-semibold text-white text-center mb-2">
-                      Starter Text
-                    </h2>
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-black">1</span>
+                      <h2 className="text-lg font-semibold text-white">Starter Text for {category.label}</h2>
+                    </div>
                     <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
                       {isMetaCategory
                         ? `Tap Get Me Started and VIVA will generate the first draft of the ${categoryKey} section of your Life Vision.`
                         : `Tap Get Me Started and VIVA will generate the first draft of the ${category?.label.toLowerCase() || categoryKey} section of your Life Vision.`}
                     </p>
 
-                    <div className="relative">
+                    <div ref={starterTextRef} className="relative">
                       <VIVALoadingOverlay
                         isVisible={isGeneratingStarter && !getMeStartedText.trim()}
                         messages={isMetaCategory
@@ -1346,12 +1209,15 @@ export default function IntensiveCreateCategoryPage() {
                   </>
                 ) : (
                   <>
-                    <h2 className="text-lg font-semibold text-white text-center mb-2">
-                      {effectiveMode === 'fresh' ? 'Unleash Your Imagination' : 'Update Notes'}
-                    </h2>
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                      {effectiveMode === 'fresh' && (
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-black">2</span>
+                      )}
+                      <h2 className="w-full text-center text-lg font-semibold text-white">{effectiveMode === 'fresh' ? `Unleash Your Imagination for ${category.label}` : 'Update Notes'}</h2>
+                    </div>
                     <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
                       {effectiveMode === 'fresh'
-                        ? 'Add any details, tone, or specifics you want VIVA to weave into your vision. (Optional.)'
+                        ? 'Add any details, tone, or specifics you want VIVA to weave into your vision.'
                         : 'Tell VIVA how to refine this section. (Optional — VIVA can refine without notes too.)'}
                     </p>
                   </>
@@ -1394,7 +1260,7 @@ export default function IntensiveCreateCategoryPage() {
 
               {/* Action button — single CTA. The streamed result lands directly
                   in the Compare panel below, so no duplicate output box here. */}
-              <div className="flex justify-center gap-3 pt-6">
+              <div className="flex justify-center gap-3 mt-3">
                 <Button
                   onClick={handleEditWithViva}
                   disabled={isGenerating || !canRunViva}
@@ -1410,48 +1276,6 @@ export default function IntensiveCreateCategoryPage() {
                     <><Wand2 className="w-5 h-5" />{actionLabel}</>
                   )}
                 </Button>
-                {!isGenerating && manualText.trim() && !draftVision && (
-                  (() => {
-                    const completedAfterSave = new Set([...refinedCategories, categoryKey])
-                    const allComplete = allCategories.every(c => completedAfterSave.has(c.key))
-
-                    if (allComplete) {
-                      return (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => {
-                            saveCategoryState()
-                            router.push(`/intensive/life-vision/create/assembly`)
-                          }}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />Save & Finish
-                        </Button>
-                      )
-                    }
-
-                    const nextIncomplete = allCategories.find(c =>
-                      c.key !== categoryKey && !refinedCategories.includes(c.key)
-                    )
-                    return (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => {
-                          saveCategoryState()
-                          if (nextIncomplete) {
-                            handleCategoryChange(nextIncomplete.key)
-                          } else {
-                            router.push(`/intensive/life-vision/create`)
-                          }
-                        }}
-                      >
-                        Save & Continue
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    )
-                  })()
-                )}
               </div>
               <p className="text-center text-xs text-neutral-500 mt-3">
                 {manualText.trim().length >= 50
@@ -1497,46 +1321,17 @@ export default function IntensiveCreateCategoryPage() {
 
                     {/* Draft panel (editable, starts empty) */}
                     <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Your Draft</h5>
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
-                          {manualViewMode === 'highlight' && normalizeText(manualText) === normalizeText(activeValue) && (
-                            <span className="text-[11px] text-neutral-500 italic">No changes to highlight</span>
-                          )}
-                        </div>
-                        <div className="inline-flex rounded-md bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-0.5">
-                          <button
-                            type="button"
-                            onClick={() => setManualViewMode('edit')}
-                            className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                              manualViewMode === 'edit' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                            }`}
-                          >
-                            <Edit className="w-3 h-3 inline mr-1" />Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setManualViewMode('highlight')}
-                            className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                              manualViewMode === 'highlight' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                            }`}
-                          >
-                            <Sparkles className="w-3 h-3 inline mr-1" />Highlight
-                          </button>
-                        </div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Your Draft</h5>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
                       </div>
-                      {manualViewMode === 'highlight' && manualText.trim() ? (
-                        renderAddedDiff(normalizeText(activeValue), normalizeText(manualText))
-                      ) : (
-                        <AutoResizeTextarea
-                          value={manualText}
-                          onChange={setManualText}
-                          placeholder="Type your updated vision here..."
-                          className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
-                          minHeight={200}
-                        />
-                      )}
+                      <AutoResizeTextarea
+                        value={manualText}
+                        onChange={setManualText}
+                        placeholder="Type your updated vision here..."
+                        className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        minHeight={200}
+                      />
                       {!manualText.trim() && (
                         <div className="mt-3 flex justify-center">
                           <Button
@@ -1691,46 +1486,17 @@ export default function IntensiveCreateCategoryPage() {
 
                     {/* Polish panel (editable) */}
                     <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Polished</h5>
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Final</span>
-                          {polishViewMode === 'highlight' && normalizeText(polishText) === normalizeText(manualText) && (
-                            <span className="text-[11px] text-neutral-500 italic">No changes to highlight</span>
-                          )}
-                        </div>
-                        <div className="inline-flex rounded-md bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-0.5">
-                          <button
-                            type="button"
-                            onClick={() => setPolishViewMode('edit')}
-                            className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                              polishViewMode === 'edit' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                            }`}
-                          >
-                            <Edit className="w-3 h-3 inline mr-1" />Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPolishViewMode('highlight')}
-                            className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                              polishViewMode === 'highlight' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                            }`}
-                          >
-                            <Sparkles className="w-3 h-3 inline mr-1" />Highlight
-                          </button>
-                        </div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Polished</h5>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Final</span>
                       </div>
-                      {polishViewMode === 'highlight' && polishText.trim() ? (
-                        renderAddedDiff(normalizeText(manualText), normalizeText(polishText))
-                      ) : (
-                        <AutoResizeTextarea
-                          value={polishText}
-                          onChange={setPolishText}
-                          placeholder="Your polished vision..."
-                          className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
-                          minHeight={200}
-                        />
-                      )}
+                      <AutoResizeTextarea
+                        value={polishText}
+                        onChange={setPolishText}
+                        placeholder="Your polished vision..."
+                        className="!bg-[#101010] !border-neutral-800 !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        minHeight={200}
+                      />
                     </div>
                   </div>
 
@@ -1771,12 +1537,17 @@ export default function IntensiveCreateCategoryPage() {
             </section>
           )}
 
-          {draftVision && ((updateMethod === 'viva' && vivaGenerateMode) || isFirstTime) && (
+          {(draftVision || isGenerating || manualText.trim()) && ((updateMethod === 'viva' && vivaGenerateMode) || isFirstTime) && (
             <section ref={compareSectionRef} className="mt-12 pt-8 border-t border-neutral-800 mb-8">
               {hasActiveContent ? (
                 <>
                   <div className="mb-6 flex flex-col items-center gap-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">{updateMethod === 'viva' ? 'Step 4 · ' : ''}Compare</h4>
+                    <div className="flex flex-col items-center gap-2">
+                      {updateMethod !== 'viva' && (
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-black">3</span>
+                      )}
+                      <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">{updateMethod === 'viva' ? 'Step 4 · Compare' : 'Compare'}</h4>
+                    </div>
                     {updateMethod === 'viva' && !showInstructionsSection && (
                       <button
                         type="button"
@@ -1852,48 +1623,29 @@ export default function IntensiveCreateCategoryPage() {
 
                     <div className={showManualNew ? 'block' : 'hidden'}>
                       <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
-                        <div className="mb-2 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {nonDraftVisions.length + 1}</h5>
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
-                            {manualViewMode === 'highlight' && normalizeText(manualText) === normalizeText(activeValue) && (
-                              <span className="text-[11px] text-neutral-500 italic">No changes to highlight</span>
+                        <div className="mb-2 flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {nonDraftVisions.length + 1}</h5>
+                              <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
+                            </div>
+                            {manualText.trim() && generatedBaselineText && (
+                              <div className="inline-flex shrink-0 rounded-md bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-0.5">
+                                <button type="button" onClick={() => setManualViewMode('edit')} className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${manualViewMode === 'edit' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'}`}>
+                                  <Edit className="w-3 h-3 shrink-0" />Edit
+                                </button>
+                                <button type="button" onClick={() => setManualViewMode('highlight')} className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${manualViewMode === 'highlight' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'}`}>
+                                  <Sparkles className="w-3 h-3 shrink-0" />Highlight
+                                </button>
+                              </div>
                             )}
                           </div>
-                          <div className="inline-flex rounded-md bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-0.5">
-                            <button
-                              type="button"
-                              onClick={() => setManualViewMode('edit')}
-                              className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                                manualViewMode === 'edit' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                              }`}
-                            >
-                              <Edit className="w-3 h-3 inline mr-1" />Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setManualViewMode('highlight')}
-                              className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                                manualViewMode === 'highlight' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                              }`}
-                            >
-                              <Sparkles className="w-3 h-3 inline mr-1" />Highlight
-                            </button>
-                          </div>
+                          {manualViewMode === 'highlight' && generatedBaselineText && normalizeText(manualText) === normalizeText(generatedBaselineText) && (
+                            <p className="text-[11px] text-neutral-500 italic text-right">No changes to highlight</p>
+                          )}
                         </div>
-                        {manualViewMode === 'highlight' ? (
-                          normalizeText(manualText) !== normalizeText(activeValue)
-                            ? renderAddedDiff(normalizeText(activeValue), normalizeText(manualText))
-                            : (
-                              <AutoResizeTextarea
-                                value={manualText}
-                                onChange={() => {}}
-                                readOnly
-                                placeholder="Your new version will appear here after you generate or type..."
-                                className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
-                                minHeight={200}
-                              />
-                            )
+                        {manualViewMode === 'highlight' && manualText.trim() && generatedBaselineText && normalizeText(manualText) !== normalizeText(generatedBaselineText) ? (
+                          renderDiffHighlight(generatedBaselineText, manualText)
                         ) : (
                           <AutoResizeTextarea
                             value={manualText}
@@ -1934,55 +1686,53 @@ export default function IntensiveCreateCategoryPage() {
                 </>
               ) : (
                 <>
-                  <div className="mb-6 flex flex-col items-center gap-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Draft</h4>
-                  </div>
-                  <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {nonDraftVisions.length + 1}</h5>
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
-                      </div>
-                      <div className="inline-flex rounded-md bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => setManualViewMode('edit')}
-                          className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                            manualViewMode === 'edit' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                          }`}
-                        >
-                          <Edit className="w-3 h-3 inline mr-1" />Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setManualViewMode('highlight')}
-                          className={`px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                            manualViewMode === 'highlight' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-                          }`}
-                        >
-                          <Sparkles className="w-3 h-3 inline mr-1" />Highlight
-                        </button>
-                      </div>
+                  <div>
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-black">3</span>
+                      <h2 className="text-lg font-semibold text-white">Your Draft for {category.label}</h2>
                     </div>
-                    {manualViewMode === 'highlight' ? (
-                      manualText.trim()
-                        ? renderAddedDiff('', normalizeText(manualText))
-                        : (
-                          <AutoResizeTextarea
-                            value={manualText}
-                            onChange={() => {}}
-                            readOnly
-                            placeholder="Your new version will appear here after Viva runs or you type..."
-                            className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
-                            minHeight={200}
-                          />
-                        )
+                    <p className="text-center text-sm text-neutral-400 mb-3 leading-relaxed">
+                      If you&apos;d like to make edits, use Edit to change the text, then Highlight to see what you changed from the original.
+                    </p>
+                  </div>
+                  <div className="relative rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                    <VIVALoadingOverlay
+                      isVisible={isGenerating && !manualText.trim()}
+                      messages={[`VIVA is writing your ${category.label.toLowerCase()} vision...`, 'Weaving in your life details...', 'Crafting your draft...']}
+                      cycleDuration={3000}
+                      showProgressBar={false}
+                      size="sm"
+                      className="rounded-xl"
+                    />
+                    <div className="mb-2 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {nonDraftVisions.length + 1}</h5>
+                          <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
+                        </div>
+                        {manualText.trim() && generatedBaselineText && (
+                          <div className="inline-flex shrink-0 rounded-md bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08] p-0.5">
+                            <button type="button" onClick={() => setManualViewMode('edit')} className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${manualViewMode === 'edit' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'}`}>
+                              <Edit className="w-3 h-3 shrink-0" />Edit
+                            </button>
+                            <button type="button" onClick={() => setManualViewMode('highlight')} className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-all duration-200 ${manualViewMode === 'highlight' ? 'bg-zinc-900/85 text-white font-semibold' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'}`}>
+                              <Sparkles className="w-3 h-3 shrink-0" />Highlight
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {manualViewMode === 'highlight' && generatedBaselineText && normalizeText(manualText) === normalizeText(generatedBaselineText) && (
+                        <p className="text-[11px] text-neutral-500 italic text-right">No changes to highlight</p>
+                      )}
+                    </div>
+                    {manualViewMode === 'highlight' && manualText.trim() && generatedBaselineText && normalizeText(manualText) !== normalizeText(generatedBaselineText) ? (
+                      renderDiffHighlight(generatedBaselineText, manualText)
                     ) : (
                       <AutoResizeTextarea
                         value={manualText}
                         onChange={setManualText}
-                        placeholder="Generate with VIVA in Step 3 above, or type your vision here..."
-                        className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        placeholder="Generate with VIVA in Step 2 above, or type your vision here..."
+                        className="!bg-[#101010] !border-neutral-800 !rounded-lg !px-4 !py-3 !leading-[1.75]"
                         minHeight={200}
                       />
                     )}
@@ -2016,6 +1766,7 @@ export default function IntensiveCreateCategoryPage() {
               )}
             </section>
           )}
+          </div>
         </Card>
 
         {/* Commit Draft as Active — persistent action outside the dismissable banner */}
@@ -2064,8 +1815,9 @@ export default function IntensiveCreateCategoryPage() {
           </div>
 
           <div className="flex-1 flex justify-end">
-            <Button onClick={goToNextCategory} disabled={isLastCategory && !canReviewFromLast} variant={canReviewFromLast ? 'primary' : 'outline'} size="sm" className="w-24 md:w-auto">
-              <span className="hidden md:inline">{canReviewFromLast ? 'Review' : 'Next'}</span>
+            <Button onClick={goToNextCategory} disabled={nextButtonDisabled} variant={!nextButtonDisabled && (showContinueButton || canReviewFromLast) ? 'primary' : 'outline'} size="sm" className="w-24 md:w-auto">
+              <span className="hidden md:inline">{nextButtonLabel}</span>
+              <span className="md:hidden">{nextButtonLabel}</span>
               <ChevronsRight className="w-4 h-4 flex-shrink-0 md:hidden" />
               <ChevronRight className="w-4 h-4 flex-shrink-0 hidden md:block" />
             </Button>

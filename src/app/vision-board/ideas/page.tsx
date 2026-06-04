@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   Container,
@@ -46,6 +46,8 @@ function AppSectionTitle({ title, subtitle }: { title: string; subtitle?: string
 
 export default function VisionBoardIdeasPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const isIntensivePath = pathname?.startsWith('/intensive') ?? false
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -369,7 +371,8 @@ export default function VisionBoardIdeasPage() {
       if (!batchId) {
         throw new Error('No batch id returned')
       }
-      router.push(`/vision-board/queue/${encodeURIComponent(batchId)}`)
+      const basePath = isIntensivePath ? '/intensive/vision-board/queue' : '/vision-board/queue'
+      router.push(`${basePath}/${encodeURIComponent(batchId)}`)
     } catch (e) {
       console.error('Add to board queue error:', e)
       alert(e instanceof Error ? e.message : 'Failed to add items to queue')
@@ -559,16 +562,15 @@ export default function VisionBoardIdeasPage() {
     return (
       <Container size="xl">
         <Stack gap="lg">
-          <Card>
-            <Stack gap="md">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-white mb-2">
+          <Card className="space-y-6">
+              <div className="flex flex-col items-center text-center gap-1 pb-4 border-b border-neutral-800">
+                <h2 className="text-base font-semibold text-white">Generate Ideas</h2>
+                <p className="text-sm text-neutral-400">
                   Select life categories to generate VIVA-powered suggestions.
-                </h3>
+                </p>
               </div>
 
-              {/* Match Card p-4 md:p-6 lg:p-8 so life category pills sit flush on iPad (lg) */}
-              <FullBleed className="md:-mx-6 lg:-mx-8">
+              <FullBleed>
                 <CategoryGrid
                   categories={categoriesWithout}
                   selectedCategories={selectedCategories}
@@ -576,6 +578,7 @@ export default function VisionBoardIdeasPage() {
                   showSelectAll
                   onSelectAll={handleSelectAll}
                   lifeVisionCategoryStrip
+                  desktopColumnCount={6}
                   pillLabel="Tag life categories"
                 />
               </FullBleed>
@@ -586,16 +589,16 @@ export default function VisionBoardIdeasPage() {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                 <Button 
                   onClick={fetchVisionAndGenerateSuggestions} 
                   variant="accent"
                   size="md"
-                  className="gap-2 justify-center"
+                  className="gap-2 justify-center antialiased"
                   disabled={selectedCategories.length === 0}
                 >
                   <Sparkles className="w-5 h-5" />
-                  Generate New Ideas for {selectedCategories.length} {selectedCategories.length === 1 ? 'Category' : 'Categories'}
+                  Generate Ideas for {selectedCategories.length} {selectedCategories.length === 1 ? 'Category' : 'Categories'}
                 </Button>
                 {visionSuggestions.length > 0 && (
                   <Button 
@@ -610,7 +613,6 @@ export default function VisionBoardIdeasPage() {
                   </Button>
                 )}
               </div>
-            </Stack>
           </Card>
 
           {/* Show existing suggestions if any */}

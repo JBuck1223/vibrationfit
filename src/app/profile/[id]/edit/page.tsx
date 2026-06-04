@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
-import {  Button, Badge, Card, CategoryGrid, WarningConfirmationDialog, Icon, Container, Stack, Spinner, IntensiveCompletionBanner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryGrid, WarningConfirmationDialog, Icon, Container, Stack, Spinner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
@@ -47,7 +47,6 @@ export default function ProfileEditPage() {
   const [highlightedField, setHighlightedField] = useState<string | null>(null)
   const [intensiveMode, setIntensiveMode] = useState(false)
   const [profileMarkedComplete, setProfileMarkedComplete] = useState(false)
-  const [completedAt, setCompletedAt] = useState<string | null>(null)
   const [intensiveCheckComplete, setIntensiveCheckComplete] = useState(false)
   const [versionStatus, setVersionStatus] = useState({
     isDraft: false,
@@ -321,7 +320,6 @@ export default function ProfileEditPage() {
         // Data is already in intensiveData from checklist
         if (intensiveData.profile_completed) {
           setProfileMarkedComplete(true)
-          setCompletedAt(intensiveData.profile_completed_at || intensiveData.created_at)
         }
       }
       
@@ -766,14 +764,6 @@ export default function ProfileEditPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {/* Intensive Completion Banner - Shows when step is already complete */}
-        {intensiveMode && profileMarkedComplete && completedAt && (
-          <IntensiveCompletionBanner 
-            stepTitle="Create Profile"
-            completedAt={completedAt}
-          />
-        )}
-
         {/* Profile Completion Progress - Clickable */}
         {(() => {
           const localCompletion = calculateProfileCompletion(profile)
@@ -902,6 +892,12 @@ export default function ProfileEditPage() {
         )}
 
         {/* Life Areas Navigation */}
+            {intensiveMode && profileMarkedComplete && (
+              <div className="flex items-center justify-center gap-2">
+                <CheckCircle className="w-5 h-5 text-primary-500" />
+                <span className="text-sm font-medium text-primary-400">Step Complete</span>
+              </div>
+            )}
             <CategoryGrid
               categories={profileSections.map((section) => {
                 const categoryInfo = getCategoryInfo(section.id)

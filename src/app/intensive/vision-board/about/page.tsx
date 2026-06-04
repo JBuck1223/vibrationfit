@@ -9,11 +9,11 @@ import {
   Stack,
   Inline,
   Text,
-  IntensiveCompletionBanner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, Sparkles, Plus, TrendingUp, Upload, CheckCircle } from 'lucide-react'
+import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 
 const VISION_BOARD_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/intensive/10-vision-board-1080p.mp4'
@@ -21,11 +21,12 @@ const VISION_BOARD_POSTER =
   'https://media.vibrationfit.com/site-assets/video/intensive/10-vision-board-thumb.0000000.jpg'
 
 export default function IntensiveVisionBoardAboutPage() {
+  const { setCompletedAt: setStepBarCompletedAt } = useIntensiveStep()
   const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
-  const [completedAt, setCompletedAt] = useState<string | null>(null)
 
   useEffect(() => {
     checkCompletionStatus()
+    return () => { setStepBarCompletedAt(null) }
   }, [])
 
   const checkCompletionStatus = async () => {
@@ -44,7 +45,7 @@ export default function IntensiveVisionBoardAboutPage() {
       if (checklist) {
         if (checklist.vision_board_completed) {
           setIsAlreadyCompleted(true)
-          setCompletedAt(checklist.vision_board_completed_at)
+          setStepBarCompletedAt(checklist.vision_board_completed_at)
         }
       }
     } catch (err) {
@@ -55,13 +56,6 @@ export default function IntensiveVisionBoardAboutPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        {isAlreadyCompleted && completedAt && (
-          <IntensiveCompletionBanner 
-            stepTitle="Create Vision Board"
-            completedAt={completedAt}
-          />
-        )}
-
         {/* Video */}
         <div className="mx-auto w-full max-w-3xl">
           <OptimizedVideo
@@ -258,30 +252,32 @@ export default function IntensiveVisionBoardAboutPage() {
           </Stack>
         </Card>
 
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
-          <Stack gap="md" className="text-center">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
-              Ready to Create?
-            </Text>
-            <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
-              You don&apos;t need the &quot;perfect&quot; board today. Start by getting one image per life area, then let it grow with you.
-            </p>
-            <Inline gap="sm" justify="center" className="flex-wrap">
-              <Button variant="primary" size="sm" className="justify-center" asChild>
-                <Link href="/intensive/vision-board/ideas">
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Get Ideas
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" className="justify-center" asChild>
-                <Link href="/intensive/vision-board">
-                  <Eye className="mr-2 h-4 w-4" />
-                  View My Board
-                </Link>
-              </Button>
-            </Inline>
-          </Stack>
-        </Card>
+        {!isAlreadyCompleted && (
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+            <Stack gap="md" className="text-center">
+              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                Ready to Create?
+              </Text>
+              <p className="text-sm md:text-base text-neutral-300 leading-relaxed max-w-2xl mx-auto">
+                You don&apos;t need the &quot;perfect&quot; board today. Start by getting one image per life area, then let it grow with you.
+              </p>
+              <Inline gap="sm" justify="center" className="flex-wrap">
+                <Button variant="primary" size="sm" className="justify-center" asChild>
+                  <Link href="/intensive/vision-board/ideas">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Get Ideas
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" className="justify-center" asChild>
+                  <Link href="/intensive/vision-board">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View My Board
+                  </Link>
+                </Button>
+              </Inline>
+            </Stack>
+          </Card>
+        )}
       </Stack>
     </Container>
   )

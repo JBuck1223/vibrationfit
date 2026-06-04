@@ -16,12 +16,18 @@ export type AreaSlug =
 
 export type AreaStats = AreaStatsResponse
 
-export function useAreaStats(area: AreaSlug) {
+export function useAreaStats(area: AreaSlug, options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true
   const [stats, setStats] = useState<AreaStats | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false)
+      return
+    }
+
     let cancelled = false
 
     async function fetchStats() {
@@ -44,7 +50,7 @@ export function useAreaStats(area: AreaSlug) {
 
     fetchStats()
     return () => { cancelled = true }
-  }, [area])
+  }, [area, enabled])
 
   return { stats, loading, error, refetch: () => setLoading(true) }
 }

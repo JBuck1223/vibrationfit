@@ -6,13 +6,13 @@ import { Button, Spinner } from '@/lib/design-system/components'
 export const ALIGNMENT_GYM_TOUR_STEPS = [
   {
     id: 'hero',
-    title: 'Your Alignment Gym hub',
-    body: 'This is where you will come each week — live sessions, replays, and your attendance streak all live here.',
+    title: 'The Alignment Gym hub',
+    body: 'This is your home for weekly live group coaching.',
   },
   {
     id: 'stats',
-    title: 'Track your reps',
-    body: 'See your weekly streak and how often you have shown up. Attending live or opening a session replay counts toward your MAP.',
+    title: 'Your stats',
+    body: 'Streak and weekly reps show how consistently you are showing up. Attending live or opening a replay counts.',
   },
   {
     id: 'about',
@@ -22,12 +22,12 @@ export const ALIGNMENT_GYM_TOUR_STEPS = [
   {
     id: 'upcoming',
     title: 'Next live session',
-    body: 'Your upcoming session appears here. Join when it is live, or add it to your calendar so Thursday stays on your radar.',
+    body: 'The next session appears here — click the button when it\u2019s time to join live. Be sure to add this to your calendar.',
   },
   {
     id: 'replays',
     title: 'Session replays',
-    body: 'Miss a week? Watch a replay here. Opening a replay page also counts as showing up for your Alignment Gym commitment.',
+    body: 'Miss a week? Watch a past session here. Watching a replay also counts as showing up.',
   },
 ] as const
 

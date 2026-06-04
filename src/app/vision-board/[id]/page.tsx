@@ -769,6 +769,8 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
                   selectedCategories={formData.categories}
                   onCategoryClick={handleCategoryToggle}
                   lifeVisionCategoryStrip
+                  desktopColumnCount={6}
+                  bleedClassName="-mx-4 md:-mx-6 lg:-mx-8"
                 />
               </div>
 

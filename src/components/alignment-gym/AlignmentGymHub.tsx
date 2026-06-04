@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { cn } from '@/lib/design-system/components/shared-utils'
 
 export type AlignmentGymTourAnchor =
@@ -17,6 +17,8 @@ export interface AlignmentGymHubProps {
   forceWhatIsOpen?: boolean
   /** Skip MAP auto-verify on load (intensive preview) */
   skipMapAutoVerify?: boolean
+  /** Show zero reps until intensive graduation (daily reps start after unlock) */
+  statsUntilGraduation?: boolean
 }
 
 const TOUR_RING =
@@ -41,7 +43,6 @@ import {
   Eye,
 } from 'lucide-react'
 import { 
-  PageHero, 
   Container, 
   Stack,
   Button, 
@@ -55,6 +56,7 @@ import { useAreaStats } from '@/hooks/useAreaStats'
 import { createClient } from '@/lib/supabase/client'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { isSessionJoinable, formatDuration } from '@/lib/video/types'
+import type { AreaStatsResponse as AreaStats } from '@/app/api/area-stats/route'
 
 type SessionWithParticipants = VideoSession & {
   participants?: VideoSessionParticipant[]
@@ -66,14 +68,51 @@ interface AttendanceStats {
   currentStreak: number
 }
 
+function calculateAttendanceStreak(attendedSessions: SessionWithParticipants[]): number {
+  if (attendedSessions.length === 0) return 0
+
+  const sorted = [...attendedSessions].sort(
+    (a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime(),
+  )
+
+  let streak = 0
+  const oneWeek = 7 * 24 * 60 * 60 * 1000
+  let lastDate = new Date()
+
+  for (const session of sorted) {
+    const sessionDate = new Date(session.scheduled_at)
+    const gap = lastDate.getTime() - sessionDate.getTime()
+    if (gap > oneWeek * 2) break
+    streak++
+    lastDate = sessionDate
+  }
+
+  return streak
+}
+
+const EMPTY_GYM_STATS: AreaStats = {
+  todayCompleted: false,
+  currentStreak: 0,
+  streakUnit: 'weeks',
+  countLast7: 0,
+  countLast30: 0,
+  countAllTime: 0,
+  streakFreezeAvailable: false,
+  streakFreezeUsedThisWeek: false,
+}
+
 export function AlignmentGymHub({
   activeTourAnchor = null,
   forceWhatIsOpen = false,
   skipMapAutoVerify = false,
+  statsUntilGraduation = false,
 }: AlignmentGymHubProps = {}) {
   const router = useRouter()
-  const supabase = createClient()
-  const { stats: practiceStats } = useAreaStats('alignment-gym')
+  const supabase = useMemo(() => createClient(), [])
+  const { stats: livePracticeStats } = useAreaStats('alignment-gym', {
+    enabled: !statsUntilGraduation,
+  })
+  const practiceStats = statsUntilGraduation ? EMPTY_GYM_STATS : livePracticeStats
   
   const [sessions, setSessions] = useState<SessionWithParticipants[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,6 +124,7 @@ export function AlignmentGymHub({
   const [whatIsOpen, setWhatIsOpen] = useState(forceWhatIsOpen)
   const [coachingOpen, setCoachingOpen] = useState(false)
   const freezeRef = useRef<HTMLDivElement>(null)
+  const sessionsLoadedRef = useRef(false)
 
   useEffect(() => {
     if (!freezeOpen) return
@@ -104,9 +144,8 @@ export function AlignmentGymHub({
   // Fetch Alignment Gym sessions (group sessions)
   const fetchSessions = useCallback(async () => {
     try {
-      setLoading(true)
-      
-      // Get current user
+      if (!sessionsLoadedRef.current) setLoading(true)
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
@@ -114,13 +153,9 @@ export function AlignmentGymHub({
       }
       setUserId(user.id)
 
-      // Fetch Alignment Gym sessions (dedicated type + legacy group sessions)
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('video_sessions')
-        .select(`
-          *,
-          participants:video_session_participants(*)
-        `)
+        .select('*')
         .or('session_type.eq.alignment_gym,title.ilike.%alignment gym%')
         .eq('hidden_from_users', false)
         .order('scheduled_at', { ascending: false })
@@ -129,24 +164,46 @@ export function AlignmentGymHub({
         throw new Error(sessionsError.message)
       }
 
-      // Calculate participant counts
-      const sessionsWithCounts = (sessionsData || []).map(session => ({
+      const sessionList = sessionsData ?? []
+      const sessionIds = sessionList.map(s => s.id)
+
+      let myParticipants: VideoSessionParticipant[] = []
+      if (sessionIds.length > 0) {
+        const { data: participantRows, error: participantsError } = await supabase
+          .from('video_session_participants')
+          .select(
+            'id, session_id, user_id, attended, replay_viewed_at, joined_at, left_at, duration_seconds, is_host, invited_at, created_at, updated_at',
+          )
+          .eq('user_id', user.id)
+          .in('session_id', sessionIds)
+
+        if (participantsError) {
+          throw new Error(participantsError.message)
+        }
+        myParticipants = (participantRows ?? []) as VideoSessionParticipant[]
+      }
+
+      const participantsBySession = new Map<string, VideoSessionParticipant[]>()
+      for (const row of myParticipants) {
+        const list = participantsBySession.get(row.session_id) ?? []
+        list.push(row)
+        participantsBySession.set(row.session_id, list)
+      }
+
+      const sessionsWithParticipants = sessionList.map(session => ({
         ...session,
-        participant_count: session.participants?.filter((p: VideoSessionParticipant) => p.attended).length || 0
+        participants: participantsBySession.get(session.id) ?? [],
       }))
 
-      setSessions(sessionsWithCounts)
+      setSessions(sessionsWithParticipants)
 
-      // Calculate attendance stats for current user (only Alignment Gym sessions)
-      const attendedSessions = sessionsWithCounts.filter(session => 
-        session.participants?.some((p: VideoSessionParticipant) => 
-          p.user_id === user.id && p.attended
-        )
+      const attendedSessions = sessionsWithParticipants.filter(session =>
+        session.participants?.some((p: VideoSessionParticipant) => p.attended),
       )
-      
+
       setAttendanceStats({
-        totalAttended: attendedSessions.length,
-        currentStreak: calculateStreak(attendedSessions)
+        totalAttended: statsUntilGraduation ? 0 : attendedSessions.length,
+        currentStreak: statsUntilGraduation ? 0 : calculateAttendanceStreak(attendedSessions),
       })
 
       if (!skipMapAutoVerify) {
@@ -163,35 +220,9 @@ export function AlignmentGymHub({
       setError(err instanceof Error ? err.message : 'Failed to load sessions')
     } finally {
       setLoading(false)
+      sessionsLoadedRef.current = true
     }
-  }, [router, supabase])
-
-  // Calculate attendance streak
-  const calculateStreak = (attendedSessions: SessionWithParticipants[]): number => {
-    if (attendedSessions.length === 0) return 0
-    
-    // Sort by date descending
-    const sorted = [...attendedSessions].sort((a, b) => 
-      new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()
-    )
-    
-    let streak = 0
-    const oneWeek = 7 * 24 * 60 * 60 * 1000 // ms in a week
-    let lastDate = new Date()
-    
-    for (const session of sorted) {
-      const sessionDate = new Date(session.scheduled_at)
-      const gap = lastDate.getTime() - sessionDate.getTime()
-      
-      // If gap is more than ~2 weeks, streak breaks
-      if (gap > oneWeek * 2) break
-      
-      streak++
-      lastDate = sessionDate
-    }
-    
-    return streak
-  }
+  }, [router, supabase, skipMapAutoVerify, statsUntilGraduation])
 
   useEffect(() => {
     fetchSessions()
@@ -218,7 +249,7 @@ export function AlignmentGymHub({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchSessions, supabase, skipMapAutoVerify])
+  }, [fetchSessions, supabase])
 
   useEffect(() => {
     if (forceWhatIsOpen) setWhatIsOpen(true)
@@ -318,14 +349,6 @@ export function AlignmentGymHub({
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <div data-alignment-gym-tour="hero" className={tourClass('hero')}>
-          <PageHero
-            eyebrow="GRADUATE UNLOCKS"
-            title="The Alignment Gym"
-            subtitle="Weekly live group coaching to keep you calibrated and moving toward your vision"
-          />
-        </div>
-
         <div
           data-alignment-gym-tour="stats"
           className={cn(
@@ -484,7 +507,10 @@ export function AlignmentGymHub({
           >
             <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-4">
               <div className="flex-1 min-w-0">
-                <Badge variant={isLive ? 'success' : 'premium'} className={`mb-2 ${isLive ? 'animate-pulse' : ''}`}>
+                <Badge
+                  variant={isLive ? 'success' : 'primary'}
+                  className={cn('mb-2', isLive && 'animate-pulse')}
+                >
                   {isLive ? (
                     <><span className="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse" />Live Now</>
                   ) : (
@@ -631,7 +657,8 @@ export function AlignmentGymHub({
                     (p: VideoSessionParticipant) => p.user_id === userId
                   )
                   const userAttended = userParticipant?.attended ?? false
-                  const userViewedReplay = !userAttended && Boolean(userParticipant?.replay_viewed_at)
+                  const userViewedReplay =
+                    !userAttended && Boolean(userParticipant?.replay_viewed_at)
 
                   return (
                     <div
@@ -655,7 +682,6 @@ export function AlignmentGymHub({
                               {session.actual_duration_seconds
                                 ? formatDuration(session.actual_duration_seconds)
                                 : `${session.scheduled_duration_minutes} min`}
-                              {session.description ? ` · ${session.description}` : ''}
                             </p>
                           </div>
 

@@ -1,18 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Button, Spinner, Card, Stack } from '@/lib/design-system/components'
+import { Container, Spinner, Card, Stack } from '@/lib/design-system/components'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 import { IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import { useIntensiveStepCompleteModal } from '@/lib/intensive/use-step-complete-modal'
 import { VibeTribeFeedLayout } from '@/components/vibe-tribe/VibeTribeFeedLayout'
 import { createClient } from '@/lib/supabase/client'
-import { CheckCircle, Heart, MessageCircle, ArrowRight } from 'lucide-react'
+import { Heart, MessageCircle } from 'lucide-react'
 
 export default function IntensiveVibeEngagePage() {
   const { setCompletedAt } = useIntensiveStep()
-  const { isOpen, stepId, completeAndShowModal, showModalForChecklistKey, closeModal } =
-    useIntensiveStepCompleteModal()
+  const { isOpen, stepId, completeAndShowModal, closeModal } = useIntensiveStepCompleteModal()
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [userProfile, setUserProfile] = useState<{ id: string; full_name: string | null; profile_picture_url: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -82,7 +81,14 @@ export default function IntensiveVibeEngagePage() {
 
       const [accountResult, checklistResult] = await Promise.all([
         supabase.from('user_accounts').select('full_name, profile_picture_url, role').eq('id', authUser.id).single(),
-        supabase.from('intensive_checklist').select('vibe_engagement, vibe_engagement_at').eq('user_id', authUser.id).in('status', ['pending', 'in_progress']).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase
+          .from('intensive_checklist')
+          .select('vibe_engagement, vibe_engagement_at')
+          .eq('user_id', authUser.id)
+          .in('status', ['pending', 'in_progress', 'completed'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ])
 
       if (accountResult.data) {
@@ -148,13 +154,13 @@ export default function IntensiveVibeEngagePage() {
                 </p>
                 <p className="text-sm text-neutral-300 leading-relaxed">
                   A heart or a comment on <span className="text-white font-medium">another member&apos;s</span>{' '}
-                  post — not your own. A short line of encouragement, gratitude, or reflection is
+                  post — not your own. A short line of encouragement, appreciation, or reflection is
                   enough; presence matters more than length.
                 </p>
                 <ul className="text-sm text-neutral-400 space-y-1.5 pt-1">
                   <li className="flex items-start gap-2">
                     <Heart className="w-4 h-4 text-[#BF00FF] flex-shrink-0 mt-0.5" />
-                    <span>Heart a post that genuinely landed for you</span>
+                    <span>Heart a post</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <MessageCircle className="w-4 h-4 text-[#BF00FF] flex-shrink-0 mt-0.5" />
@@ -166,27 +172,6 @@ export default function IntensiveVibeEngagePage() {
                 Browse the feed below. This step completes automatically when you engage.
               </p>
             </Stack>
-          </Card>
-        )}
-
-        {hasEngaged && (
-          <Card variant="outlined" className="bg-primary-500/5 border-primary-500/20">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-primary-500" />
-                <div>
-                  <p className="text-sm font-semibold text-primary-400">Engagement complete!</p>
-                  <p className="text-xs text-neutral-400">Next up: get to know the Alignment Gym.</p>
-                </div>
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => showModalForChecklistKey('vibe_engagement')}
-              >
-                Continue<ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
           </Card>
         )}
 

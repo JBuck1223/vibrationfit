@@ -20,20 +20,24 @@ import {
   Settings, 
   FileText,
   User, 
-  Sparkles, 
-  Music, 
+  Sparkles,
+  Target,
+  Music,
+  Headphones,
   Mic,
   Sliders,
   ImageIcon, 
   BookOpen, 
   Rocket,
+  Map,
   Unlock,
   ArrowRight,
   CheckCircle,
   Clock,
-  MessageSquare,
+  MessageSquarePlus,
   Users,
-  Activity
+  Heart,
+  Video
 } from 'lucide-react'
 
 const INTENSIVE_START_VIDEO =
@@ -167,7 +171,7 @@ export default function IntensiveStartPage() {
       icon: Sparkles,
       color: 'text-[#2DD4BF]',
       steps: [
-        { num: 4, title: 'Build Life Vision', icon: Sparkles },
+        { num: 4, title: 'Build Life Vision', icon: Target },
       ]
     },
     {
@@ -175,7 +179,7 @@ export default function IntensiveStartPage() {
       icon: Music,
       color: 'text-[#8B5CF6]',
       steps: [
-        { num: 5, title: 'Generate Audio', icon: Music },
+        { num: 5, title: 'Generate Audio', icon: Headphones },
         { num: 6, title: 'Record Voice (Optional)', icon: Mic },
         { num: 7, title: 'Create Audio Mix', icon: Sliders },
       ]
@@ -194,9 +198,9 @@ export default function IntensiveStartPage() {
       icon: Users,
       color: 'text-[#EC4899]',
       steps: [
-        { num: 10, title: 'First Vibe Tribe Post', icon: MessageSquare },
-        { num: 11, title: 'Engage in Vibe Tribe', icon: Users },
-        { num: 12, title: 'Alignment Gym Tour', icon: Activity },
+        { num: 10, title: 'First Vibe Tribe Post', icon: MessageSquarePlus },
+        { num: 11, title: 'Engage in Vibe Tribe', icon: Heart },
+        { num: 12, title: 'Alignment Gym Tour', icon: Video },
       ]
     },
     {
@@ -204,7 +208,7 @@ export default function IntensiveStartPage() {
       icon: Rocket,
       color: 'text-primary-500',
       steps: [
-        { num: 13, title: 'My Activation Plan', icon: Rocket },
+        { num: 13, title: 'My Activation Plan', icon: Map },
         { num: 14, title: 'Unlock Platform', icon: Unlock },
       ]
     }

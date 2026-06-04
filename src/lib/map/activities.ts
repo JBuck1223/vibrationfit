@@ -178,7 +178,7 @@ export const ACTIVITY_DEFINITIONS: ActivityDefinition[] = [
     type: 'alignment_gym',
     label: 'Alignment Gym',
     description:
-      'Attending live or opening the session page after counts as complete. Schedule is in Alignment Gym.',
+      'Attending live or watching the replay counts as complete. Schedule and replays: Alignment Gym.',
     icon: Video,
     category: 'sessions',
     defaultDeepLink: '/alignment-gym',

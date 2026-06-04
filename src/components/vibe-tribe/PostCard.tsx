@@ -499,6 +499,7 @@ export function PostCard({
                       selectedCategories={editCategories}
                       onCategoryClick={handleEditCategoryToggle}
                       lifeVisionCategoryStrip
+                      desktopColumnCount={6}
                     />
                   </div>
                 )}
