@@ -15,9 +15,9 @@ import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown, Users, Home } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
@@ -141,13 +141,22 @@ function VisionBoardPracticeStatsRow({
 
 export default function VisionBoardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const pathname = usePathname()
   const [isIntensivePath, setIsIntensivePath] = useState(false)
   useEffect(() => { setIsIntensivePath(pathname.startsWith('/intensive/')) }, [pathname])
-
   const { stats: practiceStats } = useAreaStats('vision-board')
   const columnCount = useColumnCount()
   const [items, setItems] = useState<any[]>([])
+  const [scope, setScope] = useState<'mine' | 'household'>(
+    searchParams.get('scope') === 'household' ? 'household' : 'mine'
+  )
+  const [household, setHousehold] = useState<{
+    id: string
+    name: string
+    isMultiMember: boolean
+    members: any[]
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['all'])
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'actualized', 'inactive'])
@@ -163,6 +172,7 @@ export default function VisionBoardPage() {
     status: string
     categories: string[]
     actualization_story: string
+    shareWithHousehold: boolean
   } | null>(null)
   const [saving, setSaving] = useState(false)
   const [boardMode, setBoardMode] = useState<'clean' | 'detail'>('detail')
@@ -251,8 +261,8 @@ export default function VisionBoardPage() {
   })
 
   useEffect(() => {
-    fetchItems()
-  }, [])
+    fetchItems(scope)
+  }, [scope])
 
   useEffect(() => {
     if (!snapshotDate) {
@@ -313,24 +323,22 @@ export default function VisionBoardPage() {
     recordActivation()
   }, [])
 
-  const fetchItems = async () => {
+  const fetchItems = async (currentScope: 'mine' | 'household' = scope) => {
     try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const user = session?.user
+      setLoading(true)
+      // 'household' lens shows everything shared with the household (by anyone);
+      // 'mine' shows the user's own creations.
+      const apiScope = currentScope === 'household' ? 'household' : 'mine'
+      const res = await fetch(`/api/vision-board/items?scope=${apiScope}`)
 
-      if (!user) {
+      if (res.status === 401) {
         router.push('/auth/login')
         return
       }
 
-      const { data: itemsData } = await supabase
-        .from('vision_board_items')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      setItems(itemsData || [])
+      const json = await res.json()
+      setItems(json.items || [])
+      setHousehold(json.household || null)
     } catch (error) {
       console.error('Error fetching items:', error)
     } finally {
@@ -713,7 +721,8 @@ export default function VisionBoardPage() {
       description: item.description || '',
       status: item.status,
       categories: item.categories || [],
-      actualization_story: item.actualization_story || ''
+      actualization_story: item.actualization_story || '',
+      shareWithHousehold: !!item.household_id
     })
     setEditAudioRecordings(
       Array.isArray(item.audio_recordings) ? [...item.audio_recordings] : []
@@ -826,6 +835,14 @@ export default function VisionBoardPage() {
         actualizedImageUrl = null
       }
 
+      // Resolve household sharing. Only the creator can change sharing on their
+      // own item; for items shared with the household we keep the existing value.
+      const isOwner = currentItem?.user_id === user.id
+      let nextHouseholdId = currentItem?.household_id ?? null
+      if (isOwner && household?.isMultiMember) {
+        nextHouseholdId = editFormData.shareWithHousehold ? household.id : null
+      }
+
       const { error } = await supabase
         .from('vision_board_items')
         .update({
@@ -835,6 +852,7 @@ export default function VisionBoardPage() {
           actualized_image_url: actualizedImageUrl,
           status: editFormData.status,
           categories: editFormData.categories,
+          household_id: nextHouseholdId,
           actualization_story: editFormData.status === 'actualized' ? editFormData.actualization_story : null,
           actualized_at: editFormData.status === 'actualized' && currentItem?.status !== 'actualized'
             ? new Date().toISOString()
@@ -852,25 +870,31 @@ export default function VisionBoardPage() {
         })
       }
 
-      setItems(prev => prev.map(i =>
-        i.id === itemId
-          ? {
-              ...i,
-              name: editFormData.name,
-              description: editFormData.description,
-              image_url: imageUrl,
-              actualized_image_url: actualizedImageUrl,
-              status: editFormData.status,
-              categories: editFormData.categories,
-              actualization_story: editFormData.status === 'actualized' ? editFormData.actualization_story : null,
-              actualized_at: editFormData.status === 'actualized' && i.status !== 'actualized'
-                ? new Date().toISOString()
-                : i.actualized_at,
-              audio_recordings: editAudioRecordings,
-              updated_at: new Date().toISOString()
-            }
-          : i
-      ))
+      setItems(prev => prev
+        .map(i =>
+          i.id === itemId
+            ? {
+                ...i,
+                name: editFormData.name,
+                description: editFormData.description,
+                image_url: imageUrl,
+                actualized_image_url: actualizedImageUrl,
+                status: editFormData.status,
+                categories: editFormData.categories,
+                household_id: nextHouseholdId,
+                isShared: !!nextHouseholdId,
+                actualization_story: editFormData.status === 'actualized' ? editFormData.actualization_story : null,
+                actualized_at: editFormData.status === 'actualized' && i.status !== 'actualized'
+                  ? new Date().toISOString()
+                  : i.actualized_at,
+                audio_recordings: editAudioRecordings,
+                updated_at: new Date().toISOString()
+              }
+            : i
+        )
+        // When viewing the household lens, drop items that were just unshared
+        .filter(i => scope !== 'household' || i.household_id)
+      )
 
       setEditingItemId(null)
       setEditFormData(null)
@@ -1070,6 +1094,46 @@ export default function VisionBoardPage() {
                 ))}
               </div>
             </section>
+
+            {household?.isMultiMember && (item.isMine ?? true) && (
+              <section className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditFormData({
+                      ...editFormData,
+                      shareWithHousehold: !editFormData.shareWithHousehold,
+                    })
+                  }
+                  className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all ${
+                    editFormData.shareWithHousehold
+                      ? 'border-[#00FFFF] bg-[#00FFFF]/10'
+                      : 'border-[#282828] bg-[#1A1A1A] hover:border-neutral-600'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-white">
+                    <Home className="w-4 h-4 text-[#00FFFF]" />
+                    Include in {household.name}
+                  </span>
+                  <span
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      editFormData.shareWithHousehold ? 'bg-[#00FFFF]' : 'bg-neutral-700'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-black transition-transform ${
+                        editFormData.shareWithHousehold ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </span>
+                </button>
+                <p className="text-[11px] text-neutral-500 text-center">
+                  {editFormData.shareWithHousehold
+                    ? 'Visible to everyone in your household.'
+                    : 'Private to you until shared.'}
+                </p>
+              </section>
+            )}
 
             <CategoryGrid
               title="Tag life categories"
@@ -1807,6 +1871,36 @@ export default function VisionBoardPage() {
           </div>
         )}
 
+        {/* Household lens: switch between personal creations and the shared household board */}
+        {household?.isMultiMember && !isSnapshotMode && (
+          <div className="flex items-center justify-center">
+            <div className="inline-flex items-center gap-1 bg-[#1F1F1F] rounded-full p-1">
+              <button
+                onClick={() => setScope('mine')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  scope === 'mine'
+                    ? 'bg-[#39FF14] text-black'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Grid className="w-4 h-4" />
+                My Board
+              </button>
+              <button
+                onClick={() => setScope('household')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  scope === 'household'
+                    ? 'bg-[#00FFFF] text-black'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                {household.name}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Missing categories banner (intensive only) */}
         {isIntensivePath && !loading && missingCategories.length > 0 && (
           <div className="rounded-xl border border-neutral-700 bg-neutral-800/50 p-3">
@@ -1833,7 +1927,11 @@ export default function VisionBoardPage() {
           <div className="flex-1 flex justify-start">
             {!isSnapshotMode ? (
               <button
-                onClick={() => router.push(isIntensivePath ? '/intensive/vision-board/new' : '/vision-board/new')}
+                onClick={() => {
+                  const base = isIntensivePath ? '/intensive/vision-board/new' : '/vision-board/new'
+                  const query = scope === 'household' && household?.isMultiMember ? '?household=1' : ''
+                  router.push(base + query)
+                }}
                 className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
                 aria-label="Add Creation"
               >
@@ -2147,6 +2245,12 @@ export default function VisionBoardPage() {
                             onClick={() => bulkMode && toggleItemSelection(item.id)}
                           >
                             <span className="flex-1 text-sm font-semibold text-white truncate">{item.name}</span>
+                            {scope === 'household' && item.member && !item.member.isSelf && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-[#00FFFF] bg-[#00FFFF]/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                                <Users className="w-3 h-3" />
+                                {item.member.displayName}
+                              </span>
+                            )}
                             {!bulkMode && (
                               <>
                                 <button
@@ -2275,7 +2379,15 @@ export default function VisionBoardPage() {
                         <div className={`flex-1 min-w-0 overflow-hidden ${bulkMode ? 'cursor-pointer' : ''}`} onClick={() => bulkMode && toggleItemSelection(item.id)}>
                           {/* Title row with action icons */}
                           <div className="flex items-start gap-2 mb-2">
-                            <h3 className="flex-1 min-w-0 text-xl font-semibold text-white break-words">{item.name}</h3>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-xl font-semibold text-white break-words">{item.name}</h3>
+                              {scope === 'household' && item.member && !item.member.isSelf && (
+                                <span className="inline-flex items-center gap-1 text-xs text-[#00FFFF] bg-[#00FFFF]/10 px-2 py-0.5 rounded-full mt-1">
+                                  <Users className="w-3 h-3" />
+                                  {item.member.displayName}
+                                </span>
+                              )}
+                            </div>
                             {!bulkMode && (
                               <>
                                 <button

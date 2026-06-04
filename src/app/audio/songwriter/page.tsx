@@ -327,6 +327,7 @@ export default function SongwriterPage() {
 
         setRegionStart(start)
         setRegionEnd(end)
+        setReferenceId(null)
       })
 
       ws.on('play', () => setIsPlaying(true))
@@ -374,11 +375,13 @@ export default function SongwriterPage() {
             end: regionEnd,
           }),
         })
-        if (refResponse.ok) {
-          const refData = await refResponse.json()
-          refId = refData.reference_id
-          setReferenceId(refId)
+        if (!refResponse.ok) {
+          const refErr = await refResponse.json().catch(() => ({}))
+          throw new Error(refErr.error || 'Reference track upload failed')
         }
+        const refData = await refResponse.json()
+        refId = refData.reference_id
+        setReferenceId(refId)
       }
 
       let currentSongId = songId

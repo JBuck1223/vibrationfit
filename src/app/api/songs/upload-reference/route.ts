@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'url is required' }, { status: 400 })
     }
 
-    const duration = Math.min(end - start, 30)
+    const duration = 30
 
-    console.log(`[SongReference] Clipping ${url.slice(0, 80)}... from ${start}s to ${end}s (${duration}s)`)
+    console.log(`[SongReference] Clipping ${url.slice(0, 80)}... from ${start}s for exactly ${duration}s`)
 
     const tempDir = await mkdtemp(join(tmpdir(), 'ref-clip-'))
     const inputPath = join(tempDir, 'input.mp3')
@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
       // Clip to the selected segment
       await execFileAsync('ffmpeg', [
         '-y',
-        '-ss', String(start),
-        '-t', String(duration),
+        '-ss', String(Math.max(0, start)),
+        '-t', '30',
         '-i', inputPath,
         '-acodec', 'libmp3lame',
         '-ab', '128k',

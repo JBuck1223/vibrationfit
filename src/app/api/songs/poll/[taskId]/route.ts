@@ -142,6 +142,7 @@ export async function GET(
             mureka_url: murekaSong.url,
             mureka_flac_url: murekaSong.flac_url,
             mureka_wav_url: murekaSong.wav_url,
+            lyrics_sections: murekaSong.lyrics_sections || null,
           },
         }, { onConflict: 'song_id,version' })
         .select('id, version, mp3_url, duration_ms')

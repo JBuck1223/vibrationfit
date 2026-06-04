@@ -18,6 +18,7 @@ import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/visio
 import { EmbeddedPlayer, type MixDetails } from '@/lib/design-system/components'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { SyncedLyricsDisplay, PlainLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
+import { convertMurekaLyrics } from '@/lib/utils/lyrics-alignment'
 import { PlaylistsView } from '@/components/audio-studio/PlaylistsView'
 import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet'
 import type { SourceType } from '@/lib/services/playlistService'
@@ -513,11 +514,11 @@ export default function AudioListenPage() {
   const [songTracks, setSongTracks] = useState<BaseAudioTrack[]>([])
   const [songTracksLoading, setSongTracksLoading] = useState(false)
   const [songDropdownOpen, setSongDropdownOpen] = useState(false)
+  const [songsLoaded, setSongsLoaded] = useState(false)
 
-  const shouldLoadSongs = contentType === 'songs' && userSongs.length === 0 && !userSongsLoading
   useEffect(() => {
-    if (shouldLoadSongs) loadUserSongs()
-  }, [shouldLoadSongs])
+    if (contentType === 'songs' && !songsLoaded && !userSongsLoading) loadUserSongs()
+  }, [contentType, songsLoaded, userSongsLoading])
 
   useEffect(() => {
     if (selectedSongId) loadSongTracks(selectedSongId)
@@ -536,6 +537,7 @@ export default function AudioListenPage() {
       setUserSongs(data)
       if (data.length > 0 && !selectedSongId) setSelectedSongId(data[0].id)
     }
+    setSongsLoaded(true)
     setUserSongsLoading(false)
   }
 
@@ -544,18 +546,23 @@ export default function AudioListenPage() {
     const supabase = createClient()
     const { data } = await supabase
       .from('song_tracks')
-      .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite')
+      .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite, metadata')
       .eq('song_id', songId)
       .order('created_at')
     if (data) {
-      setSongTracks(data.filter((t: any) => t.mp3_url).map((t: any) => ({
-        id: t.id,
-        title: t.title || `Version ${t.version}`,
-        artist: userSongs.find(s => s.id === songId)?.title || 'VIVA Song',
-        duration: t.duration_ms ? t.duration_ms / 1000 : 180,
-        url: t.mp3_url,
-        thumbnail: t.cover_url || undefined,
-      })))
+      setSongTracks(data.filter((t: any) => t.mp3_url).map((t: any) => {
+        const meta = t.metadata as Record<string, unknown> | null
+        const lyricsSections = meta?.lyrics_sections as any[] | undefined
+        return {
+          id: t.id,
+          title: t.title || `Version ${t.version}`,
+          artist: userSongs.find(s => s.id === songId)?.title || 'VIVA Song',
+          duration: t.duration_ms ? t.duration_ms / 1000 : 180,
+          url: t.mp3_url,
+          thumbnail: t.cover_url || undefined,
+          syncedLyrics: lyricsSections?.length ? convertMurekaLyrics(lyricsSections) : undefined,
+        }
+      }))
     }
     setSongTracksLoading(false)
   }

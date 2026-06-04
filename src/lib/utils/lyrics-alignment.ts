@@ -271,6 +271,51 @@ export function parseTimestampedLyrics(input: string): SyncedLyrics {
 // ── Public API ─────────────────────────────────────────────────────────────
 
 /**
+ * Convert Mureka's lyrics_sections format to our SyncedLyrics format.
+ * Mureka uses milliseconds; our format uses seconds.
+ */
+export function convertMurekaLyrics(lyricsSections: MurekaLyricsSection[]): SyncedLyrics {
+  const lines: TimedLine[] = []
+
+  for (const section of lyricsSections) {
+    if (!section.lines) continue
+    for (const line of section.lines) {
+      const text = line.text.replace(/^#\s*/, '').trim()
+      if (!text) continue
+
+      const words: TimedWord[] = (line.words || [])
+        .filter(w => w.text.trim() && !w.text.startsWith('#'))
+        .map(w => ({
+          word: w.text.trim(),
+          startTime: w.start / 1000,
+          endTime: w.end / 1000,
+        }))
+
+      lines.push({
+        text,
+        startTime: line.start / 1000,
+        endTime: line.end / 1000,
+        words,
+      })
+    }
+  }
+
+  return { lines }
+}
+
+export interface MurekaLyricsSection {
+  section_type: string
+  start?: number
+  end?: number
+  lines?: {
+    start: number
+    end: number
+    text: string
+    words?: { start: number; end: number; text: string }[]
+  }[]
+}
+
+/**
  * Build synced lyrics directly from Whisper word timestamps (no reference
  * lyrics needed). Groups words into lines using timing gaps between words --
  * a gap longer than the threshold starts a new line.
