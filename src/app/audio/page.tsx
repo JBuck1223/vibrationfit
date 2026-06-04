@@ -513,11 +513,11 @@ export default function AudioListenPage() {
   const [songTracks, setSongTracks] = useState<BaseAudioTrack[]>([])
   const [songTracksLoading, setSongTracksLoading] = useState(false)
   const [songDropdownOpen, setSongDropdownOpen] = useState(false)
+  const [songsLoaded, setSongsLoaded] = useState(false)
 
-  const shouldLoadSongs = contentType === 'songs' && userSongs.length === 0 && !userSongsLoading
   useEffect(() => {
-    if (shouldLoadSongs) loadUserSongs()
-  }, [shouldLoadSongs])
+    if (contentType === 'songs' && !songsLoaded && !userSongsLoading) loadUserSongs()
+  }, [contentType, songsLoaded, userSongsLoading])
 
   useEffect(() => {
     if (selectedSongId) loadSongTracks(selectedSongId)
@@ -536,6 +536,7 @@ export default function AudioListenPage() {
       setUserSongs(data)
       if (data.length > 0 && !selectedSongId) setSelectedSongId(data[0].id)
     }
+    setSongsLoaded(true)
     setUserSongsLoading(false)
   }
 
