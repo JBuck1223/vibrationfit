@@ -63,6 +63,26 @@ import { SessionChat } from '@/components/video/SessionChat'
 import { MemberContextPanel } from '@/components/video/MemberContextPanel'
 import { createClient } from '@/lib/supabase/client'
 import type { CallSettings } from '@/lib/video/types'
+import { DAILY_SEND_BASE, DAILY_SEND_WITH_SCREEN, type DailySendTrack } from '@/lib/video/daily-permissions'
+
+type DailyCall = ReturnType<typeof DailyIframe.createCallObject>
+
+function setParticipantCanSend(
+  daily: DailyCall,
+  participantId: string,
+  canSend: DailySendTrack[],
+) {
+  daily.updateParticipant(participantId, {
+    updatePermissions: { canSend },
+  })
+}
+
+function forEachRemoteParticipant(daily: DailyCall, fn: (participantId: string) => void) {
+  for (const [id, participant] of Object.entries(daily.participants())) {
+    if (id === 'local' || participant.owner) continue
+    fn(id)
+  }
+}
 
 interface VideoCallProps {
   roomUrl: string
@@ -160,6 +180,8 @@ function VideoCallUI({
   const activeSpeakerId = useActiveSpeakerId({ ignoreLocal: false })
   const meetingState = useMeetingState()
   const { isSharingScreen, screens, startScreenShare, stopScreenShare } = useScreenShare()
+  const stopScreenShareRef = useRef(stopScreenShare)
+  useEffect(() => { stopScreenShareRef.current = stopScreenShare }, [stopScreenShare])
 
   const isGroupSession = sessionType === 'group' || sessionType === 'workshop'
     || sessionType === 'alignment_gym' || sessionType === 'webinar'
@@ -644,6 +666,7 @@ function VideoCallUI({
           setIsSpeakerUnlocked(false)
           daily.setLocalAudio(false)
           setMicEnabled(false)
+          stopScreenShareRef.current()
         }
       }
 
@@ -674,13 +697,18 @@ function VideoCallUI({
 
     daily.on('app-message', handleAppMessage as any)
 
-    // When a new participant joins, send them the current mute lock state
+    // When a new participant joins, sync mute lock state and screen-share permissions
     const handleParticipantJoined = (event: any) => {
-      if (isHost && muteLockRef.current && event?.participant?.session_id) {
-        daily.sendAppMessage(
-          { type: 'mute-lock-state', locked: true },
-          event.participant.session_id
-        )
+      if (!isHost || !event?.participant?.session_id) return
+      const participantId = event.participant.session_id
+
+      daily.sendAppMessage(
+        { type: 'mute-lock-state', locked: muteLockRef.current },
+        participantId
+      )
+
+      if (!muteLockRef.current) {
+        setParticipantCanSend(daily, participantId, DAILY_SEND_WITH_SCREEN)
       }
     }
     daily.on('participant-joined', handleParticipantJoined)
@@ -775,19 +803,21 @@ function VideoCallUI({
     }
   }, [daily, isHost])
 
-  // Unmute a specific participant and grant speaking rights (host only).
+  // Unmute a specific participant and grant speaking + screen share rights (host only).
   const allowToSpeak = useCallback((participantSessionId: string) => {
     if (!daily || !isHost) return
     unlockedSpeakersRef.current.add(participantSessionId)
     daily.updateParticipant(participantSessionId, { setAudio: true })
+    setParticipantCanSend(daily, participantSessionId, DAILY_SEND_WITH_SCREEN)
     daily.sendAppMessage({ type: 'speaker-unlocked', targetId: participantSessionId }, '*')
   }, [daily, isHost])
 
-  // Mute a specific participant and revoke speaking rights (host only).
+  // Mute a specific participant and revoke speaking + screen share rights (host only).
   const revokeSpeak = useCallback((participantSessionId: string) => {
     if (!daily || !isHost) return
     unlockedSpeakersRef.current.delete(participantSessionId)
     daily.updateParticipant(participantSessionId, { setAudio: false })
+    setParticipantCanSend(daily, participantSessionId, DAILY_SEND_BASE)
     daily.sendAppMessage({ type: 'speaker-locked', targetId: participantSessionId }, '*')
   }, [daily, isHost])
 
@@ -819,14 +849,16 @@ function VideoCallUI({
     if (newState) {
       // Revoke all unlocked speakers and mute all remote participants' MICROPHONES
       unlockedSpeakersRef.current.clear()
-      const participants = daily.participants()
-      for (const [id, p] of Object.entries(participants)) {
-        if (id === 'local') continue
-        if (!p.owner) {
-          daily.updateParticipant(id, { setAudio: false })
-          daily.sendAppMessage({ type: 'speaker-locked', targetId: id }, '*')
-        }
-      }
+      forEachRemoteParticipant(daily, (id) => {
+        daily.updateParticipant(id, { setAudio: false })
+        setParticipantCanSend(daily, id, DAILY_SEND_BASE)
+        daily.sendAppMessage({ type: 'speaker-locked', targetId: id }, '*')
+      })
+    } else {
+      // Open floor: allow all participants to unmute and screen share
+      forEachRemoteParticipant(daily, (id) => {
+        setParticipantCanSend(daily, id, DAILY_SEND_WITH_SCREEN)
+      })
     }
 
     // Broadcast mute lock state to all participants
@@ -1303,7 +1335,7 @@ function VideoCallUI({
         <div className="flex-shrink-0 px-4 py-2 bg-primary-500/10 border-t border-primary-500/20 text-center">
           <p className="text-xs text-primary-300 flex items-center justify-center gap-1.5">
             <Unlock className="w-3 h-3" />
-            You have been granted permission to speak
+            You have been granted permission to speak and share your screen
           </p>
         </div>
       )}

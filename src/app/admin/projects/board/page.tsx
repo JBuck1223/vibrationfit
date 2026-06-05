@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Button, Stack, PageHero, Spinner } from '@/lib/design-system/components'
+import { Container, Stack, Spinner } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
+import { ProjectsAreaBar } from '@/components/projects-studio'
 import {
-  ArrowLeft, List, Calendar, CheckCircle2,
+  Calendar, CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { IdeaProjectWithRelations, IdeaStatus } from '@/lib/ideas/types'
-import { IDEA_STATUSES, getPriorityInfo } from '@/lib/ideas/types'
+import { IDEA_STATUSES, getPriorityInfo, getLifeCategoryInfo } from '@/lib/ideas/types'
 
 const BOARD_STATUSES: IdeaStatus[] = ['idea', 'planned', 'in_progress', 'review', 'done']
 
@@ -22,7 +23,7 @@ function KanbanBoard() {
 
   const fetchProjects = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/ideas?status=all')
+      const res = await fetch('/api/admin/projects?status=all')
       if (res.ok) {
         const data = await res.json()
         setProjects((data.projects || []).filter((p: IdeaProjectWithRelations) => p.status !== 'archived'))
@@ -37,7 +38,7 @@ function KanbanBoard() {
   const updateStatus = async (projectId: string, newStatus: IdeaStatus) => {
     setProjects(prev => prev.map(p => p.id === projectId ? { ...p, status: newStatus } : p))
 
-    const res = await fetch(`/api/admin/ideas/${projectId}`, {
+    const res = await fetch(`/api/admin/projects/${projectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
@@ -96,22 +97,7 @@ function KanbanBoard() {
   return (
     <div className="px-4 md:px-6 pb-8">
       <Stack gap="lg">
-        <div className="flex items-center justify-between pt-2">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/admin/ideas')}>
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => router.push('/admin/ideas')}>
-            <List className="w-4 h-4 mr-1" />
-            List View
-          </Button>
-        </div>
-
-        <PageHero
-          eyebrow="IDEA HUB"
-          title="Board View"
-          subtitle="Drag ideas between columns to update their status"
-        />
+        <ProjectsAreaBar contextText="Drag items between columns to update their status" />
 
         {/* Board */}
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '60vh' }}>
@@ -158,7 +144,7 @@ function KanbanBoard() {
                         draggable
                         onDragStart={(e) => handleDragStart(e, project.id)}
                         onDragEnd={handleDragEnd}
-                        onClick={() => router.push(`/admin/ideas/${project.id}`)}
+                        onClick={() => router.push(`/admin/projects/${project.id}`)}
                         className={`bg-neutral-800 rounded-xl p-3 cursor-grab active:cursor-grabbing border border-neutral-700 hover:border-neutral-600 transition-all ${
                           isDragging ? 'opacity-40 scale-95' : ''
                         }`}
@@ -200,6 +186,27 @@ function KanbanBoard() {
                           )}
                         </div>
 
+                        {/* Life categories */}
+                        {project.life_categories && project.life_categories.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {project.life_categories.slice(0, 3).map(key => {
+                              const lc = getLifeCategoryInfo(key)
+                              return (
+                                <span
+                                  key={key}
+                                  className="px-1.5 py-0.5 rounded text-[9px] font-medium"
+                                  style={{ backgroundColor: lc.color + '20', color: lc.color }}
+                                >
+                                  {lc.label}
+                                </span>
+                              )
+                            })}
+                            {project.life_categories.length > 3 && (
+                              <span className="text-[9px] text-neutral-500">+{project.life_categories.length - 3}</span>
+                            )}
+                          </div>
+                        )}
+
                         {/* Tags */}
                         {project.tags && project.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
@@ -223,7 +230,7 @@ function KanbanBoard() {
 
                   {columnProjects.length === 0 && (
                     <div className="text-center py-8 text-xs text-neutral-600">
-                      No ideas
+                      Nothing here
                     </div>
                   )}
                 </div>

@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const category = searchParams.get('category')
     const priority = searchParams.get('priority')
+    const type = searchParams.get('type')
+    const lifeCategory = searchParams.get('life_category')
     const search = searchParams.get('search')
     const sort = searchParams.get('sort') || 'newest'
 
@@ -39,6 +41,14 @@ export async function GET(request: NextRequest) {
 
     if (priority) {
       query = query.eq('priority', priority)
+    }
+
+    if (type && (type === 'project' || type === 'list')) {
+      query = query.eq('type', type)
+    }
+
+    if (lifeCategory) {
+      query = query.contains('life_categories', [lifeCategory])
     }
 
     if (search) {
@@ -93,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, category_id, status, priority, due_date, tag_ids } = body
+    const { title, description, type, category_id, life_categories, status, priority, due_date, tag_ids } = body
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
@@ -106,7 +116,9 @@ export async function POST(request: NextRequest) {
       .insert({
         title: title.trim(),
         description: description || null,
+        type: type === 'list' ? 'list' : 'project',
         category_id: category_id || null,
+        life_categories: Array.isArray(life_categories) ? life_categories : [],
         status: status || 'idea',
         priority: priority || 'medium',
         due_date: due_date || null,

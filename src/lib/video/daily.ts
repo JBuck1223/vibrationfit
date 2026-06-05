@@ -9,6 +9,8 @@
  * - DAILY_DOMAIN: Your Daily.co domain (e.g., "vibrationfit")
  */
 
+import { DAILY_SEND_BASE } from './daily-permissions'
+
 const DAILY_API_KEY = process.env.DAILY_API_KEY || ''
 const DAILY_DOMAIN = process.env.DAILY_DOMAIN || 'vibrationfit'
 const DAILY_API_BASE = 'https://api.daily.co/v1'
@@ -62,6 +64,12 @@ export interface DailyMeetingToken {
   token: string
 }
 
+export interface DailyMeetingTokenPermissions {
+  hasPresence?: boolean
+  canSend?: boolean | Array<'video' | 'audio' | 'screenVideo' | 'screenAudio'>
+  canAdmin?: boolean | Array<'participants' | 'streaming' | 'transcription'>
+}
+
 export interface DailyMeetingTokenConfig {
   room_name: string
   user_id?: string
@@ -72,6 +80,7 @@ export interface DailyMeetingTokenConfig {
   start_cloud_recording?: boolean // Auto-start cloud recording when this participant joins
   start_video_off?: boolean
   start_audio_off?: boolean
+  permissions?: DailyMeetingTokenPermissions
   exp?: number                    // Token expiration (Unix seconds)
   nbf?: number                    // Not before (Unix seconds)
 }
@@ -235,6 +244,10 @@ export async function createMeetingToken(
     properties.start_cloud_recording = true
   }
 
+  if (config.permissions) {
+    properties.permissions = config.permissions
+  }
+
   const body = { properties }
 
   return dailyFetch<DailyMeetingToken>('/meeting-tokens', {
@@ -267,7 +280,7 @@ export async function createHostToken(
 
 /**
  * Create a participant token with limited permissions.
- * For group sessions, participants join muted with camera off.
+ * For group sessions, participants join without screen share until the host grants it.
  */
 export async function createParticipantToken(
   roomName: string,
@@ -278,12 +291,25 @@ export async function createParticipantToken(
   const isGroupSession = sessionType === 'group' || sessionType === 'workshop'
     || sessionType === 'alignment_gym' || sessionType === 'webinar'
 
+  if (isGroupSession) {
+    return createMeetingToken({
+      room_name: roomName,
+      user_id: userId,
+      user_name: userName,
+      is_owner: false,
+      enable_recording: false,
+      permissions: {
+        canSend: DAILY_SEND_BASE,
+        canAdmin: false,
+      },
+    })
+  }
+
   return createMeetingToken({
     room_name: roomName,
     user_id: userId,
     user_name: userName,
     is_owner: false,
-    enable_screenshare: isGroupSession ? false : true,
     enable_recording: false,
   })
 }

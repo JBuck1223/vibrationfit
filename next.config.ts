@@ -24,6 +24,16 @@ const nextConfig: NextConfig = {
         destination: '/tokens/history',
         permanent: false,
       },
+      {
+        source: '/admin/ideas',
+        destination: '/admin/projects',
+        permanent: false,
+      },
+      {
+        source: '/admin/ideas/:path*',
+        destination: '/admin/projects/:path*',
+        permanent: false,
+      },
     ]
   },
   images: {

@@ -1,46 +1,64 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Input, Stack, PageHero, Spinner, Modal } from '@/lib/design-system/components'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Container, Card, Button, Input, Stack, Spinner, Modal } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
+import { ProjectsAreaBar } from '@/components/projects-studio'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import {
   Search, Plus, Kanban, Settings, Calendar, CheckCircle2,
-  Filter, X, Lightbulb,
+  Filter, X, FolderKanban, ListChecks,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type {
   IdeaProjectWithRelations,
   IdeaCategory,
   IdeaTag,
-  IdeaStatus,
   IdeaPriority,
+  IdeaItemType,
 } from '@/lib/ideas/types'
-import { IDEA_STATUSES, IDEA_PRIORITIES, getStatusInfo, getPriorityInfo } from '@/lib/ideas/types'
+import {
+  IDEA_STATUSES, IDEA_PRIORITIES, LIFE_CATEGORY_OPTIONS,
+  getStatusInfo, getPriorityInfo, getLifeCategoryInfo,
+} from '@/lib/ideas/types'
 
 type SortOption = 'newest' | 'oldest' | 'priority' | 'due_date' | 'updated'
+type TypeTab = 'all' | 'project' | 'list'
 
-function IdeasListContent() {
+const TYPE_TABS: { value: TypeTab; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'project', label: 'Projects' },
+  { value: 'list', label: 'Lists' },
+]
+
+function ProjectsListContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialType = (searchParams.get('type') as TypeTab) || 'all'
+
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<IdeaProjectWithRelations[]>([])
   const [categories, setCategories] = useState<IdeaCategory[]>([])
-  const [tags, setTags] = useState<IdeaTag[]>([])
+  const [, setTags] = useState<IdeaTag[]>([])
 
+  const [typeTab, setTypeTab] = useState<TypeTab>(['all', 'project', 'list'].includes(initialType) ? initialType : 'all')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [priorityFilter, setPriorityFilter] = useState<string>('')
+  const [lifeCategoryFilter, setLifeCategoryFilter] = useState<string>('')
   const [sort, setSort] = useState<SortOption>('newest')
   const [showFilters, setShowFilters] = useState(false)
 
   const [showNewModal, setShowNewModal] = useState(false)
+  const [newType, setNewType] = useState<IdeaItemType>('project')
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
   const [newCategoryId, setNewCategoryId] = useState('')
   const [newPriority, setNewPriority] = useState<IdeaPriority>('medium')
   const [newDueDate, setNewDueDate] = useState('')
+  const [newLifeCategories, setNewLifeCategories] = useState<string[]>([])
   const [creating, setCreating] = useState(false)
 
   const fetchProjects = useCallback(async () => {
@@ -49,10 +67,12 @@ function IdeasListContent() {
       if (statusFilter !== 'all') params.set('status', statusFilter)
       if (categoryFilter) params.set('category', categoryFilter)
       if (priorityFilter) params.set('priority', priorityFilter)
+      if (lifeCategoryFilter) params.set('life_category', lifeCategoryFilter)
+      if (typeTab !== 'all') params.set('type', typeTab)
       if (search) params.set('search', search)
       params.set('sort', sort)
 
-      const res = await fetch(`/api/admin/ideas?${params}`)
+      const res = await fetch(`/api/admin/projects?${params}`)
       if (res.ok) {
         const data = await res.json()
         setProjects(data.projects || [])
@@ -62,12 +82,12 @@ function IdeasListContent() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, categoryFilter, priorityFilter, search, sort])
+  }, [statusFilter, categoryFilter, priorityFilter, lifeCategoryFilter, typeTab, search, sort])
 
   const fetchMeta = useCallback(async () => {
     const [catRes, tagRes] = await Promise.all([
-      fetch('/api/admin/ideas/categories'),
-      fetch('/api/admin/ideas/tags'),
+      fetch('/api/admin/projects/categories'),
+      fetch('/api/admin/projects/tags'),
     ])
     if (catRes.ok) {
       const d = await catRes.json()
@@ -90,36 +110,54 @@ function IdeasListContent() {
     return () => clearTimeout(timer)
   }, [fetchProjects, search])
 
+  const openNewModal = (type: IdeaItemType) => {
+    setNewType(type)
+    setShowNewModal(true)
+  }
+
+  const toggleNewLifeCategory = (key: string) => {
+    setNewLifeCategories(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    )
+  }
+
+  const resetNewForm = () => {
+    setNewTitle('')
+    setNewDescription('')
+    setNewCategoryId('')
+    setNewPriority('medium')
+    setNewDueDate('')
+    setNewLifeCategories([])
+  }
+
   const handleCreate = async () => {
     if (!newTitle.trim()) return
     setCreating(true)
     try {
-      const res = await fetch('/api/admin/ideas', {
+      const res = await fetch('/api/admin/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newTitle,
-          description: newDescription || null,
-          category_id: newCategoryId || null,
-          priority: newPriority,
+          type: newType,
+          description: newType === 'project' ? (newDescription || null) : null,
+          category_id: newType === 'project' ? (newCategoryId || null) : null,
+          priority: newType === 'project' ? newPriority : 'medium',
           due_date: newDueDate || null,
+          life_categories: newLifeCategories,
         }),
       })
       if (res.ok) {
         const data = await res.json()
-        toast.success('Idea created')
+        toast.success(newType === 'list' ? 'List created' : 'Project created')
         setShowNewModal(false)
-        setNewTitle('')
-        setNewDescription('')
-        setNewCategoryId('')
-        setNewPriority('medium')
-        setNewDueDate('')
-        router.push(`/admin/ideas/${data.project.id}`)
+        resetNewForm()
+        router.push(`/admin/projects/${data.project.id}`)
       } else {
-        toast.error('Failed to create idea')
+        toast.error('Failed to create')
       }
     } catch {
-      toast.error('Failed to create idea')
+      toast.error('Failed to create')
     } finally {
       setCreating(false)
     }
@@ -129,16 +167,32 @@ function IdeasListContent() {
     statusFilter !== 'all',
     !!categoryFilter,
     !!priorityFilter,
+    !!lifeCategoryFilter,
   ].filter(Boolean).length
+
+  const isListsView = typeTab === 'list'
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="IDEA HUB"
-          title="Idea Hub"
-          subtitle="Capture, plan, and track all your ideas in one place"
-        />
+        <ProjectsAreaBar contextText="Plan and track projects, and keep simple checklists organized by life category" />
+
+        {/* Type Tabs */}
+        <div className="flex items-center gap-1 border-b border-neutral-800">
+          {TYPE_TABS.map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setTypeTab(tab.value)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                typeTab === tab.value
+                  ? 'text-white border-primary-500'
+                  : 'text-neutral-400 border-transparent hover:text-neutral-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         {/* Action Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -147,7 +201,7 @@ function IdeasListContent() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search ideas..."
+              placeholder={isListsView ? 'Search lists...' : 'Search projects...'}
               className="pl-10"
             />
           </div>
@@ -169,7 +223,7 @@ function IdeasListContent() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/admin/ideas/board')}
+              onClick={() => router.push('/admin/projects/board')}
             >
               <Kanban className="w-4 h-4 mr-1" />
               Board
@@ -177,18 +231,26 @@ function IdeasListContent() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/admin/ideas/settings')}
+              onClick={() => router.push('/admin/projects/settings')}
             >
               <Settings className="w-4 h-4 mr-1" />
               Settings
             </Button>
             <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openNewModal('list')}
+            >
+              <ListChecks className="w-4 h-4 mr-1" />
+              New List
+            </Button>
+            <Button
               variant="primary"
               size="sm"
-              onClick={() => setShowNewModal(true)}
+              onClick={() => openNewModal('project')}
             >
               <Plus className="w-4 h-4 mr-1" />
-              New Idea
+              New Project
             </Button>
           </div>
         </div>
@@ -207,6 +269,19 @@ function IdeasListContent() {
                   <option value="all">All Active</option>
                   {IDEA_STATUSES.map(s => (
                     <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-neutral-400 block mb-1">Life Category</label>
+                <select
+                  value={lifeCategoryFilter}
+                  onChange={(e) => setLifeCategoryFilter(e.target.value)}
+                  className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-sm text-white"
+                >
+                  <option value="">All Life Categories</option>
+                  {LIFE_CATEGORY_OPTIONS.map(c => (
+                    <option key={c.key} value={c.key}>{c.label}</option>
                   ))}
                 </select>
               </div>
@@ -258,6 +333,7 @@ function IdeasListContent() {
                     setStatusFilter('all')
                     setCategoryFilter('')
                     setPriorityFilter('')
+                    setLifeCategoryFilter('')
                   }}
                   className="mt-4"
                 >
@@ -276,15 +352,29 @@ function IdeasListContent() {
           </div>
         ) : projects.length === 0 ? (
           <Card className="p-12 text-center">
-            <Lightbulb className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">No ideas yet</h3>
+            {isListsView ? (
+              <ListChecks className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+            ) : (
+              <FolderKanban className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+            )}
+            <h3 className="text-lg font-semibold text-white mb-2">
+              {isListsView ? 'No lists yet' : 'Nothing here yet'}
+            </h3>
             <p className="text-neutral-400 mb-6">
-              Start capturing your ideas, features, courses, and marketing plans.
+              {isListsView
+                ? 'Create a simple checklist and tag it with life categories.'
+                : 'Start planning projects and keep simple checklists, all tagged by life category.'}
             </p>
-            <Button variant="primary" onClick={() => setShowNewModal(true)}>
-              <Plus className="w-4 h-4 mr-1" />
-              Create Your First Idea
-            </Button>
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="ghost" onClick={() => openNewModal('list')}>
+                <ListChecks className="w-4 h-4 mr-1" />
+                New List
+              </Button>
+              <Button variant="primary" onClick={() => openNewModal('project')}>
+                <Plus className="w-4 h-4 mr-1" />
+                New Project
+              </Button>
+            </div>
           </Card>
         ) : (
           <div className="space-y-2">
@@ -292,20 +382,23 @@ function IdeasListContent() {
               const statusInfo = getStatusInfo(project.status)
               const priorityInfo = getPriorityInfo(project.priority)
               const category = project.category
+              const isList = project.type === 'list'
 
               return (
                 <Card
                   key={project.id}
                   className="p-4 cursor-pointer hover:border-neutral-600 transition-colors"
-                  onClick={() => router.push(`/admin/ideas/${project.id}`)}
+                  onClick={() => router.push(`/admin/projects/${project.id}`)}
                 >
                   <div className="flex items-start gap-4">
-                    {/* Priority Dot */}
-                    <div
-                      className="w-2.5 h-2.5 rounded-full mt-2 flex-shrink-0"
-                      style={{ backgroundColor: priorityInfo.color }}
-                      title={priorityInfo.label}
-                    />
+                    {/* Type Icon */}
+                    <div className="mt-0.5 flex-shrink-0" title={isList ? 'List' : 'Project'}>
+                      {isList ? (
+                        <ListChecks className="w-4 h-4 text-secondary-400" />
+                      ) : (
+                        <FolderKanban className="w-4 h-4 text-primary-400" />
+                      )}
+                    </div>
 
                     {/* Main Content */}
                     <div className="flex-1 min-w-0">
@@ -325,21 +418,45 @@ function IdeasListContent() {
                             {category.name}
                           </span>
                         )}
-                        <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium"
-                          style={{
-                            backgroundColor: statusInfo.color + '20',
-                            color: statusInfo.color,
-                          }}
-                        >
-                          {statusInfo.label}
-                        </span>
+                        {!isList && (
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{
+                              backgroundColor: statusInfo.color + '20',
+                              color: statusInfo.color,
+                            }}
+                          >
+                            {statusInfo.label}
+                          </span>
+                        )}
                       </div>
 
                       {project.description && (
                         <p className="text-xs text-neutral-400 truncate mb-1.5">
                           {project.description}
                         </p>
+                      )}
+
+                      {/* Life category chips */}
+                      {project.life_categories?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {project.life_categories.map(key => {
+                            const lc = getLifeCategoryInfo(key)
+                            return (
+                              <span
+                                key={key}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                style={{
+                                  backgroundColor: lc.color + '20',
+                                  color: lc.color,
+                                  border: `1px solid ${lc.color}40`,
+                                }}
+                              >
+                                {lc.label}
+                              </span>
+                            )
+                          })}
+                        </div>
                       )}
 
                       <div className="flex items-center gap-3 text-xs text-neutral-500">
@@ -382,61 +499,120 @@ function IdeasListContent() {
         )}
       </Stack>
 
-      {/* New Idea Modal */}
+      {/* New Item Modal */}
       <Modal
         isOpen={showNewModal}
         onClose={() => setShowNewModal(false)}
-        title="New Idea"
+        title={newType === 'list' ? 'New List' : 'New Project'}
         size="md"
       >
         <div className="space-y-4">
+          {/* Type toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setNewType('project')}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium border transition-colors ${
+                newType === 'project'
+                  ? 'border-primary-500 bg-primary-500/10 text-white'
+                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+              }`}
+            >
+              <FolderKanban className="w-4 h-4" />
+              Project
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewType('list')}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium border transition-colors ${
+                newType === 'list'
+                  ? 'border-secondary-500 bg-secondary-500/10 text-white'
+                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+              }`}
+            >
+              <ListChecks className="w-4 h-4" />
+              List
+            </button>
+          </div>
+
           <div>
             <label className="text-sm text-neutral-300 block mb-1">Title *</label>
             <Input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="What's the idea?"
+              placeholder={newType === 'list' ? 'Name your list...' : "What's the project?"}
               autoFocus
             />
           </div>
+
+          {newType === 'project' && (
+            <>
+              <div>
+                <label className="text-sm text-neutral-300 block mb-1">Description</label>
+                <RecordingTextarea
+                  value={newDescription}
+                  onChange={(val) => setNewDescription(val)}
+                  placeholder="Describe the project..."
+                  rows={3}
+                  recordingPurpose="quick"
+                  storageFolder="journal"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-neutral-300 block mb-1">Category</label>
+                  <select
+                    value={newCategoryId}
+                    onChange={(e) => setNewCategoryId(e.target.value)}
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white"
+                  >
+                    <option value="">None</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm text-neutral-300 block mb-1">Priority</label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value as IdeaPriority)}
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white"
+                  >
+                    {IDEA_PRIORITIES.map(p => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Life Categories (both types) */}
           <div>
-            <label className="text-sm text-neutral-300 block mb-1">Description</label>
-            <RecordingTextarea
-              value={newDescription}
-              onChange={(val) => setNewDescription(val)}
-              placeholder="Describe the idea..."
-              rows={3}
-              recordingPurpose="quick"
-              storageFolder="journal"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-neutral-300 block mb-1">Category</label>
-              <select
-                value={newCategoryId}
-                onChange={(e) => setNewCategoryId(e.target.value)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white"
-              >
-                <option value="">None</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm text-neutral-300 block mb-1">Priority</label>
-              <select
-                value={newPriority}
-                onChange={(e) => setNewPriority(e.target.value as IdeaPriority)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white"
-              >
-                {IDEA_PRIORITIES.map(p => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
-                ))}
-              </select>
+            <label className="text-sm text-neutral-300 block mb-2">Life Categories</label>
+            <div className="flex flex-wrap gap-1.5">
+              {LIFE_CATEGORY_OPTIONS.map(lc => {
+                const selected = newLifeCategories.includes(lc.key)
+                return (
+                  <button
+                    key={lc.key}
+                    type="button"
+                    onClick={() => toggleNewLifeCategory(lc.key)}
+                    className="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
+                    style={{
+                      backgroundColor: selected ? lc.color + '20' : 'transparent',
+                      color: selected ? lc.color : '#9ca3af',
+                      borderColor: selected ? lc.color + '80' : '#404040',
+                    }}
+                  >
+                    {lc.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
+
           <div>
             <label className="text-sm text-neutral-300 block mb-1">Due Date</label>
             <Input
@@ -445,6 +621,7 @@ function IdeasListContent() {
               onChange={(e) => setNewDueDate(e.target.value)}
             />
           </div>
+
           <div className="flex gap-3 pt-2">
             <Button
               variant="ghost"
@@ -460,7 +637,7 @@ function IdeasListContent() {
               disabled={!newTitle.trim()}
               className="flex-1"
             >
-              Create Idea
+              {newType === 'list' ? 'Create List' : 'Create Project'}
             </Button>
           </div>
         </div>
@@ -469,10 +646,10 @@ function IdeasListContent() {
   )
 }
 
-export default function IdeasPage() {
+export default function ProjectsPage() {
   return (
     <AdminWrapper>
-      <IdeasListContent />
+      <ProjectsListContent />
     </AdminWrapper>
   )
 }
