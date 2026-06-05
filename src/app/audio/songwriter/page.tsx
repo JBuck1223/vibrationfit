@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Container, Stack, Card, Button, Textarea, CategoryGrid } from '@/lib/design-system/components'
-import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown } from 'lucide-react'
+import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home } from 'lucide-react'
 import {
   VISION_CATEGORIES,
   LIFE_CATEGORY_KEYS,
@@ -43,6 +43,8 @@ export default function SongwriterPage() {
   const [entitiesLoading, setEntitiesLoading] = useState(false)
   const [selectedEntity, setSelectedEntity] = useState<any>(null)
   const [entityDropdownOpen, setEntityDropdownOpen] = useState(false)
+  const [entitySearch, setEntitySearch] = useState('')
+  const entityDropdownRef = useRef<HTMLDivElement>(null)
 
   // Life Vision category state
   const [selectedCategories, setSelectedCategories] = useState<LifeCategoryKey[]>([])
@@ -127,9 +129,32 @@ export default function SongwriterPage() {
     }
   }
 
+  const filteredEntities = entitySearch.trim()
+    ? entities.filter(e => {
+        const q = entitySearch.toLowerCase()
+        const label = getEntityLabel(e).toLowerCase()
+        const dateStr = e.created_at ? new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toLowerCase() : ''
+        return label.includes(q) || dateStr.includes(q) || String(e.version_number || '').includes(q)
+      })
+    : entities
+
+  useEffect(() => {
+    if (!entityDropdownOpen) return
+    function handler(e: MouseEvent | TouchEvent) {
+      if (entityDropdownRef.current && !entityDropdownRef.current.contains(e.target as Node)) {
+        setEntityDropdownOpen(false)
+        setEntitySearch('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler) }
+  }, [entityDropdownOpen])
+
   function handleEntitySelect(entity: any) {
     setSelectedEntity(entity)
     setEntityDropdownOpen(false)
+    setEntitySearch('')
 
     if (source === 'life_vision') {
       const catTexts: Record<string, string> = {}
@@ -449,7 +474,7 @@ export default function SongwriterPage() {
         </div>
 
         {/* Source Picker */}
-        <Card variant="glass" className="p-5">
+        <Card variant="glass" className="relative z-10 p-5 overflow-visible">
           <Stack gap="sm">
             <label className="text-sm font-medium text-neutral-200">Source</label>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -485,28 +510,102 @@ export default function SongwriterPage() {
                 ) : entities.length === 0 ? (
                   <p className="py-2 text-xs text-neutral-500">No items found.</p>
                 ) : (
-                  <div className="relative">
+                  <div className="relative" ref={entityDropdownRef}>
                     <button
+                      type="button"
                       onClick={() => setEntityDropdownOpen(!entityDropdownOpen)}
-                      className="flex w-full items-center justify-between rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-sm text-white"
+                      className="w-full px-4 py-3 rounded-xl bg-neutral-900/80 border border-neutral-700/50 hover:border-neutral-600 transition-colors flex items-center gap-3 text-left"
                     >
-                      <span className={selectedEntity ? 'text-white' : 'text-neutral-500'}>
-                        {selectedEntity ? getEntityLabel(selectedEntity) : `Select a ${SOURCE_OPTIONS.find(s => s.type === source)?.label}...`}
+                      {source === 'life_vision' && <Target className="w-4 h-4 text-purple-400 flex-shrink-0" />}
+                      {source === 'vision_board_item' && <Image className="w-4 h-4 text-pink-400 flex-shrink-0" />}
+                      {source === 'journal_entry' && <BookOpen className="w-4 h-4 text-teal-400 flex-shrink-0" />}
+                      <span className="text-sm text-white font-medium flex-1 truncate">
+                        {selectedEntity ? (
+                          source === 'life_vision' ? (
+                            <span className="flex items-center gap-1.5">
+                              Version {selectedEntity.version_number || ''}
+                              {selectedEntity.household_id && <Home className="w-3.5 h-3.5 text-secondary-500 inline-block" />}
+                              {selectedEntity.is_active && (
+                                <span className="text-[10px] font-semibold text-[#39FF14] bg-[#39FF14]/10 px-1.5 py-0.5 rounded">Active</span>
+                              )}
+                            </span>
+                          ) : getEntityLabel(selectedEntity)
+                        ) : `Select a ${SOURCE_OPTIONS.find(s => s.type === source)?.label}...`}
                       </span>
-                      <ChevronDown className={`h-4 w-4 text-neutral-500 transition-transform ${entityDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${entityDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     {entityDropdownOpen && (
-                      <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl">
-                        {entities.map(entity => (
-                          <button
-                            key={entity.id}
-                            onClick={() => handleEntitySelect(entity)}
-                            className="w-full px-3 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-800"
-                          >
-                            {getEntityLabel(entity)}
-                          </button>
-                        ))}
+                      <div className="absolute z-50 left-0 right-0 mt-2 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl overflow-hidden">
+                        {entities.length > 5 && (
+                          <div className="p-2 border-b border-neutral-700/50">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                              <input
+                                type="text"
+                                value={entitySearch}
+                                onChange={(e) => setEntitySearch(e.target.value)}
+                                placeholder="Search..."
+                                className="w-full pl-9 pr-3 py-1.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#39FF14]/50"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div className="py-1 max-h-64 overflow-y-auto">
+                          {filteredEntities.length === 0 ? (
+                            <div className="px-4 py-3 text-center">
+                              <p className="text-sm text-neutral-500">No items match your search</p>
+                            </div>
+                          ) : (
+                            filteredEntities.map(entity => {
+                              const isSel = entity.id === selectedEntity?.id
+                              return (
+                                <button
+                                  key={entity.id}
+                                  type="button"
+                                  onClick={() => handleEntitySelect(entity)}
+                                  className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${
+                                    isSel ? 'bg-[#39FF14]/10' : 'hover:bg-neutral-800'
+                                  }`}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">
+                                      {source === 'life_vision' ? (
+                                        <>
+                                          Version {entity.version_number}
+                                          {entity.household_id && <Home className="w-3.5 h-3.5 text-secondary-500 flex-shrink-0" />}
+                                          {entity.is_active && (
+                                            <span className="text-[10px] font-semibold text-[#39FF14] bg-[#39FF14]/10 px-1.5 py-0.5 rounded">Active</span>
+                                          )}
+                                        </>
+                                      ) : (
+                                        getEntityLabel(entity)
+                                      )}
+                                    </p>
+                                    <p className="text-xs text-neutral-500">
+                                      {source === 'life_vision' && (
+                                        <>
+                                          <span className="text-neutral-400">{entity.household_id ? 'Household' : 'Individual'}</span>
+                                          {' · '}
+                                        </>
+                                      )}
+                                      {source === 'vision_board_item' && entity.categories?.length > 0 && (
+                                        <>
+                                          <span className="text-neutral-400">{entity.categories.slice(0, 2).join(', ')}</span>
+                                          {' · '}
+                                        </>
+                                      )}
+                                      {entity.created_at && new Date(entity.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </p>
+                                  </div>
+                                  {isSel && <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />}
+                                </button>
+                              )
+                            })
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

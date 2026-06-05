@@ -78,6 +78,8 @@ import {
   Film,
   Music2,
   Mic,
+  FolderKanban,
+  ListChecks,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -518,19 +520,21 @@ export const adminNavigation: NavItem[] = [
   },
 
   // ============================================================================
-  // IDEA HUB
+  // PROJECT HUB
   // ============================================================================
   {
-    name: 'Idea Hub',
-    href: '/admin/ideas',
-    icon: Lightbulb,
+    name: 'Projects',
+    href: '/admin/projects',
+    icon: FolderKanban,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Project ideas, planning, and tracking',
+    description: 'Projects, lists, planning, and tracking',
     children: [
-      { name: 'All Ideas', href: '/admin/ideas', icon: Lightbulb, description: 'Browse and manage all ideas' },
-      { name: 'Board View', href: '/admin/ideas/board', icon: Kanban, description: 'Kanban board for idea pipeline' },
-      { name: 'Settings', href: '/admin/ideas/settings', icon: Settings, description: 'Categories, fields, and tags' },
+      { name: 'All', href: '/admin/projects', icon: FolderKanban, description: 'Browse projects and lists' },
+      { name: 'Projects', href: '/admin/projects?type=project', icon: FolderKanban, description: 'Rich projects with tasks and details' },
+      { name: 'Lists', href: '/admin/projects?type=list', icon: ListChecks, description: 'Simple checklists by life category' },
+      { name: 'Board View', href: '/admin/projects/board', icon: Kanban, description: 'Kanban board for the pipeline' },
+      { name: 'Settings', href: '/admin/projects/settings', icon: Settings, description: 'Categories, fields, and tags' },
     ]
   },
 

@@ -9,17 +9,17 @@ import {
   ArrowLeft, Save, Trash2, Plus, CheckCircle2, Circle, X,
   MessageSquare, Paperclip, Link2, Calendar, Tag, ChevronDown, ChevronRight,
   FileText, Image, File, ExternalLink, Clock,
-  ArrowRight, AlertCircle,
+  ArrowRight, AlertCircle, FolderKanban, ListChecks, Heart,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type {
   IdeaProject, IdeaCategory, IdeaTag, IdeaTask, IdeaComment,
   IdeaAttachment, IdeaCustomFieldDef, IdeaCustomFieldValue,
-  IdeaProjectLink, IdeaStatus, IdeaPriority, LinkType,
+  IdeaProjectLink, IdeaStatus, IdeaPriority, LinkType, IdeaItemType,
 } from '@/lib/ideas/types'
 import {
-  IDEA_STATUSES, IDEA_PRIORITIES, LINK_TYPES,
-  getStatusInfo, getPriorityInfo,
+  IDEA_STATUSES, IDEA_PRIORITIES, LINK_TYPES, LIFE_CATEGORY_OPTIONS,
+  getStatusInfo, getPriorityInfo, getLifeCategoryInfo,
 } from '@/lib/ideas/types'
 
 type Tab = 'overview' | 'tasks' | 'files' | 'activity'
@@ -61,10 +61,13 @@ function IdeaDetailContent({ id }: { id: string }) {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
+  const [editType, setEditType] = useState<IdeaItemType>('project')
   const [editStatus, setEditStatus] = useState<IdeaStatus>('idea')
   const [editPriority, setEditPriority] = useState<IdeaPriority>('medium')
   const [editCategoryId, setEditCategoryId] = useState('')
+  const [editLifeCategories, setEditLifeCategories] = useState<string[]>([])
   const [editDueDate, setEditDueDate] = useState('')
+  const [showLifeCategoryDropdown, setShowLifeCategoryDropdown] = useState(false)
   const [dirty, setDirty] = useState(false)
 
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -89,10 +92,10 @@ function IdeaDetailContent({ id }: { id: string }) {
 
   const fetchProject = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/ideas/${id}`)
+      const res = await fetch(`/api/admin/projects/${id}`)
       if (!res.ok) {
         toast.error('Project not found')
-        router.push('/admin/ideas')
+        router.push('/admin/projects')
         return
       }
       const data = await res.json()
@@ -109,10 +112,13 @@ function IdeaDetailContent({ id }: { id: string }) {
 
       setEditTitle(p.title)
       setEditDescription(p.description || '')
+      setEditType(p.type || 'project')
       setEditStatus(p.status)
       setEditPriority(p.priority)
       setEditCategoryId(p.category_id || '')
+      setEditLifeCategories(p.life_categories || [])
       setEditDueDate(p.due_date || '')
+      setActiveTab((p.type || 'project') === 'list' ? 'tasks' : 'overview')
       setDirty(false)
     } catch {
       toast.error('Failed to load project')
@@ -123,9 +129,9 @@ function IdeaDetailContent({ id }: { id: string }) {
 
   const fetchMeta = useCallback(async () => {
     const [catRes, tagRes, fieldRes] = await Promise.all([
-      fetch('/api/admin/ideas/categories'),
-      fetch('/api/admin/ideas/tags'),
-      fetch('/api/admin/ideas/custom-fields'),
+      fetch('/api/admin/projects/categories'),
+      fetch('/api/admin/projects/tags'),
+      fetch('/api/admin/projects/custom-fields'),
     ])
     if (catRes.ok) setCategories((await catRes.json()).categories || [])
     if (tagRes.ok) setAllTags((await tagRes.json()).tags || [])
@@ -140,15 +146,17 @@ function IdeaDetailContent({ id }: { id: string }) {
     if (!dirty) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/admin/ideas/${id}`, {
+      const res = await fetch(`/api/admin/projects/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: editTitle,
           description: editDescription || null,
+          type: editType,
           status: editStatus,
           priority: editPriority,
           category_id: editCategoryId || null,
+          life_categories: editLifeCategories,
           due_date: editDueDate || null,
           tag_ids: projectTags.map(t => t.id),
         }),
@@ -170,10 +178,10 @@ function IdeaDetailContent({ id }: { id: string }) {
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      const res = await fetch(`/api/admin/ideas/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/projects/${id}`, { method: 'DELETE' })
       if (res.ok) {
-        toast.success('Idea deleted')
-        router.push('/admin/ideas')
+        toast.success(editType === 'list' ? 'List deleted' : 'Project deleted')
+        router.push('/admin/projects')
       } else {
         toast.error('Failed to delete')
       }
@@ -188,7 +196,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   const addTask = async (parentTaskId?: string) => {
     const title = parentTaskId ? newSubtaskTitle : newTaskTitle
     if (!title.trim()) return
-    const res = await fetch(`/api/admin/ideas/${id}/tasks`, {
+    const res = await fetch(`/api/admin/projects/${id}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -215,7 +223,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   }
 
   const toggleTask = async (task: IdeaTask, parentId?: string) => {
-    const res = await fetch(`/api/admin/ideas/${id}/tasks`, {
+    const res = await fetch(`/api/admin/projects/${id}/tasks`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task_id: task.id, is_complete: !task.is_complete }),
@@ -242,7 +250,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   }
 
   const deleteTask = async (taskId: string, parentId?: string) => {
-    const res = await fetch(`/api/admin/ideas/${id}/tasks?task_id=${taskId}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/projects/${id}/tasks?task_id=${taskId}`, { method: 'DELETE' })
     if (res.ok) {
       if (parentId) {
         setTasks(prev => prev.map(t => {
@@ -258,7 +266,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   }
 
   const saveTaskDescription = async (taskId: string, description: string, parentId?: string) => {
-    const res = await fetch(`/api/admin/ideas/${id}/tasks`, {
+    const res = await fetch(`/api/admin/projects/${id}/tasks`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task_id: taskId, description: description || null }),
@@ -305,7 +313,7 @@ function IdeaDetailContent({ id }: { id: string }) {
     if (!newComment.trim()) return
     setPostingComment(true)
     try {
-      const res = await fetch(`/api/admin/ideas/${id}/comments`, {
+      const res = await fetch(`/api/admin/projects/${id}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ body: newComment }),
@@ -322,7 +330,7 @@ function IdeaDetailContent({ id }: { id: string }) {
 
   // Attachments
   const addAttachment = async (file_name: string, file_url: string, file_type?: string, file_size?: number) => {
-    const res = await fetch(`/api/admin/ideas/${id}/attachments`, {
+    const res = await fetch(`/api/admin/projects/${id}/attachments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ file_name, file_url, file_type, file_size }),
@@ -335,7 +343,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   }
 
   const deleteAttachment = async (attachmentId: string) => {
-    const res = await fetch(`/api/admin/ideas/${id}/attachments?attachment_id=${attachmentId}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/projects/${id}/attachments?attachment_id=${attachmentId}`, { method: 'DELETE' })
     if (res.ok) {
       setAttachments(prev => prev.filter(a => a.id !== attachmentId))
     }
@@ -345,7 +353,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   const searchForLink = async (term: string) => {
     setLinkSearch(term)
     if (!term.trim()) { setLinkResults([]); return }
-    const res = await fetch(`/api/admin/ideas?search=${encodeURIComponent(term)}`)
+    const res = await fetch(`/api/admin/projects?search=${encodeURIComponent(term)}`)
     if (res.ok) {
       const data = await res.json()
       setLinkResults((data.projects || []).filter((p: IdeaProject) => p.id !== id))
@@ -353,7 +361,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   }
 
   const addLink = async (targetId: string) => {
-    const res = await fetch(`/api/admin/ideas/${id}/links`, {
+    const res = await fetch(`/api/admin/projects/${id}/links`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ target_project_id: targetId, link_type: linkType }),
@@ -369,11 +377,19 @@ function IdeaDetailContent({ id }: { id: string }) {
   }
 
   const deleteLink = async (linkId: string) => {
-    const res = await fetch(`/api/admin/ideas/${id}/links?link_id=${linkId}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/projects/${id}/links?link_id=${linkId}`, { method: 'DELETE' })
     if (res.ok) {
       setLinksOut(prev => prev.filter(l => l.id !== linkId))
       setLinksIn(prev => prev.filter(l => l.id !== linkId))
     }
+  }
+
+  // Life categories
+  const toggleLifeCategory = (key: string) => {
+    setEditLifeCategories(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    )
+    markDirty()
   }
 
   // Tags
@@ -389,7 +405,7 @@ function IdeaDetailContent({ id }: { id: string }) {
 
   // Custom fields
   const saveCustomFieldValues = async (values: { field_id: string; value: string | null }[]) => {
-    const res = await fetch('/api/admin/ideas/custom-fields/values', {
+    const res = await fetch('/api/admin/projects/custom-fields/values', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ project_id: id, values }),
@@ -567,9 +583,9 @@ function IdeaDetailContent({ id }: { id: string }) {
       <Stack gap="lg">
         {/* Top Nav */}
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/admin/ideas')}>
+          <Button variant="ghost" size="sm" onClick={() => router.push('/admin/projects')}>
             <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Ideas
+            Back
           </Button>
           <div className="flex items-center gap-2">
             {dirty && (
@@ -586,11 +602,37 @@ function IdeaDetailContent({ id }: { id: string }) {
 
         {/* Header */}
         <div className="space-y-4">
+          {/* Type switch */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => { setEditType('project'); markDirty() }}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                editType === 'project'
+                  ? 'border-primary-500 bg-primary-500/10 text-primary-300'
+                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+              }`}
+            >
+              <FolderKanban className="w-3.5 h-3.5" />
+              Project
+            </button>
+            <button
+              onClick={() => { setEditType('list'); markDirty() }}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                editType === 'list'
+                  ? 'border-secondary-500 bg-secondary-500/10 text-secondary-300'
+                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+              }`}
+            >
+              <ListChecks className="w-3.5 h-3.5" />
+              List
+            </button>
+          </div>
+
           <input
             value={editTitle}
             onChange={(e) => { setEditTitle(e.target.value); markDirty() }}
             className="text-2xl font-bold text-white bg-transparent border-none outline-none w-full placeholder:text-neutral-600"
-            placeholder="Idea title..."
+            placeholder={editType === 'list' ? 'List title...' : 'Project title...'}
           />
 
           <div className="flex flex-wrap items-center gap-3">
@@ -678,7 +720,63 @@ function IdeaDetailContent({ id }: { id: string }) {
                 </div>
               )}
             </div>
+
+            {/* Life Categories */}
+            <div className="relative">
+              <button
+                onClick={() => setShowLifeCategoryDropdown(!showLifeCategoryDropdown)}
+                className="flex items-center gap-1 bg-neutral-800 border border-neutral-700 rounded-full px-3 py-1.5 text-xs text-neutral-300 hover:border-neutral-600"
+              >
+                <Heart className="w-3 h-3" />
+                Life Categories ({editLifeCategories.length})
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {showLifeCategoryDropdown && (
+                <div className="absolute top-full left-0 mt-1 bg-neutral-800 border border-neutral-700 rounded-xl p-2 min-w-[220px] z-20 shadow-xl max-h-72 overflow-y-auto">
+                  {LIFE_CATEGORY_OPTIONS.map(lc => {
+                    const isSelected = editLifeCategories.includes(lc.key)
+                    return (
+                      <button
+                        key={lc.key}
+                        onClick={() => toggleLifeCategory(lc.key)}
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                          isSelected ? 'bg-neutral-700' : 'hover:bg-neutral-700/50'
+                        }`}
+                      >
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: lc.color }}
+                        />
+                        <span className="text-white">{lc.label}</span>
+                        {isSelected && <CheckCircle2 className="w-3 h-3 text-green-400 ml-auto" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Life category pills */}
+          {editLifeCategories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {editLifeCategories.map(key => {
+                const lc = getLifeCategoryInfo(key)
+                return (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={{ backgroundColor: lc.color + '20', color: lc.color, border: `1px solid ${lc.color}40` }}
+                  >
+                    {lc.label}
+                    <button onClick={() => toggleLifeCategory(key)} className="hover:opacity-70">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )
+              })}
+            </div>
+          )}
 
           {/* Tag pills */}
           {projectTags.length > 0 && (
@@ -728,7 +826,7 @@ function IdeaDetailContent({ id }: { id: string }) {
               <RecordingTextarea
                 value={editDescription}
                 onChange={(val) => { setEditDescription(val); markDirty() }}
-                placeholder="Describe this idea in detail..."
+                placeholder="Describe this project in detail..."
                 rows={6}
                 recordingPurpose="quick"
                 storageFolder="journal"
@@ -821,7 +919,7 @@ function IdeaDetailContent({ id }: { id: string }) {
                         </span>
                         <ArrowRight className="w-3 h-3 text-neutral-500" />
                         <button
-                          onClick={() => router.push(`/admin/ideas/${(link as any).target?.id}`)}
+                          onClick={() => router.push(`/admin/projects/${(link as any).target?.id}`)}
                           className="text-sm text-white hover:text-primary-400"
                         >
                           {(link as any).target?.title || 'Unknown'}
@@ -836,7 +934,7 @@ function IdeaDetailContent({ id }: { id: string }) {
                     <div key={link.id} className="flex items-center justify-between bg-neutral-800 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => router.push(`/admin/ideas/${(link as any).source?.id}`)}
+                          onClick={() => router.push(`/admin/projects/${(link as any).source?.id}`)}
                           className="text-sm text-white hover:text-primary-400"
                         >
                           {(link as any).source?.title || 'Unknown'}
@@ -1032,9 +1130,9 @@ function IdeaDetailContent({ id }: { id: string }) {
       </Stack>
 
       {/* Delete Modal */}
-      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Idea?" size="sm">
+      <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title={editType === 'list' ? 'Delete List?' : 'Delete Project?'} size="sm">
         <p className="text-sm text-neutral-400 mb-4">
-          This will permanently delete this idea and all its tasks, comments, and attachments. This cannot be undone.
+          This will permanently delete this {editType === 'list' ? 'list' : 'project'} and all its tasks, comments, and attachments. This cannot be undone.
         </p>
         <div className="flex gap-3">
           <Button variant="ghost" onClick={() => setShowDeleteModal(false)} className="flex-1">Cancel</Button>

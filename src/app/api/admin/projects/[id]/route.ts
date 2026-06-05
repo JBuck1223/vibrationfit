@@ -115,7 +115,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, description, category_id, status, priority, due_date, tag_ids } = body
+    const { title, description, type, category_id, life_categories, status, priority, due_date, tag_ids } = body
 
     const supabase = createAdminClient()
 
@@ -128,7 +128,9 @@ export async function PATCH(
     const updates: Record<string, unknown> = {}
     if (title !== undefined) updates.title = title
     if (description !== undefined) updates.description = description
+    if (type !== undefined && (type === 'project' || type === 'list')) updates.type = type
     if (category_id !== undefined) updates.category_id = category_id || null
+    if (life_categories !== undefined) updates.life_categories = Array.isArray(life_categories) ? life_categories : []
     if (status !== undefined) updates.status = status
     if (priority !== undefined) updates.priority = priority
     if (due_date !== undefined) updates.due_date = due_date || null
