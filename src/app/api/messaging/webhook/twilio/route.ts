@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { handleOptOut } from '@/lib/messaging'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notifyAdminSMS } from '@/lib/admin/notifications'
+import { notifyAdminSMS, createAdminNotification } from '@/lib/admin/notifications'
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -123,7 +123,18 @@ export async function POST(request: NextRequest) {
 
         const sender = contactName || from
         const preview = (body || '').substring(0, 140)
-        notifyAdminSMS(`New SMS from ${sender}: "${preview}"`).catch(() => {})
+
+        createAdminNotification({
+          type: 'support_ticket',
+          title: `Inbound SMS from ${sender}`,
+          body: preview,
+          metadata: { from, messageSid },
+          link: '/admin/inbox/sms',
+        }).catch(err => console.error('[messaging/twilio] Admin notification DB error:', err))
+
+        notifyAdminSMS(`Inbound SMS from ${sender}: "${preview}"`).catch(
+          err => console.error('[messaging/twilio] Admin SMS error:', err)
+        )
       }
     }
 

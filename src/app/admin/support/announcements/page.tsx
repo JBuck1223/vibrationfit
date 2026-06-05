@@ -334,7 +334,6 @@ export default function AdminAnnouncementsPage() {
                       storageFolder="announcementVideoRecordings"
                       submitLabel="Attach Recording"
                       fullscreenVideo={false}
-                      maxDuration={600}
                       showSaveOption={false}
                       onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
                         if (s3Url) {
