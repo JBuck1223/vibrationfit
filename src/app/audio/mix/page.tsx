@@ -207,11 +207,12 @@ export default function AudioMixPage() {
     return ratio ? ratio.bg_volume === 0 : false
   })()
 
+  const isStorySource = activeSourceType === 'story'
   const availableSectionsForMix = selectedBaseVoiceSet?.available_sections || []
   const effectiveSectionCountForMix = mixAllSections
     ? availableSectionsForMix.length
     : selectedMixSections.filter((s) => availableSectionsForMix.includes(s)).length
-  const customShowOutputStep = effectiveSectionCountForMix > 1
+  const customShowOutputStep = !isStorySource && effectiveSectionCountForMix > 1
   const customShowBinauralStep =
     !isVoiceOnly && binauralTracks.length > 0 && !isIntensiveMode
 
@@ -225,8 +226,13 @@ export default function AudioMixPage() {
     }
     setSelectedMixRatio(id)
     if (vo) {
-      setCustomMixStep('sections')
-      scrollToCustomPanel(customSectionsRef)
+      if (isStorySource) {
+        setCustomMixStep('review')
+        scrollToCustomPanel(customReviewRef)
+      } else {
+        setCustomMixStep('sections')
+        scrollToCustomPanel(customSectionsRef)
+      }
     } else {
       setCustomMixStep('background')
       scrollToCustomPanel(customBgRef)
@@ -244,6 +250,9 @@ export default function AudioMixPage() {
       setCustomBinauralAck(true)
       setCustomMixStep('binaural')
       scrollToCustomPanel(customBinRef)
+    } else if (isStorySource) {
+      setCustomMixStep('review')
+      scrollToCustomPanel(customReviewRef)
     } else {
       setCustomMixStep('sections')
       scrollToCustomPanel(customSectionsRef)
@@ -251,8 +260,13 @@ export default function AudioMixPage() {
   }
 
   const finishBinauralStep = () => {
-    setCustomMixStep('sections')
-    scrollToCustomPanel(customSectionsRef)
+    if (isStorySource) {
+      setCustomMixStep('review')
+      scrollToCustomPanel(customReviewRef)
+    } else {
+      setCustomMixStep('sections')
+      scrollToCustomPanel(customSectionsRef)
+    }
   }
 
   // Initialize audio element on mount
@@ -1391,7 +1405,8 @@ export default function AudioMixPage() {
                     />
                   )}
 
-                {(customMixStep === 'output' || customMixStep === 'review') &&
+                {!isStorySource &&
+                  (customMixStep === 'output' || customMixStep === 'review') &&
                   (mixAllSections || selectedMixSections.length > 0) && (
                     <CompletedStepRow
                       step={customShowBinauralStep ? 4 : 2}
@@ -1409,7 +1424,7 @@ export default function AudioMixPage() {
                     />
                   )}
 
-                {customShowOutputStep &&
+                {!isStorySource && customShowOutputStep &&
                   customMixStep === 'review' &&
                   (mixAllSections || selectedMixSections.length > 0) && (
                     <CompletedStepRow
@@ -1851,6 +1866,7 @@ export default function AudioMixPage() {
                   </div>
                 </div>
               )}
+              {!isStorySource && (
               <div ref={customSectionsRef}>
                 <div className={customMixStep === 'sections' ? 'block' : 'hidden'}>
                 <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
@@ -1890,8 +1906,9 @@ export default function AudioMixPage() {
                 </Card>
                 </div>
               </div>
+              )}
 
-              {customShowOutputStep && (
+              {!isStorySource && customShowOutputStep && (
                 <div ref={customOutputRef}>
                   <div className={customMixStep === 'output' ? 'block' : 'hidden'}>
                 <Card variant="glass" className="p-4 md:p-6 mb-6 relative z-10">
@@ -1996,7 +2013,7 @@ export default function AudioMixPage() {
                           !selectedMixRatio ||
                           !selectedBaseVoiceSetId ||
                           (!isVoiceOnly && !selectedBackgroundTrack) ||
-                          (!mixAllSections && selectedMixSections.length === 0)
+                          (!isStorySource && !mixAllSections && selectedMixSections.length === 0)
                         }
                         className="w-full md:w-auto"
                       >
@@ -2008,11 +2025,14 @@ export default function AudioMixPage() {
                         ) : (
                           <>
                             <Music className="w-4 h-4 mr-2" />
-                            Generate Mix (
-                            {mixAllSections
-                              ? 'All Sections'
-                              : `${selectedMixSections.length} Section${selectedMixSections.length !== 1 ? 's' : ''}`}
-                            )
+                            {isStorySource
+                              ? 'Generate Mix'
+                              : `Generate Mix (${
+                                  mixAllSections
+                                    ? 'All Sections'
+                                    : `${selectedMixSections.length} Section${selectedMixSections.length !== 1 ? 's' : ''}`
+                                })`
+                            }
                           </>
                         )}
                       </Button>

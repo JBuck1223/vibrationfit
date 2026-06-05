@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import confetti from 'canvas-confetti'
 import { Button, Card } from '@/lib/design-system/components'
 import { Music, Users, Dumbbell, X } from 'lucide-react'
@@ -14,7 +15,7 @@ const GRADUATION_UNLOCKS = [
   {
     icon: Music,
     title: 'Advanced Audio Suite',
-    description: 'Frequency Enhancements – binaural beats and solfeggio‑backed layers you can add on top of any Vision Audio for healing, deeper sleep, focus, and meditation.',
+    description: 'Frequency Enhancements – binaural beats and solfeggio‑backed layers to mix with any Vision Audio for healing, deeper sleep, focus, and meditation.',
     color: 'text-purple-400',
     bgColor: 'bg-purple-500/20',
     borderColor: 'border-purple-500/30'
@@ -22,7 +23,7 @@ const GRADUATION_UNLOCKS = [
   {
     icon: Dumbbell,
     title: 'The Alignment Gym',
-    description: 'Weekly live coaching sessions with Jordan and Vanessa to calibrate, get unstuck, and keep your 28‑Day MAP (and beyond) on track.',
+    description: 'Weekly live group coaching sessions with Jordan and Vanessa to align, clear wobbles, connect with the Vibe Tribe, and keep your MAP on track.',
     color: 'text-teal-400',
     bgColor: 'bg-teal-500/20',
     borderColor: 'border-teal-500/30'
@@ -30,7 +31,7 @@ const GRADUATION_UNLOCKS = [
   {
     icon: Users,
     title: 'Vibe Tribe Community',
-    description: 'A private space to connect with conscious creators on the same journey – share your wins, struggles, and practices as you keep activating The Life You Choose.',
+    description: 'A sacred space for your happy place. Share your wins, wobbles, visions, and collaborations with the tribe so you can learn, grow and help support others.',
     color: 'text-primary-400',
     bgColor: 'bg-primary-500/20',
     borderColor: 'border-primary-500/30'
@@ -88,48 +89,58 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
-      {/* Backdrop - not scrollable, blocks interaction behind */}
+      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />
-      {/* Scrollable container: top-aligned on mobile so full modal is reachable by scroll */}
-      <div className="relative z-10 flex min-h-full items-start justify-center p-4 pt-6 pb-16 sm:pb-20 md:items-center md:py-8">
+      {/* Close button - fixed position like journal modal */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed top-3 right-3 z-[51] p-2 rounded-full bg-neutral-800/80 text-white backdrop-blur-sm hover:bg-neutral-700 transition-colors"
+        aria-label="Close"
+      >
+        <X className="w-5 h-5" />
+      </button>
+      {/* Scrollable container */}
+      <div className="relative z-10 flex min-h-full items-start justify-center p-4 pt-14 pb-16 sm:pb-20 md:items-center md:py-8">
         {/* Modal */}
-        <div className="w-full max-w-2xl shrink-0 animate-in fade-in zoom-in-95 duration-300">
-          <Card variant="elevated" className="bg-neutral-850 border-[#333] overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col">
-          {/* Close button - fixed in card so always visible */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-neutral-800 transition-colors z-10"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-neutral-400" />
-          </button>
+        <div className="w-full max-w-4xl lg:max-w-5xl shrink-0 animate-in fade-in zoom-in-95 duration-300">
+          <Card variant="elevated" className="bg-neutral-850 border-[#333] overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col !p-0">
 
-          {/* Scrollable body so modal content is fully visible on small screens */}
-          <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 -webkit-overflow-scrolling-touch">
-          {/* Header */}
-          <div className="text-center pt-8 pb-6 px-6">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              Welcome to Your Vibration Fit Membership
-            </h2>
-            <p className="text-neutral-300 mb-1">
-              You&apos;ve completed your 72‑Hour Activation Intensive. You are now a Graduate. Congratulations!
-            </p>
-            <p className="text-neutral-400 text-sm mt-3">
-              As promised, here are your Graduation Unlocks:
-            </p>
-          </div>
+          <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 -webkit-overflow-scrolling-touch p-4 pb-8 md:p-6 lg:p-8">
+            {/* Logo */}
+            <div className="flex justify-center mt-1 md:mt-2 mb-4">
+              <Image
+                src="https://media.vibrationfit.com/site-assets/brand/logo/logo-bar-white.svg"
+                alt="Vibration Fit"
+                width={72}
+                height={72}
+                priority
+              />
+            </div>
 
-          {/* Unlocks Grid */}
-          <div className="px-6 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                Welcome to Your Vibration Fit Membership
+              </h2>
+              <p className="text-neutral-300 mb-1">
+                You&apos;ve completed your 72‑Hour Activation Intensive. You are now a Graduate. Congratulations!
+              </p>
+              <p className="text-neutral-400 text-sm mt-3">
+                As promised, here are your Graduation Unlocks:
+              </p>
+            </div>
+
+            {/* Unlocks Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {GRADUATION_UNLOCKS.map((unlock) => (
                 <div
                   key={unlock.title}
-                  className={`p-4 rounded-xl ${unlock.bgColor} border ${unlock.borderColor} text-center`}
+                  className={`p-6 rounded-2xl ${unlock.bgColor} border ${unlock.borderColor} text-center`}
                 >
                   <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${unlock.bgColor} mb-3`}>
                     <unlock.icon className={`w-6 h-6 ${unlock.color}`} />
@@ -143,22 +154,21 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* CTA */}
-          <div className="px-6 pb-8 text-center">
-            <p className="text-sm text-neutral-400 mb-4 leading-relaxed">
-              Your next move: open your Dashboard, start Day 1 of your 28‑Day MAP, and go earn your first activation badge.
-            </p>
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={onClose}
-              className="w-full sm:w-auto px-8"
-            >
-              Enter My Dashboard
-            </Button>
-          </div>
+            {/* CTA */}
+            <div className="text-center">
+              <p className="text-sm text-neutral-400 mb-4 leading-relaxed">
+                Your next move: open your Dashboard, start Day 1 of your 28‑Day MAP, and go earn your first activation badge.
+              </p>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={onClose}
+                className="w-full sm:w-auto px-8"
+              >
+                Enter My Dashboard
+              </Button>
+            </div>
           </div>
         </Card>
         </div>

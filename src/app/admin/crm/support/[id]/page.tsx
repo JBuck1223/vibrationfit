@@ -515,7 +515,6 @@ export default function SupportTicketDetailPage() {
                   storageFolder="supportVideoRecordings"
                   submitLabel="Attach to Reply"
                   fullscreenVideo={false}
-                  maxDuration={300}
                   showSaveOption={false}
                   onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
                     if (s3Url) {
@@ -690,7 +689,6 @@ export default function SupportTicketDetailPage() {
                               storageFolder="supportVideoRecordings"
                               submitLabel="Attach Video"
                               fullscreenVideo={false}
-                              maxDuration={300}
                               showSaveOption={false}
                               onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
                                 if (s3Url) {
@@ -713,7 +711,6 @@ export default function SupportTicketDetailPage() {
                               storageFolder="supportAudioRecordings"
                               submitLabel="Attach Voice Memo"
                               fullscreenVideo={false}
-                              maxDuration={300}
                               showSaveOption={false}
                               enableEditor={false}
                               onRecordingComplete={(_blob, _transcript, _save, s3Url) => {

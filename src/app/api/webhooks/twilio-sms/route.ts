@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notifyAdminSMS } from '@/lib/admin/notifications'
+import { notifyAdminSMS, createAdminNotification } from '@/lib/admin/notifications'
 
 // Helper function to normalize phone numbers for comparison
 function normalizePhone(phone: string): string {
@@ -153,7 +153,18 @@ export async function POST(request: NextRequest) {
       if (direction === 'inbound') {
         const sender = contactName || from
         const preview = (body || '').substring(0, 140)
-        notifyAdminSMS(`New SMS from ${sender}: "${preview}"`).catch(() => {})
+
+        createAdminNotification({
+          type: 'support_ticket',
+          title: `Inbound SMS from ${sender}`,
+          body: preview,
+          metadata: { from: userPhone, messageId },
+          link: '/admin/inbox/sms',
+        }).catch(err => console.error('[twilio-sms] Admin notification DB error:', err))
+
+        notifyAdminSMS(`Inbound SMS from ${sender}: "${preview}"`).catch(
+          err => console.error('[twilio-sms] Admin SMS error:', err)
+        )
       }
     }
 

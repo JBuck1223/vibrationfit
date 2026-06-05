@@ -9,7 +9,7 @@ import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
 import { generateSupportTicketCreatedEmail } from '@/lib/email/templates/support-ticket-created'
 import { triggerEvent } from '@/lib/messaging/events'
-import { createAdminNotification } from '@/lib/admin/notifications'
+import { createAdminNotification, notifyAdminSMS } from '@/lib/admin/notifications'
 import { sendNotification } from '@/lib/notifications/config'
 import { OUTBOUND_URL } from '@/lib/urls'
 
@@ -108,23 +108,33 @@ export async function POST(request: NextRequest) {
 
     // Skip admin self-notification when admin creates the ticket
     if (!isOnBehalf) {
+      const isCoaching = body.category === 'coaching'
+
       createAdminNotification({
         type: 'support_ticket',
-        title: `New Support Ticket: ${body.subject}`,
+        title: isCoaching
+          ? `Coaching Request: ${body.subject}`
+          : `New Support Ticket: ${body.subject}`,
         body: email || undefined,
-        metadata: { ticketId: ticket.id, subject: body.subject, priority: body.priority || 'normal' },
+        metadata: { ticketId: ticket.id, subject: body.subject, priority: body.priority || 'normal', category: body.category },
         link: '/admin/crm/support/board',
       }).catch(err => console.error('Admin notification DB error:', err))
 
-      sendNotification({
-        slug: 'support_ticket_created',
-        variables: {
-          subject: body.subject,
-          email: email || 'Unknown',
-          priority: body.priority || 'normal',
-          ticketId: ticket.id,
-        },
-      }).catch(err => console.error('Notification error:', err))
+      if (isCoaching) {
+        notifyAdminSMS(
+          `Coaching Request from ${email || 'Unknown'}: "${body.subject}"`
+        ).catch(err => console.error('Coaching admin SMS error:', err))
+      } else {
+        sendNotification({
+          slug: 'support_ticket_created',
+          variables: {
+            subject: body.subject,
+            email: email || 'Unknown',
+            priority: body.priority || 'normal',
+            ticketId: ticket.id,
+          },
+        }).catch(err => console.error('Notification error:', err))
+      }
     }
 
     return NextResponse.json({ ticket }, { status: 201 })

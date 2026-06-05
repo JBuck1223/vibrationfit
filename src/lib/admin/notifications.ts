@@ -39,16 +39,27 @@ export async function createAdminNotification(params: CreateNotificationParams) 
 
 /**
  * Send an SMS to all admin phone numbers configured in ADMIN_NOTIFICATION_PHONES.
- * Fails silently — callers should .catch() if fire-and-forget.
+ * Logs per-recipient failures so they don't vanish silently.
  */
 export async function notifyAdminSMS(message: string) {
   const phonesRaw = process.env.ADMIN_NOTIFICATION_PHONES
-  if (!phonesRaw) return
+  if (!phonesRaw) {
+    console.warn('[notifyAdminSMS] ADMIN_NOTIFICATION_PHONES not set — skipping')
+    return
+  }
 
   const phones = phonesRaw.split(',').map(p => p.trim()).filter(Boolean)
   if (phones.length === 0) return
 
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     phones.map(phone => sendSMS({ to: phone, body: message }))
-  ).catch(err => console.error('Admin SMS notification failed:', err))
+  )
+
+  results.forEach((result, i) => {
+    if (result.status === 'rejected') {
+      console.error(`[notifyAdminSMS] Failed to send to ${phones[i]}:`, result.reason)
+    } else if (!result.value.success) {
+      console.error(`[notifyAdminSMS] SMS rejected for ${phones[i]}:`, result.value.error)
+    }
+  })
 }

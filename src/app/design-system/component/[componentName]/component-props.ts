@@ -279,7 +279,7 @@ export const COMPONENT_PROPS: Record<string, PropDefinition[]> = {
     { name: 'onRecordingComplete', type: '(blob: Blob, transcript?: string, shouldSaveFile?: boolean, s3Url?: string) => void', required: false, description: 'Callback when recording is complete with blob, optional transcript, save flag, and S3 URL' },
     { name: 'onTranscriptComplete', type: '(transcript: string) => void', required: false, description: 'Callback when transcription completes (for real-time transcript updates)' },
     { name: 'autoTranscribe', type: 'boolean', required: false, defaultValue: 'true', description: 'Automatically transcribe after recording stops' },
-    { name: 'maxDuration', type: 'number', required: false, defaultValue: '600', description: 'Maximum recording duration in seconds (default 10 minutes)' },
+    { name: 'maxDuration', type: 'number', required: false, defaultValue: 'undefined', description: 'Maximum recording duration in seconds (no limit by default)' },
     { name: 'className', type: 'string', required: false, description: 'Additional CSS classes' },
     { name: 'showSaveOption', type: 'boolean', required: false, defaultValue: 'true', description: 'Show "Save Recording" checkbox for user control' },
     { name: 'recordingId', type: 'string', required: false, description: 'Optional ID for IndexedDB persistence' },

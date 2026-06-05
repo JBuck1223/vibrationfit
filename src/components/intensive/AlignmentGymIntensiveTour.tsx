@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Flame, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
+import { Flame, ChevronLeft, ChevronRight, CheckCircle, HelpCircle } from 'lucide-react'
 import { Button, Card, Spinner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
 import type { AlignmentGymTourAnchor } from '@/components/alignment-gym/AlignmentGymHub'
 import { useIntensiveStepCompleteModal } from '@/lib/intensive/use-step-complete-modal'
@@ -17,7 +17,7 @@ const WALKTHROUGH_STEPS: { id: AlignmentGymTourAnchor; title: string; body: stri
   {
     id: 'stats',
     title: 'Your stats',
-    body: 'Streak and weekly reps show how consistently you are showing up. Attending live or opening a replay counts.',
+    body: 'Streak and weekly reps show how consistently you are showing up. Attending live or watching a replay counts.',
   },
   {
     id: 'what-is',
@@ -28,6 +28,11 @@ const WALKTHROUGH_STEPS: { id: AlignmentGymTourAnchor; title: string; body: stri
     id: 'next-session',
     title: 'Next live session',
     body: 'The next session appears here \u2014 click the button when it\u2019s time to join live. Be sure to add this to your calendar.',
+  },
+  {
+    id: 'coaching-request',
+    title: 'Request coaching on a wobble',
+    body: 'When you\'re struggling with something, submit a private request here. Your guide may bring it into an upcoming Alignment Gym. You can try it now if you have something on your mind.',
   },
   {
     id: 'replays',
@@ -42,9 +47,11 @@ const INTENSIVE_MAIN_BOUNDS = 'fixed inset-0 md:left-[280px] md:right-0'
 export function AlignmentGymIntensiveTour({
   alreadyCompleted,
   onActiveAnchorChange,
+  onRequestCoaching,
 }: {
   alreadyCompleted: boolean
   onActiveAnchorChange: (anchor: AlignmentGymTourAnchor | null) => void
+  onRequestCoaching?: () => void
 }) {
   const { isOpen, stepId, completeAndShowModal, closeModal } = useIntensiveStepCompleteModal()
   const [phase, setPhase] = useState<TourPhase>('intro')
@@ -110,14 +117,15 @@ export function AlignmentGymIntensiveTour({
               </div>
             </div>
             <p className="text-sm text-neutral-300 leading-relaxed mb-3">
-              Your weekly live session to stay aligned. This is where we clear wobbles that are in the way of you experiencing your Life Vision.
+              Your weekly, live group coaching session to stay aligned. This is where we clear wobbles that are in the way of you experiencing your Life Vision.
             </p>
             <p className="text-sm text-neutral-300 leading-relaxed mb-3">
-              Think of your Profile as where you are now, your Life Vision as where you&apos;re headed, and wobbles as what&apos;s in the way. Experience the power of doing this together.
+              Think of your Profile as where you are now, your Life Vision as where you&apos;re headed, and wobbles as what&apos;s in the way.
             </p>
             <p className="text-sm text-neutral-500 leading-relaxed mb-6">
               The page behind this overlay is the real Alignment Gym hub you will use after the
-              Intensive. Next, we will walk through each section together.
+              Intensive — live sessions, coaching requests, and replays. Next, we will walk through
+              each section together.
             </p>
             <Button variant="primary" className="w-full" onClick={startWalkthrough}>
               Start walkthrough
@@ -142,6 +150,17 @@ export function AlignmentGymIntensiveTour({
               </p>
               <h3 className="text-base font-bold text-white mb-1">{step.title}</h3>
               <p className="text-sm text-neutral-400 leading-relaxed mb-4">{step.body}</p>
+              {step.id === 'coaching-request' && onRequestCoaching && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onRequestCoaching}
+                  className="mb-4 w-full"
+                >
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Try it now
+                </Button>
+              )}
               <div className="flex items-center justify-between gap-3">
                 <Button
                   variant="ghost"

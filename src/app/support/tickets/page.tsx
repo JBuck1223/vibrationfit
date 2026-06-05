@@ -121,6 +121,14 @@ export default function MyTicketsPage() {
     })
   }
 
+  function parseLifeAreas(description: string): { areas: string[]; body: string } {
+    const match = description.match(/^Life area\(s\):\s*(.+?)(?:\n\n|\n|$)/)
+    if (!match) return { areas: [], body: description }
+    const areas = match[1].split(',').map(a => a.trim()).filter(Boolean)
+    const body = description.slice(match[0].length).trim()
+    return { areas, body }
+  }
+
   if (loading) {
     return (
       <Container size="xl">
@@ -194,10 +202,6 @@ export default function MyTicketsPage() {
                         <p className="text-sm sm:text-base font-medium text-white truncate mb-0.5">
                           {ticket.subject}
                         </p>
-                        {/* Description preview */}
-                        <p className="text-[13px] text-neutral-300 leading-relaxed line-clamp-1">
-                          {ticket.description}
-                        </p>
                       </div>
 
                       {/* Right side: expand only */}
@@ -219,10 +223,32 @@ export default function MyTicketsPage() {
                       <div className="sm:ml-14 space-y-4">
                         {/* Full description */}
                         <div className="pt-4">
-                          <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Description</p>
-                          <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-wrap">
-                            {ticket.description}
-                          </p>
+                          {(() => {
+                            const { areas, body } = parseLifeAreas(ticket.description)
+                            return (
+                              <>
+                                {areas.length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Life Areas</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {areas.map((area) => (
+                                        <span
+                                          key={area}
+                                          className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium border border-[#00FFFF]/30 bg-[#00FFFF]/10 text-[#00FFFF]"
+                                        >
+                                          {area}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Description</p>
+                                <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-wrap">
+                                  {body || ticket.description}
+                                </p>
+                              </>
+                            )
+                          })()}
                         </div>
 
                         {/* Replies / conversation */}
