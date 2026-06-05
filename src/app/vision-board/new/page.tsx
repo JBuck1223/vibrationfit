@@ -9,7 +9,7 @@ import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, Upload, CheckCircle, XCircle, ImageIcon } from 'lucide-react'
+import { Sparkles, Upload, CheckCircle, XCircle, ImageIcon, Home } from 'lucide-react'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 
 const STATUS_OPTIONS = [
@@ -24,9 +24,12 @@ export default function NewVisionBoardItemPage() {
   const searchParams = useSearchParams()
   const isIntensivePage = pathname.startsWith('/intensive/')
   const isIntensiveUrlParam = searchParams.get('intensive') === 'true'
+  const wantsHousehold = searchParams.get('household') === '1'
   const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
+  const [household, setHousehold] = useState<{ id: string; name: string; isMultiMember: boolean } | null>(null)
+  const [shareWithHousehold, setShareWithHousehold] = useState(false)
   const [existingItems, setExistingItems] = useState<any[]>([])
   const [categoriesNeeded, setCategoriesNeeded] = useState<string[]>(LIFE_CATEGORY_KEYS)
   const [isUserInIntensive, setIsUserInIntensive] = useState(false)
@@ -58,6 +61,25 @@ export default function NewVisionBoardItemPage() {
         const { data: { session } } = await supabase.auth.getSession()
         const user = session?.user
         if (!user) return
+
+        // Resolve household so we can offer "Include in household"
+        try {
+          const res = await fetch('/api/household?includeMembers=true')
+          if (res.ok) {
+            const data = await res.json()
+            if (data?.household) {
+              const isMultiMember = (data.members?.length || 0) > 1
+              setHousehold({
+                id: data.household.id,
+                name: data.household.name,
+                isMultiMember,
+              })
+              if (wantsHousehold && isMultiMember) setShareWithHousehold(true)
+            }
+          }
+        } catch (e) {
+          console.warn('Could not load household context:', e)
+        }
 
         // Check if user has an active intensive checklist
         const { data: checklist } = await supabase
@@ -99,7 +121,7 @@ export default function NewVisionBoardItemPage() {
     }
     
     loadData()
-  }, [isIntensiveUrlParam])
+  }, [isIntensiveUrlParam, wantsHousehold])
 
   const handleCategoryToggle = (category: string) => {
     setFormData(prev => ({
@@ -177,6 +199,7 @@ export default function NewVisionBoardItemPage() {
           actualization_story: formData.status === 'actualized' ? formData.actualization_story : null,
           status: formData.status,
           categories: formData.categories,
+          household_id: shareWithHousehold && household?.isMultiMember ? household.id : null,
           actualized_at: formData.status === 'actualized' ? new Date().toISOString() : null,
           audio_recordings: audioRecordings,
         })
@@ -383,6 +406,42 @@ export default function NewVisionBoardItemPage() {
                   ))}
                 </div>
               </section>
+
+              {/* Include in household */}
+              {household?.isMultiMember && (
+                <section className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShareWithHousehold((v) => !v)}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all ${
+                      shareWithHousehold
+                        ? 'border-[#00FFFF] bg-[#00FFFF]/10'
+                        : 'border-[#282828] bg-[#1A1A1A] hover:border-neutral-600'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-white">
+                      <Home className="w-4 h-4 text-[#00FFFF]" />
+                      Include in {household.name}
+                    </span>
+                    <span
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        shareWithHousehold ? 'bg-[#00FFFF]' : 'bg-neutral-700'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-black transition-transform ${
+                          shareWithHousehold ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </span>
+                  </button>
+                  <p className="text-[11px] text-neutral-500 text-center">
+                    {shareWithHousehold
+                      ? 'Everyone in your household will see this creation.'
+                      : 'Private to you until shared.'}
+                  </p>
+                </section>
+              )}
 
               {/* Life Categories */}
               <FullBleed>

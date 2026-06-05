@@ -61,7 +61,7 @@ import { useAreaStats } from '@/hooks/useAreaStats'
 import { createClient } from '@/lib/supabase/client'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { isSessionJoinable, formatDuration } from '@/lib/video/types'
-import type { AreaStats } from '@/app/api/area-stats/route'
+import type { AreaStatsResponse as AreaStats } from '@/app/api/area-stats/route'
 
 type SessionWithParticipants = VideoSession & {
   participants?: VideoSessionParticipant[]
@@ -209,7 +209,7 @@ export function AlignmentGymHub({
       setSessions(sessionsWithParticipants)
 
       const attendedSessions = sessionsWithParticipants.filter(session =>
-        session.participants?.some(p => p.attended),
+        session.participants?.some((p: VideoSessionParticipant) => p.attended),
       )
 
       setAttendanceStats({

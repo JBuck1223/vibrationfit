@@ -105,6 +105,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/member/offers',
     
     // Household Management
+    '/household',
     '/household/settings',
     '/household/invite/[token]',
     '/life-vision/household',

@@ -276,6 +276,7 @@ export const userNavigationGroups: NavGroup[] = [
         hasDropdown: true,
         children: [
           { name: 'New Item', href: '/vision-board/new', icon: Plus },
+          { name: 'Household Board', href: '/vision-board?scope=household', icon: Home },
         ],
       },
     ],
@@ -311,6 +312,12 @@ export const userNavigationGroups: NavGroup[] = [
         href: '/support/tickets',
         icon: Users,
         description: 'Get help and support',
+      },
+      {
+        name: 'Household',
+        href: '/household',
+        icon: Home,
+        description: 'Shared visions, vision boards, and members',
       },
       {
         name: 'Account',
