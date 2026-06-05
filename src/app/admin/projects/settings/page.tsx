@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Input, Stack, PageHero, Spinner, Modal } from '@/lib/design-system/components'
+import { Container, Card, Button, Input, Stack, Spinner, Modal } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
+import { ProjectsAreaBar } from '@/components/projects-studio'
 import {
-  ArrowLeft, Plus, Trash2, Edit3, Palette, Tag, LayoutGrid,
+  Plus, Trash2, Edit3, Palette, Tag, LayoutGrid,
   Sliders, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -28,7 +28,6 @@ const COLOR_PRESETS = [
 ]
 
 function SettingsContent() {
-  const router = useRouter()
   const [activeTab, setActiveTab] = useState<SettingsTab>('categories')
   const [loading, setLoading] = useState(true)
 
@@ -64,9 +63,9 @@ function SettingsContent() {
     setLoading(true)
     try {
       const [catRes, tagRes, fieldRes] = await Promise.all([
-        fetch('/api/admin/ideas/categories'),
-        fetch('/api/admin/ideas/tags'),
-        fetch('/api/admin/ideas/custom-fields'),
+        fetch('/api/admin/projects/categories'),
+        fetch('/api/admin/projects/tags'),
+        fetch('/api/admin/projects/custom-fields'),
       ])
       if (catRes.ok) setCategories((await catRes.json()).categories || [])
       if (tagRes.ok) setTags((await tagRes.json()).tags || [])
@@ -103,7 +102,7 @@ function SettingsContent() {
         ? { id: editingCategory.id, name: catName, color: catColor, icon: catIcon }
         : { name: catName, color: catColor, icon: catIcon, sort_order: categories.length }
 
-      const res = await fetch('/api/admin/ideas/categories', {
+      const res = await fetch('/api/admin/projects/categories', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -123,7 +122,7 @@ function SettingsContent() {
 
   const deleteCategory = async (id: string) => {
     if (!confirm('Delete this category? Projects using it will become uncategorized.')) return
-    const res = await fetch(`/api/admin/ideas/categories?id=${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/projects/categories?id=${id}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success('Category deleted')
       fetchData()
@@ -155,7 +154,7 @@ function SettingsContent() {
         ? { id: editingTag.id, name: tagName, color: tagColor }
         : { name: tagName, color: tagColor }
 
-      const res = await fetch('/api/admin/ideas/tags', {
+      const res = await fetch('/api/admin/projects/tags', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -176,7 +175,7 @@ function SettingsContent() {
 
   const deleteTag = async (id: string) => {
     if (!confirm('Delete this tag? It will be removed from all projects.')) return
-    const res = await fetch(`/api/admin/ideas/tags?id=${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/projects/tags?id=${id}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success('Tag deleted')
       fetchData()
@@ -216,7 +215,7 @@ function SettingsContent() {
         ? { id: editingField.id, name: fieldName, field_type: fieldType, options, category_id: fieldCategoryId || null }
         : { name: fieldName, field_type: fieldType, options, category_id: fieldCategoryId || null, sort_order: fields.length }
 
-      const res = await fetch('/api/admin/ideas/custom-fields', {
+      const res = await fetch('/api/admin/projects/custom-fields', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -236,7 +235,7 @@ function SettingsContent() {
 
   const deleteField = async (id: string) => {
     if (!confirm('Delete this custom field? All values for this field will be lost.')) return
-    const res = await fetch(`/api/admin/ideas/custom-fields?id=${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/projects/custom-fields?id=${id}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success('Field deleted')
       fetchData()
@@ -264,18 +263,7 @@ function SettingsContent() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/admin/ideas')}>
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-        </div>
-
-        <PageHero
-          eyebrow="IDEA HUB"
-          title="Settings"
-          subtitle="Manage categories, custom fields, and tags"
-        />
+        <ProjectsAreaBar contextText="Manage categories, custom fields, and tags" />
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-neutral-800">
@@ -302,7 +290,7 @@ function SettingsContent() {
         {activeTab === 'categories' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-400">Organize ideas into categories</p>
+              <p className="text-sm text-neutral-400">Organize projects into categories</p>
               <Button variant="primary" size="sm" onClick={() => openCategoryModal()}>
                 <Plus className="w-4 h-4 mr-1" />
                 New Category
@@ -344,7 +332,7 @@ function SettingsContent() {
         {activeTab === 'fields' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-400">Add custom fields to your ideas</p>
+              <p className="text-sm text-neutral-400">Add custom fields to your projects</p>
               <Button variant="primary" size="sm" onClick={() => openFieldModal()}>
                 <Plus className="w-4 h-4 mr-1" />
                 New Field
@@ -385,7 +373,7 @@ function SettingsContent() {
         {activeTab === 'tags' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-400">Create reusable tags to label ideas</p>
+              <p className="text-sm text-neutral-400">Create reusable tags to label projects</p>
               <Button variant="primary" size="sm" onClick={() => openTagModal()}>
                 <Plus className="w-4 h-4 mr-1" />
                 New Tag

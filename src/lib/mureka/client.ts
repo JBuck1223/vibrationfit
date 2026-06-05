@@ -79,13 +79,16 @@ class MurekaClient {
     const url = `${this.baseUrl}/v1/files/upload`
 
     if (params.url) {
+      const formData = new FormData()
+      formData.append('url', params.url)
+      formData.append('purpose', params.purpose)
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: params.url, purpose: params.purpose }),
+        body: formData,
       })
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: { message: response.statusText } }))

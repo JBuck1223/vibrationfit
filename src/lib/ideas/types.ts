@@ -1,6 +1,8 @@
 // ============================================================================
-// Idea Hub - Type Definitions
+// Project Hub - Type Definitions
 // ============================================================================
+// NOTE: Underlying database tables keep their original `idea_*` names for
+// backwards compatibility. All user-facing terminology uses "Project" / "List".
 
 export type IdeaStatus = 'idea' | 'planned' | 'in_progress' | 'review' | 'done' | 'archived'
 export type IdeaPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -8,8 +10,22 @@ export type CommentType = 'comment' | 'status_change' | 'system'
 export type LinkType = 'related' | 'blocks' | 'blocked_by' | 'parent' | 'child'
 export type CustomFieldType = 'text' | 'number' | 'date' | 'select' | 'url' | 'boolean'
 
+// Item type: a rich Project vs a simple checklist List
+export type IdeaItemType = 'project' | 'list'
+
+export const ITEM_TYPES: { value: IdeaItemType; label: string; plural: string; color: string }[] = [
+  { value: 'project', label: 'Project', plural: 'Projects', color: '#39FF14' },
+  { value: 'list', label: 'List', plural: 'Lists', color: '#00FFFF' },
+]
+
+export function getItemTypeInfo(type: IdeaItemType) {
+  return ITEM_TYPES.find(t => t.value === type) ?? ITEM_TYPES[0]
+}
+
+// The status value 'idea' is kept in the DB for backwards compatibility but
+// surfaced as "Backlog" to remove the "idea" terminology from the UI.
 export const IDEA_STATUSES: { value: IdeaStatus; label: string; color: string }[] = [
-  { value: 'idea', label: 'Idea', color: '#BF00FF' },
+  { value: 'idea', label: 'Backlog', color: '#BF00FF' },
   { value: 'planned', label: 'Planned', color: '#00FFFF' },
   { value: 'in_progress', label: 'In Progress', color: '#39FF14' },
   { value: 'review', label: 'Review', color: '#FFFF00' },
@@ -32,6 +48,42 @@ export const LINK_TYPES: { value: LinkType; label: string }[] = [
   { value: 'child', label: 'Child of' },
 ]
 
+// ============================================================================
+// Life Categories (the 12 canonical VibrationFit vision categories)
+// Single source of truth: src/lib/design-system/vision-categories.ts
+// Items can be tagged with multiple life categories.
+// ============================================================================
+
+import { LIFE_CATEGORY_KEYS, getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
+
+// Stable color palette assigned to life categories for chips/badges
+const LIFE_CATEGORY_PALETTE = [
+  '#39FF14', '#00FFFF', '#BF00FF', '#FFFF00', '#FF6B00', '#00FF88',
+  '#FF0080', '#00B3FF', '#FFAA00', '#A020F0', '#14F0C8', '#FF4D4D',
+]
+
+export interface LifeCategoryOption {
+  key: string
+  label: string
+  color: string
+}
+
+export const LIFE_CATEGORY_OPTIONS: LifeCategoryOption[] = LIFE_CATEGORY_KEYS.map((key, i) => ({
+  key,
+  label: getVisionCategoryLabel(key),
+  color: LIFE_CATEGORY_PALETTE[i % LIFE_CATEGORY_PALETTE.length],
+}))
+
+export function getLifeCategoryInfo(key: string): LifeCategoryOption {
+  return (
+    LIFE_CATEGORY_OPTIONS.find(c => c.key === key) ?? {
+      key,
+      label: key,
+      color: '#888888',
+    }
+  )
+}
+
 export interface IdeaCategory {
   id: string
   name: string
@@ -46,7 +98,9 @@ export interface IdeaProject {
   id: string
   title: string
   description: string | null
+  type: IdeaItemType
   category_id: string | null
+  life_categories: string[]
   status: IdeaStatus
   priority: IdeaPriority
   due_date: string | null
