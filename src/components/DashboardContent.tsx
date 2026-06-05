@@ -12,6 +12,7 @@ import HouseholdTokenBalance from '@/components/HouseholdTokenBalance'
 import AssessmentBarChart from '@/app/assessment/components/AssessmentBarChart'
 import { RetentionDashboard } from '@/components/retention'
 import { GraduateChecklistCard } from '@/components/GraduateChecklistCard'
+import { UnlockCelebrationModal } from '@/components/UnlockCelebrationModal'
 import type { GraduateChecklistResult } from '@/lib/graduate-checklist'
 import { 
   Sparkles, 
@@ -339,6 +340,11 @@ export default function DashboardContent({ user, profileData, visionData, vision
   })()
 
   return (
+      <>
+      <UnlockCelebrationModal
+        isOpen={showCelebration}
+        onClose={() => setShowCelebration(false)}
+      />
       <Container size="xl">
         <Stack gap="lg">
           {/* PageHero */}
@@ -601,5 +607,6 @@ export default function DashboardContent({ user, profileData, visionData, vision
         </Card>
       </Stack>
     </Container>
+    </>
   )
 }

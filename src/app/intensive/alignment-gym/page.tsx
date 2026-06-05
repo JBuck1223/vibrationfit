@@ -18,6 +18,7 @@ export default function IntensiveAlignmentGymPage() {
   const [isCompleted, setIsCompleted] = useState(false)
   const [completedAt, setLocalCompletedAt] = useState<string | null>(null)
   const [activeTourAnchor, setActiveTourAnchor] = useState<AlignmentGymTourAnchor | null>(null)
+  const [coachingOpenFromTour, setCoachingOpenFromTour] = useState(false)
   const [hasGraduated, setHasGraduated] = useState(false)
 
   useEffect(() => {
@@ -72,12 +73,15 @@ export default function IntensiveAlignmentGymPage() {
         forceWhatIsOpen={activeTourAnchor === 'what-is'}
         skipMapAutoVerify={tourInProgress}
         statsUntilGraduation={!hasGraduated}
+        forceCoachingOpen={coachingOpenFromTour}
+        onCoachingClose={() => setCoachingOpenFromTour(false)}
       />
 
       {checklistReady && (
         <AlignmentGymIntensiveTour
           alreadyCompleted={isCompleted}
           onActiveAnchorChange={setActiveTourAnchor}
+          onRequestCoaching={() => setCoachingOpenFromTour(true)}
         />
       )}
 

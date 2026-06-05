@@ -606,8 +606,8 @@ export default function AudioQueueBatchPage({
                   <Button variant="primary" asChild>
                     <Link href={
                       isStory
-                        ? `/audio?listen=stories&storyId=${batch.content_id || ''}`
-                        : `/audio?listen=life-vision&audioSetId=${batch.audio_set_ids[0]}`
+                        ? `/audio/stories?storyId=${batch.content_id || ''}`
+                        : `/audio?audioSetId=${batch.audio_set_ids[0]}`
                     }>
                       <Play className="w-4 h-4 mr-2" />
                       Listen to Audio
@@ -882,8 +882,8 @@ export default function AudioQueueBatchPage({
               <Button variant="primary" asChild>
                 <Link href={
                   isStory
-                    ? `/audio?listen=stories&storyId=${batch.content_id || ''}`
-                    : `/audio?listen=life-vision&audioSetId=${batch.audio_set_ids[0]}`
+                    ? `/audio/stories?storyId=${batch.content_id || ''}`
+                    : `/audio?audioSetId=${batch.audio_set_ids[0]}`
                 }>
                   <Play className="w-4 h-4 mr-2" />
                   Listen to Audio

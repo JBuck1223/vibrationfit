@@ -14,7 +14,7 @@ import {
   CategoryGrid,
   VISION_CATEGORIES,
 } from '@/lib/design-system'
-import { CheckCircle, Paperclip, Monitor, Trash2, FileText } from 'lucide-react'
+import { CheckCircle, Paperclip, Monitor, Trash2, FileText, Video as VideoIcon } from 'lucide-react'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
@@ -29,9 +29,10 @@ const LIFE_AREA_CATEGORIES = VISION_CATEGORIES.filter(
 interface RequestCoachingFormProps {
   userId: string
   onClose: () => void
+  hideNavigation?: boolean
 }
 
-export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProps) {
+export function RequestCoachingForm({ userId, onClose, hideNavigation = false }: RequestCoachingFormProps) {
   const router = useRouter()
 
   const [loading, setLoading] = useState(false)
@@ -44,7 +45,9 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
 
   const [attachmentUrls, setAttachmentUrls] = useState<string[]>([])
   const [showRecorder, setShowRecorder] = useState(false)
+  const [showVideoRecorder, setShowVideoRecorder] = useState(false)
   const [recorderKey, setRecorderKey] = useState(0)
+  const [videoRecorderKey, setVideoRecorderKey] = useState(0)
   const [uploadingFile, setUploadingFile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -127,6 +130,7 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
 
       setAttachmentUrls([])
       setShowRecorder(false)
+      setShowVideoRecorder(false)
       setTicketNumber(ticket.ticket_number)
       setSubmitted(true)
     } catch (error: any) {
@@ -148,14 +152,13 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
           Your coaching request has been sent to your guide.
         </p>
         <p className="text-lg font-semibold text-primary-500 mb-4">{ticketNumber}</p>
-        <p className="text-xs text-neutral-500 mb-6">
-          We may bring this into an upcoming Alignment Gym session. Track it any time under your requests.
-        </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button variant="primary" onClick={() => router.push('/support/tickets')}>
-            View My Requests
-          </Button>
-          <Button variant="ghost" onClick={onClose}>
+          {!hideNavigation && (
+            <Button variant="primary" onClick={() => router.push('/support/tickets')}>
+              View My Requests
+            </Button>
+          )}
+          <Button variant={hideNavigation ? 'primary' : 'ghost'} onClick={onClose}>
             Done
           </Button>
         </div>
@@ -164,8 +167,8 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
-      {/* Life area selection */}
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Life area selection — outside scroll so pill bleed reaches modal edges on mobile */}
       <div>
         <label className="block text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-3">
           Which area of life is this about?
@@ -175,9 +178,12 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
           selectedCategories={selectedAreas}
           onCategoryClick={toggleArea}
           wrapOnDesktop
+          pillLabel="scroll"
+          bleedClassName="max-md:-mx-6 md:mx-0"
         />
       </div>
 
+      <div className="max-h-[min(58vh,520px)] overflow-y-auto pr-1 space-y-5">
       {/* Subject */}
       <div>
         <label className="block text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">
@@ -270,12 +276,30 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
             storageFolder="supportVideoRecordings"
             submitLabel="Attach to Request"
             fullscreenVideo={false}
-            maxDuration={300}
             showSaveOption={false}
             onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
               if (s3Url) {
                 setAttachmentUrls((prev) => [...prev, s3Url])
                 setShowRecorder(false)
+              }
+            }}
+          />
+        )}
+
+        {showVideoRecorder && (
+          <MediaRecorderComponent
+            key={`coaching-video-${videoRecorderKey}`}
+            instanceId={`coaching-video-${videoRecorderKey}`}
+            mode="video"
+            recordingPurpose="support"
+            storageFolder="supportVideoRecordings"
+            submitLabel="Attach to Request"
+            fullscreenVideo={false}
+            showSaveOption={false}
+            onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
+              if (s3Url) {
+                setAttachmentUrls((prev) => [...prev, s3Url])
+                setShowVideoRecorder(false)
               }
             }}
           />
@@ -290,7 +314,21 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
           className="hidden"
         />
 
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              if (!showVideoRecorder) {
+                setVideoRecorderKey((k) => k + 1)
+                setShowRecorder(false)
+              }
+              setShowVideoRecorder(!showVideoRecorder)
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-700 hover:text-white hover:border-neutral-500 transition-colors"
+          >
+            <VideoIcon className="h-3.5 w-3.5" />
+            {showVideoRecorder ? 'Hide Recorder' : 'Record Video'}
+          </button>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -303,7 +341,10 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
           <button
             type="button"
             onClick={() => {
-              if (!showRecorder) setRecorderKey((k) => k + 1)
+              if (!showRecorder) {
+                setRecorderKey((k) => k + 1)
+                setShowVideoRecorder(false)
+              }
               setShowRecorder(!showRecorder)
             }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-700 hover:text-white hover:border-neutral-500 transition-colors"
@@ -326,6 +367,7 @@ export function RequestCoachingForm({ userId, onClose }: RequestCoachingFormProp
         <p className="text-[11px] text-neutral-500 mt-3">
           Your request is private and goes straight to your guide.
         </p>
+      </div>
       </div>
     </form>
   )

@@ -8,6 +8,7 @@ export type AlignmentGymTourAnchor =
   | 'stats'
   | 'what-is'
   | 'next-session'
+  | 'coaching-request'
   | 'replays'
 
 export interface AlignmentGymHubProps {
@@ -19,6 +20,10 @@ export interface AlignmentGymHubProps {
   skipMapAutoVerify?: boolean
   /** Show zero reps until intensive graduation (daily reps start after unlock) */
   statsUntilGraduation?: boolean
+  /** Externally trigger the coaching request modal open */
+  forceCoachingOpen?: boolean
+  /** Called when the coaching modal closes (so parent can reset state) */
+  onCoachingClose?: () => void
 }
 
 const TOUR_RING =
@@ -106,6 +111,8 @@ export function AlignmentGymHub({
   forceWhatIsOpen = false,
   skipMapAutoVerify = false,
   statsUntilGraduation = false,
+  forceCoachingOpen = false,
+  onCoachingClose,
 }: AlignmentGymHubProps = {}) {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
@@ -122,9 +129,13 @@ export function AlignmentGymHub({
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
   const [whatIsOpen, setWhatIsOpen] = useState(forceWhatIsOpen)
-  const [coachingOpen, setCoachingOpen] = useState(false)
+  const [coachingOpen, setCoachingOpen] = useState(forceCoachingOpen)
   const freezeRef = useRef<HTMLDivElement>(null)
   const sessionsLoadedRef = useRef(false)
+
+  useEffect(() => {
+    if (forceCoachingOpen) setCoachingOpen(true)
+  }, [forceCoachingOpen])
 
   useEffect(() => {
     if (!freezeOpen) return
@@ -606,15 +617,21 @@ export function AlignmentGymHub({
         )}
         </div>
 
-        <Card className="p-5 md:p-6 bg-gradient-to-br from-[#BF00FF]/[0.06] via-[#111] to-[#111] border-[#BF00FF]/30">
+        <Card
+          data-alignment-gym-tour="coaching-request"
+          className={cn(
+            'p-5 md:p-6 bg-gradient-to-br from-[#00FFFF]/[0.06] via-[#111] to-[#111] border-[#00FFFF]/30',
+            tourClass('coaching-request'),
+          )}
+        >
           <div className="flex flex-col items-center text-center gap-3 md:flex-row md:items-center md:text-left md:gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#BF00FF]/20 flex items-center justify-center flex-shrink-0">
-              <HelpCircle className="w-6 h-6 text-[#BF00FF]" />
+            <div className="w-12 h-12 rounded-xl bg-[#00FFFF]/20 flex items-center justify-center flex-shrink-0">
+              <HelpCircle className="w-6 h-6 text-[#00FFFF]" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-white">Working through something?</h3>
+              <h3 className="text-lg font-bold text-white">Struggling with something?</h3>
               <p className="text-sm text-neutral-400 mt-1">
-                Request coaching on a constraint or struggle. We may bring it into an upcoming live session.
+                Request coaching on a wobble. We may bring it into an upcoming live session.
               </p>
             </div>
             <Button
@@ -714,14 +731,16 @@ export function AlignmentGymHub({
       </Stack>
 
       {userId && (
-        <Modal
-          isOpen={coachingOpen}
-          onClose={() => setCoachingOpen(false)}
-          title="Request Coaching"
-          size="lg"
-        >
-          <RequestCoachingForm userId={userId} onClose={() => setCoachingOpen(false)} />
-        </Modal>
+        <div className={forceCoachingOpen ? 'relative z-[110]' : ''}>
+          <Modal
+            isOpen={coachingOpen}
+            onClose={() => { setCoachingOpen(false); onCoachingClose?.() }}
+            title="Request Coaching"
+            size="lg"
+          >
+            <RequestCoachingForm userId={userId} onClose={() => { setCoachingOpen(false); onCoachingClose?.() }} hideNavigation={forceCoachingOpen} />
+          </Modal>
+        </div>
       )}
     </Container>
   )

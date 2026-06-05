@@ -364,7 +364,6 @@ export default function SupportPage() {
                           storageFolder="supportVideoRecordings"
                           submitLabel="Attach to Ticket"
                           fullscreenVideo={false}
-                          maxDuration={300}
                           showSaveOption={false}
                           onRecordingComplete={(_blob, _transcript, _save, s3Url) => {
                             if (s3Url) {

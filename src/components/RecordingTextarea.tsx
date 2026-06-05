@@ -919,7 +919,6 @@ export function RecordingTextarea({
             onRecordingComplete={handleRecordingComplete}
             onTranscriptComplete={handleTranscriptComplete}
             autoTranscribe={false}
-            maxDuration={600}
             showSaveOption={recordingPurpose === 'withFile'}
             category={category || storageFolder}
             instanceId={instanceId}

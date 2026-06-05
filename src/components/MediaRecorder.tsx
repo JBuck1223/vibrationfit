@@ -53,7 +53,7 @@ export function MediaRecorderComponent({
   onRecordingComplete,
   onTranscriptComplete,
   autoTranscribe = true,
-  maxDuration = 600, // 10 minutes default
+  maxDuration,
   className = '',
   showSaveOption = true,
   recordingId: providedRecordingId,
@@ -768,7 +768,7 @@ export function MediaRecorderComponent({
       timerRef.current = setInterval(() => {
         setDuration(prev => {
           const newDuration = prev + 1
-          if (newDuration >= maxDuration) {
+          if (maxDuration && newDuration >= maxDuration) {
             stopRecording()
           }
           durationRef.current = newDuration
@@ -829,7 +829,7 @@ export function MediaRecorderComponent({
       timerRef.current = setInterval(() => {
         setDuration(prev => {
           const newDuration = prev + 1
-          if (newDuration >= maxDuration) {
+          if (maxDuration && newDuration >= maxDuration) {
             stopRecording()
           }
           return newDuration

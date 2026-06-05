@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { 
   Card, 
   Button, 
@@ -16,8 +15,6 @@ import {
   Checkbox,
 } from '@/lib/design-system/components'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
-import { IntensiveStepCompleteModal } from '@/lib/design-system/components'
-import { useIntensiveStepCompleteModal } from '@/lib/intensive/use-step-complete-modal'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { 
@@ -139,7 +136,6 @@ const initializeFormData = (): UnlockFormData => {
 export default function IntensiveUnlockPage() {
   const router = useRouter()
   const supabase = createClient()
-  const { isOpen, stepId, showModalForChecklistKey, closeModal } = useIntensiveStepCompleteModal()
 
   // Get questions for post_intensive phase (excluding text, boolean, and sharing_preference - rendered separately)
   const questions = getQuestionsForPhase('post_intensive').filter(q => 
@@ -475,8 +471,7 @@ export default function IntensiveUnlockPage() {
       fetch('/api/intensive/completed', { method: 'POST' })
         .catch(err => console.error('intensive.completed event error:', err))
 
-      invalidateIntensiveSnapshot()
-      showModalForChecklistKey('unlock_completed')
+      window.location.href = '/dashboard?unlocked=true'
 
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -1066,7 +1061,6 @@ export default function IntensiveUnlockPage() {
                 <>
                   <MediaRecorderComponent
                     mode="video"
-                    maxDuration={180}
                     storageFolder="intensiveTestimonials"
                     recordingPurpose="support"
                     submitLabel="Send"
@@ -1143,7 +1137,7 @@ export default function IntensiveUnlockPage() {
             <Stack gap="sm" className="text-center items-center">
               <h3 className="text-lg font-bold text-white">Ready to Graduate?</h3>
               <p className="text-sm text-neutral-300 leading-relaxed">
-                When you&apos;re done, click Unlock Platform to activate your full membership, access your Graduate unlocks, and start running your 28‑Day MAP.
+                When you&apos;re done, click Unlock Platform to activate your full membership, access your Graduate unlocks, and start running your MAP.
               </p>
               <div className="pt-4">
                 <Button 
@@ -1171,15 +1165,6 @@ export default function IntensiveUnlockPage() {
         </form>
       </Stack>
 
-      <IntensiveStepCompleteModal
-        isOpen={isOpen}
-        onClose={closeModal}
-        stepId={stepId || 'unlock'}
-        onContinue={() => {
-          closeModal()
-          router.push('/dashboard?unlocked=true')
-        }}
-      />
     </Container>
   )
 }
