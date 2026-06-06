@@ -44,7 +44,7 @@ const LISTEN_CONTENT_SUBTEXT: Record<string, string> = {
 
 const CREATE_TOOL_SUBTEXT: Record<string, string> = {
   '/audio/songwriter':
-    'Create original songs from your emotional truth — powered by the Emotional Songwriting Framework.',
+    'Create original songs powered by VIVA.',
   '/audio/generate':
     'Generate VIVA narration of your Life Vision or Story.',
   '/audio/record':
