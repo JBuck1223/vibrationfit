@@ -1,8 +1,9 @@
 /**
  * YouTube Audio Extraction API
  *
- * Downloads audio from a YouTube URL using yt-dlp,
- * returns a temporary audio URL the client can load
+ * Fetches audio for a YouTube URL via a RapidAPI YouTube->MP3 downloader
+ * (works from serverless/datacenter IPs, unlike yt-dlp which YouTube blocks),
+ * stores it on S3, and returns a temporary audio URL the client can load
  * into a waveform scrubber.
  *
  * POST /api/songs/extract-youtube
@@ -13,19 +14,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
-import { readFile, unlink, mkdtemp } from 'fs/promises'
-import { tmpdir } from 'os'
-import { join } from 'path'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
 
-const execFileAsync = promisify(execFile)
-
 const CDN_URL = 'https://media.vibrationfit.com'
 const BUCKET = 'vibration-fit-client-storage'
+
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
+const RAPIDAPI_HOST = process.env.RAPIDAPI_YOUTUBE_MP3_HOST || 'youtube-mp310.p.rapidapi.com'
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -59,61 +56,63 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if (!RAPIDAPI_KEY) {
+      return NextResponse.json({ error: 'YouTube extraction is not configured' }, { status: 500 })
+    }
+
     const { url } = await request.json()
 
     if (!url || !isValidYoutubeUrl(url)) {
       return NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 })
     }
 
-    const tempDir = await mkdtemp(join(tmpdir(), 'yt-audio-'))
-    const outputPath = join(tempDir, 'audio.mp3')
+    // Step 1: ask the RapidAPI downloader for a temporary MP3 download URL
+    const apiRes = await fetch(
+      `https://${RAPIDAPI_HOST}/download/mp3?url=${encodeURIComponent(url)}`,
+      {
+        headers: {
+          'x-rapidapi-key': RAPIDAPI_KEY,
+          'x-rapidapi-host': RAPIDAPI_HOST,
+        },
+      }
+    )
 
-    try {
-      const execEnv = { ...process.env, PATH: `${process.env.PATH}:/opt/homebrew/bin:/usr/local/bin` }
-
-      // Download audio-only via yt-dlp, convert to mp3
-      await execFileAsync('yt-dlp', [
-        '--no-playlist',
-        '-x',
-        '--audio-format', 'mp3',
-        '--audio-quality', '128K',
-        '--max-filesize', '50m',
-        '-o', outputPath,
-        url,
-      ], { timeout: 90_000, env: execEnv })
-
-      const audioBuffer = await readFile(outputPath)
-
-      // Get duration via ffprobe
-      let duration = 180
-      try {
-        const { stdout } = await execFileAsync('ffprobe', [
-          '-v', 'quiet',
-          '-show_entries', 'format=duration',
-          '-of', 'csv=p=0',
-          outputPath,
-        ], { env: execEnv })
-        const parsed = parseFloat(stdout.trim())
-        if (!isNaN(parsed)) duration = parsed
-      } catch {}
-
-      // Upload full audio to S3 as temporary reference source
-      const key = `${user.id}/songs/references/${Date.now()}-ref.mp3`
-      await s3.send(new PutObjectCommand({
-        Bucket: BUCKET,
-        Key: key,
-        Body: audioBuffer,
-        ContentType: 'audio/mpeg',
-      }))
-
-      const audioUrl = `${CDN_URL}/${key}`
-
-      return NextResponse.json({ audio_url: audioUrl, duration })
-    } finally {
-      // Clean up temp files
-      try { await unlink(outputPath) } catch {}
-      try { await unlink(tempDir) } catch {}
+    if (!apiRes.ok) {
+      const text = await apiRes.text().catch(() => '')
+      console.error('[ExtractYouTube] RapidAPI error:', apiRes.status, text.slice(0, 300))
+      return NextResponse.json({ error: 'Could not fetch audio for that link. Try another track.' }, { status: 502 })
     }
+
+    const apiData = await apiRes.json().catch(() => ({}))
+    const downloadUrl: string | undefined = apiData.downloadUrl || apiData.link || apiData.url
+
+    if (!downloadUrl) {
+      console.error('[ExtractYouTube] No downloadUrl in response:', JSON.stringify(apiData).slice(0, 300))
+      return NextResponse.json({ error: 'No audio available for that link.' }, { status: 502 })
+    }
+
+    // Step 2: download the MP3 (session URL is single-use)
+    const audioRes = await fetch(downloadUrl)
+    if (!audioRes.ok) {
+      console.error('[ExtractYouTube] Download failed:', audioRes.status)
+      return NextResponse.json({ error: 'Failed to download audio.' }, { status: 502 })
+    }
+
+    const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
+
+    // Step 3: store full audio on S3 as the scrubbable reference source
+    const key = `${user.id}/songs/references/${Date.now()}-ref.mp3`
+    await s3.send(new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: audioBuffer,
+      ContentType: 'audio/mpeg',
+    }))
+
+    const audioUrl = `${CDN_URL}/${key}`
+
+    // Client computes the real duration from the waveform; this is a placeholder.
+    return NextResponse.json({ audio_url: audioUrl, duration: 0 })
   } catch (err) {
     console.error('[ExtractYouTube] Error:', err)
     const message = err instanceof Error ? err.message : 'Extraction failed'

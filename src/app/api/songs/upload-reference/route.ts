@@ -18,11 +18,14 @@ import { promisify } from 'util'
 import { readFile, unlink, mkdtemp } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import ffmpegStatic from 'ffmpeg-static'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
 const execFileAsync = promisify(execFile)
+// Static ffmpeg binary bundled via npm so this works on Vercel/serverless.
+const FFMPEG_BIN = ffmpegStatic || 'ffmpeg'
 
 const CDN_URL = 'https://media.vibrationfit.com'
 const BUCKET = 'vibration-fit-client-storage'
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
       await writeFile(inputPath, audioBuffer)
 
       // Clip to the selected segment
-      await execFileAsync('ffmpeg', [
+      await execFileAsync(FFMPEG_BIN, [
         '-y',
         '-ss', String(Math.max(0, start)),
         '-t', '30',

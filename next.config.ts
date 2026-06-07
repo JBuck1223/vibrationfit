@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['@aws-sdk/client-s3', '@sparticuz/chromium', 'puppeteer-core', 'puppeteer'],
+  serverExternalPackages: ['@aws-sdk/client-s3', '@sparticuz/chromium', 'puppeteer-core', 'puppeteer', 'ffmpeg-static'],
+  // Ensure the static ffmpeg binary is shipped to the serverless function.
+  outputFileTracingIncludes: {
+    '/api/songs/upload-reference': ['./node_modules/ffmpeg-static/ffmpeg'],
+  },
   async redirects() {
     return [
       {
