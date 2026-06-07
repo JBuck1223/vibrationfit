@@ -70,11 +70,13 @@ export default function SongwriterPage() {
 
   // Generation state
   const [generating, setGenerating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
   const [songId, setSongId] = useState<string | null>(null)
 
   // Refs
   const waveformRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<any>(null)
+  const regionRef = useRef<any>(null)
 
   // Load entities when source changes
   useEffect(() => {
@@ -328,13 +330,17 @@ export default function SongwriterPage() {
         const duration = ws.getDuration()
         setAudioDuration(duration)
 
-        regions.addRegion({
+        const initialEnd = Math.min(30, duration)
+        const region = regions.addRegion({
           start: 0,
-          end: Math.min(30, duration),
+          end: initialEnd,
           color: 'rgba(57, 255, 20, 0.15)',
           drag: true,
           resize: true,
         })
+        regionRef.current = region
+        setRegionStart(0)
+        setRegionEnd(initialEnd)
       })
 
       regions.on('region-updated', (region: any) => {
@@ -343,16 +349,22 @@ export default function SongwriterPage() {
 
         if (end - start > 30) {
           end = start + 30
-          region.end = end
+          region.setOptions({ start, end })
         }
         if (end - start < 5) {
           end = start + 5
-          region.end = end
+          region.setOptions({ start, end })
         }
 
+        regionRef.current = region
         setRegionStart(start)
         setRegionEnd(end)
         setReferenceId(null)
+      })
+
+      // Pause automatically when playback leaves the selected region
+      regions.on('region-out', () => {
+        ws.pause()
       })
 
       ws.on('play', () => setIsPlaying(true))
@@ -368,24 +380,29 @@ export default function SongwriterPage() {
     }
   }, [audioUrl])
 
-  // Preview the selected region
+  // Preview the selected region (plays exactly the highlighted segment)
   const togglePreview = () => {
-    if (!wavesurferRef.current) return
+    const ws = wavesurferRef.current
+    const region = regionRef.current
+    if (!ws) return
     if (isPlaying) {
-      wavesurferRef.current.pause()
+      ws.pause()
+      return
+    }
+    if (region) {
+      // Plays from region.start and stops at region.end automatically
+      region.play(true)
     } else {
-      wavesurferRef.current.setTime(regionStart)
-      wavesurferRef.current.play()
-      setTimeout(() => {
-        wavesurferRef.current?.pause()
-      }, (regionEnd - regionStart) * 1000)
+      ws.setTime(regionStart)
+      ws.play()
     }
   }
 
   // Upload reference and generate song
   const createTrack = async () => {
-    if (!lyrics.trim()) return
+    if (!lyrics.trim() || generating) return
     setGenerating(true)
+    setCreateError(null)
 
     try {
       let refId = referenceId
@@ -458,6 +475,7 @@ export default function SongwriterPage() {
       router.push(`/audio/songwriter/${currentSongId}`)
     } catch (err) {
       console.error('Create track failed:', err)
+      setCreateError(err instanceof Error ? err.message : 'Something went wrong creating your track.')
       setGenerating(false)
     }
   }
@@ -824,6 +842,10 @@ export default function SongwriterPage() {
             </>
           )}
         </Button>
+
+        {createError && (
+          <p className="text-center text-sm text-red-400">{createError}</p>
+        )}
       </Stack>
     </Container>
   )
