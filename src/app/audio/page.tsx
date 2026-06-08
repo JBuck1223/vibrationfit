@@ -746,38 +746,6 @@ export default function AudioListenPage() {
     checkAgreement()
   }, [])
 
-  function handleSubmitForStreaming(track: BaseAudioTrack) {
-    setSubmitTarget(track)
-    if (!agreementAccepted) {
-      setShowAgreementModal(true)
-    } else {
-      setShowPublishPrompt(true)
-    }
-  }
-
-  async function confirmSubmitForStreaming() {
-    if (!submitTarget || !selectedSongId) return
-    setSubmitLoading(true)
-    try {
-      const res = await fetch('/api/songs/publish-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ song_id: selectedSongId, track_id: submitTarget.id }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Submission failed')
-      }
-      setShowPublishPrompt(false)
-      setSubmitTarget(null)
-      loadSongTracks(selectedSongId)
-    } catch (err) {
-      console.error('Submit for streaming failed:', err)
-    } finally {
-      setSubmitLoading(false)
-    }
-  }
-
   useEffect(() => {
     if (contentType === 'music' && musicTracks.length === 0 && !musicLoading) loadMusicCatalog()
   }, [contentType])
