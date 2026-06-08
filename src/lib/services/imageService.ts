@@ -50,7 +50,7 @@ export interface GenerateImageParams {
   dimension?: ImageDimension // New: aspect ratio selection
   quality?: 'standard' | 'hd'
   style?: 'vivid' | 'natural'
-  context?: 'vision_board' | 'journal' | 'profile' | 'custom'
+  context?: 'vision_board' | 'journal' | 'profile' | 'custom' | 'album_art'
   provider?: 'fal' | 'dalle' // Override default provider
   model?: FalModel // fal.ai model selection: schnell (fast), dev (balanced), pro (best)
 }

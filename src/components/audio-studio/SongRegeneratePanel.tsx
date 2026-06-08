@@ -30,6 +30,7 @@ interface SongRegeneratePanelProps {
       clip_url?: string
       start?: number
       end?: number
+      mureka_file_id?: string
     }
   }) => Promise<boolean>
 }
