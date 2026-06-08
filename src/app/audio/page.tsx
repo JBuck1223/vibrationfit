@@ -28,9 +28,6 @@ import type { Story } from '@/lib/stories/types'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
 import type { Song } from '@/lib/songs/types'
 import { AlbumArtModal } from '@/components/audio-studio/AlbumArtModal'
-import { PublishPromptModal } from '@/components/audio-studio/PublishPromptModal'
-import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
-import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
 
 function firstTrackIndexForStory(tracks: AudioTrack[], storyId: string) {
   const prefix = `${storyId}:`
@@ -125,7 +122,24 @@ function MusicStreamingLinks({ track }: { track: Record<string, unknown> }) {
   )
 }
 
-function MusicCategoryDropdown({ value, onChange, categories }: { value: string; onChange: (v: string) => void; categories: string[] }) {
+const MUSIC_SPECIAL_FILTER_LABELS: Record<string, string> = {
+  'member-created': 'Member Created',
+  published: 'Published',
+}
+
+function MusicCategoryDropdown({
+  value,
+  onChange,
+  categories,
+  hasMemberCreated = false,
+  hasPublished = false,
+}: {
+  value: string
+  onChange: (v: string) => void
+  categories: string[]
+  hasMemberCreated?: boolean
+  hasPublished?: boolean
+}) {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -138,13 +152,19 @@ function MusicCategoryDropdown({ value, onChange, categories }: { value: string;
     return () => document.removeEventListener('mousedown', handleClick)
   }, [isOpen])
 
-  const sorted = categories.sort((a, b) => {
+  const sorted = [...categories].sort((a, b) => {
     const catA = VISION_CATEGORIES.find(c => c.key === a)
     const catB = VISION_CATEGORIES.find(c => c.key === b)
     return (catA?.order ?? 99) - (catB?.order ?? 99)
   })
 
-  const selectedLabel = value === 'all' ? 'All Songs' : (VISION_CATEGORIES.find(c => c.key === value)?.label || value)
+  const selectedLabel = value === 'all'
+    ? 'All Songs'
+    : MUSIC_SPECIAL_FILTER_LABELS[value] || VISION_CATEGORIES.find(c => c.key === value)?.label || value
+
+  const select = (v: string) => { onChange(v); setIsOpen(false) }
+  const optionClass = (isSelected: boolean) =>
+    `w-full px-4 py-2 text-left text-sm transition-colors ${isSelected ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'}`
 
   return (
     <div className="relative" ref={ref}>
@@ -159,28 +179,38 @@ function MusicCategoryDropdown({ value, onChange, categories }: { value: string;
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1.5 min-w-[160px] py-1.5 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
-            <button
-              type="button"
-              onClick={() => { onChange('all'); setIsOpen(false) }}
-              className={`w-full px-4 py-2 text-left text-sm transition-colors ${value === 'all' ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'}`}
-            >
+          <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] py-1.5 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-64 overflow-y-auto overscroll-contain">
+            <button type="button" onClick={() => select('all')} className={optionClass(value === 'all')}>
               All Songs
             </button>
-            {sorted.map(tag => {
-              const cat = VISION_CATEGORIES.find(c => c.key === tag)
-              const isSelected = value === tag
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => { onChange(tag); setIsOpen(false) }}
-                  className={`w-full px-4 py-2 text-left text-sm transition-colors ${isSelected ? 'bg-primary-500/20 text-primary-500 font-semibold' : 'text-white hover:bg-[#333]'}`}
-                >
-                  {cat?.label || tag}
-                </button>
-              )
-            })}
+            {(hasMemberCreated || hasPublished) && (
+              <>
+                {hasMemberCreated && (
+                  <button type="button" onClick={() => select('member-created')} className={optionClass(value === 'member-created')}>
+                    Member Created
+                  </button>
+                )}
+                {hasPublished && (
+                  <button type="button" onClick={() => select('published')} className={optionClass(value === 'published')}>
+                    Published
+                  </button>
+                )}
+              </>
+            )}
+            {sorted.length > 0 && (
+              <>
+                <div className="my-1 border-t border-[#333]" />
+                <p className="px-4 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Life Categories</p>
+                {sorted.map(tag => {
+                  const cat = VISION_CATEGORIES.find(c => c.key === tag)
+                  return (
+                    <button key={tag} type="button" onClick={() => select(tag)} className={optionClass(value === tag)}>
+                      {cat?.label || tag}
+                    </button>
+                  )
+                })}
+              </>
+            )}
           </div>
         </>
       )}
@@ -535,60 +565,6 @@ export default function AudioListenPage() {
   const [songArtistName, setSongArtistName] = useState('')
   const [albumArtModalOpen, setAlbumArtModalOpen] = useState(false)
 
-  // Submit for Streaming state
-  const [submitTarget, setSubmitTarget] = useState<BaseAudioTrack | null>(null)
-  const [showPublishPrompt, setShowPublishPrompt] = useState(false)
-  const [showAgreementModal, setShowAgreementModal] = useState(false)
-  const [agreementAccepted, setAgreementAccepted] = useState(false)
-  const [submitLoading, setSubmitLoading] = useState(false)
-
-  useEffect(() => {
-    async function checkAgreement() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: account } = await supabase
-        .from('user_accounts')
-        .select('song_publishing_agreement_accepted_at, song_publishing_agreement_version')
-        .eq('id', user.id)
-        .single()
-      setAgreementAccepted(hasAcceptedSongPublishingAgreement(account))
-    }
-    checkAgreement()
-  }, [])
-
-  function handleSubmitForStreaming(track: BaseAudioTrack) {
-    setSubmitTarget(track)
-    if (!agreementAccepted) {
-      setShowAgreementModal(true)
-    } else {
-      setShowPublishPrompt(true)
-    }
-  }
-
-  async function executePublishRequest() {
-    if (!submitTarget || !selectedSongId) return
-    setSubmitLoading(true)
-    try {
-      const res = await fetch('/api/songs/publish-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ song_id: selectedSongId, track_id: submitTarget.id }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        console.error('[PublishRequest] Error:', data.error)
-      }
-      await loadSongTracks(selectedSongId)
-    } catch (err) {
-      console.error('[PublishRequest] Failed:', err)
-    } finally {
-      setSubmitLoading(false)
-      setShowPublishPrompt(false)
-      setSubmitTarget(null)
-    }
-  }
-
   const selectedSong = useMemo(
     () => userSongs.find((s: Song) => s.id === selectedSongId) ?? null,
     [userSongs, selectedSongId]
@@ -653,21 +629,12 @@ export default function AudioListenPage() {
   async function loadSongTracks(songId: string) {
     setSongTracksLoading(true)
     const supabase = createClient()
-    const [{ data }, { data: publishData }] = await Promise.all([
-      supabase
-        .from('song_tracks')
-        .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite, metadata')
-        .eq('song_id', songId)
-        .order('created_at'),
-      supabase
-        .from('song_publish_requests')
-        .select('track_id, status')
-        .eq('song_id', songId)
-        .in('status', ['pending', 'approved', 'published']),
-    ])
+    const { data } = await supabase
+      .from('song_tracks')
+      .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite, metadata')
+      .eq('song_id', songId)
+      .order('created_at')
     if (data) {
-      const publishMap = new Map<string, string>()
-      publishData?.forEach((r: any) => publishMap.set(r.track_id, r.status))
       const favs: Record<string, boolean> = {}
       const mapped = data.filter((t: any) => t.mp3_url).map((t: any) => {
         favs[t.id] = !!t.is_favorite
@@ -675,7 +642,6 @@ export default function AudioListenPage() {
         const lyricsSections = meta?.lyrics_sections as any[] | undefined
         const songTitle = userSongs.find(s => s.id === songId)?.title || 'VIVA Song'
         const versionLabel = t.title || `Version ${t.version}`
-        const pubStatus = publishMap.get(t.id) as 'pending' | 'approved' | 'published' | undefined
         return {
           id: t.id,
           title: songTitle,
@@ -689,7 +655,6 @@ export default function AudioListenPage() {
           thumbnail: t.cover_url || undefined,
           syncedLyrics: lyricsSections?.length ? convertMurekaLyrics(lyricsSections) : undefined,
           plainLyrics: userSongs.find(s => s.id === songId)?.lyrics || undefined,
-          publishStatus: pubStatus,
         }
       })
       setSongTracks(mapped)
@@ -698,6 +663,8 @@ export default function AudioListenPage() {
     setSongTracksLoading(false)
   }
 
+  // Heart toggles favorite AND shares/unshares the track to the public catalog.
+  // The publishing agreement is collected once during the song creation flow.
   async function handleSongToggleFavorite(track: BaseAudioTrack) {
     if (!selectedSongId) return
     const wasFav = songTrackFavorites[track.id] ?? false
@@ -727,24 +694,6 @@ export default function AudioListenPage() {
       setSongDeleteTarget(null)
     }
   }
-
-  // Check agreement status on mount
-  useEffect(() => {
-    async function checkAgreement() {
-      try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const { data: account } = await supabase
-          .from('user_accounts')
-          .select('song_publishing_agreement_accepted_at, song_publishing_agreement_version')
-          .eq('id', user.id)
-          .single()
-        setAgreementAccepted(hasAcceptedSongPublishingAgreement(account))
-      } catch {}
-    }
-    checkAgreement()
-  }, [])
 
   useEffect(() => {
     if (contentType === 'music' && musicTracks.length === 0 && !musicLoading) loadMusicCatalog()
@@ -915,10 +864,17 @@ export default function AudioListenPage() {
   const totalTracks = audioSets.reduce((sum, s) => sum + s.track_count, 0)
   const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
 
-  const { musicTagCategories, musicPlayerTracks } = useMemo(() => {
+  const { musicTagCategories, musicPlayerTracks, hasMemberCreated, hasPublished } = useMemo(() => {
     if (contentType !== 'music' || musicTracks.length === 0) {
-      return { musicTagCategories: [] as string[], musicPlayerTracks: [] as AudioTrack[] }
+      return {
+        musicTagCategories: [] as string[],
+        musicPlayerTracks: [] as AudioTrack[],
+        hasMemberCreated: false,
+        hasPublished: false,
+      }
     }
+    const memberCreatedExists = musicTracks.some((t: (typeof musicTracks)[number]) => (t.tags || []).includes('member-created'))
+    const publishedExists = musicTracks.some((t: (typeof musicTracks)[number]) => (t.tags || []).includes('published'))
     const filtered: typeof musicTracks = musicCategoryFilter === 'all'
       ? musicTracks
       : musicTracks.filter((t: (typeof musicTracks)[number]) => (t.tags || []).includes(musicCategoryFilter))
@@ -954,8 +910,14 @@ export default function AudioListenPage() {
         syncedLyrics: t.synced_lyrics || undefined,
         plainLyrics: t.plain_lyrics || undefined,
         memberCreated: Array.isArray(t.tags) && t.tags.includes('member-created'),
+        publishStatus: Array.isArray(t.tags) && t.tags.includes('published') ? 'published' as const : undefined,
       }))
-    return { musicTagCategories: allTaggedCategories, musicPlayerTracks: tracksForPlayer }
+    return {
+      musicTagCategories: allTaggedCategories,
+      musicPlayerTracks: tracksForPlayer,
+      hasMemberCreated: memberCreatedExists,
+      hasPublished: publishedExists,
+    }
   }, [contentType, musicTracks, musicCategoryFilter])
 
   const globalStoreIndex = useGlobalAudioStore(s => s.currentIndex)
@@ -1425,7 +1387,6 @@ export default function AudioListenPage() {
                     trackFavorites={songTrackFavorites}
                     enableArtworkLightbox
                     onToggleFavorite={(track) => handleSongToggleFavorite(track)}
-                    onSubmitForStreaming={(track) => handleSubmitForStreaming(track)}
                     onRemoveTrack={(track) => setSongDeleteTarget(track)}
                     headerContent={
                       <div>
@@ -1607,11 +1568,13 @@ export default function AudioListenPage() {
                       <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
                         <div className="flex items-center justify-between gap-3">
                           <h3 className="text-lg font-semibold text-white">Vibration Fit Music</h3>
-                          {musicTagCategories.length > 0 && (
+                          {(musicTagCategories.length > 0 || hasMemberCreated || hasPublished) && (
                             <MusicCategoryDropdown
                               value={musicCategoryFilter}
                               onChange={setMusicCategoryFilter}
                               categories={musicTagCategories}
+                              hasMemberCreated={hasMemberCreated}
+                              hasPublished={hasPublished}
                             />
                           )}
                         </div>
@@ -1716,21 +1679,6 @@ export default function AudioListenPage() {
         />
       )}
 
-      <PublishPromptModal
-        isOpen={showPublishPrompt}
-        onClose={() => { setShowPublishPrompt(false); setSubmitTarget(null) }}
-        onSubmit={executePublishRequest}
-      />
-
-      <PublishAgreementModal
-        isOpen={showAgreementModal}
-        onClose={() => { setShowAgreementModal(false); setSubmitTarget(null) }}
-        onSuccess={() => {
-          setAgreementAccepted(true)
-          setShowAgreementModal(false)
-          setShowPublishPrompt(true)
-        }}
-      />
     </Container>
   )
 }

@@ -19,8 +19,8 @@ export interface AudioTrack {
   albumLabel?: string
   /** User song version label for /audio/songs track list (e.g. Version 1). */
   versionLabel?: string
-  /** Publish pipeline status for user-created songs. */
-  publishStatus?: 'pending' | 'approved' | 'published'
-  /** Track was created by a Vibe Tribe member (not admin catalog). */
+  /** Set to 'published' when a member track is live on streaming platforms. */
+  publishStatus?: 'published'
+  /** Track was shared to the public catalog by a member (heart = share). */
   memberCreated?: boolean
 }

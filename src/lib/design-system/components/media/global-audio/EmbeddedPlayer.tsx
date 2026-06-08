@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat,
-  Edit2, Download, CheckCircle, Loader2, Mic, Music, Waves, Save, Plus, Trash2, Heart, MoreHorizontal, Send,
+  Edit2, Download, CheckCircle, Loader2, Mic, Music, Waves, Save, Plus, Trash2, Heart, MoreHorizontal,
 } from 'lucide-react'
 import { cn } from '../../shared-utils'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
@@ -72,7 +72,6 @@ interface EmbeddedPlayerProps {
   onRemoveTrack?: (track: AudioTrack, index: number) => void
   trackFavorites?: Record<string, boolean>
   onToggleFavorite?: (track: AudioTrack, index: number) => void
-  onSubmitForStreaming?: (track: AudioTrack, index: number) => void
   /** MAP activity to verify on listen; inferred from setIconKey when omitted */
   mapActivityType?: 'vision_audio' | 'story_audio' | 'music_listen' | 'song_listen'
   /** When true, clicking now-playing artwork opens a full-size lightbox (requires thumbnail) */
@@ -105,7 +104,6 @@ export function EmbeddedPlayer({
   onRemoveTrack,
   trackFavorites,
   onToggleFavorite,
-  onSubmitForStreaming,
   mapActivityType: mapActivityTypeProp,
   enableArtworkLightbox = false,
 }: EmbeddedPlayerProps) {
@@ -718,15 +716,9 @@ export function EmbeddedPlayer({
                           fallbackArtist={track.artist}
                         />
                       )}
-                      {track.publishStatus && (
-                        <span className={cn(
-                          'inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium leading-none',
-                          track.publishStatus === 'pending' && 'bg-yellow-500/10 text-yellow-400',
-                          track.publishStatus === 'approved' && 'bg-[#39FF14]/10 text-[#39FF14]',
-                          track.publishStatus === 'published' && 'bg-[#39FF14]/10 text-[#39FF14]',
-                        )}>
-                          {track.publishStatus === 'pending' ? 'Submitted' :
-                           track.publishStatus === 'approved' ? 'Approved' : 'Streaming'}
+                      {track.publishStatus === 'published' && (
+                        <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium leading-none bg-[#39FF14]/10 text-[#39FF14]">
+                          Published
                         </span>
                       )}
                     </div>
@@ -873,32 +865,6 @@ export function EmbeddedPlayer({
                 )}
                 {menuSaving ? 'Downloading...' : 'Download MP3'}
               </button>
-              {onSubmitForStreaming && contentCategory === 'music' && (
-                <>
-                  <div className="my-1 border-t border-neutral-800" />
-                  {menuTrack.publishStatus ? (
-                    <div className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-neutral-500">
-                      <Send className="w-4 h-4" />
-                      {menuTrack.publishStatus === 'pending' ? 'Pending Review' :
-                       menuTrack.publishStatus === 'approved' ? 'Approved' : 'Streaming'}
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        closeTrackMenu()
-                        onSubmitForStreaming(menuTrack, menuIndex)
-                      }}
-                      className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-800"
-                    >
-                      <Send className="w-4 h-4 text-[#39FF14]" />
-                      Submit for Streaming
-                    </button>
-                  )}
-                </>
-              )}
               {onRemoveTrack && (
                 <>
                   <div className="my-1 border-t border-neutral-800" />
