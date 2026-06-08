@@ -5,6 +5,7 @@ import { Play, Pause, SkipBack, SkipForward, X, Loader2 } from 'lucide-react'
 import { useGlobalAudioStore, getGlobalAudioElement } from '@/lib/stores/global-audio-store'
 import { useMediaSession } from '@/hooks/useMediaSession'
 import { TrackArtwork } from './TrackArtwork'
+import { isSongNowPlayingTrack } from './TrackArtistLine'
 
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
@@ -22,6 +23,7 @@ export function PersistentMiniPlayer() {
   const duration = useGlobalAudioStore(s => s.duration)
   const setName = useGlobalAudioStore(s => s.setName)
   const setIconKey = useGlobalAudioStore(s => s.setIconKey)
+  const contentCategory = useGlobalAudioStore(s => s.contentCategory)
   const openDrawer = useGlobalAudioStore(s => s.openDrawer)
   const pause = useGlobalAudioStore(s => s.pause)
   const resume = useGlobalAudioStore(s => s.resume)
@@ -96,9 +98,24 @@ export function PersistentMiniPlayer() {
               <p className="text-sm font-medium text-white truncate">
                 {currentTrack.title}
               </p>
-              <p className="text-xs text-neutral-400 truncate">
-                {setName || currentTrack.artist || 'Vibration Fit'}
-              </p>
+              {isSongNowPlayingTrack(currentTrack, contentCategory) ? (
+                <p className="text-xs text-neutral-400 truncate">
+                  Vibration Fit
+                  {(currentTrack.performers?.length || currentTrack.artist) && (
+                    <>
+                      {' · '}
+                      {currentTrack.performers && currentTrack.performers.length > 1 ? 'Creators' : 'Creator'}:{' '}
+                      {currentTrack.performers?.length
+                        ? currentTrack.performers.map((p) => p.name).join(' · ')
+                        : currentTrack.artist}
+                    </>
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-400 truncate">
+                  {setName || currentTrack.artist || 'Vibration Fit'}
+                </p>
+              )}
             </div>
           </div>
 

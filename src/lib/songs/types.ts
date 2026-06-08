@@ -153,6 +153,8 @@ export interface GenerateLyricsPayload {
 export interface GenerateMusicPayload {
   song_id: string
   style_prompt?: string
+  reference_id?: string
+  lyrics?: string
 }
 
 // ============================================================================

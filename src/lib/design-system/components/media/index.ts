@@ -1,6 +1,6 @@
 export { AudioPlayer } from './AudioPlayer'
 export { PlaylistPlayer } from './PlaylistPlayer'
-export { type AudioTrack } from './types'
+export { type AudioTrack, type TrackPerformer } from './types'
 export { Video, getVideoThumbnailUrl } from './Video'
 export { ImageLightbox, type ImageLightboxImage } from './ImageLightbox'
 
@@ -11,3 +11,4 @@ export { PersistentMiniPlayer } from './global-audio/PersistentMiniPlayer'
 export { AudioDrawerPlayer } from './global-audio/AudioDrawerPlayer'
 export { GlobalAudioPlayerShell } from './global-audio/GlobalAudioPlayerShell'
 export { TrackArtwork } from './global-audio/TrackArtwork'
+export { TrackArtistLine, TrackNowPlayingMeta, MusicTrackListSubtitle, formatMusicTrackListSubtitle } from './global-audio/TrackArtistLine'

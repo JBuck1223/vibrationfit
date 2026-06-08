@@ -1,4 +1,4 @@
--- Household-aware Vision Boards
+Clean up-- Household-aware Vision Boards
 -- Adds an optional household_id to vision_board_items so members can share
 -- creations with their household, mirroring the vision_versions household model.
 --

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Container, Stack, Card, Button, Spinner, DeleteConfirmationDialog } from '@/lib/design-system/components'
@@ -10,7 +10,7 @@ import {
   Headphones, Moon, Zap, Flame, Shield,
   Sparkles, Mic, Music, Trash2, BookOpen, Image, Edit2,
   Volume2, Plus, Music2, ChevronDown, CheckCircle, Target, Lightbulb,
-  Clock, ChevronRight, Library, AlertTriangle,
+  Clock, ChevronRight, Library, AlertTriangle, RefreshCw,
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
@@ -18,12 +18,17 @@ import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/visio
 import { EmbeddedPlayer, type MixDetails } from '@/lib/design-system/components'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { SyncedLyricsDisplay, PlainLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
-import { convertMurekaLyrics } from '@/lib/utils/lyrics-alignment'
+import { convertMurekaLyrics, type SyncedLyrics } from '@/lib/utils/lyrics-alignment'
 import { PlaylistsView } from '@/components/audio-studio/PlaylistsView'
 import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet'
 import type { SourceType } from '@/lib/services/playlistService'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
+import { musicCatalogArtistFallback, musicCatalogPerformerLinks } from '@/lib/audio/music-performers'
 import type { Story } from '@/lib/stories/types'
+import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
+import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
+import type { Song } from '@/lib/songs/types'
+import { AlbumArtModal } from '@/components/audio-studio/AlbumArtModal'
 
 function firstTrackIndexForStory(tracks: AudioTrack[], storyId: string) {
   const prefix = `${storyId}:`
@@ -39,11 +44,18 @@ interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
 }
 
-/** In-app display for `music_catalog.artist` (legacy one-word value from seed). */
-function formatMusicArtistLabel(artist: string | null | undefined) {
-  if (!artist) return ''
-  if (artist === 'VibrationFit' || artist.toLowerCase() === 'vibrationfit') return 'Vibration Fit'
-  return artist
+function formatAccountDisplayName(account: {
+  first_name?: string | null
+  last_name?: string | null
+  full_name?: string | null
+} | null | undefined) {
+  const full = (account?.full_name || '').trim()
+  if (full) return full
+  const first = (account?.first_name || '').trim()
+  const last = (account?.last_name || '').trim()
+  if (first && last) return `${first} ${last}`
+  if (first) return first
+  return 'You'
 }
 
 const ENTITY_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
@@ -515,22 +527,64 @@ export default function AudioListenPage() {
   const [songTracksLoading, setSongTracksLoading] = useState(false)
   const [songDropdownOpen, setSongDropdownOpen] = useState(false)
   const [songsLoaded, setSongsLoaded] = useState(false)
+  const [songTrackFavorites, setSongTrackFavorites] = useState<Record<string, boolean>>({})
+  const [songPublishAgreementTrack, setSongPublishAgreementTrack] = useState<BaseAudioTrack | null>(null)
+  const [songDeleteTarget, setSongDeleteTarget] = useState<BaseAudioTrack | null>(null)
+  const [songDeleting, setSongDeleting] = useState(false)
+  const [songArtistName, setSongArtistName] = useState('')
+  const [albumArtModalOpen, setAlbumArtModalOpen] = useState(false)
+
+  const selectedSong = useMemo(
+    () => userSongs.find((s: Song) => s.id === selectedSongId) ?? null,
+    [userSongs, selectedSongId]
+  )
+
+  const handleSongGenerationComplete = useCallback(async () => {
+    await loadUserSongs()
+    if (selectedSongId) await loadSongTracks(selectedSongId)
+  }, [selectedSongId])
+
+  const {
+    generateMore: generateMoreSongVersions,
+    isGenerating: songGenerating,
+    error: songGenerateError,
+  } = useSongGeneration({
+    song: selectedSong,
+    onComplete: handleSongGenerationComplete,
+  })
+
+  async function handleSongQuickGenerate() {
+    if (!selectedSong?.lyrics) return
+    await generateMoreSongVersions({
+      lyrics: selectedSong.lyrics,
+      style_prompt: selectedSong.style_prompt || undefined,
+    })
+  }
 
   useEffect(() => {
     if (contentType === 'songs' && !songsLoaded && !userSongsLoading) loadUserSongs()
   }, [contentType, songsLoaded, userSongsLoading])
 
   useEffect(() => {
-    if (selectedSongId) loadSongTracks(selectedSongId)
-  }, [selectedSongId])
+    if (selectedSongId && songArtistName) loadSongTracks(selectedSongId)
+  }, [selectedSongId, songArtistName])
 
   async function loadUserSongs() {
     setUserSongsLoading(true)
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('first_name, last_name, full_name')
+        .eq('id', user.id)
+        .single()
+      setSongArtistName(formatAccountDisplayName(account))
+    }
     const { data } = await supabase
       .from('songs')
-      .select('id, title, status, created_at, entity_type')
-      .eq('status', 'completed')
+      .select('id, title, status, created_at, entity_type, lyrics, style_prompt, metadata, generation_count')
+      .in('status', ['completed', 'generating_music'])
       .order('created_at', { ascending: false })
       .limit(50)
     if (data) {
@@ -544,27 +598,80 @@ export default function AudioListenPage() {
   async function loadSongTracks(songId: string) {
     setSongTracksLoading(true)
     const supabase = createClient()
-    const { data } = await supabase
-      .from('song_tracks')
-      .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite, metadata')
-      .eq('song_id', songId)
-      .order('created_at')
+    const [{ data }, { data: publishData }] = await Promise.all([
+      supabase
+        .from('song_tracks')
+        .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite, metadata')
+        .eq('song_id', songId)
+        .order('created_at'),
+      supabase
+        .from('song_publish_requests')
+        .select('track_id, status')
+        .eq('song_id', songId)
+        .in('status', ['pending', 'approved', 'published']),
+    ])
     if (data) {
-      setSongTracks(data.filter((t: any) => t.mp3_url).map((t: any) => {
+      const publishMap = new Map<string, string>()
+      publishData?.forEach((r: any) => publishMap.set(r.track_id, r.status))
+      const favs: Record<string, boolean> = {}
+      const mapped = data.filter((t: any) => t.mp3_url).map((t: any) => {
+        favs[t.id] = !!t.is_favorite
         const meta = t.metadata as Record<string, unknown> | null
         const lyricsSections = meta?.lyrics_sections as any[] | undefined
+        const songTitle = userSongs.find(s => s.id === songId)?.title || 'VIVA Song'
+        const versionLabel = t.title || `Version ${t.version}`
+        const pubStatus = publishMap.get(t.id) as 'pending' | 'approved' | 'published' | undefined
         return {
           id: t.id,
-          title: t.title || `Version ${t.version}`,
-          artist: userSongs.find(s => s.id === songId)?.title || 'VIVA Song',
+          title: songTitle,
+          artist: songArtistName,
+          versionLabel,
+          performers: songArtistName
+            ? [{ name: songArtistName, snapshotHref: '/snapshot/me' }]
+            : undefined,
           duration: t.duration_ms ? t.duration_ms / 1000 : 180,
           url: t.mp3_url,
           thumbnail: t.cover_url || undefined,
           syncedLyrics: lyricsSections?.length ? convertMurekaLyrics(lyricsSections) : undefined,
+          plainLyrics: userSongs.find(s => s.id === songId)?.lyrics || undefined,
+          publishStatus: pubStatus,
         }
-      }))
+      })
+      setSongTracks(mapped)
+      setSongTrackFavorites(favs)
     }
     setSongTracksLoading(false)
+  }
+
+  async function handleSongToggleFavorite(track: BaseAudioTrack) {
+    if (!selectedSongId) return
+    const wasFav = songTrackFavorites[track.id] ?? false
+    const newFav = !wasFav
+    setSongTrackFavorites(prev => ({ ...prev, [track.id]: newFav }))
+    try {
+      await fetch(`/api/songs/${selectedSongId}/favorite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ track_id: track.id }),
+      })
+      if (newFav) setSongPublishAgreementTrack(track)
+    } catch {
+      setSongTrackFavorites(prev => ({ ...prev, [track.id]: wasFav }))
+    }
+  }
+
+  async function handleSongDeleteTrack() {
+    if (!songDeleteTarget || !selectedSongId) return
+    setSongDeleting(true)
+    try {
+      const res = await fetch(`/api/songs/${selectedSongId}/tracks/${songDeleteTarget.id}`, { method: 'DELETE' })
+      if (res.ok) loadSongTracks(selectedSongId)
+    } catch (err) {
+      console.error('Delete track failed:', err)
+    } finally {
+      setSongDeleting(false)
+      setSongDeleteTarget(null)
+    }
   }
 
   useEffect(() => {
@@ -778,13 +885,16 @@ export default function AudioListenPage() {
       .map(t => ({
         id: t.id,
         title: t.title,
-        artist: [formatMusicArtistLabel(t.artist), t.album].filter(Boolean).join(' \u00b7 '),
+        artist: musicCatalogArtistFallback(t.id, t.album),
+        performers: musicCatalogPerformerLinks(t.id),
+        albumLabel: (t.album || '').trim() || undefined,
         duration: typeof t.duration_seconds === 'number' && isFinite(t.duration_seconds) ? t.duration_seconds : 0,
         url: t.preview_url,
         thumbnail: t.artwork_url || '',
         sectionKey: 'music',
         syncedLyrics: t.synced_lyrics || undefined,
         plainLyrics: t.plain_lyrics || undefined,
+        memberCreated: Array.isArray(t.tags) && t.tags.includes('member-created'),
       }))
     return { musicTagCategories: allTaggedCategories, musicPlayerTracks: tracksForPlayer }
   }, [contentType, musicTracks, musicCategoryFilter])
@@ -1239,20 +1349,31 @@ export default function AudioListenPage() {
                 </Button>
               </Card>
             ) : (
-              <div className="max-w-2xl mx-auto w-full">
+              <div className="w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center">
+                <div className="hidden lg:block" />
+                <div className="max-w-2xl mx-auto w-full lg:mx-0 lg:max-w-none">
                 {songTracksLoading ? (
                   <div className="rounded-2xl bg-embedded-panel border border-neutral-800 flex items-center justify-center py-12"><Spinner size="lg" /></div>
                 ) : selectedSongId && songTracks.length > 0 ? (
+                  <>
                   <EmbeddedPlayer
                     tracks={songTracks}
                     mapActivityType="song_listen"
                     setName={userSongs.find(s => s.id === selectedSongId)?.title || 'Song'}
                     setIconKey="music"
+                    contentCategory="music"
                     trackCount={songTracks.length}
+                    trackFavorites={songTrackFavorites}
+                    enableArtworkLightbox
+                    onToggleFavorite={(track) => handleSongToggleFavorite(track)}
+                    onRemoveTrack={(track) => setSongDeleteTarget(track)}
                     headerContent={
                       <div>
                         <div className="bg-[#0c0c0c] px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
                           <h3 className="text-center text-lg font-semibold text-white">Play My Songs</h3>
+                          <p className="text-center text-xs text-neutral-500 mt-1">
+                            {userSongs.length} {userSongs.length === 1 ? 'song' : 'songs'}
+                          </p>
                         </div>
                         <div className="bg-embedded-panel px-3 py-2.5 md:px-4">
                           <div className="relative w-full">
@@ -1271,6 +1392,7 @@ export default function AudioListenPage() {
                                   </p>
                                   <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-neutral-500 sm:text-xs">
                                     {songTracks.length} version{songTracks.length !== 1 ? 's' : ''}
+                                    {' · '}{new Date(userSongs.find(s => s.id === selectedSongId)?.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                   </span>
                                 </div>
                               </div>
@@ -1282,6 +1404,7 @@ export default function AudioListenPage() {
                                 <div className="absolute z-20 left-0 right-0 mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-neutral-700/80 bg-embedded-panel py-1 shadow-2xl">
                                   {userSongs.map(song => {
                                     const isSelected = song.id === selectedSongId
+                                    const meta = ENTITY_META[song.entity_type] || ENTITY_META.custom!
                                     return (
                                       <div
                                         key={song.id}
@@ -1297,7 +1420,11 @@ export default function AudioListenPage() {
                                               {song.title || 'Untitled Song'}
                                             </p>
                                             <p className="text-[11px] text-neutral-500">
-                                              {new Date(song.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                              <span className="inline-flex items-center gap-1">
+                                                <meta.icon className="w-3 h-3" />
+                                                {meta.label}
+                                              </span>
+                                              {' · '}{new Date(song.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </p>
                                           </div>
                                           {isSelected && <CheckCircle className="w-4 h-4 text-primary-400 shrink-0" />}
@@ -1309,16 +1436,75 @@ export default function AudioListenPage() {
                               </>
                             )}
                           </div>
+                          <div className="mt-3 flex flex-col items-center gap-2">
+                            <Link
+                              href={`/audio/songwriter/${selectedSongId}`}
+                              className="inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              Create More Versions
+                            </Link>
+                            {selectedSong?.lyrics && (
+                              <button
+                                type="button"
+                                onClick={() => setAlbumArtModalOpen(true)}
+                                className="inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
+                              >
+                                <Image className="h-3.5 w-3.5" />
+                                Add Album Art
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     }
                   />
+                  {/* Mobile: synced lyrics below player */}
+                  {(() => {
+                    const activeTrack = songTracks.find((_, i) => {
+                      const isSongPlaylistActive = storeTracks.length === songTracks.length && songTracks.length > 0 && storeTracks[0]?.id === songTracks[0]?.id
+                      return isSongPlaylistActive ? i === storeIndex : i === 0
+                    })
+                    const selectedSong = userSongs.find(s => s.id === selectedSongId)
+                    const syncedLyrics = activeTrack?.syncedLyrics
+                    const plainLyrics = selectedSong?.lyrics as string | undefined
+                    if (!syncedLyrics && !plainLyrics) return null
+                    return (
+                      <div className="lg:hidden mt-4">
+                        {syncedLyrics ? (
+                          <SyncedLyricsDisplay syncedLyrics={syncedLyrics as SyncedLyrics} plainText={plainLyrics} />
+                        ) : plainLyrics ? (
+                          <PlainLyricsDisplay lyrics={plainLyrics} />
+                        ) : null}
+                      </div>
+                    )
+                  })()}
+                  </>
                 ) : (
                   <Card variant="glass" className="p-6 text-center">
                     <Music2 className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
                     <p className="text-sm text-neutral-400">Select a song to play</p>
                   </Card>
                 )}
+                </div>
+                {/* Desktop: synced lyrics to the right */}
+                <div className="hidden lg:block sticky top-4 self-start">
+                  {(() => {
+                    const activeTrack = songTracks.find((_, i) => {
+                      const isSongPlaylistActive = storeTracks.length === songTracks.length && songTracks.length > 0 && storeTracks[0]?.id === songTracks[0]?.id
+                      return isSongPlaylistActive ? i === storeIndex : i === 0
+                    })
+                    const selectedSong = userSongs.find(s => s.id === selectedSongId)
+                    const syncedLyrics = activeTrack?.syncedLyrics
+                    const plainLyrics = selectedSong?.lyrics as string | undefined
+                    if (!syncedLyrics && !plainLyrics) return null
+                    return syncedLyrics ? (
+                      <SyncedLyricsDisplay syncedLyrics={syncedLyrics as SyncedLyrics} plainText={plainLyrics} />
+                    ) : plainLyrics ? (
+                      <PlainLyricsDisplay lyrics={plainLyrics} />
+                    ) : null
+                  })()}
+                </div>
               </div>
             )}
           </section>
@@ -1333,7 +1519,7 @@ export default function AudioListenPage() {
               <Card variant="glass" className="p-6 text-center">
                 <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
                 <p className="text-sm text-neutral-400">No music available yet.</p>
-                <p className="text-xs text-neutral-500 mt-1">Check back soon for VibrationFit original music.</p>
+                <p className="text-xs text-neutral-500 mt-1">Check back soon for Vibration Fit original music.</p>
               </Card>
             ) : musicPlayerTracks.length === 0 ? (
               <Card variant="glass" className="p-6 text-center">
@@ -1350,7 +1536,7 @@ export default function AudioListenPage() {
                   <EmbeddedPlayer
                     tracks={musicPlayerTracks}
                     mapActivityType="music_listen"
-                    setName="VibrationFit Music"
+                    setName="Vibration Fit Music"
                     setIconKey="music"
                     contentCategory="music"
                     trackCount={musicPlayerTracks.length}
@@ -1439,6 +1625,42 @@ export default function AudioListenPage() {
         isLoading={deleting === setToDelete?.id}
         loadingText="Deleting audio set..."
       />
+
+      <DeleteConfirmationDialog
+        isOpen={!!songDeleteTarget}
+        onClose={() => setSongDeleteTarget(null)}
+        onConfirm={handleSongDeleteTrack}
+        title="Delete Track"
+        message="Are you sure you want to delete this track version? This action cannot be undone."
+        itemName={songDeleteTarget?.versionLabel || undefined}
+        isDeleting={songDeleting}
+      />
+
+      {selectedSongId && (
+        <PublishAgreementModal
+          isOpen={!!songPublishAgreementTrack}
+          onClose={() => setSongPublishAgreementTrack(null)}
+          songId={selectedSongId}
+          trackId={songPublishAgreementTrack?.id || ''}
+          songTitle={userSongs.find(s => s.id === selectedSongId)?.title || 'Untitled Song'}
+          trackVersion={songPublishAgreementTrack?.versionLabel || 'Version 1'}
+          coverUrl={songPublishAgreementTrack?.thumbnail}
+          onSuccess={() => setSongPublishAgreementTrack(null)}
+        />
+      )}
+
+      {selectedSongId && selectedSong?.lyrics && (
+        <AlbumArtModal
+          isOpen={albumArtModalOpen}
+          onClose={() => setAlbumArtModalOpen(false)}
+          songId={selectedSongId}
+          songTitle={selectedSong.title || 'Untitled Song'}
+          lyrics={selectedSong.lyrics}
+          onArtGenerated={(imageUrl) => {
+            setSongTracks(prev => prev.map(t => ({ ...t, thumbnail: imageUrl })))
+          }}
+        />
+      )}
     </Container>
   )
 }

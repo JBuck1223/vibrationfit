@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { url, start = 0, end = 30 } = await request.json()
+    const { url, start = 0, end = 30, title: refTitle, youtube_url: refYoutubeUrl } = await request.json()
 
     if (!url) {
       return NextResponse.json({ error: 'url is required' }, { status: 400 })
@@ -101,6 +101,20 @@ export async function POST(request: NextRequest) {
       })
 
       console.log(`[SongReference] Upload complete, reference_id: ${result.id}`)
+
+      // Auto-save to reference tracks library
+      await supabase
+        .from('reference_tracks')
+        .insert({
+          user_id: user.id,
+          title: refTitle || null,
+          youtube_url: refYoutubeUrl || null,
+          full_audio_url: url,
+          clip_url: clipUrl,
+          clip_start: start,
+          clip_end: start + duration,
+          mureka_file_id: result.id,
+        })
 
       return NextResponse.json({
         reference_id: result.id,

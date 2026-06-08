@@ -13,6 +13,7 @@ import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
 import { MentionDropdown } from './MentionDropdown'
 import { EmojiPickerButton } from './EmojiPickerButton'
+import { scrollSafeAutoResize } from '@/lib/design-system/components/forms/auto-resize-utils'
 
 const ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -68,18 +69,12 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
 
   const autoResize = useCallback(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      const scrollHeight = textareaRef.current.scrollHeight
-      const minH = 120
-      const maxH = 300
-      const newHeight = Math.min(Math.max(scrollHeight, minH), maxH)
-      textareaRef.current.style.height = `${newHeight}px`
-      textareaRef.current.style.overflowY = scrollHeight > maxH ? 'auto' : 'hidden'
+      scrollSafeAutoResize(textareaRef.current, { minHeight: 120, maxHeight: 300 })
     }
   }, [])
 
   useEffect(() => {
-    requestAnimationFrame(autoResize)
+    autoResize()
   }, [content, autoResize])
 
   useEffect(() => {

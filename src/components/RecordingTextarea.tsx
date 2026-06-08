@@ -7,6 +7,7 @@ import {
   transcriptLooksLikeWallOfText,
 } from '@/lib/audio/format-transcript-paragraphs'
 import { Textarea, Button } from '@/lib/design-system/components'
+import { scrollSafeAutoResize } from '@/lib/design-system/components/forms/auto-resize-utils'
 import { VIVALoadingOverlay } from '@/lib/design-system/components/overlays'
 import { MediaRecorderComponent } from './MediaRecorder'
 import { uploadAndTranscribeRecording } from '@/lib/services/recordingService'
@@ -153,33 +154,15 @@ export function RecordingTextarea({
   // Keep value ref in sync so onstop closure always reads current text
   useEffect(() => { quickValueRef.current = value }, [value])
 
-  // Auto-resize textarea without disrupting scroll position.
-  // On iOS with the software keyboard open, window.scrollY does not track the visual viewport.
-  // Forcing scrollTo after each reflow fights Safari's scroll-to-caret and hides the field behind the keyboard.
   const autoResizeTextarea = () => {
     const textarea = textareaRef.current
     if (!textarea) return
-
-    const scrollY = window.scrollY
-
-    textarea.style.height = 'auto'
-    textarea.style.height = textarea.scrollHeight + 'px'
-
-    const vv = window.visualViewport
-    const keyboardLikelyOpen =
-      vv != null && vv.height < window.innerHeight * 0.92
-
-    if (!keyboardLikelyOpen) {
-      window.scrollTo({ top: scrollY, behavior: 'auto' })
-    }
+    scrollSafeAutoResize(textarea)
   }
 
   // Auto-resize when value changes (covers typing + transcription)
   useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      autoResizeTextarea()
-    })
-    return () => cancelAnimationFrame(id)
+    autoResizeTextarea()
   }, [value])
 
   const handleRecordingComplete = async (blob: Blob, transcript?: string, shouldSaveFile?: boolean) => {

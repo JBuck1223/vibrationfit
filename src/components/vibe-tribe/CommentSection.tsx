@@ -12,6 +12,7 @@ import { MentionDropdown } from './MentionDropdown'
 import { EmojiPickerButton } from './EmojiPickerButton'
 import { renderContentWithMentions } from '@/lib/vibe-tribe/render-mentions'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
+import { scrollSafeAutoResize } from '@/lib/design-system/components/forms/auto-resize-utils'
 
 interface CommentSectionProps {
   postId: string
@@ -264,11 +265,7 @@ export function CommentSection({
                 value={newComment}
                 onChange={(e) => {
                   topMention.mentionHandleChange(e)
-                  e.target.style.height = 'auto'
-                  const maxH = Math.min(window.innerHeight * 0.4, 300)
-                  const newH = Math.min(e.target.scrollHeight, maxH)
-                  e.target.style.height = `${newH}px`
-                  e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
+                  scrollSafeAutoResize(e.target, { maxHeight: Math.min(window.innerHeight * 0.4, 300) })
                 }}
                 onKeyDown={topMention.mentionHandleKeyDown}
                 placeholder="Add a comment..."
@@ -411,11 +408,7 @@ function CommentItem({
     if (editing && editInputRef.current) {
       editInputRef.current.focus()
       editInputRef.current.setSelectionRange(editText.length, editText.length)
-      editInputRef.current.style.height = 'auto'
-      const maxH = Math.min(window.innerHeight * 0.4, 300)
-      const newH = Math.min(editInputRef.current.scrollHeight, maxH)
-      editInputRef.current.style.height = `${newH}px`
-      editInputRef.current.style.overflowY = editInputRef.current.scrollHeight > maxH ? 'auto' : 'hidden'
+      scrollSafeAutoResize(editInputRef.current, { maxHeight: Math.min(window.innerHeight * 0.4, 300) })
     }
   }, [editing])
 
@@ -536,11 +529,7 @@ function CommentItem({
                 value={editText}
                 onChange={(e) => {
                   setEditText(e.target.value)
-                  e.target.style.height = 'auto'
-                  const maxH = Math.min(window.innerHeight * 0.4, 300)
-                  const newH = Math.min(e.target.scrollHeight, maxH)
-                  e.target.style.height = `${newH}px`
-                  e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
+                  scrollSafeAutoResize(e.target, { maxHeight: Math.min(window.innerHeight * 0.4, 300) })
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') handleCancelEdit()
@@ -647,11 +636,7 @@ function CommentItem({
                     value={replyText}
                     onChange={(e) => {
                       replyMention.mentionHandleChange(e)
-                      e.target.style.height = 'auto'
-                      const maxH = Math.min(window.innerHeight * 0.4, 300)
-                      const newH = Math.min(e.target.scrollHeight, maxH)
-                      e.target.style.height = `${newH}px`
-                      e.target.style.overflowY = e.target.scrollHeight > maxH ? 'auto' : 'hidden'
+                      scrollSafeAutoResize(e.target, { maxHeight: Math.min(window.innerHeight * 0.4, 300) })
                     }}
                     onKeyDown={replyMention.mentionHandleKeyDown}
                     placeholder={`Reply to ${comment.user?.full_name || 'Anonymous'}...`}

@@ -483,7 +483,7 @@ export default function NewDailyPaperPage() {
                   {imageSource === 'ai' && (
                     <AIImageGenerator
                       type="journal"
-                      onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
+                      onImageGenerated={(url) => setAiGeneratedImageUrls(url ? [url] : [])}
                       journalText={
                         [gratitude, ...tasks, funPlan].filter(Boolean).join(' ') || ''
                       }

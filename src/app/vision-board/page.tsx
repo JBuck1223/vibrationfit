@@ -1478,7 +1478,7 @@ export default function VisionBoardPage() {
               ) : (
                 <AIImageGenerator
                   type="vision_board"
-                  onImageGenerated={(url) => { setEditAiImageUrl(url); setShowImageEditor(false) }}
+                  onImageGenerated={(url) => { setEditAiImageUrl(url || ''); if (url) setShowImageEditor(false) }}
                   title={editFormData.name}
                   description={editFormData.description}
                   visionText={editFormData.name && editFormData.description
@@ -1620,7 +1620,7 @@ export default function VisionBoardPage() {
                   ) : (
                     <AIImageGenerator
                       type="vision_board"
-                      onImageGenerated={(url) => { setEditActualizedAiImageUrl(url); setShowActualizedImageEditor(false) }}
+                      onImageGenerated={(url) => { setEditActualizedAiImageUrl(url || ''); if (url) setShowActualizedImageEditor(false) }}
                       title={`Actualized: ${editFormData.name}`}
                       description={`Evidence: ${editFormData.description}`}
                       visionText={`Actualized: ${editFormData.name}. ${editFormData.description}`}

@@ -29,7 +29,7 @@ const CONTENT_TYPES = [
   { value: 'stories', label: 'Stories', icon: Library, path: '/audio/stories' },
   { value: 'music', label: 'Music', icon: Music2, path: '/audio/music' },
   { value: 'playlists', label: 'Playlists', icon: ListMusic, path: '/audio/playlists' },
-  { value: 'songs', label: 'Songs', icon: Music2, path: '/audio/songs' },
+  { value: 'songs', label: 'My Songs', icon: Music2, path: '/audio/songs' },
 ]
 
 const LISTEN_AREA_ROUTES = ['/audio', '/audio/stories', '/audio/songs', '/audio/music', '/audio/playlists']
@@ -38,7 +38,7 @@ const LISTEN_CONTENT_SUBTEXT: Record<string, string> = {
   'life-vision': 'Play your Life Vision audio sets and voice recordings.',
   'stories': 'Play narrated audio from your completed stories.',
   'songs': 'Play your VIVA-generated songs.',
-  'music': 'Stream VibrationFit original music on your favorite platform.',
+  'music': 'Stream Vibration Fit original music on your favorite platform.',
   'playlists': 'Play and manage your custom playlists.',
 }
 

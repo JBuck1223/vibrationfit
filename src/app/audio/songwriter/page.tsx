@@ -3,8 +3,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, Stack, Card, Button, Textarea, CategoryGrid } from '@/lib/design-system/components'
+import { Container, Stack, Card, Button, Textarea, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home } from 'lucide-react'
+import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-studio/ReferenceLibraryPicker'
 import {
   VISION_CATEGORIES,
   LIFE_CATEGORY_KEYS,
@@ -67,6 +68,8 @@ export default function SongwriterPage() {
   const [audioDuration, setAudioDuration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [referenceId, setReferenceId] = useState<string | null>(null)
+  const [referenceTitle, setReferenceTitle] = useState<string | null>(null)
+  const [referenceClipUrl, setReferenceClipUrl] = useState<string | null>(null)
 
   // Generation state
   const [generating, setGenerating] = useState(false)
@@ -287,10 +290,11 @@ export default function SongwriterPage() {
         throw new Error(err.error || 'Failed to extract audio')
       }
 
-      const { audio_url, duration } = await response.json()
+      const { audio_url, duration, title } = await response.json()
       setAudioUrl(audio_url)
       setAudioDuration(duration || 180)
       setRegionEnd(Math.min(30, duration || 30))
+      setReferenceTitle(title || null)
     } catch (err) {
       setAudioError(err instanceof Error ? err.message : 'Failed to load audio')
     } finally {
@@ -415,6 +419,8 @@ export default function SongwriterPage() {
             url: audioUrl,
             start: regionStart,
             end: regionEnd,
+            title: referenceTitle || undefined,
+            youtube_url: youtubeUrl || undefined,
           }),
         })
         if (!refResponse.ok) {
@@ -424,6 +430,7 @@ export default function SongwriterPage() {
         const refData = await refResponse.json()
         refId = refData.reference_id
         setReferenceId(refId)
+        setReferenceClipUrl(refData.clip_url || null)
       }
 
       let currentSongId = songId
@@ -464,6 +471,14 @@ export default function SongwriterPage() {
         body: JSON.stringify({
           song_id: currentSongId,
           reference_id: refId || undefined,
+          reference_meta: refId ? {
+            youtube_url: youtubeUrl || undefined,
+            title: referenceTitle || undefined,
+            clip_url: referenceClipUrl || undefined,
+            start: regionStart,
+            end: regionEnd,
+            mureka_file_id: refId,
+          } : undefined,
         }),
       })
 
@@ -696,16 +711,30 @@ export default function SongwriterPage() {
         </Card>
 
         {/* Lyrics */}
-        <Card variant="glass" className="p-5">
+        <Card variant="glass" className="relative p-5 overflow-hidden">
+          <VIVALoadingOverlay
+            isVisible={lyricsMode === 'generating'}
+            className="!absolute !inset-0 !rounded-2xl"
+            size="sm"
+            messages={[
+              'VIVA is writing your lyrics...',
+              'Crafting verses and hooks...',
+              'Shaping the emotional arc...',
+              'Putting finishing touches...',
+            ]}
+            cycleDuration={4000}
+            estimatedTime="This usually takes 10-20 seconds"
+            estimatedDuration={20000}
+          />
           <Stack gap="sm">
             <label className="text-sm font-medium text-neutral-200">Lyrics</label>
 
-            {lyricsMode === 'none' && (
+            {(lyricsMode === 'none' || lyricsMode === 'generating') && (
               <div className="flex gap-3">
                 <Button
                   variant="primary"
                   onClick={generateLyrics}
-                  disabled={!songIdea.trim()}
+                  disabled={!songIdea.trim() || lyricsMode === 'generating'}
                   className="flex-1"
                 >
                   <Sparkles className="mr-1.5 h-4 w-4" />
@@ -714,22 +743,11 @@ export default function SongwriterPage() {
                 <Button
                   variant="ghost"
                   onClick={() => setLyricsMode('paste')}
+                  disabled={lyricsMode === 'generating'}
                   className="flex-1"
                 >
                   Paste Lyrics
                 </Button>
-              </div>
-            )}
-
-            {lyricsMode === 'generating' && (
-              <div className="rounded-lg border border-neutral-700 bg-black/40 p-4">
-                <div className="mb-2 flex items-center gap-2 text-xs text-[#39FF14]">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  VIVA is writing...
-                </div>
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-neutral-200">
-                  {lyrics}
-                </pre>
               </div>
             )}
 
@@ -763,10 +781,38 @@ export default function SongwriterPage() {
         </Card>
 
         {/* Reference Track */}
-        <Card variant="glass" className="p-5">
+        <Card variant="glass" className="relative p-5 overflow-hidden">
+          <VIVALoadingOverlay
+            isVisible={audioLoading}
+            className="!absolute !inset-0 !rounded-2xl"
+            size="sm"
+            messages={[
+              'Extracting audio from YouTube...',
+              'Processing the reference track...',
+              'Almost ready...',
+            ]}
+            cycleDuration={5000}
+            estimatedTime="This usually takes 10-30 seconds"
+            estimatedDuration={30000}
+          />
           <Stack gap="sm">
             <label className="text-sm font-medium text-neutral-200">Reference Track</label>
-            <p className="text-xs text-neutral-500">Paste a YouTube URL. Pick 30 seconds to set the musical vibe.</p>
+            <p className="text-xs text-neutral-500">Paste a YouTube URL or pick from your library. Select 30 seconds to set the musical vibe.</p>
+
+            <ReferenceLibraryPicker
+              onSelect={(ref: ReferenceTrack) => {
+                if (ref.youtube_url) setYoutubeUrl(ref.youtube_url)
+                if (ref.full_audio_url) {
+                  setAudioUrl(ref.full_audio_url)
+                  setAudioDuration(ref.duration || 0)
+                }
+                if (ref.title) setReferenceTitle(ref.title)
+                if (ref.mureka_file_id) setReferenceId(ref.mureka_file_id)
+                if (ref.clip_url) setReferenceClipUrl(ref.clip_url)
+                setRegionStart(Number(ref.clip_start) || 0)
+                setRegionEnd(Number(ref.clip_end) || 30)
+              }}
+            />
 
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -795,6 +841,11 @@ export default function SongwriterPage() {
 
             {audioUrl && (
               <div className="space-y-2">
+                {referenceTitle && (
+                  <p className="truncate text-xs font-medium text-neutral-300">
+                    {referenceTitle}
+                  </p>
+                )}
                 <div
                   ref={waveformRef}
                   className="rounded-lg border border-neutral-700 bg-black/40 p-2"
@@ -822,29 +873,47 @@ export default function SongwriterPage() {
           </Stack>
         </Card>
 
-        {/* Generate Button */}
-        <Button
-          variant="primary"
+        {/* Full-page VIVA overlay for track creation */}
+        <VIVALoadingOverlay
+          isVisible={generating}
+          className="!fixed !inset-0 !rounded-none"
           size="lg"
-          onClick={createTrack}
-          disabled={!hasLyrics || generating}
-          className="w-full py-4 text-base font-semibold"
-        >
-          {generating ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            <>
-              <Music2 className="mr-2 h-5 w-5" />
-              Create My Track
-            </>
-          )}
-        </Button>
+          messages={[
+            'VIVA is composing your track...',
+            'Laying down the beat and melody...',
+            'Mixing vocals and instrumentation...',
+            'Putting the finishing touches on your song...',
+          ]}
+          cycleDuration={5000}
+          estimatedTime="This usually takes 30-60 seconds"
+          estimatedDuration={60000}
+        />
 
-        {createError && (
-          <p className="text-center text-sm text-red-400">{createError}</p>
+        {/* Generate Button / Error */}
+        {createError ? (
+          <Card variant="glass" className="flex flex-col items-center gap-4 p-6 text-center">
+            <p className="text-sm text-red-400">{createError}</p>
+            <div className="flex gap-3">
+              <Button variant="primary" onClick={createTrack} disabled={!hasLyrics}>
+                <Music2 className="mr-1.5 h-4 w-4" />
+                Try Again
+              </Button>
+              <Button variant="ghost" onClick={() => setCreateError(null)}>
+                Dismiss
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={createTrack}
+            disabled={!hasLyrics || generating}
+            className="w-full py-4 text-base font-semibold"
+          >
+            <Music2 className="mr-2 h-5 w-5" />
+            Create My Track
+          </Button>
         )}
       </Stack>
     </Container>

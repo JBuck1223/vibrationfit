@@ -577,7 +577,7 @@ export function DailyPaperEditForm({
               {imageSource === 'ai' && (
                 <AIImageGenerator
                   type="journal"
-                  onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
+                  onImageGenerated={(url) => setAiGeneratedImageUrls(url ? [url] : [])}
                   journalText={
                     [gratitude, ...tasks, funPlan].filter(Boolean).join(' ') || ''
                   }
