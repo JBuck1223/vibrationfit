@@ -854,6 +854,8 @@ export default function AudioListenPage() {
       const tr = filtered.find((x: (typeof musicTracks)[number]) => x.album === name)
       return tr?.genre === 'Holiday'
     }
+    const sortByTitle = (a: (typeof musicTracks)[number], b: (typeof musicTracks)[number]) =>
+      (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' })
     const albums = (Array.from(new Set(filtered.map((t: (typeof musicTracks)[number]) => t.album).filter(Boolean))) as string[]).sort(
       (a, b) => {
         const ha = isHolidayAlbum(a) ? 1 : 0
@@ -864,17 +866,22 @@ export default function AudioListenPage() {
     )
     const mainAlbums = albums.filter(a => !isHolidayAlbum(a))
     const holidayAlbums = albums.filter(a => isHolidayAlbum(a))
-    const ungrouped = filtered.filter((t: (typeof musicTracks)[number]) => !t.album)
+    const ungrouped = filtered.filter((t: (typeof musicTracks)[number]) => !t.album).sort(sortByTitle)
     const featured = filtered
       .filter((t: (typeof musicTracks)[number]) => t.is_featured)
-      .sort((a: (typeof musicTracks)[number], b: (typeof musicTracks)[number]) => (a.genre === 'Holiday' ? 1 : 0) - (b.genre === 'Holiday' ? 1 : 0))
+      .sort((a: (typeof musicTracks)[number], b: (typeof musicTracks)[number]) => {
+        const ha = a.genre === 'Holiday' ? 1 : 0
+        const hb = b.genre === 'Holiday' ? 1 : 0
+        if (ha !== hb) return ha - hb
+        return sortByTitle(a, b)
+      })
     const seen = new Set<string>()
     const ordered: typeof musicTracks = []
     const push = (t: (typeof musicTracks)[number]) => { if (t && !seen.has(t.id)) { seen.add(t.id); ordered.push(t) } }
     featured.forEach(push)
     ungrouped.forEach(push)
     ;[...mainAlbums, ...holidayAlbums].forEach(album => {
-      filtered.filter((t: (typeof musicTracks)[number]) => t.album === album).forEach(push)
+      filtered.filter((t: (typeof musicTracks)[number]) => t.album === album).sort(sortByTitle).forEach(push)
     })
     filtered.forEach(push)
     const allTaggedCategories = Array.from(
@@ -1540,6 +1547,7 @@ export default function AudioListenPage() {
                     setIconKey="music"
                     contentCategory="music"
                     trackCount={musicPlayerTracks.length}
+                    enableArtworkLightbox
                     onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
                     headerContent={
                     <div>
@@ -1554,11 +1562,17 @@ export default function AudioListenPage() {
                             />
                           )}
                         </div>
-                        {musicTracks.length > 0 && (
-                          <div className="flex items-center justify-center gap-1.5 flex-wrap mt-2.5">
-                            <MusicStreamingLinks track={musicTracks[0]} />
-                          </div>
-                        )}
+                        {(() => {
+                          const streamingTrack = musicTracks.find((t: any) =>
+                            t.spotify_url || t.apple_music_url || t.amazon_music_url || t.youtube_music_url || t.soundcloud_url
+                          )
+                          if (!streamingTrack) return null
+                          return (
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap mt-2.5">
+                              <MusicStreamingLinks track={streamingTrack} />
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
                     }
