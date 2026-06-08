@@ -207,19 +207,27 @@ export function PublishAgreementModal({
           </div>
 
           {/* Agreement checkbox */}
-          <button
-            type="button"
+          <div
+            role="checkbox"
+            aria-checked={agreed}
+            tabIndex={0}
             onClick={() => setAgreed(prev => !prev)}
-            className={`flex items-start gap-3 w-full text-left p-3 rounded-lg border transition-colors ${
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setAgreed(prev => !prev)
+              }
+            }}
+            className={`flex items-center gap-3 w-full text-left p-3 rounded-lg border transition-colors cursor-pointer ${
               agreed
                 ? 'border-[#39FF14]/30 bg-[#39FF14]/5'
                 : 'border-neutral-800 hover:border-neutral-700'
             }`}
           >
             {agreed ? (
-              <CheckSquare className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
+              <CheckSquare className="w-5 h-5 text-[#39FF14] flex-shrink-0" />
             ) : (
-              <Square className="w-5 h-5 text-neutral-600 flex-shrink-0 mt-0.5" />
+              <Square className="w-5 h-5 text-neutral-600 flex-shrink-0" />
             )}
             <span className="text-sm text-neutral-300">
               I have read and agree to the{' '}
@@ -235,7 +243,7 @@ export function PublishAgreementModal({
               </button>
               .
             </span>
-          </button>
+          </div>
 
           {/* Expandable full agreement */}
           {showAgreement && <AgreementPanel onCollapse={() => setShowAgreement(false)} />}

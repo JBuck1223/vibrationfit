@@ -15,6 +15,7 @@ interface AlbumArtModalProps {
   songTitle: string
   lyrics: string
   onArtGenerated: (imageUrl: string) => void
+  currentCoverUrl?: string | null
 }
 
 export function AlbumArtModal({
@@ -24,6 +25,7 @@ export function AlbumArtModal({
   songTitle,
   lyrics,
   onArtGenerated,
+  currentCoverUrl,
 }: AlbumArtModalProps) {
   const [saving, setSaving] = useState(false)
   const [imageSource, setImageSource] = useState<ImageSource>('ai')
@@ -204,6 +206,7 @@ export function AlbumArtModal({
             <AIImageGenerator
               type="album_art"
               lyricsText={lyrics}
+              currentImageUrl={currentCoverUrl || undefined}
               onImageGenerated={handleVivaImageSelected}
             />
           )}

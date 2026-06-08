@@ -1472,7 +1472,7 @@ export default function AudioListenPage() {
                                 className="inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
                               >
                                 <Image className="h-3.5 w-3.5" />
-                                Add Album Art
+                                {songTracks.some(t => t.thumbnail) ? 'Change Album Art' : 'Add Album Art'}
                               </button>
                             )}
                           </div>
@@ -1673,6 +1673,7 @@ export default function AudioListenPage() {
           songId={selectedSongId}
           songTitle={selectedSong.title || 'Untitled Song'}
           lyrics={selectedSong.lyrics}
+          currentCoverUrl={songTracks.find(t => t.thumbnail)?.thumbnail || null}
           onArtGenerated={(imageUrl) => {
             setSongTracks(prev => prev.map(t => ({ ...t, thumbnail: imageUrl })))
           }}

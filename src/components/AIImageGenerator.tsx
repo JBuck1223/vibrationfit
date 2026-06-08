@@ -25,6 +25,8 @@ interface AIImageGeneratorProps {
   mood?: string
   // Album art specific props
   lyricsText?: string
+  // When provided, edit mode preloads this image as the base to edit (no upload needed)
+  currentImageUrl?: string
 }
 
 export function AIImageGenerator({ 
@@ -38,6 +40,7 @@ export function AIImageGenerator({
   journalText,
   mood,
   lyricsText,
+  currentImageUrl,
 }: AIImageGeneratorProps) {
   const [prompt, setPrompt] = useState(initialPrompt)
   const [generating, setGenerating] = useState(false)
@@ -200,7 +203,7 @@ export function AIImageGenerator({
   const handleGenerate = async () => {
     // Validation based on mode
     if (mode === 'edit' || isEditingGenerated) {
-      if (!baseImage && !isEditingGenerated) {
+      if (!baseImage && !isEditingGenerated && !currentImageUrl) {
         toast.error('Please upload an image to edit')
         return
       }
@@ -300,6 +303,9 @@ export function AIImageGenerator({
           reader.readAsDataURL(fileToUpload)
         })
         requestBody.imageDataUri = base64
+      } else if (mode === 'edit' && currentImageUrl) {
+        // No new upload: edit the image currently in use
+        requestBody.imageUrl = currentImageUrl
       }
 
       console.log('🎨 Sending image request:', { mode, type, dimension: selectedDimension })
@@ -602,7 +608,7 @@ export function AIImageGenerator({
           {mode === 'edit' && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-neutral-200 mb-3">
-                Upload Image to Edit
+                {currentImageUrl && !baseImage ? 'Editing Current Album Art' : 'Upload Image to Edit'}
               </label>
               <div className="relative">
                 <input
@@ -648,6 +654,18 @@ export function AIImageGenerator({
                         <X className="w-4 h-4 text-white" />
                       </button>
                     </div>
+                  ) : currentImageUrl ? (
+                    <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={currentImageUrl}
+                        alt="Current album art"
+                        className="max-h-48 mx-auto rounded-lg"
+                      />
+                      <p className="mt-2 text-xs text-neutral-500">
+                        Click to upload a different image instead
+                      </p>
+                    </div>
                   ) : (
                     <div>
                       <ImageIcon className="w-12 h-12 mx-auto mb-2 text-neutral-500" />
@@ -658,7 +676,7 @@ export function AIImageGenerator({
               </div>
 
               {/* Edit Prompt */}
-              {baseImage && (
+              {(baseImage || currentImageUrl) && (
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-neutral-200 mb-2">
                     Edit Instructions
@@ -681,7 +699,7 @@ export function AIImageGenerator({
               onClick={handleGenerate}
               disabled={
                 generating ||
-                (mode === 'edit' && (!baseImage || !editPrompt.trim())) ||
+                (mode === 'edit' && ((!baseImage && !currentImageUrl) || !editPrompt.trim())) ||
                 (mode === 'generate' && type === 'vision_board' && !customDescription.trim()) ||
                 (mode === 'generate' && type === 'journal' && !customJournalDescription.trim()) ||
                 (mode === 'generate' && type === 'album_art' && !albumArtDescription.trim())

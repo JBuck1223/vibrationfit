@@ -127,6 +127,7 @@ WHAT YOU MUST NEVER DO:
 - Use spiritual/wellness jargon (manifest, vibration, frequency, alignment)
 - Sound preachy or self-helpy
 - Rhyme at the expense of authenticity or naturalness
+- Add a song title, heading, or "#" line — start directly with [Verse 1]
 
 ---
 
@@ -251,6 +252,7 @@ Energy: "life is short, wake up, feel alive, and fully live."
 Write the full song with [Verse 1], [Pre-Chorus], [Chorus], etc.
 Write FEWER words. Short lines. Leave space for melody.
 Use repetition where it creates power.
+Do NOT include a title, heading, or "#" line — start directly with [Verse 1].
 ONLY lyrics. No commentary, no explanation, no notes.`
 }
 
@@ -295,6 +297,7 @@ Verses: specific, visual, human, simple, SHORT.
 Chorus: big, repeatable, emotionally direct, memorable on first listen.
 Bridge: most honest line. Fewest words.
 
+Do NOT include a title, heading, or "#" line — start directly with [Verse 1].
 Write ONLY the lyrics. No commentary, no explanation, no notes.`
 }
 

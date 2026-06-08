@@ -21,6 +21,7 @@ import {
   buildSongLyricsPrompt,
   buildSimpleSongPrompt,
 } from '@/lib/viva/prompts/song-lyrics-prompt'
+import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
 import type { SongEssence, SongEntityType } from '@/lib/songs/types'
 
 export const maxDuration = 120
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
           .from('songs')
           .update({
             title,
-            lyrics: text,
+            lyrics: stripLyricsTitleHeader(text),
             status: 'lyrics_complete',
             generation_count: 1,
             metadata: {

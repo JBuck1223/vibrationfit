@@ -6,6 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import { Container, Stack, Card, Button, Textarea, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home } from 'lucide-react'
 import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-studio/ReferenceLibraryPicker'
+import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
+import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
+import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
 import {
   VISION_CATEGORIES,
   LIFE_CATEGORY_KEYS,
@@ -51,6 +54,9 @@ export default function SongwriterPage() {
   const [selectedCategories, setSelectedCategories] = useState<LifeCategoryKey[]>([])
   const [visionData, setVisionData] = useState<Record<string, string>>({})
 
+  // Life category tags for the song (source-agnostic; used for catalog filtering)
+  const [categoryTags, setCategoryTags] = useState<LifeCategoryKey[]>([])
+
   // Form state
   const [songTitle, setSongTitle] = useState('')
   const [songIdea, setSongIdea] = useState('')
@@ -74,7 +80,13 @@ export default function SongwriterPage() {
   // Generation state
   const [generating, setGenerating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [categoryError, setCategoryError] = useState<string | null>(null)
   const [songId, setSongId] = useState<string | null>(null)
+
+  // One-time publishing agreement (gates the first time a user creates a song)
+  const [agreementAccepted, setAgreementAccepted] = useState<boolean | null>(null)
+  const [showAgreementModal, setShowAgreementModal] = useState(false)
+  const pendingActionRef = useRef<(() => void) | null>(null)
 
   // Refs
   const waveformRef = useRef<HTMLDivElement>(null)
@@ -91,7 +103,37 @@ export default function SongwriterPage() {
     loadEntities(source)
   }, [source])
 
-  // Load the user's one-time publishing agreement acceptance status
+  // Load the user's one-time publishing agreement acceptance status on mount
+  useEffect(() => {
+    async function checkAgreement() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: account } = await supabase
+          .from('user_accounts')
+          .select('song_publishing_agreement_accepted_at, song_publishing_agreement_version')
+          .eq('id', user.id)
+          .single()
+        setAgreementAccepted(hasAcceptedSongPublishingAgreement(account))
+      } catch {
+        setAgreementAccepted(false)
+      }
+    }
+    checkAgreement()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Runs `action` immediately if the agreement is accepted, otherwise prompts
+  // for the one-time agreement first and runs it on acceptance.
+  function withAgreement(action: () => void) {
+    if (agreementAccepted) {
+      action()
+      return
+    }
+    pendingActionRef.current = action
+    setShowAgreementModal(true)
+  }
+
   async function loadEntities(entityType: SourceType) {
     setEntitiesLoading(true)
     setSelectedEntity(null)
@@ -162,6 +204,10 @@ export default function SongwriterPage() {
     setEntityDropdownOpen(false)
     setEntitySearch('')
 
+    const validCategories = (entity.categories || []).filter((c: string) =>
+      (LIFE_CATEGORY_KEYS as readonly string[]).includes(c)
+    ) as LifeCategoryKey[]
+
     if (source === 'life_vision') {
       const catTexts: Record<string, string> = {}
       for (const key of LIFE_CATEGORY_KEYS) {
@@ -169,13 +215,16 @@ export default function SongwriterPage() {
       }
       setVisionData(catTexts)
       setSelectedCategories([])
+      setCategoryTags([])
       setContext('')
     } else if (source === 'vision_board_item') {
       const parts = [entity.name, entity.description].filter(Boolean)
       setContext(parts.join('\n\n'))
+      setCategoryTags(validCategories)
     } else if (source === 'journal_entry') {
       const parts = [entity.title, entity.content?.slice(0, 800)].filter(Boolean)
       setContext(parts.join('\n\n'))
+      setCategoryTags(validCategories)
     }
   }
 
@@ -193,6 +242,22 @@ export default function SongwriterPage() {
 
       return next
     })
+    // Mirror content-category picks into the song tags (still editable below).
+    setCategoryError(null)
+    setCategoryTags(prev =>
+      prev.includes(key as LifeCategoryKey)
+        ? prev.filter(k => k !== key)
+        : [...prev, key as LifeCategoryKey]
+    )
+  }
+
+  function handleCategoryTagToggle(key: string) {
+    setCategoryError(null)
+    setCategoryTags(prev =>
+      prev.includes(key as LifeCategoryKey)
+        ? prev.filter(k => k !== key)
+        : [...prev, key as LifeCategoryKey]
+    )
   }
 
   function getEntityLabel(entity: any): string {
@@ -264,6 +329,8 @@ export default function SongwriterPage() {
         }
       }
 
+      // Remove any leading title/"#" header the model may have prepended.
+      setLyrics(prev => stripLyricsTitleHeader(prev))
       setLyricsMode('done')
     } catch (err) {
       console.error('Lyrics generation failed:', err)
@@ -408,6 +475,16 @@ export default function SongwriterPage() {
     await runCreateTrack()
   }
 
+  // Validates a life category is selected, then runs the agreement-gated create.
+  const handleCreateClick = () => {
+    if (categoryTags.length === 0) {
+      setCategoryError('Please select at least one life category to generate your track.')
+      return
+    }
+    setCategoryError(null)
+    withAgreement(createTrack)
+  }
+
   const runCreateTrack = async () => {
     if (!lyrics.trim() || generating) return
     setGenerating(true)
@@ -476,6 +553,7 @@ export default function SongwriterPage() {
         body: JSON.stringify({
           song_id: currentSongId,
           reference_id: refId || undefined,
+          life_categories: categoryTags,
           reference_meta: refId ? {
             youtube_url: youtubeUrl || undefined,
             title: referenceTitle || undefined,
@@ -492,6 +570,14 @@ export default function SongwriterPage() {
         throw new Error(err.error || 'Failed to start music generation')
       }
 
+      // Auto-generate album art (VIVA + VF logo) for the song while music renders.
+      // Fire-and-forget; the poll route applies the saved cover to each track.
+      fetch(`/api/songs/${currentSongId}/cover`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generate: true }),
+      }).catch(() => {})
+
       router.push(`/audio/songwriter/${currentSongId}`)
     } catch (err) {
       console.error('Create track failed:', err)
@@ -506,7 +592,7 @@ export default function SongwriterPage() {
     <Container size="md" className="pt-2 pb-8">
       <Stack gap="lg">
         {/* Header */}
-        <div>
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-white">Songwriter</h1>
           <p className="mt-1 text-sm text-neutral-400">Create original music from an idea.</p>
         </div>
@@ -907,6 +993,29 @@ export default function SongwriterPage() {
           </Stack>
         </Card>
 
+        {/* Life Categories (source-agnostic tagging for filtering) */}
+        <Card variant="glass" className="p-5">
+          <Stack gap="sm">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-neutral-200">Life Categories</label>
+              {categoryTags.length > 0 && (
+                <span className="text-xs text-[#39FF14]">{categoryTags.length} tagged</span>
+              )}
+            </div>
+            <p className="text-xs text-neutral-500">
+              Tag as many life categories as this song speaks to. A song made from one area can still apply to others — this makes it easy to filter and find later.
+            </p>
+            <CategoryGrid
+              categories={LIFE_CATEGORIES}
+              selectedCategories={categoryTags}
+              onCategoryClick={handleCategoryTagToggle}
+              mode="selection"
+              lifeVisionCategoryStrip
+              desktopColumnCount={6}
+            />
+          </Stack>
+        </Card>
+
         {/* Full-page VIVA overlay for track creation */}
         <VIVALoadingOverlay
           isVisible={generating}
@@ -928,7 +1037,7 @@ export default function SongwriterPage() {
           <Card variant="glass" className="flex flex-col items-center gap-4 p-6 text-center">
             <p className="text-sm text-red-400">{createError}</p>
             <div className="flex gap-3">
-              <Button variant="primary" onClick={createTrack} disabled={!hasLyrics}>
+              <Button variant="primary" onClick={handleCreateClick} disabled={!hasLyrics}>
                 <Music2 className="mr-1.5 h-4 w-4" />
                 Try Again
               </Button>
@@ -938,18 +1047,35 @@ export default function SongwriterPage() {
             </div>
           </Card>
         ) : (
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={createTrack}
-            disabled={!hasLyrics || generating}
-            className="w-full py-4 text-base font-semibold"
-          >
-            <Music2 className="mr-2 h-5 w-5" />
-            Create My Track
-          </Button>
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleCreateClick}
+              disabled={!hasLyrics || generating}
+              className="w-full py-4 text-base font-semibold"
+            >
+              <Music2 className="mr-2 h-5 w-5" />
+              Create My Track
+            </Button>
+            {categoryError && (
+              <p className="text-sm text-[#FF0040]">{categoryError}</p>
+            )}
+          </div>
         )}
       </Stack>
+
+      <PublishAgreementModal
+        isOpen={showAgreementModal}
+        onClose={() => { setShowAgreementModal(false); pendingActionRef.current = null }}
+        onSuccess={() => {
+          setAgreementAccepted(true)
+          setShowAgreementModal(false)
+          const action = pendingActionRef.current
+          pendingActionRef.current = null
+          action?.()
+        }}
+      />
     </Container>
   )
 }

@@ -116,10 +116,18 @@ STYLE DIRECTION FOR JOURNAL EVIDENCE IMAGE:
 
 STYLE DIRECTION FOR ALBUM COVER ART:
 - Create a striking, professional album cover suitable for music streaming platforms
-- Focus on mood, atmosphere, color, and symbolism inspired by the lyrics
-- Use bold, evocative imagery — abstract, surreal, photorealistic, or painterly styles are all welcome
-- Do NOT include any written text, words, letters, band names, song titles, or typography in the image
-- Keep composition clean and visually impactful at both large and thumbnail sizes`
+- Use the lyrics/description for overall mood, theme, and color — capture the feeling rather than illustrating words one-for-one
+- People and real-life scenes are welcome when they fit the song (e.g. a couple dancing in a kitchen)
+- Landscapes, nature, light, weather, abstract textures, and symbolic objects are also great
+- Cinematic lighting with rich, harmonious color; clean composition that reads well as a thumbnail
+
+STRICT RULES (very important):
+- A full-bleed square image that fills the ENTIRE square frame edge-to-edge
+- Do NOT render the art as a circle, vinyl record, badge, sticker, or framed shape sitting on a background; no borders, margins, or empty backdrop around the artwork
+- Any people must be whole, natural, and anatomically correct, tastefully depicted
+- NO disembodied or partial body parts (no hands, arms, or legs without a body), no distorted, malformed, or extra limbs or faces
+- Nothing creepy, uncanny, unsettling, or gory
+- Do NOT include text, words, letters, band names, song titles, or typography`
 
         result = await generateImage({
           userId: user.id,

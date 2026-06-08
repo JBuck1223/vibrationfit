@@ -63,7 +63,7 @@ export async function GET(
 
     const { data: song } = await supabase
       .from('songs')
-      .select('id, user_id')
+      .select('id, user_id, metadata')
       .eq('id', songId)
       .eq('user_id', user.id)
       .single()
@@ -71,6 +71,13 @@ export async function GET(
     if (!song) {
       return NextResponse.json({ error: 'Song not found' }, { status: 404 })
     }
+
+    // Album art auto-generated at "Create My Track" time is stored on the song;
+    // apply it to each track as it's created.
+    const songMeta = typeof song.metadata === 'object' && song.metadata
+      ? song.metadata as Record<string, unknown>
+      : {}
+    const songCoverUrl = typeof songMeta.custom_cover_url === 'string' ? songMeta.custom_cover_url : null
 
     console.log(`[SongPoll] Querying Mureka task: ${taskId}`)
     const taskResult = await mureka.queryTask(taskId)
@@ -103,6 +110,27 @@ export async function GET(
     }
 
     console.log(`[SongPoll] Task complete, ${songs.length} tracks. Downloading to S3...`)
+
+    // Idempotency guard: if this task's tracks were already inserted by a prior
+    // poll, return them instead of inserting duplicates. The client polls every
+    // few seconds and the S3 download can outlast that interval, so overlapping
+    // completed polls would otherwise stack up duplicate tracks.
+    const { data: alreadyInserted } = await supabase
+      .from('song_tracks')
+      .select('id, version, mp3_url, duration_ms')
+      .eq('song_id', songId)
+      .eq('mureka_task_id', taskId)
+
+    if (alreadyInserted && alreadyInserted.length > 0) {
+      await supabase
+        .from('songs')
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .eq('id', songId)
+        .eq('user_id', user.id)
+
+      console.log(`[SongPoll] Tracks for task ${taskId} already exist (${alreadyInserted.length}); skipping insert.`)
+      return NextResponse.json({ status: 'completed', tracks: alreadyInserted })
+    }
 
     const { data: existingTracks } = await supabase
       .from('song_tracks')
@@ -145,6 +173,7 @@ export async function GET(
           version,
           mp3_url: mp3Url,
           s3_key: mp3S3Key,
+          cover_url: songCoverUrl,
           duration_ms: murekaSong.duration || null,
           is_favorite: false,
           status: 'completed',
@@ -159,7 +188,19 @@ export async function GET(
         .single()
 
       if (trackError) {
-        console.error(`[SongPoll] Failed to insert track version ${version}:`, trackError)
+        // 23505 = unique violation: another concurrent poll already inserted
+        // this Mureka song. Fetch and reuse it instead of erroring.
+        if ((trackError as { code?: string }).code === '23505') {
+          const { data: existing } = await supabase
+            .from('song_tracks')
+            .select('id, version, mp3_url, duration_ms')
+            .eq('song_id', songId)
+            .eq('mureka_song_id', murekaSong.id)
+            .maybeSingle()
+          if (existing) tracks.push(existing)
+        } else {
+          console.error(`[SongPoll] Failed to insert track version ${version}:`, trackError)
+        }
       } else if (track) {
         tracks.push(track)
       }

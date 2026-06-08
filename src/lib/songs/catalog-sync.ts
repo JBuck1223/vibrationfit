@@ -23,15 +23,25 @@ const ENTITY_CATEGORY_LOOKUP: Record<string, { table: string; column: string }> 
   journal_entry: { table: 'journal_entries', column: 'life_category' },
 }
 
-/** Resolve the life category keys attached to a song via its source entity. */
+/**
+ * Resolve the life category keys for a song. Prefers the creator's explicit
+ * tags (songs.life_categories) and falls back to the source entity's category.
+ */
 export async function getSongLifeCategories(db: AdminDb, songId: string): Promise<string[]> {
   const { data: song } = await db
     .from('songs')
-    .select('entity_type, entity_id')
+    .select('entity_type, entity_id, life_categories')
     .eq('id', songId)
     .single()
 
-  if (!song?.entity_id) return []
+  if (!song) return []
+
+  // Creator-selected tags take precedence (source-agnostic tagging).
+  if (Array.isArray(song.life_categories) && song.life_categories.length > 0) {
+    return song.life_categories as string[]
+  }
+
+  if (!song.entity_id) return []
 
   const lookup = ENTITY_CATEGORY_LOOKUP[song.entity_type as string]
   if (!lookup) return []

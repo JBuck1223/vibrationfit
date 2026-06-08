@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { mureka } from '@/lib/mureka/client'
+import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -20,6 +21,7 @@ interface GenerateMusicBody {
   style_prompt?: string
   reference_id?: string
   lyrics?: string
+  life_categories?: string[]
   reference_meta?: {
     youtube_url?: string
     title?: string
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: GenerateMusicBody = await request.json()
-    const { song_id, style_prompt: overrideStyle, reference_id, lyrics: overrideLyrics, reference_meta } = body
+    const { song_id, style_prompt: overrideStyle, reference_id, lyrics: overrideLyrics, life_categories, reference_meta } = body
 
     if (!song_id) {
       return NextResponse.json({ error: 'song_id is required' }, { status: 400 })
@@ -61,10 +63,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Music generation already in progress' }, { status: 409 })
     }
 
-    const lyrics = (overrideLyrics?.trim() || song.lyrics)?.trim()
-    if (!lyrics) {
+    const rawLyrics = (overrideLyrics?.trim() || song.lyrics)?.trim()
+    if (!rawLyrics) {
       return NextResponse.json({ error: 'Song has no lyrics. Generate lyrics first.' }, { status: 400 })
     }
+    // Strip any leading title/"#" header so Mureka doesn't sing it.
+    const lyrics = stripLyricsTitleHeader(rawLyrics)
 
     const stylePrompt = overrideStyle?.trim() || song.style_prompt || 'uplifting, emotional, modern'
     const nextGenerationCount = (song.generation_count || 0) + 1
@@ -97,6 +101,7 @@ export async function POST(request: NextRequest) {
         status: 'generating_music',
         style_prompt: stylePrompt,
         generation_count: nextGenerationCount,
+        ...(Array.isArray(life_categories) ? { life_categories } : {}),
         metadata: {
           ...(typeof song.metadata === 'object' && song.metadata ? song.metadata : {}),
           mureka_task_id: murekaResponse.id,

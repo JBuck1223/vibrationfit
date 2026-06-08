@@ -5,6 +5,27 @@
  * timestamps, produces a timed lyrics structure suitable for synced display.
  */
 
+/**
+ * Removes a leading title/markdown header (e.g. "# Song Name") that models
+ * sometimes prepend to generated lyrics. Keeps section tags like [Verse 1].
+ * Safe to run on already-clean lyrics.
+ */
+export function stripLyricsTitleHeader(lyrics: string): string {
+  if (!lyrics) return lyrics
+  const lines = lyrics.split('\n')
+  let i = 0
+  // Skip leading blank lines and any markdown header lines (#, ##, "# Title").
+  while (i < lines.length) {
+    const trimmed = lines[i].trim()
+    if (trimmed === '' || /^#{1,6}/.test(trimmed)) {
+      i++
+      continue
+    }
+    break
+  }
+  return lines.slice(i).join('\n').replace(/^\n+/, '')
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface WhisperWord {

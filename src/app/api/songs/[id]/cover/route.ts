@@ -15,9 +15,10 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
 import { createClient } from '@/lib/supabase/server'
 import { applyAlbumArtWatermark } from '@/lib/audio/apply-album-art-branding'
+import { generateImage } from '@/lib/services/imageService'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120
 
 const BUCKET = 'vibration-fit-client-storage'
 const CDN_URL = 'https://media.vibrationfit.com'
@@ -32,6 +33,29 @@ const s3 = new S3Client({
 })
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+
+function buildAlbumArtPrompt(lyrics: string, title?: string): string {
+  const forLine = title ? `for the song "${title}"` : 'for an original song'
+  return `Create a professional, beautiful album cover ${forLine}. Use the lyrics below for the overall mood, theme, and color — capture the feeling rather than illustrating words one-for-one.
+
+"""
+${lyrics.slice(0, 1200)}
+"""
+
+VISUAL DIRECTION:
+- Evocative and emotionally resonant, suitable for Spotify / Apple Music
+- People and real-life scenes are welcome when they fit the song (e.g. a couple dancing in a kitchen, a person watching a sunrise)
+- Landscapes, nature, light, weather, abstract textures, and symbolic objects are also great
+- Cinematic lighting with rich, harmonious color; clean composition that reads well as a small thumbnail
+
+STRICT RULES (very important):
+- A full-bleed square image that fills the ENTIRE square frame edge-to-edge
+- Do NOT render the art as a circle, vinyl record, badge, sticker, or framed shape sitting on a background; no borders, margins, or empty backdrop around the artwork
+- Any people must be whole, natural, and anatomically correct, tastefully depicted
+- NO disembodied or partial body parts (no hands, arms, or legs without a body), no distorted, malformed, or extra limbs or faces
+- Nothing creepy, uncanny, unsettling, or gory
+- Do NOT include text, words, letters, logos, or typography`
+}
 
 async function processAlbumArtImage(inputBuffer: Buffer): Promise<{ buffer: Buffer; contentType: string }> {
   const resized = await sharp(inputBuffer)
@@ -148,20 +172,69 @@ export async function POST(
       coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
     } else {
       const body = await request.json()
-      const { cover_url } = body
 
-      if (!cover_url || typeof cover_url !== 'string') {
-        return NextResponse.json({ error: 'cover_url is required' }, { status: 400 })
+      // Auto-generate album art from the song's lyrics (VIVA + VF logo watermark).
+      if (body?.generate === true) {
+        const { data: song } = await supabase
+          .from('songs')
+          .select('id, title, lyrics, metadata')
+          .eq('id', songId)
+          .eq('user_id', user.id)
+          .single()
+
+        if (!song) {
+          return NextResponse.json({ error: 'Song not found' }, { status: 404 })
+        }
+
+        const existingMeta = typeof song.metadata === 'object' && song.metadata
+          ? song.metadata as Record<string, unknown>
+          : {}
+
+        // Idempotent: don't regenerate if art already exists (e.g. retried request).
+        if (typeof existingMeta.custom_cover_url === 'string' && existingMeta.custom_cover_url) {
+          return NextResponse.json({ success: true, cover_url: existingMeta.custom_cover_url, skipped: true })
+        }
+
+        if (!song.lyrics?.trim()) {
+          return NextResponse.json({ error: 'Song has no lyrics to base art on' }, { status: 400 })
+        }
+
+        const genResult = await generateImage({
+          userId: user.id,
+          prompt: buildAlbumArtPrompt(song.lyrics, song.title || undefined),
+          quality: 'standard',
+          style: 'vivid',
+          context: 'album_art',
+          dimension: 'square',
+        })
+
+        if (!genResult.success || !genResult.imageUrl) {
+          return NextResponse.json({ error: genResult.error || 'Failed to generate album art' }, { status: 500 })
+        }
+
+        const imageResponse = await fetch(genResult.imageUrl)
+        if (!imageResponse.ok) {
+          return NextResponse.json({ error: 'Failed to fetch generated art' }, { status: 500 })
+        }
+        const inputBuffer = Buffer.from(await imageResponse.arrayBuffer())
+        const processed = await processAlbumArtImage(inputBuffer)
+        coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
+      } else {
+        const { cover_url } = body
+
+        if (!cover_url || typeof cover_url !== 'string') {
+          return NextResponse.json({ error: 'cover_url is required' }, { status: 400 })
+        }
+
+        const imageResponse = await fetch(cover_url)
+        if (!imageResponse.ok) {
+          return NextResponse.json({ error: 'Failed to fetch cover image' }, { status: 400 })
+        }
+
+        const inputBuffer = Buffer.from(await imageResponse.arrayBuffer())
+        const processed = await processAlbumArtImage(inputBuffer)
+        coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
       }
-
-      const imageResponse = await fetch(cover_url)
-      if (!imageResponse.ok) {
-        return NextResponse.json({ error: 'Failed to fetch cover image' }, { status: 400 })
-      }
-
-      const inputBuffer = Buffer.from(await imageResponse.arrayBuffer())
-      const processed = await processAlbumArtImage(inputBuffer)
-      coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
     }
 
     const result = await saveCoverUrl(supabase, songId, user.id, coverUrl)

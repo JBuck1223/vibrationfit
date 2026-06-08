@@ -43,7 +43,12 @@ export function useSongGeneration({ song, onComplete }: UseSongGenerationOptions
     if (!taskId) return
 
     setPolling(true)
+    let inFlight = false
     const interval = setInterval(async () => {
+      // Skip if the previous poll hasn't resolved (S3 download can outlast the
+      // interval) to avoid overlapping requests inserting duplicate tracks.
+      if (inFlight) return
+      inFlight = true
       try {
         const res = await fetch(`/api/songs/poll/${taskId}?song_id=${songId}`)
         const data = await res.json()
@@ -60,6 +65,8 @@ export function useSongGeneration({ song, onComplete }: UseSongGenerationOptions
         }
       } catch {
         // Keep polling
+      } finally {
+        inFlight = false
       }
     }, 5000)
 
