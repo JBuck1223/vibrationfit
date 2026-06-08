@@ -66,6 +66,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid YouTube URL' }, { status: 400 })
     }
 
+    // Fetch the video title via YouTube oEmbed (free, no key required)
+    let videoTitle: string | null = null
+    try {
+      const oembedRes = await fetch(
+        `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+        { signal: AbortSignal.timeout(5000) }
+      )
+      if (oembedRes.ok) {
+        const oembed = await oembedRes.json()
+        videoTitle = oembed.title || null
+      }
+    } catch {
+      // Non-critical — proceed without title
+    }
+
     // Step 1: ask the RapidAPI downloader for a temporary MP3 download URL
     const apiRes = await fetch(
       `https://${RAPIDAPI_HOST}/download/mp3?url=${encodeURIComponent(url)}`,
@@ -112,7 +127,12 @@ export async function POST(request: NextRequest) {
     const audioUrl = `${CDN_URL}/${key}`
 
     // Client computes the real duration from the waveform; this is a placeholder.
-    return NextResponse.json({ audio_url: audioUrl, duration: 0 })
+    return NextResponse.json({
+      audio_url: audioUrl,
+      duration: 0,
+      title: videoTitle,
+      youtube_url: url,
+    })
   } catch (err) {
     console.error('[ExtractYouTube] Error:', err)
     const message = err instanceof Error ? err.message : 'Extraction failed'

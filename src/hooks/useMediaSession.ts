@@ -52,8 +52,8 @@ export function useMediaSession({
       const artworkSrc = track.thumbnail || DEFAULT_ARTWORK_URL
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
-        artist: track.artist || 'VibrationFit',
-        album: 'VibrationFit',
+        artist: track.artist || 'Vibration Fit',
+        album: 'Vibration Fit',
         artwork: [
           { src: artworkSrc, sizes: '512x512', type: 'image/png' },
         ],

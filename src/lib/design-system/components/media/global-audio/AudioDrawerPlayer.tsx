@@ -5,6 +5,7 @@ import { Play, Pause, SkipBack, SkipForward, ChevronDown, X, Shuffle, Repeat, Lo
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { colors } from '../../../tokens'
 import { TrackArtwork } from './TrackArtwork'
+import { TrackNowPlayingMeta, MusicTrackListSubtitle, isSongNowPlayingTrack } from './TrackArtistLine'
 import { cn } from '../../shared-utils'
 import { SyncedLyricsDisplay, PlainLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
 import type { SyncedLyrics } from '@/lib/utils/lyrics-alignment'
@@ -24,6 +25,7 @@ export function AudioDrawerPlayer() {
   const duration = useGlobalAudioStore(s => s.duration)
   const setName = useGlobalAudioStore(s => s.setName)
   const setIconKey = useGlobalAudioStore(s => s.setIconKey)
+  const contentCategory = useGlobalAudioStore(s => s.contentCategory)
   const repeatMode = useGlobalAudioStore(s => s.repeatMode)
   const isShuffled = useGlobalAudioStore(s => s.isShuffled)
   const isDrawerOpen = useGlobalAudioStore(s => s.isDrawerOpen)
@@ -167,9 +169,15 @@ export function AudioDrawerPlayer() {
               <h3 className="text-xl font-semibold text-white truncate">
                 {currentTrack.title}
               </h3>
-              <p className="text-sm text-neutral-400 mt-1 truncate">
-                {setName || currentTrack.artist || 'Vibration Fit'}
-              </p>
+              <div className="mt-1">
+                {isSongNowPlayingTrack(currentTrack, contentCategory) ? (
+                  <TrackNowPlayingMeta track={currentTrack} />
+                ) : (
+                  <p className="text-sm text-neutral-400 truncate">
+                    {setName || currentTrack.artist || 'Vibration Fit'}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="w-full mb-4">
@@ -287,7 +295,13 @@ export function AudioDrawerPlayer() {
                       />
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-medium">{track.title}</p>
-                        {track.artist && <p className="truncate text-xs text-neutral-500">{track.artist}</p>}
+                        {track.versionLabel ? (
+                          <p className="truncate text-xs text-neutral-500">{track.versionLabel}</p>
+                        ) : isSongNowPlayingTrack(track, contentCategory) ? (
+                          <MusicTrackListSubtitle albumLabel={track.albumLabel} />
+                        ) : track.artist ? (
+                          <p className="truncate text-xs text-neutral-500">{track.artist}</p>
+                        ) : null}
                       </div>
                       <span className="text-xs text-neutral-500 flex-shrink-0 tabular-nums">
                         {track.duration && track.duration > 0 ? formatTime(track.duration) : ''}

@@ -472,7 +472,7 @@ export function JournalEditForm({
                 {imageSource === 'ai' && (
                   <AIImageGenerator
                     type="journal"
-                    onImageGenerated={(url) => setAiGeneratedImageUrls([url])}
+                    onImageGenerated={(url) => setAiGeneratedImageUrls(url ? [url] : [])}
                     journalText={
                       formData.title && formData.content
                         ? `${formData.title}. ${formData.content}`

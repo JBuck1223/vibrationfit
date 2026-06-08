@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useRef, useEffect } from 'react'
+import React from 'react'
 import { cn } from '../shared-utils'
-// Auto-Resize Textarea Component
+import { scrollSafeAutoResize } from './auto-resize-utils'
+
 interface AutoResizeTextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
   label?: string
   error?: string
@@ -31,56 +32,26 @@ export const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResi
       return textareaRef
     }, [ref])
 
-    const getScrollParent = React.useCallback((el: HTMLElement | null): HTMLElement | null => {
-      if (!el) return null
-      let parent = el.parentElement
-      while (parent) {
-        const { overflow, overflowY } = getComputedStyle(parent)
-        if (/(auto|scroll)/.test(overflow + overflowY)) return parent
-        parent = parent.parentElement
-      }
-      return null
-    }, [])
-
-    const autoResize = React.useCallback(() => {
+    const doResize = React.useCallback(() => {
       if (textareaRef.current) {
-        const scrollParent = getScrollParent(textareaRef.current)
-        const prevScroll = scrollParent ? scrollParent.scrollTop : window.scrollY
-        textareaRef.current.style.height = 'auto'
-        const scrollHeight = textareaRef.current.scrollHeight
-        const newHeight = Math.max(scrollHeight, minHeight)
-        textareaRef.current.style.height = `${newHeight}px`
-        textareaRef.current.style.overflowY = 'hidden'
-        if (scrollParent) {
-          if (scrollParent.scrollTop !== prevScroll) scrollParent.scrollTop = prevScroll
-        } else if (window.scrollY !== prevScroll) {
-          window.scrollTo({ top: prevScroll })
-        }
+        scrollSafeAutoResize(textareaRef.current, { minHeight, maxHeight })
       }
-    }, [minHeight, getScrollParent])
+    }, [minHeight, maxHeight])
 
-    // Auto-resize when value changes
     React.useEffect(() => {
-      // Use requestAnimationFrame to ensure DOM has updated
-      requestAnimationFrame(() => {
-        autoResize()
-      })
-    }, [value, autoResize])
+      doResize()
+    }, [value, doResize])
 
-    // Also auto-resize on mount
     React.useEffect(() => {
-      autoResize()
-    }, [autoResize])
+      doResize()
+    }, [doResize])
 
-    // Auto-resize when container width changes (e.g., grid toggles)
     React.useEffect(() => {
       const textarea = textareaRef.current
       if (!textarea) return
 
       const resizeObserver = new ResizeObserver(() => {
-        requestAnimationFrame(() => {
-          autoResize()
-        })
+        doResize()
       })
 
       resizeObserver.observe(textarea)
@@ -88,14 +59,11 @@ export const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResi
       return () => {
         resizeObserver.disconnect()
       }
-    }, [autoResize])
+    }, [doResize])
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(e.target.value)
-      // Use requestAnimationFrame for smoother resize
-      requestAnimationFrame(() => {
-        autoResize()
-      })
+      scrollSafeAutoResize(e.target, { minHeight, maxHeight })
     }
 
     return (

@@ -105,6 +105,33 @@ STYLE DIRECTION FOR JOURNAL EVIDENCE IMAGE:
         })
         break
 
+      case 'album_art':
+        if (!prompt) {
+          return NextResponse.json(
+            { error: 'Missing prompt for album art generation' },
+            { status: 400 }
+          )
+        }
+        const albumArtPrompt = `${prompt}
+
+STYLE DIRECTION FOR ALBUM COVER ART:
+- Create a striking, professional album cover suitable for music streaming platforms
+- Focus on mood, atmosphere, color, and symbolism inspired by the lyrics
+- Use bold, evocative imagery — abstract, surreal, photorealistic, or painterly styles are all welcome
+- Do NOT include any written text, words, letters, band names, song titles, or typography in the image
+- Keep composition clean and visually impactful at both large and thumbnail sizes`
+
+        result = await generateImage({
+          userId: user.id,
+          prompt: albumArtPrompt,
+          quality: quality || 'standard',
+          style: style || 'vivid',
+          context: 'album_art',
+          model,
+          dimension: dimension || 'square',
+        })
+        break
+
       case 'custom':
         if (!prompt) {
           return NextResponse.json(
@@ -154,7 +181,7 @@ STYLE DIRECTION FOR JOURNAL EVIDENCE IMAGE:
 
       default:
         return NextResponse.json(
-          { error: 'Invalid type. Must be: vision_board, journal, custom, or edit' },
+          { error: 'Invalid type. Must be: vision_board, journal, album_art, custom, or edit' },
           { status: 400 }
         )
     }

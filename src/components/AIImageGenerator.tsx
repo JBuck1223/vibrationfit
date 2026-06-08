@@ -4,8 +4,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Button, Textarea, Card, Spinner } from '@/lib/design-system/components'
-import { Sparkles, Image as ImageIcon, Loader2, X, Undo2, RefreshCw } from 'lucide-react'
+import { Button, Textarea, Card, Spinner, ImageLightbox } from '@/lib/design-system/components'
+import { Sparkles, Image as ImageIcon, Loader2, X, Undo2, RefreshCw, Check, Maximize2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 // Dimension/aspect ratio options
@@ -13,7 +13,7 @@ type ImageDimension = 'square' | 'landscape_4_3' | 'landscape_16_9' | 'portrait_
 
 interface AIImageGeneratorProps {
   onImageGenerated: (imageUrl: string) => void
-  type: 'vision_board' | 'journal'
+  type: 'vision_board' | 'journal' | 'album_art'
   initialPrompt?: string
   className?: string
   // Vision board specific props
@@ -23,6 +23,8 @@ interface AIImageGeneratorProps {
   // Journal specific props
   journalText?: string
   mood?: string
+  // Album art specific props
+  lyricsText?: string
 }
 
 export function AIImageGenerator({ 
@@ -34,7 +36,8 @@ export function AIImageGenerator({
   title,
   description,
   journalText,
-  mood
+  mood,
+  lyricsText,
 }: AIImageGeneratorProps) {
   const [prompt, setPrompt] = useState(initialPrompt)
   const [generating, setGenerating] = useState(false)
@@ -43,6 +46,7 @@ export function AIImageGenerator({
   const [selectedDimension, setSelectedDimension] = useState<ImageDimension>(
     type === 'vision_board' ? 'landscape_4_3' : 'square'
   )
+  const [albumArtDescription, setAlbumArtDescription] = useState<string>('')
   const [customDescription, setCustomDescription] = useState<string>('')
   const [customJournalDescription, setCustomJournalDescription] = useState<string>(journalText || '')
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0)
@@ -53,6 +57,9 @@ export function AIImageGenerator({
   const [isEditingGenerated, setIsEditingGenerated] = useState(false)
   const [originalImage, setOriginalImage] = useState<string | null>(null)
   const [lastGeneratedDimension, setLastGeneratedDimension] = useState<ImageDimension | null>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+
+  const confirmBeforeUse = type === 'album_art'
 
   const previewAspectClass: Record<ImageDimension, string> = {
     square: 'aspect-square',
@@ -139,6 +146,15 @@ export function AIImageGenerator({
     })
   }, [type, journalText])
 
+  // Seed album art description from lyrics
+  useEffect(() => {
+    if (type !== 'album_art' || !lyricsText?.trim()) return
+    setAlbumArtDescription((prev) => {
+      if (prev.trim()) return prev
+      return `Album cover art inspired by these song lyrics:\n\n${lyricsText.trim()}`
+    })
+  }, [type, lyricsText])
+
   // Handle file preview for edit mode (with HEIC/HEIF conversion)
   useEffect(() => {
     if (baseImage) {
@@ -204,6 +220,11 @@ export function AIImageGenerator({
           toast.error('Please describe the image you want to generate')
           return
         }
+      } else if (type === 'album_art') {
+        if (!albumArtDescription.trim()) {
+          toast.error('Please describe the album art you want to generate')
+          return
+        }
       } else {
         if (!prompt.trim()) {
           toast.error('Please enter a description')
@@ -227,6 +248,8 @@ export function AIImageGenerator({
           finalPrompt = customDescription || (title && description ? `${title}. ${description}` : visionText || '')
         } else if (type === 'journal') {
           finalPrompt = customJournalDescription.trim()
+        } else if (type === 'album_art') {
+          finalPrompt = albumArtDescription.trim()
         } else {
           finalPrompt = prompt.trim()
         }
@@ -324,17 +347,15 @@ export function AIImageGenerator({
       // Hide overlay immediately when image is ready
       setGenerating(false)
       
-      // Automatically use the image for vision board items (both generate and edit modes)
-      if (type === 'vision_board' || ((mode === 'edit' || isEditingGenerated) && type !== 'journal')) {
+      if (!confirmBeforeUse) {
         onImageGenerated(data.imageUrl)
-        if (mode === 'edit' || isEditingGenerated) {
-          toast.success('Image edited and automatically selected!')
-        } else {
-          toast.success('Image generated and automatically selected!')
-        }
+      }
+      if (mode === 'edit' || isEditingGenerated) {
+        toast.success('Image edited successfully!')
+      } else if (confirmBeforeUse) {
+        toast.success('Image generated! Review it below, then save when ready.')
       } else {
-        const successMessage = (mode === 'edit' || isEditingGenerated) ? 'Image edited!' : 'Image generated!'
-        toast.success(`${successMessage} Click "Use This Image" to add it.`)
+        toast.success('Image generated successfully!')
       }
 
     } catch (error: any) {
@@ -347,11 +368,21 @@ export function AIImageGenerator({
   const handleUseImage = () => {
     if (generatedImage) {
       onImageGenerated(generatedImage)
-      toast.success('Image added!')
-      handleClear()
+      toast.success('Image selected!')
     }
   }
 
+  const handleDiscard = () => {
+    setGeneratedImage(null)
+    setRevisedPrompt(null)
+    setPrompt('')
+    setIsEditingGenerated(false)
+    setEditPrompt('')
+    setOriginalImage(null)
+    setLastGeneratedDimension(null)
+    onImageGenerated('')
+    toast.success('Image discarded')
+  }
 
   const handleClear = () => {
     setGeneratedImage(null)
@@ -376,13 +407,24 @@ export function AIImageGenerator({
     if (originalImage) {
       setGeneratedImage(originalImage)
       setOriginalImage(null)
-      onImageGenerated(originalImage)
+      if (!confirmBeforeUse) {
+        onImageGenerated(originalImage)
+      }
       toast.success('Original image restored!')
     }
   }
 
+  const isEmbedded = type === 'album_art'
+
   return (
-    <Card ref={containerRef} className={`p-6 ${className} relative`}>
+    <Card
+      ref={containerRef}
+      className={
+        isEmbedded
+          ? `relative ${className} !rounded-none !border-0 !bg-transparent !p-0 !shadow-none`
+          : `p-6 ${className} relative`
+      }
+    >
       {/* VIVA Loading Overlay */}
       {generating && (
         <div ref={loadingRef} className="absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-50">
@@ -418,12 +460,14 @@ export function AIImageGenerator({
         </div>
       )}
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-gradient-to-br from-accent-500 to-secondary-500 rounded-xl">
-          <Sparkles className="w-5 h-5 text-white" />
+      {!isEmbedded && (
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-gradient-to-br from-accent-500 to-secondary-500 rounded-xl">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-white">Generate Image with VIVA</h3>
         </div>
-        <h3 className="text-lg font-bold text-white">Generate Image with VIVA</h3>
-      </div>
+      )}
 
       {!generatedImage ? (
         <>
@@ -438,6 +482,19 @@ export function AIImageGenerator({
                 onChange={(e) => setCustomDescription(e.target.value)}
                 placeholder="Describe the image you want to create... (e.g., 'A peaceful mountain landscape at sunrise with vibrant colors, inspiring and uplifting')"
                 className="min-h-[100px]"
+                disabled={generating}
+              />
+            </div>
+          ) : type === 'album_art' ? (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                Album Art Description
+              </label>
+              <Textarea
+                value={albumArtDescription}
+                onChange={(e) => setAlbumArtDescription(e.target.value)}
+                placeholder="Describe the album cover you want (mood, colors, style, imagery). VIVA will create a striking visual inspired by your lyrics."
+                className="min-h-[200px] font-mono text-sm"
                 disabled={generating}
               />
             </div>
@@ -464,43 +521,43 @@ export function AIImageGenerator({
             />
           )}
 
-          {/* Dimension Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-neutral-200 mb-2">
-              Dimensions
-            </label>
-            <div className="flex gap-3 flex-wrap">
-              {dimensionOptions.map((dim) => (
-                <button
-                  key={dim.id}
-                  type="button"
-                  onClick={() => setSelectedDimension(dim.id)}
-                  className={`flex flex-col items-center justify-between p-2 rounded-lg border-2 transition-all h-16 ${
-                    selectedDimension === dim.id
-                      ? 'border-primary-500 bg-primary-500/10'
-                      : 'border-neutral-700 bg-neutral-800 hover:border-neutral-600'
-                  }`}
-                  disabled={generating}
-                >
-                  {/* Visual aspect ratio box - centered vertically */}
-                  <div className="flex-1 flex items-center justify-center">
-                    <div 
-                      className={`rounded-sm ${
-                        selectedDimension === dim.id 
-                          ? 'bg-primary-500' 
-                          : 'bg-neutral-500'
-                      }`}
-                      style={{ 
-                        width: `${dim.width}px`, 
-                        height: `${dim.height}px` 
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium text-white mt-1">{dim.ratio}</span>
-                </button>
-              ))}
+          {type !== 'album_art' && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-neutral-200 mb-2">
+                Dimensions
+              </label>
+              <div className="flex gap-3 flex-wrap">
+                {dimensionOptions.map((dim) => (
+                  <button
+                    key={dim.id}
+                    type="button"
+                    onClick={() => setSelectedDimension(dim.id)}
+                    className={`flex flex-col items-center justify-between p-2 rounded-lg border-2 transition-all h-16 ${
+                      selectedDimension === dim.id
+                        ? 'border-primary-500 bg-primary-500/10'
+                        : 'border-neutral-700 bg-neutral-800 hover:border-neutral-600'
+                    }`}
+                    disabled={generating}
+                  >
+                    <div className="flex-1 flex items-center justify-center">
+                      <div
+                        className={`rounded-sm ${
+                          selectedDimension === dim.id
+                            ? 'bg-primary-500'
+                            : 'bg-neutral-500'
+                        }`}
+                        style={{
+                          width: `${dim.width}px`,
+                          height: `${dim.height}px`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-white mt-1">{dim.ratio}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Mode Toggle: Generate vs Edit */}
           <div className="mb-4">
@@ -626,7 +683,8 @@ export function AIImageGenerator({
                 generating ||
                 (mode === 'edit' && (!baseImage || !editPrompt.trim())) ||
                 (mode === 'generate' && type === 'vision_board' && !customDescription.trim()) ||
-                (mode === 'generate' && type === 'journal' && !customJournalDescription.trim())
+                (mode === 'generate' && type === 'journal' && !customJournalDescription.trim()) ||
+                (mode === 'generate' && type === 'album_art' && !albumArtDescription.trim())
               }
               className="flex-1"
               variant="primary"
@@ -651,25 +709,52 @@ export function AIImageGenerator({
           <div
             className={`relative group overflow-hidden rounded-xl border-2 border-primary-500 shadow-lg bg-neutral-900 ${
               previewAspectClass[lastGeneratedDimension || selectedDimension]
-            }`}
+            } ${confirmBeforeUse ? 'cursor-pointer' : ''}`}
+            onClick={confirmBeforeUse ? () => setLightboxOpen(true) : undefined}
+            onKeyDown={confirmBeforeUse ? (e) => { if (e.key === 'Enter' || e.key === ' ') setLightboxOpen(true) } : undefined}
+            role={confirmBeforeUse ? 'button' : undefined}
+            tabIndex={confirmBeforeUse ? 0 : undefined}
+            aria-label={confirmBeforeUse ? 'View full size image' : undefined}
           >
             <img
               src={generatedImage}
               alt="Generated"
               className="h-full w-full object-contain"
             />
+            {confirmBeforeUse && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:bg-black/30 group-hover:opacity-100">
+                <span className="flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white">
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  View full size
+                </span>
+              </div>
+            )}
             <button
               type="button"
-              onClick={handleClear}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDiscard()
+              }}
               className="absolute top-2 right-2 p-2 bg-black/80 hover:bg-black rounded-full transition-colors opacity-0 group-hover:opacity-100"
             >
               <X className="w-4 h-4 text-white" />
             </button>
           </div>
-          <p className="text-xs text-neutral-500 text-center">
-            Aspect ratio:{' '}
-            {dimensionOptions.find((d) => d.id === (lastGeneratedDimension || selectedDimension))?.ratio}
-          </p>
+          {confirmBeforeUse && (
+            <p className="text-xs text-neutral-500 text-center">
+              Tap image to view full size
+            </p>
+          )}
+          {type === 'album_art' ? (
+            <p className="text-xs text-neutral-500 text-center">
+              Saved as a 3000×3000 square with the Vibration Fit logo (bottom-right)
+            </p>
+          ) : (
+            <p className="text-xs text-neutral-500 text-center">
+              Aspect ratio:{' '}
+              {dimensionOptions.find((d) => d.id === (lastGeneratedDimension || selectedDimension))?.ratio}
+            </p>
+          )}
 
           {/* Revised Prompt (if available) */}
           {revisedPrompt && revisedPrompt !== prompt && (
@@ -728,36 +813,29 @@ export function AIImageGenerator({
             </div>
           ) : (
             <>
-              {/* Action Buttons */}
-              <div className="flex gap-3">
+              {confirmBeforeUse && (
                 <Button
                   onClick={handleUseImage}
                   variant="primary"
-                  className="flex-1"
+                  className="w-full"
                 >
-                  <ImageIcon className="w-4 h-4 mr-2" />
+                  <Check className="w-4 h-4 mr-2" />
                   Use This Image
                 </Button>
-                
-                <Button
-                  onClick={handleClear}
-                  variant="ghost"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
+              )}
 
+              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={() => {
                     setGeneratedImage(null)
                     setOriginalImage(null)
                   }}
-                  variant="outline-purple"
+                  variant="primary"
                   className="flex-1"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Generate Another
+                  Regenerate
                 </Button>
                 <Button
                   onClick={handleEditGeneratedImage}
@@ -768,6 +846,15 @@ export function AIImageGenerator({
                   Edit This Image
                 </Button>
               </div>
+
+              <Button
+                onClick={handleDiscard}
+                variant="ghost"
+                className="w-full text-neutral-400"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Discard Image
+              </Button>
 
               {/* Restore Original Button - only show if there's an original saved */}
               {originalImage && (
@@ -783,6 +870,19 @@ export function AIImageGenerator({
             </>
           )}
         </div>
+      )}
+
+      {confirmBeforeUse && generatedImage && (
+        <ImageLightbox
+          images={[{ url: generatedImage, alt: 'Generated album art' }]}
+          currentIndex={0}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          showCopyButton={false}
+          showNavigation={false}
+          showThumbnails={false}
+          showCounter={false}
+        />
       )}
     </Card>
   )

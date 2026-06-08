@@ -104,10 +104,20 @@ export async function GET(
 
     console.log(`[SongPoll] Task complete, ${songs.length} tracks. Downloading to S3...`)
 
+    const { data: existingTracks } = await supabase
+      .from('song_tracks')
+      .select('version')
+      .eq('song_id', songId)
+
+    const maxVersion = (existingTracks || []).reduce((max, t) => {
+      const n = parseInt(String(t.version), 10)
+      return Number.isFinite(n) ? Math.max(max, n) : max
+    }, 0)
+
     const tracks = []
     for (let i = 0; i < songs.length; i++) {
       const murekaSong = songs[i]
-      const version = String(i + 1)
+      const version = String(maxVersion + i + 1)
       const s3Prefix = `user-uploads/${user.id}/songs/${songId}`
 
       let mp3Url: string | null = null
@@ -125,9 +135,9 @@ export async function GET(
         }
       }
 
-      const { data: track } = await supabase
+      const { data: track, error: trackError } = await supabase
         .from('song_tracks')
-        .upsert({
+        .insert({
           song_id: songId,
           user_id: user.id,
           mureka_task_id: taskId,
@@ -144,11 +154,15 @@ export async function GET(
             mureka_wav_url: murekaSong.wav_url,
             lyrics_sections: murekaSong.lyrics_sections || null,
           },
-        }, { onConflict: 'song_id,version' })
+        })
         .select('id, version, mp3_url, duration_ms')
         .single()
 
-      if (track) tracks.push(track)
+      if (trackError) {
+        console.error(`[SongPoll] Failed to insert track version ${version}:`, trackError)
+      } else if (track) {
+        tracks.push(track)
+      }
     }
 
     await supabase
