@@ -15,6 +15,10 @@ function isBenignMediaRejection(reason: unknown): boolean {
   return /play\(\) request was interrupted|The operation was aborted/i.test(msg)
 }
 
+function isBenignResizeObserverError(message: string): boolean {
+  return /ResizeObserver loop (completed with undelivered notifications|limit exceeded)/i.test(message)
+}
+
 /** Last captured error for debugging (e.g. in console or copy-paste) */
 let lastGlobalError: { message: string; stack?: string; type: string } | null = null
 
@@ -32,6 +36,10 @@ export function GlobalErrorCapture() {
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       const message = event.message || 'Unknown error'
+      if (isBenignResizeObserverError(message)) {
+        event.preventDefault()
+        return
+      }
       const detail = event.error?.stack ?? event.filename ? `${event.filename}:${event.lineno}` : undefined
       lastGlobalError = { message, stack: event.error?.stack, type: 'error' }
       console.error(LOG_PREFIX, 'Uncaught error:', message, detail || '', event.error)

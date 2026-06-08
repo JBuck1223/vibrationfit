@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, Button, Textarea, Input, Stack, VIVALoadingOverlay } from '@/lib/design-system/components'
-import { Loader2, Pause, Play, RefreshCw, Save, X, Youtube } from 'lucide-react'
+import { Loader2, Music2, Pause, Play, RefreshCw, Save, X, Youtube } from 'lucide-react'
 import { cn } from '@/lib/design-system/components/shared-utils'
 import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-studio/ReferenceLibraryPicker'
 
@@ -282,7 +282,7 @@ export function SongRegeneratePanel({
                 className="mb-2"
                 onSelect={(ref: ReferenceTrack) => {
                   if (ref.youtube_url) setYoutubeUrl(ref.youtube_url)
-                  if (ref.full_audio_url) setAudioUrl(ref.full_audio_url)
+                  setAudioUrl(null)
                   if (ref.title) setReferenceTitle(ref.title)
                   if (ref.mureka_file_id) setReferenceId(ref.mureka_file_id)
                   if (ref.clip_url) setReferenceClipUrl(ref.clip_url)
@@ -291,13 +291,33 @@ export function SongRegeneratePanel({
                 }}
               />
 
-              {savedReference?.title && !audioUrl && (
-                <div className="mb-2 flex items-center gap-2 rounded-lg bg-neutral-800/60 px-3 py-2">
-                  <Youtube className="h-4 w-4 flex-shrink-0 text-neutral-400" />
-                  <p className="flex-1 truncate text-xs text-neutral-300">{savedReference.title}</p>
-                  <span className="text-[10px] text-neutral-500">
-                    {savedReference.start?.toFixed(0)}s – {savedReference.end?.toFixed(0)}s
-                  </span>
+              {referenceId && !audioUrl && (referenceTitle || savedReference?.title) && (
+                <div className="mb-2 flex items-center gap-3 rounded-lg border border-[#39FF14]/20 bg-[#39FF14]/5 px-3 py-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                    <Music2 className="h-4 w-4 text-[#39FF14]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-neutral-200">{referenceTitle || savedReference?.title}</p>
+                    <p className="text-[10px] text-neutral-500">
+                      {regionStart.toFixed(0)}s – {regionEnd.toFixed(0)}s · Ready to use
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => { setReferenceId(null); setReferenceClipUrl(null); loadYoutubeAudio() }}
+                      className="rounded px-2 py-1 text-[10px] font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+                    >
+                      Change section
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setReferenceId(null); setReferenceTitle(null); setReferenceClipUrl(null); setYoutubeUrl('') }}
+                      className="text-neutral-500 hover:text-neutral-300"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               )}
               <VIVALoadingOverlay
@@ -311,22 +331,24 @@ export function SongRegeneratePanel({
                 ]}
                 cycleDuration={5000}
               />
-              <div className="flex items-center gap-2">
-                <div className="flex flex-1 items-center gap-2 rounded-lg border border-neutral-700 bg-black/40 px-3 focus-within:border-[#39FF14]/50">
-                  <Youtube className="h-4 w-4 shrink-0 text-neutral-500" />
-                  <input
-                    type="url"
-                    value={youtubeUrl}
-                    onChange={e => setYoutubeUrl(e.target.value)}
-                    placeholder="https://youtube.com/watch?v=..."
-                    className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none"
-                    onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
-                  />
+              {!referenceId && (
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-neutral-700 bg-black/40 px-3 focus-within:border-[#39FF14]/50">
+                    <Youtube className="h-4 w-4 shrink-0 text-neutral-500" />
+                    <input
+                      type="url"
+                      value={youtubeUrl}
+                      onChange={e => setYoutubeUrl(e.target.value)}
+                      placeholder="https://youtube.com/watch?v=..."
+                      className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none"
+                      onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
+                    />
+                  </div>
+                  <Button variant="ghost" onClick={loadYoutubeAudio} disabled={!youtubeUrl.trim() || audioLoading}>
+                    {audioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load'}
+                  </Button>
                 </div>
-                <Button variant="ghost" onClick={loadYoutubeAudio} disabled={!youtubeUrl.trim() || audioLoading}>
-                  {audioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load'}
-                </Button>
-              </div>
+              )}
 
               {audioError && <p className="mt-2 text-xs text-red-400">{audioError}</p>}
 

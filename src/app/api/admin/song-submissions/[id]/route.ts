@@ -93,6 +93,20 @@ async function addToCatalog(
     .maybeSingle()
 
   if (existing) {
+    const lifeCategories = Array.isArray(submission.life_categories) ? submission.life_categories : []
+    if (lifeCategories.length > 0) {
+      const { data: row } = await db
+        .from('music_catalog')
+        .select('tags')
+        .eq('id', existing.id)
+        .single()
+
+      const mergedTags = [...new Set([...(row?.tags || []), ...lifeCategories])]
+      await db
+        .from('music_catalog')
+        .update({ tags: mergedTags, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+    }
     console.log('[SongSubmission] Track already in catalog:', existing.id)
     return
   }
@@ -100,7 +114,11 @@ async function addToCatalog(
   const { error } = await db.from('music_catalog').insert({
     title,
     artist: 'Vibration Fit',
-    tags: ['member-created'],
+    tags: [
+      'member-created',
+      `creator:${submission.user_id}`,
+      ...(Array.isArray(submission.life_categories) ? submission.life_categories : []),
+    ],
     preview_url: track.mp3_url,
     artwork_url: track.cover_url || null,
     duration_seconds: durationSec,

@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Container, Stack, Card, Button } from '@/lib/design-system/components'
-import { ChevronLeft, Loader2 } from 'lucide-react'
+import { ChevronLeft, Loader2, CheckCircle, Headphones, Music2 } from 'lucide-react'
 import { useSong } from '@/lib/songs/hooks/useSong'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
 import { SongRegeneratePanel } from '@/components/audio-studio/SongRegeneratePanel'
@@ -13,10 +13,14 @@ export default function SongDetailPage() {
   const router = useRouter()
   const songId = params.songId as string
   const { song, tracks, loading, error, refetch } = useSong(songId)
+  const [justCompleted, setJustCompleted] = useState(false)
 
   const { generateMore, isGenerating, error: generateError } = useSongGeneration({
     song,
-    onComplete: refetch,
+    onComplete: () => {
+      refetch()
+      setJustCompleted(true)
+    },
   })
 
   const handleSaveLyrics = useCallback(async (lyrics: string, stylePrompt: string) => {
@@ -73,6 +77,45 @@ export default function SongDetailPage() {
             </p>
           </div>
         </div>
+
+        {justCompleted && tracks.length > 0 && (
+          <Card variant="glass" className="border-[#39FF14]/30 p-5">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#39FF14]/10">
+                <CheckCircle className="h-7 w-7 text-[#39FF14]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Your song is ready</h3>
+                <p className="mt-1 text-sm text-neutral-400">
+                  {tracks.length} version{tracks.length !== 1 ? 's' : ''} generated. Head to your library to listen.
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                onClick={() => router.push('/audio/songs')}
+                className="mt-1"
+              >
+                <Headphones className="mr-2 h-4 w-4" />
+                Listen Now
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {isGenerating && (
+          <Card variant="glass" className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#39FF14]/10">
+                <Music2 className="h-5 w-5 animate-pulse text-[#39FF14]" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">VIVA is composing your track...</p>
+                <p className="mt-0.5 text-xs text-neutral-500">This usually takes 1-3 minutes</p>
+              </div>
+              <Loader2 className="h-5 w-5 animate-spin text-neutral-500" />
+            </div>
+          </Card>
+        )}
 
         {song.lyrics && (
           <SongRegeneratePanel

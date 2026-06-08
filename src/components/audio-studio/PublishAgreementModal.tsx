@@ -1,18 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Music2, CheckSquare, Square, Send, Loader2, ChevronDown } from 'lucide-react'
-import { Button, Card } from '@/lib/design-system/components'
+import { X, CheckSquare, Square, Loader2, ChevronDown, ShieldCheck } from 'lucide-react'
+import { Button } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 
 interface PublishAgreementModalProps {
   isOpen: boolean
   onClose: () => void
-  songId: string
-  trackId: string
-  songTitle: string
-  trackVersion: string
-  coverUrl?: string
   onSuccess: () => void
 }
 
@@ -69,14 +64,34 @@ const AGREEMENT_SECTIONS = [
   },
 ]
 
+function AgreementPanel({ onCollapse }: { onCollapse: () => void }) {
+  return (
+    <div className="rounded-xl border border-neutral-800 bg-black/40 overflow-hidden">
+      <button
+        type="button"
+        onClick={onCollapse}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-neutral-300 hover:text-white transition-colors"
+      >
+        <span>Song Publishing Agreement</span>
+        <ChevronDown className="w-4 h-4 rotate-180" />
+      </button>
+      <div className="max-h-64 overflow-y-auto px-4 pb-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
+        {AGREEMENT_SECTIONS.map((section) => (
+          <div key={section.title}>
+            <h4 className="text-sm font-medium text-white mb-1">{section.title}</h4>
+            {section.paragraphs.map((p, i) => (
+              <p key={i} className="text-xs text-neutral-400 leading-relaxed mb-2 last:mb-0">{p}</p>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function PublishAgreementModal({
   isOpen,
   onClose,
-  songId,
-  trackId,
-  songTitle,
-  trackVersion,
-  coverUrl,
   onSuccess,
 }: PublishAgreementModalProps) {
   const [legalName, setLegalName] = useState('')
@@ -117,24 +132,20 @@ export function PublishAgreementModal({
     setError(null)
 
     try {
-      const res = await fetch('/api/admin/song-submissions', {
+      const res = await fetch('/api/songs/publishing-agreement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          song_id: songId,
-          track_id: trackId,
-          songwriter_legal_name: legalName.trim(),
-        }),
+        body: JSON.stringify({ songwriter_legal_name: legalName.trim() }),
       })
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Submission failed')
+        throw new Error(data.error || 'Could not save your agreement')
       }
 
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Submission failed')
+      setError(err instanceof Error ? err.message : 'Could not save your agreement')
     } finally {
       setSubmitting(false)
     }
@@ -147,7 +158,7 @@ export function PublishAgreementModal({
       <div className="bg-[#141414] border border-neutral-700 rounded-2xl max-w-lg w-full shadow-2xl my-8 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
-          <h2 className="text-lg font-semibold text-white">Submit to Vibration Fit Music</h2>
+          <h2 className="text-lg font-semibold text-white">Song Publishing Agreement</h2>
           <button
             onClick={onClose}
             className="p-2 text-neutral-500 hover:text-white transition-colors rounded-lg"
@@ -157,48 +168,43 @@ export function PublishAgreementModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          {/* Song preview */}
-          <Card variant="glass" className="flex items-center gap-3 !p-2">
-            {coverUrl ? (
-              <img src={coverUrl} alt={songTitle} className="w-10 h-10 rounded-lg object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-[#39FF14]/10 flex items-center justify-center">
-                <Music2 className="w-5 h-5 text-[#39FF14]" />
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{songTitle}</p>
-              <p className="text-[11px] text-neutral-500">{trackVersion}</p>
+          {/* Intro */}
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#39FF14]/10 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 text-[#39FF14]" />
             </div>
-          </Card>
-
-          {/* Friendly intro */}
-          <p className="text-sm text-neutral-400 leading-relaxed">
-            Help us fill the world with high-vibe music created with VIVA and the Vibe Tribe.
-          </p>
+            <p className="text-sm text-neutral-400 leading-relaxed">
+              Accept this once to let Vibration Fit release the music you create with VIVA. You only
+              do this a single time &mdash; we&rsquo;ll remember it from here on.
+            </p>
+          </div>
 
           {/* Bullet points */}
           <div className="space-y-3">
-            <p className="text-sm text-neutral-300 font-medium">When you submit this track, you:</p>
+            <p className="text-sm text-neutral-300 font-medium">By accepting, you agree that Vibration Fit may:</p>
             <ul className="space-y-2.5 text-sm text-neutral-400 leading-relaxed">
               <li className="flex gap-2.5">
                 <span className="text-[#39FF14] flex-shrink-0 mt-0.5">&#x2022;</span>
-                <span>Add it to the Vibration Fit Music Library so all members can listen inside the platform.</span>
+                <span>Add any song you create with VIVA to the Vibration Fit Music Library for members to enjoy.</span>
               </li>
               <li className="flex gap-2.5">
                 <span className="text-[#39FF14] flex-shrink-0 mt-0.5">&#x2022;</span>
-                <span>Give Vibration Fit permission to consider this track for release on Spotify, Apple Music, YouTube Music, Alexa, and other major platforms under the Vibration Fit artist profile.</span>
+                <span>Release any of those songs on Spotify, Apple Music, YouTube Music, Alexa, and other platforms under the Vibration Fit artist profile.</span>
               </li>
               <li className="flex gap-2.5">
                 <span className="text-[#39FF14] flex-shrink-0 mt-0.5">&#x2022;</span>
-                <span>Get credited as the creator and become eligible to earn 50% of Net Royalties if we release it publicly.</span>
+                <span>Credit you as the creator and share 50% of Net Royalties on anything we release publicly.</span>
               </li>
             </ul>
           </div>
 
-          <p className="text-xs text-neutral-500 leading-relaxed">
-            By submitting, you understand that Vibration Fit owns the VIVA Tracks and handles all distribution, and your participation is as a credited creator with shared royalty upside.
-          </p>
+          {/* One-time clarity */}
+          <div className="rounded-xl border border-[#39FF14]/20 bg-[#39FF14]/5 p-4">
+            <p className="text-sm text-neutral-300 leading-relaxed">
+              This is a one-time agreement. Once you accept, you won&rsquo;t see this again &mdash;
+              you&rsquo;re free to create as much music with VIVA as you like.
+            </p>
+          </div>
 
           {/* Agreement checkbox */}
           <button
@@ -232,28 +238,7 @@ export function PublishAgreementModal({
           </button>
 
           {/* Expandable full agreement */}
-          {showAgreement && (
-            <div className="rounded-xl border border-neutral-800 bg-black/40 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setShowAgreement(false)}
-                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-neutral-300 hover:text-white transition-colors"
-              >
-                <span>Song Publishing Agreement</span>
-                <ChevronDown className="w-4 h-4 rotate-180" />
-              </button>
-              <div className="max-h-64 overflow-y-auto px-4 pb-4 space-y-4 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
-                {AGREEMENT_SECTIONS.map((section) => (
-                  <div key={section.title}>
-                    <h4 className="text-sm font-medium text-white mb-1">{section.title}</h4>
-                    {section.paragraphs.map((p, i) => (
-                      <p key={i} className="text-xs text-neutral-400 leading-relaxed mb-2 last:mb-0">{p}</p>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {showAgreement && <AgreementPanel onCollapse={() => setShowAgreement(false)} />}
 
           {/* Creator credit */}
           <div>
@@ -293,9 +278,9 @@ export function PublishAgreementModal({
             {submitting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <Send className="w-4 h-4 mr-2" />
+              <ShieldCheck className="w-4 h-4 mr-2" />
             )}
-            {submitting ? 'Submitting...' : 'Submit for Review'}
+            {submitting ? 'Saving...' : 'Accept Agreement'}
           </Button>
         </div>
       </div>

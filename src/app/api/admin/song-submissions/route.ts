@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+import {
+  hasAcceptedSongPublishingAgreement,
+  SONG_PUBLISHING_AGREEMENT_VERSION,
+} from '@/lib/songs/publishing-agreement'
 
 export const dynamic = 'force-dynamic'
+
+const VALID_LIFE_CATEGORIES = new Set<string>(LIFE_CATEGORY_KEYS)
+
+function normalizeLifeCategories(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null
+  const categories = [...new Set(
+    value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean),
+  )]
+  if (categories.length === 0) return null
+  if (!categories.every((item) => VALID_LIFE_CATEGORIES.has(item))) return null
+  return categories
+}
 
 /**
  * POST - Authenticated user submits a track for publishing
@@ -16,10 +36,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { song_id, track_id, songwriter_legal_name } = await request.json()
+    const { song_id, track_id, songwriter_legal_name, life_categories } = await request.json()
 
     if (!song_id || !track_id || !songwriter_legal_name?.trim()) {
       return NextResponse.json({ error: 'song_id, track_id, and songwriter_legal_name are required' }, { status: 400 })
+    }
+
+    const normalizedLifeCategories = normalizeLifeCategories(life_categories)
+    if (!normalizedLifeCategories) {
+      return NextResponse.json({ error: 'Select at least one life category' }, { status: 400 })
     }
 
     const { data: track, error: trackError } = await supabase
@@ -48,16 +73,35 @@ export async function POST(request: NextRequest) {
       }, { status: 409 })
     }
 
+    const { data: account } = await adminDb
+      .from('user_accounts')
+      .select('song_publishing_agreement_accepted_at, song_publishing_agreement_version, song_publishing_legal_name')
+      .eq('id', user.id)
+      .single()
+
+    const trimmedLegalName = songwriter_legal_name.trim()
+    const alreadyAccepted = hasAcceptedSongPublishingAgreement(account)
+
+    if (alreadyAccepted) {
+      const storedName = account?.song_publishing_legal_name?.trim()
+      if (!storedName) {
+        return NextResponse.json({ error: 'Song Publishing Agreement required' }, { status: 403 })
+      }
+    }
+
     const { data: inserted, error: insertError } = await adminDb
       .from('song_publish_requests')
       .insert({
         user_id: user.id,
         song_id,
         track_id,
-        songwriter_legal_name: songwriter_legal_name.trim(),
+        songwriter_legal_name: alreadyAccepted
+          ? account!.song_publishing_legal_name!.trim()
+          : trimmedLegalName,
+        life_categories: normalizedLifeCategories,
         royalty_split_percent: 50,
         status: 'pending',
-        agreement_version: '2.0',
+        agreement_version: SONG_PUBLISHING_AGREEMENT_VERSION,
       })
       .select()
       .single()
@@ -65,6 +109,21 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('[SongSubmission] Insert error:', insertError)
       return NextResponse.json({ error: 'Failed to submit' }, { status: 500 })
+    }
+
+    if (!alreadyAccepted) {
+      const { error: agreementError } = await adminDb
+        .from('user_accounts')
+        .update({
+          song_publishing_agreement_accepted_at: new Date().toISOString(),
+          song_publishing_agreement_version: SONG_PUBLISHING_AGREEMENT_VERSION,
+          song_publishing_legal_name: trimmedLegalName,
+        })
+        .eq('id', user.id)
+
+      if (agreementError) {
+        console.error('[SongSubmission] Agreement update error:', agreementError)
+      }
     }
 
     return NextResponse.json(inserted, { status: 201 })
