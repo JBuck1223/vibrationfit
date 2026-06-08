@@ -9,6 +9,7 @@ import {
   Copy, Check, Image as ImageIcon, FileAudio,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { getVisionCategoryLabel, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 
 interface Submission {
   id: string
@@ -22,6 +23,7 @@ interface Submission {
   reviewed_by: string | null
   reviewed_at: string | null
   agreement_version: string
+  life_categories: string[]
   created_at: string
   songs: {
     id: string
@@ -358,6 +360,14 @@ export default function SongSubmissionsPage() {
                             <span className="text-neutral-500">Royalty Split: </span>
                             <span className="text-neutral-200">{sub.royalty_split_percent}/{100 - sub.royalty_split_percent}</span>
                           </div>
+                          {sub.life_categories?.length > 0 && (
+                            <div className="sm:col-span-2">
+                              <span className="text-neutral-500">Life Categories: </span>
+                              <span className="text-neutral-200">
+                                {sub.life_categories.map((key) => getVisionCategoryLabel(key as LifeCategoryKey)).join(', ')}
+                              </span>
+                            </div>
+                          )}
                           <div>
                             <span className="text-neutral-500">Submitted: </span>
                             <span className="text-neutral-200">

@@ -3,6 +3,11 @@ export interface MusicCatalogPerformer {
   snapshotId: string
 }
 
+export interface TrackPerformerLink {
+  name: string
+  snapshotHref: string
+}
+
 /** Vibration Fit Music catalog performers (links to /snapshot/[id]). */
 export const MUSIC_CATALOG_PERFORMERS: readonly MusicCatalogPerformer[] = [
   { name: 'Vanessa Buckingham', snapshotId: '30082787-6ae1-4413-9a32-293cc63e38ee' },
@@ -27,7 +32,45 @@ function performersForTrack(trackId: string) {
   return TRACK_PERFORMER_OVERRIDES[trackId] ?? MUSIC_CATALOG_PERFORMERS
 }
 
-export function musicCatalogPerformerLinks(trackId?: string) {
+function parseMemberCreatorName(description?: string | null): string | null {
+  if (!description) return null
+  const match = description.match(/^Created by (.+)$/i)
+  return match?.[1]?.trim() || null
+}
+
+function parseMemberCreatorUserId(tags?: string[] | null): string | null {
+  const tag = tags?.find((t) => t.startsWith('creator:'))
+  return tag ? tag.slice('creator:'.length).trim() || null : null
+}
+
+/** Performer credits for Vibe Tribe member-created catalog tracks. */
+export function memberCatalogPerformerLinks(
+  description?: string | null,
+  tags?: string[] | null,
+): TrackPerformerLink[] {
+  const name = parseMemberCreatorName(description)
+  if (!name) return []
+
+  const userId = parseMemberCreatorUserId(tags)
+  return [{
+    name,
+    snapshotHref: userId ? `/snapshot/${userId}` : '/snapshot/me',
+  }]
+}
+
+export function isMemberCreatedCatalogTrack(tags?: string[] | null) {
+  return Array.isArray(tags) && tags.includes('member-created')
+}
+
+export function musicCatalogPerformerLinks(
+  trackId?: string,
+  options?: { description?: string | null; tags?: string[] | null },
+) {
+  if (isMemberCreatedCatalogTrack(options?.tags)) {
+    const memberLinks = memberCatalogPerformerLinks(options?.description, options?.tags)
+    if (memberLinks.length) return memberLinks
+  }
+
   const performers = trackId ? performersForTrack(trackId) : MUSIC_CATALOG_PERFORMERS
   return performers.map((p) => ({
     name: p.name,
@@ -35,7 +78,20 @@ export function musicCatalogPerformerLinks(trackId?: string) {
   }))
 }
 
-export function musicCatalogArtistFallback(trackId?: string, album?: string | null) {
+export function musicCatalogArtistFallback(
+  trackId?: string,
+  album?: string | null,
+  options?: { description?: string | null; tags?: string[] | null },
+) {
+  if (isMemberCreatedCatalogTrack(options?.tags)) {
+    const memberLinks = memberCatalogPerformerLinks(options?.description, options?.tags)
+    if (memberLinks.length) {
+      const names = memberLinks.map((p) => p.name).join(' · ')
+      const albumLabel = (album || '').trim()
+      return albumLabel ? `${names} · ${albumLabel}` : names
+    }
+  }
+
   const performers = trackId ? performersForTrack(trackId) : MUSIC_CATALOG_PERFORMERS
   const names = performers.map((p) => p.name).join(' · ')
   const albumLabel = (album || '').trim()

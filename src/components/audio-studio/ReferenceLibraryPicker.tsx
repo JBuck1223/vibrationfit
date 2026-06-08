@@ -103,42 +103,46 @@ export function ReferenceLibraryPicker({ onSelect, className }: ReferenceLibrary
         ) : (
           <div className="max-h-[240px] space-y-0.5 overflow-y-auto pt-1.5 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
             {references.map(ref => (
-              <button
+              <div
                 key={ref.id}
-                type="button"
-                onClick={() => {
-                  onSelect(ref)
-                  setOpen(false)
-                }}
-                className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/5"
+                className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-white/5"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
-                  <Music2 className="h-4 w-4 text-[#39FF14]" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-neutral-200 group-hover:text-white">
-                    {ref.title || 'Untitled reference'}
-                  </p>
-                  <div className="mt-0.5 flex items-center gap-2 text-[10px] text-neutral-500">
-                    {ref.youtube_url && <Youtube className="h-2.5 w-2.5" />}
-                    <span className="inline-flex items-center gap-0.5">
-                      <Clock className="h-2.5 w-2.5" />
-                      {Number(ref.clip_start).toFixed(0)}s – {Number(ref.clip_end).toFixed(0)}s
-                    </span>
-                    <span>
-                      {new Date(ref.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(ref)
+                    setOpen(false)
+                  }}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                    <Music2 className="h-4 w-4 text-[#39FF14]" />
                   </div>
-                </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-neutral-200 group-hover:text-white">
+                      {ref.title || 'Untitled reference'}
+                    </p>
+                    <div className="mt-0.5 flex items-center gap-2 text-[10px] text-neutral-500">
+                      {ref.youtube_url && <Youtube className="h-2.5 w-2.5" />}
+                      <span className="inline-flex items-center gap-0.5">
+                        <Clock className="h-2.5 w-2.5" />
+                        {Number(ref.clip_start).toFixed(0)}s – {Number(ref.clip_end).toFixed(0)}s
+                      </span>
+                      <span>
+                        {new Date(ref.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                </button>
                 <button
                   type="button"
                   onClick={(e) => handleDelete(e, ref.id)}
-                  className="p-1 rounded opacity-0 group-hover:opacity-100 text-neutral-600 hover:text-[#FF0040] transition-all"
+                  className="shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 text-neutral-600 hover:text-[#FF0040] transition-all"
                   title="Remove from library"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-              </button>
+              </div>
             ))}
           </div>
         )}

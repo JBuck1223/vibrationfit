@@ -91,6 +91,7 @@ export default function SongwriterPage() {
     loadEntities(source)
   }, [source])
 
+  // Load the user's one-time publishing agreement acceptance status
   async function loadEntities(entityType: SourceType) {
     setEntitiesLoading(true)
     setSelectedEntity(null)
@@ -402,8 +403,12 @@ export default function SongwriterPage() {
     }
   }
 
-  // Upload reference and generate song
   const createTrack = async () => {
+    if (!lyrics.trim() || generating) return
+    await runCreateTrack()
+  }
+
+  const runCreateTrack = async () => {
     if (!lyrics.trim() || generating) return
     setGenerating(true)
     setCreateError(null)
@@ -711,10 +716,10 @@ export default function SongwriterPage() {
         </Card>
 
         {/* Lyrics */}
-        <Card variant="glass" className="relative p-5 overflow-hidden">
+        <Card variant="glass" className={`relative p-5 overflow-hidden ${lyricsMode === 'generating' ? 'min-h-[200px]' : ''}`}>
           <VIVALoadingOverlay
             isVisible={lyricsMode === 'generating'}
-            className="!absolute !inset-0 !rounded-2xl"
+            className="!absolute !inset-0 !rounded-2xl !z-10"
             size="sm"
             messages={[
               'VIVA is writing your lyrics...',
@@ -802,10 +807,7 @@ export default function SongwriterPage() {
             <ReferenceLibraryPicker
               onSelect={(ref: ReferenceTrack) => {
                 if (ref.youtube_url) setYoutubeUrl(ref.youtube_url)
-                if (ref.full_audio_url) {
-                  setAudioUrl(ref.full_audio_url)
-                  setAudioDuration(ref.duration || 0)
-                }
+                setAudioUrl(null)
                 if (ref.title) setReferenceTitle(ref.title)
                 if (ref.mureka_file_id) setReferenceId(ref.mureka_file_id)
                 if (ref.clip_url) setReferenceClipUrl(ref.clip_url)
@@ -814,26 +816,58 @@ export default function SongwriterPage() {
               }}
             />
 
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-                <input
-                  type="url"
-                  value={youtubeUrl}
-                  onChange={e => setYoutubeUrl(e.target.value)}
-                  placeholder="https://youtube.com/watch?v=..."
-                  className="w-full rounded-lg border border-neutral-700 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-neutral-600 focus:border-[#39FF14]/50 focus:outline-none"
-                  onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
-                />
+            {referenceId && !audioUrl && referenceTitle && (
+              <div className="flex items-center gap-3 rounded-lg border border-[#39FF14]/20 bg-[#39FF14]/5 px-3 py-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                  <Music2 className="h-4 w-4 text-[#39FF14]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-neutral-200">{referenceTitle}</p>
+                  <p className="text-[10px] text-neutral-500">
+                    {regionStart.toFixed(0)}s – {regionEnd.toFixed(0)}s · Ready to use
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { setReferenceId(null); setReferenceClipUrl(null); loadYoutubeAudio() }}
+                    className="rounded px-2 py-1 text-[10px] font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+                  >
+                    Change section
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setReferenceId(null); setReferenceTitle(null); setReferenceClipUrl(null); setYoutubeUrl('') }}
+                    className="text-neutral-500 hover:text-neutral-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <Button
-                variant="ghost"
-                onClick={loadYoutubeAudio}
-                disabled={!youtubeUrl.trim() || audioLoading}
-              >
-                {audioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load'}
-              </Button>
-            </div>
+            )}
+
+            {!referenceId && (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                  <input
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={e => setYoutubeUrl(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=..."
+                    className="w-full rounded-lg border border-neutral-700 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-neutral-600 focus:border-[#39FF14]/50 focus:outline-none"
+                    onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={loadYoutubeAudio}
+                  disabled={!youtubeUrl.trim() || audioLoading}
+                >
+                  {audioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load'}
+                </Button>
+              </div>
+            )}
 
             {audioError && (
               <p className="text-xs text-red-400">{audioError}</p>

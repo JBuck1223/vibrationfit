@@ -25,10 +25,12 @@ import type { SourceType } from '@/lib/services/playlistService'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 import { musicCatalogArtistFallback, musicCatalogPerformerLinks } from '@/lib/audio/music-performers'
 import type { Story } from '@/lib/stories/types'
-import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
 import type { Song } from '@/lib/songs/types'
 import { AlbumArtModal } from '@/components/audio-studio/AlbumArtModal'
+import { PublishPromptModal } from '@/components/audio-studio/PublishPromptModal'
+import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
+import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
 
 function firstTrackIndexForStory(tracks: AudioTrack[], storyId: string) {
   const prefix = `${storyId}:`
@@ -528,11 +530,64 @@ export default function AudioListenPage() {
   const [songDropdownOpen, setSongDropdownOpen] = useState(false)
   const [songsLoaded, setSongsLoaded] = useState(false)
   const [songTrackFavorites, setSongTrackFavorites] = useState<Record<string, boolean>>({})
-  const [songPublishAgreementTrack, setSongPublishAgreementTrack] = useState<BaseAudioTrack | null>(null)
   const [songDeleteTarget, setSongDeleteTarget] = useState<BaseAudioTrack | null>(null)
   const [songDeleting, setSongDeleting] = useState(false)
   const [songArtistName, setSongArtistName] = useState('')
   const [albumArtModalOpen, setAlbumArtModalOpen] = useState(false)
+
+  // Submit for Streaming state
+  const [submitTarget, setSubmitTarget] = useState<BaseAudioTrack | null>(null)
+  const [showPublishPrompt, setShowPublishPrompt] = useState(false)
+  const [showAgreementModal, setShowAgreementModal] = useState(false)
+  const [agreementAccepted, setAgreementAccepted] = useState(false)
+  const [submitLoading, setSubmitLoading] = useState(false)
+
+  useEffect(() => {
+    async function checkAgreement() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: account } = await supabase
+        .from('user_accounts')
+        .select('song_publishing_agreement_accepted_at, song_publishing_agreement_version')
+        .eq('id', user.id)
+        .single()
+      setAgreementAccepted(hasAcceptedSongPublishingAgreement(account))
+    }
+    checkAgreement()
+  }, [])
+
+  function handleSubmitForStreaming(track: BaseAudioTrack) {
+    setSubmitTarget(track)
+    if (!agreementAccepted) {
+      setShowAgreementModal(true)
+    } else {
+      setShowPublishPrompt(true)
+    }
+  }
+
+  async function executePublishRequest() {
+    if (!submitTarget || !selectedSongId) return
+    setSubmitLoading(true)
+    try {
+      const res = await fetch('/api/songs/publish-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ song_id: selectedSongId, track_id: submitTarget.id }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.error('[PublishRequest] Error:', data.error)
+      }
+      await loadSongTracks(selectedSongId)
+    } catch (err) {
+      console.error('[PublishRequest] Failed:', err)
+    } finally {
+      setSubmitLoading(false)
+      setShowPublishPrompt(false)
+      setSubmitTarget(null)
+    }
+  }
 
   const selectedSong = useMemo(
     () => userSongs.find((s: Song) => s.id === selectedSongId) ?? null,
@@ -654,7 +709,6 @@ export default function AudioListenPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ track_id: track.id }),
       })
-      if (newFav) setSongPublishAgreementTrack(track)
     } catch {
       setSongTrackFavorites(prev => ({ ...prev, [track.id]: wasFav }))
     }
@@ -673,6 +727,24 @@ export default function AudioListenPage() {
       setSongDeleteTarget(null)
     }
   }
+
+  // Check agreement status on mount
+  useEffect(() => {
+    async function checkAgreement() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: account } = await supabase
+          .from('user_accounts')
+          .select('song_publishing_agreement_accepted_at, song_publishing_agreement_version')
+          .eq('id', user.id)
+          .single()
+        setAgreementAccepted(hasAcceptedSongPublishingAgreement(account))
+      } catch {}
+    }
+    checkAgreement()
+  }, [])
 
   useEffect(() => {
     if (contentType === 'music' && musicTracks.length === 0 && !musicLoading) loadMusicCatalog()
@@ -850,40 +922,20 @@ export default function AudioListenPage() {
     const filtered: typeof musicTracks = musicCategoryFilter === 'all'
       ? musicTracks
       : musicTracks.filter((t: (typeof musicTracks)[number]) => (t.tags || []).includes(musicCategoryFilter))
-    const isHolidayAlbum = (name: string) => {
-      const tr = filtered.find((x: (typeof musicTracks)[number]) => x.album === name)
-      return tr?.genre === 'Holiday'
-    }
+    const isHolidayTrack = (t: (typeof musicTracks)[number]) => t.genre === 'Holiday'
     const sortByTitle = (a: (typeof musicTracks)[number], b: (typeof musicTracks)[number]) =>
       (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' })
-    const albums = (Array.from(new Set(filtered.map((t: (typeof musicTracks)[number]) => t.album).filter(Boolean))) as string[]).sort(
-      (a, b) => {
-        const ha = isHolidayAlbum(a) ? 1 : 0
-        const hb = isHolidayAlbum(b) ? 1 : 0
-        if (ha !== hb) return ha - hb
-        return a.localeCompare(b, undefined, { sensitivity: 'base' })
-      }
-    )
-    const mainAlbums = albums.filter(a => !isHolidayAlbum(a))
-    const holidayAlbums = albums.filter(a => isHolidayAlbum(a))
-    const ungrouped = filtered.filter((t: (typeof musicTracks)[number]) => !t.album).sort(sortByTitle)
-    const featured = filtered
+
+    const holidayTracks = filtered.filter(isHolidayTrack).sort(sortByTitle)
+    const nonHolidayTracks = filtered.filter((t: (typeof musicTracks)[number]) => !isHolidayTrack(t))
+    const featured = nonHolidayTracks
       .filter((t: (typeof musicTracks)[number]) => t.is_featured)
-      .sort((a: (typeof musicTracks)[number], b: (typeof musicTracks)[number]) => {
-        const ha = a.genre === 'Holiday' ? 1 : 0
-        const hb = b.genre === 'Holiday' ? 1 : 0
-        if (ha !== hb) return ha - hb
-        return sortByTitle(a, b)
-      })
-    const seen = new Set<string>()
-    const ordered: typeof musicTracks = []
-    const push = (t: (typeof musicTracks)[number]) => { if (t && !seen.has(t.id)) { seen.add(t.id); ordered.push(t) } }
-    featured.forEach(push)
-    ungrouped.forEach(push)
-    ;[...mainAlbums, ...holidayAlbums].forEach(album => {
-      filtered.filter((t: (typeof musicTracks)[number]) => t.album === album).sort(sortByTitle).forEach(push)
-    })
-    filtered.forEach(push)
+      .sort(sortByTitle)
+    const mainCatalog = nonHolidayTracks
+      .filter((t: (typeof musicTracks)[number]) => !t.is_featured)
+      .sort(sortByTitle)
+
+    const ordered: typeof musicTracks = [...featured, ...mainCatalog, ...holidayTracks]
     const allTaggedCategories = Array.from(
       new Set(musicTracks.flatMap((t: (typeof musicTracks)[number]) => (t.tags || []) as string[]))
     ).filter(tag => (LIFE_CATEGORY_KEYS as readonly string[]).includes(tag))
@@ -892,8 +944,8 @@ export default function AudioListenPage() {
       .map(t => ({
         id: t.id,
         title: t.title,
-        artist: musicCatalogArtistFallback(t.id, t.album),
-        performers: musicCatalogPerformerLinks(t.id),
+        artist: musicCatalogArtistFallback(t.id, t.album, { description: t.description, tags: t.tags }),
+        performers: musicCatalogPerformerLinks(t.id, { description: t.description, tags: t.tags }),
         albumLabel: (t.album || '').trim() || undefined,
         duration: typeof t.duration_seconds === 'number' && isFinite(t.duration_seconds) ? t.duration_seconds : 0,
         url: t.preview_url,
@@ -1373,6 +1425,7 @@ export default function AudioListenPage() {
                     trackFavorites={songTrackFavorites}
                     enableArtworkLightbox
                     onToggleFavorite={(track) => handleSongToggleFavorite(track)}
+                    onSubmitForStreaming={(track) => handleSubmitForStreaming(track)}
                     onRemoveTrack={(track) => setSongDeleteTarget(track)}
                     headerContent={
                       <div>
@@ -1650,19 +1703,6 @@ export default function AudioListenPage() {
         isDeleting={songDeleting}
       />
 
-      {selectedSongId && (
-        <PublishAgreementModal
-          isOpen={!!songPublishAgreementTrack}
-          onClose={() => setSongPublishAgreementTrack(null)}
-          songId={selectedSongId}
-          trackId={songPublishAgreementTrack?.id || ''}
-          songTitle={userSongs.find(s => s.id === selectedSongId)?.title || 'Untitled Song'}
-          trackVersion={songPublishAgreementTrack?.versionLabel || 'Version 1'}
-          coverUrl={songPublishAgreementTrack?.thumbnail}
-          onSuccess={() => setSongPublishAgreementTrack(null)}
-        />
-      )}
-
       {selectedSongId && selectedSong?.lyrics && (
         <AlbumArtModal
           isOpen={albumArtModalOpen}
@@ -1675,6 +1715,22 @@ export default function AudioListenPage() {
           }}
         />
       )}
+
+      <PublishPromptModal
+        isOpen={showPublishPrompt}
+        onClose={() => { setShowPublishPrompt(false); setSubmitTarget(null) }}
+        onSubmit={executePublishRequest}
+      />
+
+      <PublishAgreementModal
+        isOpen={showAgreementModal}
+        onClose={() => { setShowAgreementModal(false); setSubmitTarget(null) }}
+        onSuccess={() => {
+          setAgreementAccepted(true)
+          setShowAgreementModal(false)
+          setShowPublishPrompt(true)
+        }}
+      />
     </Container>
   )
 }
