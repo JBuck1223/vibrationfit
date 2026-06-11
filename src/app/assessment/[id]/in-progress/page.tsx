@@ -43,6 +43,11 @@ export default function AssessmentPage() {
   const [customResponseScore, setCustomResponseScore] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [assessmentResponses, setAssessmentResponses] = useState<any[] | null>(null)
+  const [showNaInput, setShowNaInput] = useState(false)
+  const [naExplanation, setNaExplanation] = useState('')
+  const [selfAssessmentScores, setSelfAssessmentScores] = useState<Record<string, number>>({})
+  const [showSelfAssessment, setShowSelfAssessment] = useState(false)
+  const [selfAssessmentRating, setSelfAssessmentRating] = useState<number | null>(null)
 
   const questionCardRef = useRef<HTMLDivElement>(null)
 
@@ -83,6 +88,8 @@ export default function AssessmentPage() {
       setShowCustomInput(false)
       setCustomResponseSubmitted(false)
     }
+    setShowNaInput(false)
+    setNaExplanation('')
   }, [currentQuestion, customResponseTexts])
   
   useEffect(() => {
@@ -90,6 +97,16 @@ export default function AssessmentPage() {
       setJustSelectedCustom(false)
     }
   }, [justSelectedCustom])
+
+  useEffect(() => {
+    if (!isLoading && currentCategory && currentQuestionIndex === 0) {
+      const categoryKey = currentCategory.category
+      if (!selfAssessmentScores[categoryKey]) {
+        setShowSelfAssessment(true)
+        setSelfAssessmentRating(null)
+      }
+    }
+  }, [currentCategoryIndex, isLoading])
   
   let totalQuestionNumber = 0
   for (let i = 0; i < currentCategoryIndex; i++) {
@@ -144,6 +161,10 @@ export default function AssessmentPage() {
 
         setAssessmentData(assessment)
         setAssessmentId(routeAssessmentId)
+
+        if (assessment.self_assessment_scores) {
+          setSelfAssessmentScores(assessment.self_assessment_scores)
+        }
 
         try {
           const progressData = await fetchAssessmentProgress(routeAssessmentId)
@@ -339,18 +360,19 @@ export default function AssessmentPage() {
         question_id: currentQuestion.id,
         question_text: currentQuestion.text,
         category: currentQuestion.category,
-        response_value: 0,
+        response_value: dbScore,
         response_text: customResponse,
         response_emoji: '🤔',
         green_line: greenLine as 'above' | 'neutral' | 'below',
         is_custom_response: true,
         custom_response_value: dbScore,
-        custom_green_line: greenLine as 'above' | 'neutral' | 'below'
+        custom_green_line: greenLine as 'above' | 'neutral' | 'below',
+        custom_response_text: customResponse
       }
       
       await saveResponse(saveData)
 
-      setResponses(prev => new Map(prev).set(currentQuestion.id, 0))
+      setResponses(prev => new Map(prev).set(currentQuestion.id, dbScore))
       setCustomResponseTexts(prev => new Map(prev).set(currentQuestion.id, customResponse))
       setCustomResponseScores(prev => new Map(prev).set(currentQuestion.id, customResponseScore))
       
@@ -368,7 +390,62 @@ export default function AssessmentPage() {
     }
   }
 
+  const handleNotApplicable = async () => {
+    if (!assessmentId || isSaving) return
+
+    setIsSaving(true)
+    try {
+      await saveResponse({
+        assessment_id: assessmentId,
+        question_id: currentQuestion.id,
+        question_text: currentQuestion.text,
+        category: currentQuestion.category,
+        response_value: 0,
+        response_text: naExplanation.trim() || 'Not Applicable',
+        response_emoji: '➖',
+        green_line: 'neutral',
+        is_not_applicable: true,
+        custom_response_text: naExplanation.trim() || undefined
+      })
+
+      setResponses(prev => new Map(prev).set(currentQuestion.id, -1))
+      setShowNaInput(false)
+      setNaExplanation('')
+
+      const progressData = await fetchAssessmentProgress(assessmentId)
+      setProgress(progressData)
+
+      saveCurrentPosition()
+    } catch (error) {
+      console.error('Failed to save N/A response:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSelfAssessmentSubmit = async () => {
+    if (!assessmentId || !selfAssessmentRating || !currentCategory) return
+
+    const updatedScores = { ...selfAssessmentScores, [currentCategory.category]: selfAssessmentRating }
+    setSelfAssessmentScores(updatedScores)
+    setShowSelfAssessment(false)
+
+    try {
+      await fetch('/api/assessment/self-assessment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assessment_id: assessmentId, scores: updatedScores })
+      })
+    } catch (error) {
+      console.error('Failed to save self-assessment:', error)
+    }
+  }
+
   const handleNext = () => {
+    if (showSelfAssessment) {
+      setShowSelfAssessment(false)
+      return
+    }
     if (currentQuestionIndex < filteredQuestions.length - 1) {
       setCurrentQuestionIndex(prev => {
         const newIndex = prev + 1
@@ -472,7 +549,7 @@ export default function AssessmentPage() {
   }
 
   const isFirstQuestion = currentCategoryIndex === 0 && currentQuestionIndex === 0
-  const selectedValue = responses.get(currentQuestion.id)
+  const selectedValue = currentQuestion ? responses.get(currentQuestion.id) : undefined
 
   return (
     <Container size="xl">
@@ -553,6 +630,70 @@ export default function AssessmentPage() {
           />
 
         {/* Main Question Content */}
+        {showSelfAssessment && currentCategoryWithMetadata ? (
+          <Card ref={questionCardRef} variant="elevated" className="p-8">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              {(() => {
+                const visionCat = VISION_CATEGORIES.find(v => v.key === currentCategoryWithMetadata.category)
+                const Icon = visionCat?.icon
+                return (
+                  <>
+                    {Icon && <Icon className="w-6 h-6 text-white" />}
+                    <h2 className="text-xl font-bold text-white">
+                      {currentCategoryWithMetadata.title}
+                    </h2>
+                  </>
+                )
+              })()}
+            </div>
+
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-semibold text-white mb-3">
+                Quick Self-Check
+              </h3>
+              <p className="text-neutral-400">
+                Before we dive into the questions, how do you feel about <span className="text-white font-medium">{currentCategoryWithMetadata.title.toLowerCase()}</span> in your life right now?
+              </p>
+            </div>
+
+            <div className="mb-8">
+              <div className="flex justify-between mb-3">
+                <span className="text-sm text-neutral-400">Struggling</span>
+                <span className="text-sm text-neutral-400">Thriving</span>
+              </div>
+              <div className="grid grid-cols-10 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => setSelfAssessmentRating(num)}
+                    className={`aspect-square rounded-lg border-2 text-sm font-bold transition-all ${
+                      selfAssessmentRating === num
+                        ? 'border-[#39FF14] bg-[#39FF14]/20 text-[#39FF14] scale-110'
+                        : num <= 3
+                          ? 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-red-500/50'
+                          : num <= 6
+                            ? 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-yellow-500/50'
+                            : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-green-500/50'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                onClick={handleSelfAssessmentSubmit}
+                disabled={!selfAssessmentRating}
+                variant="primary"
+                className="px-8"
+              >
+                Continue to Questions
+              </Button>
+            </div>
+          </Card>
+        ) : (
         <Card ref={questionCardRef} variant="elevated" className="p-8">
           <div className="flex items-center justify-center gap-3 mb-6">
             {currentCategoryWithMetadata && (() => {
@@ -715,9 +856,60 @@ export default function AssessmentPage() {
               )}
             </div>
           )}
+
+          {/* Not Applicable Option */}
+          {!showCustomInput && !showNaInput && (
+            <div className="mt-4 pt-4 border-t border-neutral-700/50">
+              <button
+                onClick={() => setShowNaInput(true)}
+                className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
+              >
+                This question doesn&apos;t apply to my life
+              </button>
+            </div>
+          )}
+
+          {showNaInput && (
+            <div className="mt-6 p-6 bg-neutral-800/50 border-2 border-neutral-600/50 rounded-xl">
+              <h4 className="text-base font-semibold text-white mb-2">
+                Not Applicable
+              </h4>
+              <p className="text-sm text-neutral-400 mb-4">
+                This question won&apos;t count toward your score.
+              </p>
+              <textarea
+                value={naExplanation}
+                onChange={(e) => setNaExplanation(e.target.value)}
+                placeholder="Why doesn't this apply? (optional)"
+                className="w-full p-3 bg-neutral-900 border border-neutral-600 rounded-lg text-white placeholder-neutral-500 resize-none text-sm"
+                rows={2}
+                disabled={isSaving}
+              />
+              <div className="flex items-center justify-between mt-4">
+                <button
+                  onClick={() => { setShowNaInput(false); setNaExplanation('') }}
+                  className="text-sm text-neutral-400 hover:text-neutral-300 transition-colors"
+                  disabled={isSaving}
+                >
+                  Cancel
+                </button>
+                <Button
+                  onClick={handleNotApplicable}
+                  loading={isSaving}
+                  disabled={isSaving}
+                  variant="outline"
+                  size="sm"
+                >
+                  Mark as N/A
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
+        )}
 
         {/* Navigation */}
+        {!showSelfAssessment && (
         <div className="flex items-center justify-between">
           <div className="flex-1 flex justify-start">
             <Button
@@ -758,6 +950,7 @@ export default function AssessmentPage() {
             </Button>
           </div>
         </div>
+        )}
       </Stack>
     </Container>
   )

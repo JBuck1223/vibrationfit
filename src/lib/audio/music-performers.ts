@@ -69,6 +69,9 @@ export function musicCatalogPerformerLinks(
   if (isMemberCreatedCatalogTrack(options?.tags)) {
     const memberLinks = memberCatalogPerformerLinks(options?.description, options?.tags)
     if (memberLinks.length) return memberLinks
+    const userId = parseMemberCreatorUserId(options?.tags)
+    if (userId) return [{ name: 'Vibration Fit', snapshotHref: `/snapshot/${userId}` }]
+    return []
   }
 
   const performers = trackId ? performersForTrack(trackId) : MUSIC_CATALOG_PERFORMERS
@@ -90,6 +93,7 @@ export function musicCatalogArtistFallback(
       const albumLabel = (album || '').trim()
       return albumLabel ? `${names} · ${albumLabel}` : names
     }
+    return 'Vibration Fit'
   }
 
   const performers = trackId ? performersForTrack(trackId) : MUSIC_CATALOG_PERFORMERS

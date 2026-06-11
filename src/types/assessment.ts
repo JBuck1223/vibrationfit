@@ -57,6 +57,12 @@ export interface AssessmentResponse {
   is_custom_response?: boolean
   custom_response_value?: ResponseValue
   custom_green_line?: GreenLineStatus
+  custom_response_text?: string
+  is_not_applicable?: boolean
+}
+
+export interface SelfAssessmentScores {
+  [category: string]: number // 1-10 per category
 }
 
 export interface CategoryScore {
@@ -71,6 +77,7 @@ export interface AssessmentResult {
   id: string
   user_id: string
   profile_version_id?: string
+  assessment_version: number
   status: 'in_progress' | 'completed'
   is_active: boolean
   is_draft: boolean
@@ -79,6 +86,7 @@ export interface AssessmentResult {
   max_possible_score: number
   overall_percentage: number
   green_line_status: Record<AssessmentCategory, 'above' | 'transition' | 'below'>
+  self_assessment_scores?: SelfAssessmentScores
   started_at: Date
   completed_at?: Date
   created_at: Date

@@ -18,10 +18,8 @@ export interface AssessmentResults {
 }
 
 const MAX_SCORE_PER_QUESTION = 5
-const QUESTIONS_PER_CATEGORY = 7
-const MAX_CATEGORY_SCORE = MAX_SCORE_PER_QUESTION * QUESTIONS_PER_CATEGORY // 35
 
-export function getGreenLineStatus(score: number, maxScore: number = MAX_CATEGORY_SCORE): GreenLineResult {
+export function getGreenLineStatus(score: number, maxScore: number): GreenLineResult {
   const pct = maxScore > 0 ? (score / maxScore) * 100 : 0
   if (pct >= 80) return 'above'
   if (pct >= 60) return 'transition'
@@ -44,31 +42,42 @@ export function getGreenLineLabel(status: GreenLineResult): string {
   }
 }
 
+interface ResponseData {
+  value: number
+  category: string
+  isNotApplicable?: boolean
+}
+
 export function calculateResults(
-  responses: Map<string, { value: number; category: string }>,
+  responses: Map<string, ResponseData>,
   categories: AssessmentCategory[]
 ): AssessmentResults {
   const categoryResults: CategoryResult[] = categories.map(category => {
     let score = 0
+    let answeredCount = 0
+
     responses.forEach((resp) => {
       if (resp.category === category) {
+        if (resp.isNotApplicable) return
         score += resp.value
+        answeredCount++
       }
     })
 
-    const percentage = MAX_CATEGORY_SCORE > 0 ? Math.round((score / MAX_CATEGORY_SCORE) * 100) : 0
+    const maxScore = answeredCount * MAX_SCORE_PER_QUESTION
+    const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0
 
     return {
       category,
       score,
-      maxScore: MAX_CATEGORY_SCORE,
+      maxScore,
       percentage,
-      greenLine: getGreenLineStatus(score)
+      greenLine: getGreenLineStatus(score, maxScore)
     }
   })
 
   const totalScore = categoryResults.reduce((sum, c) => sum + c.score, 0)
-  const maxPossibleScore = categories.length * MAX_CATEGORY_SCORE
+  const maxPossibleScore = categoryResults.reduce((sum, c) => sum + c.maxScore, 0)
   const overallPercentage = maxPossibleScore > 0 ? Math.round((totalScore / maxPossibleScore) * 100) : 0
 
   return {

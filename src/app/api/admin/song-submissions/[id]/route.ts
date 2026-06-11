@@ -62,6 +62,10 @@ export async function PUT(
       await addToCatalog(adminDb, updated)
     }
 
+    if (status === 'published' && updated) {
+      await markAsPublished(adminDb, updated)
+    }
+
     return NextResponse.json(updated)
   } catch (err) {
     console.error('[SongSubmission] Error:', err)
@@ -132,5 +136,47 @@ async function addToCatalog(
     console.error('[SongSubmission] Failed to add to music_catalog:', error)
   } else {
     console.log('[SongSubmission] Added to music_catalog:', title)
+  }
+}
+
+/**
+ * When admin marks as "published" (live on streaming platforms):
+ * 1. Add 'published' tag to the music_catalog entry so it appears in Published filter
+ * 2. Set in_member_library = true on the original song_tracks row
+ */
+async function markAsPublished(
+  db: ReturnType<typeof createAdminClient>,
+  submission: Record<string, any>,
+) {
+  const track = submission.song_tracks as Record<string, any> | null
+  if (!track?.mp3_url) return
+
+  // Add 'published' tag to music_catalog entry
+  const { data: catalogEntry } = await db
+    .from('music_catalog')
+    .select('id, tags')
+    .eq('preview_url', track.mp3_url)
+    .maybeSingle()
+
+  if (catalogEntry) {
+    const currentTags = (catalogEntry.tags || []) as string[]
+    if (!currentTags.includes('published')) {
+      const updatedTags = [...currentTags, 'published']
+      await db
+        .from('music_catalog')
+        .update({ tags: updatedTags, updated_at: new Date().toISOString() })
+        .eq('id', catalogEntry.id)
+      console.log('[SongSubmission] Added published tag to catalog entry:', catalogEntry.id)
+    }
+  }
+
+  // Set in_member_library = true on the song_tracks row
+  const trackId = submission.track_id
+  if (trackId) {
+    await db
+      .from('song_tracks')
+      .update({ in_member_library: true })
+      .eq('id', trackId)
+    console.log('[SongSubmission] Set in_member_library for track:', trackId)
   }
 }

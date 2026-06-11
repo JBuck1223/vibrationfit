@@ -75,11 +75,15 @@ export async function shareTrackToCatalog(
     return
   }
 
-  const { data: song } = await db
-    .from('songs')
-    .select('title, lyrics')
-    .eq('id', songId)
-    .single()
+  const [{ data: song }, { data: account }] = await Promise.all([
+    db.from('songs').select('title, lyrics').eq('id', songId).single(),
+    db.from('user_accounts').select('full_name, first_name, last_name').eq('id', userId).single(),
+  ])
+
+  const creatorName = account?.full_name
+    || [account?.first_name, account?.last_name].filter(Boolean).join(' ')
+    || null
+  const description = creatorName ? `Created by ${creatorName}` : 'Member created song'
 
   const title = song?.title || 'Untitled'
   const lifeCategories = await getSongLifeCategories(db, songId)
@@ -108,7 +112,7 @@ export async function shareTrackToCatalog(
     artwork_url: track.cover_url || null,
     duration_seconds: track.duration_ms ? Math.round(track.duration_ms / 1000) : null,
     plain_lyrics: song?.lyrics || null,
-    description: 'Member created song',
+    description,
     is_active: true,
     release_date: new Date().toISOString().slice(0, 10),
   })
@@ -134,4 +138,70 @@ export async function unshareTrackFromCatalog(db: AdminDb, mp3Url: string | null
   if (error) {
     console.error('[CatalogSync] Failed to remove from music_catalog:', error)
   }
+}
+
+export type MemberCatalogRow = {
+  id: string
+  title?: string | null
+  preview_url?: string | null
+  tags?: string[] | null
+  created_at?: string | null
+}
+
+/** Stable song identity for member catalog rows (song UUID from preview URL, or creator+title). */
+export function memberCatalogSongKey(track: MemberCatalogRow): string {
+  const url = track.preview_url || ''
+  const songMatch = url.match(/\/songs\/([0-9a-f-]{36})\//i)
+  if (songMatch) return songMatch[1]!
+
+  const creator = track.tags?.find((t) => t.startsWith('creator:')) || 'unknown'
+  const title = (track.title || '').trim().toLowerCase()
+  return `${creator}:${title}`
+}
+
+function trackVersionFromPreviewUrl(previewUrl?: string | null): number {
+  if (!previewUrl) return 0
+  const match = previewUrl.match(/\/track-(\d+)\./i)
+  return match ? parseInt(match[1], 10) : 0
+}
+
+/** Higher rank wins when picking the single member-library track per song. */
+function memberCatalogTrackRank(track: MemberCatalogRow): number {
+  let rank = 0
+  if (track.tags?.includes('published')) rank += 10_000
+  rank += trackVersionFromPreviewUrl(track.preview_url)
+  if (track.created_at) rank += new Date(track.created_at).getTime() / 1e15
+  return rank
+}
+
+/** Normalize catalog title for alphabetical sorting. */
+export function musicCatalogTitleSortKey(title?: string | null): string {
+  return (title || '')
+    .trim()
+    .replace(/^#\s+/, '')
+    .toLowerCase()
+}
+
+export function compareMusicCatalogByTitle(
+  a: { title?: string | null },
+  b: { title?: string | null },
+): number {
+  return musicCatalogTitleSortKey(a.title).localeCompare(
+    musicCatalogTitleSortKey(b.title),
+    undefined,
+    { sensitivity: 'base', numeric: true },
+  )
+}
+
+/** Keep one catalog row per song for member library display. */
+export function dedupeMemberCatalogTracks<T extends MemberCatalogRow>(tracks: T[]): T[] {
+  const bySong = new Map<string, T>()
+  for (const track of tracks) {
+    const key = memberCatalogSongKey(track)
+    const existing = bySong.get(key)
+    if (!existing || memberCatalogTrackRank(track) > memberCatalogTrackRank(existing)) {
+      bySong.set(key, track)
+    }
+  }
+  return Array.from(bySong.values()).sort(compareMusicCatalogByTitle)
 }

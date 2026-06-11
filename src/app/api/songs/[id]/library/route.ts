@@ -1,16 +1,16 @@
 /**
- * Toggle Favorite on Song Track
+ * Toggle Member Library status on a Song Track
  *
- * POST /api/songs/[id]/favorite
+ * POST /api/songs/[id]/library
  * Body: { track_id: string }
  *
- * Heart is purely a personal "like" indicator. It does NOT share to
- * the public catalog or member library. Use /api/songs/[id]/library
- * for member library, and /api/admin/song-submissions for publishing.
+ * Sets in_member_library = !current value. Tracks in the member library
+ * appear on /audio/music under the "Member Library" filter.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,9 +33,11 @@ export async function POST(
       return NextResponse.json({ error: 'track_id is required' }, { status: 400 })
     }
 
-    const { data: track, error: fetchError } = await supabase
+    const adminDb = createAdminClient()
+
+    const { data: track, error: fetchError } = await adminDb
       .from('song_tracks')
-      .select('id, is_favorite')
+      .select('id, in_member_library')
       .eq('id', track_id)
       .eq('song_id', songId)
       .eq('user_id', user.id)
@@ -45,26 +47,26 @@ export async function POST(
       return NextResponse.json({ error: 'Track not found' }, { status: 404 })
     }
 
-    const newFavorite = !track.is_favorite
+    const newValue = !track.in_member_library
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminDb
       .from('song_tracks')
-      .update({ is_favorite: newFavorite })
+      .update({ in_member_library: newValue })
       .eq('id', track_id)
       .eq('user_id', user.id)
 
     if (updateError) {
-      return NextResponse.json({ error: 'Failed to update favorite' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to update' }, { status: 500 })
     }
 
     return NextResponse.json({
       track_id,
-      is_favorite: newFavorite,
+      in_member_library: newValue,
     })
   } catch (err) {
-    console.error('[SongFavorite] Error:', err)
+    console.error('[SongLibrary] Error:', err)
     return NextResponse.json({
-      error: err instanceof Error ? err.message : 'Failed to toggle favorite',
+      error: err instanceof Error ? err.message : 'Failed to toggle library status',
     }, { status: 500 })
   }
 }

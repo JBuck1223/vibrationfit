@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from 'lucide-
 import { categoryMetadata } from '@/lib/assessment/questions'
 import { useState } from 'react'
 import AssessmentBarChart from './AssessmentBarChart'
+import AssessmentRadarChart from './AssessmentRadarChart'
 
 interface ResultsSummaryProps {
   assessment: AssessmentResult
@@ -101,8 +102,9 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
   const categories = allCategories.map((categoryKey) => {
     const metadata = categoryMetadata[categoryKey]
     const score = assessment.category_scores?.[categoryKey] || 0
-    const maxScore = 35 // 7 questions × 5 max points each (1-5 scale)
-    const percentage = Math.round((score / maxScore) * 100)
+    const totalResponses = responses.filter(r => r.category === categoryKey && !r.is_not_applicable).length
+    const maxScore = totalResponses > 0 ? totalResponses * 5 : 35
+    const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0
     const status = assessment.green_line_status?.[categoryKey] || 'neutral'
     
     return {
@@ -113,7 +115,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
       status,
       category: categoryKey
     }
-  }).sort((a, b) => b.percentage - a.percentage) // Sort by percentage descending
+  }).sort((a, b) => b.percentage - a.percentage)
 
   return (
     <div className="space-y-6">
@@ -144,6 +146,58 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
 
       {/* Bar Chart Visualization */}
       <AssessmentBarChart assessment={assessment} />
+
+      {/* Self-Assessment Radar Chart */}
+      {assessment.self_assessment_scores && Object.keys(assessment.self_assessment_scores).length > 0 && (
+        <Card className="p-4 md:p-6 lg:p-8">
+          <h3 className="text-xl font-semibold text-white mb-2 text-center">Self-Assessment vs Measured</h3>
+          <p className="text-sm text-neutral-400 text-center mb-6">
+            How you rated yourself compared to your measured vibration score
+          </p>
+          <AssessmentRadarChart
+            selfAssessmentScores={assessment.self_assessment_scores}
+            measuredPercentages={Object.fromEntries(
+              allCategories.map(cat => {
+                const score = assessment.category_scores?.[cat] || 0
+                const maxScore = 35
+                return [cat, Math.round((score / maxScore) * 100)]
+              })
+            )}
+          />
+
+          {/* Perception Gap Table */}
+          <div className="mt-8">
+            <h4 className="text-base font-semibold text-white mb-4 text-center">Perception Gap</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {allCategories.map(cat => {
+                const selfScore = assessment.self_assessment_scores![cat] || 0
+                const measuredPct = Math.round(((assessment.category_scores?.[cat] || 0) / 35) * 100)
+                const measuredScaled = Math.round(measuredPct / 10)
+                const gap = selfScore - measuredScaled
+                const gapColor = gap > 1 ? 'text-[#BF00FF]' : gap < -1 ? 'text-[#00FFFF]' : 'text-neutral-400'
+                const gapLabel = gap > 1 ? 'Overestimating' : gap < -1 ? 'Underestimating' : 'Aligned'
+
+                return (
+                  <div key={cat} className="flex items-center justify-between p-3 bg-neutral-800/50 rounded-lg">
+                    <span className="text-sm text-white">{categoryMetadata[cat]?.title || cat}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-neutral-400">{selfScore} vs {measuredScaled}</span>
+                      <span className={`text-xs font-medium ${gapColor}`}>{gapLabel}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Version Badge */}
+      {assessment.assessment_version && (
+        <div className="flex justify-center">
+          <Badge variant="info">Assessment v{assessment.assessment_version}</Badge>
+        </div>
+      )}
 
       {/* Category Breakdown */}
       <Card className="p-4 md:p-6 lg:p-8">

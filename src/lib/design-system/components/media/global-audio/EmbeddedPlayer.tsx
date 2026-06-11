@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat,
   Edit2, Download, CheckCircle, Loader2, Mic, Music, Waves, Save, Plus, Trash2, Heart, MoreHorizontal,
+  Library, Send,
 } from 'lucide-react'
 import { cn } from '../../shared-utils'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
@@ -72,6 +73,10 @@ interface EmbeddedPlayerProps {
   onRemoveTrack?: (track: AudioTrack, index: number) => void
   trackFavorites?: Record<string, boolean>
   onToggleFavorite?: (track: AudioTrack, index: number) => void
+  /** Track-level member library state (keyed by track id) */
+  trackLibraryState?: Record<string, boolean>
+  onAddToLibrary?: (track: AudioTrack, index: number) => void
+  onSubmitForPublishing?: (track: AudioTrack, index: number) => void
   /** MAP activity to verify on listen; inferred from setIconKey when omitted */
   mapActivityType?: 'vision_audio' | 'story_audio' | 'music_listen' | 'song_listen'
   /** When true, clicking now-playing artwork opens a full-size lightbox (requires thumbnail) */
@@ -104,6 +109,9 @@ export function EmbeddedPlayer({
   onRemoveTrack,
   trackFavorites,
   onToggleFavorite,
+  trackLibraryState,
+  onAddToLibrary,
+  onSubmitForPublishing,
   mapActivityType: mapActivityTypeProp,
   enableArtworkLightbox = false,
 }: EmbeddedPlayerProps) {
@@ -819,6 +827,36 @@ export function EmbeddedPlayer({
                 >
                   <Plus className="w-4 h-4 text-neutral-400" />
                   Add to playlist
+                </button>
+              )}
+              {onAddToLibrary && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    closeTrackMenu()
+                    onAddToLibrary(menuTrack, menuIndex)
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-800"
+                >
+                  <Library className="w-4 h-4 text-neutral-400" />
+                  {trackLibraryState?.[menuTrack.id] ? 'Remove from member library' : 'Add to member library'}
+                </button>
+              )}
+              {onSubmitForPublishing && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    closeTrackMenu()
+                    onSubmitForPublishing(menuTrack, menuIndex)
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-800"
+                >
+                  <Send className="w-4 h-4 text-neutral-400" />
+                  Submit for publishing
                 </button>
               )}
               <button
