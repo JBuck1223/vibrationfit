@@ -24,7 +24,12 @@ import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet
 import type { SourceType } from '@/lib/services/playlistService'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 import { musicCatalogArtistFallback, musicCatalogPerformerLinks } from '@/lib/audio/music-performers'
-import { dedupeMemberCatalogTracks } from '@/lib/songs/catalog-sync'
+import {
+  compareMusicCatalogByTitle,
+  dedupeMemberCatalogTracks,
+  isMemberLibraryFilterTrack,
+  isPublishedFilterTrack,
+} from '@/lib/songs/catalog-sync'
 import type { Story } from '@/lib/stories/types'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
 import type { Song } from '@/lib/songs/types'
@@ -712,20 +717,43 @@ export default function AudioListenPage() {
   }
 
   useEffect(() => {
-    if (contentType === 'music' && musicTracks.length === 0 && !musicLoading) loadMusicCatalog()
+    if (contentType !== 'music') return
+
+    const supabase = createClient()
+    let cancelled = false
+
+    async function loadWhenAuthed() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || cancelled) return
+      await loadMusicCatalog()
+    }
+
+    loadWhenAuthed()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && !cancelled) loadMusicCatalog()
+    })
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [contentType])
 
   async function loadMusicCatalog() {
     setMusicLoading(true)
     const supabase = createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('music_catalog')
       .select('*')
       .eq('is_active', true)
       .order('sort_order')
       .order('album')
       .order('track_number')
-    if (data) setMusicTracks(data)
+    if (error) {
+      console.error('[MusicCatalog] Failed to load:', error)
+    } else if (data) {
+      setMusicTracks(data)
+    }
     setMusicLoading(false)
   }
 
@@ -892,9 +920,7 @@ export default function AudioListenPage() {
     // Member Library = member-created tracks from the music catalog (one version per song)
     if (musicCategoryFilter === 'member-library') {
       const memberTracks = dedupeMemberCatalogTracks(
-        musicTracks.filter((t: (typeof musicTracks)[number]) =>
-          Array.isArray(t.tags) && t.tags.includes('member-created'),
-        ),
+        musicTracks.filter((t: (typeof musicTracks)[number]) => isMemberLibraryFilterTrack(t)),
       )
       const libraryPlayerTracks: AudioTrack[] = memberTracks
         .filter((t: any) => t.preview_url)
@@ -928,14 +954,10 @@ export default function AudioListenPage() {
     const filtered: typeof musicTracks = musicCategoryFilter === 'all'
       ? musicTracks
       : musicCategoryFilter === 'published'
-        ? musicTracks.filter((t: (typeof musicTracks)[number]) => {
-            const tags = (t.tags || []) as string[]
-            return !tags.includes('member-created') || tags.includes('published')
-          })
+        ? musicTracks.filter((t: (typeof musicTracks)[number]) => isPublishedFilterTrack(t))
         : musicTracks.filter((t: (typeof musicTracks)[number]) => (t.tags || []).includes(musicCategoryFilter))
     const isHolidayTrack = (t: (typeof musicTracks)[number]) => t.genre === 'Holiday'
-    const sortByTitle = (a: (typeof musicTracks)[number], b: (typeof musicTracks)[number]) =>
-      (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' })
+    const sortByTitle = compareMusicCatalogByTitle
 
     const holidayTracks = filtered.filter(isHolidayTrack).sort(sortByTitle)
     const nonHolidayTracks = filtered.filter((t: (typeof musicTracks)[number]) => !isHolidayTrack(t))
@@ -1612,8 +1634,8 @@ export default function AudioListenPage() {
                       </>
                     ) : musicCategoryFilter === 'published' ? (
                       <>
-                        <p className="text-sm text-neutral-400">No published songs yet.</p>
-                        <p className="text-xs text-neutral-500 mt-1">Songs submitted and approved for publishing will appear here.</p>
+                        <p className="text-sm text-neutral-400">No music available in Published yet.</p>
+                        <p className="text-xs text-neutral-500 mt-1">Vibration Fit catalog songs appear here by default. Member songs show after publishing approval.</p>
                       </>
                     ) : (
                       <>

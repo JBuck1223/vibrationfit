@@ -440,7 +440,7 @@ export default function SongSubmissionsPage() {
                             const label = wavUrl ? 'WAV' : 'MP3'
                             return (
                               <button
-                                onClick={() => handleDownloadAudio(wavUrl, mp3Url, sub.songs?.title || 'track', sub.id)}
+                                onClick={() => handleDownloadAudio(wavUrl, mp3Url ?? undefined, sub.songs?.title || 'track', sub.id)}
                                 disabled={downloadingAudio === sub.id}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-800 hover:bg-neutral-700 text-sm text-neutral-300 transition-colors"
                                 title={wavUrl ? 'Download WAV (falls back to MP3)' : 'Download MP3'}

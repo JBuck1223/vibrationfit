@@ -148,6 +148,43 @@ export type MemberCatalogRow = {
   created_at?: string | null
 }
 
+/** Normalize catalog tags from Supabase (always a string array). */
+export function catalogTrackTags(track: { tags?: unknown }): string[] {
+  return Array.isArray(track.tags) ? track.tags : []
+}
+
+/** Admin-curated Vibration Fit music (site-assets/music on CDN). */
+export function isOfficialMusicCatalogTrack(track: { preview_url?: string | null }): boolean {
+  return Boolean(track.preview_url?.includes('/site-assets/music/'))
+}
+
+/** Member-shared catalog row (user-uploads path or member-created tag). */
+export function isMemberCreatedCatalogTrack(track: {
+  tags?: unknown
+  preview_url?: string | null
+}): boolean {
+  if (catalogTrackTags(track).includes(MEMBER_CREATED_TAG)) return true
+  return Boolean(track.preview_url?.includes('/user-uploads/'))
+}
+
+/** Tracks shown under Listen > Music > Published. */
+export function isPublishedFilterTrack(track: {
+  tags?: unknown
+  preview_url?: string | null
+}): boolean {
+  if (isOfficialMusicCatalogTrack(track)) return true
+  if (!isMemberCreatedCatalogTrack(track)) return true
+  return catalogTrackTags(track).includes('published')
+}
+
+/** Tracks shown under Listen > Music > Member Library. */
+export function isMemberLibraryFilterTrack(track: {
+  tags?: unknown
+  preview_url?: string | null
+}): boolean {
+  return isMemberCreatedCatalogTrack(track)
+}
+
 /** Stable song identity for member catalog rows (song UUID from preview URL, or creator+title). */
 export function memberCatalogSongKey(track: MemberCatalogRow): string {
   const url = track.preview_url || ''
