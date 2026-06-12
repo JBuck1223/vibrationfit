@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, Card, Button, Input, Stack, Spinner, Modal } from '@/lib/design-system/components'
+import { CategoryGrid, DatePicker } from '@/lib/design-system'
+import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { ProjectsAreaBar } from '@/components/projects-studio'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -31,6 +33,11 @@ const TYPE_TABS: { value: TypeTab; label: string }[] = [
   { value: 'project', label: 'Projects' },
   { value: 'list', label: 'Lists' },
 ]
+
+// Life categories for the CategoryGrid (excludes the forward/conclusion meta categories)
+const LIFE_CATEGORIES = VISION_CATEGORIES.filter(
+  category => category.key !== 'forward' && category.key !== 'conclusion'
+)
 
 function ProjectsListContent() {
   const router = useRouter()
@@ -589,36 +596,22 @@ function ProjectsListContent() {
           )}
 
           {/* Life Categories (both types) */}
-          <div>
-            <label className="text-sm text-neutral-300 block mb-2">Life Categories</label>
-            <div className="flex flex-wrap gap-1.5">
-              {LIFE_CATEGORY_OPTIONS.map(lc => {
-                const selected = newLifeCategories.includes(lc.key)
-                return (
-                  <button
-                    key={lc.key}
-                    type="button"
-                    onClick={() => toggleNewLifeCategory(lc.key)}
-                    className="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
-                    style={{
-                      backgroundColor: selected ? lc.color + '20' : 'transparent',
-                      color: selected ? lc.color : '#9ca3af',
-                      borderColor: selected ? lc.color + '80' : '#404040',
-                    }}
-                  >
-                    {lc.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+          <CategoryGrid
+            title="Life Categories"
+            categories={LIFE_CATEGORIES}
+            selectedCategories={newLifeCategories}
+            onCategoryClick={toggleNewLifeCategory}
+            pillLabel="Life Categories"
+            lifeVisionCategoryStrip
+            desktopColumnCount={6}
+          />
 
           <div>
             <label className="text-sm text-neutral-300 block mb-1">Due Date</label>
-            <Input
-              type="date"
+            <DatePicker
               value={newDueDate}
-              onChange={(e) => setNewDueDate(e.target.value)}
+              onChange={setNewDueDate}
+              popoverAlign="end"
             />
           </div>
 
