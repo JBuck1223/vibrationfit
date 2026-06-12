@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         email,
         user_id: null,
         status: 'in_progress',
-        assessment_version: 1,
+        assessment_version: 2,
         max_possible_score: 420,
         started_at: new Date().toISOString(),
         is_draft: true,

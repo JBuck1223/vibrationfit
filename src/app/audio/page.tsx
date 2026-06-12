@@ -24,10 +24,17 @@ import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet
 import type { SourceType } from '@/lib/services/playlistService'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 import { musicCatalogArtistFallback, musicCatalogPerformerLinks } from '@/lib/audio/music-performers'
+import {
+  compareMusicCatalogByTitle,
+  dedupeMemberCatalogTracks,
+  isMemberLibraryFilterTrack,
+  isPublishedFilterTrack,
+} from '@/lib/songs/catalog-sync'
 import type { Story } from '@/lib/stories/types'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
 import type { Song } from '@/lib/songs/types'
 import { AlbumArtModal } from '@/components/audio-studio/AlbumArtModal'
+import { SubmitForPublishingSheet } from '@/components/audio-studio/SubmitForPublishingSheet'
 
 function firstTrackIndexForStory(tracks: AudioTrack[], storyId: string) {
   const prefix = `${storyId}:`
@@ -123,22 +130,18 @@ function MusicStreamingLinks({ track }: { track: Record<string, unknown> }) {
 }
 
 const MUSIC_SPECIAL_FILTER_LABELS: Record<string, string> = {
-  'member-created': 'Member Created',
   published: 'Published',
+  'member-library': 'Member Library',
 }
 
 function MusicCategoryDropdown({
   value,
   onChange,
   categories,
-  hasMemberCreated = false,
-  hasPublished = false,
 }: {
   value: string
   onChange: (v: string) => void
   categories: string[]
-  hasMemberCreated?: boolean
-  hasPublished?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -158,9 +161,8 @@ function MusicCategoryDropdown({
     return (catA?.order ?? 99) - (catB?.order ?? 99)
   })
 
-  const selectedLabel = value === 'all'
-    ? 'All Songs'
-    : MUSIC_SPECIAL_FILTER_LABELS[value] || VISION_CATEGORIES.find(c => c.key === value)?.label || value
+  const selectedLabel = MUSIC_SPECIAL_FILTER_LABELS[value]
+    || (value === 'all' ? 'All Songs' : VISION_CATEGORIES.find(c => c.key === value)?.label || value)
 
   const select = (v: string) => { onChange(v); setIsOpen(false) }
   const optionClass = (isSelected: boolean) =>
@@ -180,23 +182,15 @@ function MusicCategoryDropdown({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] py-1.5 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-64 overflow-y-auto overscroll-contain">
+            <button type="button" onClick={() => select('published')} className={optionClass(value === 'published')}>
+              Published
+            </button>
+            <button type="button" onClick={() => select('member-library')} className={optionClass(value === 'member-library')}>
+              Member Library
+            </button>
             <button type="button" onClick={() => select('all')} className={optionClass(value === 'all')}>
               All Songs
             </button>
-            {(hasMemberCreated || hasPublished) && (
-              <>
-                {hasMemberCreated && (
-                  <button type="button" onClick={() => select('member-created')} className={optionClass(value === 'member-created')}>
-                    Member Created
-                  </button>
-                )}
-                {hasPublished && (
-                  <button type="button" onClick={() => select('published')} className={optionClass(value === 'published')}>
-                    Published
-                  </button>
-                )}
-              </>
-            )}
             {sorted.length > 0 && (
               <>
                 <div className="my-1 border-t border-[#333]" />
@@ -329,7 +323,7 @@ export default function AudioListenPage() {
   // Music catalog state
   const [musicTracks, setMusicTracks] = useState<any[]>([])
   const [musicLoading, setMusicLoading] = useState(false)
-  const [musicCategoryFilter, setMusicCategoryFilter] = useState<string>('all')
+  const [musicCategoryFilter, setMusicCategoryFilter] = useState<string>('published')
 
   // Add to Playlist sheet state
   const [playlistSheetOpen, setPlaylistSheetOpen] = useState(false)
@@ -564,6 +558,9 @@ export default function AudioListenPage() {
   const [songDeleting, setSongDeleting] = useState(false)
   const [songArtistName, setSongArtistName] = useState('')
   const [albumArtModalOpen, setAlbumArtModalOpen] = useState(false)
+  const [songTrackLibrary, setSongTrackLibrary] = useState<Record<string, boolean>>({})
+  const [publishSheetOpen, setPublishSheetOpen] = useState(false)
+  const [publishSheetTrack, setPublishSheetTrack] = useState<{ songId: string; trackId: string; title?: string } | null>(null)
 
   const selectedSong = useMemo(
     () => userSongs.find((s: Song) => s.id === selectedSongId) ?? null,
@@ -631,13 +628,15 @@ export default function AudioListenPage() {
     const supabase = createClient()
     const { data } = await supabase
       .from('song_tracks')
-      .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite, metadata')
+      .select('id, title, version, mp3_url, cover_url, duration_ms, genres, is_favorite, in_member_library, metadata')
       .eq('song_id', songId)
       .order('created_at')
     if (data) {
       const favs: Record<string, boolean> = {}
+      const libState: Record<string, boolean> = {}
       const mapped = data.filter((t: any) => t.mp3_url).map((t: any) => {
         favs[t.id] = !!t.is_favorite
+        libState[t.id] = !!t.in_member_library
         const meta = t.metadata as Record<string, unknown> | null
         const lyricsSections = meta?.lyrics_sections as any[] | undefined
         const songTitle = userSongs.find(s => s.id === songId)?.title || 'VIVA Song'
@@ -659,12 +658,12 @@ export default function AudioListenPage() {
       })
       setSongTracks(mapped)
       setSongTrackFavorites(favs)
+      setSongTrackLibrary(libState)
     }
     setSongTracksLoading(false)
   }
 
-  // Heart toggles favorite AND shares/unshares the track to the public catalog.
-  // The publishing agreement is collected once during the song creation flow.
+  // Heart is a personal like only — does not add to Member Library or the public catalog.
   async function handleSongToggleFavorite(track: BaseAudioTrack) {
     if (!selectedSongId) return
     const wasFav = songTrackFavorites[track.id] ?? false
@@ -695,23 +694,69 @@ export default function AudioListenPage() {
     }
   }
 
+  async function handleSongAddToLibrary(track: BaseAudioTrack) {
+    if (!selectedSongId) return
+    const wasInLibrary = songTrackLibrary[track.id] ?? false
+    setSongTrackLibrary(prev => ({ ...prev, [track.id]: !wasInLibrary }))
+    try {
+      await fetch(`/api/songs/${selectedSongId}/library`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ track_id: track.id }),
+      })
+    } catch {
+      setSongTrackLibrary(prev => ({ ...prev, [track.id]: wasInLibrary }))
+    }
+  }
+
+  function handleSongSubmitForPublishing(track: BaseAudioTrack) {
+    if (!selectedSongId) return
+    const songTitle = userSongs.find(s => s.id === selectedSongId)?.title
+    setPublishSheetTrack({ songId: selectedSongId, trackId: track.id, title: songTitle })
+    setPublishSheetOpen(true)
+  }
+
   useEffect(() => {
-    if (contentType === 'music' && musicTracks.length === 0 && !musicLoading) loadMusicCatalog()
+    if (contentType !== 'music') return
+
+    const supabase = createClient()
+    let cancelled = false
+
+    async function loadWhenAuthed() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || cancelled) return
+      await loadMusicCatalog()
+    }
+
+    loadWhenAuthed()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && !cancelled) loadMusicCatalog()
+    })
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [contentType])
 
   async function loadMusicCatalog() {
     setMusicLoading(true)
     const supabase = createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('music_catalog')
       .select('*')
       .eq('is_active', true)
       .order('sort_order')
       .order('album')
       .order('track_number')
-    if (data) setMusicTracks(data)
+    if (error) {
+      console.error('[MusicCatalog] Failed to load:', error)
+    } else if (data) {
+      setMusicTracks(data)
+    }
     setMusicLoading(false)
   }
+
 
   const selectedStory = stories.find(s => s.id === selectedStoryId)
 
@@ -864,23 +909,55 @@ export default function AudioListenPage() {
   const totalTracks = audioSets.reduce((sum, s) => sum + s.track_count, 0)
   const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
 
-  const { musicTagCategories, musicPlayerTracks, hasMemberCreated, hasPublished } = useMemo(() => {
-    if (contentType !== 'music' || musicTracks.length === 0) {
+  const { musicTagCategories, musicPlayerTracks } = useMemo(() => {
+    if (contentType !== 'music') {
       return {
         musicTagCategories: [] as string[],
         musicPlayerTracks: [] as AudioTrack[],
-        hasMemberCreated: false,
-        hasPublished: false,
       }
     }
-    const memberCreatedExists = musicTracks.some((t: (typeof musicTracks)[number]) => (t.tags || []).includes('member-created'))
-    const publishedExists = musicTracks.some((t: (typeof musicTracks)[number]) => (t.tags || []).includes('published'))
+
+    // Member Library = member-created tracks from the music catalog (one version per song)
+    if (musicCategoryFilter === 'member-library') {
+      const memberTracks = dedupeMemberCatalogTracks(
+        musicTracks.filter((t: (typeof musicTracks)[number]) => isMemberLibraryFilterTrack(t)),
+      )
+      const libraryPlayerTracks: AudioTrack[] = memberTracks
+        .filter((t: any) => t.preview_url)
+        .map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          artist: musicCatalogArtistFallback(t.id, t.album, { description: t.description, tags: t.tags }),
+          performers: musicCatalogPerformerLinks(t.id, { description: t.description, tags: t.tags }),
+          albumLabel: (t.album || '').trim() || undefined,
+          duration: typeof t.duration_seconds === 'number' && isFinite(t.duration_seconds) ? t.duration_seconds : 0,
+          url: t.preview_url,
+          thumbnail: t.artwork_url || '',
+          sectionKey: 'music',
+          syncedLyrics: t.synced_lyrics || undefined,
+          plainLyrics: t.plain_lyrics || undefined,
+          publishStatus: Array.isArray(t.tags) && t.tags.includes('published') ? 'published' as const : undefined,
+        }))
+      return {
+        musicTagCategories: [] as string[],
+        musicPlayerTracks: libraryPlayerTracks,
+      }
+    }
+
+    if (musicTracks.length === 0) {
+      return {
+        musicTagCategories: [] as string[],
+        musicPlayerTracks: [] as AudioTrack[],
+      }
+    }
+
     const filtered: typeof musicTracks = musicCategoryFilter === 'all'
       ? musicTracks
-      : musicTracks.filter((t: (typeof musicTracks)[number]) => (t.tags || []).includes(musicCategoryFilter))
+      : musicCategoryFilter === 'published'
+        ? musicTracks.filter((t: (typeof musicTracks)[number]) => isPublishedFilterTrack(t))
+        : musicTracks.filter((t: (typeof musicTracks)[number]) => (t.tags || []).includes(musicCategoryFilter))
     const isHolidayTrack = (t: (typeof musicTracks)[number]) => t.genre === 'Holiday'
-    const sortByTitle = (a: (typeof musicTracks)[number], b: (typeof musicTracks)[number]) =>
-      (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' })
+    const sortByTitle = compareMusicCatalogByTitle
 
     const holidayTracks = filtered.filter(isHolidayTrack).sort(sortByTitle)
     const nonHolidayTracks = filtered.filter((t: (typeof musicTracks)[number]) => !isHolidayTrack(t))
@@ -909,14 +986,10 @@ export default function AudioListenPage() {
         sectionKey: 'music',
         syncedLyrics: t.synced_lyrics || undefined,
         plainLyrics: t.plain_lyrics || undefined,
-        memberCreated: Array.isArray(t.tags) && t.tags.includes('member-created'),
-        publishStatus: Array.isArray(t.tags) && t.tags.includes('published') ? 'published' as const : undefined,
       }))
     return {
       musicTagCategories: allTaggedCategories,
       musicPlayerTracks: tracksForPlayer,
-      hasMemberCreated: memberCreatedExists,
-      hasPublished: publishedExists,
     }
   }, [contentType, musicTracks, musicCategoryFilter])
 
@@ -1387,6 +1460,9 @@ export default function AudioListenPage() {
                     trackFavorites={songTrackFavorites}
                     enableArtworkLightbox
                     onToggleFavorite={(track) => handleSongToggleFavorite(track)}
+                    trackLibraryState={songTrackLibrary}
+                    onAddToLibrary={(track) => handleSongAddToLibrary(track)}
+                    onSubmitForPublishing={(track) => handleSongSubmitForPublishing(track)}
                     onRemoveTrack={(track) => setSongDeleteTarget(track)}
                     headerContent={
                       <div>
@@ -1536,18 +1612,40 @@ export default function AudioListenPage() {
           <section>
             {musicLoading ? (
               <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
-            ) : musicTracks.length === 0 ? (
-              <Card variant="glass" className="p-6 text-center">
-                <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
-                <p className="text-sm text-neutral-400">No music available yet.</p>
-                <p className="text-xs text-neutral-500 mt-1">Check back soon for Vibration Fit original music.</p>
-              </Card>
             ) : musicPlayerTracks.length === 0 ? (
-              <Card variant="glass" className="p-6 text-center">
-                <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
-                <p className="text-sm text-neutral-400">No preview audio for this filter.</p>
-                <p className="text-xs text-neutral-500 mt-1">Try another category or add preview URLs in the catalog.</p>
-              </Card>
+              <div className="max-w-2xl mx-auto w-full">
+                <div className="rounded-2xl border border-neutral-800 bg-embedded-panel overflow-hidden">
+                  <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-white">Vibration Fit Music</h3>
+                      <MusicCategoryDropdown
+                        value={musicCategoryFilter}
+                        onChange={setMusicCategoryFilter}
+                        categories={musicTagCategories}
+                      />
+                    </div>
+                  </div>
+                  <div className="p-6 text-center">
+                    <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                    {musicCategoryFilter === 'member-library' ? (
+                      <>
+                        <p className="text-sm text-neutral-400">Your member library is empty.</p>
+                        <p className="text-xs text-neutral-500 mt-1">Add tracks from My Songs using the 3-dot menu.</p>
+                      </>
+                    ) : musicCategoryFilter === 'published' ? (
+                      <>
+                        <p className="text-sm text-neutral-400">No music available in Published yet.</p>
+                        <p className="text-xs text-neutral-500 mt-1">Vibration Fit catalog songs appear here by default. Member songs show after publishing approval.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-neutral-400">No music available for this filter.</p>
+                        <p className="text-xs text-neutral-500 mt-1">Try another category.</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center">
                 {/* Left spacer on desktop grid */}
@@ -1568,15 +1666,11 @@ export default function AudioListenPage() {
                       <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
                         <div className="flex items-center justify-between gap-3">
                           <h3 className="text-lg font-semibold text-white">Vibration Fit Music</h3>
-                          {(musicTagCategories.length > 0 || hasMemberCreated || hasPublished) && (
-                            <MusicCategoryDropdown
-                              value={musicCategoryFilter}
-                              onChange={setMusicCategoryFilter}
-                              categories={musicTagCategories}
-                              hasMemberCreated={hasMemberCreated}
-                              hasPublished={hasPublished}
-                            />
-                          )}
+                          <MusicCategoryDropdown
+                            value={musicCategoryFilter}
+                            onChange={setMusicCategoryFilter}
+                            categories={musicTagCategories}
+                          />
                         </div>
                         {(() => {
                           const streamingTrack = musicTracks.find((t: any) =>
@@ -1677,6 +1771,16 @@ export default function AudioListenPage() {
           onArtGenerated={(imageUrl) => {
             setSongTracks(prev => prev.map(t => ({ ...t, thumbnail: imageUrl })))
           }}
+        />
+      )}
+
+      {publishSheetTrack && (
+        <SubmitForPublishingSheet
+          isOpen={publishSheetOpen}
+          onClose={() => { setPublishSheetOpen(false); setPublishSheetTrack(null) }}
+          songId={publishSheetTrack.songId}
+          trackId={publishSheetTrack.trackId}
+          trackTitle={publishSheetTrack.title}
         />
       )}
 

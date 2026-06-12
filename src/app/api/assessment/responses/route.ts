@@ -105,7 +105,9 @@ export async function POST(request: NextRequest) {
       response_value,
       response_text,
       response_emoji,
-      green_line
+      green_line,
+      custom_response_text,
+      is_not_applicable
     } = body
 
     // Validate required fields
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare the upsert data
-    const upsertData = {
+    const upsertData: Record<string, any> = {
       assessment_id,
       question_id,
       question_text,
@@ -148,6 +150,13 @@ export async function POST(request: NextRequest) {
       response_text,
       response_emoji,
       green_line
+    }
+
+    if (custom_response_text !== undefined) {
+      upsertData.custom_response_text = custom_response_text
+    }
+    if (is_not_applicable !== undefined) {
+      upsertData.is_not_applicable = is_not_applicable
     }
 
     // Upsert the response (insert or update if exists)

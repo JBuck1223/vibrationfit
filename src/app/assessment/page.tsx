@@ -154,7 +154,7 @@ export default function AssessmentHub() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profile_version_id: profileData.profile.id,
-          assessment_version: 1,
+          assessment_version: 2,
         }),
       })
 

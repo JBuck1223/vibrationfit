@@ -76,6 +76,7 @@ export default function SongSubmissionsPage() {
   const [expandedLyrics, setExpandedLyrics] = useState<Record<string, boolean>>({})
   const [downloadingArt, setDownloadingArt] = useState<string | null>(null)
   const [downloadingAudio, setDownloadingAudio] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
   const [copiedLyrics, setCopiedLyrics] = useState<string | null>(null)
 
   const fetchSubmissions = useCallback(async () => {
@@ -169,12 +170,21 @@ export default function SongSubmissionsPage() {
     }
   }
 
-  const handleDownloadAudio = async (url: string, songTitle: string, subId: string, ext: string) => {
+  const handleDownloadAudio = async (
+    wavUrl: string | undefined,
+    mp3Url: string | undefined,
+    songTitle: string,
+    subId: string,
+  ) => {
     setDownloadingAudio(subId)
-    try {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error('Download failed')
+    setDownloadError(null)
+
+    const tryDownload = async (url: string, ext: string): Promise<boolean> => {
+      const proxyUrl = `/api/media/proxy?url=${encodeURIComponent(url)}`
+      const res = await fetch(proxyUrl)
+      if (!res.ok) return false
       const blob = await res.blob()
+      if (blob.size === 0) return false
       const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = blobUrl
@@ -183,8 +193,30 @@ export default function SongSubmissionsPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(blobUrl)
+      return true
+    }
+
+    try {
+      if (wavUrl) {
+        const ok = await tryDownload(wavUrl, 'wav')
+        if (ok) return
+      }
+      if (mp3Url) {
+        const ok = await tryDownload(mp3Url, 'mp3')
+        if (ok) {
+          if (wavUrl) {
+            setDownloadError('WAV expired on Mureka CDN — downloaded MP3 instead')
+            setTimeout(() => setDownloadError(null), 5000)
+          }
+          return
+        }
+      }
+      setDownloadError('Both WAV and MP3 downloads failed')
+      setTimeout(() => setDownloadError(null), 5000)
     } catch (err) {
       console.error('Audio download failed:', err)
+      setDownloadError('Download failed — check console for details')
+      setTimeout(() => setDownloadError(null), 5000)
     } finally {
       setDownloadingAudio(null)
     }
@@ -268,6 +300,13 @@ export default function SongSubmissionsPage() {
           {error && (
             <Card variant="glass" className="border-red-500/30 bg-red-500/10 p-4">
               <p className="text-sm text-red-400">{error}</p>
+            </Card>
+          )}
+
+          {/* Download error banner */}
+          {downloadError && (
+            <Card variant="glass" className="border-yellow-500/30 bg-yellow-500/10 p-4">
+              <p className="text-sm text-yellow-300">{downloadError}</p>
             </Card>
           )}
 
@@ -397,22 +436,21 @@ export default function SongSubmissionsPage() {
                             const meta = sub.song_tracks?.metadata
                             const wavUrl = meta?.mureka_wav_url
                             const mp3Url = sub.song_tracks?.mp3_url
-                            const audioUrl = wavUrl || mp3Url
-                            const ext = wavUrl ? 'wav' : 'mp3'
-                            if (!audioUrl) return null
+                            if (!wavUrl && !mp3Url) return null
+                            const label = wavUrl ? 'WAV' : 'MP3'
                             return (
                               <button
-                                onClick={() => handleDownloadAudio(audioUrl, sub.songs?.title || 'track', sub.id, ext)}
+                                onClick={() => handleDownloadAudio(wavUrl, mp3Url ?? undefined, sub.songs?.title || 'track', sub.id)}
                                 disabled={downloadingAudio === sub.id}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-800 hover:bg-neutral-700 text-sm text-neutral-300 transition-colors"
-                                title={`Download ${ext.toUpperCase()}`}
+                                title={wavUrl ? 'Download WAV (falls back to MP3)' : 'Download MP3'}
                               >
                                 {downloadingAudio === sub.id ? (
                                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                                 ) : (
                                   <FileAudio className="w-3.5 h-3.5" />
                                 )}
-                                {downloadingAudio === sub.id ? 'Downloading...' : `Download ${ext.toUpperCase()}`}
+                                {downloadingAudio === sub.id ? 'Downloading...' : `Download ${label}`}
                               </button>
                             )
                           })()}

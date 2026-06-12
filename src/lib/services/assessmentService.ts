@@ -151,6 +151,8 @@ export async function saveResponse(responseData: {
   is_custom_response?: boolean
   custom_response_value?: number
   custom_green_line?: 'above' | 'neutral' | 'below'
+  custom_response_text?: string
+  is_not_applicable?: boolean
 }): Promise<{ response: AssessmentResponse }> {
   console.log('Sending to API:', responseData)
   
