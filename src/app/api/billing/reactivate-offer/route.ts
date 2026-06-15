@@ -6,7 +6,26 @@ import { getOrCreateStripeCustomer } from '@/lib/stripe/customer'
 import Stripe from 'stripe'
 
 const OFFER_COUPON_ID = 'vision_pro_reactivation_50off'
-const TRIAL_DAYS = 28
+
+type PlanKey = '28day' | 'annual'
+
+const PLANS: Record<PlanKey, { priceEnv: string; tierType: string }> = {
+  '28day': { priceEnv: 'NEXT_PUBLIC_STRIPE_PRICE_28DAY', tierType: 'vision_pro_28day' },
+  annual: { priceEnv: 'NEXT_PUBLIC_STRIPE_PRICE_ANNUAL', tierType: 'vision_pro_annual' },
+}
+
+function resolvePlan(plan?: string): { priceId?: string; tierType: string } {
+  const def = PLANS[(plan as PlanKey)] ?? PLANS['28day']
+  return { priceId: process.env[def.priceEnv], tierType: def.tierType }
+}
+
+// Map a Stripe price id back to our tier type so `finalize` works for either plan.
+function tierTypeForPrice(priceId?: string): string {
+  if (priceId && priceId === process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL) {
+    return 'vision_pro_annual'
+  }
+  return 'vision_pro_28day'
+}
 
 async function getOrCreateOfferCoupon(): Promise<string> {
   if (!stripe) throw new Error('Stripe not configured')
@@ -25,6 +44,11 @@ async function getOrCreateOfferCoupon(): Promise<string> {
   }
 }
 
+function paymentMethodIdFrom(value: unknown): string | undefined {
+  if (!value) return undefined
+  return typeof value === 'string' ? value : (value as { id?: string }).id
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!stripe) {
@@ -39,8 +63,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { action } = body as { action: 'setup' | 'activate' }
+    const body = await request.json().catch(() => ({})) as {
+      action?: 'create' | 'finalize'
+      subscriptionId?: string
+      plan?: PlanKey
+    }
+    const { action, subscriptionId, plan } = body
 
     const customerId = await getOrCreateStripeCustomer(
       user.id,
@@ -48,17 +76,13 @@ export async function POST(request: NextRequest) {
       { name: user.user_metadata?.full_name }
     )
 
-    if (action === 'setup') {
-      const setupIntent = await stripe.setupIntents.create({
-        customer: customerId,
-        payment_method_types: ['card'],
-        metadata: { user_id: user.id, purpose: 'reactivation_offer' },
-      })
-
-      return NextResponse.json({ clientSecret: setupIntent.client_secret })
-    }
-
-    if (action === 'activate') {
+    // ========================================================================
+    // CREATE: build an incomplete subscription whose first invoice is due now.
+    // This produces a real PaymentIntent the customer confirms on the client.
+    // With save_default_payment_method the confirmed card is attached to the
+    // customer and saved as the subscription's default payment method.
+    // ========================================================================
+    if (action === 'create') {
       const { data: existingSub } = await supabase
         .from('customer_subscriptions')
         .select('id')
@@ -73,80 +97,192 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const pms = await stripe.paymentMethods.list({
-        customer: customerId,
-        type: 'card',
-        limit: 1,
-      })
-
-      const paymentMethodId = pms.data[0]?.id
-      if (!paymentMethodId) {
-        return NextResponse.json(
-          { error: 'No payment method found. Please add a card first.' },
-          { status: 400 }
-        )
-      }
-
-      await stripe.customers.update(customerId, {
-        invoice_settings: { default_payment_method: paymentMethodId },
-      })
-
-      const couponId = await getOrCreateOfferCoupon()
-
-      const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY
+      const { priceId, tierType } = resolvePlan(plan)
       if (!priceId) {
         return NextResponse.json({ error: 'Price not configured' }, { status: 500 })
       }
 
+      const couponId = await getOrCreateOfferCoupon()
+
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId, quantity: 1 }],
-        trial_period_days: TRIAL_DAYS,
-        default_payment_method: paymentMethodId,
         discounts: couponId ? [{ coupon: couponId }] : undefined,
+        payment_behavior: 'default_incomplete',
+        payment_settings: {
+          save_default_payment_method: 'on_subscription',
+          payment_method_types: ['card'],
+        },
+        expand: ['latest_invoice.payment_intent'],
         metadata: {
           product_type: 'vision_pro_continuity',
-          tier_type: 'vision_pro_28day',
+          tier_type: tierType,
           source: 'reactivation_offer',
-          billing_starts_day: String(TRIAL_DAYS),
         },
       })
 
+      const invoice = subscription.latest_invoice as Stripe.Invoice | null
+      const paymentIntent = (invoice as any)?.payment_intent as Stripe.PaymentIntent | undefined
+      const clientSecret = paymentIntent?.client_secret
+
+      if (!clientSecret) {
+        return NextResponse.json(
+          { error: 'Failed to initialize payment' },
+          { status: 500 }
+        )
+      }
+
+      // Persist the subscription as `incomplete` up front so Stripe webhooks
+      // (invoice.payment_succeeded / customer.subscription.updated) can locate
+      // the row once the charge clears.
       const admin = createAdminClient()
+      const { data: tier } = await supabase
+        .from('membership_tiers')
+        .select('id')
+        .eq('tier_type', tierType)
+        .single()
+
+      if (tier) {
+        await admin.from('customer_subscriptions').upsert(
+          {
+            user_id: user.id,
+            membership_tier_id: tier.id,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscription.id,
+            stripe_price_id: priceId,
+            status: subscription.status as any,
+            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+          },
+          { onConflict: 'stripe_subscription_id' }
+        )
+      }
+
+      return NextResponse.json({
+        clientSecret,
+        subscriptionId: subscription.id,
+        amount: (invoice as any)?.amount_due ?? null,
+      })
+    }
+
+    // ========================================================================
+    // FINALIZE: called after the client confirms the PaymentIntent.
+    // Guarantees the payment method is attached to the customer + set as the
+    // default for future renewals, syncs the DB row, and grants initial tokens.
+    // ========================================================================
+    if (action === 'finalize') {
+      if (!subscriptionId) {
+        return NextResponse.json({ error: 'Missing subscription' }, { status: 400 })
+      }
+
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ['latest_invoice.payment_intent', 'default_payment_method'],
+      })
+
+      if (subscription.customer !== customerId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
+      const invoice = subscription.latest_invoice as Stripe.Invoice | null
+      const paymentIntent = (invoice as any)?.payment_intent as Stripe.PaymentIntent | undefined
+
+      // The card that just paid — prefer the subscription default, fall back to
+      // the PaymentIntent's payment method.
+      const paymentMethodId =
+        paymentMethodIdFrom(subscription.default_payment_method) ||
+        paymentMethodIdFrom(paymentIntent?.payment_method)
+
+      // CRITICAL: ensure the card is attached to the customer and is their
+      // default for invoices, so every future renewal can be billed. This is
+      // the failure mode that previously left subscriptions unbillable.
+      if (paymentMethodId) {
+        try {
+          await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId })
+        } catch {
+          // Already attached (the expected case) — ignore.
+        }
+
+        await stripe.customers.update(customerId, {
+          invoice_settings: { default_payment_method: paymentMethodId },
+        })
+
+        if (!subscription.default_payment_method) {
+          await stripe.subscriptions
+            .update(subscriptionId, { default_payment_method: paymentMethodId })
+            .catch(() => {})
+        }
+      }
+
+      const admin = createAdminClient()
+      const priceId =
+        subscription.items.data[0]?.price?.id || process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY
+      const tierType = tierTypeForPrice(priceId)
 
       const { data: tier } = await supabase
         .from('membership_tiers')
         .select('id')
-        .eq('tier_type', 'vision_pro_28day')
+        .eq('tier_type', tierType)
         .single()
 
+      // Upsert keeps this resilient even if the `create` row was missed.
       if (tier) {
-        await admin.from('customer_subscriptions').insert({
-          user_id: user.id,
-          membership_tier_id: tier.id,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscription.id,
-          stripe_price_id: priceId,
-          status: 'trialing',
-          current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-          current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-          trial_start: new Date().toISOString(),
-          trial_end: new Date(Date.now() + (TRIAL_DAYS * 24 * 60 * 60 * 1000)).toISOString(),
-        })
+        await admin.from('customer_subscriptions').upsert(
+          {
+            user_id: user.id,
+            membership_tier_id: tier.id,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subscription.id,
+            stripe_price_id: priceId,
+            status: subscription.status as any,
+            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+          },
+          { onConflict: 'stripe_subscription_id' }
+        )
 
-        await admin.from('user_accounts').update({
-          membership_tier_id: tier.id,
-        }).eq('id', user.id)
+        await admin
+          .from('user_accounts')
+          .update({ membership_tier_id: tier.id })
+          .eq('id', user.id)
       }
 
-      const trialEndDate = new Date(Date.now() + (TRIAL_DAYS * 24 * 60 * 60 * 1000))
+      // Grant the initial token allotment once the first payment has cleared.
+      // The first invoice has billing_reason `subscription_create`, which the
+      // webhook deliberately skips, so we grant it here (guarded against dupes).
+      const isPaid = subscription.status === 'active' || subscription.status === 'trialing'
+      if (isPaid && priceId) {
+        const { data: subRow } = await admin
+          .from('customer_subscriptions')
+          .select('id')
+          .eq('stripe_subscription_id', subscription.id)
+          .maybeSingle()
+
+        if (subRow?.id) {
+          const { count } = await admin
+            .from('token_transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('subscription_id', subRow.id)
+            .eq('action_type', 'subscription_grant')
+
+          if (!count) {
+            const { error: grantError } = await admin.rpc('grant_tokens_by_stripe_price_id', {
+              p_user_id: user.id,
+              p_stripe_price_id: priceId,
+              p_subscription_id: subRow.id,
+            })
+            if (grantError) {
+              console.error('Reactivate offer: token grant failed', grantError)
+            }
+          }
+        }
+      }
 
       return NextResponse.json({
         success: true,
         subscriptionId: subscription.id,
-        trialEnd: trialEndDate.toISOString(),
-        amount: 4950,
-        interval: '28 days',
+        status: subscription.status,
+        nextBilling: new Date((subscription as any).current_period_end * 1000).toISOString(),
+        amountPaid: (invoice as any)?.amount_paid ?? null,
       })
     }
 
