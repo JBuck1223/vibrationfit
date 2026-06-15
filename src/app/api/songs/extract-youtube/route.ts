@@ -47,6 +47,55 @@ function isValidYoutubeUrl(url: string): boolean {
   }
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// RapidAPI hands back a download link a moment before the converted file is
+// actually ready, so the first hit often returns 502/503/504. The conversion
+// is cached after the first request, so a short retry almost always succeeds.
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
+
+/**
+ * Fetch with bounded exponential backoff on transient/upstream errors.
+ * Total wait is capped so a member never sits for more than ~30s before
+ * either getting audio or a clean error.
+ */
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit & { perAttemptTimeoutMs?: number } = {},
+  { attempts = 4, baseDelayMs = 2000, label = 'fetch' }: { attempts?: number; baseDelayMs?: number; label?: string } = {}
+): Promise<Response> {
+  const { perAttemptTimeoutMs = 30000, ...fetchInit } = init
+  let lastError: unknown = null
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const res = await fetch(url, {
+        ...fetchInit,
+        signal: AbortSignal.timeout(perAttemptTimeoutMs),
+      })
+
+      if (res.ok || !RETRYABLE_STATUS.has(res.status)) {
+        return res
+      }
+
+      // Retryable upstream status — log and back off before trying again.
+      console.warn(`[ExtractYouTube] ${label} attempt ${attempt}/${attempts} got ${res.status}; retrying`)
+      lastError = new Error(`${label} returned ${res.status}`)
+    } catch (err) {
+      // Network error or per-attempt timeout — also retryable.
+      console.warn(`[ExtractYouTube] ${label} attempt ${attempt}/${attempts} threw:`, err instanceof Error ? err.message : err)
+      lastError = err
+    }
+
+    if (attempt < attempts) {
+      // Exponential backoff: 2s, 4s, 8s (capped).
+      await sleep(Math.min(baseDelayMs * 2 ** (attempt - 1), 8000))
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`${label} failed after ${attempts} attempts`)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -81,16 +130,24 @@ export async function POST(request: NextRequest) {
       // Non-critical — proceed without title
     }
 
-    // Step 1: ask the RapidAPI downloader for a temporary MP3 download URL
-    const apiRes = await fetch(
-      `https://${RAPIDAPI_HOST}/download/mp3?url=${encodeURIComponent(url)}`,
-      {
-        headers: {
-          'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': RAPIDAPI_HOST,
+    // Step 1: ask the RapidAPI downloader for a temporary MP3 download URL.
+    // Retries on transient upstream errors (429/5xx).
+    let apiRes: Response
+    try {
+      apiRes = await fetchWithRetry(
+        `https://${RAPIDAPI_HOST}/download/mp3?url=${encodeURIComponent(url)}`,
+        {
+          headers: {
+            'x-rapidapi-key': RAPIDAPI_KEY,
+            'x-rapidapi-host': RAPIDAPI_HOST,
+          },
         },
-      }
-    )
+        { label: 'convert', attempts: 4 }
+      )
+    } catch (err) {
+      console.error('[ExtractYouTube] RapidAPI convert failed after retries:', err instanceof Error ? err.message : err)
+      return NextResponse.json({ error: 'Could not fetch audio for that link. Try another track.' }, { status: 502 })
+    }
 
     if (!apiRes.ok) {
       const text = await apiRes.text().catch(() => '')
@@ -106,8 +163,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No audio available for that link.' }, { status: 502 })
     }
 
-    // Step 2: download the MP3 (session URL is single-use)
-    const audioRes = await fetch(downloadUrl)
+    // Step 2: download the MP3. The link is often issued before the converted
+    // file is ready, so this is the hop most likely to 504 — retry with backoff.
+    let audioRes: Response
+    try {
+      audioRes = await fetchWithRetry(downloadUrl, {}, { label: 'download', attempts: 4 })
+    } catch (err) {
+      console.error('[ExtractYouTube] Download failed after retries:', err instanceof Error ? err.message : err)
+      return NextResponse.json({ error: 'That track took too long to prepare. Please try again.' }, { status: 502 })
+    }
+
     if (!audioRes.ok) {
       console.error('[ExtractYouTube] Download failed:', audioRes.status)
       return NextResponse.json({ error: 'Failed to download audio.' }, { status: 502 })
