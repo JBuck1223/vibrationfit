@@ -626,7 +626,6 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
                     <>
                       {renderField({ label: 'Status', value: draftProfile.relationship_status, fieldKey: 'relationship_status', type: 'select', selectOptions: [
                         { value: 'Single', label: 'Single' },
-                        { value: 'Dating', label: 'Dating' },
                         { value: 'In a Relationship', label: 'In a Relationship' },
                         { value: 'Married', label: 'Married' }
                       ]})}

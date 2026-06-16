@@ -355,7 +355,11 @@ export default function SongwriterPage() {
       })
 
       if (!response.ok) {
-        const err = await response.json()
+        // A gateway/timeout response (e.g. 504) is not JSON, so parse defensively.
+        const err = await response.json().catch(() => ({}))
+        if (response.status === 504 || response.status === 408) {
+          throw new Error('That track took too long to prepare. Please try again.')
+        }
         throw new Error(err.error || 'Failed to extract audio')
       }
 

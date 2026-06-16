@@ -608,6 +608,7 @@ export default function UnifiedCategoryPage() {
     setCommitError(null)
     try {
       const vision = await commitDraft(draftVision.id)
+      await refreshVisions()
       router.push(`/life-vision/${vision.id}`)
     } catch (err) {
       console.error('Error committing draft:', err)
@@ -1551,7 +1552,7 @@ export default function UnifiedCategoryPage() {
                     </div>
                   </div>
 
-                  {/* Proofread button */}
+                  {/* Proofread / Save buttons */}
                   <div className="mt-6 flex justify-center gap-3">
                     <Button
                       variant="accent"
@@ -1565,6 +1566,13 @@ export default function UnifiedCategoryPage() {
                         <><FileCheck className="w-4 h-4 mr-2" />Proofread with VIVA</>
                       )}
                     </Button>
+                    <SaveButton
+                      saveLabel="Save to Draft"
+                      hasUnsavedChanges={!!(draftVision && manualText.trim())}
+                      isSaving={isDraftSaving}
+                      onClick={saveManualEdit}
+                      disabled={!draftVision || !manualText.trim() || proofreadLoading}
+                    />
                   </div>
                 </div>
               )}

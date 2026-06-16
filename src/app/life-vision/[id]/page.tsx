@@ -757,6 +757,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     try {
       const newActive = await commitDraft(vision.id)
       await refreshVisions()
+      // Commit happens in place (same id), so navigating to the same route won't
+      // refetch. Update local state so the badge/toolbar reflect the active version immediately.
+      setVision(prev => (prev ? { ...prev, ...newActive, is_draft: false, is_active: true } : prev))
       router.push(`/life-vision/${newActive.id}`)
     } catch (error) {
       console.error('Error committing draft:', error)

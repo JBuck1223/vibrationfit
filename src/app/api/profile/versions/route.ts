@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
       .from('user_profiles')
       .select(`
         id,
-        version_number,
         is_draft,
         is_active,
         version_notes,
@@ -93,10 +92,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { sourceProfileId, versionNotes } = CreateDraftSchema.parse(body)
 
-    // Verify the source profile belongs to the user
+    // Verify the source profile belongs to the user (fetch full row to clone)
     const { data: sourceProfile, error: sourceError } = await supabase
       .from('user_profiles')
-      .select('id, user_id')
+      .select('*')
       .eq('id', sourceProfileId)
       .eq('user_id', user.id)
       .single()
@@ -105,38 +104,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Source profile not found or access denied' }, { status: 404 })
     }
 
-    // Use the database function to create a draft
-    const { data: newDraftId, error: draftError } = await supabase
-      .rpc('create_draft_from_version', {
-        p_source_profile_id: sourceProfileId,
-        p_user_id: user.id,
-        p_version_notes: versionNotes || null
-      })
+    // Create the draft by cloning the source row directly.
+    // Note: this intentionally does NOT use the create_draft_from_version RPC,
+    // which still inserts a removed `version_number` column on user_profiles
+    // (version numbers are now derived via get_profile_version_number).
+    // Only one draft per user is allowed, so remove any existing draft first.
+    const { error: deleteDraftError } = await supabase
+      .from('user_profiles')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('is_draft', true)
 
-    if (draftError) {
-      console.error('Error creating draft:', draftError)
-      return NextResponse.json({ error: 'Failed to create draft' }, { status: 500 })
+    if (deleteDraftError) {
+      console.error('Error clearing existing draft:', deleteDraftError)
+      return NextResponse.json({ error: 'Failed to create draft', message: deleteDraftError.message }, { status: 500 })
     }
 
-    // Fetch the created draft
+    // Strip identity/versioning fields so the clone gets fresh values. Any of
+    // these keys that are not real columns are simply absent and ignored.
+    const clonableFields: Record<string, unknown> = { ...(sourceProfile as Record<string, unknown>) }
+    for (const key of [
+      'id', 'created_at', 'updated_at', 'version_number',
+      'parent_id', 'parent_version_id', 'is_draft', 'is_active',
+    ]) {
+      delete clonableFields[key]
+    }
+
     const { data: draft, error: fetchError } = await supabase
       .from('user_profiles')
+      .insert({
+        ...clonableFields,
+        user_id: user.id,
+        is_draft: true,
+        is_active: false,
+        parent_id: sourceProfileId,
+        version_notes: versionNotes || null,
+      })
       .select(`
         id,
-        version_number,
         is_draft,
         is_active,
         version_notes,
+        parent_id,
         parent_version_id,
         created_at,
         updated_at
       `)
-      .eq('id', newDraftId)
       .single()
 
-    if (fetchError) {
-      console.error('Error fetching created draft:', fetchError)
-      return NextResponse.json({ error: 'Failed to fetch created draft' }, { status: 500 })
+    if (fetchError || !draft) {
+      console.error('Error creating draft:', fetchError)
+      return NextResponse.json({ error: 'Failed to create draft', message: fetchError?.message }, { status: 500 })
     }
 
     // Calculate version number based on chronological order
@@ -190,16 +208,36 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Draft profile not found or access denied' }, { status: 404 })
     }
 
-    // Use the database function to commit the draft
+    // Commit the draft as the new active version.
+    // Note: this intentionally does NOT use the commit_draft_as_active RPC, which
+    // still writes a removed `version_number` column on user_profiles (version
+    // numbers are now derived via get_profile_version_number). The two updates are
+    // ordered so the single-active and single-draft partial unique indexes are
+    // never violated: deactivate the current active version first, then promote
+    // the draft.
+    const nowIso = new Date().toISOString()
+
+    const { error: deactivateError } = await supabase
+      .from('user_profiles')
+      .update({ is_active: false, updated_at: nowIso })
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .eq('is_draft', false)
+
+    if (deactivateError) {
+      console.error('Error committing draft (deactivate step):', deactivateError)
+      return NextResponse.json({ error: 'Failed to commit draft', message: deactivateError.message }, { status: 500 })
+    }
+
     const { error: commitError } = await supabase
-      .rpc('commit_draft_as_active', {
-        p_draft_profile_id: draftProfileId,
-        p_user_id: user.id
-      })
+      .from('user_profiles')
+      .update({ is_draft: false, is_active: true, updated_at: nowIso })
+      .eq('id', draftProfileId)
+      .eq('user_id', user.id)
 
     if (commitError) {
       console.error('Error committing draft:', commitError)
-      return NextResponse.json({ error: 'Failed to commit draft' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to commit draft', message: commitError.message }, { status: 500 })
     }
 
     // Fetch the updated profile
@@ -207,7 +245,6 @@ export async function PUT(request: NextRequest) {
       .from('user_profiles')
       .select(`
         id,
-        version_number,
         is_draft,
         is_active,
         version_notes,
@@ -295,7 +332,6 @@ export async function PATCH(request: NextRequest) {
       .from('user_profiles')
       .select(`
         id,
-        version_number,
         is_draft,
         is_active,
         version_notes,

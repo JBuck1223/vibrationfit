@@ -131,7 +131,6 @@ export async function PATCH(
       .eq('user_id', user.id)
       .select(`
         id,
-        version_number,
         is_draft,
         is_active,
         version_notes,

@@ -1021,8 +1021,25 @@ export async function PUT(request: NextRequest) {
       })
     } catch (dbError) {
       console.error('Database error:', dbError)
-      return NextResponse.json({ 
+      console.error('Database error details:', JSON.stringify(dbError, null, 2))
+
+      // Surface the underlying Postgres/Supabase error so the client and logs can
+      // diagnose constraint violations (e.g. an invalid enum value rejected by a
+      // CHECK constraint) instead of getting an opaque "cannot update" message.
+      let errorMessage = 'Unknown error'
+      let errorDetails: string | undefined
+      if (dbError instanceof Error) {
+        errorMessage = dbError.message
+      } else if (typeof dbError === 'object' && dbError !== null) {
+        const supabaseError = dbError as { message?: string; details?: string }
+        errorMessage = supabaseError.message || supabaseError.details || JSON.stringify(dbError)
+        errorDetails = supabaseError.details || undefined
+      }
+
+      return NextResponse.json({
         error: 'Error occurred - cannot update profile',
+        message: errorMessage,
+        details: errorDetails,
         profile: {}
       }, { status: 500 })
     }
