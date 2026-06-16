@@ -50,50 +50,83 @@ function isValidYoutubeUrl(url: string): boolean {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 // RapidAPI hands back a download link a moment before the converted file is
-// actually ready, so the first hit often returns 502/503/504. The conversion
-// is cached after the first request, so a short retry almost always succeeds.
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
+// actually ready, so the first hit often returns 429/5xx. The conversion is
+// cached after the first request, so retrying the whole operation (fetching a
+// FRESH link each time) almost always succeeds.
+const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504])
+
+// Carries a user-facing message + HTTP status up to the route handler.
+class ExtractError extends Error {
+  constructor(public userMessage: string, public status: number) {
+    super(userMessage)
+  }
+}
 
 /**
- * Fetch with bounded exponential backoff on transient/upstream errors.
- * Total wait is capped so a member never sits for more than ~30s before
- * either getting audio or a clean error.
+ * Obtain the full MP3 for a YouTube URL via RapidAPI, retrying the ENTIRE
+ * convert+download as a unit. The download link is single-use, so a failed
+ * download must be retried with a freshly-issued link, not the same one.
+ *
+ * Bounded backoff (2s, 4s, 8s) keeps the worst case well under a minute so a
+ * member never sits waiting — they get audio quickly or a clean error.
  */
-async function fetchWithRetry(
-  url: string,
-  init: RequestInit & { perAttemptTimeoutMs?: number } = {},
-  { attempts = 4, baseDelayMs = 2000, label = 'fetch' }: { attempts?: number; baseDelayMs?: number; label?: string } = {}
-): Promise<Response> {
-  const { perAttemptTimeoutMs = 30000, ...fetchInit } = init
-  let lastError: unknown = null
+async function fetchYoutubeAudio(
+  youtubeUrl: string,
+  { attempts = 4, baseDelayMs = 2000 }: { attempts?: number; baseDelayMs?: number } = {}
+): Promise<Buffer> {
+  let lastReason = 'unknown error'
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      const res = await fetch(url, {
-        ...fetchInit,
-        signal: AbortSignal.timeout(perAttemptTimeoutMs),
-      })
+      // Step 1: request a fresh, single-use MP3 download URL.
+      const convertRes = await fetch(
+        `https://${RAPIDAPI_HOST}/download/mp3?url=${encodeURIComponent(youtubeUrl)}`,
+        {
+          headers: {
+            'x-rapidapi-key': RAPIDAPI_KEY as string,
+            'x-rapidapi-host': RAPIDAPI_HOST,
+          },
+          signal: AbortSignal.timeout(25000),
+        }
+      )
 
-      if (res.ok || !RETRYABLE_STATUS.has(res.status)) {
-        return res
+      if (!convertRes.ok) {
+        const body = await convertRes.text().catch(() => '')
+        // Non-retryable (e.g. 400/403/404 — bad/private/unavailable video): fail fast.
+        if (!RETRYABLE_STATUS.has(convertRes.status)) {
+          throw new ExtractError('Could not fetch audio for that link. Try another track.', 502)
+        }
+        lastReason = `convert ${convertRes.status} ${body.slice(0, 120)}`
+      } else {
+        const data = await convertRes.json().catch(() => ({} as Record<string, unknown>))
+        const downloadUrl = (data.downloadUrl || data.link || data.url) as string | undefined
+
+        if (!downloadUrl) {
+          // File likely still converting — retry for a fresh response.
+          lastReason = `no downloadUrl in response: ${JSON.stringify(data).slice(0, 120)}`
+        } else {
+          // Step 2: download the fresh single-use URL exactly once.
+          const dlRes = await fetch(downloadUrl, { signal: AbortSignal.timeout(45000) })
+          if (dlRes.ok) {
+            return Buffer.from(await dlRes.arrayBuffer())
+          }
+          lastReason = `download ${dlRes.status}`
+        }
       }
-
-      // Retryable upstream status — log and back off before trying again.
-      console.warn(`[ExtractYouTube] ${label} attempt ${attempt}/${attempts} got ${res.status}; retrying`)
-      lastError = new Error(`${label} returned ${res.status}`)
     } catch (err) {
-      // Network error or per-attempt timeout — also retryable.
-      console.warn(`[ExtractYouTube] ${label} attempt ${attempt}/${attempts} threw:`, err instanceof Error ? err.message : err)
-      lastError = err
+      if (err instanceof ExtractError) throw err
+      // Network error or per-attempt timeout — retryable.
+      lastReason = err instanceof Error ? err.message : String(err)
     }
 
+    console.warn(`[ExtractYouTube] attempt ${attempt}/${attempts} failed: ${lastReason}`)
+
     if (attempt < attempts) {
-      // Exponential backoff: 2s, 4s, 8s (capped).
       await sleep(Math.min(baseDelayMs * 2 ** (attempt - 1), 8000))
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error(`${label} failed after ${attempts} attempts`)
+  throw new ExtractError('That track took too long to prepare. Please try again.', 502)
 }
 
 export async function POST(request: NextRequest) {
@@ -130,55 +163,18 @@ export async function POST(request: NextRequest) {
       // Non-critical — proceed without title
     }
 
-    // Step 1: ask the RapidAPI downloader for a temporary MP3 download URL.
-    // Retries on transient upstream errors (429/5xx).
-    let apiRes: Response
+    // Steps 1 & 2: fetch a fresh single-use download link and download the MP3,
+    // retrying the whole unit on transient upstream failures.
+    let audioBuffer: Buffer
     try {
-      apiRes = await fetchWithRetry(
-        `https://${RAPIDAPI_HOST}/download/mp3?url=${encodeURIComponent(url)}`,
-        {
-          headers: {
-            'x-rapidapi-key': RAPIDAPI_KEY,
-            'x-rapidapi-host': RAPIDAPI_HOST,
-          },
-        },
-        { label: 'convert', attempts: 4 }
-      )
+      audioBuffer = await fetchYoutubeAudio(url)
     } catch (err) {
-      console.error('[ExtractYouTube] RapidAPI convert failed after retries:', err instanceof Error ? err.message : err)
-      return NextResponse.json({ error: 'Could not fetch audio for that link. Try another track.' }, { status: 502 })
+      if (err instanceof ExtractError) {
+        console.error('[ExtractYouTube] Extraction failed:', err.message)
+        return NextResponse.json({ error: err.userMessage }, { status: err.status })
+      }
+      throw err
     }
-
-    if (!apiRes.ok) {
-      const text = await apiRes.text().catch(() => '')
-      console.error('[ExtractYouTube] RapidAPI error:', apiRes.status, text.slice(0, 300))
-      return NextResponse.json({ error: 'Could not fetch audio for that link. Try another track.' }, { status: 502 })
-    }
-
-    const apiData = await apiRes.json().catch(() => ({}))
-    const downloadUrl: string | undefined = apiData.downloadUrl || apiData.link || apiData.url
-
-    if (!downloadUrl) {
-      console.error('[ExtractYouTube] No downloadUrl in response:', JSON.stringify(apiData).slice(0, 300))
-      return NextResponse.json({ error: 'No audio available for that link.' }, { status: 502 })
-    }
-
-    // Step 2: download the MP3. The link is often issued before the converted
-    // file is ready, so this is the hop most likely to 504 — retry with backoff.
-    let audioRes: Response
-    try {
-      audioRes = await fetchWithRetry(downloadUrl, {}, { label: 'download', attempts: 4 })
-    } catch (err) {
-      console.error('[ExtractYouTube] Download failed after retries:', err instanceof Error ? err.message : err)
-      return NextResponse.json({ error: 'That track took too long to prepare. Please try again.' }, { status: 502 })
-    }
-
-    if (!audioRes.ok) {
-      console.error('[ExtractYouTube] Download failed:', audioRes.status)
-      return NextResponse.json({ error: 'Failed to download audio.' }, { status: 502 })
-    }
-
-    const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
 
     // Step 3: store full audio on S3 as the scrubbable reference source
     const key = `${user.id}/songs/references/${Date.now()}-ref.mp3`
