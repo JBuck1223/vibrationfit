@@ -281,7 +281,7 @@ export const userNavigationGroups: NavGroup[] = [
       },
       {
         name: 'Household',
-        href: '/household',
+        href: '/account/household',
         icon: Home,
         description: 'Shared visions, vision boards, and members',
       },
