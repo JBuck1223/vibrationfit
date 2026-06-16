@@ -88,6 +88,9 @@ export function SongRegeneratePanel({
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
+        if (response.status === 504 || response.status === 408) {
+          throw new Error('That track took too long to prepare. Please try again.')
+        }
         throw new Error(err.error || 'Failed to extract audio')
       }
 

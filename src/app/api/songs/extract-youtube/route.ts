@@ -62,21 +62,35 @@ class ExtractError extends Error {
   }
 }
 
+// Hard wall-clock deadline for the whole operation. Must stay comfortably
+// below the route's maxDuration so we always return our own clean error
+// before Vercel kills the function with a platform 504.
+const TOTAL_DEADLINE_MS = 85000
+const CONVERT_TIMEOUT_MS = 15000
+const DOWNLOAD_TIMEOUT_MS = 30000
+
 /**
  * Obtain the full MP3 for a YouTube URL via RapidAPI, retrying the ENTIRE
  * convert+download as a unit. The download link is single-use, so a failed
  * download must be retried with a freshly-issued link, not the same one.
  *
- * Bounded backoff (2s, 4s, 8s) keeps the worst case well under a minute so a
- * member never sits waiting — they get audio quickly or a clean error.
+ * The whole loop is bounded by a wall-clock deadline (and per-attempt
+ * timeouts are clamped to the remaining budget), so a member never sits
+ * waiting and we never trip Vercel's function timeout — they get audio
+ * quickly or a clean error.
  */
 async function fetchYoutubeAudio(
   youtubeUrl: string,
   { attempts = 4, baseDelayMs = 2000 }: { attempts?: number; baseDelayMs?: number } = {}
 ): Promise<Buffer> {
+  const startedAt = Date.now()
+  const remaining = () => TOTAL_DEADLINE_MS - (Date.now() - startedAt)
   let lastReason = 'unknown error'
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
+    // Stop if there isn't enough budget left to meaningfully try again.
+    if (remaining() < 5000) break
+
     try {
       // Step 1: request a fresh, single-use MP3 download URL.
       const convertRes = await fetch(
@@ -86,7 +100,7 @@ async function fetchYoutubeAudio(
             'x-rapidapi-key': RAPIDAPI_KEY as string,
             'x-rapidapi-host': RAPIDAPI_HOST,
           },
-          signal: AbortSignal.timeout(25000),
+          signal: AbortSignal.timeout(Math.min(CONVERT_TIMEOUT_MS, remaining())),
         }
       )
 
@@ -104,9 +118,11 @@ async function fetchYoutubeAudio(
         if (!downloadUrl) {
           // File likely still converting — retry for a fresh response.
           lastReason = `no downloadUrl in response: ${JSON.stringify(data).slice(0, 120)}`
-        } else {
+        } else if (remaining() > 5000) {
           // Step 2: download the fresh single-use URL exactly once.
-          const dlRes = await fetch(downloadUrl, { signal: AbortSignal.timeout(45000) })
+          const dlRes = await fetch(downloadUrl, {
+            signal: AbortSignal.timeout(Math.min(DOWNLOAD_TIMEOUT_MS, remaining())),
+          })
           if (dlRes.ok) {
             return Buffer.from(await dlRes.arrayBuffer())
           }
@@ -121,11 +137,16 @@ async function fetchYoutubeAudio(
 
     console.warn(`[ExtractYouTube] attempt ${attempt}/${attempts} failed: ${lastReason}`)
 
-    if (attempt < attempts) {
-      await sleep(Math.min(baseDelayMs * 2 ** (attempt - 1), 8000))
+    // Back off before the next attempt, but only if budget remains.
+    const delay = Math.min(baseDelayMs * 2 ** (attempt - 1), 8000)
+    if (attempt < attempts && remaining() > delay + 5000) {
+      await sleep(delay)
+    } else if (attempt < attempts) {
+      break
     }
   }
 
+  console.error(`[ExtractYouTube] gave up after ${Date.now() - startedAt}ms: ${lastReason}`)
   throw new ExtractError('That track took too long to prepare. Please try again.', 502)
 }
 
