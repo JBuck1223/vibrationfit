@@ -184,16 +184,16 @@ export const userNavigationGroups: NavGroup[] = [
     defaultCollapsed: false,
     items: [
       {
-        name: 'Life Vision',
-        href: '/life-vision',
-        icon: Target,
-        description: 'My Active Vision',
-      },
-      {
         name: 'Profile',
         href: '/profile',
         icon: User,
         description: 'Your active profile',
+      },
+      {
+        name: 'Life Vision',
+        href: '/life-vision',
+        icon: Target,
+        description: 'My Active Vision',
       },
       {
         name: 'Vision Board',
@@ -250,16 +250,28 @@ export const userNavigationGroups: NavGroup[] = [
     defaultCollapsed: true,
     items: [
       {
-        name: 'Assessment',
-        href: '/assessment',
-        icon: Brain,
-        description: 'Vibrational assessment and results',
+        name: 'Account',
+        href: '/account',
+        icon: Settings,
+        description: 'Account, billing, and preferences',
       },
       {
         name: 'Referral',
         href: '/referral',
         icon: Share2,
         description: 'Share your referral link and earn rewards',
+      },
+      {
+        name: 'Support',
+        href: '/support/tickets',
+        icon: Users,
+        description: 'Get help and support',
+      },
+      {
+        name: 'Updates',
+        href: '/support/announcements',
+        icon: Bell,
+        description: 'Product updates and announcements',
       },
       {
         name: 'Tokens',
@@ -274,22 +286,16 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'File storage usage and history',
       },
       {
-        name: 'Support',
-        href: '/support/tickets',
-        icon: Users,
-        description: 'Get help and support',
-      },
-      {
         name: 'Household',
         href: '/account/household',
         icon: Home,
         description: 'Shared visions, vision boards, and members',
       },
       {
-        name: 'Account',
-        href: '/account',
-        icon: Settings,
-        description: 'Account, billing, and preferences',
+        name: 'Assessment',
+        href: '/assessment',
+        icon: Brain,
+        description: 'Vibrational assessment and results',
       },
     ],
   },

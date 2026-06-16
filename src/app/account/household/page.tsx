@@ -3,33 +3,21 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
-  Users,
   Heart,
   Sparkles,
   ImageIcon,
-  UserPlus,
   ArrowRight,
-  Coins,
+  ChevronRight,
   CheckCircle2,
 } from 'lucide-react'
 import {
   Card,
-  Button,
   Badge,
   Spinner,
   Container,
   Stack,
 } from '@/lib/design-system/components'
 import { AccountHouseholdSettings } from '@/components/account-studio'
-
-interface MemberSummary {
-  userId: string
-  role: 'admin' | 'member'
-  displayName: string
-  avatarUrl: string | null
-  isAdmin: boolean
-  isSelf: boolean
-}
 
 interface HubVision {
   id: string
@@ -59,7 +47,7 @@ interface HubData {
     isAdmin: boolean
     sharedTokensEnabled: boolean
   }
-  members: MemberSummary[]
+  members: { userId: string; displayName: string; avatarUrl: string | null }[]
   visions: HubVision[]
   boardItems: HubBoardItem[]
   stats: {
@@ -73,48 +61,27 @@ interface HubData {
 function Avatar({
   name,
   url,
-  size = 'md',
 }: {
   name: string
   url: string | null
-  size?: 'sm' | 'md'
 }) {
-  const dims = size === 'sm' ? 'w-7 h-7 text-xs' : 'w-10 h-10 text-sm'
   if (url) {
     return (
       <img
         src={url}
         alt={name}
-        className={`${dims} rounded-full object-cover border border-primary-500`}
+        className="w-7 h-7 rounded-full object-cover border border-primary-500 text-xs"
       />
     )
   }
   return (
-    <div
-      className={`${dims} bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center font-bold text-black`}
-    >
+    <div className="w-7 h-7 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center font-bold text-black text-xs">
       {name.charAt(0).toUpperCase()}
     </div>
   )
 }
 
-function StatTile({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: number
-}) {
-  return (
-    <Card variant="outlined" className="p-4">
-      <div className="flex items-center gap-2 text-neutral-400 mb-1">{icon}</div>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-xs text-neutral-400">{label}</div>
-    </Card>
-  )
-}
+const glassCard = 'border border-white/[0.06] p-4 shadow-none sm:p-5'
 
 export default function AccountHouseholdPage() {
   const [hubLoading, setHubLoading] = useState(true)
@@ -144,40 +111,33 @@ export default function AccountHouseholdPage() {
   return (
     <Container size="xl" className="pt-2 pb-6 sm:pb-8">
       <h1 className="sr-only">Household</h1>
-      <Stack gap="lg">
-        {/* Settings (members, invitations, token pool) — always shown */}
+      <Stack gap="md">
         <AccountHouseholdSettings />
 
-        {/* Shared content hub — only shown for multi-member households */}
         {hubLoading ? (
           <div className="flex justify-center py-8">
             <Spinner size="md" />
           </div>
         ) : hubData && !isSolo ? (
           <>
-            {/* Stats strip */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatTile icon={<Users className="w-5 h-5" />} label="Members" value={hubData.stats.memberCount} />
-              <StatTile icon={<Sparkles className="w-5 h-5" />} label="Shared Visions" value={hubData.stats.visionCount} />
-              <StatTile icon={<ImageIcon className="w-5 h-5" />} label="Shared Creations" value={hubData.stats.boardItemCount} />
-              <StatTile icon={<CheckCircle2 className="w-5 h-5" />} label="Actualized" value={hubData.stats.actualizedCount} />
-            </div>
-
             {/* Shared Life Visions */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-primary-500" />
-                  <h3 className="text-lg font-semibold">Shared Life Visions</h3>
+            <Card variant="glass" className={glassCard}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-500/15">
+                    <Sparkles className="h-4.5 w-4.5 text-primary-500" aria-hidden />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">Shared Life Visions</h3>
                 </div>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/life-vision/household">
-                    Manage <ArrowRight className="w-4 h-4 ml-1" />
-                  </Link>
-                </Button>
+                <Link
+                  href="/life-vision/household"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-neutral-400 transition-colors hover:text-primary-500"
+                >
+                  Manage <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
               {hubData.visions.length === 0 ? (
-                <p className="text-sm text-neutral-400">
+                <p className="text-sm leading-relaxed text-neutral-400">
                   No shared visions yet.{' '}
                   <Link href="/life-vision/household" className="text-primary-500 hover:underline">
                     Convert or merge a vision
@@ -185,23 +145,23 @@ export default function AccountHouseholdPage() {
                   to start building a future together.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {hubData.visions.map((v) => (
                     <Link key={v.id} href={`/life-vision/${v.id}`}>
-                      <Card variant="outlined" className="p-4 h-full hover:border-primary-500 transition-colors">
+                      <Card variant="outlined" className="p-4 h-full hover:border-primary-500/40 transition-colors">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold truncate">{v.title || 'Untitled Vision'}</h4>
+                          <h4 className="text-sm font-semibold text-white truncate">{v.title || 'Untitled Vision'}</h4>
                           {v.is_active && (
-                            <Badge variant="primary" className="!text-xs shrink-0">Active</Badge>
+                            <Badge variant="primary" className="!text-[10px] !py-0.5 shrink-0">Active</Badge>
                           )}
                           {v.is_draft && (
-                            <Badge variant="secondary" className="!text-xs shrink-0">Draft</Badge>
+                            <Badge variant="secondary" className="!text-[10px] !py-0.5 shrink-0">Draft</Badge>
                           )}
                         </div>
-                        <div className="text-xs text-neutral-400 mb-3">{v.completion_percent}% complete</div>
+                        <div className="text-xs text-neutral-500 mb-3">{v.completion_percent}% complete</div>
                         {v.member && (
-                          <div className="flex items-center gap-2 text-xs text-neutral-400">
-                            <Avatar name={v.member.displayName} url={v.member.avatarUrl} size="sm" />
+                          <div className="flex items-center gap-2 text-xs text-neutral-500">
+                            <Avatar name={v.member.displayName} url={v.member.avatarUrl} />
                             Started by {v.member.displayName}
                           </div>
                         )}
@@ -213,20 +173,23 @@ export default function AccountHouseholdPage() {
             </Card>
 
             {/* Shared Vision Board */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <ImageIcon className="w-5 h-5 text-accent-500" />
-                  <h3 className="text-lg font-semibold">Shared Vision Board</h3>
+            <Card variant="glass" className={glassCard}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-500/15">
+                    <ImageIcon className="h-4.5 w-4.5 text-accent-500" aria-hidden />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">Shared Vision Board</h3>
                 </div>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/vision-board?scope=household">
-                    Open Board <ArrowRight className="w-4 h-4 ml-1" />
-                  </Link>
-                </Button>
+                <Link
+                  href="/vision-board?scope=household"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-neutral-400 transition-colors hover:text-accent-500"
+                >
+                  Open Board <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
               {hubData.boardItems.length === 0 ? (
-                <p className="text-sm text-neutral-400">
+                <p className="text-sm leading-relaxed text-neutral-400">
                   No shared creations yet. On your{' '}
                   <Link href="/vision-board" className="text-primary-500 hover:underline">
                     vision board
@@ -237,7 +200,7 @@ export default function AccountHouseholdPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {hubData.boardItems.slice(0, 8).map((item) => (
                     <Link key={item.id} href="/vision-board?scope=household">
-                      <div className="group relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-800 border border-neutral-700 hover:border-accent-500 transition-colors">
+                      <div className="group relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-800 border border-white/[0.06] hover:border-accent-500/40 transition-colors">
                         {item.image_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -267,24 +230,14 @@ export default function AccountHouseholdPage() {
                 </div>
               )}
             </Card>
-
-            {/* Shared tokens note */}
-            {hubData.household.sharedTokensEnabled && (
-              <Card variant="outlined" className="p-4 flex items-center gap-3">
-                <Coins className="w-5 h-5 text-energy-500 shrink-0" />
-                <p className="text-sm text-neutral-300">
-                  Shared tokens are enabled for this household. Token usage is managed from the shared pool.
-                </p>
-              </Card>
-            )}
           </>
         ) : hubData && isSolo ? (
-          <Card className="p-8 text-center border-secondary-500/40">
+          <Card variant="glass" className="border border-white/[0.06] p-8 text-center shadow-none">
             <div className="w-16 h-16 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Heart className="w-8 h-8 text-secondary-500" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Bring your partner along</h2>
-            <p className="text-neutral-300 max-w-md mx-auto mb-6">
+            <p className="text-neutral-300 max-w-md mx-auto">
               A household lets you and a partner share visions, vision boards, and tokens —
               and build the life you choose, together.
             </p>

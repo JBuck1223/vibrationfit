@@ -131,7 +131,7 @@ function CommitmentInlineLabel({
         />
       ) : null}
       <div className="min-w-0">
-        <p className="truncate text-[13px] font-medium leading-tight text-neutral-200">
+        <p className="text-[13px] font-medium leading-tight text-neutral-200">
           {title}
         </p>
         {cadenceLabel ? (
@@ -509,14 +509,10 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
 
               return (
                 <div key={catKey}>
-                  <div className="flex items-center gap-1.5 px-2 py-1">
-                    {CategoryIcon ? (
-                      <CategoryIcon className="w-3.5 h-3.5 shrink-0 text-neutral-500" aria-hidden />
-                    ) : null}
-                    <p className="text-[10px] text-neutral-600">
-                      {cat?.label || catKey}
-                    </p>
-                  </div>
+                  <LifeCategoryHeader
+                    label={cat?.label || catKey}
+                    icon={CategoryIcon}
+                  />
                   <div className="rounded-lg bg-black/20 overflow-hidden">
                     {items.map(c => (
                       <CustomCommitmentRow
@@ -547,6 +543,23 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
           </div>
         </section>
       )}
+    </div>
+  )
+}
+
+function LifeCategoryHeader({
+  label,
+  icon: Icon,
+}: {
+  label: string
+  icon?: ComponentType<{ className?: string }>
+}) {
+  return (
+    <div className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg mb-1 bg-neutral-800/60">
+      {Icon ? (
+        <Icon className="w-3.5 h-3.5 shrink-0 text-neutral-400" aria-hidden />
+      ) : null}
+      <p className="text-[11px] font-semibold text-neutral-300">{label}</p>
     </div>
   )
 }
@@ -672,16 +685,31 @@ function CustomCommitmentRow({
   const cadenceLabel = formatCommitmentCadence(commitment.cadence)
 
   return (
-    <div className="flex items-center gap-2 px-2.5 py-2.5 border-b border-white/[0.04] last:border-0">
-      <CommitmentInlineLabel
-        title={commitment.title}
-        cadenceLabel={cadenceLabel}
-      />
-      {cadenceStatus ? (
-        <CadenceStatusBadge status={cadenceStatus} />
-      ) : null}
+    <div className="px-2.5 py-2.5 border-b border-[#333] last:border-b-0 sm:border-white/[0.04]">
+      <div className="flex items-center gap-2">
+        <CommitmentInlineLabel
+          title={commitment.title}
+          cadenceLabel={cadenceLabel}
+        />
+        {cadenceStatus ? (
+          <CadenceStatusBadge status={cadenceStatus} />
+        ) : null}
+        {!readOnly && occurrence ? (
+          <div className="hidden sm:flex shrink-0 items-center gap-1">
+            <MapCompleteButton status={status} onVerify={onVerify} compact />
+            <MapOccurrenceJournal
+              occurrence={occurrence}
+              commitmentTitle={commitment.title}
+              lifeCategory={commitment.category}
+              onUpdated={onJournalUpdated}
+            />
+          </div>
+        ) : readOnly ? null : (
+          <span className="text-[10px] text-neutral-600 shrink-0 hidden sm:inline">—</span>
+        )}
+      </div>
       {!readOnly && occurrence ? (
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex sm:hidden items-center gap-1 mt-1.5 pl-0.5">
           <MapCompleteButton status={status} onVerify={onVerify} compact />
           <MapOccurrenceJournal
             occurrence={occurrence}
@@ -690,9 +718,7 @@ function CustomCommitmentRow({
             onUpdated={onJournalUpdated}
           />
         </div>
-      ) : readOnly ? null : (
-        <span className="text-[10px] text-neutral-600 shrink-0">—</span>
-      )}
+      ) : null}
     </div>
   )
 }

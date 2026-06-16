@@ -32,59 +32,10 @@ export async function GET(request: NextRequest) {
         if (visionError) {
           console.error('Vision fetch error:', visionError)
           
-          // If vision doesn't exist, create a new one
           if (visionError.code === 'PGRST116') {
-            console.log('Vision not found, creating new vision...')
-            
-            // Try creating with new fields first, fallback to status if columns don't exist
-            let newVision = null
-            let createError = null
-            
-            // Try creating with status only (reliable)
-            const result = await supabase
-              .from('vision_versions')
-              .insert({
-                id: visionId,
-                user_id: user.id,
-                status: 'draft',
-                vision: {},
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              })
-              .select()
-              .single()
-            
-            newVision = result.data
-            createError = result.error
-            
-            if (createError) {
-              console.error('Error creating new vision:', createError)
-              return NextResponse.json({ error: 'Failed to create vision' }, { status: 500 })
-            }
-            
-            if (!newVision) {
-              return NextResponse.json({ error: 'Failed to create vision' }, { status: 500 })
-            }
-            
-            // Calculate version number based on chronological order
-            let versionNumber = 1
-            try {
-              const { data: calculatedVersionNumber } = await supabase
-                .rpc('get_vision_version_number', { p_vision_id: newVision.id })
-              
-              versionNumber = calculatedVersionNumber || 1
-            } catch (error) {
-              // If RPC function doesn't exist yet, default to 1
-              console.warn('Could not calculate version number, using default:', error)
-            }
-            
-            return NextResponse.json({
-              vision: {
-                ...newVision,
-                version_number: versionNumber
-              },
-              versions: []
-            })
+            // Vision not found for this user — check if it exists for another user
+            // (e.g. household vision) before returning 404
+            return NextResponse.json({ error: 'Vision not found' }, { status: 404 })
           }
           
           return NextResponse.json({ error: 'Vision not found' }, { status: 404 })

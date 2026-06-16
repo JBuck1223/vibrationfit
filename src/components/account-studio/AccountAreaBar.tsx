@@ -6,7 +6,7 @@ import { AreaBar, type AreaBarTab } from '@/lib/design-system/components'
 const TABS: AreaBarTab[] = [
   { label: 'Overview', path: '/account', icon: LayoutGrid },
   {
-    label: 'Profile',
+    label: 'Settings',
     path: '/account/settings',
     icon: User,
     matchPaths: ['/account/settings', '/account/settings/password', '/account/settings/delete'],
