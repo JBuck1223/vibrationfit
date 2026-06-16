@@ -14,6 +14,21 @@ import InvoiceHistory from '@/components/billing/InvoiceHistory'
 import AddCardForm from '@/components/billing/AddCardForm'
 import CancelMembershipDialog from '@/components/billing/CancelMembershipDialog'
 
+type IntensiveBillingData = {
+  completionStatus: string
+  installments: Array<{ status: 'paid' | 'upcoming' | 'scheduled' }>
+}
+
+function shouldShowIntensiveBilling(intensive: IntensiveBillingData | null): boolean {
+  if (!intensive) return false
+  if (intensive.completionStatus === 'pending' || intensive.completionStatus === 'in_progress') {
+    return true
+  }
+  return intensive.installments.some(
+    inst => inst.status === 'upcoming' || inst.status === 'scheduled',
+  )
+}
+
 function BillingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -126,17 +141,22 @@ function BillingContent() {
     <Container size="xl" className="pt-2 pb-12">
       <Stack gap="md">
         <h1 className="sr-only">Billing</h1>
-        {intensive && <IntensiveOverview intensive={intensive} />}
 
         <PlanOverview
           subscription={membership?.subscription || null}
           upcomingInvoice={membership?.upcomingInvoice || null}
+          paymentMethods={paymentMethods}
+          onAddCard={() => setShowAddCard(true)}
           onCancel={handleCancelClick}
           onResume={handleResume}
           onRefresh={fetchAll}
           isCanceling={isCanceling}
           isResuming={isResuming}
         />
+
+        {shouldShowIntensiveBilling(intensive) && (
+          <IntensiveOverview intensive={intensive} />
+        )}
 
         {household && (
           <HouseholdSection

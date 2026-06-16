@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { stripe } from '@/lib/stripe/config'
+import { getSubscriptionPeriod, getNextBillingDate } from '@/lib/stripe/subscription-period'
 import type Stripe from 'stripe'
 
 function mapTierToResponse(tier: any): any {
@@ -60,6 +61,7 @@ export async function GET() {
           (s) => s.status === 'active' || s.status === 'trialing' || s.status === 'past_due'
         )
         if (stripeSub) {
+          const period = getSubscriptionPeriod(stripeSub)
           const mainItem = stripeSub.items.data.find(
             (item) => !(item.price.metadata?.addon_type === 'tokens' || item.price.metadata?.addon_type === 'storage')
           ) || stripeSub.items.data[0]
@@ -79,11 +81,11 @@ export async function GET() {
                 stripe_subscription_id: stripeSub.id,
                 stripe_price_id: priceId,
                 status: stripeSub.status,
-                current_period_start: new Date(((stripeSub as any).current_period_start || 0) * 1000).toISOString(),
-                current_period_end: new Date(((stripeSub as any).current_period_end || 0) * 1000).toISOString(),
+                current_period_start: period.currentPeriodStart,
+                current_period_end: period.currentPeriodEnd,
                 cancel_at_period_end: stripeSub.cancel_at_period_end,
-                trial_start: stripeSub.trial_start ? new Date(stripeSub.trial_start * 1000).toISOString() : null,
-                trial_end: stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000).toISOString() : null,
+                trial_start: period.trialStart,
+                trial_end: period.trialEnd,
               }, {
                 onConflict: 'stripe_subscription_id',
                 ignoreDuplicates: false,
@@ -171,23 +173,23 @@ export async function GET() {
               }
             }
 
-            // Sync period dates from Stripe if DB is stale
-            const subData = stripeSub as unknown as { current_period_start?: number; current_period_end?: number; cancel_at_period_end?: boolean }
-            const stripeStart = subData.current_period_start
-              ? new Date(subData.current_period_start * 1000).toISOString()
-              : null
-            const stripeEnd = subData.current_period_end
-              ? new Date(subData.current_period_end * 1000).toISOString()
-              : null
+            // Sync period dates and status from Stripe (item-level periods in Clover API)
+            const period = getSubscriptionPeriod(stripeSub)
+            subscription.current_period_start = period.currentPeriodStart
+            subscription.current_period_end = period.currentPeriodEnd
+            subscription.trial_start = period.trialStart
+            subscription.trial_end = period.trialEnd
+            subscription.status = stripeSub.status
+            subscription.cancel_at_period_end = stripeSub.cancel_at_period_end
 
-            if (stripeEnd && stripeEnd !== subscription.current_period_end) {
-              subscription.current_period_start = stripeStart
-              subscription.current_period_end = stripeEnd
-              subscription.cancel_at_period_end = subData.cancel_at_period_end ?? false
+            if (period.currentPeriodEnd) {
               const admin = createAdminClient()
               admin.from('customer_subscriptions').update({
-                current_period_start: stripeStart,
-                current_period_end: stripeEnd,
+                current_period_start: period.currentPeriodStart,
+                current_period_end: period.currentPeriodEnd,
+                trial_start: period.trialStart,
+                trial_end: period.trialEnd,
+                status: stripeSub.status,
                 cancel_at_period_end: stripeSub.cancel_at_period_end,
               }).eq('id', subscription.id).then(() => {})
             }
@@ -245,6 +247,14 @@ export async function GET() {
         status: subscription.status,
         currentPeriodStart: subscription.current_period_start,
         currentPeriodEnd: subscription.current_period_end,
+        trialEnd: subscription.trial_end,
+        nextBillingDate: getNextBillingDate({
+          status: subscription.status,
+          currentPeriodEnd: subscription.current_period_end,
+          trialEnd: subscription.trial_end,
+          upcomingInvoicePeriodEnd: upcomingInvoice?.periodEnd ?? null,
+          nextPaymentAttempt: upcomingInvoice?.nextPaymentAttempt ?? null,
+        }),
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
         canceledAt: subscription.canceled_at,
         stripeSubscriptionId: subscription.stripe_subscription_id,

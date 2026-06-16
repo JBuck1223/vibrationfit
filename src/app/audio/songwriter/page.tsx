@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Container, Stack, Card, Button, Textarea, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home } from 'lucide-react'
 import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-studio/ReferenceLibraryPicker'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
 import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
 import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
@@ -552,6 +553,7 @@ export default function SongwriterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           song_id: currentSongId,
+          lyrics: lyrics.trim(),
           reference_id: refId || undefined,
           life_categories: categoryTags,
           reference_meta: refId ? {
@@ -790,13 +792,17 @@ export default function SongwriterPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-neutral-200">What's this song about?</label>
-              <Textarea
-                value={songIdea}
-                onChange={e => setSongIdea(e.target.value)}
-                placeholder="A song about..."
-                rows={4}
-                className="mt-1.5"
-              />
+              <div className="mt-1.5">
+                <RecordingTextarea
+                  value={songIdea}
+                  onChange={(val) => setSongIdea(val)}
+                  placeholder="A song about..."
+                  rows={4}
+                  storageFolder="customTracks"
+                  recordingPurpose="quick"
+                  hideClear
+                />
+              </div>
             </div>
           </Stack>
         </Card>

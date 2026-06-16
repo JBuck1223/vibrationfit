@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Card, Badge, Button, Spinner } from '@/lib/design-system/components'
-import { CreditCard, Calendar, Coins, HardDrive, AlertTriangle, RotateCcw, ArrowUpRight, ArrowDownRight, Home, User, Check, Crown, Zap, Shield, Tag, X, Loader2 } from 'lucide-react'
+import { CreditCard, Calendar, AlertTriangle, RotateCcw, ArrowUpRight, ArrowDownRight, Home, User, Check, Crown, Zap, Shield, Tag, X, Loader2, Plus } from 'lucide-react'
 import { formatPrice, formatTokensShort, formatStorage, PRICING, TOKEN_GRANTS, STORAGE_QUOTAS } from '@/lib/billing/config'
 
 import { toast } from 'sonner'
@@ -30,6 +30,8 @@ type SubscriptionData = {
   status: string
   currentPeriodStart: string | null
   currentPeriodEnd: string | null
+  trialEnd?: string | null
+  nextBillingDate?: string | null
   cancelAtPeriodEnd: boolean
   discount?: SubscriptionDiscount | null
   tier: {
@@ -64,9 +66,20 @@ type ProrationPreview = {
 
 type PlanChangeFlow = 'annual' | 'household' | '28day' | 'individual'
 
+type PaymentMethod = {
+  id: string
+  brand: string | null
+  last4: string | null
+  expMonth: number | null
+  expYear: number | null
+  isDefault: boolean
+}
+
 type Props = {
   subscription: SubscriptionData | null
   upcomingInvoice: UpcomingInvoice | null
+  paymentMethods?: PaymentMethod[]
+  onAddCard?: () => void
   onCancel: () => void
   onResume: () => void
   onRefresh: () => void
@@ -90,9 +103,118 @@ function getStatusBadge(status: string, cancelAtPeriodEnd: boolean) {
   }
 }
 
+function formatCardBrand(brand: string | null): string {
+  const b = brand?.toLowerCase()
+  if (b === 'visa') return 'Visa'
+  if (b === 'mastercard') return 'Mastercard'
+  if (b === 'amex') return 'Amex'
+  if (b === 'discover') return 'Discover'
+  return brand || 'Card'
+}
+
+function PaymentMethodSection({
+  paymentMethods,
+  onAddCard,
+  subscriptionStatus,
+  nextBillingDate,
+}: {
+  paymentMethods: PaymentMethod[]
+  onAddCard?: () => void
+  subscriptionStatus?: string | null
+  nextBillingDate?: string | null
+}) {
+  const defaultPm = paymentMethods.find(pm => pm.isDefault) || paymentMethods[0]
+
+  if (!defaultPm) {
+    const isPastDue = subscriptionStatus === 'past_due'
+    const isTrialing = subscriptionStatus === 'trialing'
+    const billingDateLabel = nextBillingDate ? formatDate(nextBillingDate) : 'your next billing date'
+
+    const title = isPastDue
+      ? 'Payment failed — add a card to continue'
+      : 'No payment method on file'
+
+    const description = isPastDue
+      ? 'We could not charge your membership. Add a card to restore billing and keep access.'
+      : isTrialing
+        ? `Add a card before your trial ends on ${billingDateLabel} so your membership can renew without interruption.`
+        : `Add a card before ${billingDateLabel} so we can charge your membership on time.`
+
+    return (
+      <div
+        className={`rounded-xl p-3 sm:p-4 border flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between ${
+          isPastDue
+            ? 'bg-red-500/10 border-red-500/30'
+            : 'bg-yellow-500/10 border-yellow-500/30'
+        }`}
+      >
+        <div className="flex items-start gap-3 min-w-0">
+          <AlertTriangle
+            className={`w-5 h-5 shrink-0 mt-0.5 ${isPastDue ? 'text-red-400' : 'text-yellow-500'}`}
+            aria-hidden
+          />
+          <div className="min-w-0">
+            <p className={`text-sm font-medium ${isPastDue ? 'text-red-400' : 'text-yellow-400'}`}>
+              {title}
+            </p>
+            <p className="text-xs text-neutral-400 mt-1 leading-relaxed">{description}</p>
+          </div>
+        </div>
+        {onAddCard && (
+          <Button
+            variant={isPastDue ? 'danger' : 'primary'}
+            size="sm"
+            className="w-full justify-center sm:w-auto shrink-0"
+            onClick={onAddCard}
+          >
+            <Plus className="w-4 h-4 mr-1.5 shrink-0" />
+            Add card
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-neutral-950/80 rounded-xl p-3 sm:p-4 border border-neutral-800/80">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
+            <CreditCard className="w-3.5 h-3.5 shrink-0" />
+            Payment method
+          </div>
+          {defaultPm ? (
+            <>
+              <div className="text-sm font-medium text-white">
+                {formatCardBrand(defaultPm.brand)} •••• {defaultPm.last4}
+              </div>
+              <div className="text-xs text-neutral-500 mt-0.5">
+                Expires {defaultPm.expMonth}/{defaultPm.expYear}
+              </div>
+            </>
+          ) : null}
+        </div>
+        {onAddCard && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-center sm:w-auto shrink-0"
+            onClick={onAddCard}
+          >
+            <Plus className="w-4 h-4 mr-1.5 shrink-0" />
+            Add card
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function PlanOverview({
   subscription,
   upcomingInvoice,
+  paymentMethods = [],
+  onAddCard,
   onCancel,
   onResume,
   onRefresh,
@@ -131,7 +253,14 @@ export default function PlanOverview({
           <CreditCard className="w-5 h-5 text-neutral-500 shrink-0" aria-hidden />
           <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">Vision Pro Membership</h3>
         </div>
-        <p className="text-sm text-neutral-500 text-center py-6">No active membership</p>
+        <p className="text-sm text-neutral-500 text-center py-4">No active membership</p>
+        <div className="mb-4">
+          <PaymentMethodSection
+            paymentMethods={paymentMethods}
+            onAddCard={onAddCard}
+            subscriptionStatus={null}
+          />
+        </div>
         <Button variant="primary" className="w-full justify-center" onClick={() => { window.location.href = '/#pricing' }}>
           View plans
         </Button>
@@ -141,6 +270,10 @@ export default function PlanOverview({
 
   const { tier } = subscription
   const isTrialing = subscription.status === 'trialing'
+  const nextBillingDate =
+    subscription.nextBillingDate ??
+    (isTrialing ? subscription.trialEnd : null) ??
+    subscription.currentPeriodEnd
   const is28Day = tier.billingInterval !== 'year'
   const tokenGrant = tier.billingInterval === 'year' ? tier.annualTokenGrant : tier.monthlyTokenGrant
   const price = tier.billingInterval === 'year' ? (tier.priceYearly || tier.priceMonthly) : tier.priceMonthly
@@ -564,7 +697,7 @@ export default function PlanOverview({
               {duringTrial ? (
                 <div className="text-center text-sm text-neutral-300">
                   <Shield className="w-4 h-4 inline-block mr-1.5 -mt-0.5" style={{ color: accentColor }} />
-                  Your trial continues until <span className="text-white font-medium">{formatDate(subscription.currentPeriodEnd)}</span>. No plan proration today.
+                  Your trial continues until <span className="text-white font-medium">{formatDate(nextBillingDate)}</span>. No plan proration today.
                 </div>
               ) : (
                 <>
@@ -755,7 +888,7 @@ export default function PlanOverview({
                   <>
                     Your plan will change to <span className="text-white font-medium">{targetPlan.name}</span>.
                     You will be billed <span className="text-white font-medium">{newBilling}</span> starting{' '}
-                    <span className="text-white font-medium">{duringTrial ? formatDate(subscription.currentPeriodEnd) : 'your next billing date'}</span>.
+                    <span className="text-white font-medium">{duringTrial ? formatDate(nextBillingDate) : 'your next billing date'}</span>.
                     {includeIntensive && intensiveFinal > 0 && (
                       <> A one-time charge of <span className="text-white font-medium">{formatPrice(intensiveFinal)}</span> for the Partner Intensive will be charged to your payment method on file today.</>
                     )}
@@ -768,13 +901,13 @@ export default function PlanOverview({
                     Your plan will change to <span className="text-white font-medium">{targetPlan.name}</span>.
                     All household members will be removed and will need their own subscription.
                     You will be billed <span className="text-white font-medium">{newBilling}</span> starting{' '}
-                    <span className="text-white font-medium">{duringTrial ? formatDate(subscription.currentPeriodEnd) : 'your next billing date'}</span>.
+                    <span className="text-white font-medium">{duringTrial ? formatDate(nextBillingDate) : 'your next billing date'}</span>.
                   </>
                 ) : (
                   <>
                     Your plan will change to <span className="text-white font-medium">{targetPlan.name}</span>.
                     You will be billed <span className="text-white font-medium">{newBilling}</span> starting{' '}
-                    <span className="text-white font-medium">{duringTrial ? formatDate(subscription.currentPeriodEnd) : 'your next billing date'}</span>.
+                    <span className="text-white font-medium">{duringTrial ? formatDate(nextBillingDate) : 'your next billing date'}</span>.
                   </>
                 )}
               </p>
@@ -883,47 +1016,38 @@ export default function PlanOverview({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-5 md:mb-6">
-        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
+        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80 flex flex-col justify-center min-h-[4.5rem]">
           <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
             <Calendar className="w-3.5 h-3.5 shrink-0" />
-            {isTrialing ? 'First billing' : 'Period'}
+            {isTrialing ? 'Next billing' : 'Period'}
           </div>
           <div className="text-xs sm:text-sm font-medium text-white leading-snug break-words">
             {isTrialing
-              ? formatDate(subscription.currentPeriodEnd)
+              ? formatDate(nextBillingDate)
               : `${formatDate(subscription.currentPeriodStart)} \u2013 ${formatDate(subscription.currentPeriodEnd)}`
             }
           </div>
         </div>
-        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
-          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
-            <Coins className="w-3.5 h-3.5 shrink-0" />
-            VIVA tokens
-          </div>
-          <div className="text-sm font-medium text-[#39FF14]">
-            {formatTokensShort(tokenGrant)}
-          </div>
-        </div>
-        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
-          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
-            <HardDrive className="w-3.5 h-3.5 shrink-0" />
-            Storage
-          </div>
-          <div className="text-sm font-medium text-white">
-            {formatStorage(tier.storageQuotaGb)}
-          </div>
-        </div>
-        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80">
+        <div className="bg-neutral-950/80 rounded-xl p-3 border border-neutral-800/80 flex flex-col justify-center min-h-[4.5rem]">
           <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mb-1 uppercase tracking-wide">
             <CreditCard className="w-3.5 h-3.5 shrink-0" />
-            {isTrialing ? 'First charge' : 'Next charge'}
+            Next charge
           </div>
-          <div className="text-sm font-medium text-white">
+          <div className="text-xs sm:text-sm font-medium text-white">
             {upcomingInvoice
               ? formatPrice(upcomingInvoice.amountDue)
               : formatPrice(price)}
           </div>
         </div>
+      </div>
+
+      <div className="mb-5 md:mb-6">
+        <PaymentMethodSection
+          paymentMethods={paymentMethods}
+          onAddCard={onAddCard}
+          subscriptionStatus={subscription.status}
+          nextBillingDate={nextBillingDate}
+        />
       </div>
 
       {subscription.cancelAtPeriodEnd && (

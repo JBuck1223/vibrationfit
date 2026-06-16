@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
+import { mirrorAlignmentGymCoHostAttendance } from '@/lib/video/alignment-gym-co-attendance'
 
 export async function POST(
   request: NextRequest,
@@ -27,6 +28,8 @@ export async function POST(
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const userEmail = user.email
 
     const body = await request.json()
     const { action, camera_on_percent, mic_on_percent } = body
@@ -74,6 +77,7 @@ export async function POST(
           action,
           user.id,
           sessionId,
+          userEmail,
           camera_on_percent,
           mic_on_percent,
         )
@@ -92,6 +96,7 @@ export async function POST(
       action,
       user.id,
       sessionId,
+      userEmail,
       camera_on_percent,
       mic_on_percent,
     )
@@ -108,6 +113,7 @@ async function updateParticipantStats(
   action: string,
   userId: string,
   sessionId: string,
+  userEmail: string | null | undefined,
   camera_on_percent?: number,
   mic_on_percent?: number,
 ) {
@@ -146,6 +152,7 @@ async function updateParticipantStats(
       autoVerifyOccurrenceByActivityType(userId, 'alignment_gym', joinedDate).catch(
         () => {},
       )
+      mirrorAlignmentGymCoHostAttendance(sessionId, userEmail, now, userId).catch(() => {})
     }
 
     return NextResponse.json({

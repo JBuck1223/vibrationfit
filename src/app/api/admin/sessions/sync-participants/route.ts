@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { listMeetings, getMeeting } from '@/lib/video/daily'
+import { mirrorAlignmentGymCoHostAttendance } from '@/lib/video/alignment-gym-co-attendance'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -139,10 +140,24 @@ export async function POST(request: NextRequest) {
     // 6. Process each Daily participant
     let synced = 0
     let skipped = 0
+    const coHostSyncs: Array<{ email: string; joinedAt: string }> = []
+
+    const trackCoHostJoin = (userId: string | null | undefined, joinTime: number) => {
+      if (!userId) return
+      const account = userById.get(userId)
+      const email = account?.email?.toLowerCase()
+      if (email === 'jordan@vibrationfit.com' || email === 'vanessa@vibrationfit.com') {
+        coHostSyncs.push({
+          email,
+          joinedAt: new Date(joinTime * 1000).toISOString(),
+        })
+      }
+    }
 
     for (const dp of dailyParticipants) {
       // Skip the host
       if (dp.user_id === session.host_user_id) {
+        trackCoHostJoin(session.host_user_id, dp.join_time)
         // Update host attendance data
         const hostRow = (existingRows || []).find(r => r.is_host)
         if (hostRow) {
@@ -163,6 +178,7 @@ export async function POST(request: NextRequest) {
       const existingRow = dp.user_id ? existingByUserId.get(dp.user_id) : null
 
       if (existingRow) {
+        trackCoHostJoin(existingRow.user_id, dp.join_time)
         // Update attendance data on existing row
         await supabase
           .from('video_session_participants')
@@ -191,6 +207,7 @@ export async function POST(request: NextRequest) {
       if (resolvedUserId) {
         const account = userById.get(resolvedUserId)
         if (account?.full_name) resolvedName = account.full_name
+        trackCoHostJoin(resolvedUserId, dp.join_time)
       }
 
       // Check if this user_id already has a row (might have been matched differently)
@@ -229,6 +246,20 @@ export async function POST(request: NextRequest) {
         })
       } else {
         synced++
+      }
+    }
+
+    const isAlignmentGym =
+      session.session_type === 'alignment_gym' ||
+      (typeof session.title === 'string' && /alignment gym/i.test(session.title))
+
+    if (isAlignmentGym) {
+      for (const sync of coHostSyncs) {
+        await mirrorAlignmentGymCoHostAttendance(
+          session_id,
+          sync.email,
+          sync.joinedAt,
+        ).catch(() => {})
       }
     }
 
