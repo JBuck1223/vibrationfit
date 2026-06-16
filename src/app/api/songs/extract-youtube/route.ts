@@ -21,8 +21,9 @@ export const dynamic = 'force-dynamic'
 const CDN_URL = 'https://media.vibrationfit.com'
 const BUCKET = 'vibration-fit-client-storage'
 
+// A single RapidAPI key works across every API the account is subscribed to,
+// so all providers below share one key — only the host + response shape differ.
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
-const RAPIDAPI_HOST = process.env.RAPIDAPI_YOUTUBE_MP3_HOST || 'youtube-mp310.p.rapidapi.com'
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -49,10 +50,8 @@ function isValidYoutubeUrl(url: string): boolean {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-// RapidAPI hands back a download link a moment before the converted file is
-// actually ready, so the first hit often returns 429/5xx. The conversion is
-// cached after the first request, so retrying the whole operation (fetching a
-// FRESH link each time) almost always succeeds.
+// Transient statuses worth retrying/polling for. A 403/404 is NOT here —
+// those mean "not subscribed" or "video unavailable" and we move on fast.
 const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504])
 
 // Carries a user-facing message + HTTP status up to the route handler.
@@ -62,88 +61,149 @@ class ExtractError extends Error {
   }
 }
 
-// Hard wall-clock deadline for the whole operation. Must stay comfortably
-// below the route's maxDuration so we always return our own clean error
-// before Vercel kills the function with a platform 504.
-const TOTAL_DEADLINE_MS = 85000
-const CONVERT_TIMEOUT_MS = 15000
+// Hard wall-clock deadline for the whole operation (all providers combined).
+// Stays comfortably below the route's maxDuration so we always return our own
+// clean error before Vercel kills the function with a platform 504.
+const TOTAL_DEADLINE_MS = 80000
+const RESOLVE_TIMEOUT_MS = 15000
 const DOWNLOAD_TIMEOUT_MS = 30000
 
+function rapidHeaders(host: string) {
+  return { 'x-rapidapi-key': RAPIDAPI_KEY as string, 'x-rapidapi-host': host }
+}
+
+/** Pull the 11-char video ID out of any YouTube URL shape. */
+function extractVideoId(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('/')[0] || null
+    if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/')[2] || null
+    if (u.pathname.startsWith('/embed/')) return u.pathname.split('/')[2] || null
+    return u.searchParams.get('v')
+  } catch {
+    return null
+  }
+}
+
+interface ResolveCtx {
+  host: string
+  url: string
+  videoId: string | null
+  remaining: () => number
+}
+
+interface Provider {
+  name: string
+  host: string
+  // Returns a directly-downloadable MP3 URL, or null if this provider can't serve it.
+  resolve: (ctx: ResolveCtx) => Promise<string | null>
+}
+
 /**
- * Obtain the full MP3 for a YouTube URL via RapidAPI, retrying the ENTIRE
- * convert+download as a unit. The download link is single-use, so a failed
- * download must be retried with a freshly-issued link, not the same one.
- *
- * The whole loop is bounded by a wall-clock deadline (and per-attempt
- * timeouts are clamped to the remaining budget), so a member never sits
- * waiting and we never trip Vercel's function timeout — they get audio
- * quickly or a clean error.
+ * youtube-mp36 (ytjar) — the most widely used RapidAPI YouTube->MP3 service.
+ * Takes a video ID and returns { link, status }. When the file is still being
+ * converted it reports status "processing"; poll until "ok".
  */
-async function fetchYoutubeAudio(
-  youtubeUrl: string,
-  { attempts = 4, baseDelayMs = 2000 }: { attempts?: number; baseDelayMs?: number } = {}
-): Promise<Buffer> {
+async function resolveMp36({ host, videoId, remaining }: ResolveCtx): Promise<string | null> {
+  if (!videoId) return null
+
+  for (let i = 0; i < 6; i++) {
+    if (remaining() < 6000) break
+
+    const res = await fetch(`https://${host}/dl?id=${encodeURIComponent(videoId)}`, {
+      headers: rapidHeaders(host),
+      signal: AbortSignal.timeout(Math.min(RESOLVE_TIMEOUT_MS, remaining())),
+    })
+
+    if (!res.ok) {
+      if (RETRYABLE_STATUS.has(res.status)) {
+        await sleep(2000)
+        continue
+      }
+      return null // e.g. 403 not subscribed / 404 — let the next provider try.
+    }
+
+    const data = await res.json().catch(() => ({} as Record<string, unknown>))
+    const status = String(data.status || '').toLowerCase()
+    const link = (data.link || data.url) as string | undefined
+
+    if (link && (status === 'ok' || status === '' || status === 'success')) return link
+    if (status === 'processing' || status === 'in process' || status === 'converting') {
+      await sleep(2500)
+      continue
+    }
+    return null // status "fail" or unknown shape.
+  }
+  return null
+}
+
+/**
+ * youtube-mp310 (Elis) — takes a full URL and returns a single-use download
+ * link (downloadUrl/link/url). Kept as a fallback.
+ */
+async function resolveMp310({ host, url, remaining }: ResolveCtx): Promise<string | null> {
+  const res = await fetch(`https://${host}/download/mp3?url=${encodeURIComponent(url)}`, {
+    headers: rapidHeaders(host),
+    signal: AbortSignal.timeout(Math.min(RESOLVE_TIMEOUT_MS, remaining())),
+  })
+  if (!res.ok) return null
+  const data = await res.json().catch(() => ({} as Record<string, unknown>))
+  return (data.downloadUrl || data.link || data.url || null) as string | null
+}
+
+// Tried in order until one yields a working download. Hosts are overridable
+// via env so providers can be swapped without a deploy.
+const PROVIDERS: Provider[] = [
+  {
+    name: 'youtube-mp36',
+    host: process.env.RAPIDAPI_YOUTUBE_MP3_HOST_PRIMARY || 'youtube-mp36.p.rapidapi.com',
+    resolve: resolveMp36,
+  },
+  {
+    name: 'youtube-mp310',
+    host: process.env.RAPIDAPI_YOUTUBE_MP3_HOST || 'youtube-mp310.p.rapidapi.com',
+    resolve: resolveMp310,
+  },
+]
+
+/**
+ * Obtain the full MP3 for a YouTube URL, trying each provider in turn. The
+ * whole operation is bounded by a wall-clock deadline so a member never waits
+ * long and we never trip Vercel's function timeout — they get audio quickly,
+ * fall through to a healthy provider, or get a clean error.
+ */
+async function fetchYoutubeAudio(youtubeUrl: string): Promise<Buffer> {
   const startedAt = Date.now()
   const remaining = () => TOTAL_DEADLINE_MS - (Date.now() - startedAt)
-  let lastReason = 'unknown error'
+  const videoId = extractVideoId(youtubeUrl)
+  let lastReason = 'no provider could serve this track'
 
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    // Stop if there isn't enough budget left to meaningfully try again.
-    if (remaining() < 5000) break
+  for (const provider of PROVIDERS) {
+    if (remaining() < 8000) break
 
     try {
-      // Step 1: request a fresh, single-use MP3 download URL.
-      const convertRes = await fetch(
-        `https://${RAPIDAPI_HOST}/download/mp3?url=${encodeURIComponent(youtubeUrl)}`,
-        {
-          headers: {
-            'x-rapidapi-key': RAPIDAPI_KEY as string,
-            'x-rapidapi-host': RAPIDAPI_HOST,
-          },
-          signal: AbortSignal.timeout(Math.min(CONVERT_TIMEOUT_MS, remaining())),
-        }
-      )
-
-      if (!convertRes.ok) {
-        const body = await convertRes.text().catch(() => '')
-        // Non-retryable (e.g. 400/403/404 — bad/private/unavailable video): fail fast.
-        if (!RETRYABLE_STATUS.has(convertRes.status)) {
-          throw new ExtractError('Could not fetch audio for that link. Try another track.', 502)
-        }
-        lastReason = `convert ${convertRes.status} ${body.slice(0, 120)}`
-      } else {
-        const data = await convertRes.json().catch(() => ({} as Record<string, unknown>))
-        const downloadUrl = (data.downloadUrl || data.link || data.url) as string | undefined
-
-        if (!downloadUrl) {
-          // File likely still converting — retry for a fresh response.
-          lastReason = `no downloadUrl in response: ${JSON.stringify(data).slice(0, 120)}`
-        } else if (remaining() > 5000) {
-          // Step 2: download the fresh single-use URL exactly once.
-          const dlRes = await fetch(downloadUrl, {
-            signal: AbortSignal.timeout(Math.min(DOWNLOAD_TIMEOUT_MS, remaining())),
-          })
-          if (dlRes.ok) {
-            return Buffer.from(await dlRes.arrayBuffer())
-          }
-          lastReason = `download ${dlRes.status}`
-        }
+      const downloadUrl = await provider.resolve({ host: provider.host, url: youtubeUrl, videoId, remaining })
+      if (!downloadUrl) {
+        lastReason = `${provider.name}: no download link`
+        console.warn(`[ExtractYouTube] provider ${provider.name} unavailable`)
+        continue
       }
+
+      if (remaining() < 5000) break
+
+      const dlRes = await fetch(downloadUrl, {
+        signal: AbortSignal.timeout(Math.min(DOWNLOAD_TIMEOUT_MS, remaining())),
+      })
+      if (dlRes.ok) {
+        console.log(`[ExtractYouTube] served by ${provider.name} in ${Date.now() - startedAt}ms`)
+        return Buffer.from(await dlRes.arrayBuffer())
+      }
+      lastReason = `${provider.name}: download ${dlRes.status}`
     } catch (err) {
-      if (err instanceof ExtractError) throw err
-      // Network error or per-attempt timeout — retryable.
-      lastReason = err instanceof Error ? err.message : String(err)
+      lastReason = `${provider.name}: ${err instanceof Error ? err.message : String(err)}`
     }
 
-    console.warn(`[ExtractYouTube] attempt ${attempt}/${attempts} failed: ${lastReason}`)
-
-    // Back off before the next attempt, but only if budget remains.
-    const delay = Math.min(baseDelayMs * 2 ** (attempt - 1), 8000)
-    if (attempt < attempts && remaining() > delay + 5000) {
-      await sleep(delay)
-    } else if (attempt < attempts) {
-      break
-    }
+    console.warn(`[ExtractYouTube] provider ${provider.name} failed: ${lastReason}`)
   }
 
   console.error(`[ExtractYouTube] gave up after ${Date.now() - startedAt}ms: ${lastReason}`)
