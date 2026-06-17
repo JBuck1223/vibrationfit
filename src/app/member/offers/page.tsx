@@ -5,7 +5,7 @@ import { Container, Card, Button, Spinner, Badge, Stack } from '@/lib/design-sys
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { toast } from 'sonner'
-import { Check, Sparkles, Shield, Calendar } from 'lucide-react'
+import { Check, Sparkles, Shield, Calendar, CheckSquare, Square } from 'lucide-react'
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null
@@ -258,16 +258,16 @@ export default function MemberOffersPage() {
 
   return (
     <Container size="xl">
-      <div className="mx-auto w-full max-w-xl">
+      <div className="mx-auto w-full max-w-xl min-h-[calc(100vh-12rem)] flex flex-col justify-center">
         <Stack gap="lg">
           {/* Header */}
           <div className="text-center space-y-4">
-            <Badge variant="premium" className="mx-auto">Founders Offer</Badge>
+            <Badge variant="success" className="mx-auto">Founders Offer</Badge>
             <h1 className="text-4xl font-bold text-white tracking-tight text-balance">
               A Thank You to Our Founders
             </h1>
             <p className="text-neutral-400 text-lg leading-relaxed text-pretty">
-              You were here from the beginning. Your feedback shaped VibrationFit into what it is today — so we&apos;re locking in a founders-only rate as our way of saying thank you.
+              You were here from the beginning. Your feedback shaped Vibration Fit into what it is today — so we&apos;re locking in a founders-only rate as our way of saying thank you.
             </p>
           </div>
 
@@ -324,24 +324,39 @@ export default function MemberOffersPage() {
                 </div>
 
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <Badge variant="premium">Founders Rate · 50% Off, Locked Forever</Badge>
+                  <Badge variant="success">Founders Rate · 50% Off, Locked Forever</Badge>
                   <p className="text-sm text-neutral-400">Full access to Vision Pro. Cancel anytime.</p>
                 </div>
 
                 <div className="border-t border-[#333]" />
 
                 {/* Accept */}
-                <label className="flex items-start gap-3 cursor-pointer group rounded-xl border-2 border-[#333] p-4 transition-colors hover:border-[#39FF14]/50">
-                  <input
-                    type="checkbox"
-                    checked={accepted}
-                    onChange={() => handleAccept()}
-                    className="mt-0.5 h-5 w-5 flex-shrink-0 rounded border-neutral-600 bg-[#404040] text-[#39FF14] focus:ring-[#39FF14] focus:ring-offset-0"
-                  />
+                <div
+                  role="checkbox"
+                  aria-checked={accepted}
+                  tabIndex={0}
+                  onClick={() => handleAccept()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleAccept()
+                    }
+                  }}
+                  className={`flex items-start gap-3 cursor-pointer rounded-xl border-2 p-4 transition-colors ${
+                    accepted
+                      ? 'border-[#39FF14]/30 bg-[#39FF14]/5'
+                      : 'border-[#333] hover:border-[#39FF14]/50'
+                  }`}
+                >
+                  {accepted ? (
+                    <CheckSquare className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-[1px]" />
+                  ) : (
+                    <Square className="w-5 h-5 text-neutral-600 flex-shrink-0 mt-[1px]" />
+                  )}
                   <span className="text-sm text-neutral-300 leading-relaxed text-pretty group-hover:text-white transition-colors">
                     I&apos;d like to claim my founders rate. {PLAN_INFO[plan].chargeText}
                   </span>
-                </label>
+                </div>
               </Stack>
             ) : (
               <Stack gap="lg">

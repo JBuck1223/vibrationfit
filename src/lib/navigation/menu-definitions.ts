@@ -116,9 +116,6 @@ export interface NavGroup {
  * Structure: Top-level items (always visible) + Collapsible groups
  */
 export const userNavigation: (NavItem | NavGroup)[] = [
-  // =================================================================
-  // TOP LEVEL - Always Visible (Spiritual Work & Daily Practice)
-  // =================================================================
   {
     name: 'Dashboard',
     href: '/dashboard',
@@ -126,91 +123,49 @@ export const userNavigation: (NavItem | NavGroup)[] = [
     description: 'Run your MAP and stay connected',
   },
   {
-    name: 'MAP',
-    href: '/map',
-    icon: Map,
-    description: 'MAP - Your alignment actions',
-  },
-  {
-    name: 'Profile',
-    href: '/profile',
-    icon: User,
-    description: 'Your active profile',
-  },
-  {
-    name: 'Life Vision',
-    href: '/life-vision',
-    icon: Target,
-    description: 'My Active Vision',
-  },
-  {
-    name: 'Audio',
-    href: '/audio',
-    icon: Headphones,
-    description: 'Key AM/PM/Sleep audio sets',
-  },
-  {
-    name: 'Vision Board',
-    href: '/vision-board',
-    icon: Image,
-    description: 'My Vision Board',
-  },
-  {
-    name: 'Journal',
-    href: '/journal',
-    icon: BookOpen,
-    description: 'My Journal',
-  },
-  {
-    name: 'Stories',
-    href: '/story',
-    icon: Library,
-    description: 'Focus Stories',
-  },
-  {
-    name: 'Daily Paper',
-    href: '/daily-paper',
-    icon: FileText,
-    description: 'Daily activations tracking',
-  },
-  {
-    name: 'Alignment Gym',
-    href: '/alignment-gym',
-    icon: Video,
-    description: 'Weekly live group coaching sessions',
-  },
-  {
-    name: 'Vibe Tribe',
-    href: '/vibe-tribe',
-    icon: UsersRound,
-    description: 'Connect with the Vibration Fit community',
+    name: 'Tracking',
+    href: '/tracking',
+    icon: TrendingUp,
+    description: 'Streaks, badges, and performance metrics',
   },
 ]
 
 /**
- * USER NAVIGATION GROUPS - Collapsible groups for power users
- * These appear below the top-level items in a collapsed state by default
+ * USER NAVIGATION GROUPS - Collapsible groups below top-level items
+ * Organized by MAP categories: Activations, Creations, Connections, Sessions
  */
 export const userNavigationGroups: NavGroup[] = [
   // =================================================================
-  // GROUP 1: Tracking & Activity (Rearview Mirror)
+  // ACTIVATIONS (Daily Practice)
   // =================================================================
   {
-    name: 'Tracking & Activity',
+    name: 'Activations',
     isCollapsible: true,
-    defaultCollapsed: true,
+    defaultCollapsed: false,
     items: [
       {
-        name: 'Tracking',
-        href: '/tracking',
-        icon: TrendingUp,
-        description: 'Streaks, badges, and performance metrics',
+        name: 'MAP',
+        href: '/map',
+        icon: Map,
+        description: 'MAP - Your alignment actions',
       },
       {
-        name: 'Activity',
-        href: '/activity',
-        icon: BarChart3,
-        description: 'Activity feed and timeline',
+        name: 'Audio',
+        href: '/audio',
+        icon: Headphones,
+        description: 'Key AM/PM/Sleep audio sets',
+      },
+      {
+        name: 'Stories',
+        href: '/story',
+        icon: Library,
+        description: 'Focus Stories',
+      },
+      {
+        name: 'Daily Paper',
+        href: '/daily-paper',
+        icon: FileText,
+        description: 'Daily activations tracking',
       },
       {
         name: 'Abundance Tracker',
@@ -218,73 +173,76 @@ export const userNavigationGroups: NavGroup[] = [
         icon: DollarSign,
         description: 'Dashboard and log for abundance moments',
       },
-      {
-        name: 'Badges',
-        href: '/snapshot/me',
-        icon: Award,
-        description: 'Your activation badges',
-      },
-      {
-        name: 'My Sessions',
-        href: '/sessions',
-        icon: Calendar,
-        description: 'Upcoming calls and past session recordings',
-      },
     ],
   },
   // =================================================================
-  // GROUP 2: Creations & Updates (Power User Tools)
+  // CREATIONS
   // =================================================================
   {
-    name: 'Creations & Updates',
+    name: 'Creations',
     isCollapsible: true,
-    defaultCollapsed: true,
+    defaultCollapsed: false,
     items: [
       {
-        name: 'Profile & Assessment',
+        name: 'Profile',
         href: '/profile',
         icon: User,
-        hasDropdown: true,
-        children: [
-          { name: 'My Active Profile', href: '/profile', icon: CheckCircle },
-          { name: 'Assessment', href: '/assessment', icon: Brain },
-        ],
+        description: 'Your active profile',
       },
       {
-        name: 'Life Vision Studio',
+        name: 'Life Vision',
         href: '/life-vision',
         icon: Target,
-        hasDropdown: true,
-        children: [
-          { name: 'All Visions', href: '/life-vision', icon: Eye },
-          { name: 'Household Visions', href: '/life-vision/household', icon: Home },
-          { name: 'New Vision', href: '/life-vision/new', icon: Plus },
-        ],
+        description: 'My Active Vision',
       },
       {
-        name: 'Audio Studio',
-        href: '/audio',
-        icon: Headphones,
-        hasDropdown: true,
-        children: [
-          { name: 'Listen', href: '/audio', icon: Music },
-          { name: 'Create', href: '/audio/create', icon: Wand2 },
-        ],
-      },
-      {
-        name: 'Vision Board Builder',
+        name: 'Vision Board',
         href: '/vision-board',
         icon: Image,
-        hasDropdown: true,
-        children: [
-          { name: 'New Item', href: '/vision-board/new', icon: Plus },
-          { name: 'Household Board', href: '/vision-board?scope=household', icon: Home },
-        ],
+        description: 'My Vision Board',
+      },
+      {
+        name: 'Journal',
+        href: '/journal',
+        icon: BookOpen,
+        description: 'My Journal',
       },
     ],
   },
   // =================================================================
-  // GROUP 3: Account & Billing (Administrative)
+  // CONNECTIONS (Community)
+  // =================================================================
+  {
+    name: 'Connections',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    items: [
+      {
+        name: 'Vibe Tribe',
+        href: '/vibe-tribe',
+        icon: UsersRound,
+        description: 'Connect with the Vibration Fit community',
+      },
+    ],
+  },
+  // =================================================================
+  // SESSIONS
+  // =================================================================
+  {
+    name: 'Sessions',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    items: [
+      {
+        name: 'Alignment Gym',
+        href: '/alignment-gym',
+        icon: Video,
+        description: 'Weekly live group coaching sessions',
+      },
+    ],
+  },
+  // =================================================================
+  // ACCOUNT & BILLING
   // =================================================================
   {
     name: 'Account & Billing',
@@ -292,10 +250,28 @@ export const userNavigationGroups: NavGroup[] = [
     defaultCollapsed: true,
     items: [
       {
+        name: 'Account',
+        href: '/account',
+        icon: Settings,
+        description: 'Account, billing, and preferences',
+      },
+      {
         name: 'Referral',
         href: '/referral',
         icon: Share2,
         description: 'Share your referral link and earn rewards',
+      },
+      {
+        name: 'Support',
+        href: '/support/tickets',
+        icon: Users,
+        description: 'Get help and support',
+      },
+      {
+        name: 'Updates',
+        href: '/support/announcements',
+        icon: Bell,
+        description: 'Product updates and announcements',
       },
       {
         name: 'Tokens',
@@ -310,22 +286,16 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'File storage usage and history',
       },
       {
-        name: 'Support',
-        href: '/support/tickets',
-        icon: Users,
-        description: 'Get help and support',
-      },
-      {
         name: 'Household',
-        href: '/household',
+        href: '/account/household',
         icon: Home,
         description: 'Shared visions, vision boards, and members',
       },
       {
-        name: 'Account',
-        href: '/account',
-        icon: Settings,
-        description: 'Account, billing, and preferences',
+        name: 'Assessment',
+        href: '/assessment',
+        icon: Brain,
+        description: 'Vibrational assessment and results',
       },
     ],
   },

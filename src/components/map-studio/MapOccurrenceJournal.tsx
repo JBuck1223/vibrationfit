@@ -17,11 +17,13 @@ export function MapOccurrenceJournal({
   commitmentTitle,
   lifeCategory,
   onUpdated,
+  compact = false,
 }: {
   occurrence: CommitmentOccurrence
   commitmentTitle: string
   lifeCategory?: string
   onUpdated: () => void | Promise<void>
+  compact?: boolean
 }) {
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -36,7 +38,7 @@ export function MapOccurrenceJournal({
         title="View journal entry"
       >
         <PenLine className="w-3 h-3" aria-hidden />
-        Journal
+        {!compact && 'Journal'}
       </Link>
     )
   }
@@ -50,7 +52,7 @@ export function MapOccurrenceJournal({
         title="Add journal reflection"
       >
         <PenLine className="w-3 h-3" aria-hidden />
-        Journal
+        {!compact && 'Journal'}
       </button>
 
       <MapJournalReflectModal

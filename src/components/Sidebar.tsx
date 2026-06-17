@@ -13,7 +13,6 @@ import {
   ChevronDown,
   X,
   LogOut,
-  Award,
   Target,
   Shield,
   Bell,
@@ -34,13 +33,17 @@ interface SidebarProps {
 const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
 const SIDEBAR_GROUPS_KEY = 'vibrationfit-sidebar-groups'
 
+function getDefaultExpandedGroups(groups: NavGroup[]): string[] {
+  return groups.filter((group) => !group.defaultCollapsed).map((group) => group.name)
+}
+
 // Shared Sidebar Base Component
 function SidebarBase({ className, navigation, groups = [], isAdmin = false }: SidebarProps & { navigation: NavItem[], groups?: NavGroup[] }) {
   // Initialize with default value for SSR consistency, then sync with localStorage
   const [collapsed, setCollapsed] = useState(false) // Default: expanded
   const [hasMounted, setHasMounted] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]) // For collapsible groups
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => getDefaultExpandedGroups(groups))
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
@@ -57,7 +60,6 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       setCollapsed(saved === 'true')
     }
     
-    // Load expanded groups state
     const savedGroups = localStorage.getItem(SIDEBAR_GROUPS_KEY)
     if (savedGroups) {
       try {
@@ -224,7 +226,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
   const renderSidebarContent = (isCollapsed: boolean) => (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
         {!isCollapsed && (
           <div className="flex items-center gap-3 min-w-0">
             {loading ? (
@@ -293,7 +295,7 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 min-h-0 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 min-h-0 px-4 pt-1 pb-4 space-y-1 overflow-y-auto">
         {navigation.map((item) => {
           const itemHref = item.href
           
@@ -384,10 +386,10 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
           const isGroupExpanded = expandedGroups.includes(group.name)
           
           return (
-            <div key={group.name} className="mt-4">
+            <div key={group.name} className="mt-2">
               <button
                 onClick={() => toggleGroup(group.name)}
-                className="flex items-center gap-2 px-3 py-2 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
               >
                 <span className="text-xs font-semibold tracking-wider text-neutral-500 uppercase flex-1">
                   {group.name}
@@ -629,39 +631,46 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
   })
 
   // Define drawer sections with categorized navigation
+  const activationsGroup = userNavigationGroups.find(g => g.name === 'Activations')
+  const creationsGroup = userNavigationGroups.find(g => g.name === 'Creations')
+  const connectionsGroup = userNavigationGroups.find(g => g.name === 'Connections')
+  const accountGroup = userNavigationGroups.find(g => g.name === 'Account & Billing')
+
   const drawerSections = [
     {
-      title: 'Align',
+      title: 'Activations',
+      items: [
+        { name: 'MAP', href: '/map', icon: activationsGroup?.items.find(i => i.name === 'MAP')?.icon },
+        { name: 'Audio', href: '/audio', icon: activationsGroup?.items.find(i => i.name === 'Audio')?.icon },
+        { name: 'Daily Paper', href: '/daily-paper', icon: activationsGroup?.items.find(i => i.name === 'Daily Paper')?.icon },
+        { name: 'Stories', href: '/story', icon: activationsGroup?.items.find(i => i.name === 'Stories')?.icon },
+        { name: 'Abundance Tracker', href: '/abundance-tracker', icon: activationsGroup?.items.find(i => i.name === 'Abundance Tracker')?.icon },
+        { name: 'Tracking', href: '/tracking', icon: activationsGroup?.items.find(i => i.name === 'Tracking')?.icon },
+      ]
+    },
+    {
+      title: 'Creations',
       items: [
         { name: 'Life Vision', href: activeVisionId ? `/life-vision/${activeVisionId}` : '/life-vision', icon: Target },
-        { name: 'Vibe Tribe', href: '/vibe-tribe', icon: userNavigation.find(i => i.name === 'Vibe Tribe')?.icon },
-        { name: 'Alignment Gym', href: '/alignment-gym', icon: userNavigation.find(i => i.name === 'Alignment Gym')?.icon },
-        { name: 'Dashboard', href: '/dashboard', icon: userNavigation.find(i => i.name === 'Dashboard')?.icon },
+        { name: 'Profile', href: '/profile', icon: creationsGroup?.items.find(i => i.name === 'Profile')?.icon },
+        { name: 'Vision Board', href: '/vision-board', icon: creationsGroup?.items.find(i => i.name === 'Vision Board')?.icon },
+        { name: 'Journal', href: '/journal', icon: creationsGroup?.items.find(i => i.name === 'Journal')?.icon },
       ]
     },
     {
-      title: 'You',
+      title: 'Connections',
       items: [
-        { name: 'Profile', href: '/profile', icon: userNavigationGroups.find(g => g.name === 'Creations & Updates')?.items.find(i => i.name === 'Profile & Assessment')?.icon },
-        { name: 'Assessment', href: '/assessment', icon: userNavigationGroups.find(g => g.name === 'Creations & Updates')?.items.find(i => i.name === 'Profile & Assessment')?.children?.[1].icon },
+        { name: 'Vibe Tribe', href: '/vibe-tribe', icon: connectionsGroup?.items.find(i => i.name === 'Vibe Tribe')?.icon },
+        { name: 'Dashboard', href: '/dashboard', icon: Home },
       ]
     },
     {
-      title: 'Tracking',
+      title: 'Account',
       items: [
-        { name: 'Tracking', href: '/tracking', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Tracking')?.icon },
-        { name: 'Activity', href: '/activity', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Activity')?.icon },
-        { name: 'Abundance Tracker', href: '/abundance-tracker', icon: userNavigationGroups.find(g => g.name === 'Tracking & Activity')?.items.find(i => i.name === 'Abundance Tracker')?.icon },
-        { name: 'Badges', href: '/snapshot/me', icon: Award },
-      ]
-    },
-    {
-      title: 'System',
-      items: [
-        { name: 'Tokens', href: '/tokens', icon: userNavigationGroups.find(g => g.name === 'Account & Billing')?.items.find(i => i.name === 'Tokens')?.icon },
-        { name: 'Storage', href: '/storage', icon: userNavigationGroups.find(g => g.name === 'Account & Billing')?.items.find(i => i.name === 'Storage')?.icon },
-        { name: 'Support', href: '/support/tickets', icon: userNavigationGroups.find(g => g.name === 'Account & Billing')?.items.find(i => i.name === 'Support')?.icon },
-        { name: 'Account', href: '/account', icon: userNavigationGroups.find(g => g.name === 'Account & Billing')?.items.find(i => i.name === 'Account')?.icon },
+        { name: 'Tokens', href: '/tokens', icon: accountGroup?.items.find(i => i.name === 'Tokens')?.icon },
+        { name: 'Storage', href: '/storage', icon: accountGroup?.items.find(i => i.name === 'Storage')?.icon },
+        { name: 'Support', href: '/support/tickets', icon: accountGroup?.items.find(i => i.name === 'Support')?.icon },
+        { name: 'Account', href: '/account', icon: accountGroup?.items.find(i => i.name === 'Account')?.icon },
       ]
     }
   ]
@@ -809,29 +818,5 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
         </div>
       </div>
     </>
-  )
-}
-
-// Layout wrapper that includes the sidebar
-interface SidebarLayoutProps {
-  children: React.ReactNode
-  className?: string
-  isAdmin?: boolean
-}
-
-export function SidebarLayout({ children, className, isAdmin = false }: SidebarLayoutProps) {
-  return (
-    <div className="flex h-screen bg-black">
-      {isAdmin ? (
-        <AdminSidebar className={className} />
-      ) : (
-        <UserSidebar className={className} />
-      )}
-      <main className={cn('min-w-0 flex-1 overflow-auto min-h-0', className)}>
-        <div className="w-full">
-          {children}
-        </div>
-      </main>
-    </div>
   )
 }
