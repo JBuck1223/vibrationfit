@@ -64,12 +64,19 @@ class ExtractError extends Error {
 // Hard wall-clock deadline for the whole operation (all providers combined).
 // Stays comfortably below the route's maxDuration so we always return our own
 // clean error before Vercel kills the function with a platform 504.
-const TOTAL_DEADLINE_MS = 80000
+const TOTAL_DEADLINE_MS = 100000
 const RESOLVE_TIMEOUT_MS = 15000
 const DOWNLOAD_TIMEOUT_MS = 30000
+const ATTEMPTS_PER_PROVIDER = 3
 
 function rapidHeaders(host: string) {
   return { 'x-rapidapi-key': RAPIDAPI_KEY as string, 'x-rapidapi-host': host }
+}
+
+/** Pull a download URL out of whatever shape a provider returns. */
+function extractDownloadLink(data: Record<string, unknown>): string | null {
+  const link = data.downloadUrl || data.link || data.url || data.file || data.directurl || data.dloadUrl
+  return typeof link === 'string' && link.startsWith('http') ? link : null
 }
 
 /** Pull the 11-char video ID out of any YouTube URL shape. */
@@ -125,7 +132,7 @@ async function resolveMp36({ host, videoId, remaining }: ResolveCtx): Promise<st
 
     const data = await res.json().catch(() => ({} as Record<string, unknown>))
     const status = String(data.status || '').toLowerCase()
-    const link = (data.link || data.url) as string | undefined
+    const link = extractDownloadLink(data)
 
     if (link && (status === 'ok' || status === '' || status === 'success')) return link
     if (status === 'processing' || status === 'in process' || status === 'converting') {
@@ -139,16 +146,51 @@ async function resolveMp36({ host, videoId, remaining }: ResolveCtx): Promise<st
 
 /**
  * youtube-mp310 (Elis) — takes a full URL and returns a single-use download
- * link (downloadUrl/link/url). Kept as a fallback.
+ * link. Response may be JSON or a plain-text URL string.
  */
 async function resolveMp310({ host, url, remaining }: ResolveCtx): Promise<string | null> {
-  const res = await fetch(`https://${host}/download/mp3?url=${encodeURIComponent(url)}`, {
+  for (let i = 0; i < 3; i++) {
+    if (remaining() < 6000) break
+
+    const res = await fetch(`https://${host}/download/mp3?url=${encodeURIComponent(url)}`, {
+      headers: rapidHeaders(host),
+      signal: AbortSignal.timeout(Math.min(RESOLVE_TIMEOUT_MS, remaining())),
+    })
+
+    if (!res.ok) {
+      if (RETRYABLE_STATUS.has(res.status)) {
+        await sleep(2000)
+        continue
+      }
+      return null
+    }
+
+    const text = (await res.text()).trim()
+    if (text.startsWith('http')) return text
+
+    try {
+      const link = extractDownloadLink(JSON.parse(text) as Record<string, unknown>)
+      if (link) return link
+    } catch {
+      // Not JSON — fall through to retry.
+    }
+
+    await sleep(2000)
+  }
+  return null
+}
+
+/**
+ * youtube-to-mp3-api — GET /mp3?url=... returns JSON with a download link.
+ */
+async function resolveMp3Api({ host, url, remaining }: ResolveCtx): Promise<string | null> {
+  const res = await fetch(`https://${host}/mp3?url=${encodeURIComponent(url)}`, {
     headers: rapidHeaders(host),
     signal: AbortSignal.timeout(Math.min(RESOLVE_TIMEOUT_MS, remaining())),
   })
   if (!res.ok) return null
   const data = await res.json().catch(() => ({} as Record<string, unknown>))
-  return (data.downloadUrl || data.link || data.url || null) as string | null
+  return extractDownloadLink(data)
 }
 
 // Tried in order until one yields a working download. Hosts are overridable
@@ -164,7 +206,35 @@ const PROVIDERS: Provider[] = [
     host: process.env.RAPIDAPI_YOUTUBE_MP3_HOST || 'youtube-mp310.p.rapidapi.com',
     resolve: resolveMp310,
   },
+  {
+    name: 'youtube-to-mp3-api',
+    host: process.env.RAPIDAPI_YOUTUBE_MP3_HOST_TERTIARY || 'youtube-to-mp3-api.p.rapidapi.com',
+    resolve: resolveMp3Api,
+  },
 ]
+
+/**
+ * Download the MP3 bytes from a provider-issued link. Links are often issued
+ * before the file is ready, so retry transient 429/5xx on the same URL first.
+ */
+async function downloadAudio(downloadUrl: string, remaining: () => number): Promise<Buffer | null> {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    if (remaining() < 5000) return null
+
+    try {
+      const dlRes = await fetch(downloadUrl, {
+        signal: AbortSignal.timeout(Math.min(DOWNLOAD_TIMEOUT_MS, remaining())),
+      })
+      if (dlRes.ok) return Buffer.from(await dlRes.arrayBuffer())
+      if (!RETRYABLE_STATUS.has(dlRes.status)) return null
+    } catch {
+      // Network error or timeout — retryable.
+    }
+
+    if (attempt < 3) await sleep(Math.min(2000 * attempt, 6000))
+  }
+  return null
+}
 
 /**
  * Obtain the full MP3 for a YouTube URL, trying each provider in turn. The
@@ -181,29 +251,35 @@ async function fetchYoutubeAudio(youtubeUrl: string): Promise<Buffer> {
   for (const provider of PROVIDERS) {
     if (remaining() < 8000) break
 
-    try {
-      const downloadUrl = await provider.resolve({ host: provider.host, url: youtubeUrl, videoId, remaining })
-      if (!downloadUrl) {
-        lastReason = `${provider.name}: no download link`
-        console.warn(`[ExtractYouTube] provider ${provider.name} unavailable`)
-        continue
+    for (let attempt = 1; attempt <= ATTEMPTS_PER_PROVIDER; attempt++) {
+      if (remaining() < 8000) break
+
+      try {
+        const downloadUrl = await provider.resolve({
+          host: provider.host,
+          url: youtubeUrl,
+          videoId,
+          remaining,
+        })
+        if (!downloadUrl) {
+          lastReason = `${provider.name}: no download link`
+          break // Provider can't serve this track — try the next one.
+        }
+
+        const buffer = await downloadAudio(downloadUrl, remaining)
+        if (buffer) {
+          console.log(
+            `[ExtractYouTube] served by ${provider.name} (attempt ${attempt}) in ${Date.now() - startedAt}ms`
+          )
+          return buffer
+        }
+        lastReason = `${provider.name}: download failed on attempt ${attempt}`
+      } catch (err) {
+        lastReason = `${provider.name}: ${err instanceof Error ? err.message : String(err)}`
       }
 
-      if (remaining() < 5000) break
-
-      const dlRes = await fetch(downloadUrl, {
-        signal: AbortSignal.timeout(Math.min(DOWNLOAD_TIMEOUT_MS, remaining())),
-      })
-      if (dlRes.ok) {
-        console.log(`[ExtractYouTube] served by ${provider.name} in ${Date.now() - startedAt}ms`)
-        return Buffer.from(await dlRes.arrayBuffer())
-      }
-      lastReason = `${provider.name}: download ${dlRes.status}`
-    } catch (err) {
-      lastReason = `${provider.name}: ${err instanceof Error ? err.message : String(err)}`
+      console.warn(`[ExtractYouTube] ${provider.name} attempt ${attempt} failed: ${lastReason}`)
     }
-
-    console.warn(`[ExtractYouTube] provider ${provider.name} failed: ${lastReason}`)
   }
 
   console.error(`[ExtractYouTube] gave up after ${Date.now() - startedAt}ms: ${lastReason}`)

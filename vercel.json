@@ -70,6 +70,10 @@
     "src/app/api/pdf/vision/route.ts": {
       "maxDuration": 60,
       "memory": 1024
+    },
+    "src/app/api/songs/extract-youtube/route.ts": {
+      "maxDuration": 120,
+      "memory": 1024
     }
   }
 }
