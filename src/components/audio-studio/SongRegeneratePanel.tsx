@@ -5,6 +5,7 @@ import { Card, Button, Textarea, Input, Stack, VIVALoadingOverlay } from '@/lib/
 import { Loader2, Music2, Pause, Play, RefreshCw, Save, X, Youtube } from 'lucide-react'
 import { cn } from '@/lib/design-system/components/shared-utils'
 import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-studio/ReferenceLibraryPicker'
+import { extractYoutubeAudio } from '@/lib/songs/extract-youtube-client'
 
 interface SongRegeneratePanelProps {
   initialLyrics: string
@@ -80,21 +81,7 @@ export function SongRegeneratePanel({
     setReferenceId(null)
 
     try {
-      const response = await fetch('/api/songs/extract-youtube', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: youtubeUrl }),
-      })
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}))
-        if (response.status === 504 || response.status === 408) {
-          throw new Error('That track took too long to prepare. Please try again.')
-        }
-        throw new Error(err.error || 'Failed to extract audio')
-      }
-
-      const { audio_url, title } = await response.json()
+      const { audio_url, title } = await extractYoutubeAudio(youtubeUrl)
       setAudioUrl(audio_url)
       setRegionEnd(30)
       setReferenceTitle(title || null)

@@ -9,6 +9,7 @@ import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
 import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
 import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
+import { extractYoutubeAudio } from '@/lib/songs/extract-youtube-client'
 import {
   VISION_CATEGORIES,
   LIFE_CATEGORY_KEYS,
@@ -347,22 +348,7 @@ export default function SongwriterPage() {
     setReferenceId(null)
 
     try {
-      const response = await fetch('/api/songs/extract-youtube', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: youtubeUrl }),
-      })
-
-      if (!response.ok) {
-        // A gateway/timeout response (e.g. 504) is not JSON, so parse defensively.
-        const err = await response.json().catch(() => ({}))
-        if (response.status === 504 || response.status === 408) {
-          throw new Error('That track took too long to prepare. Please try again.')
-        }
-        throw new Error(err.error || 'Failed to extract audio')
-      }
-
-      const { audio_url, duration, title } = await response.json()
+      const { audio_url, duration, title } = await extractYoutubeAudio(youtubeUrl)
       setAudioUrl(audio_url)
       setAudioDuration(duration || 180)
       setRegionEnd(Math.min(30, duration || 30))

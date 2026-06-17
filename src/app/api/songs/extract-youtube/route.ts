@@ -64,13 +64,18 @@ class ExtractError extends Error {
 // Hard wall-clock deadline for the whole operation (all providers combined).
 // Stays comfortably below the route's maxDuration so we always return our own
 // clean error before Vercel kills the function with a platform 504.
-const TOTAL_DEADLINE_MS = 80000
-const RESOLVE_TIMEOUT_MS = 15000
-const DOWNLOAD_TIMEOUT_MS = 30000
+// Per-attempt budget. POST retries once, so 2 × 55s + 2s sleep fits in maxDuration 120.
+const TOTAL_DEADLINE_MS = 55000
+const RESOLVE_TIMEOUT_MS = 20000
+const DOWNLOAD_TIMEOUT_MS = 45000
 
 function rapidHeaders(host: string) {
   return { 'x-rapidapi-key': RAPIDAPI_KEY as string, 'x-rapidapi-host': host }
 }
+
+// Download hosts reject bare server requests; a browser UA is required.
+const BROWSER_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 
 /** Pull the 11-char video ID out of any YouTube URL shape. */
 function extractVideoId(url: string): string | null {
@@ -107,8 +112,8 @@ interface Provider {
 async function resolveMp36({ host, videoId, remaining }: ResolveCtx): Promise<string | null> {
   if (!videoId) return null
 
-  for (let i = 0; i < 6; i++) {
-    if (remaining() < 6000) break
+  for (let i = 0; i < 24; i++) {
+    if (remaining() < 4000) break
 
     const res = await fetch(`https://${host}/dl?id=${encodeURIComponent(videoId)}`, {
       headers: rapidHeaders(host),
@@ -117,7 +122,7 @@ async function resolveMp36({ host, videoId, remaining }: ResolveCtx): Promise<st
 
     if (!res.ok) {
       if (RETRYABLE_STATUS.has(res.status)) {
-        await sleep(2000)
+        await sleep(Math.min(2000 + i * 300, 5000))
         continue
       }
       return null // e.g. 403 not subscribed / 404 — let the next provider try.
@@ -126,12 +131,16 @@ async function resolveMp36({ host, videoId, remaining }: ResolveCtx): Promise<st
     const data = await res.json().catch(() => ({} as Record<string, unknown>))
     const status = String(data.status || '').toLowerCase()
     const link = (data.link || data.url) as string | undefined
+    const isProcessing = status === 'processing' || status === 'in process' || status === 'converting'
 
     if (link && (status === 'ok' || status === '' || status === 'success')) return link
-    if (status === 'processing' || status === 'in process' || status === 'converting') {
-      await sleep(2500)
+    // Some hosts return a link while status is still "processing" — use it after a few polls.
+    if (link && isProcessing && i >= 3) return link
+    if (isProcessing) {
+      await sleep(Math.min(2500 + i * 250, 6000))
       continue
     }
+    if (link) return link
     return null // status "fail" or unknown shape.
   }
   return null
@@ -179,7 +188,7 @@ async function fetchYoutubeAudio(youtubeUrl: string): Promise<Buffer> {
   let lastReason = 'no provider could serve this track'
 
   for (const provider of PROVIDERS) {
-    if (remaining() < 8000) break
+    if (remaining() < 3000) break
 
     try {
       const downloadUrl = await provider.resolve({ host: provider.host, url: youtubeUrl, videoId, remaining })
@@ -189,9 +198,16 @@ async function fetchYoutubeAudio(youtubeUrl: string): Promise<Buffer> {
         continue
       }
 
-      if (remaining() < 5000) break
+      if (remaining() < 2000) break
 
+      // The file hosts behind these links enforce hotlink protection: they
+      // 404 bare server requests and only serve the MP3 when the request looks
+      // like a browser referred from the provider's RapidAPI host.
       const dlRes = await fetch(downloadUrl, {
+        headers: {
+          'User-Agent': BROWSER_UA,
+          Referer: `https://${provider.host}/`,
+        },
         signal: AbortSignal.timeout(Math.min(DOWNLOAD_TIMEOUT_MS, remaining())),
       })
       if (dlRes.ok) {
@@ -244,11 +260,18 @@ export async function POST(request: NextRequest) {
       // Non-critical — proceed without title
     }
 
-    // Steps 1 & 2: fetch a fresh single-use download link and download the MP3,
-    // retrying the whole unit on transient upstream failures.
+    // Steps 1 & 2: fetch a fresh single-use download link and download the MP3.
+    // One full retry — conversion often succeeds on the second pass.
     let audioBuffer: Buffer
     try {
-      audioBuffer = await fetchYoutubeAudio(url)
+      try {
+        audioBuffer = await fetchYoutubeAudio(url)
+      } catch (firstErr) {
+        if (!(firstErr instanceof ExtractError)) throw firstErr
+        console.warn('[ExtractYouTube] First attempt timed out, retrying...')
+        await sleep(2000)
+        audioBuffer = await fetchYoutubeAudio(url)
+      }
     } catch (err) {
       if (err instanceof ExtractError) {
         console.error('[ExtractYouTube] Extraction failed:', err.message)
