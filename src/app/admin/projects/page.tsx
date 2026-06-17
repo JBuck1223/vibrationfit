@@ -9,7 +9,7 @@ import { AdminWrapper } from '@/components/AdminWrapper'
 import { ProjectsAreaBar } from '@/components/projects-studio'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import {
-  Search, Plus, Kanban, Settings, Calendar, CheckCircle2,
+  Search, Plus, Calendar, CheckCircle2,
   Filter, X, FolderKanban, ListChecks,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -202,8 +202,8 @@ function ProjectsListContent() {
         </div>
 
         {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="relative flex-1 w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="relative flex-1 w-full min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <Input
               value={search}
@@ -212,12 +212,12 @@ function ProjectsListContent() {
               className="pl-10"
             />
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="relative"
+              className="relative flex-1 sm:flex-none"
             >
               <Filter className="w-4 h-4 mr-1" />
               Filters
@@ -230,23 +230,8 @@ function ProjectsListContent() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/admin/projects/board')}
-            >
-              <Kanban className="w-4 h-4 mr-1" />
-              Board
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/admin/projects/settings')}
-            >
-              <Settings className="w-4 h-4 mr-1" />
-              Settings
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               onClick={() => openNewModal('list')}
+              className="flex-1 sm:flex-none"
             >
               <ListChecks className="w-4 h-4 mr-1" />
               New List
@@ -255,6 +240,7 @@ function ProjectsListContent() {
               variant="primary"
               size="sm"
               onClick={() => openNewModal('project')}
+              className="flex-1 sm:flex-none"
             >
               <Plus className="w-4 h-4 mr-1" />
               New Project

@@ -113,7 +113,9 @@ export async function POST(request: NextRequest) {
           save_default_payment_method: 'on_subscription',
           payment_method_types: ['card'],
         },
-        expand: ['latest_invoice.payment_intent'],
+        // Stripe API 2025-09-30.clover removed `invoice.payment_intent`; the
+        // first-payment client secret now lives on `invoice.confirmation_secret`.
+        expand: ['latest_invoice.confirmation_secret'],
         metadata: {
           product_type: 'vision_pro_continuity',
           tier_type: tierType,
@@ -122,8 +124,9 @@ export async function POST(request: NextRequest) {
       })
 
       const invoice = subscription.latest_invoice as Stripe.Invoice | null
-      const paymentIntent = (invoice as any)?.payment_intent as Stripe.PaymentIntent | undefined
-      const clientSecret = paymentIntent?.client_secret
+      const clientSecret =
+        (invoice as any)?.confirmation_secret?.client_secret ||
+        ((invoice as any)?.payment_intent as Stripe.PaymentIntent | undefined)?.client_secret
 
       if (!clientSecret) {
         return NextResponse.json(
@@ -176,7 +179,12 @@ export async function POST(request: NextRequest) {
       }
 
       const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ['latest_invoice.payment_intent', 'default_payment_method'],
+        // `latest_invoice.payment_intent` was removed in 2025-09-30.clover; the
+        // PaymentIntent is reachable via the invoice's payments collection.
+        expand: [
+          'latest_invoice.payments.data.payment.payment_intent',
+          'default_payment_method',
+        ],
       })
 
       if (subscription.customer !== customerId) {
@@ -184,7 +192,8 @@ export async function POST(request: NextRequest) {
       }
 
       const invoice = subscription.latest_invoice as Stripe.Invoice | null
-      const paymentIntent = (invoice as any)?.payment_intent as Stripe.PaymentIntent | undefined
+      const paymentIntent = (invoice as any)?.payments?.data?.[0]?.payment
+        ?.payment_intent as Stripe.PaymentIntent | undefined
 
       // The card that just paid — prefer the subscription default, fall back to
       // the PaymentIntent's payment method.

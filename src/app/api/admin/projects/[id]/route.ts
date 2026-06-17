@@ -42,8 +42,8 @@ export async function GET(
         *,
         category:idea_categories(*),
         idea_project_tags(tag_id, idea_tags(*)),
-        idea_tasks(*, id, title, is_complete, sort_order, created_at, updated_at),
-        idea_comments(*, user_accounts:user_id(full_name, email)),
+        idea_tasks(*),
+        idea_comments(*),
         idea_attachments(*),
         idea_custom_field_values(*, field:idea_custom_field_defs(*))
       `)
@@ -58,6 +58,26 @@ export async function GET(
       }
       console.error('Error fetching idea:', error)
       return NextResponse.json({ error: 'Failed to fetch idea' }, { status: 500 })
+    }
+
+    // idea_comments.user_id has no FK to user_accounts, so resolve author names
+    // in a separate lookup instead of a PostgREST embed (which would error).
+    const commentUserIds = [
+      ...new Set(
+        (project.idea_comments || [])
+          .map((c: any) => c.user_id)
+          .filter(Boolean)
+      ),
+    ]
+    let userMap: Record<string, { full_name: string | null; email: string | null }> = {}
+    if (commentUserIds.length > 0) {
+      const { data: users } = await supabase
+        .from('user_accounts')
+        .select('id, full_name, email')
+        .in('id', commentUserIds)
+      userMap = Object.fromEntries(
+        (users || []).map((u: any) => [u.id, { full_name: u.full_name, email: u.email }])
+      )
     }
 
     const { data: linksOut } = await supabase
@@ -76,9 +96,8 @@ export async function GET(
       tasks: buildTaskTree(project.idea_tasks || []),
       comments: (project.idea_comments || []).map((c: any) => ({
         ...c,
-        user_name: c.user_accounts?.full_name || null,
-        user_email: c.user_accounts?.email || null,
-        user_accounts: undefined,
+        user_name: userMap[c.user_id]?.full_name || null,
+        user_email: userMap[c.user_id]?.email || null,
       })),
       attachments: project.idea_attachments || [],
       custom_field_values: (project.idea_custom_field_values || []).map((v: any) => ({
