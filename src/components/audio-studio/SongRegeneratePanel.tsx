@@ -79,7 +79,7 @@ export function SongRegeneratePanel({
     setAudioUrl(null)
     setReferenceId(null)
 
-    const extract = async (isRetry = false): Promise<{ audio_url: string; title: string | null }> => {
+    try {
       const response = await fetch('/api/songs/extract-youtube', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,20 +88,13 @@ export function SongRegeneratePanel({
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
-        if (!isRetry && (response.status === 502 || response.status === 504 || response.status === 408)) {
-          return extract(true)
-        }
         if (response.status === 504 || response.status === 408) {
           throw new Error('That track took too long to prepare. Please try again.')
         }
         throw new Error(err.error || 'Failed to extract audio')
       }
 
-      return response.json()
-    }
-
-    try {
-      const { audio_url, title } = await extract()
+      const { audio_url, title } = await response.json()
       setAudioUrl(audio_url)
       setRegionEnd(30)
       setReferenceTitle(title || null)
