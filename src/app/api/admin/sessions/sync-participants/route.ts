@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     // 1. Fetch session
     const { data: session, error: sessionError } = await supabase
       .from('video_sessions')
-      .select('id, daily_room_name, session_type, host_user_id, scheduled_at')
+      .select('id, daily_room_name, session_type, host_user_id, scheduled_at, title')
       .eq('id', session_id)
       .single()
 
