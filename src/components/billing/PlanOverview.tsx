@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Card, Badge, Button, Spinner } from '@/lib/design-system/components'
-import { CreditCard, Calendar, AlertTriangle, RotateCcw, ArrowUpRight, ArrowDownRight, Home, User, Check, Crown, Zap, Shield, Tag, X, Loader2, Plus } from 'lucide-react'
+import { CreditCard, Calendar, AlertTriangle, RotateCcw, ArrowUpRight, ArrowDownRight, Home, User, Check, Crown, Zap, Shield, Tag, X, Loader2, Plus, Sparkles } from 'lucide-react'
 import { formatPrice, formatTokensShort, formatStorage, PRICING, TOKEN_GRANTS, STORAGE_QUOTAS } from '@/lib/billing/config'
 
 import { toast } from 'sonner'
@@ -33,6 +33,10 @@ type SubscriptionData = {
   trialEnd?: string | null
   nextBillingDate?: string | null
   cancelAtPeriodEnd: boolean
+  // True when this subscription never converted to a paid, billed membership
+  // (e.g. a free trial that lapsed without a charge). Used to show an
+  // "activate" state instead of a misleading "canceled" one.
+  neverActivated?: boolean
   discount?: SubscriptionDiscount | null
   tier: {
     id: string
@@ -92,7 +96,10 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+const ENDED_STATUSES = ['canceled', 'incomplete_expired', 'unpaid']
+
 function getStatusBadge(status: string, cancelAtPeriodEnd: boolean) {
+  if (ENDED_STATUSES.includes(status)) return <Badge variant="danger">Canceled</Badge>
   if (cancelAtPeriodEnd) return <Badge variant="warning">Canceling</Badge>
   switch (status) {
     case 'active':
@@ -253,17 +260,19 @@ export default function PlanOverview({
           <CreditCard className="w-5 h-5 text-neutral-500 shrink-0" aria-hidden />
           <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">Vision Pro Membership</h3>
         </div>
-        <p className="text-sm text-neutral-500 text-center py-4">No active membership</p>
-        <div className="mb-4">
-          <PaymentMethodSection
-            paymentMethods={paymentMethods}
-            onAddCard={onAddCard}
-            subscriptionStatus={null}
-          />
+        <p className="text-sm text-neutral-400 text-center mt-1 mb-4">
+          Activate to unlock Vision Pro and start your VIVA token allotment.
+        </p>
+        <div className="flex justify-center">
+          <Button
+            variant="primary"
+            className="justify-center sm:min-w-[12rem]"
+            onClick={() => { window.location.href = '/member/offers' }}
+          >
+            <Sparkles className="w-4 h-4 mr-1.5 shrink-0" />
+            Activate now
+          </Button>
         </div>
-        <Button variant="primary" className="w-full justify-center" onClick={() => { window.location.href = '/#pricing' }}>
-          View plans
-        </Button>
       </Card>
     )
   }
@@ -279,6 +288,76 @@ export default function PlanOverview({
   const price = tier.billingInterval === 'year' ? (tier.priceYearly || tier.priceMonthly) : tier.priceMonthly
   const intervalLabel = tier.billingInterval === 'year' ? '/year' : '/28 days'
   const isSoloPlan = !tier.isHouseholdPlan
+
+  const isEnded = ENDED_STATUSES.includes(subscription.status)
+  const trialEnded = subscription.trialEnd
+    ? new Date(subscription.trialEnd).getTime() < Date.now()
+    : false
+
+  // "Never activated" = a free trial that lapsed without ever being billed.
+  // These members never canceled — they just never converted — so showing
+  // "Canceled" is wrong. Send them to the activation offer instead.
+  const needsActivation = !!subscription.neverActivated && (isEnded || trialEnded)
+  if (needsActivation) {
+    return (
+      <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          <CreditCard className="w-5 h-5 text-neutral-500 shrink-0" aria-hidden />
+          <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">{tier.name}</h3>
+          <Badge variant="neutral">Inactive</Badge>
+        </div>
+        <p className="text-sm text-neutral-400 text-center">
+          Your free trial has ended and your membership isn&apos;t active yet.
+        </p>
+        <p className="text-xs text-neutral-500 text-center mt-1 mb-4">
+          Activate to unlock Vision Pro and start your VIVA token allotment.
+        </p>
+        <div className="flex justify-center">
+          <Button
+            variant="primary"
+            className="justify-center sm:min-w-[12rem]"
+            onClick={() => { window.location.href = '/member/offers' }}
+          >
+            <Sparkles className="w-4 h-4 mr-1.5 shrink-0" />
+            Activate now
+          </Button>
+        </div>
+      </Card>
+    )
+  }
+
+  // A canceled/expired membership (that WAS a paying member) has nothing to
+  // manage. Show a clean "ended" state with a path back to reactivating
+  // instead of the active-membership management UI.
+  if (isEnded) {
+    return (
+      <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          <CreditCard className="w-5 h-5 text-neutral-500 shrink-0" aria-hidden />
+          <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">{tier.name}</h3>
+          {getStatusBadge(subscription.status, subscription.cancelAtPeriodEnd)}
+        </div>
+        <p className="text-sm text-neutral-400 text-center">
+          {subscription.currentPeriodEnd
+            ? `Your membership ended on ${formatDate(subscription.currentPeriodEnd)}.`
+            : 'Your membership is no longer active.'}
+        </p>
+        <p className="text-xs text-neutral-500 text-center mt-1 mb-4">
+          Reactivate to restore Vision Pro access and resume your VIVA token allotment.
+        </p>
+        <div className="flex justify-center">
+          <Button
+            variant="primary"
+            className="justify-center sm:min-w-[12rem]"
+            onClick={() => { window.location.href = '/member/offers' }}
+          >
+            <RotateCcw className="w-4 h-4 mr-1.5 shrink-0" />
+            Reactivate membership
+          </Button>
+        </div>
+      </Card>
+    )
+  }
 
   const fetchTiers = async (): Promise<any[]> => {
     if (tiersCache) return tiersCache
