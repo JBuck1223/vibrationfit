@@ -20,6 +20,31 @@ import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helper
 import { ensureCustomerWithAttribution } from '@/lib/tracking/customer-attribution'
 import { OUTBOUND_URL } from '@/lib/urls'
 
+// Stripe API 2025-03-31.basil+ moved `current_period_start`/`current_period_end`
+// from the Subscription object onto each subscription item. Read from the item
+// first, fall back to the legacy top-level field, and never produce an invalid
+// Date (returns null instead of throwing "Invalid time value").
+function subscriptionPeriod(sub: any): { start: string | null; end: string | null } {
+  const item = sub?.items?.data?.[0]
+  const startUnix = item?.current_period_start ?? sub?.current_period_start
+  const endUnix = item?.current_period_end ?? sub?.current_period_end
+  const toIso = (u: unknown): string | null => {
+    const n = Number(u)
+    return Number.isFinite(n) && n > 0 ? new Date(n * 1000).toISOString() : null
+  }
+  return { start: toIso(startUnix), end: toIso(endUnix) }
+}
+
+// Stripe API 2025-03-31.basil+ removed `invoice.payment_intent`. The PaymentIntent
+// id now lives under the invoice's payments collection (when expanded). Prefer
+// that, fall back to the legacy field, and return null when unavailable.
+function invoicePaymentIntentId(invoice: any): string | null {
+  const fromPayments = invoice?.payments?.data?.[0]?.payment?.payment_intent
+  const pi = invoice?.payment_intent ?? fromPayments
+  if (!pi) return null
+  return typeof pi === 'string' ? pi : (pi.id ?? null)
+}
+
 async function notifyAdminPurchase(details: {
   customerName?: string
   customerEmail?: string
@@ -476,8 +501,8 @@ export async function POST(request: NextRequest) {
             stripe_subscription_id: subscriptionId,
             stripe_price_id: subscription.items.data[0].price.id,
             status: subscription.status as any,
-            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            current_period_start: subscriptionPeriod(subscription).start,
+            current_period_end: subscriptionPeriod(subscription).end,
             trial_start: (subscription as any).trial_start ? new Date((subscription as any).trial_start * 1000).toISOString() : null,
             trial_end: (subscription as any).trial_end ? new Date((subscription as any).trial_end * 1000).toISOString() : null,
           })
@@ -903,8 +928,8 @@ export async function POST(request: NextRequest) {
                   stripe_subscription_id: visionProSubscription.id,
                   stripe_price_id: continuityPriceId,
                   status: 'trialing' as any,
-                  current_period_start: new Date((visionProSubscription as any).current_period_start * 1000).toISOString(),
-                  current_period_end: new Date((visionProSubscription as any).current_period_end * 1000).toISOString(),
+                  current_period_start: subscriptionPeriod(visionProSubscription).start,
+                  current_period_end: subscriptionPeriod(visionProSubscription).end,
                   trial_start: new Date().toISOString(),
                   trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(),
                 })
@@ -1238,8 +1263,8 @@ export async function POST(request: NextRequest) {
               stripe_subscription_id: visionProSubId,
               stripe_price_id: continuityPriceId,
               status: 'trialing' as any,
-              current_period_start: new Date((visionProSub as any).current_period_start * 1000).toISOString(),
-              current_period_end: new Date((visionProSub as any).current_period_end * 1000).toISOString(),
+              current_period_start: subscriptionPeriod(visionProSub).start,
+              current_period_end: subscriptionPeriod(visionProSub).end,
               trial_start: new Date().toISOString(),
               trial_end: new Date(scheduleStartDate * 1000).toISOString(),
             })
@@ -1341,8 +1366,10 @@ export async function POST(request: NextRequest) {
             const subscription = await stripe.subscriptions.retrieve(subscriptionId)
             const latestInvoiceId = subscription.latest_invoice as string
             if (latestInvoiceId) {
-              const invoice = await stripe.invoices.retrieve(latestInvoiceId)
-              paymentIntentId = (invoice as any).payment_intent as string | null
+              const invoice = await stripe.invoices.retrieve(latestInvoiceId, {
+                expand: ['payments.data.payment.payment_intent'],
+              })
+              paymentIntentId = invoicePaymentIntentId(invoice)
               intensiveAmount = (invoice as any).amount_paid || intensiveAmount
             }
           } else {
@@ -1593,8 +1620,8 @@ export async function POST(request: NextRequest) {
           .from('customer_subscriptions')
           .update({
             status: subscription.status as any,
-            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            current_period_start: subscriptionPeriod(subscription).start,
+            current_period_end: subscriptionPeriod(subscription).end,
             cancel_at_period_end: (subscription as any).cancel_at_period_end,
             canceled_at: (subscription as any).canceled_at ? new Date((subscription as any).canceled_at * 1000).toISOString() : null,
           })
@@ -1707,7 +1734,7 @@ export async function POST(request: NextRequest) {
             await supabase.from('payment_history').insert({
               user_id: subscription.user_id,
               subscription_id: subscription.id,
-              stripe_payment_intent_id: (invoice as any).payment_intent as string,
+              stripe_payment_intent_id: invoicePaymentIntentId(invoice),
               stripe_invoice_id: invoice.id,
               amount: (invoice as any).amount_paid,
               currency: invoice.currency,
@@ -1826,7 +1853,7 @@ export async function POST(request: NextRequest) {
                   'token_addon',
                   tokensToGrant,
                   (line?.amount || 0),
-                  (invoice as any).payment_intent as string || '',
+                  invoicePaymentIntentId(invoice) || '',
                   '',
                   {
                     source: 'subscription_addon',
@@ -2188,8 +2215,8 @@ export async function POST(request: NextRequest) {
                   stripe_subscription_id: visionProSubscription.id,
                   stripe_price_id: continuityPriceId,
                   status: 'trialing' as any,
-                  current_period_start: new Date((visionProSubscription as any).current_period_start * 1000).toISOString(),
-                  current_period_end: new Date((visionProSubscription as any).current_period_end * 1000).toISOString(),
+                  current_period_start: subscriptionPeriod(visionProSubscription).start,
+                  current_period_end: subscriptionPeriod(visionProSubscription).end,
                   trial_start: new Date().toISOString(),
                   trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(),
                   order_id: order.id,

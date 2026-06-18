@@ -215,12 +215,17 @@ export default function MemberOffersPage() {
             <div className="space-y-2">
               <h1 className="text-2xl font-bold text-white">Welcome, Founder!</h1>
               <p className="text-neutral-400 leading-relaxed text-pretty">
-                Your founders rate is locked in and your {PLAN_INFO[plan].price} payment is confirmed. Your next payment is on{' '}
-                <span className="font-medium text-white">
-                  {new Date(success.nextBilling).toLocaleDateString('en-US', {
-                    month: 'long', day: 'numeric', year: 'numeric'
-                  })}
-                </span>.
+                Your founders rate is locked in and your {PLAN_INFO[plan].price} payment is confirmed.
+                {success.nextBilling && !Number.isNaN(new Date(success.nextBilling).getTime()) && (
+                  <>
+                    {' '}Your next payment is on{' '}
+                    <span className="font-medium text-white">
+                      {new Date(success.nextBilling).toLocaleDateString('en-US', {
+                        month: 'long', day: 'numeric', year: 'numeric'
+                      })}
+                    </span>.
+                  </>
+                )}
               </p>
             </div>
             <div className="flex flex-col gap-3">
