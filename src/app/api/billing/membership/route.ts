@@ -115,6 +115,15 @@ export async function GET() {
       })
     }
 
+    // Capture "never billed" from the stored row BEFORE the Stripe live-sync
+    // below overwrites the period fields. A subscription that never recorded a
+    // paid billing period (current_period_start is null) and isn't a manual
+    // grant is a trial that lapsed without ever converting — the member never
+    // canceled, they just never activated.
+    const isManualGrant = typeof subscription.stripe_customer_id === 'string'
+      && subscription.stripe_customer_id.startsWith('manual-grant-')
+    const neverActivated = !isManualGrant && !subscription.current_period_start
+
     // If subscription exists but tier is null (e.g. RLS hides inactive tier), fetch tier with admin for display
     let tierData = subscription.tier ? mapTierToResponse(subscription.tier) : null
     if (!tierData && subscription.membership_tier_id) {
@@ -257,6 +266,7 @@ export async function GET() {
         }),
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
         canceledAt: subscription.canceled_at,
+        neverActivated,
         stripeSubscriptionId: subscription.stripe_subscription_id,
         tier: tierData,
         discount,

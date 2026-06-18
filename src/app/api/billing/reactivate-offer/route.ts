@@ -101,14 +101,45 @@ export async function POST(request: NextRequest) {
     // customer and saved as the subscription's default payment method.
     // ========================================================================
     if (action === 'create') {
-      const { data: existingSub } = await supabase
+      // Only block if the member has a subscription that is GENUINELY active in
+      // Stripe. Our DB rows can go stale (e.g. trials that lapsed when no card
+      // was attached still show `trialing` here), so we verify against Stripe
+      // and self-heal the stale row instead of trusting it blindly.
+      const { data: existingSubs } = await supabase
         .from('customer_subscriptions')
-        .select('id')
+        .select('id, stripe_subscription_id')
         .eq('user_id', user.id)
         .in('status', ['active', 'trialing'])
-        .maybeSingle()
 
-      if (existingSub) {
+      const reconcile = createAdminClient()
+      let hasLiveSubscription = false
+
+      for (const row of existingSubs ?? []) {
+        if (!row.stripe_subscription_id) {
+          hasLiveSubscription = true
+          continue
+        }
+        try {
+          const liveSub = await stripe.subscriptions.retrieve(row.stripe_subscription_id)
+          if (liveSub.status === 'active' || liveSub.status === 'trialing') {
+            hasLiveSubscription = true
+          } else {
+            await reconcile
+              .from('customer_subscriptions')
+              .update({ status: liveSub.status as any })
+              .eq('id', row.id)
+          }
+        } catch {
+          // Subscription no longer exists in Stripe — mark it canceled so it
+          // never blocks the offer again.
+          await reconcile
+            .from('customer_subscriptions')
+            .update({ status: 'canceled' as any })
+            .eq('id', row.id)
+        }
+      }
+
+      if (hasLiveSubscription) {
         return NextResponse.json(
           { error: 'You already have an active subscription.' },
           { status: 400 }

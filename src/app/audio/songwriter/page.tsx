@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Container, Stack, Card, Button, Textarea, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home } from 'lucide-react'
 import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-studio/ReferenceLibraryPicker'
+import { VibrationFitSongPicker, type VibrationFitSong } from '@/components/audio-studio/VibrationFitSongPicker'
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
 import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
 import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
@@ -878,19 +879,35 @@ export default function SongwriterPage() {
           />
           <Stack gap="sm">
             <label className="text-sm font-medium text-neutral-200">Reference Track</label>
-            <p className="text-xs text-neutral-500">Paste a YouTube URL or pick from your library. Select 30 seconds to set the musical vibe.</p>
+            <p className="text-xs text-neutral-500">Paste a YouTube URL, pick a VibrationFit song, or reuse one from your library. Select 30 seconds to set the musical vibe.</p>
 
-            <ReferenceLibraryPicker
-              onSelect={(ref: ReferenceTrack) => {
-                if (ref.youtube_url) setYoutubeUrl(ref.youtube_url)
-                setAudioUrl(null)
-                if (ref.title) setReferenceTitle(ref.title)
-                if (ref.mureka_file_id) setReferenceId(ref.mureka_file_id)
-                if (ref.clip_url) setReferenceClipUrl(ref.clip_url)
-                setRegionStart(Number(ref.clip_start) || 0)
-                setRegionEnd(Number(ref.clip_end) || 30)
-              }}
-            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <ReferenceLibraryPicker
+                onSelect={(ref: ReferenceTrack) => {
+                  if (ref.youtube_url) setYoutubeUrl(ref.youtube_url)
+                  setAudioUrl(null)
+                  if (ref.title) setReferenceTitle(ref.title)
+                  if (ref.mureka_file_id) setReferenceId(ref.mureka_file_id)
+                  if (ref.clip_url) setReferenceClipUrl(ref.clip_url)
+                  setRegionStart(Number(ref.clip_start) || 0)
+                  setRegionEnd(Number(ref.clip_end) || 30)
+                }}
+              />
+
+              <VibrationFitSongPicker
+                onSelect={(song: VibrationFitSong) => {
+                  setAudioError(null)
+                  setYoutubeUrl('')
+                  setReferenceId(null)
+                  setReferenceClipUrl(null)
+                  setReferenceTitle(song.title)
+                  setRegionStart(0)
+                  setRegionEnd(Math.min(30, song.duration_seconds || 30))
+                  setAudioDuration(song.duration_seconds || 0)
+                  setAudioUrl(song.preview_url)
+                }}
+              />
+            </div>
 
             {referenceId && !audioUrl && referenceTitle && (
               <div className="flex items-center gap-3 rounded-lg border border-[#39FF14]/20 bg-[#39FF14]/5 px-3 py-2.5">
