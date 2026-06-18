@@ -93,7 +93,8 @@ export async function GET() {
       .sort((a, b) => (b.created || 0) - (a.created || 0))
       .slice(0, 24)
       .map(ch => {
-        const inv = (ch.invoice && typeof ch.invoice === 'object') ? ch.invoice as any : null
+        const chInvoice = (ch as any).invoice
+        const inv = (chInvoice && typeof chInvoice === 'object') ? chInvoice as any : null
         const fullyRefunded = ch.refunded
         const line = inv?.lines?.data?.[0]
         const periodStartUnix = line?.period?.start ?? inv?.period_start
