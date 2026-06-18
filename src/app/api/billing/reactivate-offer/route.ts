@@ -198,12 +198,12 @@ export async function POST(request: NextRequest) {
       }
 
       const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-        // `latest_invoice.payment_intent` was removed in 2025-09-30.clover; the
-        // PaymentIntent is reachable via the invoice's payments collection.
-        expand: [
-          'latest_invoice.payments.data.payment.payment_intent',
-          'default_payment_method',
-        ],
+        // Stripe caps `expand` at 4 levels, so we can't reach the PaymentIntent
+        // through the invoice's payments collection here. `default_payment_method`
+        // is set automatically once the first invoice is paid (we use
+        // save_default_payment_method: 'on_subscription'); fall back to the
+        // invoice's PaymentIntent id and retrieve it separately if needed.
+        expand: ['default_payment_method', 'latest_invoice.payments'],
       })
 
       if (subscription.customer !== customerId) {
@@ -211,14 +211,18 @@ export async function POST(request: NextRequest) {
       }
 
       const invoice = subscription.latest_invoice as Stripe.Invoice | null
-      const paymentIntent = (invoice as any)?.payments?.data?.[0]?.payment
-        ?.payment_intent as Stripe.PaymentIntent | undefined
 
-      // The card that just paid — prefer the subscription default, fall back to
-      // the PaymentIntent's payment method.
-      const paymentMethodId =
-        paymentMethodIdFrom(subscription.default_payment_method) ||
-        paymentMethodIdFrom(paymentIntent?.payment_method)
+      // The card that just paid — prefer the subscription default. If it isn't
+      // populated yet, resolve it from the first invoice payment's PaymentIntent.
+      let paymentMethodId = paymentMethodIdFrom(subscription.default_payment_method)
+      if (!paymentMethodId) {
+        const paymentIntentRef = (invoice as any)?.payments?.data?.[0]?.payment?.payment_intent
+        const paymentIntentId = paymentMethodIdFrom(paymentIntentRef)
+        if (paymentIntentId) {
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId)
+          paymentMethodId = paymentMethodIdFrom(pi.payment_method)
+        }
+      }
 
       // CRITICAL: ensure the card is attached to the customer and is their
       // default for invoices, so every future renewal can be billed. This is
