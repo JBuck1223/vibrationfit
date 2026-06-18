@@ -8,7 +8,6 @@ import { Suspense } from 'react'
 import IntensiveOverview from '@/components/billing/IntensiveOverview'
 import PlanOverview from '@/components/billing/PlanOverview'
 import HouseholdSection from '@/components/billing/HouseholdSection'
-import AddOnsList from '@/components/billing/AddOnsList'
 import PaymentMethodsList from '@/components/billing/PaymentMethodsList'
 import InvoiceHistory from '@/components/billing/InvoiceHistory'
 import AddCardForm from '@/components/billing/AddCardForm'
@@ -166,17 +165,11 @@ function BillingContent() {
           />
         )}
 
-        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
-          <AddOnsList
-            addons={membership?.addons || []}
-            onRemoved={fetchAll}
-          />
-          <PaymentMethodsList
-            paymentMethods={paymentMethods}
-            onRefresh={fetchAll}
-            onAddCard={() => setShowAddCard(true)}
-          />
-        </div>
+        <PaymentMethodsList
+          paymentMethods={paymentMethods}
+          onRefresh={fetchAll}
+          onAddCard={() => setShowAddCard(true)}
+        />
 
         <AddCardForm
           isOpen={showAddCard}

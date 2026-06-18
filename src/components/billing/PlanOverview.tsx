@@ -260,17 +260,19 @@ export default function PlanOverview({
           <CreditCard className="w-5 h-5 text-neutral-500 shrink-0" aria-hidden />
           <h3 className="text-lg md:text-xl font-semibold text-white leading-snug">Vision Pro Membership</h3>
         </div>
-        <p className="text-sm text-neutral-500 text-center py-4">No active membership</p>
-        <div className="mb-4">
-          <PaymentMethodSection
-            paymentMethods={paymentMethods}
-            onAddCard={onAddCard}
-            subscriptionStatus={null}
-          />
+        <p className="text-sm text-neutral-400 text-center mt-1 mb-4">
+          Activate to unlock Vision Pro and start your VIVA token allotment.
+        </p>
+        <div className="flex justify-center">
+          <Button
+            variant="primary"
+            className="justify-center sm:min-w-[12rem]"
+            onClick={() => { window.location.href = '/member/offers' }}
+          >
+            <Sparkles className="w-4 h-4 mr-1.5 shrink-0" />
+            Activate now
+          </Button>
         </div>
-        <Button variant="primary" className="w-full justify-center" onClick={() => { window.location.href = '/#pricing' }}>
-          View plans
-        </Button>
       </Card>
     )
   }
@@ -310,21 +312,14 @@ export default function PlanOverview({
         <p className="text-xs text-neutral-500 text-center mt-1 mb-4">
           Activate to unlock Vision Pro and start your VIVA token allotment.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+        <div className="flex justify-center">
           <Button
             variant="primary"
-            className="w-full justify-center sm:w-auto sm:min-w-[12rem]"
+            className="justify-center sm:min-w-[12rem]"
             onClick={() => { window.location.href = '/member/offers' }}
           >
             <Sparkles className="w-4 h-4 mr-1.5 shrink-0" />
-            Activate membership
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-center sm:w-auto"
-            onClick={() => { window.location.href = '/#pricing' }}
-          >
-            View plans
+            Activate now
           </Button>
         </div>
       </Card>
@@ -350,21 +345,14 @@ export default function PlanOverview({
         <p className="text-xs text-neutral-500 text-center mt-1 mb-4">
           Reactivate to restore Vision Pro access and resume your VIVA token allotment.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+        <div className="flex justify-center">
           <Button
             variant="primary"
-            className="w-full justify-center sm:w-auto sm:min-w-[12rem]"
+            className="justify-center sm:min-w-[12rem]"
             onClick={() => { window.location.href = '/member/offers' }}
           >
             <RotateCcw className="w-4 h-4 mr-1.5 shrink-0" />
             Reactivate membership
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-center sm:w-auto"
-            onClick={() => { window.location.href = '/#pricing' }}
-          >
-            View plans
           </Button>
         </div>
       </Card>

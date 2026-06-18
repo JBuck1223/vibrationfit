@@ -8,12 +8,24 @@ type Invoice = {
   id: string
   number: string | null
   date: string | null
+  periodStart?: string | null
+  periodEnd?: string | null
   amountPaid: number
   currency: string
   status: string | null
   description: string
   pdfUrl: string | null
   hostedUrl: string | null
+}
+
+function formatPeriod(start?: string | null, end?: string | null): string {
+  if (!start || !end) return ''
+  const s = new Date(start)
+  const e = new Date(end)
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return ''
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+  const sameYear = s.getFullYear() === e.getFullYear()
+  return `${s.toLocaleDateString('en-US', opts)} \u2013 ${e.toLocaleDateString('en-US', { ...opts, year: sameYear ? undefined : 'numeric' })}, ${e.getFullYear()}`
 }
 
 type Props = {
@@ -28,6 +40,7 @@ function formatDate(iso: string | null): string {
 function getStatusBadge(status: string | null) {
   switch (status) {
     case 'paid': return <Badge variant="success">Paid</Badge>
+    case 'refunded': return <Badge variant="warning">Refunded</Badge>
     case 'open': return <Badge variant="warning">Open</Badge>
     case 'draft': return <Badge>Draft</Badge>
     case 'void': return <Badge variant="warning">Void</Badge>
@@ -63,6 +76,9 @@ export default function InvoiceHistory({ invoices }: Props) {
             >
               <div className="min-w-0 mb-3 sm:mb-0">
                 <div className="text-sm font-medium text-white break-words">{inv.description}</div>
+                {formatPeriod(inv.periodStart, inv.periodEnd) && (
+                  <div className="text-xs text-neutral-400 mt-0.5">{formatPeriod(inv.periodStart, inv.periodEnd)}</div>
+                )}
                 <div className="text-xs text-neutral-500 mt-0.5">
                   {formatDate(inv.date)}
                   {inv.number && ` \u00b7 ${inv.number}`}
