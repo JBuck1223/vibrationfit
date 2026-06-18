@@ -152,6 +152,9 @@ export async function POST(request: NextRequest) {
         customer: stripeCustomerId,
         metadata: paymentMetadata,
         automatic_payment_methods: { enabled: true },
+        // Save the card to the customer so the Vision Pro subscription created
+        // after the intensive can bill it off-session when the 56-day trial ends.
+        setup_future_usage: 'off_session',
       })
       return NextResponse.json({
         clientSecret: paymentIntent.client_secret!,

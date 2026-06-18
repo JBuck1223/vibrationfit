@@ -49,6 +49,24 @@ function paymentMethodIdFrom(value: unknown): string | undefined {
   return typeof value === 'string' ? value : (value as { id?: string }).id
 }
 
+// Stripe API 2025-03-31.basil moved `current_period_start`/`current_period_end`
+// off the Subscription object and onto each subscription item. Read from the
+// item first, fall back to the (now-legacy) top-level field, then to null.
+function billingPeriod(subscription: Stripe.Subscription): {
+  start: string | null
+  end: string | null
+} {
+  const item = subscription.items?.data?.[0] as any
+  const sub = subscription as any
+  const startUnix = item?.current_period_start ?? sub.current_period_start
+  const endUnix = item?.current_period_end ?? sub.current_period_end
+  const toIso = (unix: unknown): string | null => {
+    const n = Number(unix)
+    return Number.isFinite(n) && n > 0 ? new Date(n * 1000).toISOString() : null
+  }
+  return { start: toIso(startUnix), end: toIso(endUnix) }
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!stripe) {
@@ -146,6 +164,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (tier) {
+        const period = billingPeriod(subscription)
         await admin.from('customer_subscriptions').upsert(
           {
             user_id: user.id,
@@ -154,8 +173,8 @@ export async function POST(request: NextRequest) {
             stripe_subscription_id: subscription.id,
             stripe_price_id: priceId,
             status: subscription.status as any,
-            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            current_period_start: period.start,
+            current_period_end: period.end,
           },
           { onConflict: 'stripe_subscription_id' }
         )
@@ -243,8 +262,8 @@ export async function POST(request: NextRequest) {
             stripe_subscription_id: subscription.id,
             stripe_price_id: priceId,
             status: subscription.status as any,
-            current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-            current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            current_period_start: billingPeriod(subscription).start,
+            current_period_end: billingPeriod(subscription).end,
           },
           { onConflict: 'stripe_subscription_id' }
         )
@@ -290,7 +309,7 @@ export async function POST(request: NextRequest) {
         success: true,
         subscriptionId: subscription.id,
         status: subscription.status,
-        nextBilling: new Date((subscription as any).current_period_end * 1000).toISOString(),
+        nextBilling: billingPeriod(subscription).end,
         amountPaid: (invoice as any)?.amount_paid ?? null,
       })
     }
