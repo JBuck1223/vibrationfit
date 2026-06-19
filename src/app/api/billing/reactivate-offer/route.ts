@@ -74,10 +74,13 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    const user = session?.user
+    // Use getUser() (not getSession()): it validates with the Supabase Auth
+    // server and refreshes an expired access token. getSession() returns null
+    // for long-standing members whose access token has lapsed, which surfaced
+    // as a spurious "Unauthorized" when they tried to claim the offer.
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError || !user) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
