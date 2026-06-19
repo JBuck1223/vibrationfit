@@ -27,7 +27,7 @@ const PLAN_INFO: Record<PlanKey, {
     price: '$495',
     cadence: '/year',
     tagline: 'Billed once a year',
-    tag: '2 months free',
+    tag: '3 billing periods free',
     chargeText: "You'll be charged $495 today, then $495 every year. Cancel anytime.",
   },
   '28day': {
