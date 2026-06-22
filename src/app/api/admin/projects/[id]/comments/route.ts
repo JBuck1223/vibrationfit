@@ -16,7 +16,7 @@ export async function GET(
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
-      .from('idea_comments')
+      .from('project_comments')
       .select('*')
       .eq('project_id', id)
       .order('created_at', { ascending: false })
@@ -74,7 +74,7 @@ export async function POST(
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
-      .from('idea_comments')
+      .from('project_comments')
       .insert({
         project_id: id,
         user_id: auth.user.id,

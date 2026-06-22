@@ -1,8 +1,10 @@
 // ============================================================================
 // Project Hub - Type Definitions
 // ============================================================================
-// NOTE: Underlying database tables keep their original `idea_*` names for
-// backwards compatibility. All user-facing terminology uses "Project" / "List".
+// Backed by the project_* tables (projects, project_tasks, project_categories,
+// project_tags, project_tag_links, project_comments, project_attachments,
+// project_custom_field_defs, project_custom_field_values, project_links).
+// Used by both the admin project management UI and member-facing /projects.
 
 export type IdeaStatus = 'idea' | 'planned' | 'in_progress' | 'review' | 'done' | 'archived'
 export type IdeaPriority = 'low' | 'medium' | 'high' | 'urgent'

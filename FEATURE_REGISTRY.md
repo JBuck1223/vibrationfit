@@ -321,9 +321,15 @@ Visit any page and verify:
 **Migrations:** `supabase/migrations/`
 
 **What It Does:**
-- 55 tables for all features
+- Tables for all features
 - RLS policies for security
 - Stored functions and triggers
+
+**Recent Changes (June 21, 2026):**
+- Renamed all `idea_*` tables to `project_*` (`idea_projects` → `projects`, etc.) and
+  added member-ownership RLS (`created_by = auth.uid()`) alongside admin access.
+- Added `resets` and `reset_items` tables for the Reset ("Phoenix") feature (owner + admin RLS).
+- Schema docs (`COMPLETE_SCHEMA_DUMP.sql`, `CURRENT_SCHEMA.md`) should be regenerated.
 
 **Verification:**
 ```bash
@@ -438,6 +444,49 @@ npm run docs:schema
 **Known Issues:**
 - Need to verify integration with new vision_versions structure
 - Check if refinements table is still used
+
+---
+
+### 🚧 Project Hub (Projects)
+**Version:** `v2.0.0`  
+**Status:** 🚧 IN PROGRESS  
+**Last Modified:** June 21, 2026  
+**Doc:** `.cursor/rules/idea-hub-agent-workflow.mdc`  
+**Schema:** `projects`, `project_tasks`, `project_categories`, `project_tags`, `project_tag_links`, `project_comments`, `project_attachments`, `project_custom_field_defs`, `project_custom_field_values`, `project_links`  
+**API:** `/api/admin/projects/*` (admin), `/api/projects/*` (member)  
+**UI:** `/admin/projects` (admin), `/projects` + `/projects/[id]` (member)
+
+**What It Does:**
+- Real project management system (rebased from the former `idea_*` tables).
+- Admins manage all projects; members manage their own (RLS via `created_by`).
+- Projects/lists with nested tasks (1 level), life-category tagging.
+
+**Critical Rules:**
+- ❌ Underlying tables are now `project_*` (NOT `idea_*`).
+- ✅ Member access is ownership-scoped (`created_by = auth.uid()`).
+
+---
+
+### 🚧 Reset ("Phoenix")
+**Version:** `v1.0.0`  
+**Status:** 🚧 IN PROGRESS  
+**Last Modified:** June 21, 2026  
+**Doc:** `docs/features/reset/README.md`  
+**Schema:** `resets`, `reset_items`  
+**API:** `/api/reset/*`  
+**UI:** `/reset` (View), `/reset/update` (Update)
+
+**What It Does:**
+- Free, repeatable program for active members to recommit to the life they choose.
+- Captures per-pillar "anchors" at start and detects recommitment (new profile,
+  life vision, vision board, audio, projects, MAP habits) via comparison to anchors.
+- Category-aware: focus areas filter the dashboard by life category.
+- Completing every selected item triggers the Phoenix moment.
+
+**Critical Rules:**
+- ✅ Detection is anchor-based (snapshot of active ids/counts at start) to avoid
+  false positives from in-place edits.
+- ✅ Selection IS the contract: every selected item must complete to reach Phoenix.
 
 ---
 

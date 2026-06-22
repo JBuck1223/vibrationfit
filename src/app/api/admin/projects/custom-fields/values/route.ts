@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       if (!field_id) continue
 
       const { error } = await supabase
-        .from('idea_custom_field_values')
+        .from('project_custom_field_values')
         .upsert(
           { project_id, field_id, value: value ?? null },
           { onConflict: 'project_id,field_id' }
@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: updated } = await supabase
-      .from('idea_custom_field_values')
-      .select('*, field:idea_custom_field_defs(*)')
+      .from('project_custom_field_values')
+      .select('*, field:project_custom_field_defs(*)')
       .eq('project_id', project_id)
 
     return NextResponse.json({ values: updated || [] })

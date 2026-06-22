@@ -80,6 +80,7 @@ import {
   Mic,
   FolderKanban,
   ListChecks,
+  Flame,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -127,6 +128,12 @@ export const userNavigation: (NavItem | NavGroup)[] = [
     href: '/tracking',
     icon: TrendingUp,
     description: 'Streaks, badges, and performance metrics',
+  },
+  {
+    name: 'Reset',
+    href: '/reset',
+    icon: Flame,
+    description: 'Hit the reset button - recommit, phoenix style',
   },
 ]
 
@@ -206,6 +213,12 @@ export const userNavigationGroups: NavGroup[] = [
         href: '/journal',
         icon: BookOpen,
         description: 'My Journal',
+      },
+      {
+        name: 'Projects',
+        href: '/projects',
+        icon: FolderKanban,
+        description: 'Projects and lists to move your life forward',
       },
     ],
   },
@@ -799,6 +812,20 @@ export function isNavItemActive(
         return true
       }
       return false
+    }
+
+    // Reset studio: /reset matches /reset/update etc.
+    if (item.href === '/reset') {
+      if (pathname.startsWith('/reset/')) {
+        return true
+      }
+    }
+
+    // Member Projects: /projects matches /projects/[id]
+    if (item.href === '/projects') {
+      if (pathname.startsWith('/projects/')) {
+        return true
+      }
     }
   }
   

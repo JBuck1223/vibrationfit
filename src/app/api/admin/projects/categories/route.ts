@@ -11,7 +11,7 @@ export async function GET() {
 
     const supabase = createAdminClient()
     const { data, error } = await supabase
-      .from('idea_categories')
+      .from('project_categories')
       .select('*')
       .order('sort_order', { ascending: true })
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
     const { data, error } = await supabase
-      .from('idea_categories')
+      .from('project_categories')
       .insert({
         name: name.trim(),
         color: color || '#39FF14',
@@ -85,7 +85,7 @@ export async function PATCH(request: NextRequest) {
     if (sort_order !== undefined) updates.sort_order = sort_order
 
     const { data, error } = await supabase
-      .from('idea_categories')
+      .from('project_categories')
       .update(updates)
       .eq('id', id)
       .select()
@@ -118,7 +118,7 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createAdminClient()
     const { error } = await supabase
-      .from('idea_categories')
+      .from('project_categories')
       .delete()
       .eq('id', id)
 

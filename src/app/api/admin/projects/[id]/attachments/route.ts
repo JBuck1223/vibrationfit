@@ -16,7 +16,7 @@ export async function GET(
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
-      .from('idea_attachments')
+      .from('project_attachments')
       .select('*')
       .eq('project_id', id)
       .order('created_at', { ascending: false })
@@ -53,7 +53,7 @@ export async function POST(
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
-      .from('idea_attachments')
+      .from('project_attachments')
       .insert({
         project_id: id,
         file_name,
@@ -96,7 +96,7 @@ export async function DELETE(
 
     const supabase = createAdminClient()
     const { error } = await supabase
-      .from('idea_attachments')
+      .from('project_attachments')
       .delete()
       .eq('id', attachmentId)
 

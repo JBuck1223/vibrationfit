@@ -11,6 +11,7 @@ import {
   Sparkles, Mic, Music, Trash2, BookOpen, Image, Edit2,
   Volume2, Plus, Music2, ChevronDown, CheckCircle, Target, Lightbulb,
   Clock, ChevronRight, Library, AlertTriangle, RefreshCw,
+  Users, ArrowLeft, Search,
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
@@ -49,6 +50,16 @@ function storyIdFromTrackId(trackId: string): string | null {
 interface AudioTrack extends BaseAudioTrack {
   sectionKey: string
 }
+
+interface MusicArtist {
+  id: string
+  name: string
+  avatarUrl: string | null
+  songCount: number
+  isOfficial: boolean
+}
+
+const OFFICIAL_ARTIST_ID = 'vibrationfit'
 
 function formatAccountDisplayName(account: {
   first_name?: string | null
@@ -184,9 +195,6 @@ function MusicCategoryDropdown({
           <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] py-1.5 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-64 overflow-y-auto overscroll-contain">
             <button type="button" onClick={() => select('published')} className={optionClass(value === 'published')}>
               Published
-            </button>
-            <button type="button" onClick={() => select('member-library')} className={optionClass(value === 'member-library')}>
-              Member Library
             </button>
             <button type="button" onClick={() => select('all')} className={optionClass(value === 'all')}>
               All Songs
@@ -324,6 +332,16 @@ export default function AudioListenPage() {
   const [musicTracks, setMusicTracks] = useState<any[]>([])
   const [musicLoading, setMusicLoading] = useState(false)
   const [musicCategoryFilter, setMusicCategoryFilter] = useState<string>('published')
+
+  // Browse-by-artist state (Amazon Music-style: members as artists)
+  const [musicView, setMusicView] = useState<'browse' | 'all'>('browse')
+  const [artists, setArtists] = useState<MusicArtist[]>([])
+  const [artistsLoaded, setArtistsLoaded] = useState(false)
+  const [artistsLoading, setArtistsLoading] = useState(false)
+  const [artistSearch, setArtistSearch] = useState('')
+  const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null)
+  const [artistTracks, setArtistTracks] = useState<AudioTrack[]>([])
+  const [artistTracksLoading, setArtistTracksLoading] = useState(false)
 
   // Add to Playlist sheet state
   const [playlistSheetOpen, setPlaylistSheetOpen] = useState(false)
@@ -757,6 +775,64 @@ export default function AudioListenPage() {
     setMusicLoading(false)
   }
 
+  // Load the artist roster for the Browse view (members + official Vibration Fit).
+  useEffect(() => {
+    if (contentType !== 'music' || musicView !== 'browse' || artistsLoaded || artistsLoading) return
+    let cancelled = false
+    setArtistsLoading(true)
+    ;(async () => {
+      try {
+        const res = await fetch('/api/music/artists')
+        if (!res.ok) throw new Error(`artists ${res.status}`)
+        const json = await res.json()
+        if (!cancelled) setArtists(Array.isArray(json.artists) ? json.artists : [])
+      } catch (err) {
+        console.error('[MusicArtists] Failed to load:', err)
+      } finally {
+        if (!cancelled) {
+          setArtistsLoaded(true)
+          setArtistsLoading(false)
+        }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [contentType, musicView, artistsLoaded, artistsLoading])
+
+  // Load a selected artist's tracks.
+  useEffect(() => {
+    if (!selectedArtistId) {
+      setArtistTracks([])
+      return
+    }
+    let cancelled = false
+    setArtistTracksLoading(true)
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/music/artists/${encodeURIComponent(selectedArtistId)}/tracks?limit=200`)
+        if (!res.ok) throw new Error(`tracks ${res.status}`)
+        const json = await res.json()
+        if (!cancelled) setArtistTracks(Array.isArray(json.tracks) ? json.tracks : [])
+      } catch (err) {
+        console.error('[ArtistTracks] Failed to load:', err)
+        if (!cancelled) setArtistTracks([])
+      } finally {
+        if (!cancelled) setArtistTracksLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [selectedArtistId])
+
+  const selectedArtist = useMemo(
+    () => artists.find(a => a.id === selectedArtistId) || null,
+    [artists, selectedArtistId],
+  )
+
+  const filteredArtists = useMemo(() => {
+    const q = artistSearch.trim().toLowerCase()
+    if (!q) return artists
+    return artists.filter(a => a.name.toLowerCase().includes(q))
+  }, [artists, artistSearch])
+
 
   const selectedStory = stories.find(s => s.id === selectedStoryId)
 
@@ -1002,6 +1078,12 @@ export default function AudioListenPage() {
   const activeMusicCatalogRow = activeMusicCatalogId
     ? musicTracks.find(m => m.id === activeMusicCatalogId)
     : null
+
+  // Lyrics for the currently playing artist-detail track (member songs aren't in musicTracks).
+  const activeArtistTrack =
+    contentType === 'music' && musicView === 'browse' && selectedArtistId && globalStoreTrackIds.length > 0
+      ? artistTracks.find(t => t.id === globalStoreTrackIds[globalStoreIndex]?.id) || null
+      : null
 
   const saveAudioSetName = async () => {
     if (!selectedSet) return
@@ -1610,87 +1692,274 @@ export default function AudioListenPage() {
         {/* ── Music Catalog ── */}
         {contentType === 'music' && (
           <section>
-            {musicLoading ? (
-              <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
-            ) : musicPlayerTracks.length === 0 ? (
-              <div className="max-w-2xl mx-auto w-full">
-                <div className="rounded-2xl border border-neutral-800 bg-embedded-panel overflow-hidden">
-                  <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="text-lg font-semibold text-white">Vibration Fit Music</h3>
-                      <MusicCategoryDropdown
-                        value={musicCategoryFilter}
-                        onChange={setMusicCategoryFilter}
-                        categories={musicTagCategories}
+            {/* View toggle (hidden inside an artist's detail page) */}
+            {!(musicView === 'browse' && selectedArtistId) && (
+              <div className="mb-5 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMusicView('browse')}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${musicView === 'browse' ? 'bg-primary-500 text-black' : 'bg-[#2a2a2a] text-neutral-300 hover:text-white'}`}
+                >
+                  <Users className="w-4 h-4" />
+                  Browse Artists
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMusicView('all'); setSelectedArtistId(null) }}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${musicView === 'all' ? 'bg-primary-500 text-black' : 'bg-[#2a2a2a] text-neutral-300 hover:text-white'}`}
+                >
+                  <Music2 className="w-4 h-4" />
+                  All Songs
+                </button>
+              </div>
+            )}
+
+            {/* ── Browse Artists ── */}
+            {musicView === 'browse' && !selectedArtistId && (
+              <div className="max-w-5xl mx-auto w-full">
+                <div className="relative mb-5 max-w-md mx-auto">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                  <input
+                    type="text"
+                    value={artistSearch}
+                    onChange={e => setArtistSearch(e.target.value)}
+                    placeholder="Search artists..."
+                    className="w-full rounded-full border border-neutral-700 bg-neutral-900 py-2 pl-9 pr-3 text-sm text-white placeholder:text-neutral-500 focus:border-primary-500/50 focus:outline-none"
+                  />
+                </div>
+                {artistsLoading ? (
+                  <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+                ) : filteredArtists.length === 0 ? (
+                  <div className="rounded-2xl border border-neutral-800 bg-embedded-panel p-8 text-center">
+                    <Users className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                    <p className="text-sm text-neutral-400">
+                      {artistSearch.trim() ? 'No artists match your search.' : 'No artists yet.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {filteredArtists.map(artist => (
+                      <button
+                        key={artist.id}
+                        type="button"
+                        onClick={() => setSelectedArtistId(artist.id)}
+                        className="group flex flex-col items-center rounded-2xl border border-neutral-800 bg-embedded-panel p-5 text-center transition-all hover:-translate-y-1 hover:border-neutral-700"
+                      >
+                        <div className="mb-3">
+                          {artist.isOfficial ? (
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#39FF14] to-[#00FFFF]">
+                              <Music2 className="h-9 w-9 text-black" />
+                            </div>
+                          ) : artist.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={artist.avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover" />
+                          ) : (
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-800 text-2xl font-semibold text-neutral-300">
+                              {artist.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <p className="w-full truncate text-sm font-semibold text-white group-hover:text-primary-500">
+                          {artist.name}
+                        </p>
+                        <p className="mt-0.5 text-xs text-neutral-500">
+                          {artist.songCount} {artist.songCount === 1 ? 'song' : 'songs'}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Artist detail ── */}
+            {musicView === 'browse' && selectedArtistId && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedArtistId(null)}
+                  className="mb-4 flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to artists
+                </button>
+                {artistTracksLoading ? (
+                  <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+                ) : artistTracks.length === 0 ? (
+                  <div className="max-w-2xl mx-auto w-full rounded-2xl border border-neutral-800 bg-embedded-panel p-8 text-center">
+                    <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                    <p className="text-sm text-neutral-400">No songs to play yet.</p>
+                  </div>
+                ) : (
+                  <div className="w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center">
+                    <div className="hidden lg:block" />
+                    <div className="max-w-2xl mx-auto w-full lg:mx-0 lg:max-w-none">
+                      <EmbeddedPlayer
+                        tracks={artistTracks}
+                        mapActivityType="music_listen"
+                        setName={selectedArtist?.name || 'Artist'}
+                        setIconKey="music"
+                        contentCategory="music"
+                        trackCount={artistTracks.length}
+                        enableArtworkLightbox
+                        onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
+                        headerContent={
+                          <div className="bg-black/40 px-3 pt-3 pb-3 md:px-4 border-b border-neutral-800/50">
+                            <div className="flex items-center gap-3">
+                              {selectedArtist?.isOfficial ? (
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#39FF14] to-[#00FFFF]">
+                                  <Music2 className="h-5 w-5 text-black" />
+                                </div>
+                              ) : selectedArtist?.avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={selectedArtist.avatarUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+                              ) : (
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-lg font-semibold text-neutral-300">
+                                  {(selectedArtist?.name || 'A').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                {selectedArtist && !selectedArtist.isOfficial ? (
+                                  <Link href={`/snapshot/${selectedArtist.id}`} className="block truncate text-lg font-semibold text-white hover:text-primary-500">
+                                    {selectedArtist.name}
+                                  </Link>
+                                ) : (
+                                  <h3 className="truncate text-lg font-semibold text-white">{selectedArtist?.name || 'Artist'}</h3>
+                                )}
+                                <p className="text-xs text-neutral-500">
+                                  {artistTracks.length} {artistTracks.length === 1 ? 'song' : 'songs'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        }
                       />
+                      {/* Mobile: lyrics below player */}
+                      {activeArtistTrack && (activeArtistTrack.syncedLyrics || activeArtistTrack.plainLyrics) && (
+                        <div className="lg:hidden mt-4">
+                          {activeArtistTrack.syncedLyrics ? (
+                            <SyncedLyricsDisplay
+                              syncedLyrics={activeArtistTrack.syncedLyrics as SyncedLyrics}
+                              plainText={activeArtistTrack.plainLyrics || undefined}
+                            />
+                          ) : activeArtistTrack.plainLyrics ? (
+                            <PlainLyricsDisplay lyrics={activeArtistTrack.plainLyrics} />
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                    {/* Desktop: lyrics to the right */}
+                    <div className="hidden lg:block sticky top-4 self-start">
+                      {activeArtistTrack && (activeArtistTrack.syncedLyrics || activeArtistTrack.plainLyrics) ? (
+                        activeArtistTrack.syncedLyrics ? (
+                          <SyncedLyricsDisplay
+                            syncedLyrics={activeArtistTrack.syncedLyrics as SyncedLyrics}
+                            plainText={activeArtistTrack.plainLyrics || undefined}
+                          />
+                        ) : activeArtistTrack.plainLyrics ? (
+                          <PlainLyricsDisplay lyrics={activeArtistTrack.plainLyrics} />
+                        ) : null
+                      ) : null}
                     </div>
                   </div>
-                  <div className="p-6 text-center">
-                    <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
-                    {musicCategoryFilter === 'member-library' ? (
-                      <>
-                        <p className="text-sm text-neutral-400">Your member library is empty.</p>
-                        <p className="text-xs text-neutral-500 mt-1">Add tracks from My Songs using the 3-dot menu.</p>
-                      </>
-                    ) : musicCategoryFilter === 'published' ? (
-                      <>
-                        <p className="text-sm text-neutral-400">No music available in Published yet.</p>
-                        <p className="text-xs text-neutral-500 mt-1">Vibration Fit catalog songs appear here by default. Member songs show after publishing approval.</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-neutral-400">No music available for this filter.</p>
-                        <p className="text-xs text-neutral-500 mt-1">Try another category.</p>
-                      </>
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center">
-                {/* Left spacer on desktop grid */}
-                <div className="hidden lg:block" />
-                {/* Centered player */}
-                <div className="max-w-2xl mx-auto w-full lg:mx-0 lg:max-w-none">
-                  <EmbeddedPlayer
-                    tracks={musicPlayerTracks}
-                    mapActivityType="music_listen"
-                    setName="Vibration Fit Music"
-                    setIconKey="music"
-                    contentCategory="music"
-                    trackCount={musicPlayerTracks.length}
-                    enableArtworkLightbox
-                    onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
-                    headerContent={
-                    <div>
-                      <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
-                        <div className="flex items-center justify-between gap-3">
-                          <h3 className="text-lg font-semibold text-white">Vibration Fit Music</h3>
-                          <MusicCategoryDropdown
-                            value={musicCategoryFilter}
-                            onChange={setMusicCategoryFilter}
-                            categories={musicTagCategories}
-                          />
-                        </div>
-                        {(() => {
-                          const streamingTrack = musicTracks.find((t: any) =>
-                            t.spotify_url || t.apple_music_url || t.amazon_music_url || t.youtube_music_url || t.soundcloud_url
-                          )
-                          if (!streamingTrack) return null
-                          return (
-                            <div className="flex items-center justify-center gap-1.5 flex-wrap mt-2.5">
-                              <MusicStreamingLinks track={streamingTrack} />
-                            </div>
-                          )
-                        })()}
+            )}
+
+            {/* ── All Songs (official catalog + cross-artist filters) ── */}
+            {musicView === 'all' && (
+              musicLoading ? (
+                <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+              ) : musicPlayerTracks.length === 0 ? (
+                <div className="max-w-2xl mx-auto w-full">
+                  <div className="rounded-2xl border border-neutral-800 bg-embedded-panel overflow-hidden">
+                    <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-lg font-semibold text-white">Vibration Fit Music</h3>
+                        <MusicCategoryDropdown
+                          value={musicCategoryFilter}
+                          onChange={setMusicCategoryFilter}
+                          categories={musicTagCategories}
+                        />
                       </div>
                     </div>
-                    }
-                  />
-                  {/* Mobile: lyrics below player */}
-                  {activeMusicCatalogRow && (activeMusicCatalogRow.synced_lyrics || activeMusicCatalogRow.plain_lyrics) && (
-                    <div className="lg:hidden mt-4">
-                      {activeMusicCatalogRow.synced_lyrics ? (
+                    <div className="p-6 text-center">
+                      <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                      {musicCategoryFilter === 'published' ? (
+                        <>
+                          <p className="text-sm text-neutral-400">No music available in Published yet.</p>
+                          <p className="text-xs text-neutral-500 mt-1">Vibration Fit catalog songs appear here by default. Member songs show after publishing approval.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-neutral-400">No music available for this filter.</p>
+                          <p className="text-xs text-neutral-500 mt-1">Try another category.</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center">
+                  {/* Left spacer on desktop grid */}
+                  <div className="hidden lg:block" />
+                  {/* Centered player */}
+                  <div className="max-w-2xl mx-auto w-full lg:mx-0 lg:max-w-none">
+                    <EmbeddedPlayer
+                      tracks={musicPlayerTracks}
+                      mapActivityType="music_listen"
+                      setName="Vibration Fit Music"
+                      setIconKey="music"
+                      contentCategory="music"
+                      trackCount={musicPlayerTracks.length}
+                      enableArtworkLightbox
+                      onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
+                      headerContent={
+                      <div>
+                        <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-lg font-semibold text-white">Vibration Fit Music</h3>
+                            <MusicCategoryDropdown
+                              value={musicCategoryFilter}
+                              onChange={setMusicCategoryFilter}
+                              categories={musicTagCategories}
+                            />
+                          </div>
+                          {(() => {
+                            const streamingTrack = musicTracks.find((t: any) =>
+                              t.spotify_url || t.apple_music_url || t.amazon_music_url || t.youtube_music_url || t.soundcloud_url
+                            )
+                            if (!streamingTrack) return null
+                            return (
+                              <div className="flex items-center justify-center gap-1.5 flex-wrap mt-2.5">
+                                <MusicStreamingLinks track={streamingTrack} />
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                      }
+                    />
+                    {/* Mobile: lyrics below player */}
+                    {activeMusicCatalogRow && (activeMusicCatalogRow.synced_lyrics || activeMusicCatalogRow.plain_lyrics) && (
+                      <div className="lg:hidden mt-4">
+                        {activeMusicCatalogRow.synced_lyrics ? (
+                          <SyncedLyricsDisplay
+                            syncedLyrics={activeMusicCatalogRow.synced_lyrics}
+                            plainText={activeMusicCatalogRow.plain_lyrics || undefined}
+                          />
+                        ) : activeMusicCatalogRow.plain_lyrics ? (
+                          <PlainLyricsDisplay
+                            lyrics={activeMusicCatalogRow.plain_lyrics}
+                          />
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                  {/* Desktop: lyrics to the right */}
+                  <div className="hidden lg:block sticky top-4 self-start">
+                    {activeMusicCatalogRow && (activeMusicCatalogRow.synced_lyrics || activeMusicCatalogRow.plain_lyrics) ? (
+                      activeMusicCatalogRow.synced_lyrics ? (
                         <SyncedLyricsDisplay
                           syncedLyrics={activeMusicCatalogRow.synced_lyrics}
                           plainText={activeMusicCatalogRow.plain_lyrics || undefined}
@@ -1699,26 +1968,11 @@ export default function AudioListenPage() {
                         <PlainLyricsDisplay
                           lyrics={activeMusicCatalogRow.plain_lyrics}
                         />
-                      ) : null}
-                    </div>
-                  )}
+                      ) : null
+                    ) : null}
+                  </div>
                 </div>
-                {/* Desktop: lyrics to the right */}
-                <div className="hidden lg:block sticky top-4 self-start">
-                  {activeMusicCatalogRow && (activeMusicCatalogRow.synced_lyrics || activeMusicCatalogRow.plain_lyrics) ? (
-                    activeMusicCatalogRow.synced_lyrics ? (
-                      <SyncedLyricsDisplay
-                        syncedLyrics={activeMusicCatalogRow.synced_lyrics}
-                        plainText={activeMusicCatalogRow.plain_lyrics || undefined}
-                      />
-                    ) : activeMusicCatalogRow.plain_lyrics ? (
-                      <PlainLyricsDisplay
-                        lyrics={activeMusicCatalogRow.plain_lyrics}
-                      />
-                    ) : null
-                  ) : null}
-                </div>
-              </div>
+              )
             )}
           </section>
         )}
