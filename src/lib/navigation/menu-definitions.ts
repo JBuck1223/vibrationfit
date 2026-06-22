@@ -129,12 +129,6 @@ export const userNavigation: (NavItem | NavGroup)[] = [
     icon: TrendingUp,
     description: 'Streaks, badges, and performance metrics',
   },
-  {
-    name: 'Reset',
-    href: '/reset',
-    icon: Flame,
-    description: 'Hit the reset button - recommit, phoenix style',
-  },
 ]
 
 /**
@@ -309,6 +303,12 @@ export const userNavigationGroups: NavGroup[] = [
         href: '/assessment',
         icon: Brain,
         description: 'Vibrational assessment and results',
+      },
+      {
+        name: 'Reset',
+        href: '/reset',
+        icon: Flame,
+        description: 'Hit the reset button - recommit, phoenix style',
       },
     ],
   },

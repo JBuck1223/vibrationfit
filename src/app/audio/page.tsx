@@ -336,7 +336,6 @@ export default function AudioListenPage() {
   // Browse-by-artist state (Amazon Music-style: members as artists)
   const [musicView, setMusicView] = useState<'browse' | 'all'>('browse')
   const [artists, setArtists] = useState<MusicArtist[]>([])
-  const [artistsLoaded, setArtistsLoaded] = useState(false)
   const [artistsLoading, setArtistsLoading] = useState(false)
   const [artistSearch, setArtistSearch] = useState('')
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null)
@@ -776,27 +775,27 @@ export default function AudioListenPage() {
   }
 
   // Load the artist roster for the Browse view (members + official Vibration Fit).
+  // Use a ref guard (not state) so toggling loading state doesn't re-run this
+  // effect and cancel the in-flight request.
+  const artistsRequestedRef = useRef(false)
   useEffect(() => {
-    if (contentType !== 'music' || musicView !== 'browse' || artistsLoaded || artistsLoading) return
-    let cancelled = false
+    if (contentType !== 'music' || musicView !== 'browse') return
+    if (artistsRequestedRef.current) return
+    artistsRequestedRef.current = true
     setArtistsLoading(true)
     ;(async () => {
       try {
         const res = await fetch('/api/music/artists')
         if (!res.ok) throw new Error(`artists ${res.status}`)
         const json = await res.json()
-        if (!cancelled) setArtists(Array.isArray(json.artists) ? json.artists : [])
+        setArtists(Array.isArray(json.artists) ? json.artists : [])
       } catch (err) {
         console.error('[MusicArtists] Failed to load:', err)
       } finally {
-        if (!cancelled) {
-          setArtistsLoaded(true)
-          setArtistsLoading(false)
-        }
+        setArtistsLoading(false)
       }
     })()
-    return () => { cancelled = true }
-  }, [contentType, musicView, artistsLoaded, artistsLoading])
+  }, [contentType, musicView])
 
   // Load a selected artist's tracks.
   useEffect(() => {

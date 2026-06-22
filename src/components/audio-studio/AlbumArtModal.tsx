@@ -82,6 +82,9 @@ export function AlbumArtModal({
       onArtGenerated(data.cover_url || coverUrl!)
       toast.success('Album art saved to all tracks!')
       onClose()
+      // The cover S3 key is deterministic per song, so the browser keeps showing
+      // the cached old image. Reload so the new art shows everywhere it's used.
+      setTimeout(() => window.location.reload(), 400)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save album art')
     } finally {

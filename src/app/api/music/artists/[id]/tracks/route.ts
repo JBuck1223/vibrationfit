@@ -20,6 +20,7 @@ import {
   musicCatalogArtistFallback,
   musicCatalogPerformerLinks,
 } from '@/lib/audio/music-performers'
+import { convertMurekaLyrics } from '@/lib/utils/lyrics-alignment'
 import { OFFICIAL_ARTIST_ID } from '@/lib/music/artists'
 
 export const dynamic = 'force-dynamic'
@@ -97,7 +98,7 @@ export async function GET(
     // ── Member artist: their Member Library songs ─────────────────────────────
     const { data: tracks, error } = await adminDb
       .from('song_tracks')
-      .select('id, song_id, title, version, mp3_url, cover_url, duration_ms, is_favorite, created_at')
+      .select('id, song_id, title, version, mp3_url, cover_url, duration_ms, is_favorite, created_at, metadata')
       .eq('user_id', id)
       .eq('in_member_library', true)
       .not('mp3_url', 'is', null)
@@ -163,19 +164,25 @@ export async function GET(
 
     const snapshotHref = `/snapshot/${id}`
     const mapped: ArtistTrack[] = deduped
-      .map((t): ArtistTrack => ({
-        id: t.id,
-        title: songMap[t.song_id]?.title || t.title || 'VIVA Song',
-        artist: artistName,
-        performers: [{ name: artistName, snapshotHref }],
-        duration: typeof t.duration_ms === 'number' && isFinite(t.duration_ms) ? Math.round(t.duration_ms / 1000) : 0,
-        url: t.mp3_url!,
-        thumbnail: t.cover_url || '',
-        sectionKey: 'music',
-        plainLyrics: songMap[t.song_id]?.lyrics || undefined,
-        publishStatus: publishedUrls.has(t.mp3_url!) ? 'published' : undefined,
-        memberCreated: true,
-      }))
+      .map((t): ArtistTrack => {
+        // Mureka word-level timing is persisted on the track at generation time.
+        const meta = (t.metadata && typeof t.metadata === 'object') ? t.metadata as Record<string, unknown> : null
+        const lyricsSections = Array.isArray(meta?.lyrics_sections) ? meta!.lyrics_sections as any[] : null
+        return {
+          id: t.id,
+          title: songMap[t.song_id]?.title || t.title || 'VIVA Song',
+          artist: artistName,
+          performers: [{ name: artistName, snapshotHref }],
+          duration: typeof t.duration_ms === 'number' && isFinite(t.duration_ms) ? Math.round(t.duration_ms / 1000) : 0,
+          url: t.mp3_url!,
+          thumbnail: t.cover_url || '',
+          sectionKey: 'music',
+          syncedLyrics: lyricsSections?.length ? convertMurekaLyrics(lyricsSections) : undefined,
+          plainLyrics: songMap[t.song_id]?.lyrics || undefined,
+          publishStatus: publishedUrls.has(t.mp3_url!) ? 'published' : undefined,
+          memberCreated: true,
+        }
+      })
       .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true }))
       .slice(offset, offset + limit)
 
