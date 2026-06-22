@@ -56,15 +56,37 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch replies' }, { status: 500 })
     }
 
+    const customerUserIds = (replies || [])
+      .filter(r => !r.is_staff)
+      .map(r => r.user_id)
+      .filter(Boolean)
+
+    let userNameMap: Record<string, string> = {}
+    if (customerUserIds.length > 0) {
+      const { data: accounts } = await adminClient
+        .from('user_accounts')
+        .select('id, full_name, first_name, email')
+        .in('id', customerUserIds)
+
+      if (accounts) {
+        for (const acct of accounts) {
+          userNameMap[acct.id] = acct.full_name || acct.first_name || acct.email || 'Customer'
+        }
+      }
+    }
+
     const formattedReplies = (replies || []).map(reply => ({
       id: reply.id,
       ticket_id: reply.ticket_id,
-      admin_id: reply.user_id,
+      admin_id: reply.is_staff ? reply.user_id : null,
       reply: reply.message,
       is_internal: reply.is_staff,
+      is_staff: reply.is_staff,
+      sender_name: reply.is_staff
+        ? 'Support Team'
+        : (userNameMap[reply.user_id] || 'Customer'),
       attachments: reply.attachments || [],
       created_at: reply.created_at,
-      admin: { email: 'Admin' },
     }))
 
     return NextResponse.json({ replies: formattedReplies })

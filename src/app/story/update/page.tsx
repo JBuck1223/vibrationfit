@@ -188,13 +188,18 @@ export default function StoryUpdatePage() {
       const decoder = new TextDecoder()
       let fullText = ''
       let done = false
+      let lineBuffer = ''
 
       while (!done) {
         const { done: streamDone, value } = await reader.read()
         if (streamDone) break
 
         const chunk = decoder.decode(value, { stream: true })
-        for (const line of chunk.split('\n')) {
+        lineBuffer += chunk
+        const lines = lineBuffer.split('\n')
+        lineBuffer = lines.pop() || ''
+
+        for (const line of lines) {
           if (!line.startsWith('data: ')) continue
           const jsonStr = line.slice(6)
           if (!jsonStr.trim()) continue
@@ -215,10 +220,10 @@ export default function StoryUpdatePage() {
               done = true
             }
           } catch (parseErr) {
-            // Surface server-sent error messages
-            if (parseErr instanceof Error && parseErr.message !== 'Unexpected token') {
-              throw parseErr
+            if (parseErr instanceof Error && parseErr.message.startsWith('Unexpected token')) {
+              continue
             }
+            throw parseErr
           }
         }
       }
