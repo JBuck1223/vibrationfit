@@ -55,6 +55,24 @@ function PaymentFormInner({
   const [submitting, setSubmitting] = useState(false)
   const info = PLAN_INFO[plan]
 
+  const reportError = (stage: string, detail: Record<string, unknown>) => {
+    // Fire-and-forget: surface client payment failures in the server logs so
+    // we can diagnose mobile-only breakage (e.g. 3-D Secure redirect failures).
+    try {
+      fetch('/api/billing/reactivate-offer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'log_error',
+          subscriptionId,
+          plan,
+          detail: { stage, url: window.location.href, ...detail },
+        }),
+        keepalive: true,
+      }).catch(() => {})
+    } catch {}
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!stripe || !elements) return
@@ -70,6 +88,12 @@ function PaymentFormInner({
       })
 
       if (error) {
+        reportError('confirmPayment', {
+          message: error.message,
+          code: error.code,
+          declineCode: (error as { decline_code?: string }).decline_code,
+          type: error.type,
+        })
         toast.error(error.message || 'Payment failed')
         setSubmitting(false)
         return
@@ -85,13 +109,15 @@ function PaymentFormInner({
 
       const data = await finalizeRes.json()
       if (!finalizeRes.ok) {
+        reportError('finalize', { status: finalizeRes.status, error: data?.error })
         toast.error(data.error || 'Payment succeeded but activation failed. Please contact support.')
         setSubmitting(false)
         return
       }
 
       onSuccess(data)
-    } catch {
+    } catch (err) {
+      reportError('unexpected', { message: err instanceof Error ? err.message : String(err) })
       toast.error('An unexpected error occurred')
       setSubmitting(false)
     }
@@ -133,6 +159,20 @@ export default function MemberOffersPage() {
     const params = new URLSearchParams(window.location.search)
     if (params.get('reactivation') === 'success' && params.get('sub')) {
       const sub = params.get('sub') as string
+      const logRedirectError = (detail: Record<string, unknown>) => {
+        try {
+          fetch('/api/billing/reactivate-offer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'log_error',
+              subscriptionId: sub,
+              detail: { stage: 'redirect-return', redirectStatus: params.get('redirect_status'), url: window.location.href, ...detail },
+            }),
+            keepalive: true,
+          }).catch(() => {})
+        } catch {}
+      }
       fetch('/api/billing/reactivate-offer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -144,10 +184,14 @@ export default function MemberOffersPage() {
             setSuccess({ nextBilling: data.nextBilling })
             toast.success('Your founders rate is locked in!')
           } else {
+            logRedirectError({ error: data.error })
             toast.error(data.error || 'Activation failed. Please contact support.')
           }
         })
-        .catch(() => toast.error('Activation failed. Please contact support.'))
+        .catch((err) => {
+          logRedirectError({ message: err instanceof Error ? err.message : String(err) })
+          toast.error('Activation failed. Please contact support.')
+        })
         .finally(() => setLoading(false))
       return
     }

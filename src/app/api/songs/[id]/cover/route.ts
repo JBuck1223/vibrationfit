@@ -168,8 +168,23 @@ export async function POST(
       }
 
       const inputBuffer = Buffer.from(await file.arrayBuffer())
-      const processed = await processAlbumArtImage(inputBuffer)
-      coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
+      try {
+        const processed = await processAlbumArtImage(inputBuffer)
+        coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
+      } catch (decodeErr) {
+        // sharp can't decode some formats (notably HEIC/HEIF from iPhones, which
+        // should be converted client-side before upload). Surface a clear,
+        // actionable message instead of a generic 500, and log the real cause.
+        console.error('[SongCover] Failed to process uploaded image:', {
+          fileName: file.name,
+          fileType: file.type,
+          error: decodeErr,
+        })
+        return NextResponse.json(
+          { error: "We couldn't read that image. Please try a JPG or PNG." },
+          { status: 422 },
+        )
+      }
     } else {
       const body = await request.json()
 

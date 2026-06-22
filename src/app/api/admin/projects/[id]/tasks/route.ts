@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { IdeaTask } from '@/lib/ideas/types'
+import type { IdeaTask } from '@/lib/projects/types'
 
 function buildTaskTree(tasks: IdeaTask[]): IdeaTask[] {
   const topLevel: IdeaTask[] = []
@@ -38,7 +38,7 @@ export async function GET(
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
-      .from('idea_tasks')
+      .from('project_tasks')
       .select('*')
       .eq('project_id', id)
       .order('sort_order', { ascending: true })
@@ -76,7 +76,7 @@ export async function POST(
     const supabase = createAdminClient()
 
     const siblingFilter = supabase
-      .from('idea_tasks')
+      .from('project_tasks')
       .select('sort_order')
       .eq('project_id', id)
       .order('sort_order', { ascending: false })
@@ -101,7 +101,7 @@ export async function POST(
     if (description !== undefined) insertPayload.description = description || null
 
     const { data, error } = await supabase
-      .from('idea_tasks')
+      .from('project_tasks')
       .insert(insertPayload)
       .select()
       .single()
@@ -144,7 +144,7 @@ export async function PATCH(
     if (description !== undefined) updates.description = description
 
     const { data, error } = await supabase
-      .from('idea_tasks')
+      .from('project_tasks')
       .update(updates)
       .eq('id', task_id)
       .select()
@@ -181,7 +181,7 @@ export async function DELETE(
 
     const supabase = createAdminClient()
     const { error } = await supabase
-      .from('idea_tasks')
+      .from('project_tasks')
       .delete()
       .eq('id', taskId)
 

@@ -16,11 +16,11 @@ import type {
   IdeaProject, IdeaCategory, IdeaTag, IdeaTask, IdeaComment,
   IdeaAttachment, IdeaCustomFieldDef, IdeaCustomFieldValue,
   IdeaProjectLink, IdeaStatus, IdeaPriority, LinkType, IdeaItemType,
-} from '@/lib/ideas/types'
+} from '@/lib/projects/types'
 import {
   IDEA_STATUSES, IDEA_PRIORITIES, LINK_TYPES, LIFE_CATEGORY_OPTIONS,
   getStatusInfo, getPriorityInfo, getLifeCategoryInfo,
-} from '@/lib/ideas/types'
+} from '@/lib/projects/types'
 
 type Tab = 'overview' | 'tasks' | 'files' | 'activity'
 

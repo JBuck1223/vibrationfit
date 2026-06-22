@@ -82,6 +82,9 @@ export function AlbumArtModal({
       onArtGenerated(data.cover_url || coverUrl!)
       toast.success('Album art saved to all tracks!')
       onClose()
+      // The cover S3 key is deterministic per song, so the browser keeps showing
+      // the cached old image. Reload so the new art shows everywhere it's used.
+      setTimeout(() => window.location.reload(), 400)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save album art')
     } finally {
@@ -94,12 +97,38 @@ export function AlbumArtModal({
     saveCover(imageUrl)
   }, [saveCover])
 
-  const handleUseUploadedImage = () => {
+  const handleUseUploadedImage = async () => {
     if (!uploadFile) {
       toast.error('Please upload an image first')
       return
     }
-    saveCover(undefined, uploadFile)
+
+    // iPhone photos are usually HEIC/HEIF, which sharp can't decode server-side.
+    // Convert to JPEG in the browser before uploading (matches AIImageGenerator).
+    let fileToUpload = uploadFile
+    const isHeic = uploadFile.type === 'image/heic' || uploadFile.type === 'image/heif' ||
+      uploadFile.name.toLowerCase().endsWith('.heic') ||
+      uploadFile.name.toLowerCase().endsWith('.heif')
+
+    if (isHeic) {
+      try {
+        const heic2any = (await import('heic2any')).default
+        const convertedBlob = await heic2any({
+          blob: uploadFile,
+          toType: 'image/jpeg',
+          quality: 0.95,
+        })
+        fileToUpload = new File(
+          [convertedBlob as Blob],
+          uploadFile.name.replace(/\.(heic|heif)$/i, '.jpg'),
+          { type: 'image/jpeg' },
+        )
+      } catch (err) {
+        console.warn('HEIC conversion failed, uploading original file:', err)
+      }
+    }
+
+    saveCover(undefined, fileToUpload)
   }
 
   if (!isOpen) return null

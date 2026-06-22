@@ -1,13 +1,13 @@
 ---
-description: How agents interact with the Idea Hub project management system via Supabase MCP
+description: How agents interact with the Project Hub project management system via Supabase MCP
 globs:
   - src/**
 alwaysApply: false
 ---
 
-# Idea Hub Agent Workflow
+# Project Hub Agent Workflow
 
-The Idea Hub is VibrationFit's internal project management system. Agents can read and write Idea Hub data using the **Supabase MCP** tools (`execute_sql`, `list_tables`).
+The Project Hub is VibrationFit's project management system (backed by the `project_*` tables, surfaced to admins at `/admin/projects` and to members at `/projects`). Agents can read and write Project Hub data using the **Supabase MCP** tools (`execute_sql`, `list_tables`).
 
 ## Schema Reference
 
@@ -15,16 +15,16 @@ The Idea Hub is VibrationFit's internal project management system. Agents can re
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `idea_projects` | Top-level project/idea | `id`, `title`, `description`, `category_id`, `status` (idea/planned/in_progress/review/done/archived), `priority` (low/medium/high/urgent), `due_date`, `created_by` |
-| `idea_tasks` | Tasks and subtasks within a project | `id`, `project_id`, `parent_task_id` (NULL=top-level, non-NULL=subtask; max 1 level deep), `title`, `description`, `is_complete`, `sort_order` |
-| `idea_categories` | Grouping (Feature, Course, Social Media, Marketing, etc.) | `id`, `name`, `color`, `icon` |
-| `idea_tags` | Freeform labels | `id`, `name`, `color` |
-| `idea_project_tags` | Many-to-many join | `project_id`, `tag_id` |
-| `idea_comments` | Activity log and comments | `id`, `project_id`, `user_id`, `body`, `type` (comment/status_change/system), `metadata` |
-| `idea_attachments` | File/URL references | `id`, `project_id`, `file_name`, `file_url` |
-| `idea_custom_field_defs` | Custom field definitions | `id`, `name`, `field_type` (text/number/date/select/url/boolean), `options`, `category_id` |
-| `idea_custom_field_values` | Custom field values per project | `id`, `project_id`, `field_id`, `value` |
-| `idea_project_links` | Inter-project relationships | `id`, `source_project_id`, `target_project_id`, `link_type` (related/blocks/blocked_by/parent/child) |
+| `projects` | Top-level project/list | `id`, `title`, `description`, `type` (project/list), `category_id`, `life_categories` (text[]), `status` (idea/planned/in_progress/review/done/archived), `priority` (low/medium/high/urgent), `due_date`, `created_by` |
+| `project_tasks` | Tasks and subtasks within a project | `id`, `project_id`, `parent_task_id` (NULL=top-level, non-NULL=subtask; max 1 level deep), `title`, `description`, `is_complete`, `sort_order` |
+| `project_categories` | Grouping (Feature, Course, Social Media, Marketing, etc.) | `id`, `name`, `color`, `icon` |
+| `project_tags` | Freeform labels | `id`, `name`, `color` |
+| `project_tag_links` | Many-to-many join | `project_id`, `tag_id` |
+| `project_comments` | Activity log and comments | `id`, `project_id`, `user_id`, `body`, `type` (comment/status_change/system), `metadata` |
+| `project_attachments` | File/URL references | `id`, `project_id`, `file_name`, `file_url` |
+| `project_custom_field_defs` | Custom field definitions | `id`, `name`, `field_type` (text/number/date/select/url/boolean), `options`, `category_id` |
+| `project_custom_field_values` | Custom field values per project | `id`, `project_id`, `field_id`, `value` |
+| `project_links` | Inter-project relationships | `id`, `source_project_id`, `target_project_id`, `link_type` (related/blocks/blocked_by/parent/child) |
 
 ## Read Patterns
 
@@ -32,11 +32,11 @@ The Idea Hub is VibrationFit's internal project management system. Agents can re
 
 ```sql
 SELECT p.id, p.title, p.description, p.status, p.priority
-FROM idea_projects p
+FROM projects p
 WHERE p.id = '<project_id>';
 
 SELECT t.id, t.title, t.description, t.is_complete, t.parent_task_id, t.sort_order
-FROM idea_tasks t
+FROM project_tasks t
 WHERE t.project_id = '<project_id>'
 ORDER BY t.parent_task_id NULLS FIRST, t.sort_order;
 ```
@@ -45,7 +45,7 @@ ORDER BY t.parent_task_id NULLS FIRST, t.sort_order;
 
 ```sql
 SELECT t.id, t.title, t.description, t.is_complete, t.parent_task_id
-FROM idea_tasks t
+FROM project_tasks t
 WHERE t.id = '<task_id>' OR t.parent_task_id = '<task_id>'
 ORDER BY t.parent_task_id NULLS FIRST, t.sort_order;
 ```
@@ -54,7 +54,7 @@ ORDER BY t.parent_task_id NULLS FIRST, t.sort_order;
 
 ```sql
 SELECT id, title, status, priority, due_date
-FROM idea_projects
+FROM projects
 WHERE status = 'in_progress'
 ORDER BY priority DESC, created_at;
 ```
@@ -64,32 +64,32 @@ ORDER BY priority DESC, created_at;
 ### Mark a task complete
 
 ```sql
-UPDATE idea_tasks SET is_complete = true WHERE id = '<task_id>';
+UPDATE project_tasks SET is_complete = true WHERE id = '<task_id>';
 ```
 
 ### Add a comment (agent activity log)
 
 ```sql
-INSERT INTO idea_comments (project_id, body, type)
+INSERT INTO project_comments (project_id, body, type)
 VALUES ('<project_id>', 'Completed task: <describe what was done>', 'system');
 ```
 
 ### Update project status
 
 ```sql
-UPDATE idea_projects SET status = 'review' WHERE id = '<project_id>';
+UPDATE projects SET status = 'review' WHERE id = '<project_id>';
 ```
 
 ### Create a subtask
 
 ```sql
-INSERT INTO idea_tasks (project_id, parent_task_id, title, description, sort_order)
+INSERT INTO project_tasks (project_id, parent_task_id, title, description, sort_order)
 VALUES ('<project_id>', '<parent_task_id>', 'Subtask title', 'Details...', 0);
 ```
 
 ## Agent Workflow Protocol
 
-When an agent is assigned work from the Idea Hub, follow these steps:
+When an agent is assigned work from the Project Hub, follow these steps:
 
 ### 1. Read context
 
@@ -97,11 +97,11 @@ Query the project description, the assigned task, its subtasks, and any linked p
 
 ```sql
 -- Get project context
-SELECT title, description, status FROM idea_projects WHERE id = '<project_id>';
+SELECT title, description, status FROM projects WHERE id = '<project_id>';
 
 -- Get all tasks for this project (tree structure)
 SELECT id, title, description, is_complete, parent_task_id, sort_order
-FROM idea_tasks WHERE project_id = '<project_id>'
+FROM project_tasks WHERE project_id = '<project_id>'
 ORDER BY parent_task_id NULLS FIRST, sort_order;
 ```
 
@@ -112,13 +112,13 @@ Implement what the task description says. Use the task `description` field for d
 ### 3. Mark task complete
 
 ```sql
-UPDATE idea_tasks SET is_complete = true WHERE id = '<task_id>';
+UPDATE project_tasks SET is_complete = true WHERE id = '<task_id>';
 ```
 
 ### 4. Add a comment summarizing what was done
 
 ```sql
-INSERT INTO idea_comments (project_id, body, type)
+INSERT INTO project_comments (project_id, body, type)
 VALUES ('<project_id>', 'Completed: <brief summary of changes made, files touched>', 'system');
 ```
 
@@ -129,11 +129,11 @@ If this was a subtask, check if all siblings are done. If so, mark the parent do
 ```sql
 -- Check if all subtasks of parent are complete
 SELECT COUNT(*) AS remaining
-FROM idea_tasks
+FROM project_tasks
 WHERE parent_task_id = '<parent_task_id>' AND is_complete = false;
 
 -- If remaining = 0, mark parent complete
-UPDATE idea_tasks SET is_complete = true WHERE id = '<parent_task_id>';
+UPDATE project_tasks SET is_complete = true WHERE id = '<parent_task_id>';
 ```
 
 ### 6. Check project completion
@@ -142,12 +142,12 @@ If all tasks in the project are done, suggest moving the project to `review`.
 
 ```sql
 SELECT COUNT(*) AS remaining
-FROM idea_tasks
+FROM project_tasks
 WHERE project_id = '<project_id>' AND is_complete = false;
 
 -- If remaining = 0:
-UPDATE idea_projects SET status = 'review' WHERE id = '<project_id>';
-INSERT INTO idea_comments (project_id, body, type)
+UPDATE projects SET status = 'review' WHERE id = '<project_id>';
+INSERT INTO project_comments (project_id, body, type)
 VALUES ('<project_id>', 'All tasks complete. Moved project to Review.', 'system');
 ```
 
@@ -158,3 +158,4 @@ VALUES ('<project_id>', 'All tasks complete. Moved project to Review.', 'system'
 - **Priority values**: low, medium, high, urgent.
 - **Comment types**: `comment` (human), `status_change` (auto-logged), `system` (agent/automation).
 - Use `type = 'system'` when agents add comments so they are distinguishable from human comments.
+- **Ownership/RLS**: members can manage only their own `projects` (where `created_by = auth.uid()`) and the rows beneath them; admins/super_admins have full access.

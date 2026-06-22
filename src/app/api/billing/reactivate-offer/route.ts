@@ -85,11 +85,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({})) as {
-      action?: 'create' | 'finalize'
+      action?: 'create' | 'finalize' | 'log_error'
       subscriptionId?: string
       plan?: PlanKey
+      detail?: Record<string, unknown>
     }
     const { action, subscriptionId, plan } = body
+
+    // Capture client-side payment failures (especially mobile 3-D Secure
+    // breakage) so they surface in the server logs. Fire-and-forget from the
+    // client; never touches Stripe so it can't itself fail.
+    if (action === 'log_error') {
+      console.error('[reactivate-offer] client payment failure', {
+        userId: user.id,
+        email: user.email,
+        subscriptionId,
+        plan,
+        userAgent: request.headers.get('user-agent') ?? undefined,
+        ...body.detail,
+      })
+      return NextResponse.json({ ok: true })
+    }
 
     const customerId = await getOrCreateStripeCustomer(
       user.id,
