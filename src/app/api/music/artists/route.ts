@@ -14,18 +14,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isOfficialMusicCatalogTrack } from '@/lib/songs/catalog-sync'
+import { OFFICIAL_ARTIST_ID, type MusicArtist } from '@/lib/music/artists'
 
 export const dynamic = 'force-dynamic'
-
-export const OFFICIAL_ARTIST_ID = 'vibrationfit'
-
-export interface MusicArtist {
-  id: string
-  name: string
-  avatarUrl: string | null
-  songCount: number
-  isOfficial: boolean
-}
 
 export async function GET() {
   try {

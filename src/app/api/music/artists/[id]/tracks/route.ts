@@ -20,7 +20,7 @@ import {
   musicCatalogArtistFallback,
   musicCatalogPerformerLinks,
 } from '@/lib/audio/music-performers'
-import { OFFICIAL_ARTIST_ID } from '../../route'
+import { OFFICIAL_ARTIST_ID } from '@/lib/music/artists'
 
 export const dynamic = 'force-dynamic'
 
