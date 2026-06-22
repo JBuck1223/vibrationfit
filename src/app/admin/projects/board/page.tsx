@@ -9,8 +9,8 @@ import {
   Calendar, CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { IdeaProjectWithRelations, IdeaStatus } from '@/lib/ideas/types'
-import { IDEA_STATUSES, getPriorityInfo, getLifeCategoryInfo } from '@/lib/ideas/types'
+import type { IdeaProjectWithRelations, IdeaStatus } from '@/lib/projects/types'
+import { IDEA_STATUSES, getPriorityInfo, getLifeCategoryInfo } from '@/lib/projects/types'
 
 const BOARD_STATUSES: IdeaStatus[] = ['idea', 'planned', 'in_progress', 'review', 'done']
 

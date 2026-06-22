@@ -11,7 +11,7 @@ export async function GET() {
 
     const supabase = createAdminClient()
     const { data, error } = await supabase
-      .from('idea_custom_field_defs')
+      .from('project_custom_field_defs')
       .select('*')
       .order('sort_order', { ascending: true })
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
     const { data, error } = await supabase
-      .from('idea_custom_field_defs')
+      .from('project_custom_field_defs')
       .insert({
         name: name.trim(),
         field_type: field_type || 'text',
@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest) {
     if (sort_order !== undefined) updates.sort_order = sort_order
 
     const { data, error } = await supabase
-      .from('idea_custom_field_defs')
+      .from('project_custom_field_defs')
       .update(updates)
       .eq('id', id)
       .select()
@@ -120,7 +120,7 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createAdminClient()
     const { error } = await supabase
-      .from('idea_custom_field_defs')
+      .from('project_custom_field_defs')
       .delete()
       .eq('id', id)
 

@@ -11,7 +11,7 @@ export async function GET() {
 
     const supabase = createAdminClient()
     const { data, error } = await supabase
-      .from('idea_tags')
+      .from('project_tags')
       .select('*')
       .order('name', { ascending: true })
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient()
     const { data, error } = await supabase
-      .from('idea_tags')
+      .from('project_tags')
       .insert({ name: name.trim(), color: color || '#00FFFF' })
       .select()
       .single()
@@ -81,7 +81,7 @@ export async function PATCH(request: NextRequest) {
     if (color !== undefined) updates.color = color
 
     const { data, error } = await supabase
-      .from('idea_tags')
+      .from('project_tags')
       .update(updates)
       .eq('id', id)
       .select()
@@ -114,7 +114,7 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createAdminClient()
     const { error } = await supabase
-      .from('idea_tags')
+      .from('project_tags')
       .delete()
       .eq('id', id)
 

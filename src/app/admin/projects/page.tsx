@@ -19,11 +19,11 @@ import type {
   IdeaTag,
   IdeaPriority,
   IdeaItemType,
-} from '@/lib/ideas/types'
+} from '@/lib/projects/types'
 import {
   IDEA_STATUSES, IDEA_PRIORITIES, LIFE_CATEGORY_OPTIONS,
   getStatusInfo, getPriorityInfo, getLifeCategoryInfo,
-} from '@/lib/ideas/types'
+} from '@/lib/projects/types'
 
 type SortOption = 'newest' | 'oldest' | 'priority' | 'due_date' | 'updated'
 type TypeTab = 'all' | 'project' | 'list'

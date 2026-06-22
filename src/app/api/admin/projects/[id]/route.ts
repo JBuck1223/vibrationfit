@@ -37,34 +37,34 @@ export async function GET(
     const supabase = createAdminClient()
 
     const { data: project, error } = await supabase
-      .from('idea_projects')
+      .from('projects')
       .select(`
         *,
-        category:idea_categories(*),
-        idea_project_tags(tag_id, idea_tags(*)),
-        idea_tasks(*),
-        idea_comments(*),
-        idea_attachments(*),
-        idea_custom_field_values(*, field:idea_custom_field_defs(*))
+        category:project_categories(*),
+        project_tag_links(tag_id, project_tags(*)),
+        project_tasks(*),
+        project_comments(*),
+        project_attachments(*),
+        project_custom_field_values(*, field:project_custom_field_defs(*))
       `)
       .eq('id', id)
-      .order('sort_order', { referencedTable: 'idea_tasks', ascending: true })
-      .order('created_at', { referencedTable: 'idea_comments', ascending: false })
+      .order('sort_order', { referencedTable: 'project_tasks', ascending: true })
+      .order('created_at', { referencedTable: 'project_comments', ascending: false })
       .single()
 
     if (error) {
       if (error.code === 'PGRST116') {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 })
       }
-      console.error('Error fetching idea:', error)
-      return NextResponse.json({ error: 'Failed to fetch idea' }, { status: 500 })
+      console.error('Error fetching project:', error)
+      return NextResponse.json({ error: 'Failed to fetch project' }, { status: 500 })
     }
 
-    // idea_comments.user_id has no FK to user_accounts, so resolve author names
+    // project_comments.user_id has no FK to user_accounts, so resolve author names
     // in a separate lookup instead of a PostgREST embed (which would error).
     const commentUserIds = [
       ...new Set(
-        (project.idea_comments || [])
+        (project.project_comments || [])
           .map((c: any) => c.user_id)
           .filter(Boolean)
       ),
@@ -81,43 +81,43 @@ export async function GET(
     }
 
     const { data: linksOut } = await supabase
-      .from('idea_project_links')
+      .from('project_links')
       .select('*, target:target_project_id(id, title, status, priority)')
       .eq('source_project_id', id)
 
     const { data: linksIn } = await supabase
-      .from('idea_project_links')
+      .from('project_links')
       .select('*, source:source_project_id(id, title, status, priority)')
       .eq('target_project_id', id)
 
     const result = {
       ...project,
-      tags: (project.idea_project_tags || []).map((pt: any) => pt.idea_tags).filter(Boolean),
-      tasks: buildTaskTree(project.idea_tasks || []),
-      comments: (project.idea_comments || []).map((c: any) => ({
+      tags: (project.project_tag_links || []).map((pt: any) => pt.project_tags).filter(Boolean),
+      tasks: buildTaskTree(project.project_tasks || []),
+      comments: (project.project_comments || []).map((c: any) => ({
         ...c,
         user_name: userMap[c.user_id]?.full_name || null,
         user_email: userMap[c.user_id]?.email || null,
       })),
-      attachments: project.idea_attachments || [],
-      custom_field_values: (project.idea_custom_field_values || []).map((v: any) => ({
+      attachments: project.project_attachments || [],
+      custom_field_values: (project.project_custom_field_values || []).map((v: any) => ({
         ...v,
         field: v.field || null,
       })),
       links_out: linksOut || [],
       links_in: linksIn || [],
-      task_count: (project.idea_tasks || []).length,
-      task_done_count: (project.idea_tasks || []).filter((t: any) => t.is_complete).length,
-      idea_project_tags: undefined,
-      idea_tasks: undefined,
-      idea_comments: undefined,
-      idea_attachments: undefined,
-      idea_custom_field_values: undefined,
+      task_count: (project.project_tasks || []).length,
+      task_done_count: (project.project_tasks || []).filter((t: any) => t.is_complete).length,
+      project_tag_links: undefined,
+      project_tasks: undefined,
+      project_comments: undefined,
+      project_attachments: undefined,
+      project_custom_field_values: undefined,
     }
 
     return NextResponse.json({ project: result })
   } catch (error) {
-    console.error('Error in idea GET:', error)
+    console.error('Error in project GET:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -139,7 +139,7 @@ export async function PATCH(
     const supabase = createAdminClient()
 
     const oldProject = await supabase
-      .from('idea_projects')
+      .from('projects')
       .select('status, priority')
       .eq('id', id)
       .single()
@@ -155,19 +155,19 @@ export async function PATCH(
     if (due_date !== undefined) updates.due_date = due_date || null
 
     const { data: project, error } = await supabase
-      .from('idea_projects')
+      .from('projects')
       .update(updates)
       .eq('id', id)
       .select()
       .single()
 
     if (error) {
-      console.error('Error updating idea:', error)
-      return NextResponse.json({ error: 'Failed to update idea' }, { status: 500 })
+      console.error('Error updating project:', error)
+      return NextResponse.json({ error: 'Failed to update project' }, { status: 500 })
     }
 
     if (status !== undefined && oldProject.data?.status !== status) {
-      await supabase.from('idea_comments').insert({
+      await supabase.from('project_comments').insert({
         project_id: id,
         user_id: auth.user.id,
         type: 'status_change',
@@ -179,19 +179,19 @@ export async function PATCH(
     }
 
     if (tag_ids !== undefined) {
-      await supabase.from('idea_project_tags').delete().eq('project_id', id)
+      await supabase.from('project_tag_links').delete().eq('project_id', id)
       if (tag_ids.length > 0) {
         const tagRows = tag_ids.map((tag_id: string) => ({
           project_id: id,
           tag_id,
         }))
-        await supabase.from('idea_project_tags').insert(tagRows)
+        await supabase.from('project_tag_links').insert(tagRows)
       }
     }
 
     return NextResponse.json({ project })
   } catch (error) {
-    console.error('Error in idea PATCH:', error)
+    console.error('Error in project PATCH:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -210,18 +210,18 @@ export async function DELETE(
     const supabase = createAdminClient()
 
     const { error } = await supabase
-      .from('idea_projects')
+      .from('projects')
       .delete()
       .eq('id', id)
 
     if (error) {
-      console.error('Error deleting idea:', error)
-      return NextResponse.json({ error: 'Failed to delete idea' }, { status: 500 })
+      console.error('Error deleting project:', error)
+      return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error in idea DELETE:', error)
+    console.error('Error in project DELETE:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

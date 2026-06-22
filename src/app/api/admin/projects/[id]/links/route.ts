@@ -16,12 +16,12 @@ export async function GET(
     const supabase = createAdminClient()
 
     const { data: linksOut } = await supabase
-      .from('idea_project_links')
+      .from('project_links')
       .select('*, target:target_project_id(id, title, status, priority)')
       .eq('source_project_id', id)
 
     const { data: linksIn } = await supabase
-      .from('idea_project_links')
+      .from('project_links')
       .select('*, source:source_project_id(id, title, status, priority)')
       .eq('target_project_id', id)
 
@@ -60,7 +60,7 @@ export async function POST(
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
-      .from('idea_project_links')
+      .from('project_links')
       .insert({
         source_project_id: id,
         target_project_id,
@@ -103,7 +103,7 @@ export async function DELETE(
 
     const supabase = createAdminClient()
     const { error } = await supabase
-      .from('idea_project_links')
+      .from('project_links')
       .delete()
       .eq('id', linkId)
 

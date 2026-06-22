@@ -9,7 +9,7 @@ import {
   Sliders, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { IdeaCategory, IdeaTag, IdeaCustomFieldDef, CustomFieldType } from '@/lib/ideas/types'
+import type { IdeaCategory, IdeaTag, IdeaCustomFieldDef, CustomFieldType } from '@/lib/projects/types'
 
 type SettingsTab = 'categories' | 'fields' | 'tags'
 
