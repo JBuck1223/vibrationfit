@@ -6,41 +6,37 @@
 // project_custom_field_defs, project_custom_field_values, project_links).
 // Used by both the admin project management UI and member-facing /projects.
 
-export type IdeaStatus = 'idea' | 'planned' | 'in_progress' | 'review' | 'done' | 'archived'
-export type IdeaPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type IdeaStatus = 'active' | 'done' | 'archived'
+export type VisualColumn = 'not_started' | 'in_motion' | 'actualized' | 'archived'
 export type CommentType = 'comment' | 'status_change' | 'system'
 export type LinkType = 'related' | 'blocks' | 'blocked_by' | 'parent' | 'child'
 export type CustomFieldType = 'text' | 'number' | 'date' | 'select' | 'url' | 'boolean'
 
-// Item type: a rich Project vs a simple checklist List
+// Item type kept for backwards compat; all items are now 'project'
 export type IdeaItemType = 'project' | 'list'
 
-export const ITEM_TYPES: { value: IdeaItemType; label: string; plural: string; color: string }[] = [
-  { value: 'project', label: 'Project', plural: 'Projects', color: '#39FF14' },
-  { value: 'list', label: 'List', plural: 'Lists', color: '#00FFFF' },
-]
-
-export function getItemTypeInfo(type: IdeaItemType) {
-  return ITEM_TYPES.find(t => t.value === type) ?? ITEM_TYPES[0]
-}
-
-// The status value 'idea' is kept in the DB for backwards compatibility but
-// surfaced as "Backlog" to remove the "idea" terminology from the UI.
 export const IDEA_STATUSES: { value: IdeaStatus; label: string; color: string }[] = [
-  { value: 'idea', label: 'Backlog', color: '#BF00FF' },
-  { value: 'planned', label: 'Planned', color: '#00FFFF' },
-  { value: 'in_progress', label: 'In Progress', color: '#39FF14' },
-  { value: 'review', label: 'Review', color: '#FFFF00' },
-  { value: 'done', label: 'Done', color: '#00FF88' },
+  { value: 'active', label: 'Active', color: '#39FF14' },
+  { value: 'done', label: 'Complete', color: '#00FF88' },
   { value: 'archived', label: 'Archived', color: '#666666' },
 ]
 
-export const IDEA_PRIORITIES: { value: IdeaPriority; label: string; color: string }[] = [
-  { value: 'urgent', label: 'Urgent', color: '#FF0040' },
-  { value: 'high', label: 'High', color: '#FF6B00' },
-  { value: 'medium', label: 'Medium', color: '#FFFF00' },
-  { value: 'low', label: 'Low', color: '#666666' },
+export const VISUAL_COLUMNS: { value: VisualColumn; label: string; color: string }[] = [
+  { value: 'not_started', label: 'Not Started', color: '#BF00FF' },
+  { value: 'in_motion', label: 'In Motion', color: '#39FF14' },
+  { value: 'actualized', label: 'Complete', color: '#00FF88' },
+  { value: 'archived', label: 'Archived', color: '#666666' },
 ]
+
+export function getVisualColumn(status: IdeaStatus, taskDoneCount: number): VisualColumn {
+  if (status === 'done') return 'actualized'
+  if (status === 'archived') return 'archived'
+  return taskDoneCount > 0 ? 'in_motion' : 'not_started'
+}
+
+export function getVisualColumnInfo(column: VisualColumn) {
+  return VISUAL_COLUMNS.find(c => c.value === column) ?? VISUAL_COLUMNS[0]
+}
 
 export const LINK_TYPES: { value: LinkType; label: string }[] = [
   { value: 'related', label: 'Related to' },
@@ -104,7 +100,8 @@ export interface IdeaProject {
   category_id: string | null
   life_categories: string[]
   status: IdeaStatus
-  priority: IdeaPriority
+  priority: string | null
+  sort_order: number
   due_date: string | null
   created_by: string | null
   created_at: string
@@ -196,6 +193,24 @@ export function getStatusInfo(status: IdeaStatus) {
   return IDEA_STATUSES.find(s => s.value === status) ?? IDEA_STATUSES[0]
 }
 
+// Legacy exports kept for admin pages during transition
+export type IdeaPriority = 'low' | 'medium' | 'high' | 'urgent'
+
+export const IDEA_PRIORITIES: { value: IdeaPriority; label: string; color: string }[] = [
+  { value: 'urgent', label: 'Urgent', color: '#FF0040' },
+  { value: 'high', label: 'High', color: '#FF6B00' },
+  { value: 'medium', label: 'Medium', color: '#FFFF00' },
+  { value: 'low', label: 'Low', color: '#666666' },
+]
+
 export function getPriorityInfo(priority: IdeaPriority) {
   return IDEA_PRIORITIES.find(p => p.value === priority) ?? IDEA_PRIORITIES[2]
+}
+
+export const ITEM_TYPES: { value: IdeaItemType; label: string; plural: string; color: string }[] = [
+  { value: 'project', label: 'Project', plural: 'Projects', color: '#39FF14' },
+]
+
+export function getItemTypeInfo(type: IdeaItemType) {
+  return ITEM_TYPES.find(t => t.value === type) ?? ITEM_TYPES[0]
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Container, Card, Button, Spinner, Stack } from '@/lib/design-system/components'
 import { CategoryGrid } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -21,6 +21,7 @@ const LIFE_CATEGORIES = VISION_CATEGORIES.filter(
 )
 
 export default function ResetUpdatePage() {
+  const router = useRouter()
   const { reset, items, loading, startReset, toggleItem, updateFocus } = useResetStudio()
 
   // Local state for the pre-start (no active reset) flow.
@@ -56,8 +57,9 @@ export default function ResetUpdatePage() {
 
   const handleBegin = async () => {
     setStarting(true)
-    await startReset({ item_types: localSelected, focus_categories: focus })
+    const ok = await startReset({ item_types: localSelected, focus_categories: focus })
     setStarting(false)
+    if (ok) router.push('/reset')
   }
 
   if (loading && !reset) {
@@ -122,12 +124,10 @@ export default function ResetUpdatePage() {
 
         <div className="flex justify-end gap-3">
           {reset ? (
-            <Link href="/reset">
-              <Button variant="primary">
-                <Eye className="w-4 h-4 mr-1" />
-                View Dashboard
-              </Button>
-            </Link>
+            <Button variant="primary" onClick={() => router.push('/reset')}>
+              <Eye className="w-4 h-4 mr-1" />
+              View Dashboard
+            </Button>
           ) : (
             <Button variant="primary" onClick={handleBegin} loading={starting} disabled={localSelected.length === 0}>
               <Flame className="w-4 h-4 mr-1" />

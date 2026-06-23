@@ -13,13 +13,12 @@ import {
   ChevronDown,
   X,
   LogOut,
-  Target,
   Shield,
   Bell,
   Menu,
   Home,
 } from 'lucide-react'
-import { userNavigation, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
+import { userNavigation, userNavigationPrimary, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
@@ -38,7 +37,7 @@ function getDefaultExpandedGroups(groups: NavGroup[]): string[] {
 }
 
 // Shared Sidebar Base Component
-function SidebarBase({ className, navigation, groups = [], isAdmin = false }: SidebarProps & { navigation: NavItem[], groups?: NavGroup[] }) {
+function SidebarBase({ className, navigation, primaryNavigation = [], groups = [], isAdmin = false }: SidebarProps & { navigation: NavItem[], primaryNavigation?: NavItem[], groups?: NavGroup[] }) {
   // Initialize with default value for SSR consistency, then sync with localStorage
   const [collapsed, setCollapsed] = useState(false) // Default: expanded
   const [hasMounted, setHasMounted] = useState(false)
@@ -296,6 +295,42 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
 
       {/* Navigation */}
       <nav className="flex-1 min-h-0 px-4 pt-1 pb-4 space-y-1 overflow-y-auto">
+        {primaryNavigation.length > 0 && (
+          <div className={cn(
+            'mb-2',
+            isCollapsed ? 'space-y-1' : 'grid grid-cols-3 gap-1'
+          )}>
+            {primaryNavigation.map((item) => {
+              const Icon = item.icon
+              const isActive = isNavItemActive(item, pathname, profile?.id)
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  title={item.description || item.name}
+                  className={cn(
+                    'flex transition-all duration-200 rounded-lg',
+                    isCollapsed
+                      ? 'justify-center p-2'
+                      : 'flex-col items-center gap-0.5 px-1 py-2',
+                    isActive
+                      ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
+                      : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                  )}
+                >
+                  <Icon className={cn('flex-shrink-0', isCollapsed ? 'w-5 h-5' : 'w-4 h-4')} />
+                  {!isCollapsed && (
+                    <span className="text-[10px] font-medium leading-tight text-center truncate w-full">
+                      {item.name}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+        )}
+
         {navigation.map((item) => {
           const itemHref = item.href
           
@@ -383,25 +418,28 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
         })}
         
         {!isCollapsed && groups.map((group) => {
-          const isGroupExpanded = expandedGroups.includes(group.name)
+          const hasSectionTitle = group.name === 'Account & Billing'
+          const isGroupExpanded = hasSectionTitle ? expandedGroups.includes(group.name) : true
           
           return (
-            <div key={group.name} className="mt-2">
-              <button
-                onClick={() => toggleGroup(group.name)}
-                className="flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
-              >
-                <span className="text-xs font-semibold tracking-wider text-neutral-500 uppercase flex-1">
-                  {group.name}
-                </span>
-                <ChevronDown className={cn(
-                  'w-4 h-4 text-neutral-500 transition-transform duration-200',
-                  isGroupExpanded ? 'rotate-180' : ''
-                )} />
-              </button>
+            <div key={group.name}>
+              {hasSectionTitle && (
+                <button
+                  onClick={() => toggleGroup(group.name)}
+                  className="flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
+                >
+                  <span className="text-xs font-semibold tracking-wider text-neutral-500 uppercase flex-1">
+                    {group.name}
+                  </span>
+                  <ChevronDown className={cn(
+                    'w-4 h-4 text-neutral-500 transition-transform duration-200',
+                    isGroupExpanded ? 'rotate-180' : ''
+                  )} />
+                </button>
+              )}
               
               {isGroupExpanded && (
-                <div className="mt-2 space-y-1">
+                <div className={cn(hasSectionTitle && 'mt-2', 'space-y-1')}>
                   {group.items.map((item) => {
                     const isActive = isNavItemActive(item, pathname, profile?.id)
                     const isExpanded = expandedItems.includes(item.name)
@@ -567,7 +605,15 @@ function SidebarBase({ className, navigation, groups = [], isAdmin = false }: Si
 
 // User Sidebar Component
 export function UserSidebar({ className }: { className?: string }) {
-  return <SidebarBase className={className} navigation={userNavigation as NavItem[]} groups={userNavigationGroups} isAdmin={false} />
+  return (
+    <SidebarBase
+      className={className}
+      navigation={userNavigation as NavItem[]}
+      primaryNavigation={userNavigationPrimary}
+      groups={userNavigationGroups}
+      isAdmin={false}
+    />
+  )
 }
 
 // Admin Sidebar Component
@@ -579,7 +625,16 @@ export function AdminSidebar({ className }: { className?: string }) {
 export function Sidebar({ className, isAdmin = false }: SidebarProps) {
   const navigation = isAdmin ? adminNavigation : (userNavigation as NavItem[])
   const groups = isAdmin ? [] : userNavigationGroups
-  return <SidebarBase className={className} navigation={navigation} groups={groups} isAdmin={isAdmin} />
+  const primaryNavigation = isAdmin ? [] : userNavigationPrimary
+  return (
+    <SidebarBase
+      className={className}
+      navigation={navigation}
+      primaryNavigation={primaryNavigation}
+      groups={groups}
+      isAdmin={isAdmin}
+    />
+  )
 }
 
 // Mobile Bottom Navigation Component
@@ -630,50 +685,15 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
     }
   })
 
-  // Define drawer sections with categorized navigation
-  const activationsGroup = userNavigationGroups.find(g => g.name === 'Activations')
-  const creationsGroup = userNavigationGroups.find(g => g.name === 'Creations')
-  const connectionsGroup = userNavigationGroups.find(g => g.name === 'Connections')
-  const accountGroup = userNavigationGroups.find(g => g.name === 'Account & Billing')
-
-  const drawerSections = [
-    {
-      title: 'Activations',
-      items: [
-        { name: 'MAP', href: '/map', icon: activationsGroup?.items.find(i => i.name === 'MAP')?.icon },
-        { name: 'Audio', href: '/audio', icon: activationsGroup?.items.find(i => i.name === 'Audio')?.icon },
-        { name: 'Daily Paper', href: '/daily-paper', icon: activationsGroup?.items.find(i => i.name === 'Daily Paper')?.icon },
-        { name: 'Stories', href: '/story', icon: activationsGroup?.items.find(i => i.name === 'Stories')?.icon },
-        { name: 'Abundance Tracker', href: '/abundance-tracker', icon: activationsGroup?.items.find(i => i.name === 'Abundance Tracker')?.icon },
-        { name: 'Tracking', href: '/tracking', icon: activationsGroup?.items.find(i => i.name === 'Tracking')?.icon },
-      ]
-    },
-    {
-      title: 'Creations',
-      items: [
-        { name: 'Life Vision', href: activeVisionId ? `/life-vision/${activeVisionId}` : '/life-vision', icon: Target },
-        { name: 'Profile', href: '/profile', icon: creationsGroup?.items.find(i => i.name === 'Profile')?.icon },
-        { name: 'Vision Board', href: '/vision-board', icon: creationsGroup?.items.find(i => i.name === 'Vision Board')?.icon },
-        { name: 'Journal', href: '/journal', icon: creationsGroup?.items.find(i => i.name === 'Journal')?.icon },
-      ]
-    },
-    {
-      title: 'Connections',
-      items: [
-        { name: 'Vibe Tribe', href: '/vibe-tribe', icon: connectionsGroup?.items.find(i => i.name === 'Vibe Tribe')?.icon },
-        { name: 'Dashboard', href: '/dashboard', icon: Home },
-      ]
-    },
-    {
-      title: 'Account',
-      items: [
-        { name: 'Tokens', href: '/tokens', icon: accountGroup?.items.find(i => i.name === 'Tokens')?.icon },
-        { name: 'Storage', href: '/storage', icon: accountGroup?.items.find(i => i.name === 'Storage')?.icon },
-        { name: 'Support', href: '/support/tickets', icon: accountGroup?.items.find(i => i.name === 'Support')?.icon },
-        { name: 'Account', href: '/account', icon: accountGroup?.items.find(i => i.name === 'Account')?.icon },
-      ]
-    }
-  ]
+  const drawerSections = userNavigationGroups.map((group) => ({
+    title: group.name,
+    showTitle: group.name === 'Account & Billing',
+    items: group.items.map((item) => ({
+      name: item.name,
+      href: item.name === 'Life Vision' && activeVisionId ? `/life-vision/${activeVisionId}` : item.href,
+      icon: item.icon,
+    })),
+  }))
 
   const closeDrawer = () => {
     setIsDrawerOpen(false)
@@ -763,13 +783,42 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
               </button>
             </div>
 
+            {/* Primary quick links */}
+            <div className="grid grid-cols-3 gap-2 mb-6">
+              {userNavigationPrimary.map((item) => {
+                const Icon = item.icon
+                const isActive = isNavItemActive(item, pathname)
+
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={closeDrawer}
+                    className={cn(
+                      'flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-200',
+                      'border-2 border-neutral-700 hover:border-neutral-600',
+                      isActive
+                        ? 'bg-[#39FF14]/20 border-[#39FF14]/50 text-[#39FF14]'
+                        : 'bg-neutral-800/50 text-neutral-300 hover:bg-neutral-800 hover:text-white'
+                    )}
+                  >
+                    <Icon className="w-5 h-5 mb-1" />
+                    <span className="text-xs font-medium text-center">{item.name}</span>
+                  </Link>
+                )
+              })}
+            </div>
+            <div className="border-t border-neutral-800 mb-6" />
+
             {/* Categorized Sections */}
-            {drawerSections.map((section, idx) => (
+            {drawerSections.map((section) => (
               <div key={section.title}>
-                <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
-                  {section.title}
-                </h4>
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                {section.showTitle && (
+                  <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
+                    {section.title}
+                  </h4>
+                )}
+                <div className="grid grid-cols-2 gap-3">
                   {section.items.map((item) => {
                     const Icon = item.icon
                     const isActive = isNavItemActive(item as NavItem, pathname)
@@ -793,9 +842,6 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
                     )
                   })}
                 </div>
-                {idx < drawerSections.length - 1 && (
-                  <div className="border-t border-neutral-800 mb-6" />
-                )}
               </div>
             ))}
 

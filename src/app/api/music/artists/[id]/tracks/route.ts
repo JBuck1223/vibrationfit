@@ -2,9 +2,8 @@
  * GET /api/music/artists/[id]/tracks?limit&offset
  *
  * Returns AudioTrack[] for a single artist:
- *  - id === 'vibrationfit': the official admin-curated catalog (music_catalog).
- *  - otherwise id is a member user id: that member's Member Library songs
- *    (song_tracks.in_member_library = true), one row per song.
+ *  - id is a member user id: their Member Library songs (song_tracks.in_member_library = true)
+ *    plus any official catalog songs assigned to them via `creator:` tag.
  *
  * Reads cross-member data with the admin client (song_tracks RLS is owner-only).
  */
@@ -13,15 +12,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
-  isOfficialMusicCatalogTrack,
   compareMusicCatalogByTitle,
+  isOfficialMusicCatalogTrack,
 } from '@/lib/songs/catalog-sync'
 import {
   musicCatalogArtistFallback,
   musicCatalogPerformerLinks,
 } from '@/lib/audio/music-performers'
 import { convertMurekaLyrics } from '@/lib/utils/lyrics-alignment'
-import { OFFICIAL_ARTIST_ID } from '@/lib/music/artists'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +41,35 @@ interface ArtistTrack {
   memberCreated?: boolean
 }
 
+function mapOfficialCatalogTrack(
+  t: {
+    id: string
+    title: string
+    album: string | null
+    artwork_url: string | null
+    preview_url: string | null
+    duration_seconds: number | null
+    synced_lyrics: unknown
+    plain_lyrics: string | null
+    description: string | null
+    tags: string[] | null
+  },
+): ArtistTrack {
+  return {
+    id: t.id,
+    title: t.title,
+    artist: musicCatalogArtistFallback(t.id, t.album, { description: t.description, tags: t.tags }),
+    performers: musicCatalogPerformerLinks(t.id, { description: t.description, tags: t.tags }),
+    albumLabel: (t.album || '').trim() || undefined,
+    duration: typeof t.duration_seconds === 'number' && isFinite(t.duration_seconds) ? t.duration_seconds : 0,
+    url: t.preview_url!,
+    thumbnail: t.artwork_url || '',
+    sectionKey: 'music',
+    syncedLyrics: t.synced_lyrics || undefined,
+    plainLyrics: t.plain_lyrics || undefined,
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -62,49 +89,26 @@ export async function GET(
 
     const adminDb = createAdminClient()
 
-    // ── Official Vibration Fit catalog ────────────────────────────────────────
-    if (id === OFFICIAL_ARTIST_ID) {
-      const { data: rows, error } = await adminDb
+    const [{ data: tracks, error }, { data: officialRows, error: officialError }] = await Promise.all([
+      adminDb
+        .from('song_tracks')
+        .select('id, song_id, title, version, mp3_url, cover_url, duration_ms, is_favorite, created_at, metadata')
+        .eq('user_id', id)
+        .eq('in_member_library', true)
+        .not('mp3_url', 'is', null),
+      adminDb
         .from('music_catalog')
         .select('id, title, album, artwork_url, preview_url, duration_seconds, synced_lyrics, plain_lyrics, description, tags')
         .eq('is_active', true)
-
-      if (error) {
-        console.error('[ArtistTracks] Official catalog error:', error)
-        return NextResponse.json({ error: 'Failed to load tracks' }, { status: 500 })
-      }
-
-      const official = (rows || [])
-        .filter(r => r.preview_url && isOfficialMusicCatalogTrack(r))
-        .sort(compareMusicCatalogByTitle)
-        .slice(offset, offset + limit)
-        .map((t): ArtistTrack => ({
-          id: t.id,
-          title: t.title,
-          artist: musicCatalogArtistFallback(t.id, t.album, { description: t.description, tags: t.tags }),
-          performers: musicCatalogPerformerLinks(t.id, { description: t.description, tags: t.tags }),
-          albumLabel: (t.album || '').trim() || undefined,
-          duration: typeof t.duration_seconds === 'number' && isFinite(t.duration_seconds) ? t.duration_seconds : 0,
-          url: t.preview_url!,
-          thumbnail: t.artwork_url || '',
-          sectionKey: 'music',
-          syncedLyrics: t.synced_lyrics || undefined,
-          plainLyrics: t.plain_lyrics || undefined,
-        }))
-
-      return NextResponse.json({ tracks: official })
-    }
-
-    // ── Member artist: their Member Library songs ─────────────────────────────
-    const { data: tracks, error } = await adminDb
-      .from('song_tracks')
-      .select('id, song_id, title, version, mp3_url, cover_url, duration_ms, is_favorite, created_at, metadata')
-      .eq('user_id', id)
-      .eq('in_member_library', true)
-      .not('mp3_url', 'is', null)
+        .contains('tags', [`creator:${id}`]),
+    ])
 
     if (error) {
       console.error('[ArtistTracks] Member tracks error:', error)
+      return NextResponse.json({ error: 'Failed to load tracks' }, { status: 500 })
+    }
+    if (officialError) {
+      console.error('[ArtistTracks] Official catalog error:', officialError)
       return NextResponse.json({ error: 'Failed to load tracks' }, { status: 500 })
     }
 
@@ -163,9 +167,8 @@ export async function GET(
     }
 
     const snapshotHref = `/snapshot/${id}`
-    const mapped: ArtistTrack[] = deduped
+    const memberTracks: ArtistTrack[] = deduped
       .map((t): ArtistTrack => {
-        // Mureka word-level timing is persisted on the track at generation time.
         const meta = (t.metadata && typeof t.metadata === 'object') ? t.metadata as Record<string, unknown> : null
         const lyricsSections = Array.isArray(meta?.lyrics_sections) ? meta!.lyrics_sections as any[] : null
         return {
@@ -183,6 +186,12 @@ export async function GET(
           memberCreated: true,
         }
       })
+
+    const officialTracks = (officialRows || [])
+      .filter(r => r.preview_url && isOfficialMusicCatalogTrack(r))
+      .map(mapOfficialCatalogTrack)
+
+    const mapped = [...memberTracks, ...officialTracks]
       .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true }))
       .slice(offset, offset + limit)
 

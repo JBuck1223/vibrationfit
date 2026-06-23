@@ -158,6 +158,12 @@ export function isOfficialMusicCatalogTrack(track: { preview_url?: string | null
   return Boolean(track.preview_url?.includes('/site-assets/music/'))
 }
 
+/** Assigned member user id for an official catalog track (`creator:` tag). */
+export function officialCatalogCreatorUserId(track: { tags?: unknown }): string | null {
+  const tag = catalogTrackTags(track).find((t) => t.startsWith('creator:'))
+  return tag ? tag.slice('creator:'.length).trim() || null : null
+}
+
 /** Member-shared catalog row (user-uploads path or member-created tag). */
 export function isMemberCreatedCatalogTrack(track: {
   tags?: unknown

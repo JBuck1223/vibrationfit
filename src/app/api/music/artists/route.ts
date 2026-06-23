@@ -2,9 +2,10 @@
  * GET /api/music/artists
  *
  * Returns the list of "artists" for the /audio/music browse experience:
- *  - One official "Vibration Fit" artist for the admin-curated catalog.
  *  - One artist per member who has at least one track in their Member Library
  *    (song_tracks.in_member_library = true), sourced from all members.
+ *  - Official catalog songs (site-assets/music) are counted under their
+ *    assigned member artist via the `creator:` tag.
  *
  * song_tracks SELECT RLS is owner-only, so this reads cross-member data with
  * the admin client (same pattern as /api/songs/member-library).
@@ -13,8 +14,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { isOfficialMusicCatalogTrack } from '@/lib/songs/catalog-sync'
-import { OFFICIAL_ARTIST_ID, type MusicArtist } from '@/lib/music/artists'
+import {
+  isOfficialMusicCatalogTrack,
+  officialCatalogCreatorUserId,
+} from '@/lib/songs/catalog-sync'
+import { type MusicArtist } from '@/lib/music/artists'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +45,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to load artists' }, { status: 500 })
     }
 
-    // Distinct songs per member.
+    // Distinct songs per member from member library.
     const songsByUser = new Map<string, Set<string>>()
     for (const row of libraryTracks || []) {
       if (!row.user_id) continue
@@ -53,7 +57,26 @@ export async function GET() {
       if (row.song_id) set.add(row.song_id)
     }
 
-    const userIds = [...songsByUser.keys()]
+    // Official catalog songs assigned to member artists.
+    const { data: officialRows, error: officialError } = await adminDb
+      .from('music_catalog')
+      .select('preview_url, tags')
+      .eq('is_active', true)
+
+    if (officialError) {
+      console.error('[MusicArtists] Failed to load official catalog:', officialError)
+      return NextResponse.json({ error: 'Failed to load artists' }, { status: 500 })
+    }
+
+    const officialSongsByUser = new Map<string, number>()
+    for (const row of officialRows || []) {
+      if (!isOfficialMusicCatalogTrack(row)) continue
+      const creatorId = officialCatalogCreatorUserId(row)
+      if (!creatorId) continue
+      officialSongsByUser.set(creatorId, (officialSongsByUser.get(creatorId) || 0) + 1)
+    }
+
+    const userIds = [...new Set([...songsByUser.keys(), ...officialSongsByUser.keys()])]
     let accountsById: Record<string, { full_name: string | null; first_name: string | null; last_name: string | null; profile_picture_url: string | null }> = {}
     if (userIds.length > 0) {
       const { data: accounts } = await adminDb
@@ -65,38 +88,21 @@ export async function GET() {
       }
     }
 
-    const communityArtists: MusicArtist[] = userIds.map(userId => {
+    const artists: MusicArtist[] = userIds.map(userId => {
       const account = accountsById[userId]
       const name = account?.full_name
         || [account?.first_name, account?.last_name].filter(Boolean).join(' ').trim()
         || 'VibrationFit Member'
+      const memberLibraryCount = songsByUser.get(userId)?.size || 0
+      const officialCount = officialSongsByUser.get(userId) || 0
       return {
         id: userId,
         name,
         avatarUrl: account?.profile_picture_url || null,
-        songCount: songsByUser.get(userId)?.size || 0,
+        songCount: memberLibraryCount + officialCount,
         isOfficial: false,
       }
     }).sort((a, b) => b.songCount - a.songCount || a.name.localeCompare(b.name))
-
-    // Official Vibration Fit catalog tile.
-    const { data: officialRows } = await adminDb
-      .from('music_catalog')
-      .select('preview_url')
-      .eq('is_active', true)
-    const officialCount = (officialRows || []).filter(r => isOfficialMusicCatalogTrack(r)).length
-
-    const artists: MusicArtist[] = []
-    if (officialCount > 0) {
-      artists.push({
-        id: OFFICIAL_ARTIST_ID,
-        name: 'Vibration Fit',
-        avatarUrl: null,
-        songCount: officialCount,
-        isOfficial: true,
-      })
-    }
-    artists.push(...communityArtists)
 
     return NextResponse.json({ artists })
   } catch (err) {

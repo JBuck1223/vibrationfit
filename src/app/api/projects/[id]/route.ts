@@ -84,15 +84,15 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, description, type, life_categories, status, priority, due_date } = body
+    const { title, description, life_categories, status, sort_order, due_date } = body
 
+    const VALID_STATUSES = ['active', 'done', 'archived']
     const updates: Record<string, unknown> = {}
     if (title !== undefined) updates.title = title
     if (description !== undefined) updates.description = description
-    if (type !== undefined && (type === 'project' || type === 'list')) updates.type = type
     if (life_categories !== undefined) updates.life_categories = Array.isArray(life_categories) ? life_categories : []
-    if (status !== undefined) updates.status = status
-    if (priority !== undefined) updates.priority = priority
+    if (status !== undefined && VALID_STATUSES.includes(status)) updates.status = status
+    if (sort_order !== undefined) updates.sort_order = sort_order
     if (due_date !== undefined) updates.due_date = due_date || null
 
     const { data: project, error } = await supabase

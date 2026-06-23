@@ -9,24 +9,22 @@ import {
   Calendar, CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { IdeaProjectWithRelations, IdeaStatus } from '@/lib/projects/types'
-import { IDEA_STATUSES, getPriorityInfo, getLifeCategoryInfo } from '@/lib/projects/types'
-
-const BOARD_STATUSES: IdeaStatus[] = ['idea', 'planned', 'in_progress', 'review', 'done']
+import type { IdeaProjectWithRelations, IdeaStatus, VisualColumn } from '@/lib/projects/types'
+import { VISUAL_COLUMNS, getVisualColumn, getVisualColumnInfo, getLifeCategoryInfo } from '@/lib/projects/types'
 
 function KanbanBoard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<IdeaProjectWithRelations[]>([])
   const [draggedId, setDraggedId] = useState<string | null>(null)
-  const [dragOverColumn, setDragOverColumn] = useState<IdeaStatus | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<VisualColumn | null>(null)
 
   const fetchProjects = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/projects?status=all')
       if (res.ok) {
         const data = await res.json()
-        setProjects((data.projects || []).filter((p: IdeaProjectWithRelations) => p.status !== 'archived'))
+        setProjects(data.projects || [])
       }
     } finally {
       setLoading(false)
@@ -56,23 +54,33 @@ function KanbanBoard() {
     e.dataTransfer.setData('text/plain', projectId)
   }
 
-  const handleDragOver = (e: React.DragEvent, status: IdeaStatus) => {
+  const handleDragOver = (e: React.DragEvent, column: VisualColumn) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    setDragOverColumn(status)
+    setDragOverColumn(column)
   }
 
   const handleDragLeave = () => {
     setDragOverColumn(null)
   }
 
-  const handleDrop = (e: React.DragEvent, status: IdeaStatus) => {
+  const handleDrop = (e: React.DragEvent, column: VisualColumn) => {
     e.preventDefault()
     const projectId = e.dataTransfer.getData('text/plain')
     if (projectId) {
       const project = projects.find(p => p.id === projectId)
-      if (project && project.status !== status) {
-        updateStatus(projectId, status)
+      if (!project) return
+
+      // Map visual column to DB status
+      const statusMap: Record<VisualColumn, IdeaStatus> = {
+        not_started: 'active',
+        in_motion: 'active',
+        actualized: 'done',
+        archived: 'archived',
+      }
+      const targetStatus = statusMap[column]
+      if (project.status !== targetStatus) {
+        updateStatus(projectId, targetStatus)
       }
     }
     setDraggedId(null)
@@ -99,44 +107,45 @@ function KanbanBoard() {
       <Stack gap="lg">
         <ProjectsAreaBar contextText="Drag items between columns to update their status" />
 
-        {/* Board */}
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '60vh' }}>
-          {BOARD_STATUSES.map(status => {
-            const statusInfo = IDEA_STATUSES.find(s => s.value === status)!
-            const columnProjects = projects.filter(p => p.status === status)
-            const isDragOver = dragOverColumn === status
+          {VISUAL_COLUMNS.map(col => {
+            const columnProjects = projects.filter(p => {
+              const visual = getVisualColumn(p.status, p.task_done_count)
+              return visual === col.value
+            })
+            const isDragOver = dragOverColumn === col.value
 
             return (
               <div
-                key={status}
+                key={col.value}
                 className={`flex-shrink-0 w-72 rounded-2xl border transition-colors ${
                   isDragOver
                     ? 'border-primary-500/50 bg-primary-500/5'
                     : 'border-neutral-800 bg-neutral-900/50'
                 }`}
-                onDragOver={(e) => handleDragOver(e, status)}
+                onDragOver={(e) => handleDragOver(e, col.value)}
                 onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, status)}
+                onDrop={(e) => handleDrop(e, col.value)}
               >
-                {/* Column Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
                   <div className="flex items-center gap-2">
                     <span
                       className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: statusInfo.color }}
+                      style={{ backgroundColor: col.color }}
                     />
-                    <span className="text-sm font-semibold text-white">{statusInfo.label}</span>
+                    <span className="text-sm font-semibold text-white">{col.label}</span>
                   </div>
                   <span className="text-xs text-neutral-500 bg-neutral-800 px-2 py-0.5 rounded-full">
                     {columnProjects.length}
                   </span>
                 </div>
 
-                {/* Cards */}
                 <div className="p-2 space-y-2 min-h-[200px]">
                   {columnProjects.map(project => {
-                    const priorityInfo = getPriorityInfo(project.priority)
                     const isDragging = draggedId === project.id
+                    const taskPercent = project.task_count > 0
+                      ? Math.round((project.task_done_count / project.task_count) * 100)
+                      : 0
 
                     return (
                       <div
@@ -149,7 +158,6 @@ function KanbanBoard() {
                           isDragging ? 'opacity-40 scale-95' : ''
                         }`}
                       >
-                        {/* Category stripe */}
                         {project.category && (
                           <div className="flex items-center gap-1.5 mb-2">
                             <span
@@ -165,28 +173,30 @@ function KanbanBoard() {
                         <p className="text-sm font-medium text-white mb-2 line-clamp-2">{project.title}</p>
 
                         <div className="flex items-center gap-2 text-[10px] text-neutral-500">
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: priorityInfo.color }}
-                          />
-                          <span>{priorityInfo.label}</span>
                           {project.task_count > 0 && (
                             <>
-                              <span className="text-neutral-700">|</span>
                               <CheckCircle2 className="w-3 h-3" />
                               <span>{project.task_done_count}/{project.task_count}</span>
                             </>
                           )}
                           {project.due_date && (
                             <>
-                              <span className="text-neutral-700">|</span>
+                              {project.task_count > 0 && <span className="text-neutral-700">|</span>}
                               <Calendar className="w-3 h-3" />
                               <span>{new Date(project.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                             </>
                           )}
                         </div>
 
-                        {/* Life categories */}
+                        {project.task_count > 0 && (
+                          <div className="mt-2 h-1 overflow-hidden rounded-full bg-neutral-700">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-[#39FF14] to-[#00FFFF] transition-all"
+                              style={{ width: `${taskPercent}%` }}
+                            />
+                          </div>
+                        )}
+
                         {project.life_categories && project.life_categories.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {project.life_categories.slice(0, 3).map(key => {
@@ -207,7 +217,6 @@ function KanbanBoard() {
                           </div>
                         )}
 
-                        {/* Tags */}
                         {project.tags && project.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {project.tags.slice(0, 3).map(tag => (

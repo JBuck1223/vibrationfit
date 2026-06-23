@@ -62,7 +62,7 @@ function IdeaDetailContent({ id }: { id: string }) {
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editType, setEditType] = useState<IdeaItemType>('project')
-  const [editStatus, setEditStatus] = useState<IdeaStatus>('idea')
+  const [editStatus, setEditStatus] = useState<IdeaStatus>('active')
   const [editPriority, setEditPriority] = useState<IdeaPriority>('medium')
   const [editCategoryId, setEditCategoryId] = useState('')
   const [editLifeCategories, setEditLifeCategories] = useState<string[]>([])

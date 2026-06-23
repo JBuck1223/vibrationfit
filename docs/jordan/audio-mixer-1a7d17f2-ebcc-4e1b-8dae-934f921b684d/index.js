@@ -519,16 +519,16 @@ async function mixAudio(voicePath, bgPath, binauralPath, outputPath, voiceVolume
   if (binauralPath) {
     console.log(`[Mixing] Using volume filters: Voice=${voiceVolume}, BG=${bgVolume}, Binaural=${binauralVolume}`)
     
-    command = `${ffmpegPath} -i ${voicePath} -i ${bgPath} -i ${binauralPath} ` +
-      `-filter_complex "[0:a]volume=${voiceVolume}[v];[1:a]aloop=loop=-1:size=2e+09,volume=${bgVolume}[bg];[2:a]aloop=loop=-1:size=2e+09,volume=${binauralVolume}[bin];[v][bg][bin]amix=inputs=3:duration=first:normalize=0" ` +
+    command = `${ffmpegPath} -i ${voicePath} -stream_loop -1 -i ${bgPath} -stream_loop -1 -i ${binauralPath} ` +
+      `-filter_complex "[0:a]volume=${voiceVolume}[v];[1:a]volume=${bgVolume}[bg];[2:a]volume=${binauralVolume}[bin];[v][bg][bin]amix=inputs=3:duration=first:normalize=0" ` +
       `-codec:a libmp3lame -b:a 192k -y ${outputPath}`
     
     console.log(`[Mixing] 3-track mix with volume filters`)
   } else {
     console.log(`[Mixing] Using volume filters: Voice=${voiceVolume}, BG=${bgVolume}`)
     
-    command = `${ffmpegPath} -i ${voicePath} -i ${bgPath} ` +
-      `-filter_complex "[0:a]volume=${voiceVolume}[v];[1:a]aloop=loop=-1:size=2e+09,volume=${bgVolume}[bg];[v][bg]amix=inputs=2:duration=first:normalize=0" ` +
+    command = `${ffmpegPath} -i ${voicePath} -stream_loop -1 -i ${bgPath} ` +
+      `-filter_complex "[0:a]volume=${voiceVolume}[v];[1:a]volume=${bgVolume}[bg];[v][bg]amix=inputs=2:duration=first:normalize=0" ` +
       `-codec:a libmp3lame -b:a 192k -y ${outputPath}`
     
     console.log(`[Mixing] 2-track mix with volume filters`)

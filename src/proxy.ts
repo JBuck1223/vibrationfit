@@ -7,7 +7,9 @@ export async function proxy(req: NextRequest) {
   const pathname = url.pathname
 
   // Handle auth params redirect (existing logic)
-  const hasAuthParams = url.searchParams.has('code') || url.searchParams.has('token_hash') || url.searchParams.has('type')
+  // `type` alone is used by app filters (e.g. /projects?type=project); only treat as auth when paired with token_hash or when `code` is present (PKCE).
+  const hasAuthParams =
+    url.searchParams.has('code') || url.searchParams.has('token_hash')
   const isAuthPath = pathname.startsWith('/auth')
   const isApiRoute = pathname.startsWith('/api')
 

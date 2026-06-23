@@ -34,6 +34,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'viva_scene_generation': 'Scene Generation',
   'transcription': 'Audio Transcription',
   'vision_board_ideas': 'Vision Board Ideas',
+  'project_organize': 'Project Organize',
   
   // Admin Actions
   'admin_grant': 'Admin Token Grant',
@@ -77,6 +78,7 @@ export const ACTION_ICONS: Record<string, string> = {
   'viva_scene_generation': 'Video',
   'transcription': 'Mic2',
   'vision_board_ideas': 'Pin',
+  'project_organize': 'FolderKanban',
   
   // Admin Actions
   'admin_grant': 'Plus',
@@ -119,6 +121,7 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
     'viva_scene_generation',
     'transcription',
     'vision_board_ideas',
+    'project_organize',
   ],
   'Token Management': [
     'admin_grant',

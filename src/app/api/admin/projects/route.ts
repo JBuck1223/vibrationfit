@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('priority', priority)
     }
 
-    if (type && (type === 'project' || type === 'list')) {
+    if (type && type === 'project') {
       query = query.eq('type', type)
     }
 
@@ -116,10 +116,10 @@ export async function POST(request: NextRequest) {
       .insert({
         title: title.trim(),
         description: description || null,
-        type: type === 'list' ? 'list' : 'project',
+        type: 'project',
         category_id: category_id || null,
         life_categories: Array.isArray(life_categories) ? life_categories : [],
-        status: status || 'idea',
+        status: status || 'active',
         priority: priority || 'medium',
         due_date: due_date || null,
         created_by: auth.user.id,

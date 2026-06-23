@@ -59,8 +59,6 @@ interface MusicArtist {
   isOfficial: boolean
 }
 
-const OFFICIAL_ARTIST_ID = 'vibrationfit'
-
 function formatAccountDisplayName(account: {
   first_name?: string | null
   last_name?: string | null
