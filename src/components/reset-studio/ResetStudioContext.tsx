@@ -24,6 +24,7 @@ interface ResetStudioContextValue {
   verify: () => Promise<void>
   startReset: (opts?: { item_types?: ResetItemType[]; focus_categories?: string[]; title?: string }) => Promise<boolean>
   toggleItem: (type: ResetItemType, selected: boolean) => Promise<void>
+  markItemComplete: (type: ResetItemType, complete: boolean) => Promise<void>
   updateFocus: (categories: string[]) => Promise<void>
   completeReset: () => Promise<boolean>
 }
@@ -109,6 +110,20 @@ export function ResetStudioProvider({ children }: { children: React.ReactNode })
     }
   }, [reset, refresh])
 
+  const markItemComplete = useCallback(async (type: ResetItemType, complete: boolean) => {
+    if (!reset) return
+    const res = await fetch(`/api/reset/${reset.id}/items`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item_type: type, mark_complete: complete }),
+    })
+    if (res.ok) {
+      await refresh()
+    } else {
+      toast.error('Failed to update item')
+    }
+  }, [reset, refresh])
+
   const updateFocus = useCallback(async (categories: string[]) => {
     if (!reset) return
     const res = await fetch(`/api/reset/${reset.id}`, {
@@ -144,7 +159,7 @@ export function ResetStudioProvider({ children }: { children: React.ReactNode })
     <ResetStudioContext.Provider
       value={{
         reset, items, progress, loading, focusFilter,
-        setFocusFilter, refresh, verify, startReset, toggleItem, updateFocus, completeReset,
+        setFocusFilter, refresh, verify, startReset, toggleItem, markItemComplete, updateFocus, completeReset,
       }}
     >
       {children}

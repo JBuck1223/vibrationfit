@@ -1,37 +1,53 @@
 'use client'
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Container, Card, Button, Input, Stack, Spinner, Modal, PageHero } from '@/lib/design-system/components'
+import { useRouter } from 'next/navigation'
+import { Container, Card, Button, Input, Textarea, Stack, Spinner, Modal } from '@/lib/design-system/components'
 import { CategoryGrid, DatePicker } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import {
-  Search, Plus, Calendar, CheckCircle2, FolderKanban, ListChecks,
+  Search, Plus, Calendar, CheckCircle2, FolderKanban, ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { IdeaItemType, IdeaPriority } from '@/lib/projects/types'
-import { getStatusInfo, getLifeCategoryInfo } from '@/lib/projects/types'
+import { getVisualColumn, getLifeCategoryInfo, type IdeaStatus } from '@/lib/projects/types'
 
-type TypeTab = 'all' | 'project' | 'list'
-
-const TYPE_TABS: { value: TypeTab; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'project', label: 'Projects' },
-  { value: 'list', label: 'Lists' },
+const FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: 'all_active', label: 'All Active' },
+  { value: 'not_started', label: 'Not Started' },
+  { value: 'in_motion', label: 'In Motion' },
+  { value: 'actualized', label: 'Complete' },
+  { value: 'archived', label: 'Archived' },
 ]
 
 const LIFE_CATEGORIES = VISION_CATEGORIES.filter(
   category => category.key !== 'forward' && category.key !== 'conclusion'
 )
 
+function formatDueDateLabel(iso: string): string {
+  if (!iso) return 'Pick a due date (optional)'
+  const [year, month, day] = iso.split('-').map(Number)
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(year, month - 1, day))
+}
+
+function formatDateBlock(iso: string) {
+  const d = new Date(iso.includes('T') ? iso : `${iso}T00:00:00`)
+  return {
+    weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
+    dayNum: d.getDate(),
+    monthStr: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+  }
+}
+
 interface MemberProject {
   id: string
   title: string
   description: string | null
-  type: IdeaItemType
   life_categories: string[]
   status: string
-  priority: string
   due_date: string | null
   created_at: string
   task_count: number
@@ -40,27 +56,25 @@ interface MemberProject {
 
 function ProjectsListContent() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const initialType = (searchParams.get('type') as TypeTab) || 'all'
 
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<MemberProject[]>([])
-  const [typeTab, setTypeTab] = useState<TypeTab>(['all', 'project', 'list'].includes(initialType) ? initialType : 'all')
   const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('all_active')
 
   const [showNewModal, setShowNewModal] = useState(false)
-  const [newType, setNewType] = useState<IdeaItemType>('project')
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
-  const [newPriority, setNewPriority] = useState<IdeaPriority>('medium')
   const [newDueDate, setNewDueDate] = useState('')
   const [newLifeCategories, setNewLifeCategories] = useState<string[]>([])
   const [creating, setCreating] = useState(false)
 
+  const fetchStatus = filter === 'actualized' ? 'done' : filter === 'archived' ? 'archived' : 'active'
+
   const fetchProjects = useCallback(async () => {
     try {
       const params = new URLSearchParams()
-      if (typeTab !== 'all') params.set('type', typeTab)
+      params.set('status', fetchStatus)
       if (search) params.set('search', search)
       const res = await fetch(`/api/projects?${params}`)
       if (res.ok) {
@@ -72,17 +86,19 @@ function ProjectsListContent() {
     } finally {
       setLoading(false)
     }
-  }, [typeTab, search])
+  }, [fetchStatus, search])
 
   useEffect(() => {
+    setLoading(true)
     const timer = setTimeout(() => { fetchProjects() }, search ? 300 : 0)
     return () => clearTimeout(timer)
   }, [fetchProjects, search])
 
-  const openNewModal = (type: IdeaItemType) => {
-    setNewType(type)
-    setShowNewModal(true)
-  }
+  const filteredProjects = projects.filter(project => {
+    if (filter === 'all_active' || filter === 'actualized' || filter === 'archived') return true
+    const col = getVisualColumn(project.status as any, project.task_done_count)
+    return col === filter
+  })
 
   const toggleNewLifeCategory = (key: string) => {
     setNewLifeCategories(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
@@ -91,7 +107,6 @@ function ProjectsListContent() {
   const resetNewForm = () => {
     setNewTitle('')
     setNewDescription('')
-    setNewPriority('medium')
     setNewDueDate('')
     setNewLifeCategories([])
   }
@@ -105,16 +120,14 @@ function ProjectsListContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newTitle,
-          type: newType,
-          description: newType === 'project' ? (newDescription || null) : null,
-          priority: newType === 'project' ? newPriority : 'medium',
+          description: newDescription || null,
           due_date: newDueDate || null,
           life_categories: newLifeCategories,
         }),
       })
       if (res.ok) {
         const data = await res.json()
-        toast.success(newType === 'list' ? 'List created' : 'Project created')
+        toast.success('Project created')
         setShowNewModal(false)
         resetNewForm()
         router.push(`/projects/${data.project.id}`)
@@ -128,237 +141,189 @@ function ProjectsListContent() {
     }
   }
 
-  const isListsView = typeTab === 'list'
-
   return (
-    <Container size="xl" className="py-8">
-      <Stack gap="lg">
-        <PageHero
-          title="Projects"
-          subtitle="Build the projects and checklists that move your life forward, organized by life category."
-        />
-
-        {/* Type Tabs */}
-        <div className="flex items-center gap-1 border-b border-neutral-800">
-          {TYPE_TABS.map(tab => (
-            <button
-              key={tab.value}
-              onClick={() => setTypeTab(tab.value)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                typeTab === tab.value
-                  ? 'text-white border-primary-500'
-                  : 'text-neutral-400 border-transparent hover:text-neutral-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="relative flex-1 w-full min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+    <Container size="xl" className="pt-2 pb-6 sm:pb-8">
+      <Stack gap="md">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={isListsView ? 'Search lists...' : 'Search projects...'}
-              className="pl-10"
+              placeholder="Search projects..."
+              className="border-neutral-800 bg-neutral-900/50 pl-10"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => openNewModal('list')} className="flex-1 sm:flex-none">
-              <ListChecks className="w-4 h-4 mr-1" />
-              New List
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => openNewModal('project')} className="flex-1 sm:flex-none">
+          <div className="flex shrink-0 items-center justify-end">
+            <Button variant="primary" size="sm" onClick={() => setShowNewModal(true)}>
               <Plus className="w-4 h-4 mr-1" />
               New Project
             </Button>
           </div>
         </div>
 
+        {/* Filter pills */}
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {FILTER_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setFilter(opt.value)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                filter === opt.value
+                  ? 'bg-[#39FF14]/15 text-[#39FF14] border border-[#39FF14]/30'
+                  : 'bg-neutral-800/50 text-neutral-400 border border-neutral-700/50 hover:border-neutral-600 hover:text-neutral-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {/* Results */}
         {loading ? (
-          <div className="flex items-center justify-center min-h-[40vh]">
+          <div className="flex min-h-[40vh] items-center justify-center">
             <Spinner size="lg" />
           </div>
-        ) : projects.length === 0 ? (
-          <Card className="p-12 text-center">
-            {isListsView ? (
-              <ListChecks className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-            ) : (
-              <FolderKanban className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-            )}
-            <h3 className="text-lg font-semibold text-white mb-2">
-              {isListsView ? 'No lists yet' : 'Nothing here yet'}
+        ) : filteredProjects.length === 0 ? (
+          <Card variant="glass" className="border border-white/[0.06] p-10 text-center shadow-none sm:p-12">
+            <FolderKanban className="mx-auto mb-4 h-12 w-12 text-neutral-600" />
+            <h3 className="mb-2 text-lg font-semibold text-white">
+              Nothing here yet
             </h3>
-            <p className="text-neutral-400 mb-6">
-              {isListsView
-                ? 'Create a simple checklist and tag it with life categories.'
-                : 'Start a project to actualize the life you envision, organized by life category.'}
+            <p className="mx-auto mb-6 max-w-md text-sm text-neutral-500">
+              Start a project to actualize the life you envision, organized by life category.
             </p>
-            <div className="flex items-center justify-center gap-2">
-              <Button variant="ghost" onClick={() => openNewModal('list')}>
-                <ListChecks className="w-4 h-4 mr-1" />
-                New List
-              </Button>
-              <Button variant="primary" onClick={() => openNewModal('project')}>
-                <Plus className="w-4 h-4 mr-1" />
-                New Project
-              </Button>
-            </div>
+            <Button variant="primary" onClick={() => setShowNewModal(true)}>
+              <Plus className="w-4 h-4 mr-1" />
+              New Project
+            </Button>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {projects.map(project => {
-              const statusInfo = getStatusInfo(project.status as any)
-              const isList = project.type === 'list'
+          <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111] divide-y divide-white/[0.06]">
+            {filteredProjects.map(project => {
+              const taskPercent = project.task_count > 0
+                ? Math.round((project.task_done_count / project.task_count) * 100)
+                : 0
+              const visualCol = getVisualColumn(project.status as IdeaStatus, project.task_done_count)
+              const dateBlock = project.due_date ? formatDateBlock(project.due_date) : null
+              const isComplete = project.status === 'done'
+              const isArchived = project.status === 'archived'
+
               return (
-                <Card
+                <button
                   key={project.id}
-                  className="p-4 cursor-pointer hover:border-neutral-600 transition-colors"
+                  type="button"
                   onClick={() => router.push(`/projects/${project.id}`)}
+                  className="group block w-full touch-manipulation text-left transition-colors hover:bg-white/[0.03]"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="mt-0.5 flex-shrink-0" title={isList ? 'List' : 'Project'}>
-                      {isList ? (
-                        <ListChecks className="w-4 h-4 text-secondary-400" />
+                  <div className="flex items-center gap-4 px-4 py-3.5 md:px-5 md:py-4">
+                    {/* Due date block or icon placeholder */}
+                    <div className="w-11 shrink-0 text-center">
+                      {dateBlock ? (
+                        <>
+                          <p className="text-[10px] uppercase leading-none tracking-wider text-neutral-500">{dateBlock.weekday}</p>
+                          <p className="text-xl font-semibold leading-tight text-white">{dateBlock.dayNum}</p>
+                          <p className="text-[10px] uppercase leading-none tracking-wider text-neutral-500">{dateBlock.monthStr}</p>
+                        </>
                       ) : (
-                        <FolderKanban className="w-4 h-4 text-primary-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="text-sm font-semibold text-white truncate">{project.title}</h3>
-                        {!isList && (
-                          <span
-                            className="text-xs px-2 py-0.5 rounded-full font-medium"
-                            style={{ backgroundColor: statusInfo.color + '20', color: statusInfo.color }}
-                          >
-                            {statusInfo.label}
-                          </span>
-                        )}
-                      </div>
-                      {project.description && (
-                        <p className="text-xs text-neutral-400 truncate mb-1.5">{project.description}</p>
-                      )}
-                      {project.life_categories?.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-1.5">
-                          {project.life_categories.map(key => {
-                            const lc = getLifeCategoryInfo(key)
-                            return (
-                              <span
-                                key={key}
-                                className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                                style={{ backgroundColor: lc.color + '20', color: lc.color, border: `1px solid ${lc.color}40` }}
-                              >
-                                {lc.label}
-                              </span>
-                            )
-                          })}
+                        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-[#39FF14]/10">
+                          <FolderKanban className="h-5 w-5 text-[#39FF14]" aria-hidden />
                         </div>
                       )}
-                      <div className="flex items-center gap-3 text-xs text-neutral-500">
-                        {project.task_count > 0 && (
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            {project.task_done_count}/{project.task_count}
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-0.5 flex min-w-0 flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-white">
+                          {project.title}
+                        </p>
+                        {isComplete && (
+                          <span className="shrink-0 rounded-full border border-[#00FF88]/30 bg-[#00FF88]/10 px-2 py-0.5 text-[11px] font-semibold text-[#00FF88]">
+                            Complete
                           </span>
                         )}
-                        {project.due_date && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(project.due_date).toLocaleDateString()}
+                        {isArchived && (
+                          <span className="shrink-0 rounded-full border border-neutral-600/50 bg-neutral-800/50 px-2 py-0.5 text-[11px] font-semibold text-neutral-400">
+                            Archived
+                          </span>
+                        )}
+                        {project.life_categories.slice(0, 2).map(key => {
+                          const lc = getLifeCategoryInfo(key)
+                          return (
+                            <span
+                              key={key}
+                              className="shrink-0 rounded-full border border-neutral-600/50 bg-neutral-800/50 px-2 py-0.5 text-[11px] font-medium text-neutral-300"
+                            >
+                              {lc.label}
+                            </span>
+                          )
+                        })}
+                        {project.life_categories.length > 2 && (
+                          <span className="shrink-0 text-[11px] text-neutral-500">
+                            +{project.life_categories.length - 2}
                           </span>
                         )}
                       </div>
+
+                      {project.description && (
+                        <p className="mb-1.5 hidden line-clamp-1 text-[13px] leading-relaxed text-neutral-400 md:block">
+                          {project.description}
+                        </p>
+                      )}
+
+                      {/* Stats row */}
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        {project.task_count > 0 ? (
+                          <>
+                            <span className="flex items-center gap-1 text-[11px] text-neutral-500">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {project.task_done_count} of {project.task_count} tasks
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <div className="h-1 w-12 overflow-hidden rounded-full bg-neutral-800">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-[#39FF14] to-[#00FFFF] transition-all"
+                                  style={{ width: `${taskPercent}%` }}
+                                />
+                              </div>
+                              <span className="text-[11px] tabular-nums text-neutral-500">{taskPercent}%</span>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-neutral-500">No tasks yet</span>
+                        )}
+                        {!dateBlock && project.due_date === null && visualCol === 'not_started' && (
+                          <span className="text-[11px] text-neutral-600">Not started</span>
+                        )}
+                        {visualCol === 'in_motion' && !isComplete && !isArchived && (
+                          <span className="text-[11px] text-[#39FF14]">In motion</span>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs text-neutral-500 flex-shrink-0">
-                      {new Date(project.created_at).toLocaleDateString()}
-                    </span>
+
+                    <ChevronRight
+                      className="h-4 w-4 shrink-0 text-neutral-600 transition-colors group-hover:text-neutral-400"
+                      aria-hidden
+                    />
                   </div>
-                </Card>
+                </button>
               )
             })}
           </div>
         )}
       </Stack>
 
-      {/* New Item Modal */}
+      {/* New Project Modal */}
       <Modal
         isOpen={showNewModal}
         onClose={() => setShowNewModal(false)}
-        title={newType === 'list' ? 'New List' : 'New Project'}
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setNewType('project')}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium border transition-colors ${
-                newType === 'project'
-                  ? 'border-primary-500 bg-primary-500/10 text-white'
-                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
-              }`}
-            >
-              <FolderKanban className="w-4 h-4" />
-              Project
-            </button>
-            <button
-              type="button"
-              onClick={() => setNewType('list')}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium border transition-colors ${
-                newType === 'list'
-                  ? 'border-secondary-500 bg-secondary-500/10 text-white'
-                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
-              }`}
-            >
-              <ListChecks className="w-4 h-4" />
-              List
-            </button>
-          </div>
-
-          <div>
-            <label className="text-sm text-neutral-300 block mb-1">Title *</label>
-            <Input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder={newType === 'list' ? 'Name your list...' : "What's the project?"}
-              autoFocus
-            />
-          </div>
-
-          {newType === 'project' && (
-            <div>
-              <label className="text-sm text-neutral-300 block mb-1">Description</label>
-              <textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Describe the project..."
-                rows={3}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white"
-              />
-            </div>
-          )}
-
-          <CategoryGrid
-            title="Life Categories"
-            categories={LIFE_CATEGORIES}
-            selectedCategories={newLifeCategories}
-            onCategoryClick={toggleNewLifeCategory}
-            pillLabel="Life Categories"
-            lifeVisionCategoryStrip
-            desktopColumnCount={6}
-          />
-
-          <div>
-            <label className="text-sm text-neutral-300 block mb-1">Due Date</label>
-            <DatePicker value={newDueDate} onChange={setNewDueDate} popoverAlign="end" />
-          </div>
-
-          <div className="flex gap-3 pt-2">
+        title="New Project"
+        size="xl"
+        className="!border !border-white/[0.06] bg-[#1F1F1F]/95 backdrop-blur-xl shadow-2xl"
+        footer={
+          <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setShowNewModal(false)} className="flex-1">
               Cancel
             </Button>
@@ -369,8 +334,94 @@ function ProjectsListContent() {
               disabled={!newTitle.trim()}
               className="flex-1"
             >
-              {newType === 'list' ? 'Create List' : 'Create Project'}
+              Create Project
             </Button>
+          </div>
+        }
+      >
+        <div className="max-h-[min(60vh,32rem)] space-y-5 overflow-y-auto pr-1 -mr-1">
+          {/* Details */}
+          <div className="space-y-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div>
+              <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
+                Title
+              </label>
+              <Input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="What's the project?"
+                className="border-neutral-800 bg-neutral-900/50"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
+                Description
+              </label>
+              <Textarea
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Describe the project..."
+                rows={3}
+                className="!bg-neutral-900/50 !border-neutral-800 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
+                Due Date
+              </label>
+              <DatePicker
+                value={newDueDate}
+                onChange={setNewDueDate}
+                popoverAlign="end"
+                customTrigger={
+                  <div className="group flex w-full items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900/50 px-3 py-2.5 transition-colors hover:border-neutral-600">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.04]">
+                      <Calendar className="h-4 w-4 text-neutral-400" aria-hidden />
+                    </div>
+                    <span className={`min-w-0 flex-1 truncate text-left text-sm ${newDueDate ? 'text-white' : 'text-neutral-500'}`}>
+                      {formatDueDateLabel(newDueDate)}
+                    </span>
+                    {newDueDate ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setNewDueDate('')
+                        }}
+                        className="shrink-0 rounded-full px-2 py-1 text-xs font-medium text-neutral-500 transition-colors hover:bg-white/[0.06] hover:text-neutral-300"
+                      >
+                        Clear
+                      </button>
+                    ) : (
+                      <ChevronRight
+                        className="h-4 w-4 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400"
+                        aria-hidden
+                      />
+                    )}
+                  </div>
+                }
+              />
+            </div>
+          </div>
+
+          {/* Life categories */}
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <CategoryGrid
+              title="Life Categories"
+              categories={LIFE_CATEGORIES}
+              selectedCategories={newLifeCategories}
+              onCategoryClick={toggleNewLifeCategory}
+              pillLabel="Life Categories"
+              lifeVisionCategoryStrip
+              desktopColumnCount={6}
+              bleedClassName="max-md:-mx-4"
+            />
+            <p className="mt-2 text-center text-xs text-neutral-500">
+              Optional — tag this project with life areas
+            </p>
           </div>
         </div>
       </Modal>
@@ -380,7 +431,15 @@ function ProjectsListContent() {
 
 export default function ProjectsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Spinner size="lg" /></div>}>
+    <Suspense
+      fallback={
+        <Container size="xl">
+          <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+            <Spinner size="lg" />
+          </div>
+        </Container>
+      }
+    >
       <ProjectsListContent />
     </Suspense>
   )

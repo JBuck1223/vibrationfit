@@ -30,6 +30,8 @@ function PlayerSpacer() {
 
 interface GlobalLayoutProps {
   children: React.ReactNode
+  /** Cookie-backed session from the server so SSR and hydration agree on layout. */
+  initialAuthenticated?: boolean
 }
 
 // Check if a path is accessible based on intensive progress
@@ -151,14 +153,14 @@ function isPathAccessibleForIntensive(
   return false
 }
 
-export function GlobalLayout({ children }: GlobalLayoutProps) {
+export function GlobalLayout({ children, initialAuthenticated = false }: GlobalLayoutProps) {
   const pathname = usePathname()
   // Render tree is driven entirely by the session-level snapshot below.
   // We intentionally start with `null` (matches SSR) and fill in synchronously
   // from sessionStorage during the first mount effect, so subsequent navigations
   // inside the same session never re-query the database.
   const [snapshot, setSnapshot] = useState<IntensiveSnapshot | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(initialAuthenticated)
 
   useEffect(() => {
     window.scrollTo(0, 0)

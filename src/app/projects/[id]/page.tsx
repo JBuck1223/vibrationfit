@@ -2,22 +2,21 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Container, Card, Button, Input, Spinner } from '@/lib/design-system/components'
+import { Container, Card, Button, Input, Textarea, Stack, Spinner } from '@/lib/design-system/components'
 import {
-  ArrowLeft, Plus, Trash2, FolderKanban, ListChecks, ChevronRight, Check,
+  Plus, Trash2, ChevronRight, CheckCircle2, Calendar,
+  Check, Archive, RotateCcw,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { IdeaTask, IdeaStatus } from '@/lib/projects/types'
-import { IDEA_STATUSES, getStatusInfo, getLifeCategoryInfo } from '@/lib/projects/types'
+import { getLifeCategoryInfo } from '@/lib/projects/types'
 
 interface ProjectDetail {
   id: string
   title: string
   description: string | null
-  type: 'project' | 'list'
   life_categories: string[]
   status: IdeaStatus
-  priority: string
   due_date: string | null
   tasks: IdeaTask[]
   task_count: number
@@ -68,6 +67,21 @@ export default function ProjectDetailPage() {
     }
   }
 
+  const handleMarkComplete = async () => {
+    await updateProject({ status: 'done' })
+    toast.success('Project marked complete')
+  }
+
+  const handleArchive = async () => {
+    await updateProject({ status: 'archived' })
+    toast.success('Project archived')
+  }
+
+  const handleRestore = async () => {
+    await updateProject({ status: 'active' })
+    toast.success('Project restored')
+  }
+
   const addTask = async (parentTaskId?: string) => {
     const title = parentTaskId ? newSubtaskTitle : newTaskTitle
     if (!title.trim()) return
@@ -106,185 +120,264 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return (
-      <Container className="flex min-h-[60vh] items-center justify-center">
-        <Spinner size="lg" />
+      <Container size="xl">
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
+          <Spinner size="lg" />
+        </div>
       </Container>
     )
   }
 
   if (!project) return null
 
-  const isList = project.type === 'list'
-  const statusInfo = getStatusInfo(project.status)
+  const taskPercent = project.task_count > 0
+    ? Math.round((project.task_done_count / project.task_count) * 100)
+    : 0
 
   return (
-    <Container size="lg" className="py-8">
-      <Button variant="ghost" size="sm" onClick={() => router.push('/projects')} className="mb-4">
-        <ArrowLeft className="w-4 h-4 mr-1" />
-        Back to Projects
-      </Button>
-
-      <Card className="p-6 mb-6">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="mt-1 flex-shrink-0">
-            {isList ? (
-              <ListChecks className="w-5 h-5 text-secondary-400" />
-            ) : (
-              <FolderKanban className="w-5 h-5 text-primary-400" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <input
-              value={project.title}
-              onChange={(e) => setProject({ ...project, title: e.target.value })}
-              onBlur={() => updateProject({ title: project.title })}
-              className="w-full bg-transparent text-2xl font-bold text-white outline-none border-b border-transparent focus:border-neutral-700"
-            />
-            {project.life_categories?.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {project.life_categories.map(key => {
-                  const lc = getLifeCategoryInfo(key)
-                  return (
-                    <span
-                      key={key}
-                      className="px-2 py-0.5 rounded-full text-[11px] font-medium"
-                      style={{ backgroundColor: lc.color + '20', color: lc.color, border: `1px solid ${lc.color}40` }}
-                    >
-                      {lc.label}
-                    </span>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-          {!isList && (
-            <select
-              value={project.status}
-              onChange={(e) => updateProject({ status: e.target.value })}
-              className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-1.5 text-sm"
-              style={{ color: statusInfo.color }}
-            >
-              {IDEA_STATUSES.map(s => (
-                <option key={s.value} value={s.value} style={{ color: '#fff' }}>{s.label}</option>
-              ))}
-            </select>
+    <Container size="xl" className="pt-2 pb-6 sm:pb-8">
+      <Stack gap="md">
+        {/* Title + categories — outside description card */}
+        <div className="px-1">
+          {project.status === 'done' && (
+            <div className="mb-2 flex items-center gap-2 rounded-lg border border-[#39FF14]/20 bg-[#39FF14]/[0.06] px-3 py-1.5 w-fit">
+              <Check className="h-3.5 w-3.5 text-[#39FF14]" />
+              <span className="text-xs font-medium text-[#39FF14]">Complete</span>
+            </div>
+          )}
+          {project.status === 'archived' && (
+            <div className="mb-2 flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-800/50 px-3 py-1.5 w-fit">
+              <Archive className="h-3.5 w-3.5 text-neutral-400" />
+              <span className="text-xs font-medium text-neutral-400">Archived</span>
+            </div>
+          )}
+          <input
+            value={project.title}
+            onChange={(e) => setProject({ ...project, title: e.target.value })}
+            onBlur={() => updateProject({ title: project.title })}
+            className="min-w-0 w-full bg-transparent text-lg font-bold text-white outline-none sm:text-xl"
+          />
+          {project.life_categories?.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {project.life_categories.map(key => {
+                const lc = getLifeCategoryInfo(key)
+                return (
+                  <span
+                    key={key}
+                    className="rounded-full border border-neutral-700 bg-neutral-800/50 px-2 py-0.5 text-[10px] font-medium text-neutral-400"
+                  >
+                    {lc.label}
+                  </span>
+                )
+              })}
+            </div>
+          )}
+          {project.due_date && (
+            <p className="mt-2 flex items-center gap-1 text-xs text-neutral-500">
+              <Calendar className="h-3 w-3" />
+              Due {new Date(project.due_date).toLocaleDateString()}
+            </p>
           )}
         </div>
 
-        {!isList && (
-          <textarea
-            value={project.description || ''}
-            onChange={(e) => setProject({ ...project, description: e.target.value })}
-            onBlur={() => updateProject({ description: project.description })}
-            placeholder="Add a description..."
-            rows={3}
-            className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-neutral-200"
-          />
-        )}
-      </Card>
+        {/* Description */}
+        <Card
+          variant="glass"
+          className="relative overflow-hidden border border-white/[0.06] p-3 shadow-none sm:p-4"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-[#39FF14]/[0.02] via-transparent to-[#00FFFF]/[0.02] pointer-events-none" />
+          <div className="relative">
+            <Textarea
+              value={project.description || ''}
+              onChange={(e) => setProject({ ...project, description: e.target.value })}
+              onBlur={() => updateProject({ description: project.description })}
+              placeholder="Add a description..."
+              rows={2}
+              className="!border-neutral-800 !bg-neutral-900/50 text-sm"
+            />
+          </div>
+        </Card>
 
-      {/* Tasks */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Tasks</h2>
-          <span className="text-sm text-neutral-400">
-            {project.task_done_count}/{project.task_count} done
-          </span>
-        </div>
-
-        <div className="space-y-1">
-          {project.tasks.map(task => (
-            <div key={task.id}>
-              <div className="group flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-neutral-800/50">
-                {task.subtasks && task.subtasks.length > 0 ? (
-                  <button onClick={() => setExpanded(p => ({ ...p, [task.id]: !p[task.id] }))} className="text-neutral-500">
-                    <ChevronRight className={`w-4 h-4 transition-transform ${expanded[task.id] ? 'rotate-90' : ''}`} />
-                  </button>
-                ) : (
-                  <span className="w-4" />
-                )}
-                <button
-                  onClick={() => toggleTask(task)}
-                  className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                    task.is_complete ? 'bg-primary-500 border-primary-500' : 'border-neutral-600 hover:border-primary-500'
-                  }`}
-                >
-                  {task.is_complete && <Check className="w-3.5 h-3.5 text-black" />}
-                </button>
-                <span className={`flex-1 text-sm ${task.is_complete ? 'text-neutral-500 line-through' : 'text-white'}`}>
-                  {task.title}
-                </span>
-                <button
-                  onClick={() => setAddingSubtaskTo(addingSubtaskTo === task.id ? null : task.id)}
-                  className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-primary-400"
-                  title="Add subtask"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Subtasks */}
-              {expanded[task.id] && task.subtasks?.map(sub => (
-                <div key={sub.id} className="group flex items-center gap-2 py-1.5 px-2 pl-10 rounded-lg hover:bg-neutral-800/50">
-                  <button
-                    onClick={() => toggleTask(sub)}
-                    className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                      sub.is_complete ? 'bg-primary-500 border-primary-500' : 'border-neutral-600 hover:border-primary-500'
-                    }`}
-                  >
-                    {sub.is_complete && <Check className="w-3 h-3 text-black" />}
-                  </button>
-                  <span className={`flex-1 text-sm ${sub.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}>
-                    {sub.title}
-                  </span>
-                  <button
-                    onClick={() => deleteTask(sub.id)}
-                    className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-
-              {/* Add subtask input */}
-              {addingSubtaskTo === task.id && (
-                <div className="flex items-center gap-2 py-1.5 px-2 pl-10">
-                  <Input
-                    value={newSubtaskTitle}
-                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addTask(task.id)}
-                    placeholder="Subtask title..."
-                    autoFocus
-                    className="text-sm"
+        {/* Tasks */}
+        <Card
+          variant="glass"
+          className="border border-white/[0.06] p-3 shadow-none sm:p-4"
+        >
+          <div className="mb-2 flex items-center gap-2 px-1 sm:mb-3">
+            <h2 className="shrink-0 text-sm font-semibold text-white">Tasks</h2>
+            {project.tasks.length === 0 && (
+              <p className="min-w-0 flex-1 text-center text-sm text-neutral-500">
+                No tasks yet. Add one below to get started.
+              </p>
+            )}
+            <div className="ml-auto flex shrink-0 items-center gap-3">
+              {project.task_count > 0 && (
+                <div className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-neutral-800/80 sm:block">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#39FF14] to-[#00FFFF] transition-all duration-500"
+                    style={{ width: `${taskPercent}%` }}
                   />
-                  <Button size="sm" variant="primary" onClick={() => addTask(task.id)}>Add</Button>
                 </div>
               )}
+              <span className="text-xs text-neutral-500">
+                {project.task_done_count}/{project.task_count}
+              </span>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Add task */}
-        <div className="flex items-center gap-2 mt-3">
-          <Input
-            value={newTaskTitle}
-            onChange={(e) => setNewTaskTitle(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addTask()}
-            placeholder="Add a task..."
-          />
-          <Button variant="primary" onClick={() => addTask()} disabled={!newTaskTitle.trim()}>
-            <Plus className="w-4 h-4 mr-1" />
-            Add
-          </Button>
+          {project.tasks.length > 0 && (
+            <div className="flex flex-col">
+              {project.tasks.map(task => (
+                <div key={task.id}>
+                  <div className="group flex items-center gap-2.5 rounded-xl py-2.5 transition-colors hover:bg-white/[0.03]">
+                    <button
+                      type="button"
+                      onClick={() => toggleTask(task)}
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                        task.is_complete
+                          ? 'border-[#39FF14] bg-[#39FF14]/15'
+                          : 'border-neutral-600 hover:border-neutral-400'
+                      }`}
+                    >
+                      {task.is_complete && <CheckCircle2 className="h-4 w-4 text-[#39FF14]" />}
+                    </button>
+                    {task.subtasks && task.subtasks.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(p => ({ ...p, [task.id]: !p[task.id] }))}
+                        className="flex h-6 w-6 shrink-0 items-center justify-center text-neutral-500"
+                      >
+                        <ChevronRight
+                          className={`h-4 w-4 transition-transform ${expanded[task.id] ? 'rotate-90' : ''}`}
+                        />
+                      </button>
+                    ) : null}
+                    <span
+                      className={`min-w-0 flex-1 text-sm ${
+                        task.is_complete ? 'text-neutral-500 line-through decoration-neutral-600' : 'text-white'
+                      }`}
+                    >
+                      {task.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAddingSubtaskTo(addingSubtaskTo === task.id ? null : task.id)}
+                      className="rounded-lg p-1.5 text-neutral-600 opacity-100 transition-colors hover:bg-white/[0.06] hover:text-[#39FF14] sm:opacity-0 sm:group-hover:opacity-100"
+                      title="Add subtask"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteTask(task.id)}
+                      className="rounded-lg p-1.5 text-neutral-600 opacity-100 transition-colors hover:bg-red-500/10 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {expanded[task.id] && task.subtasks?.map(sub => (
+                    <div
+                      key={sub.id}
+                      className="group flex items-center gap-2.5 rounded-xl py-2 pl-10 pr-0 transition-colors hover:bg-white/[0.03]"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleTask(sub)}
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                          sub.is_complete
+                            ? 'border-[#39FF14] bg-[#39FF14]/15'
+                            : 'border-neutral-600 hover:border-neutral-400'
+                        }`}
+                      >
+                        {sub.is_complete && <CheckCircle2 className="h-3.5 w-3.5 text-[#39FF14]" />}
+                      </button>
+                      <span
+                        className={`min-w-0 flex-1 text-sm ${
+                          sub.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-300'
+                        }`}
+                      >
+                        {sub.title}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => deleteTask(sub.id)}
+                        className="rounded-lg p-1.5 text-neutral-600 opacity-100 transition-colors hover:bg-red-500/10 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {addingSubtaskTo === task.id && (
+                    <div className="flex items-center gap-2 py-2 pl-10 pr-0">
+                      <Input
+                        value={newSubtaskTitle}
+                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && addTask(task.id)}
+                        placeholder="Subtask title..."
+                        autoFocus
+                        className="!border !border-neutral-800 bg-neutral-900/50 text-sm focus:!border-[#39FF14]/40"
+                      />
+                      <Button size="sm" variant="primary" onClick={() => addTask(task.id)}>
+                        Add
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 flex items-center gap-2 border-t border-white/[0.06] pt-3">
+            <Input
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addTask()}
+              placeholder="Add a task..."
+              className="!border !border-neutral-800 bg-neutral-900/50 focus:!border-[#39FF14]/40"
+            />
+            <Button variant="primary" onClick={() => addTask()} disabled={!newTaskTitle.trim()}>
+              <Plus className="w-4 h-4 mr-1" />
+              Add
+            </Button>
+          </div>
+        </Card>
+
+        <div className="flex items-center justify-center gap-3 pt-2">
+          {project.status === 'active' && (
+            <>
+              <Button size="sm" variant="ghost" onClick={handleArchive} className="text-neutral-400 hover:text-neutral-200">
+                <Archive className="h-4 w-4 mr-1" />
+                Archive
+              </Button>
+              <Button size="sm" variant="primary" onClick={handleMarkComplete}>
+                <Check className="h-4 w-4 mr-1" />
+                Mark Complete
+              </Button>
+            </>
+          )}
+          {project.status === 'done' && (
+            <>
+              <Button size="sm" variant="ghost" onClick={handleArchive} className="text-neutral-400 hover:text-neutral-200">
+                <Archive className="h-4 w-4 mr-1" />
+                Archive
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleRestore} className="text-neutral-400 hover:text-neutral-200">
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Restore
+              </Button>
+            </>
+          )}
+          {project.status === 'archived' && (
+            <Button size="sm" variant="ghost" onClick={handleRestore} className="text-neutral-400 hover:text-neutral-200">
+              <RotateCcw className="h-4 w-4 mr-1" />
+              Restore
+            </Button>
+          )}
         </div>
-      </Card>
+      </Stack>
     </Container>
   )
 }

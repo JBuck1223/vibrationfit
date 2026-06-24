@@ -1,3 +1,8 @@
+import {
+  JORDAN_BUCKINGHAM_USER_ID,
+  VANESSA_BUCKINGHAM_USER_ID,
+} from '@/lib/music/artists'
+
 export interface MusicCatalogPerformer {
   name: string
   snapshotId: string
@@ -8,28 +13,20 @@ export interface TrackPerformerLink {
   snapshotHref: string
 }
 
-/** Vibration Fit Music catalog performers (links to /snapshot/[id]). */
+/** Official catalog artists (links to /snapshot/[id]). */
 export const MUSIC_CATALOG_PERFORMERS: readonly MusicCatalogPerformer[] = [
-  { name: 'Vanessa Buckingham', snapshotId: '30082787-6ae1-4413-9a32-293cc63e38ee' },
-  { name: 'Jordan Buckingham', snapshotId: '2a0fc1a7-5b8a-46a4-97e4-d5c5ddefdf1a' },
+  { name: 'Vanessa Buckingham', snapshotId: VANESSA_BUCKINGHAM_USER_ID },
+  { name: 'Jordan Buckingham', snapshotId: JORDAN_BUCKINGHAM_USER_ID },
 ] as const
 
-export const CINDY_BUCKINGHAM: MusicCatalogPerformer = {
-  name: 'Cindy Buckingham',
-  snapshotId: '898e008f-d3d5-4f05-947b-138f6c8b92ba',
-}
+const MUSIC_CATALOG_PERFORMER_BY_ID = Object.fromEntries(
+  MUSIC_CATALOG_PERFORMERS.map((performer) => [performer.snapshotId, performer]),
+) as Record<string, MusicCatalogPerformer>
 
-/** Track-specific performer credits (default: Vanessa + Jordan). */
-const TRACK_PERFORMER_OVERRIDES: Record<string, readonly MusicCatalogPerformer[]> = {
-  // Music the Powerful Soul-ution
-  '29982d18-6d11-43ca-ac99-c4a274c99af4': [
-    ...MUSIC_CATALOG_PERFORMERS,
-    CINDY_BUCKINGHAM,
-  ],
-}
-
-function performersForTrack(trackId: string) {
-  return TRACK_PERFORMER_OVERRIDES[trackId] ?? MUSIC_CATALOG_PERFORMERS
+function performerLinkForUserId(userId: string): TrackPerformerLink | null {
+  const performer = MUSIC_CATALOG_PERFORMER_BY_ID[userId]
+  if (!performer) return null
+  return { name: performer.name, snapshotHref: `/snapshot/${performer.snapshotId}` }
 }
 
 function parseMemberCreatorName(description?: string | null): string | null {
@@ -63,7 +60,7 @@ export function isMemberCreatedCatalogTrack(tags?: string[] | null) {
 }
 
 export function musicCatalogPerformerLinks(
-  trackId?: string,
+  _trackId?: string,
   options?: { description?: string | null; tags?: string[] | null },
 ) {
   if (isMemberCreatedCatalogTrack(options?.tags)) {
@@ -74,15 +71,18 @@ export function musicCatalogPerformerLinks(
     return []
   }
 
-  const performers = trackId ? performersForTrack(trackId) : MUSIC_CATALOG_PERFORMERS
-  return performers.map((p) => ({
+  const creatorId = parseMemberCreatorUserId(options?.tags)
+  const assignedArtist = creatorId ? performerLinkForUserId(creatorId) : null
+  if (assignedArtist) return [assignedArtist]
+
+  return MUSIC_CATALOG_PERFORMERS.map((p) => ({
     name: p.name,
     snapshotHref: `/snapshot/${p.snapshotId}`,
   }))
 }
 
 export function musicCatalogArtistFallback(
-  trackId?: string,
+  _trackId?: string,
   album?: string | null,
   options?: { description?: string | null; tags?: string[] | null },
 ) {
@@ -96,8 +96,11 @@ export function musicCatalogArtistFallback(
     return 'Vibration Fit'
   }
 
-  const performers = trackId ? performersForTrack(trackId) : MUSIC_CATALOG_PERFORMERS
-  const names = performers.map((p) => p.name).join(' · ')
+  const creatorId = parseMemberCreatorUserId(options?.tags)
+  const assignedArtist = creatorId ? performerLinkForUserId(creatorId) : null
+  const names = assignedArtist
+    ? assignedArtist.name
+    : MUSIC_CATALOG_PERFORMERS.map((p) => p.name).join(' · ')
   const albumLabel = (album || '').trim()
   return albumLabel ? `${names} · ${albumLabel}` : names
 }

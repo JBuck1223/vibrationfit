@@ -42,11 +42,10 @@ interface Reply {
   admin_id: string | null
   reply: string
   is_internal: boolean
+  is_staff: boolean
+  sender_name: string
   attachments: string[]
   created_at: string
-  admin?: {
-    email: string
-  }
 }
 
 export default function SupportTicketDetailPage() {
@@ -610,8 +609,8 @@ export default function SupportTicketDetailPage() {
                   <div key={reply.id} className="bg-neutral-900 p-4 rounded-xl">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-semibold text-primary-500">
-                        {reply.admin_id ? 'Support Team' : 'Customer'}
+                      <span className={`text-sm font-semibold ${reply.is_staff ? 'text-primary-500' : 'text-secondary-500'}`}>
+                        {reply.sender_name}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-neutral-500">

@@ -10,7 +10,7 @@ import { ProjectsAreaBar } from '@/components/projects-studio'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import {
   Search, Plus, Calendar, CheckCircle2,
-  Filter, X, FolderKanban, ListChecks,
+  Filter, X, FolderKanban,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type {
@@ -26,13 +26,6 @@ import {
 } from '@/lib/projects/types'
 
 type SortOption = 'newest' | 'oldest' | 'priority' | 'due_date' | 'updated'
-type TypeTab = 'all' | 'project' | 'list'
-
-const TYPE_TABS: { value: TypeTab; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'project', label: 'Projects' },
-  { value: 'list', label: 'Lists' },
-]
 
 // Life categories for the CategoryGrid (excludes the forward/conclusion meta categories)
 const LIFE_CATEGORIES = VISION_CATEGORIES.filter(
@@ -42,14 +35,12 @@ const LIFE_CATEGORIES = VISION_CATEGORIES.filter(
 function ProjectsListContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialType = (searchParams.get('type') as TypeTab) || 'all'
 
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState<IdeaProjectWithRelations[]>([])
   const [categories, setCategories] = useState<IdeaCategory[]>([])
   const [, setTags] = useState<IdeaTag[]>([])
 
-  const [typeTab, setTypeTab] = useState<TypeTab>(['all', 'project', 'list'].includes(initialType) ? initialType : 'all')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
@@ -75,7 +66,6 @@ function ProjectsListContent() {
       if (categoryFilter) params.set('category', categoryFilter)
       if (priorityFilter) params.set('priority', priorityFilter)
       if (lifeCategoryFilter) params.set('life_category', lifeCategoryFilter)
-      if (typeTab !== 'all') params.set('type', typeTab)
       if (search) params.set('search', search)
       params.set('sort', sort)
 
@@ -89,7 +79,7 @@ function ProjectsListContent() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, categoryFilter, priorityFilter, lifeCategoryFilter, typeTab, search, sort])
+  }, [statusFilter, categoryFilter, priorityFilter, lifeCategoryFilter, search, sort])
 
   const fetchMeta = useCallback(async () => {
     const [catRes, tagRes] = await Promise.all([
@@ -156,7 +146,7 @@ function ProjectsListContent() {
       })
       if (res.ok) {
         const data = await res.json()
-        toast.success(newType === 'list' ? 'List created' : 'Project created')
+        toast.success('Project created')
         setShowNewModal(false)
         resetNewForm()
         router.push(`/admin/projects/${data.project.id}`)
@@ -177,29 +167,10 @@ function ProjectsListContent() {
     !!lifeCategoryFilter,
   ].filter(Boolean).length
 
-  const isListsView = typeTab === 'list'
-
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <ProjectsAreaBar contextText="Plan and track projects, and keep simple checklists organized by life category" />
-
-        {/* Type Tabs */}
-        <div className="flex items-center gap-1 border-b border-neutral-800">
-          {TYPE_TABS.map(tab => (
-            <button
-              key={tab.value}
-              onClick={() => setTypeTab(tab.value)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                typeTab === tab.value
-                  ? 'text-white border-primary-500'
-                  : 'text-neutral-400 border-transparent hover:text-neutral-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <ProjectsAreaBar contextText="Plan and track projects organized by life category" />
 
         {/* Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -208,7 +179,7 @@ function ProjectsListContent() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={isListsView ? 'Search lists...' : 'Search projects...'}
+              placeholder="Search projects..."
               className="pl-10"
             />
           </div>
@@ -226,15 +197,6 @@ function ProjectsListContent() {
                   {activeFilterCount}
                 </span>
               )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => openNewModal('list')}
-              className="flex-1 sm:flex-none"
-            >
-              <ListChecks className="w-4 h-4 mr-1" />
-              New List
             </Button>
             <Button
               variant="primary"
@@ -345,24 +307,14 @@ function ProjectsListContent() {
           </div>
         ) : projects.length === 0 ? (
           <Card className="p-12 text-center">
-            {isListsView ? (
-              <ListChecks className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-            ) : (
-              <FolderKanban className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
-            )}
+            <FolderKanban className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">
-              {isListsView ? 'No lists yet' : 'Nothing here yet'}
+              Nothing here yet
             </h3>
             <p className="text-neutral-400 mb-6">
-              {isListsView
-                ? 'Create a simple checklist and tag it with life categories.'
-                : 'Start planning projects and keep simple checklists, all tagged by life category.'}
+              Start planning projects, all tagged by life category.
             </p>
             <div className="flex items-center justify-center gap-2">
-              <Button variant="ghost" onClick={() => openNewModal('list')}>
-                <ListChecks className="w-4 h-4 mr-1" />
-                New List
-              </Button>
               <Button variant="primary" onClick={() => openNewModal('project')}>
                 <Plus className="w-4 h-4 mr-1" />
                 New Project
@@ -373,9 +325,8 @@ function ProjectsListContent() {
           <div className="space-y-2">
             {projects.map(project => {
               const statusInfo = getStatusInfo(project.status)
-              const priorityInfo = getPriorityInfo(project.priority)
+              const priorityInfo = getPriorityInfo((project.priority || 'medium') as IdeaPriority)
               const category = project.category
-              const isList = project.type === 'list'
 
               return (
                 <Card
@@ -384,13 +335,8 @@ function ProjectsListContent() {
                   onClick={() => router.push(`/admin/projects/${project.id}`)}
                 >
                   <div className="flex items-start gap-4">
-                    {/* Type Icon */}
-                    <div className="mt-0.5 flex-shrink-0" title={isList ? 'List' : 'Project'}>
-                      {isList ? (
-                        <ListChecks className="w-4 h-4 text-secondary-400" />
-                      ) : (
-                        <FolderKanban className="w-4 h-4 text-primary-400" />
-                      )}
+                    <div className="mt-0.5 flex-shrink-0" title="Project">
+                      <FolderKanban className="w-4 h-4 text-primary-400" />
                     </div>
 
                     {/* Main Content */}
@@ -411,8 +357,7 @@ function ProjectsListContent() {
                             {category.name}
                           </span>
                         )}
-                        {!isList && (
-                          <span
+                        <span
                             className="text-xs px-2 py-0.5 rounded-full font-medium"
                             style={{
                               backgroundColor: statusInfo.color + '20',
@@ -421,7 +366,6 @@ function ProjectsListContent() {
                           >
                             {statusInfo.label}
                           </span>
-                        )}
                       </div>
 
                       {project.description && (
@@ -496,44 +440,16 @@ function ProjectsListContent() {
       <Modal
         isOpen={showNewModal}
         onClose={() => setShowNewModal(false)}
-        title={newType === 'list' ? 'New List' : 'New Project'}
+        title="New Project"
         size="md"
       >
         <div className="space-y-4">
-          {/* Type toggle */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setNewType('project')}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium border transition-colors ${
-                newType === 'project'
-                  ? 'border-primary-500 bg-primary-500/10 text-white'
-                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
-              }`}
-            >
-              <FolderKanban className="w-4 h-4" />
-              Project
-            </button>
-            <button
-              type="button"
-              onClick={() => setNewType('list')}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium border transition-colors ${
-                newType === 'list'
-                  ? 'border-secondary-500 bg-secondary-500/10 text-white'
-                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
-              }`}
-            >
-              <ListChecks className="w-4 h-4" />
-              List
-            </button>
-          </div>
-
           <div>
             <label className="text-sm text-neutral-300 block mb-1">Title *</label>
             <Input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder={newType === 'list' ? 'Name your list...' : "What's the project?"}
+              placeholder="What's the project?"
               autoFocus
             />
           </div>
@@ -616,7 +532,7 @@ function ProjectsListContent() {
               disabled={!newTitle.trim()}
               className="flex-1"
             >
-              {newType === 'list' ? 'Create List' : 'Create Project'}
+              Create Project
             </Button>
           </div>
         </div>

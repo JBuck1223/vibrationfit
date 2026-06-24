@@ -112,3 +112,9 @@ export {
 
 // Shared Components
 export { VIVA_PERSONA, VIVA_PERSONA_WITH_GOLDEN_RULES } from './shared/viva-persona'
+
+// Project Organize / Brain Dump
+export {
+  PROJECT_ORGANIZE_SYSTEM_PROMPT,
+  buildProjectOrganizePrompt,
+} from './project-organize-prompt'

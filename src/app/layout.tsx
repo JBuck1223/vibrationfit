@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import '@/styles/brand.css'
-import { GlobalLayout } from '@/components/GlobalLayout'
+import { GlobalLayoutShell } from '@/components/GlobalLayoutShell'
 import { AuthProvider } from '@/components/AuthProvider'
 import { TrackingProvider } from '@/components/TrackingProvider'
 import { AppErrorHandling } from '@/components/AppErrorHandling'
@@ -69,9 +69,9 @@ export default function RootLayout({
         <AuthProvider>
           <TrackingProvider>
           <AppErrorHandling>
-          <GlobalLayout>
+          <GlobalLayoutShell>
             {children}
-          </GlobalLayout>
+          </GlobalLayoutShell>
           <GlobalAudioPlayerShell />
           </AppErrorHandling>
           </TrackingProvider>

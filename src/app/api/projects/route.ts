@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/projects - list the current member's own projects/lists
+// GET /api/projects - list the current member's own projects
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -14,10 +14,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
-    const type = searchParams.get('type')
     const lifeCategory = searchParams.get('life_category')
     const search = searchParams.get('search')
-    const sort = searchParams.get('sort') || 'newest'
+    const sort = searchParams.get('sort') || 'sort_order'
 
     let query = supabase
       .from('projects')
@@ -31,10 +30,6 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status)
     } else {
       query = query.neq('status', 'archived')
-    }
-
-    if (type && (type === 'project' || type === 'list')) {
-      query = query.eq('type', type)
     }
 
     if (lifeCategory) {
@@ -55,8 +50,11 @@ export async function GET(request: NextRequest) {
       case 'updated':
         query = query.order('updated_at', { ascending: false })
         break
-      default:
+      case 'newest':
         query = query.order('created_at', { ascending: false })
+        break
+      default:
+        query = query.order('sort_order', { ascending: false })
     }
 
     const { data, error } = await query
@@ -79,7 +77,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/projects - create a project/list owned by the current member
+// POST /api/projects - create a project owned by the current member
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -89,21 +87,33 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, type, life_categories, status, priority, due_date } = body
+    const { title, description, life_categories, due_date } = body
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
+
+    // Get max sort_order for this user to place new project at top
+    const { data: maxRow } = await supabase
+      .from('projects')
+      .select('sort_order')
+      .eq('created_by', user.id)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .single()
+
+    const nextSortOrder = (maxRow?.sort_order ?? 0) + 1
 
     const { data: project, error } = await supabase
       .from('projects')
       .insert({
         title: title.trim(),
         description: description || null,
-        type: type === 'list' ? 'list' : 'project',
+        type: 'project',
         life_categories: Array.isArray(life_categories) ? life_categories : [],
-        status: status || 'planned',
-        priority: priority || 'medium',
+        status: 'active',
+        priority: 'medium',
+        sort_order: nextSortOrder,
         due_date: due_date || null,
         created_by: user.id,
       })
@@ -118,6 +128,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ project }, { status: 201 })
   } catch (error) {
     console.error('Error in member projects POST:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PATCH /api/projects - bulk update sort_order for drag-and-drop reordering
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { updates } = body as { updates: { id: string; sort_order: number }[] }
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return NextResponse.json({ error: 'updates array is required' }, { status: 400 })
+    }
+
+    for (const { id, sort_order } of updates) {
+      const { error } = await supabase
+        .from('projects')
+        .update({ sort_order })
+        .eq('id', id)
+        .eq('created_by', user.id)
+
+      if (error) {
+        console.error('Error updating sort_order:', error)
+        return NextResponse.json({ error: 'Failed to update order' }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error in member projects PATCH:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

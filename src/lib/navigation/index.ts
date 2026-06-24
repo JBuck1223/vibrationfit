@@ -21,6 +21,7 @@ export {
 // Menu Definitions
 export {
   userNavigation,
+  userNavigationPrimary,
   userNavigationGroups,
   adminNavigation,
   mobileNavigation,

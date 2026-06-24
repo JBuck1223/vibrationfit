@@ -15,6 +15,8 @@ export interface AreaBarTab {
   matchPaths?: string[]
   /** When true, tab is active only on exact `path` / `matchPaths` hits (no `path/` prefix matching). */
   exactPath?: boolean
+  /** When set, overrides pathname-based active detection (e.g. query-param tabs). */
+  isActive?: boolean
 }
 
 export interface AreaBarPill {
@@ -563,7 +565,7 @@ export function AreaBar({
           <div className={rowCls}>
             {sep}
             <div className={innerPad}>
-              <p className={`text-center text-balance text-zinc-400 ${isMobile ? 'text-[12px] leading-relaxed' : 'text-[13px] leading-normal'}`}>
+              <p className={`w-full max-w-none text-center text-pretty text-zinc-400 ${isMobile ? 'text-[12px] leading-relaxed' : 'text-[13px] leading-normal'}`}>
                 {contextText}
               </p>
             </div>
@@ -699,7 +701,7 @@ export function AreaBar({
   const renderTabLinks = (size: 'compact' | 'default') =>
     tabs.map(tab => {
       const TabIcon = tab.icon
-      const active = !suppressActiveTab && isTabActive(pathname, tab, tabs)
+      const active = tab.isActive ?? (!suppressActiveTab && isTabActive(pathname, tab, tabs))
       const isParent = activeParentPath === tab.path
       const isSelected = appLikePrimaryTabs ? active || isParent : active
       const showParentCaret = isParent && !appLikePrimaryTabs

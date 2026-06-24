@@ -3,6 +3,14 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  if (phone.startsWith('+')) return `+${digits}`
+  return `+${digits}`
+}
+
 interface UnifiedMessage {
   id: string
   channel: 'email' | 'sms'
@@ -178,30 +186,43 @@ export async function GET(request: NextRequest) {
     const emailToName = new Map<string, string>()
 
     if (unresolvedPhones.length > 0) {
-      const { data: usersByPhone } = await adminClient
+      // Fetch all users with phone numbers and match by normalized format
+      const { data: usersWithPhones } = await adminClient
         .from('user_accounts')
         .select('full_name, email, phone')
-        .in('phone', unresolvedPhones)
+        .not('phone', 'is', null)
 
-      usersByPhone?.forEach(u => {
-        if (u.phone && (u.full_name || u.email)) {
-          phoneToName.set(u.phone, u.full_name || u.email)
+      if (usersWithPhones) {
+        for (const u of usersWithPhones) {
+          if (!u.phone) continue
+          const normalizedDbPhone = normalizePhone(u.phone)
+          for (const unresolvedPhone of unresolvedPhones) {
+            if (normalizePhone(unresolvedPhone) === normalizedDbPhone) {
+              phoneToName.set(unresolvedPhone, u.full_name || u.email || unresolvedPhone)
+            }
+          }
         }
-      })
+      }
 
       const stillUnresolved = unresolvedPhones.filter(p => !phoneToName.has(p))
       if (stillUnresolved.length > 0) {
-        const { data: leadsByPhone } = await adminClient
+        const { data: leadsWithPhones } = await adminClient
           .from('leads')
           .select('first_name, last_name, email, phone')
-          .in('phone', stillUnresolved)
+          .not('phone', 'is', null)
 
-        leadsByPhone?.forEach(l => {
-          if (l.phone) {
-            const name = [l.first_name, l.last_name].filter(Boolean).join(' ')
-            phoneToName.set(l.phone, name || l.email || l.phone)
+        if (leadsWithPhones) {
+          for (const l of leadsWithPhones) {
+            if (!l.phone) continue
+            const normalizedDbPhone = normalizePhone(l.phone)
+            for (const unresolvedPhone of stillUnresolved) {
+              if (normalizePhone(unresolvedPhone) === normalizedDbPhone) {
+                const name = [l.first_name, l.last_name].filter(Boolean).join(' ')
+                phoneToName.set(unresolvedPhone, name || l.email || unresolvedPhone)
+              }
+            }
           }
-        })
+        }
       }
     }
 

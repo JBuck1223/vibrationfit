@@ -79,7 +79,6 @@ import {
   Music2,
   Mic,
   FolderKanban,
-  ListChecks,
   Flame,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -111,17 +110,20 @@ export interface NavGroup {
 }
 
 /**
- * USER NAVIGATION - Main sidebar navigation for logged-in users
- * Used in: Sidebar component, MobileBottomNav
- * 
- * Structure: Top-level items (always visible) + Collapsible groups
+ * USER NAVIGATION - Compact primary links at top of sidebar (MAP, Dashboard, Tracking)
  */
-export const userNavigation: (NavItem | NavGroup)[] = [
+export const userNavigationPrimary: NavItem[] = [
   {
     name: 'Dashboard',
     href: '/dashboard',
     icon: Home,
     description: 'Run your MAP and stay connected',
+  },
+  {
+    name: 'MAP',
+    href: '/map',
+    icon: Map,
+    description: 'MAP - Your alignment actions',
   },
   {
     name: 'Tracking',
@@ -132,23 +134,30 @@ export const userNavigation: (NavItem | NavGroup)[] = [
 ]
 
 /**
+ * USER NAVIGATION - Legacy top-level items (use userNavigationPrimary instead)
+ */
+export const userNavigation: (NavItem | NavGroup)[] = []
+
+/**
  * USER NAVIGATION GROUPS - Collapsible groups below top-level items
- * Organized by MAP categories: Activations, Creations, Connections, Sessions
  */
 export const userNavigationGroups: NavGroup[] = [
-  // =================================================================
-  // ACTIVATIONS (Daily Practice)
-  // =================================================================
   {
-    name: 'Activations',
+    name: 'Navigation',
     isCollapsible: true,
     defaultCollapsed: false,
     items: [
       {
-        name: 'MAP',
-        href: '/map',
-        icon: Map,
-        description: 'MAP - Your alignment actions',
+        name: 'Abundance Tracker',
+        href: '/abundance-tracker',
+        icon: DollarSign,
+        description: 'Dashboard and log for abundance moments',
+      },
+      {
+        name: 'Alignment Gym',
+        href: '/alignment-gym',
+        icon: Video,
+        description: 'Weekly live group coaching sessions',
       },
       {
         name: 'Audio',
@@ -157,50 +166,10 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Key AM/PM/Sleep audio sets',
       },
       {
-        name: 'Stories',
-        href: '/story',
-        icon: Library,
-        description: 'Focus Stories',
-      },
-      {
         name: 'Daily Paper',
         href: '/daily-paper',
         icon: FileText,
         description: 'Daily activations tracking',
-      },
-      {
-        name: 'Abundance Tracker',
-        href: '/abundance-tracker',
-        icon: DollarSign,
-        description: 'Dashboard and log for abundance moments',
-      },
-    ],
-  },
-  // =================================================================
-  // CREATIONS
-  // =================================================================
-  {
-    name: 'Creations',
-    isCollapsible: true,
-    defaultCollapsed: false,
-    items: [
-      {
-        name: 'Profile',
-        href: '/profile',
-        icon: User,
-        description: 'Your active profile',
-      },
-      {
-        name: 'Life Vision',
-        href: '/life-vision',
-        icon: Target,
-        description: 'My Active Vision',
-      },
-      {
-        name: 'Vision Board',
-        href: '/vision-board',
-        icon: Image,
-        description: 'My Vision Board',
       },
       {
         name: 'Journal',
@@ -209,48 +178,43 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'My Journal',
       },
       {
+        name: 'Life Vision',
+        href: '/life-vision',
+        icon: Target,
+        description: 'My Active Vision',
+      },
+      {
+        name: 'Profile',
+        href: '/profile',
+        icon: User,
+        description: 'Your active profile',
+      },
+      {
         name: 'Projects',
         href: '/projects',
         icon: FolderKanban,
-        description: 'Projects and lists to move your life forward',
+        description: 'Projects and task organization',
       },
-    ],
-  },
-  // =================================================================
-  // CONNECTIONS (Community)
-  // =================================================================
-  {
-    name: 'Connections',
-    isCollapsible: true,
-    defaultCollapsed: false,
-    items: [
+      {
+        name: 'Stories',
+        href: '/story',
+        icon: Library,
+        description: 'Focus Stories',
+      },
       {
         name: 'Vibe Tribe',
         href: '/vibe-tribe',
         icon: UsersRound,
         description: 'Connect with the Vibration Fit community',
       },
-    ],
-  },
-  // =================================================================
-  // SESSIONS
-  // =================================================================
-  {
-    name: 'Sessions',
-    isCollapsible: true,
-    defaultCollapsed: false,
-    items: [
       {
-        name: 'Alignment Gym',
-        href: '/alignment-gym',
-        icon: Video,
-        description: 'Weekly live group coaching sessions',
+        name: 'Vision Board',
+        href: '/vision-board',
+        icon: Image,
+        description: 'My Vision Board',
       },
     ],
   },
-  // =================================================================
-  // ACCOUNT & BILLING
-  // =================================================================
   {
     name: 'Account & Billing',
     isCollapsible: true,
@@ -263,34 +227,10 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Account, billing, and preferences',
       },
       {
-        name: 'Referral',
-        href: '/referral',
-        icon: Share2,
-        description: 'Share your referral link and earn rewards',
-      },
-      {
-        name: 'Support',
-        href: '/support/tickets',
-        icon: Users,
-        description: 'Get help and support',
-      },
-      {
-        name: 'Updates',
-        href: '/support/announcements',
-        icon: Bell,
-        description: 'Product updates and announcements',
-      },
-      {
-        name: 'Tokens',
-        href: '/tokens',
-        icon: Zap,
-        description: 'Creation credits, usage, and history',
-      },
-      {
-        name: 'Storage',
-        href: '/storage',
-        icon: HardDrive,
-        description: 'File storage usage and history',
+        name: 'Assessment',
+        href: '/assessment',
+        icon: Brain,
+        description: 'Vibrational assessment and results',
       },
       {
         name: 'Household',
@@ -299,16 +239,40 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Shared visions, vision boards, and members',
       },
       {
-        name: 'Assessment',
-        href: '/assessment',
-        icon: Brain,
-        description: 'Vibrational assessment and results',
+        name: 'Referral',
+        href: '/referral',
+        icon: Share2,
+        description: 'Share your referral link and earn rewards',
       },
       {
         name: 'Reset',
         href: '/reset',
         icon: Flame,
         description: 'Hit the reset button - recommit, phoenix style',
+      },
+      {
+        name: 'Storage',
+        href: '/storage',
+        icon: HardDrive,
+        description: 'File storage usage and history',
+      },
+      {
+        name: 'Support',
+        href: '/support/tickets',
+        icon: Users,
+        description: 'Get help and support',
+      },
+      {
+        name: 'Tokens',
+        href: '/tokens',
+        icon: Zap,
+        description: 'Creation credits, usage, and history',
+      },
+      {
+        name: 'Updates',
+        href: '/support/announcements',
+        icon: Bell,
+        description: 'Product updates and announcements',
       },
     ],
   },
@@ -511,12 +475,10 @@ export const adminNavigation: NavItem[] = [
     icon: FolderKanban,
     requiresAdmin: true,
     hasDropdown: true,
-    description: 'Projects, lists, planning, and tracking',
+    description: 'Projects, planning, and tracking',
     children: [
-      { name: 'All', href: '/admin/projects', icon: FolderKanban, description: 'Browse projects and lists' },
-      { name: 'Projects', href: '/admin/projects?type=project', icon: FolderKanban, description: 'Rich projects with tasks and details' },
-      { name: 'Lists', href: '/admin/projects?type=list', icon: ListChecks, description: 'Simple checklists by life category' },
-      { name: 'Board View', href: '/admin/projects/board', icon: Kanban, description: 'Kanban board for the pipeline' },
+      { name: 'All', href: '/admin/projects', icon: FolderKanban, description: 'Browse all projects' },
+      { name: 'Board View', href: '/admin/projects/board', icon: Kanban, description: 'Kanban board by status' },
       { name: 'Settings', href: '/admin/projects/settings', icon: Settings, description: 'Categories, fields, and tags' },
     ]
   },

@@ -153,6 +153,15 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Referral Program
     '/referral',
+
+    // Projects
+    '/projects',
+    '/projects/organize',
+    '/projects/[id]',
+
+    // Reset
+    '/reset',
+    '/reset/update',
   ],
   
   /**
@@ -373,6 +382,8 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/journal',
   '/map',
   '/profile',
+  '/projects',
+  '/reset',
   '/storage',
   '/story',
   '/vision-board',
