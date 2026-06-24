@@ -8,6 +8,7 @@ import { normalizeText } from '@/lib/audio/content-normalize'
 import path from 'path'
 import { execSync } from 'child_process'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { getVoiceVibe, buildVoiceId, parseVoiceId } from '@/lib/audio/voice-vibes'
 
 export type OpenAIVoice = 'alloy' | 'ash' | 'coral' | 'echo' | 'fable' | 'onyx' | 'nova' | 'sage' | 'shimmer'
 export type VoiceId = OpenAIVoice
@@ -125,9 +126,29 @@ async function triggerLambdaConcatenation(params: {
   console.log(`[Concat] Triggered Lambda concatenation for track ${params.trackId} (${params.trackUrls.length} sections)`)
 }
 
-async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', format: 'mp3' | 'wav' = 'mp3', userId?: string): Promise<Buffer> {
+async function synthesizeWithOpenAI(
+  text: string,
+  voice: OpenAIVoice = 'alloy',
+  format: 'mp3' | 'wav' = 'mp3',
+  userId?: string,
+  options?: { instructions?: string },
+): Promise<Buffer> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
+
+  // When tone "instructions" are supplied (vibe presets), use the steerable
+  // gpt-4o-mini-tts model so we can shape the delivery (calm, meditative, etc.).
+  // Without instructions we keep the legacy tts-1 behavior unchanged.
+  const instructions = options?.instructions?.trim()
+  const ttsModel = instructions ? 'gpt-4o-mini-tts' : 'tts-1'
+
+  const requestBody: Record<string, unknown> = {
+    model: ttsModel,
+    voice,
+    input: text,
+    format,
+  }
+  if (instructions) requestBody.instructions = instructions
 
   const response = await fetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST',
@@ -135,12 +156,7 @@ async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', 
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: 'tts-1',
-      voice,
-      input: text,
-      format,
-    }),
+    body: JSON.stringify(requestBody),
   })
 
   if (!response.ok) {
@@ -200,7 +216,7 @@ async function synthesizeWithOpenAI(text: string, voice: OpenAIVoice = 'alloy', 
     await trackTokenUsage({
       user_id: userId,
       action_type: 'audio_generation',
-      model_used: 'tts-1',
+      model_used: ttsModel,
       tokens_used: text.length, // Character count as tokens
       input_tokens: text.length,
       output_tokens: 0, // TTS doesn't have output tokens
@@ -336,6 +352,8 @@ export async function generateAudioTracks(params: {
   contentId?: string
   sections: SectionInput[]
   voice?: VoiceId | string
+  /** Optional tone preset id (e.g. "deep_calm"); "natural"/undefined = no styling. */
+  vibe?: string
   format?: 'mp3' | 'wav'
   force?: boolean
   audioSetId?: string
@@ -356,9 +374,25 @@ export async function generateAudioTracks(params: {
     output_format?: string
   }
 }): Promise<GeneratedTrackResult[]> {
-  const { userId, visionId, contentType = 'life_vision', contentId, sections, voice = 'alloy', format = 'mp3', force = false, audioSetId, audioSetName, audioSetDescription, variant, batchId, audioSetMetadata } = params
+  const { userId, visionId, contentType = 'life_vision', contentId, sections, voice = 'alloy', vibe, format = 'mp3', force = false, audioSetId, audioSetName, audioSetDescription, variant, batchId, audioSetMetadata } = params
   const supabase = await createClient()
   const s3 = getS3Client()
+
+  // Resolve voice + vibe. `voice` is normally an OpenAI voice (e.g. "alloy") and
+  // `vibe` an optional tone preset. For queue replays / back-compat, `voice` may
+  // already be a stored composite ("alloy__deep_calm"), so parse it out.
+  const parsedVoice = parseVoiceId(voice)
+  // Earliest builds stored a bare vibe id as voice_id — recover gracefully.
+  const legacyVibe = getVoiceVibe(parsedVoice.voice)
+  const vibeId = vibe || parsedVoice.vibe || (legacyVibe ? legacyVibe.id : undefined)
+  const resolvedVibe = getVoiceVibe(vibeId)
+  const ttsVoice: OpenAIVoice = legacyVibe
+    ? legacyVibe.previewVoice
+    : ((parsedVoice.voice as OpenAIVoice) || 'alloy')
+  // Empty instructions (the "natural" vibe) => keep legacy tts-1 behavior.
+  const ttsInstructions = resolvedVibe?.instructions || undefined
+  // Persisted voice_id keeps audio sets + de-dup distinct per voice+vibe combo.
+  const storedVoiceId = buildVoiceId(ttsVoice, vibeId)
 
   const isStory = contentType === 'story'
   const entityId = visionId || contentId
@@ -421,7 +455,7 @@ export async function generateAudioTracks(params: {
       name: audioSetName,
       description: audioSetDescription || getDescription(variant),
       variant: variant || 'standard',
-      voice_id: voice,
+      voice_id: storedVoiceId,
       metadata: audioSetMetadata || null,
       content_type: contentType,
     }
@@ -450,7 +484,7 @@ export async function generateAudioTracks(params: {
       .from('audio_sets')
       .select('id, voice_id, variant')
       .eq('variant', variant || 'standard')
-      .eq('voice_id', voice)
+      .eq('voice_id', storedVoiceId)
       .eq('name', defaultSetName)
 
     if (isStory) {
@@ -562,7 +596,7 @@ export async function generateAudioTracks(params: {
       .select('*')
       .eq('user_id', userId)
       .eq('section_key', section.sectionKey)
-      .eq('voice_id', voice)
+      .eq('voice_id', storedVoiceId)
       .eq('content_hash', contentHash)
       .eq('status', 'completed')
       .neq('audio_set_id', targetAudioSetId)
@@ -589,7 +623,7 @@ export async function generateAudioTracks(params: {
         section_key: section.sectionKey,
         content_hash: contentHash,
         text_content: section.text,
-        voice_id: voice,
+        voice_id: storedVoiceId,
         s3_bucket: existingElsewhere.s3_bucket,
         s3_key: existingElsewhere.s3_key,
         audio_url: existingElsewhere.audio_url,
@@ -623,7 +657,7 @@ export async function generateAudioTracks(params: {
       console.log(`[Track] Regenerating ${section.sectionKey}`)
       const { error: updErr } = await supabase
         .from('audio_tracks')
-        .update({ status: 'processing', error_message: null, voice_id: voice })
+        .update({ status: 'processing', error_message: null, voice_id: storedVoiceId })
         .eq('id', existingInSet.id)
       if (updErr) {
         results.push({ sectionKey: section.sectionKey, status: 'failed', error: updErr.message })
@@ -639,7 +673,7 @@ export async function generateAudioTracks(params: {
         section_key: section.sectionKey,
         content_hash: contentHash,
         text_content: section.text,
-        voice_id: voice,
+        voice_id: storedVoiceId,
         s3_bucket: BUCKET_NAME,
         s3_key: '',
         audio_url: '',
@@ -672,7 +706,7 @@ export async function generateAudioTracks(params: {
           .select('audio_url, voice_id, s3_key')
           .eq('user_id', userId)
           .eq('section_key', section.sectionKey)
-          .eq('voice_id', voice)
+          .eq('voice_id', storedVoiceId)
           .eq('status', 'completed')
           .not('audio_url', 'is', null)
           .limit(1)
@@ -704,22 +738,22 @@ export async function generateAudioTracks(params: {
         // Generate new voice track (for standard variant or if no existing track found)
         const processedText = processTextForVariant(section.text, variant)
         
-        // Validate OpenAI voice
-        if (!['alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer'].includes(voice)) {
-          throw new Error(`Unknown voice: ${voice}. Expected OpenAI voice (alloy, echo, fable, onyx, nova, shimmer, etc.)`)
+        // Validate the resolved OpenAI voice (the vibe id resolves to one of these)
+        if (!['alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer'].includes(ttsVoice)) {
+          throw new Error(`Unknown voice: ${voice}. Expected a vibe id or OpenAI voice (alloy, echo, fable, onyx, nova, shimmer, etc.)`)
         }
         
-        const useVoice: OpenAIVoice = voice as OpenAIVoice
+        const useVoice: OpenAIVoice = ttsVoice
         
         // Generate audio with OpenAI
-        console.log(`[TTS] Generating ${section.sectionKey} with voice: ${useVoice}`)
+        console.log(`[TTS] Generating ${section.sectionKey} with voice: ${useVoice}${resolvedVibe ? ` (vibe: ${resolvedVibe.id})` : ''}`)
         
         const chunks = chunkTextForTTS(processedText)
         
         const buffers: Buffer[] = []
         for (const part of chunks) {
           totalCharactersProcessed += part.length
-          const b = await synthesizeWithOpenAI(part, useVoice, format, userId)
+          const b = await synthesizeWithOpenAI(part, useVoice, format, userId, { instructions: ttsInstructions })
           buffers.push(b)
         }
         
@@ -1036,6 +1070,43 @@ export async function getOrCreateVoiceReference(voice: OpenAIVoice, format: 'mp3
       CacheControl: 'public, max-age=31536000',
     })
     await s3.send(put)
+    return { url: `${CDN_PREFIX}/${key}`, key }
+  }
+}
+
+// Bump when vibe instructions are retuned so cached previews regenerate.
+const VIBE_PREVIEW_VERSION = 'v1'
+const VIBE_PREVIEW_SAMPLE = "Take a slow, easy breath. You are exactly where you need to be, and everything you envision is already on its way to you."
+
+/**
+ * Get (or lazily generate + cache) a short preview clip for a voice vibe.
+ * Uses gpt-4o-mini-tts via the vibe's instructions so the preview matches what
+ * a generated track will actually sound like.
+ */
+export async function getOrCreateVibePreview(
+  vibe: { id: string; previewVoice: OpenAIVoice; instructions: string },
+): Promise<{ url: string; key: string }> {
+  const s3 = getS3Client()
+  const key = `site-assets/voice-previews/vibe-${vibe.id}-${VIBE_PREVIEW_VERSION}.mp3`
+
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: BUCKET_NAME, Key: key }))
+    return { url: `${CDN_PREFIX}/${key}`, key }
+  } catch {
+    const buffer = await synthesizeWithOpenAI(
+      VIBE_PREVIEW_SAMPLE,
+      vibe.previewVoice,
+      'mp3',
+      'system',
+      { instructions: vibe.instructions || undefined },
+    )
+    await s3.send(new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: 'audio/mpeg',
+      CacheControl: 'public, max-age=31536000',
+    }))
     return { url: `${CDN_PREFIX}/${key}`, key }
   }
 }
