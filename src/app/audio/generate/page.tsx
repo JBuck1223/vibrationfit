@@ -9,6 +9,7 @@ import { getVisionCategoryKeys } from '@/lib/design-system'
 import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/components/audio-studio'
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import { CompletedStepRow } from '@/components/CompletedStepRow'
+import { NATURAL_VIBE_ID, VOICE_VIBES, buildVoiceId, parseVoiceId } from '@/lib/audio/voice-vibes'
 
 export default function AudioGeneratePage() {
   const router = useRouter()
@@ -24,7 +25,9 @@ export default function AudioGeneratePage() {
 
   const [generating, setGenerating] = useState(false)
   const [storyContentExpanded, setStoryContentExpanded] = useState(false)
-  const [voices, setVoices] = useState<{ id: string; name: string; previewUrl?: string }[]>([])
+  const [voices, setVoices] = useState<{ id: string; name: string; description?: string; previewUrl?: string }[]>([])
+  const [vibes, setVibes] = useState<{ id: string; name: string; description?: string; previewUrl?: string }[]>([])
+  const [selectedVibe, setSelectedVibe] = useState<string>(NATURAL_VIBE_ID)
   const [dataLoading, setDataLoading] = useState(false)
 
   const [selectedVoiceForNew, setSelectedVoiceForNew] = useState<string>('')
@@ -151,16 +154,27 @@ export default function AudioGeneratePage() {
     try {
       if (!activeSourceId) return
 
-      let voiceList: { id: string; name: string; previewUrl?: string }[] = []
       try {
-        const resp = await fetch('/api/audio/voices', { cache: 'no-store' })
-        const data = await resp.json()
-        voiceList = (data.voices || []).map((v: { id: string; brandName?: string; name?: string; gender?: string; previewUrl?: string }) => ({
+        const [voicesResp, vibesResp] = await Promise.all([
+          fetch('/api/audio/voices', { cache: 'no-store' }),
+          fetch('/api/audio/vibes', { cache: 'no-store' }),
+        ])
+        const voicesData = await voicesResp.json()
+        const voiceList = (voicesData.voices || []).map((v: { id: string; brandName?: string; name?: string; gender?: string; previewUrl?: string }) => ({
           id: v.id,
           name: `${v.brandName || v.name} (${v.gender})`,
           previewUrl: v.previewUrl,
         }))
         setVoices(voiceList)
+
+        const vibesData = await vibesResp.json().catch(() => ({ vibes: [] }))
+        const vibeList = (vibesData.vibes || []).map((v: { id: string; name: string; description?: string; previewUrl?: string | null }) => ({
+          id: v.id,
+          name: v.name,
+          description: v.description,
+          previewUrl: v.previewUrl || undefined,
+        }))
+        setVibes(vibeList)
       } catch { /* keep empty */ }
     } finally {
       setDataLoading(false)
@@ -206,10 +220,12 @@ export default function AudioGeneratePage() {
         return
       }
 
+      const composedVoiceId = buildVoiceId(selectedVoiceForNew, selectedVibe)
+
       const batchInsert: Record<string, unknown> = {
         user_id: user.id,
         variant_ids: ['standard'],
-        voice_id: selectedVoiceForNew,
+        voice_id: composedVoiceId,
         sections_requested: sectionsPayload,
         total_tracks_expected: sectionsPayload.length,
         status: 'pending',
@@ -238,11 +254,12 @@ export default function AudioGeneratePage() {
 
       if (batchError || !batch) { alert('Failed to create generation batch.'); setGenerating(false); return }
 
-      setLastBatchVoiceId(selectedVoiceForNew)
+      setLastBatchVoiceId(composedVoiceId)
 
       const generatePayload: Record<string, unknown> = {
         sections: sectionsPayload,
         voice: selectedVoiceForNew,
+        vibe: selectedVibe,
         variant: 'standard',
         batchId: batch.id,
         audioSetName: audioSetName || undefined,
@@ -304,8 +321,10 @@ export default function AudioGeneratePage() {
 
   const lastVoiceNoteLabel = useMemo(() => {
     if (!lastBatchVoiceId) return null
-    const fromList = voices.find(v => v.id === lastBatchVoiceId)
-    return fromList?.name ?? lastBatchVoiceId
+    const { voice: voicePart, vibe: vibePart } = parseVoiceId(lastBatchVoiceId)
+    const voiceName = voices.find(v => v.id === voicePart)?.name ?? voicePart
+    const vibeLabel = vibePart ? VOICE_VIBES.find(v => v.id === vibePart)?.label : null
+    return vibeLabel ? `${voiceName} · ${vibeLabel}` : voiceName
   }, [lastBatchVoiceId, voices])
 
   return (
@@ -400,6 +419,9 @@ export default function AudioGeneratePage() {
                             )}
                             <div className="flex-1 min-w-0 text-left">
                               <p className="text-white font-medium text-sm md:text-base">{voice.name}</p>
+                              {voice.description && (
+                                <p className="text-xs text-neutral-400 mt-0.5">{voice.description}</p>
+                              )}
                             </div>
                             <div className="relative flex-shrink-0 w-9 h-9">
                               {isThisPreviewing && (
@@ -514,6 +536,55 @@ export default function AudioGeneratePage() {
                     ? 'Audio will be generated for your Life Vision in your selected voice (up to 14 total tracks: Forward, 12 life categories, and Conclusion).'
                     : 'VIVA will narrate your selected story in your selected voice as a single audio track.'}
                 </p>
+
+                {vibes.length > 0 && (
+                  <div className="w-full max-w-md text-left">
+                    <p className="text-sm font-medium text-white mb-1 text-center">Tone</p>
+                    <p className="text-xs text-neutral-500 mb-3 text-center">Choose the feel of the narration. Previews use a sample voice.</p>
+                    <div className="space-y-2">
+                      {vibes.map(vibe => {
+                        const isSelected = selectedVibe === vibe.id
+                        const previewId = `vibe-${vibe.id}`
+                        const isThisPreviewing = previewingVoiceId === previewId
+                        const canPreview = Boolean(vibe.previewUrl)
+                        return (
+                          <div
+                            key={vibe.id}
+                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-primary-500/10 border border-primary-500'
+                                : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
+                            }`}
+                            onClick={() => setSelectedVibe(vibe.id)}
+                          >
+                            {isSelected && <CheckCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white font-medium text-sm">{vibe.name}</p>
+                              {vibe.description && (
+                                <p className="text-xs text-neutral-400 mt-0.5">{vibe.description}</p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              disabled={!canPreview}
+                              onClick={e => { if (canPreview && vibe.previewUrl) handleVoicePreview(e, vibe.previewUrl, previewId) }}
+                              className={`relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                                isThisPreviewing
+                                  ? 'bg-primary-500'
+                                  : canPreview
+                                    ? 'bg-neutral-800 hover:bg-neutral-700'
+                                    : 'bg-neutral-800/50 cursor-not-allowed opacity-50'
+                              }`}
+                            >
+                              {isThisPreviewing ? <X className="w-4 h-4 text-[#1F1F1F]" /> : <Play className="w-4 h-4 text-neutral-400" />}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   variant="primary"
                   onClick={handleGenerate}

@@ -14,12 +14,13 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const { visionId, storyId, contentType, sections, voice = 'alloy', format = 'mp3', force = false, variant, audioSetId, audioSetName, batchId } = body as {
+    const { visionId, storyId, contentType, sections, voice = 'alloy', vibe, format = 'mp3', force = false, variant, audioSetId, audioSetName, batchId } = body as {
       visionId?: string
       storyId?: string
       contentType?: string
       sections: { sectionKey: string; text: string }[]
       voice?: VoiceId | string
+      vibe?: string
       format?: 'mp3' | 'wav'
       force?: boolean
       variant?: string
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
       contentId: storyId || undefined,
       sections,
       voice,
+      vibe,
       format,
       force,
       variant,
