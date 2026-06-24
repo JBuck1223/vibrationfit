@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
 // Allow GET requests for testing
 export async function GET() {
   return NextResponse.json({
-    message: "VibrationFit S3 Backup API",
+    message: "Vibration Fit S3 Backup API",
     status: "ready",
     timestamp: new Date().toISOString()
   })

@@ -215,11 +215,11 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
 
     case 'demo':
       return {
-        subject: `${firstName}, your VibrationFit demo is next`,
+        subject: `${firstName}, your Vibration Fit demo is next`,
         textBody: [
           `Hey ${firstName},`,
           '',
-          `Really glad you're interested in seeing VibrationFit in action. We're going to personally walk you through everything -- your Life Vision, VIVA coaching, vision boards, the works.`,
+          `Really glad you're interested in seeing Vibration Fit in action. We're going to personally walk you through everything -- your Life Vision, VIVA coaching, vision boards, the works.`,
           '',
           `Before we schedule, quick favor: can you reply to this email with "Got it" so I know my emails are landing in your primary inbox? I want to make sure you get the calendar link when I send it.`,
           '',
@@ -254,7 +254,7 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
         textBody: [
           `Hey ${firstName},`,
           '',
-          `Welcome to VibrationFit! Your Vibration Assessment measures your alignment across 12 life categories and shows you exactly where you're thriving and where the growth opportunities are.`,
+          `Welcome to Vibration Fit! Your Vibration Assessment measures your alignment across 12 life categories and shows you exactly where you're thriving and where the growth opportunities are.`,
           '',
           `If you need to step away and come back, your progress is saved. Just return to pick up where you left off:`,
           'https://vibrationfit.com/assessment/start',
@@ -269,7 +269,7 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
 
     default:
       return {
-        subject: `Hey ${firstName}, quick note from VibrationFit`,
+        subject: `Hey ${firstName}, quick note from Vibration Fit`,
         textBody: [
           `Hey ${firstName},`,
           '',

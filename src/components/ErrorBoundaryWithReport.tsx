@@ -4,7 +4,7 @@ import React from 'react'
 import { AlertCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 import { logClientError } from '@/lib/logger/client'
 
-const LOG_PREFIX = '[VibrationFit Error Boundary]'
+const LOG_PREFIX = '[Vibration Fit Error Boundary]'
 
 interface ErrorBoundaryWithReportProps {
   children: React.ReactNode

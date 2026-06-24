@@ -41,7 +41,7 @@ const EMAIL_TEMPLATES_DATA: Record<string, any> = {
   'welcome': {
     id: 'welcome',
     name: 'Welcome Email',
-    description: 'Welcome new users to VibrationFit',
+    description: 'Welcome new users to Vibration Fit',
     category: 'Onboarding',
     triggers: [
       {

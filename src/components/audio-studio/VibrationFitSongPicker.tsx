@@ -43,7 +43,7 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
         setSongs(data.filter((s): s is VibrationFitSong => Boolean(s.preview_url)))
       }
     } catch (err) {
-      console.error('Failed to load VibrationFit songs:', err)
+      console.error('Failed to load Vibration Fit songs:', err)
     } finally {
       setLoading(false)
       setLoaded(true)
@@ -75,7 +75,7 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
         )}
       >
         <Disc3 className="h-3.5 w-3.5 text-neutral-400" />
-        VibrationFit Songs
+        Vibration Fit Songs
         <ChevronDown className="ml-auto h-3 w-3 text-neutral-500" />
       </button>
     )
@@ -89,7 +89,7 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
         className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-white transition-colors hover:bg-white/[0.03]"
       >
         <Disc3 className="h-3.5 w-3.5 text-[#39FF14]" />
-        VibrationFit Songs
+        Vibration Fit Songs
         <ChevronUp className="ml-auto h-3 w-3 text-neutral-500" />
       </button>
 
@@ -101,7 +101,7 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
         ) : songs.length === 0 ? (
           <div className="py-6 text-center">
             <Music2 className="mx-auto h-6 w-6 text-neutral-600" />
-            <p className="mt-2 text-xs text-neutral-500">No VibrationFit songs available yet.</p>
+            <p className="mt-2 text-xs text-neutral-500">No Vibration Fit songs available yet.</p>
           </div>
         ) : (
           <>
@@ -146,7 +146,7 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
                         {song.title}
                       </p>
                       <p className="truncate text-[10px] text-neutral-500">
-                        {song.artist || 'VibrationFit'}
+                        {song.artist || 'Vibration Fit'}
                         {song.album ? ` · ${song.album}` : ''}
                       </p>
                     </div>

@@ -60,7 +60,7 @@ export default function NewCampaignPage() {
     if (formData.utm_content) params.append('utm_content', formData.utm_content)
     if (formData.utm_term) params.append('utm_term', formData.utm_term)
     
-    // Add VibrationFit tracking parameters
+    // Add Vibration Fit tracking parameters
     if (formData.promo_code) params.append('promo', formData.promo_code)
     if (formData.referral_source) params.append('ref', formData.referral_source)
     if (formData.continuity_plan) params.append('continuity', formData.continuity_plan)
@@ -389,11 +389,11 @@ export default function NewCampaignPage() {
           </div>
         </Card>
 
-        {/* VibrationFit Tracking Parameters */}
+        {/* Vibration Fit Tracking Parameters */}
         <Card className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">
             <Target className="w-5 h-5 inline mr-2" />
-            VibrationFit Tracking
+            Vibration Fit Tracking
           </h2>
 
           <div className="space-y-4">

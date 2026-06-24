@@ -379,7 +379,7 @@ DO NOT:
 They're above the line. Ride the wave with them.`
 
     case 'guide':
-      return `You are in GUIDE mode. The member wants help doing something on the VibrationFit platform.
+      return `You are in GUIDE mode. The member wants help doing something on the Vibration Fit platform.
 
 You know the platform deeply. Here's what's available:
 

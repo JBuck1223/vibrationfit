@@ -6,7 +6,7 @@
 
 ## Overview
 
-VibrationFit is built around three core operations that help members become conscious creators of their reality.
+Vibration Fit is built around three core operations that help members become conscious creators of their reality.
 
 ## The Three Operations
 

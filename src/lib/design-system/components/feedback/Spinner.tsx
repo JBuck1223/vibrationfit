@@ -40,7 +40,7 @@ export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
               borderTopColor: '#39FF14',
               borderRightColor: '#39FF14'
             }} />
-            {/* Original VibrationFit Logo with pulse */}
+            {/* Original Vibration Fit Logo with pulse */}
             <img 
               src="https://media.vibrationfit.com/site-assets/brand/logo/logo-bar.svg"
               alt="Vibration Fit Loading"
@@ -73,10 +73,10 @@ export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
             borderTopColor: variants[variant],
             borderRightColor: variants[variant]
           }} />
-          {/* VibrationFit Logo Loading Animation with pulse */}
+          {/* Vibration Fit Logo Loading Animation with pulse */}
           <img 
             src="https://media.vibrationfit.com/site-assets/brand/logo/logo-bar.svg"
-            alt="VibrationFit Loading"
+            alt="Vibration Fit Loading"
             className={cn(
               'relative z-10 logo-loading',
               sizes[size]

@@ -81,7 +81,7 @@ interface FormData {
 const SESSION_TYPE_DEFAULTS: Record<SessionTypeKey, { title: string; description: string; apiType: VideoSessionType; duration?: number }> = {
   one_on_one: {
     title: 'Discovery Session',
-    description: 'A personalized 1:1 session to explore your goals and how VibrationFit can support your journey.',
+    description: 'A personalized 1:1 session to explore your goals and how Vibration Fit can support your journey.',
     apiType: 'one_on_one',
   },
   calibration_call: {

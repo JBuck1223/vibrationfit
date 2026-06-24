@@ -150,7 +150,7 @@ export async function GET(
       .maybeSingle()
     const artistName = account?.full_name
       || [account?.first_name, account?.last_name].filter(Boolean).join(' ').trim()
-      || 'VibrationFit Member'
+      || 'Vibration Fit Member'
 
     // Which are published (live on streaming) -> music_catalog with 'published' tag.
     const mp3Urls = deduped.map(t => t.mp3_url).filter(Boolean) as string[]

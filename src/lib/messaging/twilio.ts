@@ -1,5 +1,5 @@
 // /src/lib/messaging/twilio.ts
-// Twilio SMS client for VibrationFit CRM
+// Twilio SMS client for Vibration Fit CRM
 
 import { Twilio } from 'twilio'
 

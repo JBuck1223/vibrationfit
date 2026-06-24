@@ -300,7 +300,7 @@ export default function DashboardContent({ user, profileData, visionData, vision
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//VibrationFit//Calibration Call//EN',
+      'PRODID:-//Vibration Fit//Calibration Call//EN',
       'BEGIN:VEVENT',
       `DTSTART:${formatICSDate(start)}`,
       `DTEND:${formatICSDate(end)}`,

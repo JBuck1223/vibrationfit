@@ -1,5 +1,5 @@
 /**
- * VibrationFit Page Classifications
+ * Vibration Fit Page Classifications
  * 
  * Master definition of all pages and their classification for layout routing.
  * This is the single source of truth for page types (USER, ADMIN, PUBLIC).

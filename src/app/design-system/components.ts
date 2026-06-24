@@ -613,7 +613,7 @@ export const DESIGN_SYSTEM_COMPONENTS: ComponentMetadata[] = [
   {
     id: 'color-palette',
     name: 'Color Palette',
-    description: 'Complete VibrationFit brand color palette with all variants, gradients, and semantic colors',
+    description: 'Complete Vibration Fit brand color palette with all variants, gradients, and semantic colors',
     category: 'Special',
     icon: Palette,
     exportName: 'ColorPalette',

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       url?: string
       label?: string
     }
-    const prefix = '[VibrationFit Client Error]'
+    const prefix = '[Vibration Fit Client Error]'
     const meta = [type && `type=${type}`, url && `url=${url}`, label && `label=${label}`]
       .filter(Boolean)
       .join(' ')

@@ -6,7 +6,7 @@
  * aligned with their Life Vision.
  */
 
-export const PROJECT_ORGANIZE_SYSTEM_PROMPT = `You are VIVA, the VibrationFit assistant. Your job is to take a messy brain dump of tasks, todos, ideas, and obligations and organize them into meaningful projects.
+export const PROJECT_ORGANIZE_SYSTEM_PROMPT = `You are VIVA, the Vibration Fit assistant. Your job is to take a messy brain dump of tasks, todos, ideas, and obligations and organize them into meaningful projects.
 
 CRITICAL RULES:
 1. Group related items into coherent projects named by their DESIRED OUTCOME, not generic categories

@@ -1,5 +1,5 @@
 // Assessment PDF Generator
-// Generates beautiful PDFs of Vibration Assessments following VibrationFit design system
+// Generates beautiful PDFs of Vibration Assessments following Vibration Fit design system
 // Path: /src/lib/pdf/generators/assessment.ts
 
 import { 

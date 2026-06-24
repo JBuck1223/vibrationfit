@@ -172,7 +172,7 @@ async function processMessages(request: NextRequest) {
 
             await sendAndLogEmail({
               to: message.recipient_email,
-              subject: message.subject || 'VibrationFit Reminder',
+              subject: message.subject || 'Vibration Fit Reminder',
               ...(message.text_body ? {} : { htmlBody: message.body }),
               textBody: message.text_body || message.body.replace(/<[^>]*>/g, ''),
               context: {
@@ -404,7 +404,7 @@ async function processCampaignMessages(
 
           await sendAndLogEmail({
             to: msg.recipient_email,
-            subject: msg.subject || 'VibrationFit',
+            subject: msg.subject || 'Vibration Fit',
             from: fromEmail,
             textBody: msg.text_body || msg.body.replace(/<[^>]*>/g, ''),
             ...(msg.text_body ? {} : { htmlBody: msg.body }),

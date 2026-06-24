@@ -1,4 +1,4 @@
-// VibrationFit Design System - Live Component Library
+// Vibration Fit Design System - Live Component Library
 // Complete design system with layout primitives, UI components, and responsive guidelines
 
 'use client'
@@ -134,7 +134,7 @@ export default function DesignSystemExperiment() {
     {
       id: '1',
       title: 'Life Vision Forward',
-      artist: 'VibrationFit AI',
+      artist: 'Vibration Fit AI',
       duration: 180,
       url: 'https://commondatastorage.googleapis.com/codeskulptor-assets/Epoq-Lepidoptera.ogg',
       thumbnail: ''
@@ -142,7 +142,7 @@ export default function DesignSystemExperiment() {
     {
       id: '2',
       title: 'Health & Vitality',
-      artist: 'VibrationFit AI',
+      artist: 'Vibration Fit AI',
       duration: 210,
       url: 'https://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Sevish_-__nbsp_.mp3',
       thumbnail: ''
@@ -150,7 +150,7 @@ export default function DesignSystemExperiment() {
     {
       id: '3',
       title: 'Money & Abundance',
-      artist: 'VibrationFit AI',
+      artist: 'Vibration Fit AI',
       duration: 195,
       url: 'https://commondatastorage.googleapis.com/codeskulptor-assets/week7-brrring.m4a',
       thumbnail: ''
@@ -170,7 +170,7 @@ export default function DesignSystemExperiment() {
           <section>
             <Cover minHeight="300px" className="bg-gradient-to-br from-[#39FF14]/20 via-[#00FFFF]/10 to-[#BF00FF]/20 rounded-3xl border-2 border-[#333]">
               <Stack align="center" gap="md" className="text-center max-w-4xl">
-                <h2 className="text-3xl md:text-5xl font-bold text-white">VibrationFit Design System</h2>
+                <h2 className="text-3xl md:text-5xl font-bold text-white">Vibration Fit Design System</h2>
                 <p className="text-lg md:text-xl text-[#cbd5e1]">Complete component library with layout primitives, UI components, and mobile-first responsive guidelines</p>
                 <Inline gap="sm" className="mt-4">
                   <Button variant="primary" size="lg">Get Started</Button>
@@ -309,7 +309,7 @@ export default function DesignSystemExperiment() {
                 <Stack gap="md">
                   <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <Icon icon={Palette} size="md" color="#39FF14" />
-                    Color Reference - VibrationFit Brand Palette
+                    Color Reference - Vibration Fit Brand Palette
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -711,7 +711,7 @@ export default function DesignSystemExperiment() {
           {/* Loading States */}
           <section className="mb-16">
             <h2 className="text-3xl font-bold mb-8 pb-2 border-b-4 border-[#39FF14]">Loading States</h2>
-            <p className="text-[#9CA3AF] mb-8 text-lg">Branded loading indicators using the VibrationFit logo.</p>
+            <p className="text-[#9CA3AF] mb-8 text-lg">Branded loading indicators using the Vibration Fit logo.</p>
             
             <Card>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -1331,7 +1331,7 @@ export default function DesignSystemExperiment() {
                     <Card variant="default" className="p-4">
                       <Stack gap="sm">
                         <h4 className="text-lg font-medium mb-2 text-white">Video Player</h4>
-                        <p className="text-sm text-[#9CA3AF] mb-4">Responsive video with VibrationFit styling and YouTube-style play button</p>
+                        <p className="text-sm text-[#9CA3AF] mb-4">Responsive video with Vibration Fit styling and YouTube-style play button</p>
                         
                         <Video 
                           src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
@@ -1472,7 +1472,7 @@ import { AudioPlayer, type AudioTrack } from '@/lib/design-system'
 const track: AudioTrack = {
   id: '1',
   title: 'Your Vision Forward',
-  artist: 'VibrationFit AI',
+  artist: 'Vibration Fit AI',
   duration: 180,
   url: 'https://media.vibrationfit.com/audio.mp3'
 }
@@ -2608,7 +2608,7 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
       >
         <Stack gap="md">
           <p className="text-[#9CA3AF]">
-            This is a fully accessible modal with VibrationFit styling. 
+            This is a fully accessible modal with Vibration Fit styling. 
             It includes backdrop blur, keyboard navigation, and proper ARIA attributes.
           </p>
           
@@ -2767,7 +2767,7 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
 
                 <div className="space-y-3 mb-8">
                   {[
-                    'VibrationFit platform access (all 12 categories)',
+                    'Vibration Fit platform access (all 12 categories)',
                     'MAP, Vision Boards, Vision Audio, Immersion Tracks',
                     'VIVA AI assistant (5M tokens)',
                     'Journal, community access',
@@ -2822,7 +2822,7 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
 
                 <div className="space-y-3 mb-8">
                   {[
-                    'VibrationFit platform access (all 12 categories)',
+                    'Vibration Fit platform access (all 12 categories)',
                     'MAP, Vision Boards, Vision Audio, Immersion Tracks',
                     'VIVA AI assistant (375k tokens per 28 days)',
                     'Journal, community access',
@@ -2878,7 +2878,7 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
 
                   <div className="space-y-3 mb-8">
                     {[
-                      'VibrationFit platform access (all 12 categories)',
+                      'Vibration Fit platform access (all 12 categories)',
                       'MAP, Vision Boards, Vision Audio, Immersion Tracks',
                       'VIVA AI assistant (5M tokens)',
                       'Journal, community access',
@@ -2928,7 +2928,7 @@ const tracks: AudioTrack[] = [/* multiple tracks */]
 
                   <div className="space-y-3 mb-8">
                     {[
-                      'VibrationFit platform access (all 12 categories)',
+                      'Vibration Fit platform access (all 12 categories)',
                       'MAP, Vision Boards, Vision Audio, Immersion Tracks',
                       'VIVA AI assistant (375k tokens per 28 days)',
                       'Journal, community access',

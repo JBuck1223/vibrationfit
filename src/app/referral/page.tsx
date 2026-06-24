@@ -182,7 +182,7 @@ export default function ReferralPage() {
   const shareVia = (platform: string) => {
     if (!dashboard) return
     const link = encodeURIComponent(dashboard.referralLink)
-    const text = encodeURIComponent('Check out VibrationFit - a 72-hour life vision activation experience')
+    const text = encodeURIComponent('Check out Vibration Fit - a 72-hour life vision activation experience')
 
     const urls: Record<string, string> = {
       twitter: `https://twitter.com/intent/tweet?text=${text}&url=${link}`,
@@ -266,7 +266,7 @@ export default function ReferralPage() {
   }
 
   const defaultMessage = dashboard
-    ? `Hey! I've been using something called VibrationFit and thought you'd love it. It's a 72-Hour Activation Intensive where you create a written life vision, custom AM/PM audios, a vision board, and a 28-day plan to make it all stick. Check it out here: ${dashboard.referralLink}`
+    ? `Hey! I've been using something called Vibration Fit and thought you'd love it. It's a 72-Hour Activation Intensive where you create a written life vision, custom AM/PM audios, a vision board, and a 28-day plan to make it all stick. Check it out here: ${dashboard.referralLink}`
     : ''
 
   const activeMessage = myMessage || defaultMessage

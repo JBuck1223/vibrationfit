@@ -1,5 +1,5 @@
 /**
- * VibrationFit Navigation Menu Definitions
+ * Vibration Fit Navigation Menu Definitions
  * 
  * Master definition of all navigation menus and menu items.
  * This is the single source of truth for sidebar, mobile, and header navigation.
@@ -428,6 +428,7 @@ export const adminNavigation: NavItem[] = [
       { name: 'Audio Generator', href: '/admin/audio-generator', icon: Wand2, description: 'Generate Solfeggio & Binaural tracks' },
       { name: 'Ambient Designer', href: '/admin/audio-designer', icon: Music, description: 'Create custom rain, ocean, waterfall sounds' },
       { name: 'Music Catalog', href: '/admin/music', icon: Music2, description: 'Tracks, lyrics, life tags, streaming links' },
+      { name: 'Song Submissions', href: '/admin/song-submissions', icon: Send, description: 'Review and approve music submissions for publishing' },
       { name: 'Voice Audition Studio', href: '/admin/audio', icon: Mic, description: 'Compare TTS voices for production' },
     ]
   },
@@ -491,7 +492,7 @@ export const adminNavigation: NavItem[] = [
     href: '/admin/homeschool',
     icon: GraduationCap,
     requiresAdmin: true,
-    description: 'VibrationFit homeschool curriculum overview',
+    description: 'Vibration Fit homeschool curriculum overview',
   },
 
   // ============================================================================

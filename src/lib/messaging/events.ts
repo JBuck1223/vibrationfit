@@ -109,7 +109,7 @@ export async function triggerEvent(
             if (rule.channel === 'email' && payload.email) {
               await sendAndLogEmail({
                 to: payload.email,
-                subject: subject || 'VibrationFit',
+                subject: subject || 'Vibration Fit',
                 ...(textBody ? {} : { htmlBody: body }),
                 textBody: textBody || body.replace(/<[^>]*>/g, ''),
                 context: { userId: payload.userId, guestEmail: payload.email },

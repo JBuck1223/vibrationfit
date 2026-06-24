@@ -38,9 +38,10 @@ export function SavedRecordings({
     setMounted(true)
   }, [])
 
+  const safeRecordings = Array.isArray(recordings) ? recordings : []
   const filteredRecordings = categoryFilter
-    ? recordings.filter(r => r.category === categoryFilter)
-    : recordings
+    ? safeRecordings.filter(r => r.category === categoryFilter)
+    : safeRecordings
 
   if (!filteredRecordings || filteredRecordings.length === 0) {
     return null

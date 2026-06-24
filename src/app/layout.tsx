@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | VibrationFit',
+    template: '%s | Vibration Fit',
     default: 'Vibration Fit',
   },
   description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",

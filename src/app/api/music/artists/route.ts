@@ -92,7 +92,7 @@ export async function GET() {
       const account = accountsById[userId]
       const name = account?.full_name
         || [account?.first_name, account?.last_name].filter(Boolean).join(' ').trim()
-        || 'VibrationFit Member'
+        || 'Vibration Fit Member'
       const memberLibraryCount = songsByUser.get(userId)?.size || 0
       const officialCount = officialSongsByUser.get(userId) || 0
       return {

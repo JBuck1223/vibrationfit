@@ -318,7 +318,7 @@ export function AlignmentGymHub({
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//VibrationFit//Alignment Gym//EN',
+      'PRODID:-//Vibration Fit//Alignment Gym//EN',
       'BEGIN:VEVENT',
       `DTSTART:${formatICSDate(start)}`,
       `DTEND:${formatICSDate(end)}`,

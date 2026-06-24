@@ -879,7 +879,7 @@ export default function SongwriterPage() {
           />
           <Stack gap="sm">
             <label className="text-sm font-medium text-neutral-200">Reference Track</label>
-            <p className="text-xs text-neutral-500">Paste a YouTube URL, pick a VibrationFit song, or reuse one from your library. Select 30 seconds to set the musical vibe.</p>
+            <p className="text-xs text-neutral-500">Paste a YouTube URL, pick a Vibration Fit song, or reuse one from your library. Select 30 seconds to set the musical vibe.</p>
 
             <div className="grid gap-2 sm:grid-cols-2">
               <ReferenceLibraryPicker

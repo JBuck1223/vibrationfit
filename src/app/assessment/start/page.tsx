@@ -1039,7 +1039,7 @@ export default function PublicAssessmentPage() {
                   Ready to Raise Your Vibration?
                 </h3>
                 <p className="text-neutral-400 text-xs md:text-sm lg:text-base max-w-xl mx-auto">
-                  Your assessment is just the starting point. VibrationFit gives you a personalized Life Vision, VIVA coaching, and daily tools to move every category Above the Green Line.
+                  Your assessment is just the starting point. Vibration Fit gives you a personalized Life Vision, VIVA coaching, and daily tools to move every category Above the Green Line.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2 md:gap-3 justify-center">
                   <Button

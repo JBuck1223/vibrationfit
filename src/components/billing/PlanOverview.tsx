@@ -764,7 +764,7 @@ export default function PlanOverview({
                     <p className="text-sm font-medium text-[#FF0040] mb-1">Household members will be removed</p>
                     <p className="text-xs text-neutral-400 leading-relaxed">
                       All household members (except you) will lose access to shared tokens and storage.
-                      They will need to subscribe to their own plan to continue using VibrationFit.
+                      They will need to subscribe to their own plan to continue using Vibration Fit.
                       Any intensive assignments already on their accounts will remain.
                     </p>
                   </div>

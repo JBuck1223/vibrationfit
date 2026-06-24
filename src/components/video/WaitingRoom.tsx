@@ -75,7 +75,7 @@ export function WaitingRoom({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://media.vibrationfit.com/site-assets/brand/logo/logo-icon.svg"
-            alt="VibrationFit"
+            alt="Vibration Fit"
             className="h-12 w-12 mx-auto"
             style={{
               filter: 'brightness(0) saturate(100%) invert(58%) sepia(95%) saturate(1352%) hue-rotate(75deg) brightness(101%) contrast(101%)',

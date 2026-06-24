@@ -1,10 +1,10 @@
 // Base PDF Generator Utility
-// Provides core PDF generation functionality following VibrationFit design system
+// Provides core PDF generation functionality following Vibration Fit design system
 // Path: /src/lib/pdf/generators/base.ts
 
 import { jsPDF } from 'jspdf'
 
-// VibrationFit Brand Colors (from design system rules)
+// Vibration Fit Brand Colors (from design system rules)
 export const PDF_COLORS = {
   // Primary Brand Colors
   primaryGreen: '#199D67',

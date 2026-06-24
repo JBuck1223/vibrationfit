@@ -456,7 +456,7 @@ export async function GET(req: NextRequest) {
       <div class="cover-by"><strong>${isHouseholdVision ? 'By:' : 'Created by:'}</strong> ${escapeHtml(userName)}</div>
       <div class="cover-date"><strong>Created:</strong> ${createdDate}</div>
       <div class="cover-logo">
-        <img src="https://media.vibrationfit.com/site-assets/brand/logo/black-bar-top-of-vfit.png" alt="VibrationFit" style="max-width: 300px; width: 100%; height: auto;" />
+        <img src="https://media.vibrationfit.com/site-assets/brand/logo/black-bar-top-of-vfit.png" alt="Vibration Fit" style="max-width: 300px; width: 100%; height: auto;" />
       </div>
     </header>${categoriesWithContent.map((category) => {
       const content = vision[category.key as keyof VisionData] as string

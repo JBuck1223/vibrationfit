@@ -156,7 +156,7 @@ export default function UTMBuilderPage() {
         <h2 className="text-lg md:text-xl font-semibold mb-4">Quick Examples</h2>
         <div className="space-y-3">
           <div>
-            <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wider">VibrationFit Products</p>
+            <p className="text-xs text-neutral-500 mb-2 uppercase tracking-wider">Vibration Fit Products</p>
             <div className="flex flex-wrap gap-2 md:gap-3">
               <Button variant="primary" size="sm" onClick={() => loadExample('visionpro')}>
                 Vision Pro Affiliate
@@ -277,7 +277,7 @@ export default function UTMBuilderPage() {
 
           <div className="pt-4 border-t border-[#333]">
             <h3 className="text-base font-semibold mb-4 text-primary-500">
-              VibrationFit Tracking Parameters
+              Vibration Fit Tracking Parameters
             </h3>
             <p className="text-xs text-neutral-400 mb-4">
               <strong>Important:</strong> Use <code className="text-primary-500">promo=</code> (not promo_code) and <code className="text-primary-500">ref=</code> (not referral_source) for proper tracking!<br/>
@@ -372,7 +372,7 @@ export default function UTMBuilderPage() {
             </ul>
           </div>
           <div className="pt-3 border-t border-[#333]">
-            <h3 className="text-sm font-semibold text-accent-500 mb-2">VibrationFit Affiliate Tracking</h3>
+            <h3 className="text-sm font-semibold text-accent-500 mb-2">Vibration Fit Affiliate Tracking</h3>
             <ul className="space-y-2 text-sm text-neutral-300">
               <li>
                 • <strong>Promo Code (promo=):</strong> Use ALL CAPS for consistency (e.g., INTENSIVE2025, BETA2024)
