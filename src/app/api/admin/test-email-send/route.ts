@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const { messageId } = await sendAndLogEmail({
       to: to || user.email,
-      subject: 'Test Email from VibrationFit',
+      subject: 'Test Email from Vibration Fit',
       htmlBody: '<p>This is a test email. If you received this, AWS SES is working!</p>',
       textBody: 'This is a test email. If you received this, AWS SES is working!',
       replyTo: 'team@vibrationfit.com',

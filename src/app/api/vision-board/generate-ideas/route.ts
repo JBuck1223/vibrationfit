@@ -9,7 +9,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-const VISION_BOARD_IDEAS_SYSTEM_PROMPT = `You are VIVA, the VibrationFit AI assistant. Generate exactly 3 vision board items per category based on the user's Life Vision.
+const VISION_BOARD_IDEAS_SYSTEM_PROMPT = `You are VIVA, the Vibration Fit AI assistant. Generate exactly 3 vision board items per category based on the user's Life Vision.
 
 CRITICAL RULES:
 1. Each item MUST be a JSON object with "name" and "description" fields

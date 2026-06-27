@@ -1,5 +1,5 @@
 // Journal PDF Generator
-// Generates beautiful PDFs of Journal Entries following VibrationFit design system
+// Generates beautiful PDFs of Journal Entries following Vibration Fit design system
 // Path: /src/lib/pdf/generators/journal.ts
 
 import { 

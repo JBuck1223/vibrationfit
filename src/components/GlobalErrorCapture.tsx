@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { AlertCircle, X } from 'lucide-react'
 import { logClientError } from '@/lib/logger/client'
 
-const LOG_PREFIX = '[VibrationFit Global Error]'
+const LOG_PREFIX = '[Vibration Fit Global Error]'
 
 function isBenignMediaRejection(reason: unknown): boolean {
   if (reason == null || typeof reason !== 'object') return false

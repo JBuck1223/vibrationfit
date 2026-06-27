@@ -25,7 +25,7 @@ const EMAIL_TEMPLATES = [
   {
     id: 'welcome',
     name: 'Welcome Email',
-    description: 'Welcome new users to VibrationFit',
+    description: 'Welcome new users to Vibration Fit',
     category: 'Onboarding',
     triggers: [
       'User completes signup',

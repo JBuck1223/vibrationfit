@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       .eq('status', 'active')
       .maybeSingle()
 
-    const referrerName = bodyReferrerName || participant.display_name || 'A VibrationFit member'
+    const referrerName = bodyReferrerName || participant.display_name || 'A Vibration Fit member'
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
     const referralLink = `${siteUrl}/offer/launch?ref=${participant.referral_code}`
 
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       to: referredEmail,
       subject,
       textBody,
-      from: process.env.AWS_SES_FROM_EMAIL || '"Jordan at VibrationFit" <team@vibrationfit.com>',
+      from: process.env.AWS_SES_FROM_EMAIL || '"Jordan at Vibration Fit" <team@vibrationfit.com>',
       context: {
         guestEmail: referredEmail,
       },

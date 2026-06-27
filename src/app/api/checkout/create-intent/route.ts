@@ -504,7 +504,7 @@ export async function POST(request: NextRequest) {
                       supabaseAdmin,
                       householdId: household.id,
                       adminUserId: userId,
-                      adminName: name || 'A VibrationFit member',
+                      adminName: name || 'A Vibration Fit member',
                       adminEmail: email || '',
                       householdName: household.name,
                       partnerFirstName,

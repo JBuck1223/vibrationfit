@@ -1,6 +1,6 @@
 'use client'
 
-// VibrationFit Design System - Master Component Listing
+// Vibration Fit Design System - Master Component Listing
 // Browse all design system components and navigate to individual showcases
 
 import { useRouter } from 'next/navigation'
@@ -115,7 +115,7 @@ export default function DesignSystemMasterPage() {
     <Stack gap="lg">
       <div className="text-center">
         <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
-          VibrationFit Design System
+          Vibration Fit Design System
         </h1>
         <p className="text-base md:text-lg text-neutral-400 max-w-2xl mx-auto">
           Explore all design system components individually. Each component has its own showcase page with examples, props, and usage guidelines.

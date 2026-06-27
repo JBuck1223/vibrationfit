@@ -701,7 +701,8 @@ export default function ProfileDetailPage() {
               <ProfilePictureClickable
                 src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
                 alt="Profile picture"
-                className="inline-flex h-24 w-24 md:h-32 md:w-32 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+                avoidNestedButton
+                className="h-24 w-24 md:h-32 md:w-32 aspect-square shrink-0 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
               >
                 <NextImage
                   src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
@@ -732,7 +733,7 @@ export default function ProfileDetailPage() {
                 <ProfilePictureClickable
                   src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
                   alt="Profile picture"
-                  className="inline-flex h-28 w-28 md:h-32 md:w-32 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+                  className="inline-flex h-28 w-28 md:h-32 md:w-32 aspect-square shrink-0 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
                 >
                   <NextImage
                     src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}

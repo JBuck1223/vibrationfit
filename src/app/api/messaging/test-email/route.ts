@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     await sendEmail({
       to: testEmail,
-      subject: 'VibrationFit AWS SES Test Email',
+      subject: 'Vibration Fit AWS SES Test Email',
       htmlBody: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #199D67;">✅ AWS SES is Working!</h2>
@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
           </div>
           <p style="color: #666; font-size: 14px; margin-top: 30px;">
             Best,<br>
-            VibrationFit Team
+            Vibration Fit Team
           </p>
         </div>
       `,
-      textBody: `AWS SES Test Email\n\nIf you're reading this, your AWS SES configuration is working!\n\nFrom: ${process.env.AWS_SES_FROM_EMAIL}\nRegion: ${process.env.AWS_SES_REGION}\nTo: ${testEmail}\n\nBest,\nVibrationFit Team`,
+      textBody: `AWS SES Test Email\n\nIf you're reading this, your AWS SES configuration is working!\n\nFrom: ${process.env.AWS_SES_FROM_EMAIL}\nRegion: ${process.env.AWS_SES_REGION}\nTo: ${testEmail}\n\nBest,\nVibration Fit Team`,
       replyTo: 'team@vibrationfit.com',
     })
 

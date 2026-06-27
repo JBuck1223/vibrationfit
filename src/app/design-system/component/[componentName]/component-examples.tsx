@@ -2231,7 +2231,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               <h4 className="text-base md:text-lg font-semibold text-white">Cover - Centered Hero Section</h4>
               <Cover minHeight="300px" className="bg-gradient-to-br from-[#39FF14]/20 via-[#00FFFF]/10 to-[#BF00FF]/20 rounded-3xl border-2 border-[#333]">
                 <Stack align="center" gap="md" className="text-center max-w-4xl">
-                  <h2 className="text-2xl md:text-4xl font-bold text-white">VibrationFit Design System</h2>
+                  <h2 className="text-2xl md:text-4xl font-bold text-white">Vibration Fit Design System</h2>
                   <p className="text-sm md:text-lg text-[#cbd5e1]">Complete component library with layout primitives, UI components, and mobile-first responsive guidelines</p>
                   <Inline gap="sm" className="mt-4">
                     <Button variant="primary" size="sm">Get Started</Button>
@@ -2301,7 +2301,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
           <Card variant="default" className="p-4 md:p-6">
             <Stack gap="sm">
               <h4 className="text-base md:text-lg font-medium mb-2 text-white">Video Player</h4>
-              <p className="text-sm text-[#9CA3AF] mb-4">Responsive video with VibrationFit styling and YouTube-style play button</p>
+              <p className="text-sm text-[#9CA3AF] mb-4">Responsive video with Vibration Fit styling and YouTube-style play button</p>
               <Video 
                 src="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-1080p.mp4"
                 poster="https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/marketing/hero/intro-video-active-poster.jpg"
@@ -2369,7 +2369,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
             >
               <Stack gap="md">
                 <p className="text-[#9CA3AF]">
-                  This is a fully accessible modal with VibrationFit styling. 
+                  This is a fully accessible modal with Vibration Fit styling. 
                   It includes backdrop blur, keyboard navigation, and proper ARIA attributes.
                 </p>
                 <Button 
@@ -2390,7 +2390,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
       const sampleTrack: AudioTrack = {
         id: '1',
         title: 'Your Vision Forward',
-        artist: 'VibrationFit AI',
+        artist: 'Vibration Fit AI',
         duration: 180,
         url: 'https://example.com/audio.mp3'
       }
@@ -2425,21 +2425,21 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
         {
           id: '1',
           title: 'Your Vision Forward',
-          artist: 'VibrationFit AI',
+          artist: 'Vibration Fit AI',
           duration: 180,
           url: 'https://example.com/audio1.mp3'
         },
         {
           id: '2',
           title: 'Alignment Activation',
-          artist: 'VibrationFit AI',
+          artist: 'Vibration Fit AI',
           duration: 240,
           url: 'https://example.com/audio2.mp3'
         },
         {
           id: '3',
           title: 'Daily Activation',
-          artist: 'VibrationFit AI',
+          artist: 'Vibration Fit AI',
           duration: 200,
           url: 'https://example.com/audio3.mp3'
         }
@@ -3034,7 +3034,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               <Stack gap="sm">
                 <h4 className="text-base md:text-lg font-medium text-white">Color Palette</h4>
                 <p className="text-xs text-neutral-400">
-                  Complete VibrationFit brand color palette. Click hex codes to copy.
+                  Complete Vibration Fit brand color palette. Click hex codes to copy.
                 </p>
                 
                 <Grid minWidth="280px" gap="md" className="mt-2">
@@ -3158,8 +3158,8 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   {
                     id: '1',
                     name: 'Vanessa B.',
-                    role: 'Founder, VibrationFit',
-                    quote: 'Once we locked in the system, abundance flowed. VibrationFit transformed how we approach every area of life.',
+                    role: 'Founder, Vibration Fit',
+                    quote: 'Once we locked in the system, abundance flowed. Vibration Fit transformed how we approach every area of life.',
                     rating: 5,
                   },
                   {
@@ -3622,32 +3622,32 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   {
                     id: 's1',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0002-4.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's2',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0003-5.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's3',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0004-7.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's4',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0005-8.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's5',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0006-9.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's6',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0007-13.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's7',
@@ -3657,32 +3657,32 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   {
                     id: 's8',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0009-11.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's9',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0010-12.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's10',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0011-14.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's11',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0012-15.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's12',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0013-16.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's13',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0014-17.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                 ]}
               />
@@ -3713,7 +3713,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   {
                     id: 's2',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0002-4.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                     caption: 'Real Feedback',
                   },
                 ]}
@@ -3757,17 +3757,17 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
                   {
                     id: 's1',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0003-5.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's2',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0005-8.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                   {
                     id: 's3',
                     src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0007-13.jpg',
-                    alt: 'VibrationFit member testimonial',
+                    alt: 'Vibration Fit member testimonial',
                   },
                 ]}
               />

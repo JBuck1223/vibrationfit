@@ -6,7 +6,7 @@ import { cn } from '../shared-utils'
 
 interface OfferStackItem {
   id: string
-  title: string
+  title: string | React.ReactNode
   description?: string | React.ReactNode
   icon?: React.ElementType | null
   included?: boolean
@@ -21,6 +21,29 @@ interface OfferStackProps extends React.HTMLAttributes<HTMLDivElement> {
   defaultExpanded?: string[]
   allowMultiple?: boolean
   className?: string
+}
+
+const STEP_TITLE_SUFFIX = /\s+\((Steps?\s+\d+(?:[–-]\d+)?)\)$/i
+
+function renderOfferStackTitle(title: string | React.ReactNode) {
+  if (typeof title !== 'string') return title
+
+  const match = title.match(STEP_TITLE_SUFFIX)
+  if (!match) {
+    return <span>{title}</span>
+  }
+
+  const mainTitle = title.slice(0, match.index).trim()
+  const stepLabel = match[1]
+
+  return (
+    <>
+      <span>{mainTitle}</span>
+      <span className="inline-flex items-center shrink-0 rounded-full border border-[#39FF14]/35 bg-[#39FF14]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#39FF14] md:text-xs md:normal-case md:tracking-wide">
+        {stepLabel}
+      </span>
+    </>
+  )
 }
 
 export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
@@ -115,9 +138,9 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                       )}
                       
                       {/* Title */}
-                      <div className="flex-1">
-                        <h4 className="text-base md:text-lg text-white">
-                          {item.title}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base md:text-lg text-white">
+                          {renderOfferStackTitle(item.title)}
                         </h4>
                       </div>
                     </div>
@@ -141,6 +164,16 @@ export const OfferStack = React.forwardRef<HTMLDivElement, OfferStackProps>(
                     <div className="pt-4 space-y-2 text-neutral-300 text-sm leading-relaxed">
                       {typeof item.description === 'string' ? (
                         item.description.split('\n').map((line, index) => {
+                          const subBulletMatch = line.match(/^\s+-\s+(.*)$/)
+                          if (subBulletMatch) {
+                            return (
+                              <div key={index} className="flex items-start gap-2 mb-1 ml-6 md:ml-8 last:mb-0">
+                                <span className="text-neutral-500 text-sm mt-0.5 flex-shrink-0">–</span>
+                                <span>{subBulletMatch[1]}</span>
+                              </div>
+                            )
+                          }
+
                           const cleanLine = line.replace(/^•\s*/, '')
                           // Check if line starts with a label to bold
                           const labelMatch = cleanLine.match(/^(What it is:|Outcome:|Done when:)(.*)/)

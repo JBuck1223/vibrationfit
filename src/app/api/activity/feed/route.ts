@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
         id: `profile-created-${userProfile.id}`,
         type: 'profile',
         title: 'Created Profile',
-        description: 'Set up your VibrationFit profile',
+        description: 'Set up your Vibration Fit profile',
         timestamp: userProfile.created_at,
         icon: 'User',
         color: 'text-secondary-500',

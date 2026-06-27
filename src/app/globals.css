@@ -139,7 +139,7 @@ input:-webkit-autofill:active {
   animation: pulseSubtle 2s ease-in-out infinite;
 }
 
-/* VibrationFit Logo Loading Animations */
+/* Vibration Fit Logo Loading Animations */
 @keyframes logo-pulse {
   0%, 100% {
     opacity: 1;

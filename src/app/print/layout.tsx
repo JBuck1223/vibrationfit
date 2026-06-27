@@ -5,7 +5,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Print View - VibrationFit",
+  title: "Print View - Vibration Fit",
   description: "Printable vision document",
   robots: 'noindex, nofollow', // Don't index print pages
 }

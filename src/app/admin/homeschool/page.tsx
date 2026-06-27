@@ -380,7 +380,7 @@ export default function AdminHomeschoolPage() {
         <PageHero
           eyebrow="VIBRATIONFIT EDUCATION"
           title="Homeschool Curriculum"
-          subtitle="A full-year, Florida-compliant homeschool program built on VibrationFit's conscious creation framework — for Preschool and First Grade"
+          subtitle="A full-year, Florida-compliant homeschool program built on Vibration Fit's conscious creation framework — for Preschool and First Grade"
         >
           <div className="flex flex-col sm:flex-row gap-2">
             <Badge variant="premium" className="text-xs">Florida Home Education Compliant</Badge>
@@ -393,7 +393,7 @@ export default function AdminHomeschoolPage() {
         <Card className="p-4 md:p-6 lg:p-8">
           <h2 className="text-xl md:text-2xl font-bold mb-2">The Vision</h2>
           <p className="text-sm md:text-base text-neutral-300 mb-6 max-w-3xl">
-            What if school felt like the life you choose? This curriculum applies VibrationFit&apos;s
+            What if school felt like the life you choose? This curriculum applies Vibration Fit&apos;s
             core methodology — present-tense vision, sensory embodiment, and vibrational alignment —
             to every subject a young learner needs. Children don&apos;t just learn reading, math, and science.
             They build their first Life Vision, one category at a time.
@@ -446,7 +446,7 @@ export default function AdminHomeschoolPage() {
             <h2 className="text-xl md:text-2xl font-bold">Daily Rhythm: 5-Phase Conscious Creation Flow</h2>
           </div>
           <p className="text-sm text-neutral-400 mb-6 max-w-2xl">
-            Every school day follows the same rhythm adults use in VibrationFit — adapted for young learners.
+            Every school day follows the same rhythm adults use in Vibration Fit — adapted for young learners.
             First graders spend approximately 3-4 hours in focused morning learning.
           </p>
 
@@ -516,7 +516,7 @@ export default function AdminHomeschoolPage() {
               <span className="text-[#39FF14] font-semibold">Key principle:</span> When below the Green Line,
               we don&apos;t jump to joy. We reach for the next slightly better feeling: angry &rarr; frustrated &rarr;
               bored &rarr; okay &rarr; curious &rarr; interested &rarr; happy. This is the same emotional
-              guidance scale VibrationFit teaches adults.
+              guidance scale Vibration Fit teaches adults.
             </p>
           </div>
         </Card>
@@ -529,7 +529,7 @@ export default function AdminHomeschoolPage() {
           defaultOpen
         >
           <p className="text-sm text-neutral-400 mt-4 mb-5 max-w-2xl">
-            The year is organized into 12 thematic units of 3 weeks each — one per VibrationFit Life Category.
+            The year is organized into 12 thematic units of 3 weeks each — one per Vibration Fit Life Category.
             Every subject weaves through each theme. Week 1 = Explore, Week 2 = Create, Week 3 = Celebrate.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
@@ -576,7 +576,7 @@ export default function AdminHomeschoolPage() {
               <div className="space-y-3 text-xs md:text-sm text-neutral-300">
                 <p>
                   By year&apos;s end, a 6-year-old has created their own Life Vision — exactly like
-                  the adult VibrationFit experience, but built through a full year of learning.
+                  the adult Vibration Fit experience, but built through a full year of learning.
                 </p>
                 <p>
                   It serves triple duty: <span className="text-white font-medium">writing practice</span> (present-tense,
@@ -585,7 +585,7 @@ export default function AdminHomeschoolPage() {
                   child treasures.
                 </p>
                 <p className="text-neutral-400 italic">
-                  This is the foundation of a lifelong VibrationFit practice — planted at age 6.
+                  This is the foundation of a lifelong Vibration Fit practice — planted at age 6.
                 </p>
               </div>
             </div>
@@ -654,7 +654,7 @@ export default function AdminHomeschoolPage() {
                 standards: [
                   { area: 'Visual Art', coverage: '"Draw the life you love" — category illustrations, vision board collages, nature art' },
                   { area: 'Music', coverage: 'Songs for each Life Category, rhythm and movement, instrument exploration' },
-                  { area: 'Drama', coverage: '"Day in My Life" role play (mirrors VibrationFit Focus Story)' },
+                  { area: 'Drama', coverage: '"Day in My Life" role play (mirrors Vibration Fit Focus Story)' },
                   { area: 'Physical Education', coverage: 'Outdoor play, yoga, dance, swimming, obstacle courses' },
                 ],
               },
@@ -778,7 +778,7 @@ export default function AdminHomeschoolPage() {
             <h2 className="text-xl md:text-2xl font-bold">Vibrational Grammar for Children</h2>
           </div>
           <p className="text-sm text-neutral-400 mb-5 max-w-2xl">
-            The same present-tense, positive-framing language VibrationFit teaches adults —
+            The same present-tense, positive-framing language Vibration Fit teaches adults —
             adapted as a natural way children learn to speak and write.
           </p>
 
@@ -850,7 +850,7 @@ export default function AdminHomeschoolPage() {
             </div>
 
             <p className="text-xs text-neutral-500 text-center mt-4 italic">
-              Present tense. First person. Sensory. Specific. The beginning of a lifelong VibrationFit practice.
+              Present tense. First person. Sensory. Specific. The beginning of a lifelong Vibration Fit practice.
             </p>
           </div>
         </Card>
@@ -900,7 +900,7 @@ export default function AdminHomeschoolPage() {
             often than not. Trust the process. Trust them.
           </p>
           <p className="text-xs text-neutral-500 italic">
-            Full curriculum document: <span className="text-neutral-400">docs/jordan/VibrationFit_Homeschool_Curriculum.md</span>
+            Full curriculum document: <span className="text-neutral-400">docs/jordan/Vibration Fit_Homeschool_Curriculum.md</span>
           </p>
         </Card>
       </Stack>

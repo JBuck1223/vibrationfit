@@ -154,7 +154,7 @@ export async function regenerateKeyPoints(sessionId: string): Promise<Transcribe
       messages: [
         {
           role: 'system',
-          content: `You're writing a quick recap for a VibrationFit "${sessionLabel}" session replay.
+          content: `You're writing a quick recap for a Vibration Fit "${sessionLabel}" session replay.
 
 Return JSON matching this shape. You MUST include between 5 and 10 key_points — never fewer than 5:
 {
@@ -309,7 +309,7 @@ export async function transcribeSession(
       messages: [
         {
           role: 'system',
-          content: `You're writing a quick recap for a VibrationFit "${sessionLabel}" session replay.
+          content: `You're writing a quick recap for a Vibration Fit "${sessionLabel}" session replay.
 
 Return JSON matching this shape. You MUST include between 5 and 10 key_points — never fewer than 5:
 {

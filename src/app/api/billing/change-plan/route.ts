@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
 
               const adminName = adminAccount?.first_name
                 ? `${adminAccount.first_name} ${adminAccount.last_name || ''}`.trim()
-                : 'A VibrationFit member'
+                : 'A Vibration Fit member'
 
               const { invitePartnerToHousehold } = await import('@/lib/supabase/household')
               const inviteResult = await invitePartnerToHousehold({

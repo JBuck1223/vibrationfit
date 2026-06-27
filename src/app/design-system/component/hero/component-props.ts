@@ -59,7 +59,7 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
     'Automatically responsive: text-2xl (mobile) → text-5xl (desktop)',
     'All content is centered by default',
     'Perfect for dashboard pages, welcome pages, and feature landing pages',
-    'Consistent with the VibrationFit brand aesthetic',
+    'Consistent with the Vibration Fit brand aesthetic',
     'Replaces ~30 lines of nested HTML with a single clean component'
   ],
   examples: [

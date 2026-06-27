@@ -1,5 +1,5 @@
 /**
- * VibrationFit Navigation System
+ * Vibration Fit Navigation System
  * 
  * Centralized exports for page classifications and menu definitions.
  * This is the master system for navigation and routing.

@@ -1,5 +1,5 @@
 // PDF Generation Library
-// Main export file for VibrationFit PDF generation
+// Main export file for Vibration Fit PDF generation
 // Path: /src/lib/pdf/index.ts
 
 export { generateVisionPDF } from './generators/vision'

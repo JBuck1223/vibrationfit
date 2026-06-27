@@ -227,7 +227,7 @@ export default function AcceptInvitationPage() {
             <ul className="space-y-2 text-sm text-neutral-300">
               <li className="flex items-start gap-2">
                 <span className="text-primary-500 mt-0.5">✓</span>
-                <span>Full access to the VibrationFit platform</span>
+                <span>Full access to the Vibration Fit platform</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary-500 mt-0.5">✓</span>

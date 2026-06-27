@@ -1,6 +1,6 @@
 # Email Templates
 
-This folder contains HTML email templates for VibrationFit's transactional emails.
+This folder contains HTML email templates for Vibration Fit's transactional emails.
 
 ## Templates
 
@@ -8,7 +8,7 @@ This folder contains HTML email templates for VibrationFit's transactional email
 Beautiful branded template for Supabase magic link authentication emails.
 
 **Features:**
-- VibrationFit logo and branding
+- Vibration Fit logo and branding
 - Clear call-to-action button
 - Prominent 6-digit verification code
 - Fallback instructions for both link and code
@@ -25,7 +25,7 @@ Beautiful branded template for Supabase magic link authentication emails.
 
 ## Design System
 
-The templates follow VibrationFit's design system:
+The templates follow Vibration Fit's design system:
 - **Primary Green:** `#199D67` (brand color)
 - **Secondary Teal:** `#14B8A6` (accent)
 - **Typography:** System fonts (San Francisco, Segoe UI, etc.)

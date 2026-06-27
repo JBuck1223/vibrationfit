@@ -56,7 +56,7 @@ export const PageHeroExamples = {
       <PageHero
         eyebrow="THE LIFE I CHOOSE"
         title="Welcome to Your Profile"
-        subtitle="Your profile is the foundation of your journey with VibrationFit."
+        subtitle="Your profile is the foundation of your journey with Vibration Fit."
       >
         <div className="flex flex-col md:flex-row gap-2 md:gap-4 justify-center items-center max-w-2xl mx-auto">
           <Button variant="primary" size="sm" className="w-full md:w-auto flex-1 md:flex-none">
