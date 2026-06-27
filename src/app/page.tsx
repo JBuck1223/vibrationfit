@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { GreenLineSection } from '@/components/GreenLineSection'
 import { formatTokensShort } from '@/lib/billing/config'
 import { useMembershipTiers, TIER_TYPES } from '@/hooks/useMembershipTiers'
 import {
@@ -603,9 +604,12 @@ export default function HomePage() {
                 </div>
                 {/* Content */}
                 <div className="relative z-10 w-full">
-                  <Heading level={3} className="text-white text-center mb-8 md:mb-10">
-                    What &quot;active in 72 hours&quot; means
+                  <Heading level={3} className="text-white text-center mb-4 md:mb-5">
+                    What &quot;installed in 72 hours&quot; means
                 </Heading>
+                  <Text size="sm" className="text-neutral-300 text-center mb-8 md:mb-10">
+                    The Activation Intensive is where we build and connect the parts of your Conscious Creation System so it&rsquo;s ready to run.
+                  </Text>
                   <div className="flex flex-col gap-4 items-start mx-auto text-left md:text-left">
                     <div className="flex items-center gap-3">
                       <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14]" />
@@ -1573,7 +1577,7 @@ export default function HomePage() {
                     Meet the Engine Behind VIVA Vision
                   </Heading>
                   <Text size="lg" className="text-neutral-400 font-semibold !mt-4">
-                    The writing engine inside the Creations pillar of your Conscious Creation System.
+                    The writing engine inside the Creations part of your Conscious Creation System.
                   </Text>
                   <Text size="base" className="text-neutral-300 w-full !mt-4">
                     When you do your Creations reps, VIVA uses a 4‑Layer Conscious Creation Writing Architecture to make your vision feel real and stick. In 2011, Jordan wrote his first Life I Choose™—and the same pattern showed up again in 2014. When Vanessa joined, structure met soul. We taught VIVA to guide anyone through it.
@@ -2361,14 +2365,13 @@ export default function HomePage() {
               <Stack gap="lg">
                 <div className="text-center w-full space-y-3">
                   <Heading level={2} className="text-white mb-4 leading-tight">
-                    <span className="block md:inline">The Solution:</span>{' '}
-                    <span className="block md:inline text-[#39FF14]">Conscious Creation, Simplified</span>
+                    The <span className="text-[#39FF14]">4 Parts</span> of Your Conscious Creation System
                   </Heading>
                   <Text size="base" className="text-neutral-200 max-w-3xl mx-auto">
-                    Structure beats "trying." Follow a simple rhythm Creations → Activations → Connections → Sessions so you always know what to do to stay aligned with your Life Vision.
+                    MAP runs four kinds of reps. These are the &ldquo;wheels&rdquo; that move your life: Creations, Activations, Connections, and Sessions.
                   </Text>
                   <Text size="sm" className="text-neutral-300 tracking-wide max-w-3xl mx-auto">
-                    <strong>Vibrational fitness is your system for conscious creation.</strong> It's doing the reps that keep you aligned with your Life Vision—so your outer world naturally begins to reflect it, again and again and again.
+                    Every aligned action in Vibration Fit touches one of these four. If the wheels are turning, you&rsquo;re aligning.
                   </Text>
                 </div>
 
@@ -2383,7 +2386,7 @@ export default function HomePage() {
                           Creations
                         </Heading>
                         <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(0–72h)</Text>
-                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Your activation checklist</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Design and install your Life Vision</Text>
                         <BulletedList className="space-y-1 text-neutral-100">
                           <ListItem variant="success" icon={Check}>Complete your profile</ListItem>
                           <ListItem variant="success" icon={Check}>Draft your 12‑category Life Vision with VIVA</ListItem>
@@ -2392,7 +2395,7 @@ export default function HomePage() {
                           <ListItem variant="success" icon={Check}>Log your first journal entry (written, voice, or video)</ListItem>
                         </BulletedList>
                         <Text size="sm" className="text-neutral-200 text-center">
-                          <strong className="text-[#39FF14]">Done when:</strong> your Vision, board, and audios are created inside Vibration Fit.
+                          <strong className="text-[#39FF14]">Done when:</strong> your Life Vision, board, and audios are created inside Vibration Fit.
                         </Text>
                       </Stack>
                     </Stack>
@@ -2412,7 +2415,7 @@ export default function HomePage() {
                         <BulletedList className="space-y-1">
                           <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Follow your MAP for AM/PM audio listening</ListItem>
                           <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Review your Life Vision on schedule</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Use VIVA prompts whenever contrast shows up</ListItem>
+                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Keep your commitments to yourself</ListItem>
                           <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Keep your daily activation streak going</ListItem>
                         </BulletedList>
                         <Text size="sm" className="text-neutral-200 text-center">
@@ -2480,6 +2483,13 @@ export default function HomePage() {
                 </div>
               </Stack>
             </Card>
+          </Container>
+        </section>
+
+        {/* Green Line Section */}
+        <section>
+          <Container size="lg">
+            <GreenLineSection />
           </Container>
         </section>
 
