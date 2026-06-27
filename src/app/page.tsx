@@ -482,7 +482,7 @@ export default function HomePage() {
                   The Conscious Creation System:<br />
                   <span className="text-[#39FF14]">Design</span> &rarr; <span className="text-[#00FFFF]">Align</span> &rarr; <span className="text-[#FFFF00]">Enjoy</span>
                 </Heading>
-                <Text size="md" className="text-neutral-200 font-semibold mb-3">
+                <Text size="base" className="text-neutral-200 font-semibold mb-3">
                   Basis of life: Freedom. Purpose of life: Joy.
                 </Text>
                 <Text size="sm" className="text-neutral-300">
