@@ -123,7 +123,7 @@ export const userNavigationPrimary: NavItem[] = [
     name: 'MAP',
     href: '/map',
     icon: Map,
-    description: 'MAP - Your alignment actions',
+    description: 'My Alignment Plan - your alignment actions',
   },
   {
     name: 'Tracking',
@@ -170,6 +170,12 @@ export const userNavigationGroups: NavGroup[] = [
         href: '/daily-paper',
         icon: FileText,
         description: 'Daily activations tracking',
+      },
+      {
+        name: 'How It Works',
+        href: '/system',
+        icon: Lightbulb,
+        description: 'What your Conscious Creation System is and how every part fits together',
       },
       {
         name: 'Journal',
@@ -525,7 +531,7 @@ export const mobileNavigation: NavItem[] = [
     name: 'MAP',
     href: '/map',
     icon: Map,
-    description: 'MAP - Your alignment actions',
+    description: 'My Alignment Plan - your alignment actions',
   },
   {
     name: 'Audio',

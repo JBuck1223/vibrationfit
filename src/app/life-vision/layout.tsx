@@ -1,8 +1,14 @@
-'use client'
-
+import type { Metadata } from 'next'
 import React from 'react'
 import { LifeVisionStudioProvider } from '@/components/life-vision-studio/LifeVisionStudioContext'
 import { LifeVisionAreaBar } from '@/components/life-vision-studio/LifeVisionAreaBar'
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Life Vision',
+    default: 'Life Vision',
+  },
+}
 
 export default function LifeVisionLayout({ children }: { children: React.ReactNode }) {
   return (

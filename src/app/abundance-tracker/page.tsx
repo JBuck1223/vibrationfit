@@ -121,6 +121,7 @@ export default function AbundanceDashboardPage() {
   const { stats: practiceStats } = useAreaStats('abundance-tracker')
   const [data, setData] = useState<AbundanceData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [totalsPeriod, setTotalsPeriod] = useState<AbundancePeriodKey>('all')
   const [dateFilter, setDateFilter] = useState<AbundancePeriodKey>('all')
@@ -209,21 +210,25 @@ export default function AbundanceDashboardPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch('/api/vibration/abundance')
-        if (!res.ok) throw new Error('Failed to load')
-        const json = await res.json()
-        setData(json)
-      } catch (err) {
-        console.error('Error loading abundance data:', err)
-      } finally {
-        setLoading(false)
-      }
+  const loadAbundance = useCallback(async () => {
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const res = await fetch('/api/vibration/abundance')
+      if (!res.ok) throw new Error('Failed to load')
+      const json = await res.json()
+      setData(json)
+    } catch (err) {
+      console.error('Error loading abundance data:', err)
+      setLoadError(true)
+    } finally {
+      setLoading(false)
     }
-    load()
   }, [])
+
+  useEffect(() => {
+    loadAbundance()
+  }, [loadAbundance])
 
   useEffect(() => {
     try {
@@ -349,6 +354,17 @@ export default function AbundanceDashboardPage() {
             <div className="animate-spin w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full mx-auto" />
             <p className="text-neutral-400 mt-4">Loading your abundance data...</p>
           </div>
+        ) : loadError ? (
+          <Card className="p-12 text-center">
+            <DollarSign className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-white mb-2">We couldn&apos;t load your tracker</h2>
+            <p className="text-neutral-400 mb-6 max-w-md mx-auto">
+              Something went wrong reaching your abundance data. Please try again.
+            </p>
+            <Button variant="primary" size="md" onClick={() => void loadAbundance()}>
+              Try Again
+            </Button>
+          </Card>
         ) : !data || data.summary.totalCount === 0 ? (
           <Card className="p-12 text-center">
             <DollarSign className="w-16 h-16 text-neutral-600 mx-auto mb-4" />

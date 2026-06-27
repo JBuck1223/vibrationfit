@@ -1,7 +1,9 @@
 'use client'
 
 import { Suspense, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { HelpCircle } from 'lucide-react'
 import { Container, Stack, Spinner } from '@/lib/design-system/components'
 import { MapDayView } from '@/components/map-studio/MapDayView'
 import { MapWeekView } from '@/components/map-studio/MapWeekView'
@@ -38,6 +40,15 @@ function MapPageContent() {
   return (
     <Container size="xl">
       <Stack gap="lg">
+        <div className="flex justify-end">
+          <Link
+            href="/system"
+            className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-primary-500 transition-colors"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            See how the system works
+          </Link>
+        </div>
         {viewMode === 'day' && <MapDayView />}
         {viewMode === 'week' && <MapWeekView />}
         {viewMode === 'month' && <MapMonthView />}

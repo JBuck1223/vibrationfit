@@ -216,12 +216,18 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/intensive/schedule-call',
     '/admin/intensive/tester',
     
-    // Developer Tools
+    // Developer Tools (admin-gated in proxy.ts)
     '/sitemap',
     '/design-system',
     '/design-system/component/[componentName]',
     '/design-system/template/[templateName]',
     '/design-system/experiment',
+    '/debug/email',
+    '/test-recording',
+    '/experiment',
+    '/experiment/design-system',
+    '/experiment/design-system/component/[componentName]',
+    '/experiment/old-home',
   ],
   
   /**
@@ -249,16 +255,6 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Public Utilities
     '/vision/build',
-    
-    // Development/Testing (public for development)
-    '/debug/email',
-    '/test-recording',
-    
-    // Experiment Pages (development)
-    '/experiment',
-    '/experiment/design-system',
-    '/experiment/design-system/component/[componentName]',
-    '/experiment/old-home',
     
     // Video Session Join (accessible without auth, prompts login)
     '/session/[id]',

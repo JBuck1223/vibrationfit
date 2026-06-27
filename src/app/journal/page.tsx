@@ -149,6 +149,8 @@ export default function JournalPage() {
   const { stats: practiceStats } = useAreaStats('journal')
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [reloadNonce, setReloadNonce] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -192,6 +194,7 @@ export default function JournalPage() {
       } else {
         setLoadingMore(true)
       }
+      setLoadError(false)
 
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -238,6 +241,7 @@ export default function JournalPage() {
 
       if (error) {
         console.error('Error fetching entries:', error)
+        setLoadError(true)
         setLoading(false)
         setLoadingMore(false)
         return
@@ -255,7 +259,7 @@ export default function JournalPage() {
     }
 
     fetchData()
-  }, [router, page])
+  }, [router, page, reloadNonce])
 
   useEffect(() => {
     const expandParam = searchParams.get('expand')
@@ -499,7 +503,18 @@ export default function JournalPage() {
         )}
 
         {/* Entries */}
-        {filteredEntries && filteredEntries.length > 0 ? (
+        {loadError ? (
+          <Card className="text-center py-16 max-w-2xl mx-auto">
+            <FileText className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">We couldn&apos;t load your entries</h3>
+            <p className="text-neutral-400 mb-6">
+              Something went wrong reaching your journal. Please try again.
+            </p>
+            <Button variant="primary" onClick={() => { setPage(1); setReloadNonce((n) => n + 1) }}>
+              Try Again
+            </Button>
+          </Card>
+        ) : filteredEntries && filteredEntries.length > 0 ? (
           <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
             {filteredEntries.map((entry) => {
               const isExpanded = expandedId === entry.id

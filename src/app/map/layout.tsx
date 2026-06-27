@@ -1,8 +1,14 @@
-'use client'
-
+import type { Metadata } from 'next'
 import React, { Suspense } from 'react'
 import { MapStudioProvider } from '@/components/map-studio/MapStudioContext'
 import { MapAreaBar } from '@/components/map-studio/MapAreaBar'
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | MAP',
+    default: 'My Alignment Plan',
+  },
+}
 
 export default function MapStudioLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -395,7 +395,7 @@ VIVA Coach doesn't replace the other VIVA tools — it integrates with them:
 - **During Replace:** Reference their vision board items as tangible desires
 - **During Activate:** Suggest listening to their vision audio for the relevant category
 - **Pattern recognition:** Use assessment data to identify which categories need attention
-- **Long-term:** Coaching cards become part of their Evidence of Actualization
+- **Long-term:** Coaching cards become part of the evidence they notice and appreciate during Enjoy (the Result)
 
 ---
 

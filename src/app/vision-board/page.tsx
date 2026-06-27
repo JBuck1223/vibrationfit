@@ -22,6 +22,7 @@ import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
 import { colors } from '@/lib/design-system/tokens'
+import { toast } from 'sonner'
 
 // Hook to get responsive column count
 function useColumnCount() {
@@ -254,8 +255,8 @@ export default function VisionBoardPage() {
       setItems(prevItems => prevItems.filter(i => i.id !== itemToDelete?.id))
       setDetailModalIndex(null)
     },
-    onError: (error) => {
-      alert(`Failed to delete vision board item: ${error.message}`)
+    onError: () => {
+      toast.error('Failed to delete creation. Please try again.')
     },
     itemType: 'Creation'
   })
@@ -688,7 +689,7 @@ export default function VisionBoardPage() {
       setShowBulkDeleteConfirm(false)
     } catch (error) {
       console.error('Error bulk deleting items:', error)
-      alert('Failed to delete some items. Please try again.')
+      toast.error('Failed to delete some items. Please try again.')
     } finally {
       setBulkDeleting(false)
     }
@@ -907,7 +908,7 @@ export default function VisionBoardPage() {
       setShowActualizedImageEditor(false)
     } catch (error) {
       console.error('Error saving:', error)
-      alert('Failed to save changes')
+      toast.error('Failed to save changes')
     } finally {
       setSaving(false)
     }
@@ -2487,14 +2488,32 @@ export default function VisionBoardPage() {
         ) : (
           <div className="text-center py-16">
             <Grid3X3 className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No items found</h3>
-            <p className="text-neutral-400 mb-6">Try adjusting your filters or adding a creation.</p>
-            <Button asChild>
-              <Link href={isIntensivePath ? '/intensive/vision-board/new' : '/vision-board/new'}>
-                <Plus className="w-5 h-5 mr-2" />
-                Add Creation
-              </Link>
-            </Button>
+            {items.length === 0 ? (
+              <>
+                <h3 className="text-xl font-semibold text-white mb-2">Your vision board is empty</h3>
+                <p className="text-neutral-400 mb-6 max-w-md mx-auto">
+                  Add your first creation — an image, goal, or moment you&apos;re calling in — to start
+                  visualizing the life you choose.
+                </p>
+                <Button asChild>
+                  <Link href={isIntensivePath ? '/intensive/vision-board/new' : '/vision-board/new'}>
+                    <Plus className="w-5 h-5 mr-2" />
+                    Add Your First Creation
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-semibold text-white mb-2">No creations match your filters</h3>
+                <p className="text-neutral-400 mb-6">Try adjusting your filters to see more.</p>
+                <Button asChild>
+                  <Link href={isIntensivePath ? '/intensive/vision-board/new' : '/vision-board/new'}>
+                    <Plus className="w-5 h-5 mr-2" />
+                    Add Creation
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         )}
 

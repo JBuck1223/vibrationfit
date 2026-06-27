@@ -138,6 +138,20 @@ export function MapWeekView() {
         <div className="flex justify-center py-12">
           <Spinner size="md" />
         </div>
+      ) : planCommitments.length === 0 ? (
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111] px-6 py-12 text-center">
+          <h3 className="text-base font-semibold text-white">No commitments yet</h3>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-400">
+            Set up your weekly commitments to start tracking your alignment across the week.
+          </p>
+          <a
+            href="/map/update"
+            className="mt-5 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+            style={{ backgroundColor: mapTodayStyles.primaryHex }}
+          >
+            Go to Update
+          </a>
+        </div>
       ) : (
         <div className="overflow-x-auto -mx-4 px-4">
           <table className="w-full min-w-[640px]">

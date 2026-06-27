@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { 
   Sparkles, PartyPopper, Plane, Home, Users, Heart, 
   Activity, DollarSign, Briefcase, UserPlus, Package, 
@@ -178,9 +179,9 @@ export default function HomePage() {
 
   const getPrescription = () => {
     const prescriptions = []
-    if (selfCheckAnswers[1]) prescriptions.push('Jump to VIVA Vision (Train)')
-    if (selfCheckAnswers[2]) prescriptions.push('Start My Activation Plan (Tune)')
-    if (selfCheckAnswers[3]) prescriptions.push('Build Vision Board + Journal x3 (Track)')
+    if (selfCheckAnswers[1]) prescriptions.push('Jump to VIVA Vision')
+    if (selfCheckAnswers[2]) prescriptions.push('Start My Alignment Plan')
+    if (selfCheckAnswers[3]) prescriptions.push('Build Vision Board + Journal x3')
     return prescriptions
   }
 
@@ -400,40 +401,36 @@ export default function HomePage() {
                   {/* Left column - Content */}
                   <div className="space-y-3 text-center lg:text-left flex flex-col justify-center">
                     <Heading level={4} className="text-[#39FF14] text-center md:text-center">
-                      Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
-                      <br />
-                      with the Activation Intensive.
+                      Install your Conscious Creation System in <span className="font-bold text-[#39FF14]">72 hours</span>
                     </Heading>
+
+                    <Text size="sm" className="text-neutral-300 text-center md:text-left">
+                      So freedom and joy become your baseline and manifestations turn into repeatable side‑effects.
+                    </Text>
                     
                     {/* Mobile bullets */}
                     <BulletedList className="leading-relaxed md:hidden">
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>4‑Part Path + MAP</strong> so you always know your next move.
+                        <strong>Design your dream life</strong> – A clear Life Vision, audio, and board in 72 hours.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Graduate Unlocks:</strong> audios, live coaching, and community.
+                        <strong>Align your days</strong> – Your MAP runs your system: Creations, Activations, Connections, Sessions.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>VIVA AI</strong> turns contrast into clarity.
-                      </ListItem>
-                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>4‑Layer Writing Architecture</strong> makes conscious creation step‑by‑step.
+                        <strong>Enjoy your life now</strong> – VIVA, Daily Paper, and the Green Line bring more freedom and joy today.
                       </ListItem>
                     </BulletedList>
 
                     {/* Desktop bullets */}
                     <BulletedList className="leading-relaxed lg:text-left lg:ml-6 hidden md:block">
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>4‑Part Path + MAP</strong> – Creations, Activations, Connections, and Sessions, all guided by your My Activation Plan so you always know your next move.
+                        <strong>Design your dream life</strong> – Go from &ldquo;no idea what I even want&rdquo; to a clear Life Vision, audio, and board in 72 hours.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Graduate Unlocks:</strong> Advanced audio suite, The Alignment Gym (weekly live coaching), and Vibe Tribe community when you complete your 72‑Hour Activation
+                        <strong>Align your days with that design</strong> – Your My Alignment Plan (MAP) runs the four parts of your system for you: Creations, Activations, Connections, Sessions.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>VIVA AI</strong> turns contrast into clarity—even if you don&apos;t know what you want
-                      </ListItem>
-                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        Powered by the <strong>4‑Layer Writing Architecture</strong> inside VIVA Vision
+                        <strong>Enjoy your life now</strong> – VIVA, Daily Paper, and the Green Line help you enjoy more freedom and joy today, while wins and abundance show up as evidence, not pressure.
                       </ListItem>
                     </BulletedList>
                     
@@ -489,6 +486,68 @@ export default function HomePage() {
               </Stack>
             </Container>
           </Cover>
+        </section>
+
+        {/* Conscious Creation System Section */}
+        <section>
+          <Container size="xl">
+            <Card variant="elevated" className="p-6 md:p-10 bg-black/40 border-[#39FF14]/20 border-2">
+              <div className="text-center max-w-3xl mx-auto mb-8 md:mb-10">
+                <Badge variant="primary" className="mb-4">How Vibration Fit works</Badge>
+                <Heading level={3} className="text-white !mb-4">
+                  The Conscious Creation System:<br />
+                  <span className="text-[#39FF14]">Design</span> &rarr; <span className="text-[#00FFFF]">Align</span> &rarr; <span className="text-[#FFFF00]">Enjoy</span>
+                </Heading>
+                <Text size="md" className="text-neutral-200 font-semibold mb-3">
+                  Basis of life: Freedom. Purpose of life: Joy.
+                </Text>
+                <Text size="sm" className="text-neutral-300">
+                  Your Conscious Creation System is the structure that helps you design your life on purpose, align your thoughts, words, and actions with that design, and enjoy the freedom and joy available right now.
+                </Text>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                {/* Design */}
+                <div className="bg-neutral-900/60 border-2 border-[#39FF14]/30 rounded-2xl p-6 flex flex-col">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-10 h-10 rounded-full bg-[#39FF14]/10 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-5 h-5 text-[#39FF14]" />
+                    </span>
+                    <Heading level={4} className="text-[#39FF14] !mb-0">Design</Heading>
+                  </div>
+                  <Text size="sm" className="text-neutral-300">
+                    Choose what you want to include in your experience. With VIVA&rsquo;s guidance, your Life Vision (the Life I Choose), audio, and board turn your dream life into something specific and real.
+                  </Text>
+                </div>
+
+                {/* Align */}
+                <div className="bg-neutral-900/60 border-2 border-[#00FFFF]/30 rounded-2xl p-6 flex flex-col">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-10 h-10 rounded-full bg-[#00FFFF]/10 flex items-center justify-center flex-shrink-0">
+                      <Sliders className="w-5 h-5 text-[#00FFFF]" />
+                    </span>
+                    <Heading level={4} className="text-[#00FFFF] !mb-0">Align</Heading>
+                  </div>
+                  <Text size="sm" className="text-neutral-300">
+                    Become the version of you who naturally lives it. Your custom My Alignment Plan (MAP) and Projects turn your vision into consistent Creations, Activations, Connections, and Sessions that bring your thoughts, feelings, and actions into harmony with your design, day after day.
+                  </Text>
+                </div>
+
+                {/* Enjoy */}
+                <div className="bg-neutral-900/60 border-2 border-[#FFFF00]/30 rounded-2xl p-6 flex flex-col">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-10 h-10 rounded-full bg-[#FFFF00]/10 flex items-center justify-center flex-shrink-0">
+                      <Smile className="w-5 h-5 text-[#FFFF00]" />
+                    </span>
+                    <Heading level={4} className="text-[#FFFF00] !mb-0">Enjoy</Heading>
+                  </div>
+                  <Text size="sm" className="text-neutral-300">
+                    Freedom and joy aren&rsquo;t destinations; they&rsquo;re available today. Your Daily Paper, journal, Abundance Tracker, and the Green Line help you notice what feels good, enjoy it more, and gently move back above the line when you don&rsquo;t.
+                  </Text>
+                </div>
+              </div>
+            </Card>
+          </Container>
         </section>
 
         {/* Quote Block Section */}
@@ -600,7 +659,7 @@ export default function HomePage() {
                   <div className="flex items-start gap-3 mt-4">
                     <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14] mt-0.5" />
                     <Text size="sm" className="text-[#39FF14]/80 text-left italic">
-                      When these are complete, you unlock your <strong className="font-semibold">28‑Day MAP</strong> (My Activation Plan) so you know exactly how to run your Activations, Connections, and Sessions.
+                      When these are complete, you unlock your <strong className="font-semibold">28‑Day MAP</strong> (My Alignment Plan) so you know exactly how to run your Activations, Connections, and Sessions.
                     </Text>
                   </div>
                 </div>
@@ -614,7 +673,7 @@ export default function HomePage() {
                       </div>
                       <Heading level={4} className="text-white !mb-0">Creations (0–72h)</Heading>
                     </div>
-                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Complete your 72‑Hour Activation Intensive: profile + 84‑Q assessment + 12‑category Life Vision with VIVA, plus your first audios, board, journals, My Activation Plan, and Calibration Call booked.</Text>
+                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Complete your 72‑Hour Activation Intensive: profile + 84‑Q assessment + 12‑category Life Vision with VIVA, plus your first audios, board, journals, My Alignment Plan, and Calibration Call booked.</Text>
                   </div>
                   <div>
                     <div className="flex items-center gap-4 mb-2">
@@ -623,7 +682,7 @@ export default function HomePage() {
                       </div>
                       <Heading level={4} className="text-white !mb-0">Activations</Heading>
                     </div>
-                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Keep your signal aligned as life evolves: follow your My Activation Plan daily, listen to your Vision Audio, and refine your Life Vision and Vision Board as your clarity increases.</Text>
+                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Keep your signal aligned as life evolves: follow your My Alignment Plan daily, listen to your Vision Audio, and refine your Life Vision and Vision Board as your clarity increases.</Text>
                   </div>
                   <div>
                     <div className="flex items-center gap-4 mb-2">
@@ -769,7 +828,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
                         <span className="text-xs font-mono text-neutral-600 w-4">11</span>
                         <Rocket className="w-3.5 h-3.5" />
-                        <span>My Activation Plan</span>
+                        <span>My Alignment Plan</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
                         <span className="text-xs font-mono text-neutral-600 w-4">12</span>
@@ -1337,7 +1396,7 @@ export default function HomePage() {
                     variant="elevated"
                     className="!bg-[#39FF14]/10 !border-[#39FF14]/30"
                   >
-                    Activate your Life Vision in 72 hours. You leave the Intensive with a complete 12‑category Life Vision, Vision Audio, a 12‑image Vision Board, 1 journal entry, your Calibration Call booked, and your My Activation Plan scheduled.
+                    Activate your Life Vision in 72 hours. You leave the Intensive with a complete 12‑category Life Vision, Vision Audio, a 12‑image Vision Board, 1 journal entry, your Calibration Call booked, and your My Alignment Plan scheduled.
                   </FeatureCard>
 
                   <FeatureCard 
@@ -1347,7 +1406,7 @@ export default function HomePage() {
                     variant="elevated"
                     className="!bg-[#00FFFF]/10 !border-[#00FFFF]/30"
                   >
-                    Vibrational fitness is your system for conscious creation. Instead of &quot;trying to manifest,&quot; you follow a simple structure: <strong>Creations</strong>, <strong>Activations</strong>, <strong>Connections</strong>, and <strong>Sessions</strong>, all guided by your My Activation Plan and powered by VIVA&apos;s 4‑Layer Writing Architecture and 5‑Phase Flow across all 12 life categories.
+                    Vibrational fitness is your system for conscious creation. Instead of &quot;trying to manifest,&quot; you follow a simple structure: <strong>Creations</strong>, <strong>Activations</strong>, <strong>Connections</strong>, and <strong>Sessions</strong>, all guided by your My Alignment Plan and powered by VIVA&apos;s 4‑Layer Writing Architecture and 5‑Phase Flow across all 12 life categories.
                   </FeatureCard>
 
                   <FeatureCard 
@@ -1367,7 +1426,7 @@ export default function HomePage() {
                     variant="elevated"
                     className="!bg-[#FFFF00]/10 !border-[#FFFF00]/30"
                   >
-                    VIVA asks, you answer. Prompts, checklists, and the My Activation Plan tell you exactly what to do next, every day for 28 days and beyond, so staying aligned becomes a set of simple daily reps, not a mysterious practice you have to invent.
+                    VIVA asks, you answer. Prompts, checklists, and the My Alignment Plan tell you exactly what to do next, every day for 28 days and beyond, so staying aligned becomes a set of simple daily reps, not a mysterious practice you have to invent.
                   </FeatureCard>
                 </Grid>
 
@@ -1472,15 +1531,15 @@ export default function HomePage() {
                     {
                       id: 'calibration-call',
                       title: '30‑Minute Calibration Call',
-                      description: 'What it is: 1:1 alignment call with a coach.\nOutcome: Review your assets and finalize your My Activation Plan.\nDone when: Your call is booked within the 72‑Hour Intensive and completed within your first 7 days.',
+                      description: 'What it is: 1:1 alignment call with a coach.\nOutcome: Review your assets and finalize your My Alignment Plan.\nDone when: Your call is booked within the 72‑Hour Intensive and completed within your first 7 days.',
                       icon: CalendarDays,
                       included: true,
                       locked: true
                     },
                     {
                       id: 'activation-protocol',
-                      title: 'My Activation Plan',
-                      description: 'What it is: Your simple daily ritual plan.\nOutcome: Stay in harmony with your vision without guesswork.\nDone when: You and your coach finalize a simple 30‑day My Activation Plan on your Calibration Call.',
+                      title: 'My Alignment Plan',
+                      description: 'What it is: Your simple daily ritual plan.\nOutcome: Stay in harmony with your vision without guesswork.\nDone when: You and your coach finalize a simple 30‑day My Alignment Plan on your Calibration Call.',
                       icon: Zap,
                       included: true,
                       locked: true
@@ -1572,7 +1631,7 @@ export default function HomePage() {
                   </FeatureCard>
                 </Grid>
                 <Text size="base" className="text-neutral-300 text-center w-full">
-                  VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 1 journal entry logged, calibration call booked, and your My Activation Plan scheduled.
+                  VIVA now walks you through this 4-Layer Architecture across all 12 life categories—so in 72 hours you finish "active" with your complete vision, AM/PM vision audios, vision board built, 1 journal entry logged, calibration call booked, and your My Alignment Plan scheduled.
                 </Text>
                 <Button variant="primary" size="lg" asChild>
                   <a href="#pricing">Start the Activation Intensive</a>
@@ -1618,7 +1677,7 @@ export default function HomePage() {
                       Complete your Activation Checklist in 72 hours. Not satisfied? Full refund of your ${getIntensiveTotal()} Intensive fee. No questions asked.
                     </Text>
                       <Text size="xs" className="md:text-sm text-neutral-300 text-center">
-                      Completion = all of this done within 72 hours:<br />Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled
+                      Completion = all of this done within 72 hours:<br />Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Alignment Plan scheduled
                     </Text>
                   </Stack>
                   </Card>
@@ -2369,6 +2428,7 @@ export default function HomePage() {
                     <div className="text-center mb-4">
                       <Text size="base" className="text-neutral-300 font-semibold">The Conscious Creation System</Text>
                       <Text size="lg" className="text-[#39FF14] font-bold">Creations → Activations → Connections → Sessions</Text>
+                      <Text size="xs" className="text-neutral-500">These are the 4 Parts of your Conscious Creation System.</Text>
                       <Text size="base" className="text-neutral-300">turns scattered signals into a dominant point of attraction.</Text>
                     </div>
                     <Text size="sm" className="text-neutral-300 text-center">
@@ -2448,7 +2508,7 @@ export default function HomePage() {
                           Activations
                         </Heading>
                         <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(ongoing)</Text>
-                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Run your daily MAP (My Activation Plan)</Text>
+                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Run your daily MAP (My Alignment Plan)</Text>
                         <BulletedList className="space-y-1">
                           <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Follow your MAP for AM/PM audio listening</ListItem>
                           <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Review your Life Vision on schedule</ListItem>
@@ -2550,7 +2610,7 @@ export default function HomePage() {
                       <Stack gap="sm">
                         <Icon icon={Brain} size="lg" color="#00FFFF" className="mx-auto" />
                         <Text size="sm" className="font-semibold text-white">Establish Harmony</Text>
-                        <Text size="sm" className="text-neutral-400">Vision Audio + your daily Activations with My Activation Plan</Text>
+                        <Text size="sm" className="text-neutral-400">Vision Audio + your daily Activations with My Alignment Plan</Text>
                       </Stack>
                     </Card>
                     <Card variant="glass" className="text-center">
@@ -2626,12 +2686,12 @@ export default function HomePage() {
                 {
                   id: 'how-fast',
                   title: 'How fast is "fast"?',
-                  description: '"Active" in 72 hours means: Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled.'
+                  description: '"Active" in 72 hours means: Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Alignment Plan scheduled.'
                 },
                 {
                   id: 'tried-loa',
                   title: 'What if I\'ve tried LoA and failed?',
-                  description: 'Most people had belief without structure. We give you the mechanism (Creations → Activations → Connections → Sessions), a 72‑Hour Activation to get your Life Vision fully online, and a 28‑Day MAP (My Activation Plan) so you know exactly what to do each day, plus proof and guarantees if you\'re not satisfied.'
+                  description: 'Most people had belief without structure. We give you the mechanism (Creations → Activations → Connections → Sessions), a 72‑Hour Activation to get your Life Vision fully online, and a 28‑Day MAP (My Alignment Plan) so you know exactly what to do each day, plus proof and guarantees if you\'re not satisfied.'
                 },
                 {
                   id: 'dont-know',
@@ -2651,7 +2711,7 @@ export default function HomePage() {
                 {
                   id: 'guarantee-qualify',
                   title: 'What qualifies for the 72‑Hour Activation Guarantee?',
-                  description: `Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you'll get a full refund of your $${getIntensiveTotal()} Intensive fee. No questions asked.`
+                  description: `Complete your Activation Checklist in 72 hours. Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), first refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Alignment Plan scheduled. If you complete your Activation Checklist in 72 hours and are not satisfied, you'll get a full refund of your $${getIntensiveTotal()} Intensive fee. No questions asked.`
                 },
                 {
                   id: 'refunds',
@@ -2662,7 +2722,7 @@ export default function HomePage() {
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What's covered</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1 text-sm text-neutral-300">
                           <li>
-                            72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the ${getIntensiveTotal()} Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Activation Plan scheduled.)
+                            72‑Hour Activation Guarantee: if you complete your Activation Checklist in 72 hours and aren't satisfied, we refund the ${getIntensiveTotal()} Intensive fee. (Completion = Profile 70%+ complete, 84‑Q Vibration Assessment submitted, VIVA Vision drafted (12 categories), First refinement done, Vision Audio generated, Vision Board built (12 images), 1 journal entry logged, Calibration Call booked, My Alignment Plan scheduled.)
                           </li>
                           <li>
                             Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Every 28 Days or Annual).
@@ -2704,6 +2764,22 @@ export default function HomePage() {
                   id: 'billing-start',
                   title: 'When does billing start?',
                   description: `$${getIntensiveTotal()} today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.`
+                },
+                {
+                  id: 'what-is-conscious-creation-system',
+                  title: 'What is a Conscious Creation System?',
+                  description: (
+                    <div className="space-y-3 text-sm text-neutral-300 leading-relaxed">
+                      <p>
+                        It&apos;s the machine that makes &quot;thoughts become things&quot; reliable instead of random. We help you program the destination (your Life Vision), build the machine in 72 hours, then hand you a MAP to run it every day across four simple parts: Creations, Activations, Connections, and Sessions.
+                      </p>
+                      <p>
+                        <Link href="/system" className="text-[#39FF14] hover:underline">
+                          See how every part fits together →
+                        </Link>
+                      </p>
+                    </div>
+                  )
                 },
                 {
                   id: 'what-is-vibrational-fitness',

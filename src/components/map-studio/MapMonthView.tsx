@@ -229,6 +229,20 @@ export function MapMonthView() {
         <div className="flex justify-center py-12">
           <Spinner size="md" />
         </div>
+      ) : !hasLivePlan && !hasSelectableRegistry ? (
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111] px-6 py-12 text-center">
+          <h3 className="text-base font-semibold text-white">No commitments yet</h3>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-400">
+            Set up your MAP commitments to start tracking your monthly alignment.
+          </p>
+          <a
+            href="/map/update"
+            className="mt-5 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+            style={{ backgroundColor: mapTodayStyles.primaryHex }}
+          >
+            Go to Update
+          </a>
+        </div>
       ) : (
         <div className="rounded-2xl bg-neutral-900/40 p-3 sm:p-4">
           <div className="mb-2 grid grid-cols-7 gap-1.5 text-center">

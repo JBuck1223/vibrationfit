@@ -769,6 +769,13 @@ function IntensiveDashboardContent() {
           </Badge>
         </div>
 
+        <p className="text-center text-sm text-neutral-400">
+          You&apos;re {progress}% through installing your Conscious Creation System.{' '}
+          <Link href="/system" className="text-primary-500 hover:text-primary-400">
+            See how it works
+          </Link>
+        </p>
+
         {/* Countdown Timer */}
         <Card variant="elevated" className="p-4 md:p-6 lg:p-8 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

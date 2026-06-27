@@ -52,6 +52,7 @@ const ICON_MAP: Record<string, any> = {
 
 export default function ActivityFeedPage() {
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [filter, setFilter] = useState<string>('all')
 
@@ -60,6 +61,8 @@ export default function ActivityFeedPage() {
   }, [])
 
   const fetchActivities = async () => {
+    setLoading(true)
+    setLoadError(false)
     try {
       const response = await fetch('/api/activity/feed')
       
@@ -72,6 +75,7 @@ export default function ActivityFeedPage() {
 
     } catch (error) {
       console.error('Error fetching activity:', error)
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -106,6 +110,17 @@ export default function ActivityFeedPage() {
             <div className="animate-spin w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto" />
             <p className="text-neutral-400 mt-4">Loading your activity...</p>
           </div>
+        ) : loadError ? (
+          <Card className="p-4 md:p-6 lg:p-8 text-center">
+            <Activity className="w-16 h-16 text-neutral-700 mx-auto mb-4" />
+            <p className="text-white font-semibold">We couldn&apos;t load your activity</p>
+            <p className="text-sm text-neutral-500 mt-2 mb-6">
+              Something went wrong. Please try again.
+            </p>
+            <Button variant="primary" onClick={() => fetchActivities()}>
+              Try Again
+            </Button>
+          </Card>
         ) : (
           <>
             {/* Filter Tabs */}
@@ -132,10 +147,21 @@ export default function ActivityFeedPage() {
             {filteredActivities.length === 0 ? (
               <Card className="p-4 md:p-6 lg:p-8 text-center">
                 <Activity className="w-16 h-16 text-neutral-700 mx-auto mb-4" />
-                <p className="text-neutral-400">No activity yet</p>
-                <p className="text-sm text-neutral-500 mt-2">
-                  Start creating to see your journey unfold!
+                <p className="text-white font-semibold">No activity yet</p>
+                <p className="text-sm text-neutral-500 mt-2 mb-6">
+                  Start creating to see your journey unfold.
                 </p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Button asChild variant="primary" size="sm">
+                    <Link href="/life-vision">Build your Vision</Link>
+                  </Button>
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href="/journal/new">Write a Journal Entry</Link>
+                  </Button>
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href="/vision-board">Create a Vision Board</Link>
+                  </Button>
+                </div>
               </Card>
             ) : (
               <div className="space-y-6">

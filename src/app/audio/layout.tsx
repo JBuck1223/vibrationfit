@@ -1,8 +1,14 @@
-'use client'
-
+import type { Metadata } from 'next'
 import React, { Suspense } from 'react'
 import { AudioStudioProvider } from '@/components/audio-studio/AudioStudioContext'
 import { AudioAreaBar } from '@/components/audio-studio/AudioAreaBar'
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Audio Studio',
+    default: 'Audio Studio',
+  },
+}
 
 export default function AudioStudioLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -28,7 +28,7 @@ The Conscious Creation Journal captures evidence of actualization in real time.
 - Media URLs for photos/videos
 
 ## Integration Points
-- Part of Evidence of Actualization (Operation 3)
+- Part of Enjoy (step 3 of the Conscious Creation Cycle): appreciate/savor and notice evidence (the Result, feedback)
 - Tracks transformation over time
 - Reinforces new identity
 

@@ -10,6 +10,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 interface JournalEntry {
   id: string
@@ -337,7 +338,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
       if (error) {
         console.error('Error deleting journal entry:', error)
-        alert('Failed to delete journal entry. Please try again.')
+        toast.error('Failed to delete journal entry. Please try again.')
         return
       }
 
@@ -345,7 +346,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
       router.push('/journal')
     } catch (error) {
       console.error('Error deleting journal entry:', error)
-      alert('Failed to delete journal entry. Please try again.')
+      toast.error('Failed to delete journal entry. Please try again.')
     } finally {
       setDeleting(false)
       setShowDeleteConfirm(false)
