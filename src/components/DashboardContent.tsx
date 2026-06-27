@@ -360,6 +360,48 @@ export default function DashboardContent({ user, profileData, visionData, vision
           <GraduateChecklistCard progress={graduateChecklist.progress} />
         )}
 
+        {/* Day-one getting-started guidance for users with no data yet */}
+        {!(graduateChecklist?.isGraduate && graduateChecklist.progress) &&
+          visionData.length === 0 &&
+          journalData.length === 0 &&
+          visionBoardData.length === 0 && (
+            <Card className="p-6 md:p-8 border-2 border-[#39FF14]/30">
+              <div className="flex items-center gap-2.5 mb-2">
+                <Rocket className="w-5 h-5 text-[#39FF14]" />
+                <h2 className="text-xl font-bold text-white">Welcome! Start here</h2>
+              </div>
+              <p className="text-sm text-neutral-300 mb-6">
+                Three quick steps to get the most out of VibrationFit.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Link
+                  href="/profile/create"
+                  className="group rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 transition-colors hover:border-[#39FF14]/40"
+                >
+                  <User className="w-5 h-5 text-[#39FF14] mb-2" />
+                  <p className="text-sm font-semibold text-white">Build your Profile</p>
+                  <p className="mt-1 text-xs text-neutral-400">Tell VIVA about your life so it can personalize everything.</p>
+                </Link>
+                <Link
+                  href="/assessment"
+                  className="group rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 transition-colors hover:border-[#39FF14]/40"
+                >
+                  <BarChart3 className="w-5 h-5 text-[#00FFFF] mb-2" />
+                  <p className="text-sm font-semibold text-white">Take the Assessment</p>
+                  <p className="mt-1 text-xs text-neutral-400">See where you stand across the 12 life areas.</p>
+                </Link>
+                <Link
+                  href="/life-vision"
+                  className="group rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 transition-colors hover:border-[#39FF14]/40"
+                >
+                  <Target className="w-5 h-5 text-[#BF00FF] mb-2" />
+                  <p className="text-sm font-semibold text-white">Create your Life Vision</p>
+                  <p className="mt-1 text-xs text-neutral-400">Define the life you choose, one category at a time.</p>
+                </Link>
+              </div>
+            </Card>
+          )}
+
         {/* Calibration Call booking card (post-intensive; hides once call is completed) */}
         {calibrationCall?.show && calibrationCall?.session && (
           <Card className="relative overflow-hidden p-0 border-2 border-[#00FFFF]/40">

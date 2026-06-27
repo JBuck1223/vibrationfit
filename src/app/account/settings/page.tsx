@@ -138,8 +138,8 @@ export default function AccountSettingsPage() {
         setDateOfBirth(accountData.date_of_birth || '')
         setProfilePictureUrl(accountData.profile_picture_url)
         setTimezone(userTz)
-        setSmsOptIn(true)
-        setEmailOptIn(true)
+        setSmsOptIn(accountData.sms_opt_in ?? true)
+        setEmailOptIn(emailOptInValue)
 
         const { data: activeMap } = await supabase
           .from('user_maps')

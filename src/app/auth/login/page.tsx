@@ -247,6 +247,15 @@ function LoginForm() {
             </button>
           </div>
 
+          <div className="-mt-3 text-right">
+            <a
+              href="/auth/forgot-password"
+              className="text-sm text-neutral-400 transition-colors hover:text-green-400"
+            >
+              Forgot password?
+            </a>
+          </div>
+
           {error && (
             <div className="bg-error-600/10 border border-error-600 px-4 py-3 rounded-lg !text-[#FF0040]">
               {error}

@@ -22,18 +22,18 @@ Visual activation tool - gallery/grid system for specific desires and goals.
 - Category tagging (links to 12 life categories)
 - Image uploads and AI image generation
 - Filtering by category and status
-- Part of Consistent Alignment (Operation 2)`
+- Part of Align (step 2 of the Conscious Creation Cycle)`
 
 const journalKnowledge = `# Journal System
 
 **Version:** 2.0 | **Status:** Production
 
-Conscious Creation Journal - captures evidence of actualization.
+Conscious Creation Journal - the Trip Log where you appreciate and notice evidence showing up.
 - Paths: /journal, /journal/new, /journal/[id]/edit
 - Entry types: contrast, clarity, evidence, other
 - Rich content: text, images, video
 - Mood tracking: Above/Below Green Line
-- Part of Evidence of Actualization (Operation 3)`
+- Part of Enjoy (step 3 of the Conscious Creation Cycle): appreciate/savor and record evidence (the Result, feedback)`
 
 const lifeVisionKnowledge = `# Life Vision System
 
@@ -173,29 +173,41 @@ Threshold representing vibrational alignment - empowered, abundant, growth-orien
 
 **Core Principle:** Green Line is a tool for awareness and growth, not judgment.`
 
-const consciousCreationKnowledge = `# The 3 Core Operations
+const consciousCreationKnowledge = `# The Conscious Creation System
 
-**Last Updated:** January 31, 2025
-**Version:** 2.0
+**Last Updated:** June 24, 2026
+**Version:** 4.0
 
-## 1. Active Vision
-Create "Life I Choose™" document
-- Tools: /life-vision/new, /life-vision/[id]/refine
-- 12 categories, present-tense positive activation
-- 80%+ user's own words
+A Conscious Creation System is the machine that makes manifestation reliable instead of random - it drives someone from the life they have to the life they choose. Vibration Fit helps members install it once, then run it every day. ("Machine" is a metaphor; the official name is always "Conscious Creation System.") Full explainer: /system
 
-## 2. Consistent Alignment  
-Stay vibrationally aligned daily
-- Vision Boards (/vision-board) - Gallery/grid system with status filtering (active, actualized, inactive)
-- Vision Audio (/life-vision/[id]/audio)
-- Daily practices and rituals
+## Philosophy (the spine)
+We teach **Joy → Manifestation**, not the reverse. Freedom makes joy possible; joy fuels creation; manifestations are feedback, not the goal.
+- **Foundation: Freedom** - free to choose your focus, meaning, response, identity, and emotional state.
+- **Purpose: Joy** - the state creativity, love, play, gratitude, and expansion emerge from.
+- **Mechanism: Emotional states perpetuate themselves** - the way you feel shapes the way you live, and the way you live shapes the way you feel.
+- **Practice: Design → Align → Enjoy** (the Conscious Creation Cycle).
+- **Result: Expansion and meaningful manifestations** - evidence of alignment, never a prerequisite for well-being.
 
-## 3. Evidence of Actualization
-Capture proof of transformation
-- Journal (/journal)
-- Daily entries, mood tracking, evidence of wins
+## Two Phases
+1. **Install (Activation Intensive, 72h)** - Build the Life Vision, Vision Audio, Vision Board, Journal, and MAP (My Alignment Plan). Path: /intensive
+2. **Run (MAP, ongoing)** - MAP runs the Cycle daily and the results show up. Path: /map
 
-**They Work Together:** Vision sets direction → Alignment maintains frequency → Evidence proves transformation`
+## The Conscious Creation Cycle - Design → Align → Enjoy
+1. **Design** - Design the life you choose. Create and keep alive the "Life I Choose™" document (/life-vision/new). 12 categories, present-tense, 80%+ user's own words.
+2. **Align** - Align with the emotional state of that life, daily, via MAP: Vision Audio, Vision Board (/vision-board), and daily practices.
+3. **Enjoy** - Enjoy the freedom and joy available now: presence, appreciation, savoring, and noticing the evidence already showing up (capture it in the Journal, /journal). "Enjoy" is living above the Green Line in the present tense. Manifestations are the Result of running the loop (feedback), never a step.
+
+## The Reps - 4 Parts (what MAP schedules and Tracking measures)
+- **Creations (Artifacts)** - "What objects exist because of me?" Life Visions, audio, board items, journal, Daily Paper, Abundance Tracker events.
+- **Activations (Practice)** - "How many times did I show up and do the work?" Playing audio, journaling, board touches, attending Gym.
+- **Connections (Community)** - "How many times did I interact with the community?" Vibe Tribe posts, comments, hearts.
+- **Sessions (Coaching)** - "How often am I showing up to live coaching?" Alignment Gym calls and replays.
+
+## Gauge & Guide
+- **Gauge:** Above the Green Line - the readout of how aligned/joyful you've been lately; "Enjoy" in the present tense.
+- **Guide:** VIVA - teaches the system, reads the data, suggests the next best rep.
+
+**They Work Together:** Design sets direction → Align maintains the emotional frequency → Enjoy keeps you above the Green Line now, and manifestations follow as the result. When users ask about "the system," point them to /system and /intensive.`
 
 // Reference Documentation
 const userJourneyKnowledge = `# User Journey Reference

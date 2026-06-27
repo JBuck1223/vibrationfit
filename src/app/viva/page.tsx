@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, Send, Sparkles, Loader2, Mic, Square, Check, RotateCcw, History, Plus, Trash2, X } from 'lucide-react'
 import { Button, Card, Text } from '@/lib/design-system/components'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface Message {
   id: string
@@ -118,7 +119,7 @@ export default function VivaMasterPage() {
       }
     } catch (error) {
       console.error('Error deleting conversation:', error)
-      alert('Failed to delete conversation')
+      toast.error('Failed to delete conversation')
     }
   }
 
@@ -363,7 +364,7 @@ export default function VivaMasterPage() {
   const startRecording = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Your browser does not support audio recording')
+        toast.error('Your browser does not support audio recording')
         return
       }
 
@@ -411,7 +412,7 @@ export default function VivaMasterPage() {
       }, 1000)
     } catch (err: any) {
       console.error('Error starting recording:', err)
-      alert('Failed to access microphone. Please check permissions.')
+      toast.error('Failed to access microphone. Please check permissions.')
       setIsRecording(false)
     }
   }
@@ -461,7 +462,7 @@ export default function VivaMasterPage() {
       setTranscript(data.transcript)
     } catch (err) {
       console.error('Transcription error:', err)
-      alert(err instanceof Error ? err.message : 'Failed to transcribe audio')
+      toast.error(err instanceof Error ? err.message : 'Failed to transcribe audio')
     } finally {
       setIsTranscribing(false)
     }

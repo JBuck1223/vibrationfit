@@ -1,8 +1,14 @@
-'use client'
-
+import type { Metadata } from 'next'
 import React from 'react'
 import { ProfileStudioProvider } from '@/components/profile-studio/ProfileStudioContext'
 import { ProfileAreaBar } from '@/components/profile-studio/ProfileAreaBar'
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Profile',
+    default: 'Profile',
+  },
+}
 
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
   return (

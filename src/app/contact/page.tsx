@@ -10,6 +10,7 @@ import { useTracking } from '@/components/TrackingProvider'
 import { trackConversion } from '@/lib/tracking/pixels'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function ContactPage() {
   const { visitorId, sessionId } = useTracking()
@@ -84,7 +85,7 @@ export default function ContactPage() {
       setSubmitted(true)
     } catch (error: any) {
       console.error('Error submitting form:', error)
-      alert(error.message || 'Failed to submit form. Please try again.')
+      toast.error(error.message || 'Failed to submit form. Please try again.')
     } finally {
       setLoading(false)
     }

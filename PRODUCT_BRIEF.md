@@ -14,6 +14,23 @@ Vibration Fit is the SaaS platform for conscious creation. We help members becom
 
 ---
 
+## The Conscious Creation System
+
+A **Conscious Creation System** is the machine that drives you from the life you have to the life you choose. ("Machine" is metaphor; the official name is always "Conscious Creation System.") Vibration Fit helps members **install** it once and **run** it every day. Full canonical reference: `docs/architecture/CONSCIOUS_CREATION_SYSTEM.md` and the `/system` page.
+
+- **Two Phases:**
+  - **Install — Activation Intensive (72h):** Program the destination (build the Life Vision) and bolt the machine together: Vision Audio, Vision Board, Journal, and MAP (My Alignment Plan).
+  - **Run — MAP, ongoing:** Do the daily/weekly reps and capture evidence.
+- **The Cycle (3 Operations):** Active Vision → Consistent Alignment → Evidence of Actualization.
+- **The Reps (4 Parts — what MAP schedules and Tracking measures):**
+  - **Creations (Artifacts)** — "What objects exist because of me?"
+  - **Activations (Practice)** — "How many times did I show up and do the work?"
+  - **Connections (Community)** — "How many times did I interact with the community?" (Vibe Tribe)
+  - **Sessions (Coaching)** — "How often am I showing up to live coaching?" (Alignment Gym)
+- **The Gauge:** Above the Green Line. **The Guide:** VIVA.
+
+---
+
 ## The 3 Core Operations of Conscious Creation (Platform Flow)
 
 ### 1. Active Vision

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { 
   Sparkles, PartyPopper, Plane, Home, Users, Heart, 
   Activity, DollarSign, Briefcase, UserPlus, Package, 
@@ -384,40 +385,36 @@ export default function HomePage() {
                   {/* Left column - Content */}
                   <div className="space-y-3 text-center lg:text-left flex flex-col justify-center">
                     <Heading level={4} className="text-[#39FF14] text-center md:text-center">
-                      Activate your Life Vision in <span className="font-bold text-[#39FF14]">72 hours</span>
-                      <br />
-                      with the Activation Intensive.
+                      Install your Conscious Creation System in <span className="font-bold text-[#39FF14]">72 hours</span>
                     </Heading>
+
+                    <Text size="sm" className="text-neutral-300 text-center md:text-left">
+                      So freedom and joy become your baseline and manifestations turn into repeatable side‑effects.
+                    </Text>
                     
                     {/* Mobile bullets */}
                     <BulletedList className="leading-relaxed md:hidden">
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>14 guided steps, zero guesswork</strong>
+                        <strong>Design your dream life</strong> – A clear Life Vision, audio, and board in 72 hours.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>VIVA</strong> turns contrast into clarity
+                        <strong>Align your days</strong> – Your MAP runs your system: Creations, Activations, Connections, Sessions.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Support unlocks</strong> as you move
-                      </ListItem>
-                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Rhythm</strong> that keeps you aligned
+                        <strong>Enjoy your life now</strong> – VIVA, Daily Paper, and the Green Line bring more freedom and joy today.
                       </ListItem>
                     </BulletedList>
 
                     {/* Desktop bullets */}
                     <BulletedList className="leading-relaxed lg:text-left lg:ml-6 hidden md:block">
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>14 guided steps, zero guesswork</strong> — From blank slate to a complete Life Vision and daily alignment plan in 72 hours.
+                        <strong>Design your dream life</strong> – Go from &ldquo;no idea what I even want&rdquo; to a clear Life Vision, audio, and board in 72 hours.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>VIVA turns contrast into clarity</strong> — VIVA&apos;s 4&#8209;layer writing process co&#8209;writes your 12&#8209;category Life Vision, even if you don&apos;t know what you want yet.
+                        <strong>Align your days with that design</strong> – Your My Alignment Plan (MAP) runs the four parts of your system for you: Creations, Activations, Connections, Sessions.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Support unlocks as you move</strong> — As you move through your 72&#8209;Hour Activation, Vibe Tribe, Alignment Gym, and advanced audios unlock.
-                      </ListItem>
-                      <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Rhythm that keeps you aligned</strong> — After the Intensive, simple weekly rhythms keep you in vibrational harmony with your vision.
+                        <strong>Enjoy your life now</strong> – VIVA, Daily Paper, and the Green Line help you enjoy more freedom and joy today, while wins and abundance show up as evidence, not pressure.
                       </ListItem>
                     </BulletedList>
                     
@@ -473,6 +470,68 @@ export default function HomePage() {
               </Stack>
             </Container>
           </Cover>
+        </section>
+
+        {/* Conscious Creation System Section */}
+        <section>
+          <Container size="xl">
+            <Card variant="elevated" className="p-6 md:p-10 bg-black/40 border-[#39FF14]/20 border-2">
+              <div className="text-center max-w-3xl mx-auto mb-8 md:mb-10">
+                <Badge variant="primary" className="mb-4">How Vibration Fit works</Badge>
+                <Heading level={3} className="text-white !mb-4">
+                  The Conscious Creation System:<br />
+                  <span className="text-[#39FF14]">Design</span> &rarr; <span className="text-[#00FFFF]">Align</span> &rarr; <span className="text-[#FFFF00]">Enjoy</span>
+                </Heading>
+                <Text size="base" className="text-neutral-200 font-semibold mb-3">
+                  Basis of life: Freedom. Purpose of life: Joy.
+                </Text>
+                <Text size="sm" className="text-neutral-300">
+                  Your Conscious Creation System is the structure that helps you design your life on purpose, align your thoughts, words, and actions with that design, and enjoy the freedom and joy available right now.
+                </Text>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                {/* Design */}
+                <div className="bg-neutral-900/60 border-2 border-[#39FF14]/30 rounded-2xl p-6 flex flex-col">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-10 h-10 rounded-full bg-[#39FF14]/10 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-5 h-5 text-[#39FF14]" />
+                    </span>
+                    <Heading level={4} className="text-[#39FF14] !mb-0">Design</Heading>
+                  </div>
+                  <Text size="sm" className="text-neutral-300">
+                    Choose what you want to include in your experience. With VIVA&rsquo;s guidance, your Life Vision (the Life I Choose), audio, and board turn your dream life into something specific and real.
+                  </Text>
+                </div>
+
+                {/* Align */}
+                <div className="bg-neutral-900/60 border-2 border-[#00FFFF]/30 rounded-2xl p-6 flex flex-col">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-10 h-10 rounded-full bg-[#00FFFF]/10 flex items-center justify-center flex-shrink-0">
+                      <Sliders className="w-5 h-5 text-[#00FFFF]" />
+                    </span>
+                    <Heading level={4} className="text-[#00FFFF] !mb-0">Align</Heading>
+                  </div>
+                  <Text size="sm" className="text-neutral-300">
+                    Become the version of you who naturally lives it. Your custom My Alignment Plan (MAP) and Projects turn your vision into consistent Creations, Activations, Connections, and Sessions that bring your thoughts, feelings, and actions into harmony with your design, day after day.
+                  </Text>
+                </div>
+
+                {/* Enjoy */}
+                <div className="bg-neutral-900/60 border-2 border-[#FFFF00]/30 rounded-2xl p-6 flex flex-col">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="w-10 h-10 rounded-full bg-[#FFFF00]/10 flex items-center justify-center flex-shrink-0">
+                      <Smile className="w-5 h-5 text-[#FFFF00]" />
+                    </span>
+                    <Heading level={4} className="text-[#FFFF00] !mb-0">Enjoy</Heading>
+                  </div>
+                  <Text size="sm" className="text-neutral-300">
+                    Freedom and joy aren&rsquo;t destinations; they&rsquo;re available today. Your Daily Paper, journal, Abundance Tracker, and the Green Line help you notice what feels good, enjoy it more, and gently move back above the line when you don&rsquo;t.
+                  </Text>
+                </div>
+              </div>
+            </Card>
+          </Container>
         </section>
 
         {/* Quote Block Section */}
@@ -2269,6 +2328,7 @@ export default function HomePage() {
                     <div className="text-center mb-4">
                       <Text size="base" className="text-neutral-300 font-semibold">The Conscious Creation System</Text>
                       <Text size="lg" className="text-[#39FF14] font-bold">Creations → Activations → Connections → Sessions</Text>
+                      <Text size="xs" className="text-neutral-500">These are the 4 Parts of your Conscious Creation System.</Text>
                       <Text size="base" className="text-neutral-300">turns scattered signals into a dominant point of attraction.</Text>
                     </div>
                     <Text size="sm" className="text-neutral-300 text-center">
@@ -2604,6 +2664,22 @@ export default function HomePage() {
                   id: 'billing-start',
                   title: 'When does billing start?',
                   description: `$${getIntensiveTotal()} today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.`
+                },
+                {
+                  id: 'what-is-conscious-creation-system',
+                  title: 'What is a Conscious Creation System?',
+                  description: (
+                    <div className="space-y-3 text-sm text-neutral-300 leading-relaxed">
+                      <p>
+                        It&apos;s the machine that makes &quot;thoughts become things&quot; reliable instead of random. We help you program the destination (your Life Vision), build the machine in 72 hours, then hand you a MAP to run it every day across four simple parts: Creations, Activations, Connections, and Sessions.
+                      </p>
+                      <p>
+                        <Link href="/system" className="text-[#39FF14] hover:underline">
+                          See how every part fits together →
+                        </Link>
+                      </p>
+                    </div>
+                  )
                 },
                 {
                   id: 'what-is-vibrational-fitness',

@@ -562,6 +562,8 @@ export default function AudioListenPage() {
 
   // Songs state
   const [userSongs, setUserSongs] = useState<any[]>([])
+  const [draftSongs, setDraftSongs] = useState<any[]>([])
+  const [songsView, setSongsView] = useState<'complete' | 'drafts'>('complete')
   const [userSongsLoading, setUserSongsLoading] = useState(false)
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null)
   const [songTracks, setSongTracks] = useState<BaseAudioTrack[]>([])
@@ -634,6 +636,15 @@ export default function AudioListenPage() {
       setUserSongs(data)
       if (data.length > 0 && !selectedSongId) setSelectedSongId(data[0].id)
     }
+    // Saved-but-not-finished songs (drafts / ready-to-generate) so members can
+    // return and pick up where they left off instead of re-pasting content.
+    const { data: drafts } = await supabase
+      .from('songs')
+      .select('id, title, status, created_at, entity_type, lyrics')
+      .in('status', ['draft', 'generating_lyrics', 'lyrics_complete', 'failed'])
+      .order('updated_at', { ascending: false })
+      .limit(50)
+    if (drafts) setDraftSongs(drafts)
     setSongsLoaded(true)
     setUserSongsLoading(false)
   }
@@ -1511,12 +1522,80 @@ export default function AudioListenPage() {
         {/* ── Songs ── */}
         {contentType === 'songs' && (
           <section>
+            {/* Complete / Drafts toggle */}
+            <div className="mb-5 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSongsView('complete')}
+                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${songsView === 'complete' ? 'bg-primary-500 text-black' : 'bg-[#2a2a2a] text-neutral-300 hover:text-white'}`}
+              >
+                <CheckCircle className="w-4 h-4" />
+                Complete{userSongs.length > 0 ? ` (${userSongs.length})` : ''}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSongsView('drafts')}
+                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${songsView === 'drafts' ? 'bg-primary-500 text-black' : 'bg-[#2a2a2a] text-neutral-300 hover:text-white'}`}
+              >
+                <Edit2 className="w-4 h-4" />
+                Drafts{draftSongs.length > 0 ? ` (${draftSongs.length})` : ''}
+              </button>
+            </div>
+
             {userSongsLoading ? (
               <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
+            ) : songsView === 'drafts' ? (
+              draftSongs.length === 0 ? (
+                <Card variant="glass" className="p-6 text-center">
+                  <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                  <p className="text-neutral-400 mb-4">No drafts yet. Start a song and tap &ldquo;Save for later.&rdquo;</p>
+                  <Button variant="primary" size="sm" asChild>
+                    <Link href="/audio/songwriter"><Plus className="w-4 h-4 mr-2" />Create Song</Link>
+                  </Button>
+                </Card>
+              ) : (
+                <div className="mx-auto w-full max-w-2xl">
+                  <div className="rounded-2xl border border-neutral-800 bg-embedded-panel p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-white">Drafts & in-progress</h3>
+                      <Link href="/audio/songwriter" className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-white">
+                        <Plus className="h-3.5 w-3.5" /> New
+                      </Link>
+                    </div>
+                    <div className="space-y-1.5">
+                      {draftSongs.map(d => {
+                        const label = d.status === 'lyrics_complete' ? 'Ready to generate'
+                          : d.status === 'generating_lyrics' ? 'Writing lyrics…'
+                          : d.status === 'failed' ? 'Needs another try'
+                          : 'Draft'
+                        return (
+                          <Link
+                            key={d.id}
+                            href={`/audio/songwriter/${d.id}`}
+                            className="flex items-center gap-3 rounded-xl border border-transparent bg-white/[0.03] px-3 py-2.5 transition-colors hover:border-neutral-700 hover:bg-white/[0.06]"
+                          >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                              <Music2 className="h-4 w-4 text-[#39FF14]" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-neutral-200">{d.title || 'Untitled Song'}</p>
+                              <p className="text-[11px] text-neutral-500">
+                                {label}
+                                {' · '}{new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </p>
+                            </div>
+                            <RefreshCw className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )
             ) : userSongs.length === 0 ? (
               <Card variant="glass" className="p-6 text-center">
                 <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
-                <p className="text-neutral-400 mb-4">No songs yet. Create one with the Songwriter.</p>
+                <p className="text-neutral-400 mb-4">No finished songs yet. Create one with the Songwriter.</p>
                 <Button variant="primary" size="sm" asChild>
                   <Link href="/audio/songwriter"><Plus className="w-4 h-4 mr-2" />Create Song</Link>
                 </Button>

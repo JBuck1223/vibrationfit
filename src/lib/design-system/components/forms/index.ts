@@ -1,4 +1,5 @@
 export { Button } from './Button'
+export { ButtonLink } from './ButtonLink'
 export { SaveButton } from './SaveButton'
 export { VIVAButton } from './VIVAButton'
 export { Input } from './Input'

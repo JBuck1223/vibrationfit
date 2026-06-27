@@ -24,17 +24,27 @@ export default function AppError({
     >
       <div className="w-full max-w-md rounded-2xl border border-[#333] bg-[#141414] p-8 text-center">
         <h1 className="text-lg font-semibold">Something went wrong</h1>
-        <p className="mt-3 text-sm text-neutral-400">{error.message || 'An unexpected error occurred.'}</p>
+        <p className="mt-3 text-sm text-neutral-400">
+          We hit an unexpected snag. Try again, and if it keeps happening, reach out to support.
+        </p>
         {error.digest ? (
           <p className="mt-3 font-mono text-xs text-neutral-600">Reference: {error.digest}</p>
         ) : null}
-        <button
-          type="button"
-          onClick={() => reset()}
-          className="mt-8 inline-flex items-center justify-center rounded-full bg-[#39FF14] px-6 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
-        >
-          Try again
-        </button>
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <button
+            type="button"
+            onClick={() => reset()}
+            className="inline-flex items-center justify-center rounded-full bg-[#39FF14] px-6 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+          >
+            Try again
+          </button>
+          <a
+            href="/"
+            className="inline-flex items-center justify-center rounded-full border border-[#333] px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            Go home
+          </a>
+        </div>
       </div>
     </div>
   )

@@ -146,6 +146,10 @@ export default function TrackingContent({ user, profileData, visionData, visionB
 
       <Container size="xl">
         <Stack gap="md">
+          <p className="text-center text-sm text-neutral-400">
+            This is your Conscious Creation System at a glance: are you above the Green Line?
+          </p>
+
           {/* Retention Metrics - The 4 Core Tiles */}
           <RetentionDashboard />
 
