@@ -119,7 +119,7 @@ function CagedFigure({ className = '' }: { className?: string }) {
 /*  Main graphic (drop-in component for the homepage container)         */
 /* ------------------------------------------------------------------ */
 
-export function GreenLineGraphic() {
+function GreenLineGraphic() {
   return (
     <div className="relative overflow-hidden rounded-3xl border-2 border-[#1F1F1F] bg-[#0A0A0A]">
       {/* ABOVE THE LINE */}
