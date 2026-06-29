@@ -92,7 +92,7 @@ export function ReferralBanner() {
 
   if (!refCode || dismissed || isCheckoutPage) return null
 
-  const isOfferPage = pathname?.startsWith('/offer/launch')
+  const isOfferPage = pathname === '/'
 
   const nameDisplay = referrerName
     ? `${referrerName.charAt(0).toUpperCase()}${referrerName.slice(1)}`
@@ -118,7 +118,7 @@ export function ReferralBanner() {
       </button>
 
       <a
-        href={isOfferPage ? '#pricing' : `/offer/launch?ref=${refCode}`}
+        href={isOfferPage ? '#pricing' : `/?ref=${refCode}`}
         onClick={handleDismiss}
         className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-black text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity text-center sm:text-left justify-center"
       >

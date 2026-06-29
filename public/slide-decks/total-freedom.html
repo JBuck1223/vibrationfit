@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Live a Life of Total Freedom — Vibration Fit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #000000;
+        --fg: #ffffff;
+        --muted: rgba(255, 255, 255, 0.72);
+        --subtle: rgba(255, 255, 255, 0.45);
+        --accent: rgba(255, 255, 255, 0.12);
+        --panel: rgba(255, 255, 255, 0.04);
+
+        /* Brand */
+        --lime: #39ff14;
+        --cyan: #00ffff;
+        --purple: #bf00ff;
+        --yellow: #ffff00;
+        --red: #ff0040;
+
+        /* Above / Below Green Line */
+        --above: #39ff14;
+        --above-soft: rgba(57, 255, 20, 0.08);
+        --above-border: rgba(57, 255, 20, 0.4);
+        --below: #ff0040;
+        --below-soft: rgba(255, 0, 64, 0.06);
+        --below-border: rgba(255, 0, 64, 0.35);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Poppins", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(60% 40% at 20% 10%, rgba(57, 255, 20, 0.08), transparent 60%),
+          radial-gradient(50% 40% at 80% 100%, rgba(191, 0, 255, 0.10), transparent 60%),
+          radial-gradient(40% 40% at 100% 20%, rgba(0, 255, 255, 0.06), transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .deck {
+        position: relative;
+        z-index: 1;
+        height: 100vh;
+        width: 100%;
+        display: block;
+      }
+
+      .slide {
+        display: none;
+        position: absolute;
+        inset: 0;
+        padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 5vw, 4rem);
+        width: 100%;
+        height: 100vh;
+        flex-direction: column;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .slide.active { display: flex; }
+
+      .slide-content {
+        flex: 1 1 auto;
+        max-width: 1100px;
+        margin: auto;
+        width: 100%;
+        padding: clamp(1rem, 4vh, 3rem) 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      /* Typography */
+      h1 {
+        font-size: clamp(2rem, 5.2vw, 4rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.75rem;
+        line-height: 1.05;
+      }
+
+      h1 .gradient,
+      h2 .gradient,
+      .gradient {
+        background: linear-gradient(135deg, #39ff14, #00ffff, #bf00ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      h2 {
+        font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+        font-weight: 700;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        font-size: clamp(0.7rem, 1.2vw, 0.8rem);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--muted);
+        margin-bottom: 0.85rem;
+        padding: 0.35rem 0.85rem;
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        align-self: flex-start;
+      }
+
+      .center-slide .eyebrow { align-self: center; }
+
+      .quote {
+        font-size: clamp(1.2rem, 2.7vw, 1.7rem);
+        line-height: 1.35;
+        margin: 0 0 1rem;
+        color: var(--fg);
+        font-weight: 500;
+        font-style: italic;
+        max-width: 36ch;
+      }
+
+      .quote::before { content: "\201C"; margin-right: 0.1em; }
+      .quote::after  { content: "\201D"; margin-left: 0.1em; }
+
+      .lead {
+        font-size: clamp(0.95rem, 1.9vw, 1.15rem);
+        line-height: 1.55;
+        margin: 0 0 0.85rem;
+        color: var(--muted);
+        max-width: 60ch;
+      }
+
+      .lead.bright { color: var(--fg); }
+
+      .sub {
+        font-size: clamp(0.85rem, 1.5vw, 1rem);
+        line-height: 1.5;
+        margin: 0.5rem 0 0;
+        color: var(--subtle);
+        max-width: 60ch;
+        font-style: italic;
+      }
+
+      ul.bullets {
+        margin: 0 0 1rem;
+        padding: 0;
+        list-style: none;
+        color: var(--muted);
+        font-size: clamp(0.95rem, 1.7vw, 1.05rem);
+        line-height: 1.5;
+        max-width: 56ch;
+      }
+
+      ul.bullets li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.55rem;
+      }
+
+      ul.bullets li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.52em;
+        top: calc(0.5lh - 0.3rem);
+        width: 0.6rem;
+        height: 0.6rem;
+        background: currentColor;
+        border-radius: 50%;
+        opacity: 0.55;
+      }
+
+      .callout {
+        margin-top: 0.75rem;
+        padding: 1rem 1.25rem;
+        border-left: 3px solid currentColor;
+        background: var(--panel);
+        border-radius: 0 12px 12px 0;
+        max-width: 62ch;
+        color: var(--lime);
+      }
+
+      .callout p {
+        margin: 0;
+        font-size: clamp(0.95rem, 1.7vw, 1.05rem);
+        line-height: 1.5;
+        color: var(--fg);
+        font-weight: 500;
+      }
+
+      /* TITLE slide */
+      .title-slide .slide-content { text-align: center; align-items: center; }
+
+      .title-slide h1 {
+        font-size: clamp(2.2rem, 6vw, 5.25rem);
+        font-weight: 800;
+      }
+
+      .title-slide .super-eyebrow {
+        font-size: clamp(0.7rem, 1.2vw, 0.85rem);
+        font-weight: 700;
+        letter-spacing: 0.36em;
+        text-transform: uppercase;
+        color: var(--lime);
+        margin-bottom: 1.25rem;
+      }
+
+      .title-slide .subtitle {
+        font-size: clamp(1rem, 2.1vw, 1.4rem);
+        color: var(--muted);
+        max-width: 46ch;
+        margin: 1rem auto 1.25rem;
+        font-style: italic;
+      }
+
+      .title-slide .hint {
+        font-size: 0.78rem;
+        color: var(--subtle);
+        letter-spacing: 0.1em;
+        margin-top: 1.5rem;
+      }
+
+      .title-slide .hint kbd {
+        background: var(--accent);
+        border-radius: 4px;
+        padding: 0.15rem 0.45rem;
+        font-family: inherit;
+        font-weight: 600;
+        color: var(--fg);
+        margin: 0 0.2rem;
+      }
+
+      /* CENTERED text variant */
+      .center-slide .slide-content { text-align: center; align-items: center; }
+
+      .center-slide .quote {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 30ch;
+        font-style: normal;
+      }
+
+      .center-slide .lead {
+        margin-left: auto;
+        margin-right: auto;
+        font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+        color: var(--fg);
+        max-width: 42ch;
+      }
+
+      .center-slide .sub { margin-left: auto; margin-right: auto; }
+      .center-slide .callout { margin-left: auto; margin-right: auto; text-align: left; }
+
+      /* SECTION DIVIDER (chapter slide) */
+      .section-slide .slide-content { text-align: center; align-items: center; }
+      .section-slide .section-num {
+        font-size: clamp(0.75rem, 1.3vw, 0.9rem);
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--lime);
+        font-weight: 700;
+        margin-bottom: 0.85rem;
+      }
+      .section-slide h1 {
+        font-size: clamp(2.2rem, 5vw, 4rem);
+        margin: 0 auto;
+        max-width: 18ch;
+      }
+      .section-slide .section-sub {
+        margin: 1.25rem auto 0;
+        font-size: clamp(0.95rem, 1.7vw, 1.15rem);
+        color: var(--muted);
+        max-width: 52ch;
+      }
+
+      /* BIG QUOTE */
+      .big-quote {
+        max-width: 24ch;
+        font-size: clamp(1.6rem, 4vw, 3rem);
+        line-height: 1.18;
+        font-weight: 700;
+        margin: 0.5rem auto 0.85rem;
+        color: var(--fg);
+      }
+
+      /* GENERIC CARD GRID */
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.9rem;
+        margin-top: 1.5rem;
+        width: 100%;
+      }
+      .grid.cols-2 { grid-template-columns: 1fr; }
+      .grid.cols-3 { grid-template-columns: 1fr; }
+      .grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+
+      @media (min-width: 760px) {
+        .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+      }
+
+      .card {
+        padding: 1.2rem 1.35rem;
+        border: 1px solid var(--accent);
+        background: var(--panel);
+        border-radius: 16px;
+        text-align: left;
+      }
+
+      .card .num {
+        font-size: 0.68rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--subtle);
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .card h3 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1.05rem, 2vw, 1.3rem);
+        font-weight: 700;
+      }
+
+      .card p {
+        margin: 0;
+        font-size: clamp(0.85rem, 1.5vw, 0.98rem);
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .card.lime h3 { color: var(--lime); }
+      .card.cyan h3 { color: var(--cyan); }
+      .card.purple h3 { color: var(--purple); }
+      .card.yellow h3 { color: var(--yellow); }
+
+      /* CHAIN flow: Thought -> Belief -> Manifestation -> Truth -> Identity */
+      .chain {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 1.5rem auto 0;
+        max-width: 980px;
+      }
+      .chain-node {
+        flex: 1 1 130px;
+        min-width: 120px;
+        padding: 0.85rem 0.75rem;
+        border-radius: 14px;
+        border: 1px solid currentColor;
+        background: rgba(255, 255, 255, 0.03);
+        text-align: center;
+      }
+      .chain-node .cn-label {
+        font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+        font-weight: 700;
+        color: var(--fg);
+      }
+      .chain-node .cn-sub {
+        display: block;
+        margin-top: 0.3rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .chain-node.n1 { color: var(--fg); }
+      .chain-node.n2 { color: var(--cyan); }
+      .chain-node.n3 { color: var(--yellow); }
+      .chain-node.n4 { color: var(--lime); }
+      .chain-node.n5 { color: var(--purple); }
+      .chain-arrow {
+        align-self: center;
+        color: var(--subtle);
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+      @media (max-width: 640px) {
+        .chain { flex-direction: column; }
+        .chain-arrow { transform: rotate(90deg); }
+      }
+
+      /* JOURNEY (7 stages) */
+      .journey {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+        margin: 1.4rem auto 0;
+        width: 100%;
+        max-width: 900px;
+        text-align: left;
+      }
+      .journey-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.9rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--accent);
+        background: var(--panel);
+        border-radius: 12px;
+      }
+      .journey-step .jnum {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: currentColor;
+        color: #000;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+      }
+      .journey-step .jbody { flex: 1; }
+      .journey-step h3 {
+        margin: 0 0 0.15rem;
+        font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+        font-weight: 700;
+        color: var(--fg);
+      }
+      .journey-step p {
+        margin: 0;
+        font-size: clamp(0.8rem, 1.4vw, 0.92rem);
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .journey-step.j1 { color: #8a8a8a; }
+      .journey-step.j2 { color: var(--red); }
+      .journey-step.j3 { color: #ff8a00; }
+      .journey-step.j4 { color: var(--yellow); }
+      .journey-step.j5 { color: var(--cyan); }
+      .journey-step.j6 { color: var(--lime); }
+      .journey-step.j7 { color: var(--purple); }
+
+      /* PILL GRID (triggers / I am statements) */
+      .pill-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        justify-content: center;
+        margin: 1.4rem auto 0;
+        max-width: 920px;
+      }
+      .pill {
+        padding: 0.5rem 0.95rem;
+        border-radius: 999px;
+        background: var(--panel);
+        border: 1px solid var(--accent);
+        font-size: clamp(0.78rem, 1.4vw, 0.92rem);
+        font-weight: 500;
+        color: var(--fg);
+        line-height: 1.3;
+      }
+      .pill.below { color: var(--red); border-color: var(--below-border); background: var(--below-soft); }
+      .pill.above { color: var(--lime); border-color: var(--above-border); background: var(--above-soft); }
+      .pill.neutral { color: var(--muted); }
+
+      /* TWO-COLUMN compare */
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        width: 100%;
+      }
+      @media (min-width: 760px) {
+        .compare-grid { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+      }
+      .compare-col {
+        padding: 1.25rem 1.4rem;
+        border: 1px solid var(--accent);
+        background: var(--panel);
+        border-radius: 16px;
+        text-align: left;
+      }
+      .compare-col .col-label {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        opacity: 0.85;
+      }
+      .compare-col h3 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(1.05rem, 1.9vw, 1.25rem);
+        font-weight: 700;
+      }
+      .compare-col p {
+        margin: 0;
+        font-size: clamp(0.9rem, 1.5vw, 1rem);
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .compare-col.below { border-color: var(--below-border); background: var(--below-soft); }
+      .compare-col.above { border-color: var(--above-border); background: var(--above-soft); }
+      .compare-col.below h3, .compare-col.below .col-label { color: var(--below); }
+      .compare-col.above h3, .compare-col.above .col-label { color: var(--above); }
+
+      /* STAT block (rock bottom) */
+      .stat-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin: 1.5rem auto 0;
+        max-width: 760px;
+      }
+      @media (min-width: 640px) { .stat-row { grid-template-columns: 1fr 1fr; } }
+      .stat {
+        padding: 1.5rem;
+        border-radius: 18px;
+        border: 1px solid var(--below-border);
+        background: var(--below-soft);
+        text-align: center;
+      }
+      .stat .stat-num {
+        font-size: clamp(2rem, 6vw, 3.5rem);
+        font-weight: 800;
+        color: var(--red);
+        line-height: 1;
+      }
+      .stat .stat-label {
+        margin-top: 0.5rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--subtle);
+        font-weight: 700;
+      }
+
+      /* EQUATION block */
+      .equation {
+        margin: 1.25rem auto 0;
+        max-width: 720px;
+        text-align: center;
+      }
+      .equation .formula {
+        font-size: clamp(1rem, 2.4vw, 1.5rem);
+        font-weight: 700;
+        color: var(--fg);
+        padding: 0.85rem 1rem;
+        border: 1px solid var(--accent);
+        border-radius: 14px;
+        background: var(--panel);
+        margin-bottom: 1rem;
+      }
+      .equation .formula .gradient { font-weight: 800; }
+
+      /* ===== Ambient animated background ===== */
+      .ambient {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .ambient svg { position: absolute; display: block; }
+      .ambient .rings {
+        right: -8%;
+        top: 50%;
+        width: min(86vh, 700px);
+        height: min(86vh, 700px);
+        transform: translateY(-50%);
+        opacity: 0.16;
+        animation: drift-a 24s ease-in-out infinite;
+      }
+      .ambient .rings-2 {
+        left: -12%;
+        bottom: -14%;
+        width: min(60vh, 460px);
+        height: min(60vh, 460px);
+        opacity: 0.1;
+        animation: drift-b 30s ease-in-out infinite;
+      }
+      @keyframes drift-a {
+        0%, 100% { transform: translateY(-50%) scale(1) rotate(0deg); }
+        50% { transform: translateY(-53%) scale(1.05) rotate(4deg); }
+      }
+      @keyframes drift-b {
+        0%, 100% { transform: scale(1) rotate(0deg); }
+        50% { transform: scale(1.08) rotate(-5deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ambient .rings, .ambient .rings-2 { animation: none; }
+      }
+
+      /* ===== Snow-metaphor icons inside chain nodes ===== */
+      .chain-ico {
+        width: clamp(38px, 5vw, 48px);
+        height: clamp(38px, 5vw, 48px);
+        margin: 0 auto 0.45rem;
+        display: block;
+      }
+      .chain-ico svg { width: 100%; height: 100%; display: block; }
+      .chain-node .cn-meta {
+        display: block;
+        margin-top: 0.3rem;
+        font-size: 0.62rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        opacity: 0.7;
+      }
+
+      /* ===== Circular expansion-cycle visual ===== */
+      .cycle-ring {
+        margin: 1.5rem auto 0;
+        max-width: 460px;
+        width: 100%;
+      }
+      .cycle-ring svg { width: 100%; height: auto; display: block; }
+
+      /* ===== Car analogy visual ===== */
+      .car-visual {
+        margin: 1.5rem auto 0;
+        max-width: 540px;
+        width: 100%;
+      }
+      .car-visual svg { width: 100%; height: auto; display: block; }
+
+      /* ===== Staircase visual (Journey to Conscious Allower) ===== */
+      .staircase-slide .slide-content { max-width: 1180px; }
+      .staircase-inline {
+        width: 100%;
+        margin: 1.25rem auto 0;
+      }
+      .staircase-inline svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        max-height: 56vh;
+      }
+      .stair-step,
+      .stair-num {
+        opacity: 0;
+        transform: translateY(18px);
+        transform-box: fill-box;
+        transform-origin: bottom center;
+      }
+      .slide.active .stair-step,
+      .slide.active .stair-num {
+        animation: stairRise 650ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+      }
+      @keyframes stairRise {
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .stair-label {
+        font-family: "Poppins", sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .stair-step, .stair-num { opacity: 1; transform: none; }
+        .slide.active .stair-step, .slide.active .stair-num { animation: none; }
+      }
+
+      /* ===== Green Line visual ===== */
+      .greenline {
+        border: 2px solid #1f1f1f;
+        border-radius: 20px;
+        overflow: hidden;
+        margin: 1.4rem auto 0;
+        width: 100%;
+        max-width: 860px;
+        text-align: left;
+      }
+      .gl-half { padding: 1.2rem 1.5rem; }
+      .gl-above { background: radial-gradient(120% 90% at 50% 100%, rgba(57, 255, 20, 0.14), transparent 70%); }
+      .gl-below { background: radial-gradient(120% 90% at 50% 0%, rgba(255, 0, 64, 0.13), transparent 70%); }
+      .gl-label {
+        font-size: 0.64rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-weight: 700;
+      }
+      .gl-above .gl-label { color: var(--lime); }
+      .gl-below .gl-label { color: var(--red); }
+      .gl-half h3 {
+        margin: 0.3rem 0 0.4rem;
+        font-size: clamp(1.1rem, 2.2vw, 1.45rem);
+        font-weight: 700;
+      }
+      .gl-above h3 { color: var(--lime); }
+      .gl-below h3 { color: var(--red); }
+      .gl-half p {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(0.85rem, 1.5vw, 0.98rem);
+        line-height: 1.5;
+      }
+      .gl-chips { margin-top: 0.6rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+      .gl-chips span { font-size: 0.72rem; border-radius: 999px; padding: 0.2rem 0.7rem; font-weight: 600; }
+      .gl-above .gl-chips span { color: var(--lime); border: 1px solid var(--above-border); background: var(--above-soft); }
+      .gl-below .gl-chips span { color: var(--red); border: 1px solid var(--below-border); background: var(--below-soft); }
+      .gl-divider {
+        height: 3px;
+        background: var(--lime);
+        position: relative;
+        text-align: center;
+        box-shadow: 0 0 18px rgba(57, 255, 20, 0.65);
+      }
+      .gl-divider span {
+        position: relative;
+        top: -11px;
+        background: #000;
+        border: 1px solid var(--lime);
+        color: var(--lime);
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 0.2rem 0.85rem;
+      }
+
+      /* ===== Offer / CTA ===== */
+      .offer-price {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        font-weight: 800;
+        color: var(--lime);
+        margin: 0.75rem 0 0.25rem;
+      }
+      .fine {
+        font-size: clamp(0.72rem, 1.2vw, 0.82rem);
+        color: var(--subtle);
+        margin-top: 0.5rem;
+      }
+      .cta-btn {
+        display: inline-block;
+        margin-top: 1.25rem;
+        padding: 0.9rem 2.2rem;
+        background: linear-gradient(135deg, #39ff14, #00ffff);
+        color: #000;
+        font-weight: 800;
+        border-radius: 999px;
+        font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+        letter-spacing: 0.01em;
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(57, 255, 20, 0.3);
+        transition: transform 200ms ease, box-shadow 200ms ease;
+      }
+      .cta-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 40px rgba(57, 255, 20, 0.45);
+      }
+
+      /* Navigation */
+      nav.dots {
+        position: fixed;
+        top: 1.25rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.4rem;
+        z-index: 3;
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 70vw;
+      }
+      nav.dots button {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 200ms ease;
+      }
+      nav.dots button[aria-current="true"] {
+        background: #fff;
+        transform: scale(1.3);
+      }
+
+      .slide-counter {
+        position: fixed;
+        top: 1.25rem;
+        right: 1.5rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.18em;
+        color: var(--subtle);
+        font-variant-numeric: tabular-nums;
+        z-index: 3;
+      }
+
+      .nav-arrows {
+        position: fixed;
+        top: 50%;
+        left: 0;
+        right: 0;
+        transform: translateY(-50%);
+        display: flex;
+        justify-content: space-between;
+        padding: 0 clamp(0.75rem, 2vw, 1.5rem);
+        pointer-events: none;
+        z-index: 3;
+      }
+      .nav-arrow {
+        pointer-events: auto;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.88);
+        width: clamp(2.75rem, 4vw, 3.5rem);
+        height: clamp(2.75rem, 4vw, 3.5rem);
+        border-radius: 999px;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: background 200ms ease, opacity 200ms ease,
+          transform 200ms ease, border-color 200ms ease;
+      }
+      .nav-arrow:hover:not(:disabled) {
+        background: rgba(57, 255, 20, 0.15);
+        border-color: rgba(57, 255, 20, 0.5);
+        transform: scale(1.08);
+      }
+      .nav-arrow:active:not(:disabled) { transform: scale(0.95); }
+      .nav-arrow:disabled { opacity: 0.2; cursor: not-allowed; }
+      .nav-arrow svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .brand-mark {
+        position: fixed;
+        bottom: 0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.7rem;
+        color: var(--subtle);
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true">
+      <svg class="rings" viewBox="0 0 400 400" fill="none">
+        <defs>
+          <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#39ff14" />
+            <stop offset="50%" stop-color="#00ffff" />
+            <stop offset="100%" stop-color="#bf00ff" />
+          </linearGradient>
+        </defs>
+        <g stroke="url(#ringGrad)" stroke-width="1.1">
+          <circle cx="200" cy="200" r="58" />
+          <circle cx="200" cy="200" r="98" />
+          <circle cx="200" cy="200" r="138" />
+          <circle cx="200" cy="200" r="178" />
+        </g>
+        <g stroke="url(#ringGrad)" stroke-width="0.8" opacity="0.6">
+          <line x1="200" y1="20" x2="200" y2="380" />
+          <line x1="20" y1="200" x2="380" y2="200" />
+          <line x1="73" y1="73" x2="327" y2="327" />
+          <line x1="327" y1="73" x2="73" y2="327" />
+        </g>
+      </svg>
+      <svg class="rings-2" viewBox="0 0 400 400" fill="none">
+        <g stroke="url(#ringGrad)" stroke-width="1.1">
+          <circle cx="200" cy="200" r="70" />
+          <circle cx="200" cy="200" r="120" />
+          <circle cx="200" cy="200" r="170" />
+        </g>
+      </svg>
+    </div>
+
+    <div class="slide-counter" id="counter">01 / 56</div>
+
+    <div class="deck" id="deck">
+      <!-- ============================================================
+           0 · TITLE
+           ============================================================ -->
+      <section class="slide title-slide active" data-index="0" aria-label="Title">
+        <div class="slide-content">
+          <div class="super-eyebrow">Vibration Fit Presents</div>
+          <h1>Live a Life of <span class="gradient">Total Freedom</span></h1>
+          <p class="subtitle">How we act harmoniously with Universal Law to create the life we choose.</p>
+          <p class="hint">Press <kbd>&rarr;</kbd> or click anywhere to begin</p>
+        </div>
+      </section>
+
+      <!-- 1 · THE PROMISE -->
+      <section class="slide center-slide" data-index="1" aria-label="The promise">
+        <div class="slide-content">
+          <div class="eyebrow">The Promise</div>
+          <p class="lead bright">
+            By the end of this presentation, you&rsquo;ll have practical tools you can start using today to shift your
+            vibrational point of attraction &mdash; and begin moving toward more fun in your life.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           PART 01 · WHO WE ARE
+           ============================================================ -->
+      <section class="slide section-slide" data-index="2" aria-label="Section: Who We Are">
+        <div class="slide-content">
+          <div class="section-num">Part 01</div>
+          <h1>Who <span class="gradient">We Are</span></h1>
+          <p class="section-sub">We&rsquo;re the ghosts in the machines that run multi-million dollar companies.</p>
+        </div>
+      </section>
+
+      <!-- 3 · GHOSTS IN THE MACHINE -->
+      <section class="slide center-slide" data-index="3" aria-label="How we made our money">
+        <div class="slide-content">
+          <div class="eyebrow">Our Background</div>
+          <h2>We&rsquo;ve made our money building <span class="gradient">tech stacks</span>.</h2>
+          <p class="lead">
+            Systems and infrastructures that make companies dramatically more efficient &mdash; running quietly in the
+            background so business owners can focus on what they do best.
+          </p>
+        </div>
+      </section>
+
+      <!-- 4 · WE SPECIALIZE IN -->
+      <section class="slide" data-index="4" aria-label="What we specialize in">
+        <div class="slide-content">
+          <div class="eyebrow">We Specialize In</div>
+          <h2>Three Things.</h2>
+          <div class="grid cols-3">
+            <div class="card lime">
+              <div class="num">01</div>
+              <h3>Launching Companies</h3>
+              <p>Building company infrastructure from scratch with a focus on the first $1,000,000 in revenue.</p>
+            </div>
+            <div class="card cyan">
+              <div class="num">02</div>
+              <h3>Growing Companies</h3>
+              <p>For companies stuck or in decline, we eliminate the constraints and unleash their full potential to grow at a healthy rate.</p>
+            </div>
+            <div class="card purple">
+              <div class="num">03</div>
+              <h3>Maintaining Infrastructure</h3>
+              <p>We run business systems in the background so owners can focus on what they do best.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 · BUILT AROUND FREEDOM + OFF-PITCH VOICES -->
+      <section class="slide center-slide" data-index="5" aria-label="We built our life around freedom">
+        <div class="slide-content">
+          <div class="eyebrow">A Unique Life</div>
+          <h2>We Intentionally Built Our Life<br/>Around <span class="gradient">Freedom</span>.</h2>
+          <p class="lead">
+            And we chose to listen to our own life song along the way &mdash; despite all the off-pitch little voices.
+          </p>
+          <div class="pill-grid">
+            <span class="pill below">&ldquo;You&rsquo;re not good enough.&rdquo;</span>
+            <span class="pill below">&ldquo;Just give up and get a job.&rdquo;</span>
+            <span class="pill below">&ldquo;You didn&rsquo;t go to school for this.&rdquo;</span>
+            <span class="pill below">&ldquo;What if you fail?&rdquo;</span>
+            <span class="pill below">&ldquo;You can&rsquo;t quit your job.&rdquo;</span>
+            <span class="pill below">&ldquo;Don&rsquo;t sell your house.&rdquo;</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           PART 02 · THE FOUR FREEDOMS
+           ============================================================ -->
+      <section class="slide section-slide" data-index="6" aria-label="Section: The Four Freedoms">
+        <div class="slide-content">
+          <div class="section-num">Part 02</div>
+          <h1>The Four <span class="gradient">Freedoms</span></h1>
+          <p class="section-sub">The four freedoms we built our entire life around.</p>
+        </div>
+      </section>
+
+      <!-- 7 · FOUR FREEDOMS GRID -->
+      <section class="slide" data-index="7" aria-label="The four freedoms defined">
+        <div class="slide-content">
+          <div class="eyebrow">Four Basic Freedoms</div>
+          <h2>Time. Location. Financial. <span class="gradient">Inner</span>.</h2>
+          <div class="grid cols-4">
+            <div class="card lime">
+              <div class="num">01 · Time</div>
+              <p>Freedom to do what you choose <strong>whenever</strong> you choose.</p>
+            </div>
+            <div class="card cyan">
+              <div class="num">02 · Location</div>
+              <p>Freedom to do what you choose <strong>wherever</strong> you choose.</p>
+            </div>
+            <div class="card yellow">
+              <div class="num">03 · Financial</div>
+              <p>Having the material means to meet your needs and do fun things.</p>
+            </div>
+            <div class="card purple">
+              <div class="num">04 · Inner</div>
+              <p>Freedom of the mind and body &mdash; freedom to choose your thoughts and feelings.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           PART 03 · THE KEY
+           ============================================================ -->
+      <section class="slide center-slide" data-index="8" aria-label="The key is alignment">
+        <div class="slide-content">
+          <div class="eyebrow">What We Realized</div>
+          <p class="lead">
+            We&rsquo;ve tried explaining the business strategies that got us here. But we&rsquo;d be lying if we credited it all to the right strategies.
+          </p>
+          <p class="big-quote">The key has always been <span class="gradient">alignment</span>.</p>
+        </div>
+      </section>
+
+      <!-- 9 · WHY WE CREATED VIBRATION FIT -->
+      <section class="slide center-slide" data-index="9" aria-label="Why we created Vibration Fit">
+        <div class="slide-content">
+          <div class="eyebrow">Our Mission</div>
+          <h2>So We Created <span class="gradient">Vibration Fit</span>.</h2>
+          <p class="lead">
+            To bridge the gap between the <strong>woo-woo</strong> and the <strong>how-to</strong>.
+          </p>
+          <div class="compare-grid">
+            <div class="compare-col">
+              <div class="col-label">The Woo-Woo</div>
+              <p>The Universal Laws that quietly govern everything.</p>
+            </div>
+            <div class="compare-col">
+              <div class="col-label">The How-To</div>
+              <p>Real-life strategies and frameworks that have actually worked for us.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           PART 04 · THE TURNING POINT
+           ============================================================ -->
+      <section class="slide section-slide" data-index="10" aria-label="Section: The Turning Point">
+        <div class="slide-content">
+          <div class="section-num">Part 03</div>
+          <h1>The Turning <span class="gradient">Point</span></h1>
+          <p class="section-sub">Life wasn&rsquo;t always rainbows and butterflies for us.</p>
+        </div>
+      </section>
+
+      <!-- 11 · STUDIED BUT STUCK -->
+      <section class="slide center-slide" data-index="11" aria-label="We had teachers but no frameworks">
+        <div class="slide-content">
+          <div class="eyebrow">Hundreds of Teachers</div>
+          <h2>We Knew the Concepts.<br/>We Still <span class="gradient">Struggled</span>.</h2>
+          <p class="lead">
+            We&rsquo;d studied the Universal Laws and learned from incredible teachers &mdash; but with no frameworks to apply,
+            we still struggled with simple things like paying our bills.
+          </p>
+          <div class="pill-grid">
+            <span class="pill neutral">Abraham Hicks</span>
+            <span class="pill neutral">Dr. Wayne Dyer</span>
+            <span class="pill neutral">Eckhart Tolle</span>
+            <span class="pill neutral">Neale Donald Walsch</span>
+            <span class="pill neutral">Louise Hay</span>
+            <span class="pill neutral">Dr. Joe Dispenza</span>
+            <span class="pill neutral">Joe Vitale</span>
+            <span class="pill neutral">Jim Rohn</span>
+            <span class="pill neutral">Tony Robbins</span>
+            <span class="pill neutral">and many more&hellip;</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12 · ROCK BOTTOM -->
+      <section class="slide center-slide" data-index="12" aria-label="The amazingly awful day">
+        <div class="slide-content">
+          <div class="eyebrow">An Amazingly Awful Day</div>
+          <h2>Newly Married. Living in Japan.<br/>No Milk, No Eggs, No <span class="gradient">Money</span>.</h2>
+          <div class="stat-row">
+            <div class="stat">
+              <div class="stat-num">$4.87</div>
+              <div class="stat-label">Available Capital</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num">$100,000+</div>
+              <div class="stat-label">In Debt</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 13 · EVERYTHING CHANGED -->
+      <section class="slide center-slide" data-index="13" aria-label="Everything changed vibrationally">
+        <div class="slide-content">
+          <div class="eyebrow">The Shift</div>
+          <h2>That Day, Everything Changed <span class="gradient">Vibrationally</span>.</h2>
+          <p class="lead">
+            We could no longer afford to tolerate the negative thought patterns that got us into that financial hole.
+            So we decided to fully commit &mdash; and actually apply the woo-woo we&rsquo;d talked about for years.
+          </p>
+        </div>
+      </section>
+
+      <!-- 14 · THE TRANSFORMATION -->
+      <section class="slide" data-index="14" aria-label="The transformation">
+        <div class="slide-content">
+          <div class="eyebrow">From That Day On</div>
+          <h2>Our Life Quickly <span class="gradient">Transformed</span>.</h2>
+          <div class="pill-grid">
+            <span class="pill above">Started a business doing what we love</span>
+            <span class="pill above">Debt free with six figures in the bank</span>
+            <span class="pill above">First $1,000,000 from home</span>
+            <span class="pill above">Time, Location, Financial &amp; Inner Freedom</span>
+          </div>
+          <div class="callout">
+            <p>We did all this by reminding ourselves who we truly are &mdash; and creating frameworks to remember.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           PART 05 · THE WOO-WOO (GROUNDWORK)
+           ============================================================ -->
+      <section class="slide section-slide" data-index="15" aria-label="Section: The Woo-Woo">
+        <div class="slide-content">
+          <div class="section-num">Part 04 · Groundwork</div>
+          <h1>Ready to Get Into the <span class="gradient">Woo-Woo?</span></h1>
+          <p class="section-sub">Before the frameworks, let&rsquo;s lay some groundwork on how it all works.</p>
+        </div>
+      </section>
+
+      <!-- 16 · PHYSICAL & NON-PHYSICAL -->
+      <section class="slide" data-index="16" aria-label="Physical and non-physical self">
+        <div class="slide-content">
+          <div class="eyebrow">You Are Two Things at Once</div>
+          <h2>Physical You &amp; <span class="gradient">Non-Physical</span> You.</h2>
+          <p class="lead">
+            You are not separate from Source Consciousness &mdash; you are its physical extension.
+          </p>
+          <div class="compare-grid">
+            <div class="compare-col">
+              <div class="col-label">Non-Physical</div>
+              <h3>Source Consciousness</h3>
+              <p>The infinite, ever-expanding part of you. Call it God, Source, or your Inner Being.</p>
+            </div>
+            <div class="compare-col">
+              <div class="col-label">Physical</div>
+              <h3>The You Living Life</h3>
+              <p>Having experiences, launching desires, and feeling your way forward right here, right now.</p>
+            </div>
+          </div>
+          <p class="sub">Each has a vibrational set point &mdash; and the gap between them is what you feel.</p>
+        </div>
+      </section>
+
+      <!-- 17 · THE EXPANSION CYCLE -->
+      <section class="slide" data-index="17" aria-label="The expansion cycle">
+        <div class="slide-content">
+          <div class="eyebrow">The Never-Ending Cycle</div>
+          <h2>How Source <span class="gradient">Expands</span>.</h2>
+          <p class="lead">
+            As you live, you launch new rockets of desire. Source instantly becomes those new preferences &mdash;
+            then emits a signal that draws cooperative matches through the Law of Attraction.
+          </p>
+          <div class="cycle-ring">
+            <svg viewBox="0 0 360 330" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="cycGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#39ff14" />
+                  <stop offset="50%" stop-color="#00ffff" />
+                  <stop offset="100%" stop-color="#bf00ff" />
+                </linearGradient>
+              </defs>
+              <circle cx="180" cy="170" r="110" fill="none" stroke="url(#cycGrad)" stroke-width="3" opacity="0.5" stroke-dasharray="6 10" />
+              <g fill="url(#cycGrad)">
+                <polygon points="286,108 296,122 280,126" />
+                <polygon points="188,282 172,282 180,296" />
+                <polygon points="80,126 64,122 74,108" />
+              </g>
+              <g>
+                <circle cx="180" cy="60" r="30" fill="#0c0c0c" stroke="#39ff14" stroke-width="2.5" />
+                <circle cx="275" cy="225" r="30" fill="#0c0c0c" stroke="#00ffff" stroke-width="2.5" />
+                <circle cx="85" cy="225" r="30" fill="#0c0c0c" stroke="#bf00ff" stroke-width="2.5" />
+              </g>
+              <g font-family="Poppins, sans-serif" font-weight="800" text-anchor="middle">
+                <text x="180" y="67" fill="#39ff14" font-size="20">1</text>
+                <text x="275" y="232" fill="#00ffff" font-size="20">2</text>
+                <text x="85" y="232" fill="#bf00ff" font-size="20">3</text>
+              </g>
+              <g font-family="Poppins, sans-serif" font-weight="700" text-anchor="middle" fill="#ffffff">
+                <text x="180" y="20" font-size="15">Experience</text>
+                <text x="275" y="283" font-size="15">New Preference</text>
+                <text x="85" y="283" font-size="15">Expansion</text>
+              </g>
+            </svg>
+          </div>
+          <p class="sub" style="text-align:center; margin-left:auto; margin-right:auto;">This is literally the stuff that puts the eternity in eternity.</p>
+        </div>
+      </section>
+
+      <!-- 18 · PHYSICAL SET POINT = THOUGHT -->
+      <section class="slide center-slide" data-index="18" aria-label="Thoughts set your vibration">
+        <div class="slide-content">
+          <div class="eyebrow">Your Physical Set Point</div>
+          <h2>The Thoughts You Think Set Your <span class="gradient">Vibration</span>.</h2>
+          <p class="lead">
+            Not thought by thought &mdash; but pattern by pattern. The Law of Attraction responds to the thoughts you
+            <em>keep</em> thinking, bringing more of like energy and building vibrational momentum.
+          </p>
+        </div>
+      </section>
+
+      <!-- 19 · EMOTIONAL GUIDANCE SYSTEM -->
+      <section class="slide" data-index="19" aria-label="Emotional Guidance System">
+        <div class="slide-content">
+          <div class="eyebrow">Your Built-In Compass</div>
+          <h2>Emotion Is <span class="gradient">Guidance</span>.</h2>
+          <p class="lead">
+            Negative emotion simply means there&rsquo;s a vibrational gap between physical you and non-physical you.
+            Your emotions are a compass &mdash; you can feel your way back into alignment.
+          </p>
+          <div class="compare-grid">
+            <div class="compare-col above">
+              <div class="col-label">In Alignment</div>
+              <h3>Above the Green Line</h3>
+              <p>Same perspective as Source. Positive emotion. The gap is closing &mdash; and it feels good.</p>
+            </div>
+            <div class="compare-col below">
+              <div class="col-label">Out of Alignment</div>
+              <h3>Below the Green Line</h3>
+              <p>A different perspective than Source. Negative emotion. The gap is widening &mdash; and it feels uncomfortable.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 20 · EMOTION IS A RESPONSE TO THOUGHT -->
+      <section class="slide center-slide" data-index="20" aria-label="Emotion is a response to thought">
+        <div class="slide-content">
+          <div class="eyebrow">The Root of Feeling</div>
+          <h2>Emotion Is a Response to <span class="gradient">Thought</span>.</h2>
+          <p class="lead">
+            Thought evokes a chemical response in your body that lets you feel exactly the way you think.
+          </p>
+          <div class="callout">
+            <p>So if you want to feel better, it all starts with thinking better-feeling thoughts.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           FRAMEWORK #1 · HOW YOU BECOME YOU
+           ============================================================ -->
+      <section class="slide section-slide" data-index="21" aria-label="Framework 1: How You Become You">
+        <div class="slide-content">
+          <div class="section-num">Framework #1</div>
+          <h1>How You Become <span class="gradient">You</span></h1>
+          <p class="section-sub">Your identity is just a compilation of your dominant thought patterns.</p>
+        </div>
+      </section>
+
+      <!-- 22 · THE CHAIN -->
+      <section class="slide" data-index="22" aria-label="Thought to identity chain">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">The Five Stages</div>
+          <h2 style="text-align:center;">Thought becomes <span class="gradient">Identity</span>.</h2>
+          <div class="chain">
+            <div class="chain-node n1">
+              <span class="chain-ico">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <g stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" transform="translate(30,30)">
+                    <line x1="0" y1="-22" x2="0" y2="22" />
+                    <line x1="-22" y1="0" x2="22" y2="0" />
+                    <line x1="-15" y1="-15" x2="15" y2="15" />
+                    <line x1="-15" y1="15" x2="15" y2="-15" />
+                    <polyline points="0,-22 -5,-17 0,-13" />
+                    <polyline points="0,-22 5,-17 0,-13" />
+                    <polyline points="-22,0 -17,-5 -13,0" />
+                    <polyline points="22,0 17,-5 13,0" />
+                  </g>
+                  <circle cx="30" cy="30" r="2.5" fill="#ffffff" />
+                </svg>
+              </span>
+              <span class="cn-label">Thought</span><span class="cn-sub">First, you think it</span><span class="cn-meta">Snowflake</span>
+            </div>
+            <span class="chain-arrow">&rarr;</span>
+            <div class="chain-node n2">
+              <span class="chain-ico">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <circle cx="14" cy="14" r="2" fill="#00ffff" opacity="0.7" />
+                  <circle cx="30" cy="9" r="1.5" fill="#00ffff" opacity="0.7" />
+                  <circle cx="46" cy="15" r="2" fill="#00ffff" opacity="0.7" />
+                  <path d="M 4 50 Q 16 32 28 38 Q 40 30 52 42 Q 58 48 56 54 L 4 54 Q 2 50 4 50 Z" fill="#00ffff" opacity="0.85" />
+                </svg>
+              </span>
+              <span class="cn-label">Belief</span><span class="cn-sub">A thought you keep thinking</span><span class="cn-meta">Pile of Snow</span>
+            </div>
+            <span class="chain-arrow">&rarr;</span>
+            <div class="chain-node n3">
+              <span class="chain-ico">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <g stroke="#ffff00" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="30" y1="6" x2="30" y2="16" />
+                    <line x1="30" y1="44" x2="30" y2="54" />
+                    <line x1="6" y1="30" x2="16" y2="30" />
+                    <line x1="44" y1="30" x2="54" y2="30" />
+                    <line x1="13" y1="13" x2="20" y2="20" />
+                    <line x1="40" y1="40" x2="47" y2="47" />
+                    <line x1="47" y1="13" x2="40" y2="20" />
+                    <line x1="20" y1="40" x2="13" y2="47" />
+                  </g>
+                  <circle cx="30" cy="30" r="9" fill="#ffff00" />
+                </svg>
+              </span>
+              <span class="cn-label">Manifestation</span><span class="cn-sub">Evidence shows up</span><span class="cn-meta">Proof</span>
+            </div>
+            <span class="chain-arrow">&rarr;</span>
+            <div class="chain-node n4">
+              <span class="chain-ico">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <ellipse cx="30" cy="52" rx="20" ry="3" fill="#000000" opacity="0.4" />
+                  <circle cx="30" cy="30" r="20" fill="#39ff14" />
+                  <circle cx="24" cy="24" r="6" fill="#ffffff" opacity="0.4" />
+                </svg>
+              </span>
+              <span class="cn-label">Truth</span><span class="cn-sub">A belief validated becomes true</span><span class="cn-meta">Snowball</span>
+            </div>
+            <span class="chain-arrow">&rarr;</span>
+            <div class="chain-node n5">
+              <span class="chain-ico">
+                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <ellipse cx="30" cy="56" rx="14" ry="2" fill="#000000" opacity="0.4" />
+                  <circle cx="30" cy="46" r="11" fill="#bf00ff" />
+                  <circle cx="30" cy="30" r="9" fill="#bf00ff" />
+                  <circle cx="30" cy="17" r="7" fill="#bf00ff" />
+                  <circle cx="27" cy="15" r="1" fill="#0a0a0a" />
+                  <circle cx="31" cy="15" r="1" fill="#0a0a0a" />
+                  <rect x="22" y="6" width="16" height="2" fill="#0a0a0a" />
+                  <rect x="25" y="0" width="10" height="6" fill="#0a0a0a" />
+                </svg>
+              </span>
+              <span class="cn-label">Identity</span><span class="cn-sub">A truth becomes part of you</span><span class="cn-meta">Snowman</span>
+            </div>
+          </div>
+          <p class="sub" style="text-align:center; margin-left:auto; margin-right:auto;">Your overall identity is a compilation of your truths &mdash; built one snowflake at a time.</p>
+        </div>
+      </section>
+
+      <!-- 23 · WHAT TRUTHS DO YOU HOLD -->
+      <section class="slide" data-index="23" aria-label="What truths do you hold">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">The &ldquo;I Am&rdquo; Inventory</div>
+          <h2 style="text-align:center;">What Truths Do You Hold About <span class="gradient">Yourself?</span></h2>
+          <div class="pill-grid">
+            <span class="pill below">&ldquo;I am broke.&rdquo;</span>
+            <span class="pill below">&ldquo;Life is hard and stressful.&rdquo;</span>
+            <span class="pill below">&ldquo;I can never catch a break.&rdquo;</span>
+            <span class="pill below">&ldquo;Nobody gets me.&rdquo;</span>
+            <span class="pill below">&ldquo;I&rsquo;m an anxious person.&rdquo;</span>
+            <span class="pill above">&ldquo;I am abundant.&rdquo;</span>
+            <span class="pill above">&ldquo;Everything always works out for me.&rdquo;</span>
+            <span class="pill above">&ldquo;Life is fun and effortless.&rdquo;</span>
+            <span class="pill above">&ldquo;I have more than enough.&rdquo;</span>
+            <span class="pill above">&ldquo;I am whole.&rdquo;</span>
+          </div>
+          <p class="sub" style="text-align:center; margin-left:auto; margin-right:auto;">Every piece of your identity had a genesis in thought &mdash; which means every piece can be reshaped.</p>
+        </div>
+      </section>
+
+      <!-- 24 · CEILING FAN / LAW OF ATTRACTION -->
+      <section class="slide center-slide" data-index="24" aria-label="The ceiling fan analogy">
+        <div class="slide-content">
+          <div class="eyebrow">Why Patterns Stick</div>
+          <h2>Thought Is Like a <span class="gradient">Ceiling Fan</span>.</h2>
+          <p class="lead">
+            Think a thought and the Law of Attraction draws another like it. The more you think it, the faster the fan
+            spins &mdash; gaining the momentum that turns thoughts into beliefs, truths, and identity.
+          </p>
+          <p class="quote" style="margin-left:auto; margin-right:auto;">That which is like unto itself is drawn.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           FRAMEWORK #2 · VIBRATIONAL MOMENTUM
+           ============================================================ -->
+      <section class="slide section-slide" data-index="25" aria-label="Framework 2: Vibrational Momentum">
+        <div class="slide-content">
+          <div class="section-num">Framework #2</div>
+          <h1>Vibrational <span class="gradient">Momentum</span></h1>
+          <p class="section-sub">What keeps the programs running in your brain and body.</p>
+        </div>
+      </section>
+
+      <!-- 26 · PROGRAMS / OS OF THE UNIVERSE -->
+      <section class="slide center-slide" data-index="26" aria-label="Thought patterns are programs">
+        <div class="slide-content">
+          <div class="eyebrow">Running in the Background</div>
+          <h2>Your Thought Patterns Are <span class="gradient">Programs</span>.</h2>
+          <p class="lead">
+            Whether you&rsquo;re aware of them or not, they run on auto-pilot &mdash; because the Law of Attraction is always
+            working. It&rsquo;s not a rule you turn on and off. It&rsquo;s the Operating System of the Universe.
+          </p>
+          <div class="callout">
+            <p><strong>Operating System of the Universe:</strong> a set of immutable laws that govern all things and establish the equilibrium present in our physical Universe.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 27 · MOMENTUM EQUATION -->
+      <section class="slide" data-index="27" aria-label="Vibrational momentum equation">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">The Definition</div>
+          <h2 style="text-align:center;">What Builds <span class="gradient">Momentum</span>.</h2>
+          <div class="equation">
+            <div class="formula">Momentum = <span class="gradient">Energy</span> &times; <span class="gradient">Time</span></div>
+          </div>
+          <div class="grid cols-3">
+            <div class="card cyan">
+              <div class="num">Mass</div>
+              <p>How much time you allow the thought to be active.</p>
+            </div>
+            <div class="card yellow">
+              <div class="num">Speed</div>
+              <p>How often you return to the thought &mdash; its frequency.</p>
+            </div>
+            <div class="card lime">
+              <div class="num">Direction</div>
+              <p>Where you are on the vibrational scale when you think it.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 28 · WE'VE PROVEN IT -->
+      <section class="slide" data-index="28" aria-label="Proof we have done this">
+        <div class="slide-content">
+          <div class="eyebrow">We&rsquo;ve Done This Many Times</div>
+          <h2>Quit Running the Programs That No Longer <span class="gradient">Serve You</span>.</h2>
+          <div class="pill-grid">
+            <span class="pill above">7-Figure Business</span>
+            <span class="pill above">Pay Cash for Cars</span>
+            <span class="pill above">Bought Our Dream Home (3,561 sq ft)</span>
+            <span class="pill above">Live at the #1 Beach in America</span>
+            <span class="pill above">Married Our Best Friend</span>
+            <span class="pill above">Two Beautiful Kids</span>
+            <span class="pill above">Work From Home</span>
+            <span class="pill above">Travel the World</span>
+            <span class="pill above">Belong to a Boat Club</span>
+          </div>
+          <p class="sub">We&rsquo;re not saying it&rsquo;s easy &mdash; we knew these things conceptually for years before we learned to actually shift our point of attraction.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           FRAMEWORK #3 · REPLACING AN INHARMONIC THOUGHT
+           ============================================================ -->
+      <section class="slide section-slide" data-index="29" aria-label="Framework 3: Replacing an Inharmonic Thought">
+        <div class="slide-content">
+          <div class="section-num">Framework #3</div>
+          <h1>Replacing an <span class="gradient">Inharmonic</span> Thought</h1>
+          <p class="section-sub">A five-step process to swap a thought that no longer serves you.</p>
+        </div>
+      </section>
+
+      <!-- 30 · FIVE STEPS -->
+      <section class="slide" data-index="30" aria-label="The five steps">
+        <div class="slide-content">
+          <div class="eyebrow">The Process</div>
+          <h2>Discover. Disengage. Find. Engage. <span class="gradient">Establish</span>.</h2>
+          <div class="journey">
+            <div class="journey-step j2"><span class="jnum">1</span><div class="jbody"><h3>Discover</h3><p>Become aware of a thought that no longer serves you.</p></div></div>
+            <div class="journey-step j3"><span class="jnum">2</span><div class="jbody"><h3>Disengage</h3><p>Decide to take your foot off the gas &mdash; stop feeding the inharmonic thought.</p></div></div>
+            <div class="journey-step j5"><span class="jnum">3</span><div class="jbody"><h3>Find</h3><p>Find a new harmonic thought that feels better when you think it.</p></div></div>
+            <div class="journey-step j6"><span class="jnum">4</span><div class="jbody"><h3>Engage</h3><p>Engage with your chosen harmonic thought.</p></div></div>
+            <div class="journey-step j7"><span class="jnum">5</span><div class="jbody"><h3>Establish</h3><p>Intentionally return and activate the new thought whenever the subject arises.</p></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 31 · MONEY EXAMPLE: TRIGGERS -->
+      <section class="slide" data-index="31" aria-label="Money triggers">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">Example &middot; Money</div>
+          <h2 style="text-align:center;">First, a <span class="gradient">Trigger</span>.</h2>
+          <p class="lead" style="margin-left:auto; margin-right:auto; text-align:center;">There&rsquo;s usually something that fires off the old thought pattern&hellip;</p>
+          <div class="pill-grid">
+            <span class="pill neutral">Rent is due</span>
+            <span class="pill neutral">Bank balance is low</span>
+            <span class="pill neutral">Credit card payment due</span>
+            <span class="pill neutral">Paycheck isn&rsquo;t enough</span>
+            <span class="pill neutral">Overdraft alert</span>
+            <span class="pill neutral">Desire to buy something</span>
+            <span class="pill neutral">Desire to travel</span>
+            <span class="pill neutral">Traffic ticket</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 32 · INHARMONIC PROGRAM -->
+      <section class="slide" data-index="32" aria-label="The inharmonic program">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">Below the Green Line</div>
+          <h2 style="text-align:center;">Then the Old Program <span style="color:var(--red)">Takes Over</span>.</h2>
+          <div class="pill-grid">
+            <span class="pill below">&ldquo;There&rsquo;s never enough.&rdquo;</span>
+            <span class="pill below">&ldquo;Money doesn&rsquo;t grow on trees.&rdquo;</span>
+            <span class="pill below">&ldquo;I&rsquo;ll keep getting what I&rsquo;m getting.&rdquo;</span>
+            <span class="pill below">&ldquo;I got myself into this mess.&rdquo;</span>
+            <span class="pill below">&ldquo;I can never catch a break.&rdquo;</span>
+            <span class="pill below">&ldquo;Money is the root of all evil.&rdquo;</span>
+            <span class="pill below">&ldquo;People in my family don&rsquo;t make much.&rdquo;</span>
+          </div>
+          <p class="sub" style="text-align:center; margin-left:auto; margin-right:auto;">We&rsquo;re literally attracting more evidence of &ldquo;not enough&rdquo; &mdash; so we get more of the same.</p>
+        </div>
+      </section>
+
+      <!-- 33 · HARMONIC REPLACEMENTS -->
+      <section class="slide" data-index="33" aria-label="Harmonic replacement thoughts">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">Above the Green Line</div>
+          <h2 style="text-align:center;">Find a <span class="gradient">Harmonic</span> Thought.</h2>
+          <div class="pill-grid">
+            <span class="pill above">&ldquo;I am abundant.&rdquo;</span>
+            <span class="pill above">&ldquo;Everything always works out for me perfectly.&rdquo;</span>
+            <span class="pill above">&ldquo;I have more than enough.&rdquo;</span>
+            <span class="pill above">&ldquo;There are many ways to make money.&rdquo;</span>
+            <span class="pill above">&ldquo;Money flows where energy goes.&rdquo;</span>
+            <span class="pill above">&ldquo;Money flows to me easily and effortlessly.&rdquo;</span>
+            <span class="pill above">&ldquo;The Universe always provides.&rdquo;</span>
+            <span class="pill above">&ldquo;Look at all I can be grateful for.&rdquo;</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 34 · REPROGRAM ON PURPOSE -->
+      <section class="slide center-slide" data-index="34" aria-label="Reprogram on purpose">
+        <div class="slide-content">
+          <div class="eyebrow">The Payoff</div>
+          <h2>This Is How You <span class="gradient">Reprogram</span> on Purpose.</h2>
+          <p class="lead">
+            Engage the new thought whenever a trigger arises. After a while, your brain has a new harmonic pattern &mdash;
+            and the Law of Attraction brings manifestational evidence that becomes part of your new identity.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           INTERLUDE · YOU DON'T HAVE TO UNDERSTAND IT ALL
+           ============================================================ -->
+      <section class="slide center-slide" data-index="35" aria-label="You don't have to understand it all">
+        <div class="slide-content">
+          <div class="eyebrow">A Relief</div>
+          <h2>You Don&rsquo;t Have to Understand It All.</h2>
+          <p class="lead">
+            It&rsquo;s like driving a car &mdash; you don&rsquo;t need to know how the engine works to get where you&rsquo;re going.
+            Same with your mind. You just need to know that everything you experience began with a thought.
+          </p>
+          <div class="car-visual">
+            <svg viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <line x1="0" y1="115" x2="540" y2="115" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="6 6" />
+              <g stroke="#39ff14" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
+                <polyline points="250,70 360,70" />
+                <polyline points="350,62 360,70 350,78" />
+              </g>
+              <g transform="translate(70,58)">
+                <rect x="0" y="22" width="110" height="30" rx="7" fill="#39ff14" />
+                <path d="M 16 22 L 32 6 L 78 6 L 94 22 Z" fill="#00ffff" opacity="0.85" />
+                <line x1="55" y1="6" x2="55" y2="22" stroke="#0a0a0a" stroke-width="2" opacity="0.5" />
+                <circle cx="26" cy="54" r="10" fill="#1a1a1a" stroke="#fff" stroke-width="2" />
+                <circle cx="84" cy="54" r="10" fill="#1a1a1a" stroke="#fff" stroke-width="2" />
+              </g>
+              <g transform="translate(450,40)">
+                <line x1="0" y1="0" x2="0" y2="75" stroke="rgba(255,255,255,0.5)" stroke-width="3" stroke-linecap="round" />
+                <path d="M 0 4 L 34 14 L 0 24 Z" fill="#bf00ff" />
+              </g>
+              <text x="465" y="100" text-anchor="middle" fill="#bf00ff" font-family="Poppins, sans-serif" font-size="9" font-weight="700" letter-spacing="0.12em">WHERE YOU&rsquo;RE GOING</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- 36 · ALL POWER IN THIS MOMENT -->
+      <section class="slide center-slide" data-index="36" aria-label="All power is in this moment">
+        <div class="slide-content">
+          <div class="eyebrow">The Most Important Question</div>
+          <p class="big-quote">What are you activating <span class="gradient">right now?</span></p>
+          <p class="lead">
+            The Universe responds to the part of your vibration that&rsquo;s active in this moment.
+            All of your creative power is in the present &mdash; not the past, not the future.
+          </p>
+        </div>
+      </section>
+
+      <!-- 37 · ONE PATTERN / LIFE AREAS -->
+      <section class="slide" data-index="37" aria-label="One pattern can transform a life area">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">Start With One</div>
+          <h2 style="text-align:center;">Sometimes <span class="gradient">One</span> New Pattern Is All It Takes.</h2>
+          <p class="lead" style="margin-left:auto; margin-right:auto; text-align:center;">
+            You don&rsquo;t have to fix everything first. Pick one area of your life you&rsquo;d like to improve.
+          </p>
+          <div class="pill-grid">
+            <span class="pill neutral">Love Life</span>
+            <span class="pill neutral">Health</span>
+            <span class="pill neutral">Job / Career</span>
+            <span class="pill neutral">Mood</span>
+            <span class="pill neutral">Spirituality</span>
+            <span class="pill neutral">Money</span>
+            <span class="pill neutral">Body</span>
+            <span class="pill neutral">Self-Image</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           FRAMEWORK #4 · JOURNEY TO CONSCIOUS ALLOWER
+           ============================================================ -->
+      <section class="slide section-slide" data-index="38" aria-label="Framework 4: Journey to Becoming a Conscious Allower">
+        <div class="slide-content">
+          <div class="section-num">Framework #4</div>
+          <h1>The Journey to <span class="gradient">Conscious Allowing</span></h1>
+          <p class="section-sub">Seven stages from creating by default to allowing on purpose.</p>
+        </div>
+      </section>
+
+      <!-- 39 · THE STAIRCASE (visual) -->
+      <section class="slide staircase-slide center-slide" data-index="39" aria-label="The seven-stage climb">
+        <div class="slide-content">
+          <div class="eyebrow">The Climb</div>
+          <h2>Seven Stages. One <span class="gradient">Ascent</span>.</h2>
+          <p class="lead" style="margin-bottom:0;">From creating by default at the bottom &mdash; to allowing on purpose at the top.</p>
+          <div class="staircase-inline">
+            <svg viewBox="0 0 1200 500" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <line x1="60" y1="450" x2="1140" y2="450" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3 4" />
+
+              <g class="stair-step" style="animation-delay:0ms">
+                <rect x="80" y="370" width="140" height="80" rx="6" fill="#ff0040" />
+                <text class="stair-label" x="150" y="405" text-anchor="middle" fill="#000">Unconscious</text>
+                <text class="stair-label" x="150" y="422" text-anchor="middle" fill="#000">Creator</text>
+              </g>
+              <g class="stair-num" style="animation-delay:0ms">
+                <circle cx="150" cy="340" r="18" fill="#ff0040" />
+                <text x="150" y="346" text-anchor="middle" fill="#000" font-weight="800" font-size="16">1</text>
+              </g>
+
+              <g class="stair-step" style="animation-delay:90ms">
+                <rect x="230" y="330" width="140" height="120" rx="6" fill="#ff6600" />
+                <text class="stair-label" x="300" y="385" text-anchor="middle" fill="#000">Aware</text>
+                <text class="stair-label" x="300" y="402" text-anchor="middle" fill="#000">Person</text>
+              </g>
+              <g class="stair-num" style="animation-delay:90ms">
+                <circle cx="300" cy="300" r="18" fill="#ff6600" />
+                <text x="300" y="306" text-anchor="middle" fill="#000" font-weight="800" font-size="16">2</text>
+              </g>
+
+              <g class="stair-step" style="animation-delay:180ms">
+                <rect x="380" y="290" width="140" height="160" rx="6" fill="#ffff00" />
+                <text class="stair-label" x="450" y="358" text-anchor="middle" fill="#000">Knowledge</text>
+                <text class="stair-label" x="450" y="375" text-anchor="middle" fill="#000">Seeker</text>
+              </g>
+              <g class="stair-num" style="animation-delay:180ms">
+                <circle cx="450" cy="260" r="18" fill="#ffff00" />
+                <text x="450" y="266" text-anchor="middle" fill="#000" font-weight="800" font-size="16">3</text>
+              </g>
+
+              <g class="stair-step" style="animation-delay:270ms">
+                <rect x="530" y="250" width="140" height="200" rx="6" fill="#39ff14" />
+                <text class="stair-label" x="600" y="352" text-anchor="middle" fill="#000">Practitioner</text>
+              </g>
+              <g class="stair-num" style="animation-delay:270ms">
+                <circle cx="600" cy="220" r="18" fill="#39ff14" />
+                <text x="600" y="226" text-anchor="middle" fill="#000" font-weight="800" font-size="16">4</text>
+              </g>
+
+              <g class="stair-step" style="animation-delay:360ms">
+                <rect x="680" y="210" width="140" height="240" rx="6" fill="#00ffff" />
+                <text class="stair-label" x="750" y="332" text-anchor="middle" fill="#000">Experiencer</text>
+              </g>
+              <g class="stair-num" style="animation-delay:360ms">
+                <circle cx="750" cy="180" r="18" fill="#00ffff" />
+                <text x="750" y="186" text-anchor="middle" fill="#000" font-weight="800" font-size="16">5</text>
+              </g>
+
+              <g class="stair-step" style="animation-delay:450ms">
+                <rect x="830" y="170" width="140" height="280" rx="6" fill="#06b6d4" />
+                <text class="stair-label" x="900" y="295" text-anchor="middle" fill="#000">Master</text>
+                <text class="stair-label" x="900" y="312" text-anchor="middle" fill="#000">Manifestor</text>
+              </g>
+              <g class="stair-num" style="animation-delay:450ms">
+                <circle cx="900" cy="140" r="18" fill="#06b6d4" />
+                <text x="900" y="146" text-anchor="middle" fill="#fff" font-weight="800" font-size="16">6</text>
+              </g>
+
+              <g class="stair-step" style="animation-delay:540ms">
+                <rect x="980" y="130" width="140" height="320" rx="6" fill="#bf00ff" />
+                <text class="stair-label" x="1050" y="270" text-anchor="middle" fill="#fff">Conscious</text>
+                <text class="stair-label" x="1050" y="287" text-anchor="middle" fill="#fff">Allower</text>
+              </g>
+              <g class="stair-num" style="animation-delay:540ms">
+                <circle cx="1050" cy="100" r="18" fill="#bf00ff" />
+                <text x="1050" y="106" text-anchor="middle" fill="#fff" font-weight="800" font-size="16">7</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- 40 · SEVEN STAGES (detail) -->
+      <section class="slide" data-index="40" aria-label="The seven stages">
+        <div class="slide-content">
+          <div class="journey">
+            <div class="journey-step j1"><span class="jnum">1</span><div class="jbody"><h3>Unconscious Creator</h3><p>Completely unaware of your creative power &mdash; creating by default rather than on purpose.</p></div></div>
+            <div class="journey-step j2"><span class="jnum">2</span><div class="jbody"><h3>Aware Person</h3><p>You become aware of the creative process.</p></div></div>
+            <div class="journey-step j3"><span class="jnum">3</span><div class="jbody"><h3>Knowledge Seeker</h3><p>Hungry for information about how the creative process works.</p></div></div>
+            <div class="journey-step j4"><span class="jnum">4</span><div class="jbody"><h3>Practitioner</h3><p>You practice actualizing experiences on purpose.</p></div></div>
+            <div class="journey-step j5"><span class="jnum">5</span><div class="jbody"><h3>Experiencer</h3><p>You see results and connect the dots between your intentions and your manifestations.</p></div></div>
+            <div class="journey-step j6"><span class="jnum">6</span><div class="jbody"><h3>Master Manifestor</h3><p>You intentionally act harmoniously with Universal Law to produce desired results.</p></div></div>
+            <div class="journey-step j7"><span class="jnum">7</span><div class="jbody"><h3>Conscious Allower</h3><p>You don&rsquo;t need anything or anyone to change in order to feel good.</p></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 40 · TWO MINDSETS -->
+      <section class="slide" data-index="40" aria-label="Two ways the mind can go">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">When You First Find Out</div>
+          <h2 style="text-align:center;">Your Mind Can Go <span class="gradient">Two Ways</span>.</h2>
+          <div class="compare-grid">
+            <div class="compare-col below">
+              <div class="col-label">One Way</div>
+              <p>&ldquo;I&rsquo;m just a speck of dust in an infinite cosmos. I don&rsquo;t matter &mdash; and I can&rsquo;t accept that I&rsquo;m responsible for my own manifestations.&rdquo;</p>
+            </div>
+            <div class="compare-col above">
+              <div class="col-label">The Other Way</div>
+              <p>&ldquo;I&rsquo;m an infinite creator. As I expand, all of consciousness expands with me. My moments matter. My life matters.&rdquo;</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 41 · CONSCIOUS ALLOWER -->
+      <section class="slide center-slide" data-index="41" aria-label="Conscious allower definition">
+        <div class="slide-content">
+          <div class="eyebrow">The Destination</div>
+          <p class="quote" style="margin-left:auto; margin-right:auto;">When you don&rsquo;t need anything or anyone to change in order to feel good.</p>
+          <p class="sub">You&rsquo;re vibrationally up to speed with what you&rsquo;re asking for &mdash; and you allow all that you&rsquo;ve become to flow into your physical life.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           FRAMEWORK #5 · FINDING THE FUN
+           ============================================================ -->
+      <section class="slide section-slide" data-index="42" aria-label="Framework 5: Finding the Fun in the Journey">
+        <div class="slide-content">
+          <div class="section-num">Framework #5</div>
+          <h1>Finding the <span class="gradient">Fun</span> in the Journey</h1>
+          <p class="section-sub">It&rsquo;s not only about the manifestation. It&rsquo;s about enjoying every step.</p>
+        </div>
+      </section>
+
+      <!-- 43 · HAD IT ALL, STILL DEPRESSED -->
+      <section class="slide center-slide" data-index="43" aria-label="Had it all but were depressed">
+        <div class="slide-content">
+          <div class="eyebrow">A Hard Lesson</div>
+          <h2>We Had It All&hellip; and We Were <span style="color:var(--red)">Depressed</span>.</h2>
+          <p class="lead">
+            The dream house, the paid-off cars, two perfect kids, a beautiful marriage &mdash; everything from the vision
+            boards. That&rsquo;s when we realized it&rsquo;s not <em>only</em> about the manifestation. It&rsquo;s about enjoying the creative process itself.
+          </p>
+        </div>
+      </section>
+
+      <!-- 44 · IS THIS FUN -->
+      <section class="slide center-slide" data-index="44" aria-label="Is this fun question">
+        <div class="slide-content">
+          <div class="eyebrow">The Question We Ask</div>
+          <p class="big-quote">Is this <span class="gradient">fun?</span></p>
+          <p class="lead">And if not &mdash; &ldquo;How do I make this feel fun right now?&rdquo;</p>
+          <p class="sub">From here you&rsquo;re at peace with how everything is. You allow yourself to be you, and everyone else to be themselves.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           CLOSING
+           ============================================================ -->
+      <section class="slide center-slide" data-index="45" aria-label="Our mission">
+        <div class="slide-content">
+          <div class="eyebrow">Our Intention</div>
+          <h2>Help You Become <span class="gradient">Vibration Fit</span>.</h2>
+          <p class="lead">
+            Our mission is to help you experience a vibration transformation &mdash; so you can maintain alignment and live
+            as the best version of yourself.
+          </p>
+          <div class="callout">
+            <p>We&rsquo;ve done it. And we know that you can too.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 46 · TWO OPTIONS -->
+      <section class="slide" data-index="46" aria-label="Your two options">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">When You Spot a Pattern</div>
+          <h2 style="text-align:center;">You Always Have <span class="gradient">Two Options</span>.</h2>
+          <div class="compare-grid">
+            <div class="compare-col below">
+              <div class="col-label">Option 1</div>
+              <p>Keep focusing on the thought or circumstance that no longer serves you &mdash; and attract more of the same.</p>
+            </div>
+            <div class="compare-col above">
+              <div class="col-label">Option 2</div>
+              <p>Establish new thought patterns that are up to speed with the newly expanded version of you &mdash; and attract something new.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 47 · THE JOURNEY -->
+      <section class="slide center-slide" data-index="47" aria-label="The journey to becoming vibration fit">
+        <div class="slide-content">
+          <div class="eyebrow">The Journey</div>
+          <p class="lead bright">
+            This is the journey to becoming Vibration Fit &mdash; and living a satisfying life that&rsquo;s really fun to you and feels good.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           PART · HOW WE HELP (THE SYSTEM + OFFER)
+           ============================================================ -->
+      <section class="slide section-slide" data-index="48" aria-label="Section: Bridge the woo-woo with the how-to">
+        <div class="slide-content">
+          <div class="section-num">How We Help</div>
+          <h1>Bridge the Woo-Woo<br/>With the <span class="gradient">How-To</span></h1>
+          <p class="section-sub">Everything you&rsquo;ve learned becomes repeatable the moment you install your Conscious Creation System.</p>
+        </div>
+      </section>
+
+      <!-- 49 · CONSCIOUS CREATION SYSTEM -->
+      <section class="slide" data-index="49" aria-label="The Conscious Creation System">
+        <div class="slide-content">
+          <div class="eyebrow">How Vibration Fit Works</div>
+          <h2>The Conscious Creation System:<br/><span class="lime" style="color:var(--lime)">Design</span> &rarr; <span style="color:var(--cyan)">Align</span> &rarr; <span style="color:var(--yellow)">Enjoy</span></h2>
+          <p class="lead bright" style="margin-bottom:0.5rem;"><strong>Basis of life: Freedom. Purpose of life: Joy.</strong></p>
+          <div class="grid cols-3">
+            <div class="card lime">
+              <h3>Design</h3>
+              <p>With VIVA&rsquo;s guidance, your Life Vision &mdash; the Life I Choose &mdash; plus audio and a vision board turn your dream life into something specific and real.</p>
+            </div>
+            <div class="card cyan">
+              <h3>Align</h3>
+              <p>Become the version of you who naturally lives it. Your custom My Alignment Plan (MAP) turns your vision into consistent daily reps.</p>
+            </div>
+            <div class="card yellow">
+              <h3>Enjoy</h3>
+              <p>Freedom and joy are available today. Your Daily Paper, journal, and the Green Line help you notice what feels good &mdash; and rise back above the line when you don&rsquo;t.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 50 · THE 4 PARTS / MAP -->
+      <section class="slide" data-index="50" aria-label="The four parts run by your MAP">
+        <div class="slide-content">
+          <div class="eyebrow">Run By Your MAP</div>
+          <h2>Four Parts. One <span class="gradient">Alignment Plan</span>.</h2>
+          <p class="lead">Your My Alignment Plan runs four kinds of reps &mdash; the wheels that move your life. If the wheels are turning, you&rsquo;re aligning.</p>
+          <div class="grid cols-4">
+            <div class="card lime">
+              <div class="num">01</div>
+              <h3>Creations</h3>
+              <p>Design and install your Life Vision, board, and audios.</p>
+            </div>
+            <div class="card cyan">
+              <div class="num">02</div>
+              <h3>Activations</h3>
+              <p>Run your daily MAP &mdash; audio listening, vision review, and streaks.</p>
+            </div>
+            <div class="card purple">
+              <div class="num">03</div>
+              <h3>Connections</h3>
+              <p>Create in community &mdash; share wins and proof inside the Vibe Tribe.</p>
+            </div>
+            <div class="card yellow">
+              <div class="num">04</div>
+              <h3>Sessions</h3>
+              <p>Get real-time alignment at the weekly Alignment Gym.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 51 · CHAOS -> STRUCTURE -->
+      <section class="slide" data-index="51" aria-label="Vibrational chaos to structure">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">Why It Hasn&rsquo;t Worked Yet</div>
+          <h2 style="text-align:center;">Vibrational Chaos &rarr; <span class="gradient">Structure</span>.</h2>
+          <div class="compare-grid">
+            <div class="compare-col below">
+              <div class="col-label">The Problem &middot; Vibrational Chaos</div>
+              <p>Being consistently inconsistent about the same desire &mdash; flip-flop thoughts, open loops, and evidence-hunting for why it won&rsquo;t work.</p>
+            </div>
+            <div class="compare-col above">
+              <div class="col-label">The Fix &middot; Structure</div>
+              <p>Creations &rarr; Activations &rarr; Connections &rarr; Sessions turns scattered signals into one dominant point of attraction.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 52 · LIVING ABOVE THE GREEN LINE -->
+      <section class="slide" data-index="52" aria-label="Living above the Green Line">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">The Threshold</div>
+          <h2 style="text-align:center;">Living Above the <span class="gradient">Green Line</span>.</h2>
+          <div class="greenline">
+            <div class="gl-half gl-above">
+              <span class="gl-label">Above the Green Line</span>
+              <h3>Freedom &amp; Joy</h3>
+              <p>You live open, light, and free to be, do, and have what you truly want.</p>
+              <div class="gl-chips"><span>Freedom</span><span>Joy</span><span>Ease</span><span>Love</span></div>
+            </div>
+            <div class="gl-divider"><span>The Green Line</span></div>
+            <div class="gl-half gl-below">
+              <span class="gl-label">Below the Green Line</span>
+              <h3>Bondage &amp; Pain</h3>
+              <p>Life feels heavy, stuck, and constricted &mdash; boxed in by fear, stress, and resistance.</p>
+              <div class="gl-chips"><span>Bondage</span><span>Pain</span><span>Fear</span><span>Heaviness</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 53 · THE OFFER -->
+      <section class="slide" data-index="53" aria-label="The 72-hour Activation Intensive">
+        <div class="slide-content">
+          <div class="eyebrow" style="align-self:center;">The 72-Hour Activation Intensive</div>
+          <h2 style="text-align:center;">Activate Your Life Vision in <span class="gradient">72 Hours</span>.</h2>
+          <p class="lead" style="margin-left:auto; margin-right:auto; text-align:center;">Go from blank slate to fully activated &mdash; vision drafted, board built, audios recorded, your Conscious Creation System live.</p>
+          <div class="compare-grid">
+            <div class="compare-col">
+              <div class="col-label">What You Get</div>
+              <p>12-category Life Vision with VIVA &middot; Vision Audio suite &middot; 12-image Vision Board &middot; your MAP activated &middot; 8 weeks of Vision Pro included.</p>
+            </div>
+            <div class="compare-col above">
+              <div class="col-label">Your Guarantees</div>
+              <p>72-Hour Activation Guarantee &middot; 16-week Membership Satisfaction Guarantee. Not satisfied? Full refund.</p>
+            </div>
+          </div>
+          <p class="fine" style="text-align:center;">Pricing, tokens, and storage are dynamic on the live site; your selected plan auto-continues on Day 56.</p>
+        </div>
+      </section>
+
+      <!-- 54 · FINAL CTA / WELCOME HOME -->
+      <section class="slide title-slide" data-index="54" aria-label="Welcome home">
+        <div class="slide-content">
+          <div class="super-eyebrow">Welcome Home</div>
+          <h1>Start the <span class="gradient">Activation Intensive</span>.</h1>
+          <p class="subtitle">Ditch vibrational chaos. Activate your Life Vision in 72 hours &mdash; then keep compounding with Vision Pro.</p>
+          <a class="cta-btn" href="/">Start the Activation Intensive</a>
+          <p class="fine">72-Hour Activation Guarantee &middot; 16-week Membership Satisfaction Guarantee</p>
+        </div>
+      </section>
+    </div>
+
+    <nav class="dots" id="dots" aria-label="Slides"></nav>
+
+    <div class="nav-arrows" aria-hidden="true">
+      <button class="nav-arrow" id="prevBtn" type="button" aria-label="Previous slide">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <button class="nav-arrow" id="nextBtn" type="button" aria-label="Next slide">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+    </div>
+
+    <div class="brand-mark">Vibration Fit · Total Freedom</div>
+
+    <script>
+      (function () {
+        var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+        var index = 0;
+        var dotsNav = document.getElementById("dots");
+        var counter = document.getElementById("counter");
+        var prevBtn = document.getElementById("prevBtn");
+        var nextBtn = document.getElementById("nextBtn");
+
+        function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+        function renderDots() {
+          dotsNav.innerHTML = "";
+          slides.forEach(function (_, i) {
+            var b = document.createElement("button");
+            b.type = "button";
+            b.setAttribute("aria-label", "Go to slide " + (i + 1));
+            if (i === index) b.setAttribute("aria-current", "true");
+            b.addEventListener("click", function (ev) {
+              ev.stopPropagation();
+              go(i);
+            });
+            dotsNav.appendChild(b);
+          });
+        }
+
+        function updateCounter() {
+          counter.textContent = pad(index + 1) + " / " + pad(slides.length);
+        }
+
+        function updateArrows() {
+          prevBtn.disabled = index === 0;
+          nextBtn.disabled = index === slides.length - 1;
+        }
+
+        function go(i) {
+          index = Math.max(0, Math.min(slides.length - 1, i));
+          slides.forEach(function (s, j) {
+            s.classList.toggle("active", j === index);
+          });
+          slides[index].scrollTop = 0;
+          renderDots();
+          updateCounter();
+          updateArrows();
+        }
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+            e.preventDefault();
+            go(index + 1);
+          } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+            e.preventDefault();
+            go(index - 1);
+          } else if (e.key === "Home") {
+            go(0);
+          } else if (e.key === "End") {
+            go(slides.length - 1);
+          }
+        });
+
+        prevBtn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          go(index - 1);
+        });
+        nextBtn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          go(index + 1);
+        });
+
+        document.body.addEventListener("click", function (ev) {
+          var target = ev.target;
+          while (target && target !== document.body) {
+            if (target.tagName === "BUTTON" || target.tagName === "A" || target.classList.contains("nav-arrows")) return;
+            target = target.parentElement;
+          }
+          go(index + 1);
+        });
+
+        renderDots();
+        updateCounter();
+        updateArrows();
+      })();
+    </script>
+  </body>
+</html>
