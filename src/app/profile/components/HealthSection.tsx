@@ -12,6 +12,7 @@ interface HealthSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  profileId?: string
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
@@ -25,7 +26,7 @@ const exerciseFrequencyOptions = [
   { value: '5+', label: '5+ times per week' }
 ]
 
-export function HealthSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false, saveError }: HealthSectionProps) {
+export function HealthSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false, saveError }: HealthSectionProps) {
   const [isExerciseFrequencyDropdownOpen, setIsExerciseFrequencyDropdownOpen] = useState(false)
   const exerciseFrequencyDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -79,7 +80,10 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
     // Auto-save to database immediately (save both recordings and story text)
     try {
       console.log('💾 Auto-saving recording AND text to database...')
-      const response = await fetch('/api/profile', {
+      const apiUrl = profileId
+        ? `/api/profile?profileId=${profileId}`
+        : '/api/profile'
+      const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -139,7 +143,10 @@ export function HealthSection({ profile, onProfileChange, onProfileReload, onSav
 
         // Update database
         console.log('💾 Updating database after delete...')
-        const response = await fetch('/api/profile', {
+        const deleteApiUrl = profileId
+          ? `/api/profile?profileId=${profileId}`
+          : '/api/profile'
+        const response = await fetch(deleteApiUrl, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

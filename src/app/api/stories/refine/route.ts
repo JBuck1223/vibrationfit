@@ -176,15 +176,6 @@ Return ONLY the revised narrative text. No explanations, no headings, no comment
           }
         }
 
-        // Persist the refined text as pending_content
-        await supabase
-          .from('stories')
-          .update({
-            pending_content: fullText,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', storyId)
-
         const inputTokens = streamUsage?.prompt_tokens || 0
         const outputTokens = streamUsage?.completion_tokens || 0
         const totalTokens = streamUsage?.total_tokens || (inputTokens + outputTokens)

@@ -327,7 +327,7 @@ export default function RecordVisionAudioPage() {
         content_hash: contentHash,
         text_content: sectionText,
         voice_id: 'user_voice',
-        s3_bucket: 'vibrationfit-media',
+        s3_bucket: 'vibration-fit-client-storage',
         s3_key: s3Key,
         audio_url: s3Url,
         duration_seconds: validDuration,

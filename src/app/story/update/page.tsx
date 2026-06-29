@@ -6,7 +6,6 @@ import {
   Sparkles,
   PenLine,
   Edit,
-  Check,
   X,
   RefreshCw,
   Wand2,
@@ -82,15 +81,16 @@ export default function StoryUpdatePage() {
   const [showCompareCurrent, setShowCompareCurrent] = useState(true)
   const [showCompareNew, setShowCompareNew] = useState(true)
 
-  // Pending commit/discard
-  const [isSavingPending, setIsSavingPending] = useState(false)
-  const [isCommitting, setIsCommitting] = useState(false)
-  const [isDiscarding, setIsDiscarding] = useState(false)
+  // Save
+  const [isSaving, setIsSaving] = useState(false)
   const [showInsufficientTokens, setShowInsufficientTokens] = useState(false)
   const [tokenErrorInfo, setTokenErrorInfo] = useState<{ tokensRemaining?: number }>({})
 
   const compareSectionRef = useRef<HTMLElement | null>(null)
   const instructionsSectionRef = useRef<HTMLDivElement>(null)
+
+  const normalizeText = (text: string) =>
+    text.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim()
 
   // Load the selected story whenever the area-bar target changes
   useEffect(() => {
@@ -103,14 +103,15 @@ export default function StoryUpdatePage() {
     if (found) {
       setStory(found)
       setLoading(false)
-      // Seed working state from the story's pending content if any
-      if (found.pending_content) {
-        setCurrentRefinement(found.pending_content)
-        setManualText(found.pending_content)
-      } else {
-        setCurrentRefinement('')
-        setManualText('')
-      }
+      const live = found.content || ''
+      // Recover unsaved legacy pending drafts into the editor until the user saves
+      const legacyDraft =
+        found.pending_content &&
+        normalizeText(found.pending_content) !== normalizeText(live)
+          ? found.pending_content
+          : null
+      setManualText(legacyDraft || live)
+      setCurrentRefinement(legacyDraft || '')
     } else {
       setLoading(false)
     }
@@ -137,13 +138,10 @@ export default function StoryUpdatePage() {
   }, [updateTargetId])
 
   const currentContent = story?.content || ''
-  const hasPending = !!(story?.pending_content)
-  const proposedText = currentRefinement || manualText || story?.pending_content || ''
-
-  const normalizeText = (text: string) =>
-    text.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim()
+  const proposedText = currentRefinement || manualText || ''
 
   const hasChanges = normalizeText(proposedText) !== normalizeText(currentContent)
+  const hasExistingAudio = !!(story?.user_audio_url || story?.audio_set_id)
 
   // -------- VIVA refine streaming --------
   const handleVivaGenerate = useCallback(async () => {
@@ -237,27 +235,70 @@ export default function StoryUpdatePage() {
     }
   }, [story, vivaGenerateMode, vivaInstructions, currentRefinement, refreshStories])
 
-  // -------- Manual path --------
-  const savePendingFromManual = useCallback(async (text: string) => {
-    if (!story || !text.trim()) return
-    setIsSavingPending(true)
+  const handleSave = useCallback(async (text?: string) => {
+    if (!story) return
+    const newContent = (text ?? proposedText).trim()
+    if (!newContent) return
+
+    if (
+      hasExistingAudio &&
+      normalizeText(newContent) !== normalizeText(currentContent) &&
+      !window.confirm(
+        'This story already has audio. Saving will update the story text, but your existing recording will not change automatically. You may want to re-record after saving.\n\nSave anyway?',
+      )
+    ) {
+      return
+    }
+
+    setIsSaving(true)
     setError(null)
+    const wordCount = newContent.split(/\s+/).filter(Boolean).length
+
     try {
       const { error: dbError } = await supabase
         .from('stories')
         .update({
-          pending_content: text,
+          content: newContent,
+          pending_content: null,
+          pending_title: null,
+          word_count: wordCount,
+          source: story.source === 'ai_generated' ? 'ai_assisted' : story.source,
           updated_at: new Date().toISOString(),
         })
         .eq('id', story.id)
+
       if (dbError) throw dbError
+
+      setUpdateMethod(null)
+      setVivaGenerateMode(null)
+      setVivaInstructions('')
+      setCurrentRefinement('')
+      setManualText(newContent)
+      setPreviousRefinement(null)
+      setManualStep('write')
+      setProofreadEdits([])
+      setEditSelections({})
+      setPolishText('')
+      setShowInstructionsSection(true)
+      setShowGenModeCards(true)
       await refreshStories()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save pending update')
+      setError(err instanceof Error ? err.message : 'Failed to save story')
     } finally {
-      setIsSavingPending(false)
+      setIsSaving(false)
     }
-  }, [story, supabase, refreshStories])
+  }, [story, proposedText, currentContent, hasExistingAudio, supabase, refreshStories])
+
+  const handleRevertEdits = useCallback(() => {
+    setCurrentRefinement('')
+    setManualText(currentContent)
+    setPreviousRefinement(null)
+    setManualStep('write')
+    setProofreadEdits([])
+    setEditSelections({})
+    setPolishText('')
+    setError(null)
+  }, [currentContent])
 
   const handleProofread = useCallback(async () => {
     if (!manualText.trim()) return
@@ -315,85 +356,6 @@ export default function StoryUpdatePage() {
     setPolishViewMode('edit')
     setManualStep('polish')
   }, [manualText, proofreadEdits, editSelections])
-
-  // -------- Commit / Discard --------
-  const handleCommit = useCallback(async () => {
-    if (!story) return
-    const newContent = proposedText
-    if (!newContent.trim()) return
-
-    setIsCommitting(true)
-    setError(null)
-    const wordCount = newContent.trim().split(/\s+/).filter(Boolean).length
-
-    const { error: dbError } = await supabase
-      .from('stories')
-      .update({
-        content: newContent,
-        pending_content: null,
-        pending_title: null,
-        word_count: wordCount,
-        source: 'ai_assisted' as const,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', story.id)
-
-    setIsCommitting(false)
-    if (dbError) {
-      setError(dbError.message)
-      return
-    }
-
-    // Reset flow back to method choice
-    setUpdateMethod(null)
-    setVivaGenerateMode(null)
-    setVivaInstructions('')
-    setCurrentRefinement('')
-    setManualText('')
-    setPreviousRefinement(null)
-    setManualStep('write')
-    setProofreadEdits([])
-    setEditSelections({})
-    setPolishText('')
-    setShowInstructionsSection(true)
-    setShowGenModeCards(true)
-    await refreshStories()
-  }, [story, proposedText, supabase, refreshStories])
-
-  const handleDiscard = useCallback(async () => {
-    if (!story) return
-    setIsDiscarding(true)
-    setError(null)
-
-    const { error: dbError } = await supabase
-      .from('stories')
-      .update({
-        pending_content: null,
-        pending_title: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', story.id)
-
-    setIsDiscarding(false)
-    if (dbError) {
-      setError(dbError.message)
-      return
-    }
-
-    setCurrentRefinement('')
-    setManualText('')
-    setPreviousRefinement(null)
-    setUpdateMethod(null)
-    setVivaGenerateMode(null)
-    setVivaInstructions('')
-    setShowInstructionsSection(true)
-    setShowGenModeCards(true)
-    setManualStep('write')
-    setProofreadEdits([])
-    setEditSelections({})
-    setPolishText('')
-    await refreshStories()
-  }, [story, supabase, refreshStories])
 
   // -------- Diff renderers --------
   const renderAddedDiff = (oldText: string, newText: string) => {
@@ -479,8 +441,8 @@ export default function StoryUpdatePage() {
 
   const canRunViva = !!(vivaGenerateMode && currentContent.trim() && vivaInstructions.trim())
 
-  // Compare visible when we have something proposed
-  const showCompareSection = !!(proposedText.trim() && (updateMethod === 'viva' || hasPending))
+  // Compare visible when VIVA produced a revised draft
+  const showCompareSection = !!(updateMethod === 'viva' && proposedText.trim() && hasChanges)
 
   return (
     <Container size="xl">
@@ -497,12 +459,6 @@ export default function StoryUpdatePage() {
               </div>
               <p className="text-xs text-neutral-400">
                 {story.word_count ? `${story.word_count.toLocaleString()} words` : 'No content'}
-                {hasPending && (
-                  <>
-                    {' · '}
-                    <span className="font-semibold text-[#FFFF00]">Pending update saved</span>
-                  </>
-                )}
               </p>
             </div>
 
@@ -816,7 +772,14 @@ export default function StoryUpdatePage() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-center gap-3">
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                  <SaveButton
+                    saveLabel="Save Story"
+                    hasUnsavedChanges={normalizeText(manualText) !== normalizeText(currentContent)}
+                    isSaving={isSaving}
+                    onClick={() => handleSave(manualText)}
+                    disabled={!manualText.trim() || isSaving || normalizeText(manualText) === normalizeText(currentContent)}
+                  />
                   <Button
                     variant="accent"
                     size="sm"
@@ -909,7 +872,7 @@ export default function StoryUpdatePage() {
                 <div className="mb-6 flex flex-col items-center gap-3">
                   <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Review &amp; Save</h4>
                   <p className="text-sm text-neutral-400 text-center max-w-md">
-                    Compare your draft with the polished version. Make any final tweaks, then save as a pending update.
+                    Compare your draft with the polished version. Make any final tweaks, then save your story.
                   </p>
                 </div>
 
@@ -975,16 +938,16 @@ export default function StoryUpdatePage() {
                 <div className="mt-6 flex justify-center gap-3">
                   <Button variant="outline" size="sm" onClick={() => setManualStep('proofread')}>Back to Edits</Button>
                   <SaveButton
-                    saveLabel="Save as Pending"
+                    saveLabel="Save Story"
                     hasUnsavedChanges={!!(polishText.trim() && normalizeText(polishText) !== normalizeText(currentContent))}
-                    isSaving={isSavingPending}
+                    isSaving={isSaving}
                     onClick={async () => {
                       if (!polishText.trim()) return
                       setManualText(polishText)
                       setCurrentRefinement(polishText)
-                      await savePendingFromManual(polishText)
+                      await handleSave(polishText)
                     }}
-                    disabled={!polishText.trim()}
+                    disabled={!polishText.trim() || isSaving}
                   />
                 </div>
               </div>
@@ -992,7 +955,7 @@ export default function StoryUpdatePage() {
           </Card>
         )}
 
-        {/* Step 4 — Compare + Commit (VIVA path with content, or any pending) */}
+        {/* Step 4 — Compare + Save (VIVA path) */}
         {showCompareSection && (
           <section ref={compareSectionRef as any}>
             <Card>
@@ -1043,7 +1006,7 @@ export default function StoryUpdatePage() {
                     }`} />
                   </div>
                   <span className="flex items-center gap-1.5 text-sm text-neutral-300">
-                    Pending
+                    Updated
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
                   </span>
                 </div>
@@ -1085,12 +1048,12 @@ export default function StoryUpdatePage() {
                   </div>
                 </div>
 
-                {/* Proposed Pending (right) */}
+                {/* Updated draft (right) */}
                 <div className={showCompareNew ? 'block' : 'hidden'}>
                   <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Pending</h5>
+                        <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Updated</h5>
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[#FFFF00] bg-[#FFFF00]/10">Draft</span>
                         {compareViewMode === 'highlight' && !hasChanges && (
                           <span className="text-[11px] text-neutral-500 italic">No changes to highlight</span>
@@ -1134,7 +1097,7 @@ export default function StoryUpdatePage() {
                             setCurrentRefinement(val)
                             setManualText(val)
                           }}
-                          placeholder="Your pending story will appear here..."
+                          placeholder="Your updated story will appear here..."
                           className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                           minHeight={200}
                         />
@@ -1160,32 +1123,22 @@ export default function StoryUpdatePage() {
               </div>
 
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                {!hasPending && proposedText.trim() && hasChanges && (
-                  <SaveButton
-                    saveLabel="Save as Pending"
-                    hasUnsavedChanges
-                    isSaving={isSavingPending}
-                    onClick={async () => { await savePendingFromManual(proposedText) }}
-                  />
-                )}
                 <Button
-                  variant="danger"
+                  variant="outline"
                   size="sm"
-                  onClick={handleDiscard}
-                  disabled={isDiscarding || isCommitting || !hasPending}
+                  onClick={handleRevertEdits}
+                  disabled={isSaving || !hasChanges}
                 >
-                  <X className="w-4 h-4 mr-1.5" />
-                  {isDiscarding ? 'Discarding...' : 'Discard Pending'}
+                  <RotateCcw className="w-4 h-4 mr-1.5" />
+                  Revert Changes
                 </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleCommit}
-                  disabled={isCommitting || isDiscarding || !hasChanges}
-                >
-                  <Check className="w-4 h-4 mr-1.5" />
-                  {isCommitting ? 'Committing...' : 'Commit Update'}
-                </Button>
+                <SaveButton
+                  saveLabel="Save Story"
+                  hasUnsavedChanges={hasChanges}
+                  isSaving={isSaving}
+                  onClick={() => handleSave()}
+                  disabled={!hasChanges || isSaving}
+                />
               </div>
             </Card>
           </section>

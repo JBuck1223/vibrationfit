@@ -12,6 +12,7 @@ interface SocialFriendsSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  profileId?: string
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
@@ -31,7 +32,7 @@ const socialPreferenceOptions = [
   { value: 'extrovert', label: 'Extrovert' }
 ]
 
-export function SocialFriendsSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false, saveError }: SocialFriendsSectionProps) {
+export function SocialFriendsSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false, saveError }: SocialFriendsSectionProps) {
   const [isCloseFriendsCountDropdownOpen, setIsCloseFriendsCountDropdownOpen] = useState(false)
   const [isSocialPreferenceDropdownOpen, setIsSocialPreferenceDropdownOpen] = useState(false)
   const closeFriendsCountDropdownRef = useRef<HTMLDivElement>(null)
@@ -65,7 +66,8 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
     const newRecording = { url, transcript, type, category: visionToRecordingKey('social'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_social: updatedText }) })
+      const apiUrl = profileId ? `/api/profile?profileId=${profileId}` : '/api/profile'
+      await fetch(apiUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_social: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -80,7 +82,8 @@ export function SocialFriendsSection({ profile, onProfileChange, onProfileReload
         const { deleteRecording } = await import('@/lib/services/recordingService')
         await deleteRecording(recordingToDelete.url)
         const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
-        await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
+        const deleteApiUrl = profileId ? `/api/profile?profileId=${profileId}` : '/api/profile'
+        await fetch(deleteApiUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
         if (onProfileReload) await onProfileReload()
       } catch (error) { alert('Failed to delete recording.') }
     }
