@@ -131,7 +131,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
       for (const row of referralRows || []) {
-        referralMap.set(row.email, `${siteUrl}/offer/launch?ref=${row.referral_code}`)
+        referralMap.set(row.email, `${siteUrl}/?ref=${row.referral_code}`)
       }
     }
 

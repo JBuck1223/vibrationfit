@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     const referrerName = bodyReferrerName || participant.display_name || 'A Vibration Fit member'
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
-    const referralLink = `${siteUrl}/offer/launch?ref=${participant.referral_code}`
+    const referralLink = `${siteUrl}/?ref=${participant.referral_code}`
 
     const vars: Record<string, string> = {
       referrerName: titleCase(referrerName.trim()),
