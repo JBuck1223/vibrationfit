@@ -2,19 +2,79 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateAudioTracks, hashContent } from '@/lib/services/audioService'
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
+import { CopyObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { ORDERED_VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
 export const maxDuration = 800
 
 const BUCKET_NAME = 'vibration-fit-client-storage'
+const CDN_PREFIX = 'https://media.vibrationfit.com'
+
+const awsCredentials = {
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+}
 
 const lambda = new LambdaClient({
   region: process.env.AWS_REGION || 'us-east-2',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
+  credentials: awsCredentials,
 })
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-2',
+  credentials: awsCredentials,
+})
+
+function mediaUrlToKey(url: string): string {
+  if (url.includes('media.vibrationfit.com/')) {
+    return url.split('media.vibrationfit.com/')[1]
+  }
+  if (url.includes(`${BUCKET_NAME}/`)) {
+    return url.split(`${BUCKET_NAME}/`)[1]
+  }
+  throw new Error(`Invalid media URL: ${url}`)
+}
+
+function storyMixFolder(userId: string, storyId: string): string {
+  return `user-uploads/${userId}/story/audio/${storyId}`
+}
+
+function storyMixedOutputKey(
+  userId: string,
+  storyId: string,
+  sectionKey: string,
+  trackId: string,
+): string {
+  return `${storyMixFolder(userId, storyId)}/${sectionKey}-mixed-${trackId.substring(0, 8)}.mp3`
+}
+
+/** Copy personal story recordings into story/audio/ so audio-mixer Lambda can read them. */
+async function ensureStoryVoiceAccessibleForLambda(
+  userId: string,
+  storyId: string,
+  audioUrl: string,
+  trackId: string,
+): Promise<string> {
+  const sourceKey = mediaUrlToKey(audioUrl)
+  if (sourceKey.includes(`/story/audio/${storyId}/`)) {
+    return audioUrl
+  }
+
+  const extMatch = sourceKey.match(/\.(webm|mp3|wav|m4a)$/i)
+  const ext = extMatch ? extMatch[0] : '.webm'
+  const destKey = `${storyMixFolder(userId, storyId)}/voice-source-${trackId.substring(0, 8)}${ext}`
+
+  await s3.send(
+    new CopyObjectCommand({
+      Bucket: BUCKET_NAME,
+      CopySource: `${BUCKET_NAME}/${sourceKey}`,
+      Key: destKey,
+    }),
+  )
+
+  console.log('[CUSTOM MIX] Copied story voice for Lambda access:', { sourceKey, destKey })
+  return `${CDN_PREFIX}/${destKey}`
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -255,12 +315,32 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (newTrack) {
-          const mixedKey = track.s3_key.replace(/\.(mp3|wav|webm|m4a)$/, `-mixed-${newTrack.id.substring(0, 8)}.mp3`)
+          let voiceUrl = track.audio_url as string
+          let mixedKey = (track.s3_key as string).replace(
+            /\.(mp3|wav|webm|m4a)$/,
+            `-mixed-${newTrack.id.substring(0, 8)}.mp3`,
+          )
+
+          if (isStory) {
+            voiceUrl = await ensureStoryVoiceAccessibleForLambda(
+              user.id,
+              entityId,
+              track.audio_url,
+              newTrack.id,
+            )
+            mixedKey = storyMixedOutputKey(
+              user.id,
+              entityId,
+              track.section_key,
+              newTrack.id,
+            )
+          }
+
           lambdaSections.push({
             trackId: newTrack.id,
-            voiceUrl: track.audio_url,
+            voiceUrl,
             outputKey: mixedKey,
-            sectionKey: track.section_key
+            sectionKey: track.section_key,
           })
         }
       }

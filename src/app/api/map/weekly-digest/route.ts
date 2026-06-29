@@ -1,28 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateMapDigestEmail } from '@/lib/email/templates/map-weekly-digest'
 import { parseReminderTimeToParts } from '@/lib/map/reminder-time'
 import { OUTBOUND_URL } from '@/lib/urls'
 
+export const maxDuration = 60
+
 const APP_BASE_URL = OUTBOUND_URL
+const CRON_SECRET = process.env.CRON_SECRET
 
 /**
- * POST /api/map/weekly-digest
+ * GET  /api/map/weekly-digest  (Vercel cron — Monday 11:00 UTC)
+ * POST /api/map/weekly-digest  (manual trigger with CRON_SECRET)
  *
- * Cron-callable endpoint that schedules weekly MAP digest messages (email + SMS)
- * for users with active commitments. Runs Monday mornings.
- *
- * Respects weekly digest toggles on the active MAP (user_maps): map_weekly_reminder_email,
- * map_weekly_reminder_sms, map_weekly_reminder_time (local Monday send time with user_maps.timezone,
- * falling back to user_accounts.timezone). Plus global sms_opt_in / email_opt_in on user_accounts.
+ * Schedules weekly MAP digest messages (email + SMS) for users with active
+ * commitments. Respects weekly digest toggles on the active MAP (user_maps):
+ * map_weekly_reminder_email, map_weekly_reminder_sms, map_weekly_reminder_time
+ * (local Monday send time with user_maps.timezone, falling back to
+ * user_accounts.timezone). Plus global sms_opt_in / email_opt_in on user_accounts.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export async function GET(request: NextRequest) {
+  if (!(await authorize(request))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  return scheduleWeeklyDigests()
+}
 
+export async function POST(request: NextRequest) {
+  if (!(await authorize(request))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  return scheduleWeeklyDigests()
+}
+
+async function authorize(request: NextRequest): Promise<boolean> {
+  const isVercelCron =
+    request.headers.get('x-vercel-cron') === '1' ||
+    request.headers.get('user-agent')?.includes('vercel-cron')
+  if (isVercelCron) return true
+
+  const authHeader = request.headers.get('authorization')
+  if (CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`) return true
+
+  const cronSecret = request.headers.get('x-cron-secret')
+  if (CRON_SECRET && cronSecret === CRON_SECRET) return true
+
+  if (process.env.NODE_ENV === 'development') return true
+
+  const supabaseAuth = await createClient()
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser()
+  if (!user) return false
+
+  const { data: account } = await supabaseAuth
+    .from('user_accounts')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  return account?.role === 'admin' || account?.role === 'super_admin'
+}
+
+async function scheduleWeeklyDigests() {
+  try {
     const supabase = createAdminClient()
 
     const { data: users, error: usersError } = await supabase
@@ -117,7 +159,11 @@ export async function POST(request: NextRequest) {
             status: 'pending',
             related_entity_type: 'map_weekly_digest',
           })
-        if (!smsErr) scheduledSms++
+        if (smsErr) {
+          console.error(`MAP weekly digest SMS insert failed for ${account.id}:`, smsErr)
+        } else {
+          scheduledSms++
+        }
       }
 
       if (wantsEmail) {
@@ -138,7 +184,11 @@ export async function POST(request: NextRequest) {
             status: 'pending',
             related_entity_type: 'map_weekly_digest',
           })
-        if (!emailErr) scheduledEmail++
+        if (emailErr) {
+          console.error(`MAP weekly digest email insert failed for ${account.id}:`, emailErr)
+        } else {
+          scheduledEmail++
+        }
       }
     }
 
@@ -148,7 +198,7 @@ export async function POST(request: NextRequest) {
       scheduledEmail,
     })
   } catch (err) {
-    console.error('Error in POST /api/map/weekly-digest:', err)
+    console.error('Error in /api/map/weekly-digest:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -177,20 +227,36 @@ function formatCadence(cadence: { kind: string; count?: number } | null): string
 }
 
 /**
- * Compute next Monday at the user's preferred local time, expressed as UTC.
+ * Compute the next Monday at the user's preferred local time, expressed as UTC.
+ * If today is Monday and the send time has not passed yet, uses today.
  */
 function getNextMondayMorning(timezone: string, reminderTime: string | null): Date {
   const { hour: H, minute: Mi } = parseReminderTimeToParts(reminderTime)
   const now = new Date()
   const day = now.getUTCDay()
-  const daysUntilMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day
-  const monday = new Date(now)
-  monday.setUTCDate(monday.getUTCDate() + daysUntilMonday)
+  const daysSinceMonday = day === 0 ? 6 : day - 1
 
-  const year = monday.getUTCFullYear()
-  const month = String(monday.getUTCMonth() + 1).padStart(2, '0')
-  const dayStr = String(monday.getUTCDate()).padStart(2, '0')
-  const localStr = `${year}-${month}-${dayStr}T${String(H).padStart(2, '0')}:${String(Mi).padStart(2, '0')}:00`
+  const thisMonday = new Date(now)
+  thisMonday.setUTCDate(thisMonday.getUTCDate() - daysSinceMonday)
+
+  let candidate = mondayAtLocalTimeUtc(thisMonday, H, Mi, timezone)
+  if (candidate <= now) {
+    thisMonday.setUTCDate(thisMonday.getUTCDate() + 7)
+    candidate = mondayAtLocalTimeUtc(thisMonday, H, Mi, timezone)
+  }
+  return candidate
+}
+
+function mondayAtLocalTimeUtc(
+  mondayUtcDate: Date,
+  hour: number,
+  minute: number,
+  timezone: string,
+): Date {
+  const year = mondayUtcDate.getUTCFullYear()
+  const month = String(mondayUtcDate.getUTCMonth() + 1).padStart(2, '0')
+  const dayStr = String(mondayUtcDate.getUTCDate()).padStart(2, '0')
+  const localStr = `${year}-${month}-${dayStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`
 
   try {
     const utcGuess = new Date(localStr + 'Z')
@@ -203,10 +269,11 @@ function getNextMondayMorning(timezone: string, reminderTime: string | null): Da
     const parts = formatter.formatToParts(utcGuess)
     const fh = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10)
     const fm = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10)
-    const deltaMinutes = H * 60 + Mi - (fh * 60 + fm)
+    const deltaMinutes = hour * 60 + minute - (fh * 60 + fm)
     return new Date(utcGuess.getTime() + deltaMinutes * 60 * 1000)
   } catch {
-    monday.setUTCHours(11, 0, 0, 0)
-    return monday
+    const fallback = new Date(mondayUtcDate)
+    fallback.setUTCHours(11, 0, 0, 0)
+    return fallback
   }
 }

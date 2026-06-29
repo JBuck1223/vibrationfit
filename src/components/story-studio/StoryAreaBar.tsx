@@ -97,8 +97,6 @@ export function StoryAreaBar() {
             label: story.title || 'Untitled Story',
             sublabel: `${story.word_count ? `${story.word_count.toLocaleString()} words · ` : ''}${new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
             icon: ENTITY_ICONS[story.entity_type] || FileText,
-            badge: story.pending_content ? 'Pending' : undefined,
-            badgeVariant: story.pending_content ? ('draft' as const) : undefined,
           })),
         selectedId: selectorStoryId,
         onSelect: (id: string) => {
