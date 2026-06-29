@@ -58,6 +58,7 @@ function ProjectsListContent() {
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [projects, setProjects] = useState<MemberProject[]>([])
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all_active')
@@ -72,6 +73,7 @@ function ProjectsListContent() {
   const fetchStatus = filter === 'actualized' ? 'done' : filter === 'archived' ? 'archived' : 'active'
 
   const fetchProjects = useCallback(async () => {
+    setLoadError(false)
     try {
       const params = new URLSearchParams()
       params.set('status', fetchStatus)
@@ -80,9 +82,12 @@ function ProjectsListContent() {
       if (res.ok) {
         const data = await res.json()
         setProjects(data.projects || [])
+      } else {
+        setLoadError(true)
       }
     } catch (error) {
       console.error('Failed to fetch projects:', error)
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -185,6 +190,17 @@ function ProjectsListContent() {
           <div className="flex min-h-[40vh] items-center justify-center">
             <Spinner size="lg" />
           </div>
+        ) : loadError ? (
+          <Card variant="glass" className="border border-white/[0.06] p-10 text-center shadow-none sm:p-12">
+            <FolderKanban className="mx-auto mb-4 h-12 w-12 text-neutral-600" />
+            <h3 className="mb-2 text-lg font-semibold text-white">We couldn&apos;t load your projects</h3>
+            <p className="mx-auto mb-6 max-w-md text-sm text-neutral-500">
+              Something went wrong. Please try again.
+            </p>
+            <Button variant="primary" onClick={() => { setLoading(true); fetchProjects() }}>
+              Try Again
+            </Button>
+          </Card>
         ) : filteredProjects.length === 0 ? (
           <Card variant="glass" className="border border-white/[0.06] p-10 text-center shadow-none sm:p-12">
             <FolderKanban className="mx-auto mb-4 h-12 w-12 text-neutral-600" />

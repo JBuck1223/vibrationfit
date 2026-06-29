@@ -30,7 +30,7 @@ export default function CheckoutSuccessPage() {
 
           {/* Title */}
           <h1 className="text-4xl font-bold text-white mb-4">
-            Welcome to Vibration Fit! 🎉
+            Welcome to Vibration Fit!
           </h1>
 
           {/* Description */}
@@ -69,7 +69,7 @@ export default function CheckoutSuccessPage() {
                 </div>
                 <div>
                   <div className="font-medium text-white">Build Your Vision with VIVA</div>
-                  <div className="text-xs text-neutral-400">Let AI guide your creation process</div>
+                  <div className="text-xs text-neutral-400">Let VIVA guide your creation process</div>
                 </div>
               </div>
             </div>

@@ -66,7 +66,7 @@ export class ErrorBoundaryWithReport extends React.Component<ErrorBoundaryWithRe
                 Something went wrong{label}
               </h2>
               <p className="mt-1 text-sm text-neutral-300">
-                The page hit an error. Use the details below to debug, or refresh to try again.
+                This part of the page hit a snag. Try again, and contact support if it keeps happening.
               </p>
               <button
                 type="button"
@@ -76,15 +76,17 @@ export class ErrorBoundaryWithReport extends React.Component<ErrorBoundaryWithRe
                 <RefreshCw className="w-4 h-4" />
                 Try again
               </button>
-              <button
-                type="button"
-                onClick={() => this.setState({ showDetails: !showDetails })}
-                className="mt-4 ml-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-700 text-neutral-300 hover:bg-neutral-600 text-sm font-medium transition-colors"
-              >
-                {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {showDetails ? 'Hide' : 'Show'} technical details
-              </button>
-              {showDetails && (
+              {process.env.NODE_ENV !== 'production' && (
+                <button
+                  type="button"
+                  onClick={() => this.setState({ showDetails: !showDetails })}
+                  className="mt-4 ml-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-700 text-neutral-300 hover:bg-neutral-600 text-sm font-medium transition-colors"
+                >
+                  {showDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showDetails ? 'Hide' : 'Show'} technical details
+                </button>
+              )}
+              {process.env.NODE_ENV !== 'production' && showDetails && (
                 <div className="mt-4 p-4 rounded-lg bg-black/40 border border-neutral-700 font-mono text-xs text-neutral-400 overflow-auto max-h-[280px]">
                   <div className="text-red-300 font-semibold mb-2">Error: {error.message}</div>
                   {error.stack && (

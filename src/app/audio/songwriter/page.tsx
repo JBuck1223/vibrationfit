@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Container, Stack, Card, Button, Textarea, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
-import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home } from 'lucide-react'
+import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home, Save } from 'lucide-react'
 import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-studio/ReferenceLibraryPicker'
 import { VibrationFitSongPicker, type VibrationFitSong } from '@/components/audio-studio/VibrationFitSongPicker'
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
@@ -81,6 +81,7 @@ export default function SongwriterPage() {
 
   // Generation state
   const [generating, setGenerating] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [categoryError, setCategoryError] = useState<string | null>(null)
   const [songId, setSongId] = useState<string | null>(null)
@@ -236,11 +237,20 @@ export default function SongwriterPage() {
         ? prev.filter(k => k !== key)
         : [...prev, key as LifeCategoryKey]
 
-      const texts = next
-        .map(k => visionData[k])
+      // Fill the full text of each selected category (ordered to match the
+      // grid). VIVA only uses this as source material, so keep it complete
+      // rather than truncating; the member can still trim it freely.
+      const texts = LIFE_CATEGORY_KEYS
+        .filter(k => next.includes(k as LifeCategoryKey))
+        .map(k => {
+          const body = visionData[k]
+          if (!body) return ''
+          const label = LIFE_CATEGORIES.find(c => c.key === k)?.label || k
+          return `### ${label}\n${body.trim()}`
+        })
         .filter(Boolean)
         .join('\n\n')
-      setContext(texts.slice(0, 1500))
+      setContext(texts)
 
       return next
     })
@@ -476,6 +486,59 @@ export default function SongwriterPage() {
     withAgreement(createTrack)
   }
 
+  // Persists the current on-screen song (exact lyrics + title) without
+  // generating music. Creates the record on first save (pasted lyrics are kept
+  // as-is, never regenerated) or updates the existing one. Returns the song id.
+  const saveSongRecord = async (): Promise<string> => {
+    const cleanLyrics = lyrics.trim()
+    let currentSongId = songId
+    if (!currentSongId) {
+      const createRes = await fetch('/api/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity_type: source,
+          entity_id: selectedEntity?.id,
+          title: songTitle || undefined,
+          lyrics: cleanLyrics,
+          song_idea: songIdea || undefined,
+          source: lyricsMode === 'paste' ? 'user_written' : 'ai_assisted',
+          life_categories: categoryTags,
+        }),
+      })
+      if (!createRes.ok) {
+        const e = await createRes.json().catch(() => ({}))
+        throw new Error(e.error || 'Failed to save song')
+      }
+      const created = await createRes.json()
+      currentSongId = created.song?.id || null
+      setSongId(currentSongId)
+    } else {
+      await fetch(`/api/songs/${currentSongId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lyrics: cleanLyrics, title: songTitle || undefined }),
+      }).catch(() => {})
+    }
+    if (!currentSongId) throw new Error('No song record')
+    return currentSongId
+  }
+
+  // Save the song to return to later, then open its page (Create More Versions).
+  const handleSaveForLater = async () => {
+    if (!lyrics.trim() || savingDraft || generating) return
+    setSavingDraft(true)
+    setCreateError(null)
+    try {
+      const id = await saveSongRecord()
+      router.push(`/audio/songwriter/${id}`)
+    } catch (err) {
+      console.error('Save for later failed:', err)
+      setCreateError(err instanceof Error ? err.message : 'Failed to save your song.')
+      setSavingDraft(false)
+    }
+  }
+
   const runCreateTrack = async () => {
     if (!lyrics.trim() || generating) return
     setGenerating(true)
@@ -506,43 +569,16 @@ export default function SongwriterPage() {
         setReferenceClipUrl(refData.clip_url || null)
       }
 
-      let currentSongId = songId
-      if (!currentSongId) {
-        const createRes = await fetch('/api/songs/generate-lyrics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            entity_type: source,
-            entity_id: selectedEntity?.id,
-            song_essence: {
-              song_idea: songIdea || 'Custom song',
-              emotional_start: '',
-              emotional_destination: '',
-              core_message: '',
-              imagery: [],
-              energy_style: '',
-              sliders: {
-                emotional_intensity: 7,
-                spiritual_depth: 4,
-                energy: 'uplifting',
-                lyrical_style: 'conversational',
-                commercial_style: 'indie',
-              },
-            },
-            title: `Song – ${(songIdea || 'Custom').slice(0, 40)}`,
-          }),
-        })
-        currentSongId = createRes.headers.get('X-Song-Id')
-        setSongId(currentSongId)
-      }
-
-      if (!currentSongId) throw new Error('No song record')
+      // Persist the EXACT on-screen lyrics before generating so members never
+      // generate against stale lyrics.
+      const currentSongId = await saveSongRecord()
 
       const musicRes = await fetch('/api/songs/generate-music', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           song_id: currentSongId,
+          lyrics: lyrics.trim(),
           reference_id: refId || undefined,
           life_categories: categoryTags,
           reference_meta: refId ? {
@@ -1059,7 +1095,7 @@ export default function SongwriterPage() {
               variant="primary"
               size="lg"
               onClick={handleCreateClick}
-              disabled={!hasLyrics || generating}
+              disabled={!hasLyrics || generating || savingDraft}
               className="w-full py-4 text-base font-semibold"
             >
               <Music2 className="mr-2 h-5 w-5" />
@@ -1068,6 +1104,15 @@ export default function SongwriterPage() {
             {categoryError && (
               <p className="text-sm text-[#FF0040]">{categoryError}</p>
             )}
+            <Button
+              variant="ghost"
+              onClick={handleSaveForLater}
+              disabled={!hasLyrics || generating || savingDraft}
+            >
+              {savingDraft ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />}
+              Save for later
+            </Button>
+            <p className="text-xs text-neutral-500">Saved songs live in My Songs — return anytime to generate.</p>
           </div>
         )}
       </Stack>

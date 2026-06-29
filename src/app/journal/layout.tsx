@@ -1,8 +1,14 @@
-'use client'
-
+import type { Metadata } from 'next'
 import React from 'react'
 import { JournalStudioProvider } from '@/components/journal-studio/JournalStudioContext'
 import { JournalAreaBar } from '@/components/journal-studio/JournalAreaBar'
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Journal',
+    default: 'Journal',
+  },
+}
 
 export default function JournalLayout({ children }: { children: React.ReactNode }) {
   return (

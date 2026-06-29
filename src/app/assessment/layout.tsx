@@ -1,7 +1,13 @@
-'use client'
-
+import type { Metadata } from 'next'
 import React from 'react'
 import { AssessmentAreaBar } from '@/components/assessment-studio/AssessmentAreaBar'
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Assessment',
+    default: 'Vibrational Assessment',
+  },
+}
 
 export default function AssessmentLayout({ children }: { children: React.ReactNode }) {
   return (

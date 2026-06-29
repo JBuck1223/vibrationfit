@@ -16,6 +16,7 @@ import {
 } from '@/lib/design-system/components'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import Link from 'next/link'
 import { 
   Settings, 
   FileText,
@@ -208,7 +209,7 @@ export default function IntensiveStartPage() {
       icon: Rocket,
       color: 'text-primary-500',
       steps: [
-        { num: 13, title: 'My Activation Plan', icon: Map },
+        { num: 13, title: 'My Alignment Plan', icon: Map },
         { num: 14, title: 'Unlock Platform', icon: Unlock },
       ]
     }
@@ -259,6 +260,33 @@ export default function IntensiveStartPage() {
             </Button>
           )}
         </div>
+
+        {/* What you're about to do */}
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Stack gap="md">
+            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+              What You&apos;re About To Do
+            </Text>
+            <p className="text-sm text-neutral-300 leading-relaxed">
+              Over the next 72 hours, we&apos;re installing your Conscious Creation System &mdash; the machine that drives you from the life you have to the life you choose. We help you program the destination (your Life Vision) and bolt every part together, then hand you a MAP (My Alignment Plan) to run it every day.
+            </p>
+            <div className="rounded-xl bg-neutral-900/50 border border-neutral-800 p-4">
+              <Text size="sm" className="text-white font-semibold mb-2">
+                We only track four things here:
+              </Text>
+              <ul className="list-none space-y-1.5 pl-0 text-sm text-neutral-300">
+                <li><span className="text-yellow-400 font-medium">Creations (Artifacts)</span> &mdash; What objects exist because of me?</li>
+                <li><span className="text-green-400 font-medium">Activations (Practice)</span> &mdash; How many times did I show up and do the work?</li>
+                <li><span className="text-purple-400 font-medium">Connections (Community)</span> &mdash; How many times did I interact with the community?</li>
+                <li><span className="text-teal-400 font-medium">Sessions (Coaching)</span> &mdash; How often am I showing up to live coaching?</li>
+              </ul>
+            </div>
+            <Link href="/system" className="text-sm text-primary-500 hover:text-primary-400 inline-flex items-center gap-1">
+              What does that mean? See how the system works
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </Stack>
+        </Card>
 
         {/* Your Journey - 14 Steps Overview */}
         <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">

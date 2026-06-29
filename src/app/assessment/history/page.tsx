@@ -78,7 +78,16 @@ export default function AssessmentHistoryPage() {
       <Stack gap="lg">
         {sortedAssessments.length === 0 ? (
           <Card className="p-12 text-center">
-            <p className="text-neutral-400">No assessments yet. Start your first assessment to see your history here.</p>
+            <BarChart3 className="mx-auto mb-4 h-16 w-16 text-neutral-600" />
+            <h2 className="mb-2 text-xl font-semibold text-white">No assessments yet</h2>
+            <p className="mx-auto mb-6 max-w-md text-neutral-400">
+              Take your first Vibrational Assessment to see where you stand across the 12 life areas
+              and track your alignment over time.
+            </p>
+            <Button variant="primary" onClick={() => router.push('/assessment')} className="inline-flex items-center gap-2">
+              <PlayCircle className="h-4 w-4" />
+              Start Your First Assessment
+            </Button>
           </Card>
         ) : (
           <div className="space-y-4">

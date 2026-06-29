@@ -40,7 +40,7 @@ export function MapAreaBar() {
         isActive: viewMode === 'month',
       },
     ]
-    contextText = 'Run the reps. Future you will thank you.'
+    contextText = 'Running your Conscious Creation System. Run the reps. Future you will thank you.'
   } else if (isUpdateArea) {
     contextText = 'Choose your rituals and personal commitments.'
   }
@@ -48,6 +48,7 @@ export function MapAreaBar() {
   return (
     <AreaBar
       area={{ name: 'MAP', icon: Map }}
+      areaHeadline="My Alignment Plan"
       tabs={TABS}
       contextNav={contextNav}
       contextText={contextText}

@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Life Vision System helps users create a comprehensive "Life I Choose™" document across 12 life categories. This is the core tool for Active Vision creation.
+The Life Vision System helps users create a comprehensive "Life I Choose™" document across 12 life categories. This is the core tool for Design (step 1 of the Conscious Creation Cycle).
 
 ## Current Features (As of January 2025)
 

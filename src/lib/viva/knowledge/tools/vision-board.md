@@ -37,7 +37,7 @@ Visual activation tool for specific desires and goals. Gallery/grid system with 
 
 ## Integration Points
 - Links to Life Vision categories (uses VISION_CATEGORIES)
-- Part of Consistent Alignment (Operation 2)
+- Part of Align (step 2 of the Conscious Creation Cycle)
 - Supports daily activation practices
 - AI image generation integration
 

@@ -81,11 +81,13 @@ export function GlobalErrorCapture() {
         <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400 mt-0.5" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-red-200">
-            Something went wrong. Check the browser console for details.
+            Something went wrong. Try refreshing the page, and contact support if it continues.
           </p>
-          <p className="mt-1 text-xs text-neutral-400 truncate" title={banner.message}>
-            {banner.message}
-          </p>
+          {process.env.NODE_ENV !== 'production' && (
+            <p className="mt-1 text-xs text-neutral-400 truncate" title={banner.message}>
+              {banner.message}
+            </p>
+          )}
         </div>
         <button
           type="button"

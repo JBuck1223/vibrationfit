@@ -10,6 +10,7 @@ import { useAudioStudio, QueueStatusBanner, AudioSourceSelector } from '@/compon
 import type { AudioSourceSelection } from '@/components/audio-studio'
 import { CompletedStepRow } from '@/components/CompletedStepRow'
 import { NATURAL_VIBE_ID, VOICE_VIBES, buildVoiceId, parseVoiceId } from '@/lib/audio/voice-vibes'
+import { toast } from 'sonner'
 
 export default function AudioGeneratePage() {
   const router = useRouter()
@@ -188,7 +189,7 @@ export default function AudioGeneratePage() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       const user = session?.user
-      if (!user) { alert('You must be logged in to generate audio'); setGenerating(false); return }
+      if (!user) { toast.error('You must be logged in to generate audio'); setGenerating(false); return }
 
       let sectionsPayload: { sectionKey: string; text: string }[] = []
       let audioSetName = ''
@@ -206,7 +207,7 @@ export default function AudioGeneratePage() {
       } else if (activeSourceType === 'story' && selectedStory) {
         const content = selectedStory.content || ''
         if (!content.trim()) {
-          alert('This story has no content to generate audio from.')
+          toast.error('This story has no content to generate audio from.')
           setGenerating(false)
           return
         }
@@ -215,7 +216,7 @@ export default function AudioGeneratePage() {
       }
 
       if (sectionsPayload.length === 0) {
-        alert('No content found for generation.')
+        toast.error('No content found for generation.')
         setGenerating(false)
         return
       }
@@ -252,7 +253,7 @@ export default function AudioGeneratePage() {
         .select()
         .single()
 
-      if (batchError || !batch) { alert('Failed to create generation batch.'); setGenerating(false); return }
+      if (batchError || !batch) { toast.error('Failed to create generation batch.'); setGenerating(false); return }
 
       setLastBatchVoiceId(composedVoiceId)
 
@@ -287,7 +288,7 @@ export default function AudioGeneratePage() {
 
     } catch (error) {
       console.error('Generation error:', error)
-      alert('An error occurred during generation.')
+      toast.error('An error occurred during generation.')
       setGenerating(false)
     }
   }

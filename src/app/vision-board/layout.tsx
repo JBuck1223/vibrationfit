@@ -1,8 +1,14 @@
-'use client'
-
+import type { Metadata } from 'next'
 import React from 'react'
 import { VisionBoardStudioProvider } from '@/components/vision-board-studio/VisionBoardStudioContext'
 import { VisionBoardAreaBar } from '@/components/vision-board-studio/VisionBoardAreaBar'
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Vision Board',
+    default: 'Vision Board',
+  },
+}
 
 export default function VisionBoardLayout({ children }: { children: React.ReactNode }) {
   return (
