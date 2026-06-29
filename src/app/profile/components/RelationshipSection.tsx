@@ -12,6 +12,7 @@ interface RelationshipSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  profileId?: string
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
@@ -35,7 +36,7 @@ const relationshipLengthOptions = [
   { value: '10+ years', label: '10+ years' }
 ]
 
-export function RelationshipSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false, saveError }: RelationshipSectionProps) {
+export function RelationshipSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false, saveError }: RelationshipSectionProps) {
   const [isRelationshipStatusDropdownOpen, setIsRelationshipStatusDropdownOpen] = useState(false)
   const [isRelationshipLengthDropdownOpen, setIsRelationshipLengthDropdownOpen] = useState(false)
   const relationshipStatusDropdownRef = useRef<HTMLDivElement>(null)
@@ -77,7 +78,10 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
 
     try {
-      const response = await fetch('/api/profile', {
+      const apiUrl = profileId
+        ? `/api/profile?profileId=${profileId}`
+        : '/api/profile'
+      const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,7 +113,10 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
         await deleteRecording(recordingToDelete.url)
 
         const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
-        await fetch('/api/profile', {
+        const deleteApiUrl = profileId
+          ? `/api/profile?profileId=${profileId}`
+          : '/api/profile'
+        await fetch(deleteApiUrl, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ story_recordings: updatedRecordings }),

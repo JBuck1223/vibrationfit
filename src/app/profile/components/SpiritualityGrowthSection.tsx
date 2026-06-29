@@ -12,13 +12,14 @@ interface SpiritualityGrowthSectionProps {
   profile: Partial<UserProfile>
   onProfileChange: (updates: Partial<UserProfile>) => void
   onProfileReload?: () => Promise<void>
+  profileId?: string
   onSave?: () => void
   isSaving?: boolean
   hasUnsavedChanges?: boolean
   saveError?: string | null
 }
 
-export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileReload, onSave, isSaving, hasUnsavedChanges = false, saveError }: SpiritualityGrowthSectionProps) {
+export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileReload, profileId, onSave, isSaving, hasUnsavedChanges = false, saveError }: SpiritualityGrowthSectionProps) {
   const [isSpiritualPracticeDropdownOpen, setIsSpiritualPracticeDropdownOpen] = useState(false)
   const [isMeditationFrequencyDropdownOpen, setIsMeditationFrequencyDropdownOpen] = useState(false)
   const spiritualPracticeDropdownRef = useRef<HTMLDivElement>(null)
@@ -68,7 +69,8 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
     const newRecording = { url, transcript, type, category: visionToRecordingKey('spirituality'), created_at: new Date().toISOString() }
     const updatedRecordings = [...(profile.story_recordings || []), newRecording]
     try {
-      await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_spirituality: updatedText }) })
+      const apiUrl = profileId ? `/api/profile?profileId=${profileId}` : '/api/profile'
+      await fetch(apiUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings, state_spirituality: updatedText }) })
       if (onProfileReload) await onProfileReload()
     } catch (error) { alert('Failed to save recording.') }
   }
@@ -83,7 +85,8 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
         const { deleteRecording } = await import('@/lib/services/recordingService')
         await deleteRecording(recordingToDelete.url)
         const updatedRecordings = allRecordings.filter((_, i) => i !== actualIndex)
-        await fetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
+        const deleteApiUrl = profileId ? `/api/profile?profileId=${profileId}` : '/api/profile'
+        await fetch(deleteApiUrl, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ story_recordings: updatedRecordings }) })
         if (onProfileReload) await onProfileReload()
       } catch (error) { alert('Failed to delete recording.') }
     }

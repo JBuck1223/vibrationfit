@@ -554,32 +554,23 @@ export default function ProfileEditPage() {
   const reloadProfile = useCallback(async () => {
     try {
       console.log('🔄 Reloading profile from database...')
-      const response = await fetch(`/api/profile?t=${Date.now()}`)
+      const url = profileId
+        ? `/api/profile?versionId=${profileId}&t=${Date.now()}`
+        : `/api/profile?t=${Date.now()}`
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         console.log('✅ Profile reloaded', {
           recordingsCount: data.profile?.story_recordings?.length || 0
         })
-        
-        // Load the specific profile version if we have a profileId
-        if (profileId && data.versions) {
-          const targetVersion = data.versions.find((v: any) => v.id === profileId)
-          if (targetVersion) {
-            setProfile(targetVersion)
-            // Completion percentage will be calculated in real-time via useEffect
-          } else {
-            setProfile(data.profile || {})
-            // Completion percentage will be calculated in real-time via useEffect
-          }
-        } else {
-          setProfile(data.profile || {})
-          // Completion percentage will be calculated in real-time via useEffect
+        if (data.profile) {
+          setProfile(data.profile)
         }
       }
     } catch (error) {
       console.error('Failed to reload profile:', error)
     }
-  }, [profileId, router])
+  }, [profileId])
 
   // Manual save function
   const handleSaveClick = () => {
@@ -664,22 +655,22 @@ export default function ProfileEditPage() {
         sectionContent = <PersonalInfoSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'love':
-        sectionContent = <RelationshipSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <RelationshipSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'family':
         sectionContent = <FamilySection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'health':
-        sectionContent = <HealthSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <HealthSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'home':
-        sectionContent = <LocationSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <LocationSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'work':
-        sectionContent = <CareerSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <CareerSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'money':
-        sectionContent = <FinancialSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <FinancialSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'photos-notes':
         sectionContent = <PhotosAndNotesSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
@@ -691,16 +682,16 @@ export default function ProfileEditPage() {
         sectionContent = <TravelAdventureSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'social':
-        sectionContent = <SocialFriendsSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <SocialFriendsSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'stuff':
         sectionContent = <PossessionsLifestyleSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'spirituality':
-        sectionContent = <SpiritualityGrowthSection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <SpiritualityGrowthSection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       case 'giving':
-        sectionContent = <GivingLegacySection {...commonProps} onSave={handleManualSave} isSaving={isSaving} />
+        sectionContent = <GivingLegacySection {...commonProps} profileId={profileId} onSave={handleManualSave} isSaving={isSaving} />
         break
       default:
         sectionContent = <PersonalInfoSection {...commonProps} profileId={profileId} />
