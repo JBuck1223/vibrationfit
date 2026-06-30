@@ -45,7 +45,7 @@ export async function POST(
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
     const extraVars: Record<string, string> = {}
     if (referralRow?.referral_code) {
-      extraVars.referralLink = `${siteUrl}/offer/launch?ref=${referralRow.referral_code}`
+      extraVars.referralLink = `${siteUrl}/?ref=${referralRow.referral_code}`
     }
 
     function applyVars(text: string): string {

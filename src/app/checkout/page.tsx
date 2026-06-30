@@ -252,6 +252,11 @@ function CheckoutContent() {
     mode: product.mode as 'payment' | 'subscription',
     amount: product.amount,
     currency: product.currency,
+    // Payment-mode intents are created server-side with setup_future_usage:
+    // 'off_session' (so the card can bill the Day-56 subscription). In Stripe's
+    // deferred flow the Elements option must match the PaymentIntent, or confirm
+    // fails with a setup_future_usage mismatch.
+    ...(product.mode === 'payment' ? { setupFutureUsage: 'off_session' as const } : {}),
     appearance: {
       theme: 'night' as const,
       variables: {
