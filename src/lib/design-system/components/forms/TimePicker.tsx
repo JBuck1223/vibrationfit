@@ -196,8 +196,8 @@ export const TimePicker = React.forwardRef<HTMLInputElement, TimePickerProps>(
     }, [isOpen, normalizedValue])
 
     const sizeFieldClasses = {
-      sm: 'px-3 py-2 text-sm pr-9',
-      md: 'px-4 py-3 pr-10',
+      sm: 'px-3 py-2 text-base pr-9',
+      md: 'px-4 py-3 text-base pr-10',
       lg: 'px-5 py-4 text-lg pr-12',
     }
     const sizeIconRight = {

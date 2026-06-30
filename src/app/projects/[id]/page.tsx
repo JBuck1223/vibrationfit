@@ -113,6 +113,44 @@ export default function ProjectDetailPage() {
     fetchProject()
   }
 
+  const patchTaskInTree = (tasks: IdeaTask[], taskId: string, patch: Partial<IdeaTask>): IdeaTask[] =>
+    tasks.map(task => {
+      if (task.id === taskId) return { ...task, ...patch }
+      if (task.subtasks) {
+        return {
+          ...task,
+          subtasks: task.subtasks.map(s => (s.id === taskId ? { ...s, ...patch } : s)),
+        }
+      }
+      return task
+    })
+
+  const updateTaskField = async (taskId: string, updates: { title?: string; description?: string }) => {
+    const res = await fetch(`/api/projects/${id}/tasks`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_id: taskId, ...updates }),
+    })
+    if (res.ok) {
+      fetchProject()
+    } else {
+      toast.error('Failed to update task')
+      fetchProject()
+    }
+  }
+
+  const handleTaskTitleBlur = (taskId: string, value: string, originalTitle: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) {
+      toast.error('Task title cannot be empty')
+      fetchProject()
+      return
+    }
+    if (trimmed !== originalTitle.trim()) {
+      updateTaskField(taskId, { title: trimmed })
+    }
+  }
+
   const deleteTask = async (taskId: string) => {
     await fetch(`/api/projects/${id}/tasks?task_id=${taskId}`, { method: 'DELETE' })
     fetchProject()
@@ -252,13 +290,30 @@ export default function ProjectDetailPage() {
                         />
                       </button>
                     ) : null}
-                    <span
-                      className={`min-w-0 flex-1 text-sm ${
-                        task.is_complete ? 'text-neutral-500 line-through decoration-neutral-600' : 'text-white'
+                    <input
+                      type="text"
+                      value={task.title}
+                      onChange={(e) =>
+                        setProject(prev =>
+                          prev ? { ...prev, tasks: patchTaskInTree(prev.tasks, task.id, { title: e.target.value }) } : prev
+                        )
+                      }
+                      onFocus={(e) => {
+                        e.currentTarget.dataset.originalTitle = e.currentTarget.value
+                      }}
+                      onBlur={(e) => {
+                        const original = e.currentTarget.dataset.originalTitle ?? e.currentTarget.value
+                        handleTaskTitleBlur(task.id, e.currentTarget.value, original)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.currentTarget.blur()
+                      }}
+                      className={`min-w-0 flex-1 bg-transparent text-sm outline-none focus:rounded-lg focus:bg-white/[0.04] focus:px-1 ${
+                        task.is_complete
+                          ? 'text-neutral-500 line-through decoration-neutral-600'
+                          : 'text-white'
                       }`}
-                    >
-                      {task.title}
-                    </span>
+                    />
                     <button
                       type="button"
                       onClick={() => setAddingSubtaskTo(addingSubtaskTo === task.id ? null : task.id)}
@@ -293,13 +348,28 @@ export default function ProjectDetailPage() {
                       >
                         {sub.is_complete && <CheckCircle2 className="h-3.5 w-3.5 text-[#39FF14]" />}
                       </button>
-                      <span
-                        className={`min-w-0 flex-1 text-sm ${
+                      <input
+                        type="text"
+                        value={sub.title}
+                        onChange={(e) =>
+                          setProject(prev =>
+                            prev ? { ...prev, tasks: patchTaskInTree(prev.tasks, sub.id, { title: e.target.value }) } : prev
+                          )
+                        }
+                        onFocus={(e) => {
+                          e.currentTarget.dataset.originalTitle = e.currentTarget.value
+                        }}
+                        onBlur={(e) => {
+                          const original = e.currentTarget.dataset.originalTitle ?? e.currentTarget.value
+                          handleTaskTitleBlur(sub.id, e.currentTarget.value, original)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.currentTarget.blur()
+                        }}
+                        className={`min-w-0 flex-1 bg-transparent text-sm outline-none focus:rounded-lg focus:bg-white/[0.04] focus:px-1 ${
                           sub.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-300'
                         }`}
-                      >
-                        {sub.title}
-                      </span>
+                      />
                       <button
                         type="button"
                         onClick={() => deleteTask(sub.id)}

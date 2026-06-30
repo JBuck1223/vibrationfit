@@ -73,7 +73,6 @@ import {
   Fingerprint,
   GraduationCap,
   Share2,
-  Lightbulb,
   Library,
   Film,
   Music2,
@@ -170,12 +169,6 @@ export const userNavigationGroups: NavGroup[] = [
         href: '/daily-paper',
         icon: FileText,
         description: 'Daily activations tracking',
-      },
-      {
-        name: 'How It Works',
-        href: '/system',
-        icon: Lightbulb,
-        description: 'What your Conscious Creation System is and how every part fits together',
       },
       {
         name: 'Journal',

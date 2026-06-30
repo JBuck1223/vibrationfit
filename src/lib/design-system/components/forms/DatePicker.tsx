@@ -360,7 +360,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 placeholder="Select date..."
                 className={cn(
-                  'w-full px-4 py-3 pr-10',
+                  'w-full px-4 py-3 pr-10 text-base',
                   'bg-[#404040]',
                   'border-2',
                   'rounded-xl',

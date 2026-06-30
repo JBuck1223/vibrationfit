@@ -18,9 +18,10 @@ export interface VibrationFitSong {
 interface VibrationFitSongPickerProps {
   onSelect: (song: VibrationFitSong) => void
   className?: string
+  onOpenChange?: (open: boolean) => void
 }
 
-export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSongPickerProps) {
+export function VibrationFitSongPicker({ onSelect, className, onOpenChange }: VibrationFitSongPickerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -54,6 +55,10 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
     if (open && !loaded) loadSongs()
   }, [open, loaded, loadSongs])
 
+  useEffect(() => {
+    onOpenChange?.(open)
+  }, [open, onOpenChange])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return songs
@@ -70,30 +75,30 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'flex items-center gap-2 rounded-lg border border-neutral-700/50 bg-neutral-800/40 px-3 py-2 text-xs text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white',
+          'flex w-full min-w-0 items-center gap-2 rounded-lg border border-neutral-700/50 bg-neutral-800/40 px-3 py-2 text-xs text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white',
           className
         )}
       >
-        <Disc3 className="h-3.5 w-3.5 text-neutral-400" />
-        Vibration Fit Songs
-        <ChevronDown className="ml-auto h-3 w-3 text-neutral-500" />
+        <Disc3 className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+        <span className="min-w-0 flex-1 truncate text-left">Vibration Fit Songs</span>
+        <ChevronDown className="h-3 w-3 shrink-0 text-neutral-500" />
       </button>
     )
   }
 
   return (
-    <div className={cn('rounded-xl border border-neutral-700/50 bg-neutral-900/80', className)}>
+    <div className={cn('w-full min-w-0 overflow-hidden rounded-xl border border-neutral-700/50 bg-neutral-900/80', className)}>
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-white transition-colors hover:bg-white/[0.03]"
+        className="flex w-full min-w-0 items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-white transition-colors hover:bg-white/[0.03]"
       >
-        <Disc3 className="h-3.5 w-3.5 text-[#39FF14]" />
-        Vibration Fit Songs
-        <ChevronUp className="ml-auto h-3 w-3 text-neutral-500" />
+        <Disc3 className="h-3.5 w-3.5 shrink-0 text-[#39FF14]" />
+        <span className="min-w-0 flex-1 truncate">Vibration Fit Songs</span>
+        <ChevronUp className="h-3 w-3 shrink-0 text-neutral-500" />
       </button>
 
-      <div className="border-t border-neutral-800 px-1.5 pb-1.5">
+      <div className="min-w-0 border-t border-neutral-800 px-1.5 pb-1.5">
         {loading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-neutral-500" />
@@ -119,7 +124,7 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
                 </div>
               </div>
             )}
-            <div className="mt-1.5 max-h-[240px] space-y-0.5 overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
+            <div className="mt-1.5 max-h-[240px] space-y-0.5 overflow-x-hidden overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
               {filtered.length === 0 ? (
                 <p className="py-4 text-center text-xs text-neutral-500">No songs match your search.</p>
               ) : (
@@ -131,7 +136,7 @@ export function VibrationFitSongPicker({ onSelect, className }: VibrationFitSong
                       onSelect(song)
                       setOpen(false)
                     }}
-                    className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/5"
+                    className="group flex w-full min-w-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/5"
                   >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#39FF14]/10">
                       {song.artwork_url ? (

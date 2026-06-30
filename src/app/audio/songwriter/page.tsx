@@ -9,6 +9,7 @@ import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-
 import { VibrationFitSongPicker, type VibrationFitSong } from '@/components/audio-studio/VibrationFitSongPicker'
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
 import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
 import { extractYoutubeAudio } from '@/lib/songs/extract-youtube-client'
 import {
@@ -78,6 +79,8 @@ export default function SongwriterPage() {
   const [referenceId, setReferenceId] = useState<string | null>(null)
   const [referenceTitle, setReferenceTitle] = useState<string | null>(null)
   const [referenceClipUrl, setReferenceClipUrl] = useState<string | null>(null)
+  const [refPickerOpen, setRefPickerOpen] = useState(false)
+  const [songPickerOpen, setSongPickerOpen] = useState(false)
 
   // Generation state
   const [generating, setGenerating] = useState(false)
@@ -817,13 +820,18 @@ export default function SongwriterPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-neutral-200">What's this song about?</label>
-              <Textarea
-                value={songIdea}
-                onChange={e => setSongIdea(e.target.value)}
-                placeholder="A song about..."
-                rows={4}
-                className="mt-1.5"
-              />
+              <div className="mt-1.5 [&_textarea]:!bg-black/40 [&_textarea]:!border-neutral-700">
+                <RecordingTextarea
+                  value={songIdea}
+                  onChange={setSongIdea}
+                  placeholder="A song about... Type or tap the mic to record."
+                  rows={4}
+                  storageFolder="customTracks"
+                  recordingPurpose="quick"
+                  category="songwriter"
+                  instanceId="songwriter-song-idea"
+                />
+              </div>
             </div>
           </Stack>
         </Card>
@@ -913,12 +921,14 @@ export default function SongwriterPage() {
             estimatedTime="This usually takes 10-30 seconds"
             estimatedDuration={30000}
           />
-          <Stack gap="sm">
+          <Stack gap="sm" className="min-w-0">
             <label className="text-sm font-medium text-neutral-200">Reference Track</label>
             <p className="text-xs text-neutral-500">Paste a YouTube URL, pick a Vibration Fit song, or reuse one from your library. Select 30 seconds to set the musical vibe.</p>
 
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
               <ReferenceLibraryPicker
+                className={`min-w-0${refPickerOpen ? ' md:col-span-2' : ''}`}
+                onOpenChange={setRefPickerOpen}
                 onSelect={(ref: ReferenceTrack) => {
                   if (ref.youtube_url) setYoutubeUrl(ref.youtube_url)
                   setAudioUrl(null)
@@ -931,6 +941,8 @@ export default function SongwriterPage() {
               />
 
               <VibrationFitSongPicker
+                className={`min-w-0${songPickerOpen ? ' md:col-span-2' : ''}`}
+                onOpenChange={setSongPickerOpen}
                 onSelect={(song: VibrationFitSong) => {
                   setAudioError(null)
                   setYoutubeUrl('')
@@ -946,28 +958,30 @@ export default function SongwriterPage() {
             </div>
 
             {referenceId && !audioUrl && referenceTitle && (
-              <div className="flex items-center gap-3 rounded-lg border border-[#39FF14]/20 bg-[#39FF14]/5 px-3 py-2.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
-                  <Music2 className="h-4 w-4 text-[#39FF14]" />
+              <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-[#39FF14]/20 bg-[#39FF14]/5 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                    <Music2 className="h-4 w-4 text-[#39FF14]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-neutral-200">{referenceTitle}</p>
+                    <p className="text-[10px] text-neutral-500">
+                      {regionStart.toFixed(0)}s – {regionEnd.toFixed(0)}s · Ready to use
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-neutral-200">{referenceTitle}</p>
-                  <p className="text-[10px] text-neutral-500">
-                    {regionStart.toFixed(0)}s – {regionEnd.toFixed(0)}s · Ready to use
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
+                <div className="flex shrink-0 items-center gap-1 self-end sm:self-auto">
                   <button
                     type="button"
                     onClick={() => { setReferenceId(null); setReferenceClipUrl(null); loadYoutubeAudio() }}
-                    className="rounded px-2 py-1 text-[10px] font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+                    className="whitespace-nowrap rounded px-2 py-1 text-[10px] font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
                   >
                     Change section
                   </button>
                   <button
                     type="button"
                     onClick={() => { setReferenceId(null); setReferenceTitle(null); setReferenceClipUrl(null); setYoutubeUrl('') }}
-                    className="text-neutral-500 hover:text-neutral-300"
+                    className="shrink-0 text-neutral-500 hover:text-neutral-300"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -976,8 +990,8 @@ export default function SongwriterPage() {
             )}
 
             {!referenceId && (
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+              <div className="flex min-w-0 gap-2">
+                <div className="relative min-w-0 flex-1">
                   <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
                   <input
                     type="url"
@@ -1011,22 +1025,22 @@ export default function SongwriterPage() {
                 )}
                 <div
                   ref={waveformRef}
-                  className="rounded-lg border border-neutral-700 bg-black/40 p-2"
+                  className="min-w-0 overflow-hidden rounded-lg border border-neutral-700 bg-black/40 p-2"
                 />
-                <div className="flex items-center justify-between">
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1">
                   <button
                     onClick={togglePreview}
-                    className="flex items-center gap-1.5 rounded-full border border-neutral-600 px-3 py-1 text-xs text-neutral-300 transition-colors hover:border-neutral-400"
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-neutral-600 px-3 py-1 text-xs text-neutral-300 transition-colors hover:border-neutral-400"
                   >
                     {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                     Preview
                   </button>
-                  <span className="text-xs text-neutral-500">
+                  <span className="min-w-0 truncate text-xs text-neutral-500">
                     {regionStart.toFixed(1)}s – {regionEnd.toFixed(1)}s ({(regionEnd - regionStart).toFixed(1)}s selected)
                   </span>
                   <button
                     onClick={() => { setAudioUrl(null); setYoutubeUrl(''); setReferenceId(null) }}
-                    className="text-neutral-500 hover:text-neutral-300"
+                    className="shrink-0 text-neutral-500 hover:text-neutral-300"
                   >
                     <X className="h-4 w-4" />
                   </button>

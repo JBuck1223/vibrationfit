@@ -227,7 +227,7 @@ export function RecordingInput({
             disabled={disabled || isTranscribing}
             rows={rows}
             className={cn(
-              'w-full px-4 py-3 pr-14 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
+              'w-full px-4 py-3 pr-14 text-base bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
               'focus:outline-none focus:ring-2 transition-all duration-200 resize-none',
               error || localError
                 ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
@@ -245,7 +245,7 @@ export function RecordingInput({
             placeholder={placeholder}
             disabled={disabled || isTranscribing}
             className={cn(
-              'w-full px-4 py-3 pr-14 bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
+              'w-full px-4 py-3 pr-14 text-base bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
               'focus:outline-none focus:ring-2 transition-all duration-200',
               error || localError
                 ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'

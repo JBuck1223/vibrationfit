@@ -21,9 +21,10 @@ export interface ReferenceTrack {
 interface ReferenceLibraryPickerProps {
   onSelect: (ref: ReferenceTrack) => void
   className?: string
+  onOpenChange?: (open: boolean) => void
 }
 
-export function ReferenceLibraryPicker({ onSelect, className }: ReferenceLibraryPickerProps) {
+export function ReferenceLibraryPicker({ onSelect, className, onOpenChange }: ReferenceLibraryPickerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [references, setReferences] = useState<ReferenceTrack[]>([])
@@ -50,6 +51,10 @@ export function ReferenceLibraryPicker({ onSelect, className }: ReferenceLibrary
     if (open && !loaded) loadReferences()
   }, [open, loaded, loadReferences])
 
+  useEffect(() => {
+    onOpenChange?.(open)
+  }, [open, onOpenChange])
+
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     if (!confirm('Remove this reference from your library?')) return
@@ -65,30 +70,30 @@ export function ReferenceLibraryPicker({ onSelect, className }: ReferenceLibrary
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'flex items-center gap-2 rounded-lg border border-neutral-700/50 bg-neutral-800/40 px-3 py-2 text-xs text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white',
+          'flex w-full min-w-0 items-center gap-2 rounded-lg border border-neutral-700/50 bg-neutral-800/40 px-3 py-2 text-xs text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white',
           className
         )}
       >
-        <Library className="h-3.5 w-3.5 text-neutral-400" />
-        My Reference Tracks
-        <ChevronDown className="ml-auto h-3 w-3 text-neutral-500" />
+        <Library className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+        <span className="min-w-0 flex-1 truncate text-left">My Reference Tracks</span>
+        <ChevronDown className="h-3 w-3 shrink-0 text-neutral-500" />
       </button>
     )
   }
 
   return (
-    <div className={cn('rounded-xl border border-neutral-700/50 bg-neutral-900/80', className)}>
+    <div className={cn('w-full min-w-0 overflow-hidden rounded-xl border border-neutral-700/50 bg-neutral-900/80', className)}>
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-white transition-colors hover:bg-white/[0.03]"
+        className="flex w-full min-w-0 items-center gap-2 px-3 py-2.5 text-left text-xs font-medium text-white transition-colors hover:bg-white/[0.03]"
       >
-        <Library className="h-3.5 w-3.5 text-[#39FF14]" />
-        My Reference Tracks
-        <ChevronUp className="ml-auto h-3 w-3 text-neutral-500" />
+        <Library className="h-3.5 w-3.5 shrink-0 text-[#39FF14]" />
+        <span className="min-w-0 flex-1 truncate">My Reference Tracks</span>
+        <ChevronUp className="h-3 w-3 shrink-0 text-neutral-500" />
       </button>
 
-      <div className="border-t border-neutral-800 px-1.5 pb-1.5">
+      <div className="min-w-0 border-t border-neutral-800 px-1.5 pb-1.5">
         {loading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-neutral-500" />
@@ -101,11 +106,11 @@ export function ReferenceLibraryPicker({ onSelect, className }: ReferenceLibrary
             </p>
           </div>
         ) : (
-          <div className="max-h-[240px] space-y-0.5 overflow-y-auto pt-1.5 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
+          <div className="max-h-[240px] space-y-0.5 overflow-x-hidden overflow-y-auto pt-1.5 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent">
             {references.map(ref => (
               <div
                 key={ref.id}
-                className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-white/5"
+                className="group flex w-full min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 transition-colors hover:bg-white/5"
               >
                 <button
                   type="button"
@@ -122,13 +127,13 @@ export function ReferenceLibraryPicker({ onSelect, className }: ReferenceLibrary
                     <p className="truncate text-sm font-medium text-neutral-200 group-hover:text-white">
                       {ref.title || 'Untitled reference'}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-2 text-[10px] text-neutral-500">
-                      {ref.youtube_url && <Youtube className="h-2.5 w-2.5" />}
-                      <span className="inline-flex items-center gap-0.5">
-                        <Clock className="h-2.5 w-2.5" />
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-neutral-500">
+                      {ref.youtube_url && <Youtube className="h-2.5 w-2.5 shrink-0" />}
+                      <span className="inline-flex shrink-0 items-center gap-0.5">
+                        <Clock className="h-2.5 w-2.5 shrink-0" />
                         {Number(ref.clip_start).toFixed(0)}s – {Number(ref.clip_end).toFixed(0)}s
                       </span>
-                      <span>
+                      <span className="shrink-0">
                         {new Date(ref.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
