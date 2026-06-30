@@ -105,7 +105,7 @@ export default function HomePage() {
       const ref = params.get('ref') || params.get('source') || params.get('affiliate')
       if (ref) {
         setReferralSource(ref)
-        if (!promo) setPromoCode('LAUNCH')
+        if (!promo) setPromoCode('LAUNCH2026')
       }
       
       // Campaign name
