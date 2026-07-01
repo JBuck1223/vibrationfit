@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
+import {
+  ALIGNMENT_GYM_GRADUATION_REQUIRED_MESSAGE,
+  isAlignmentGymSessionsLocked,
+} from '@/lib/intensive/alignment-gym-access'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -18,6 +22,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (await isAlignmentGymSessionsLocked(supabase, user.id)) {
+      return NextResponse.json(
+        { error: ALIGNMENT_GYM_GRADUATION_REQUIRED_MESSAGE },
+        { status: 403 },
+      )
     }
 
     const admin = createAdminClient()

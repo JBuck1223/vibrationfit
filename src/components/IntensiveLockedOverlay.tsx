@@ -80,9 +80,9 @@ export function IntensiveLockedOverlay() {
         { id: 'journal', stepNumber: 9, title: 'First Journal Entry', href: '/intensive/journal/about', completed: !!checklist.first_journal_entry },
         { id: 'vibe_post', stepNumber: 10, title: 'First Vibe Post', href: '/intensive/vibe-tribe/post', completed: !!checklist.first_vibe_post },
         { id: 'vibe_engage', stepNumber: 11, title: 'Engage in Tribe', href: '/intensive/vibe-tribe/engage', completed: !!checklist.vibe_engagement },
-        { id: 'gym_tour', stepNumber: 12, title: 'Alignment Gym', href: '/intensive/alignment-gym', completed: !!checklist.alignment_gym_toured },
+        { id: 'gym_tour', stepNumber: 12, title: 'Alignment Gym Tour', href: '/intensive/alignment-gym', completed: !!checklist.alignment_gym_toured },
         { id: 'activate', stepNumber: 13, title: 'My Alignment Plan', href: '/intensive/map', completed: !!checklist.activation_protocol_completed },
-        { id: 'unlock', stepNumber: 14, title: 'Unlock Platform', href: '/intensive/unlock', completed: !!checklist.unlock_completed },
+        { id: 'unlock', stepNumber: 14, title: 'Graduation', href: '/intensive/unlock', completed: !!checklist.unlock_completed },
       ]
 
       const next = steps.find(s => !s.completed)

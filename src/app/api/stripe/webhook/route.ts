@@ -863,8 +863,8 @@ export async function POST(request: NextRequest) {
             deadline: activationDeadline.toISOString(),
           })
 
-          // Create Vision Pro subscription separately with 56-day trial
-          // This ensures Vision Pro doesn't show in intensive checkout but starts after 56 days
+          // Create Vision Pro subscription separately with 28-day trial
+          // This ensures Vision Pro doesn't show in intensive checkout but starts after 28 days
           const continuityPlan = session.metadata.continuity_plan || 'annual'
           const continuityPriceId = session.metadata.continuity_price_id || 
                                      (continuityPlan === 'annual' 
@@ -872,7 +872,7 @@ export async function POST(request: NextRequest) {
                                        : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY)
 
           if (continuityPriceId) {
-            console.log('Creating Vision Pro subscription with 56-day trial...')
+            console.log('Creating Vision Pro subscription with 28-day trial...')
             
             try {
               const customerId = (session.customer as string) ||
@@ -906,7 +906,7 @@ export async function POST(request: NextRequest) {
                       quantity: 1,
                     },
                   ],
-                  trial_period_days: 56,
+                  trial_period_days: 28,
                   ...(vpDefaultPM && { default_payment_method: vpDefaultPM }),
                   metadata: {
                     product_type: 'vision_pro_continuity',
@@ -914,7 +914,7 @@ export async function POST(request: NextRequest) {
                     intensive_payment_plan: paymentPlan,
                     continuity_plan: continuityPlan,
                     intensive_order_item_id: intensiveOrderItem.id,
-                    billing_starts_day: '56',
+                    billing_starts_day: '28',
                   },
                 })
 
@@ -931,7 +931,7 @@ export async function POST(request: NextRequest) {
                   current_period_start: subscriptionPeriod(visionProSubscription).start,
                   current_period_end: subscriptionPeriod(visionProSubscription).end,
                   trial_start: new Date().toISOString(),
-                  trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(),
+                  trial_end: new Date(Date.now() + (28 * 24 * 60 * 60 * 1000)).toISOString(),
                 })
                 .select()
                 .single()
@@ -955,8 +955,8 @@ export async function POST(request: NextRequest) {
                     isSubscription: true,
                     subscriptionId: newSubscription?.id || null,
                     metadata: {
-                      trial_days: 56,
-                      billing_starts_day: 56,
+                      trial_days: 28,
+                      billing_starts_day: 28,
                     },
                     supabaseAdmin,
                   })) ||
@@ -968,8 +968,8 @@ export async function POST(request: NextRequest) {
                     isSubscription: true,
                     subscriptionId: newSubscription?.id || null,
                     metadata: {
-                      trial_days: 56,
-                      billing_starts_day: 56,
+                      trial_days: 28,
+                      billing_starts_day: 28,
                     },
                     supabaseAdmin,
                   }))
@@ -984,7 +984,7 @@ export async function POST(request: NextRequest) {
                     .eq('id', newSubscription.id)
                 }
 
-                // Grant intensive trial tokens (1M for 56 days)
+                // Grant intensive trial tokens (1M for 28 days)
                 const { data: result, error: grantError } = await supabase
                   .rpc('grant_trial_tokens', {
                     p_user_id: userId,
@@ -1079,7 +1079,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Handle Combined Checkout: Intensive + Vision Pro Continuity
-        // Vision Pro is NOT in checkout - created separately in webhook with 56-day trial
+        // Vision Pro is NOT in checkout - created separately in webhook with 28-day trial
         // Supports both payment mode (full) and subscription mode (2pay/3pay)
         if ((session.mode === 'payment' || session.mode === 'subscription') && 
             (session.metadata?.product_type === 'combined_intensive_continuity' || 
@@ -1204,18 +1204,18 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Create Vision Pro subscription separately with 56-day trial
+          // Create Vision Pro subscription separately with 28-day trial
           // This is configured via trial_period_days in Subscription.create API call
           // (Cannot be configured in Stripe Dashboard per price - trials are subscription-level only)
-          const scheduleStartDate = Math.floor(Date.now() / 1000) + (56 * 24 * 60 * 60) // 56 days from now
+          const scheduleStartDate = Math.floor(Date.now() / 1000) + (28 * 24 * 60 * 60) // 28 days from now
           let subscriptionId: string | undefined
           let customerSubscriptionId: string | null = null
           
           try {
-            console.log('Creating Vision Pro subscription separately with 56-day trial...')
+            console.log('Creating Vision Pro subscription separately with 28-day trial...')
             
             // Retrieve the payment method so the Vision Pro subscription can
-            // charge automatically when the 56-day trial ends.
+            // charge automatically when the 28-day trial ends.
             let vpDefaultPM: string | undefined
             if (session.payment_intent) {
               const sessionPI = await stripe.paymentIntents.retrieve(session.payment_intent as string)
@@ -1237,7 +1237,7 @@ export async function POST(request: NextRequest) {
                   quantity: 1,
                 },
               ],
-              trial_period_days: 56,
+              trial_period_days: 28,
               ...(vpDefaultPM && { default_payment_method: vpDefaultPM }),
               metadata: {
                 product_type: 'vision_pro_continuity',
@@ -1245,7 +1245,7 @@ export async function POST(request: NextRequest) {
                 intensive_payment_plan: intensivePaymentPlan,
                 continuity_plan: continuityPlan,
                 intensive_checkout_session_id: session.id,
-                billing_starts_day: '56',
+                billing_starts_day: '28',
               },
             })
             console.log('✅ Vision Pro subscription created separately:', visionProSubscription.id)
@@ -1254,7 +1254,7 @@ export async function POST(request: NextRequest) {
             const visionProSub = visionProSubscription
             subscriptionId = visionProSubId
             
-            // Create subscription record using Vision Pro subscription (has 56-day trial)
+            // Create subscription record using Vision Pro subscription (has 28-day trial)
             // Use admin client to bypass RLS in webhook context
             const { data: newSubscription, error: subInsertError } = await supabaseAdmin.from('customer_subscriptions').insert({
               user_id: userId,
@@ -1484,8 +1484,8 @@ export async function POST(request: NextRequest) {
               isSubscription: true,
               subscriptionId: customerSubscriptionId,
               metadata: {
-                trial_days: 56,
-                billing_starts_day: 56,
+                trial_days: 28,
+                billing_starts_day: 28,
               },
               supabaseAdmin,
             })) ||
@@ -1497,8 +1497,8 @@ export async function POST(request: NextRequest) {
               isSubscription: true,
               subscriptionId: customerSubscriptionId,
               metadata: {
-                trial_days: 56,
-                billing_starts_day: 56,
+                trial_days: 28,
+                billing_starts_day: 28,
               },
               supabaseAdmin,
             }))
@@ -2161,7 +2161,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create Vision Pro subscription with 56-day trial (mirrors checkout.session.completed logic)
+        // Create Vision Pro subscription with 28-day trial (mirrors checkout.session.completed logic)
         let subscriptionCreated = false
         if (isIntensive && intensiveOrderItem) {
           const continuityPlan = meta.continuity || 'annual'
@@ -2193,7 +2193,7 @@ export async function POST(request: NextRequest) {
                 const visionProSubscription = await stripe.subscriptions.create({
                   customer: customerId,
                   items: [{ price: continuityPriceId, quantity: 1 }],
-                  trial_period_days: 56,
+                  trial_period_days: 28,
                   ...(vpPaymentMethod && { default_payment_method: vpPaymentMethod }),
                   metadata: {
                     product_type: 'vision_pro_continuity',
@@ -2201,7 +2201,7 @@ export async function POST(request: NextRequest) {
                     intensive_payment_plan: plan,
                     continuity_plan: continuityPlan,
                     intensive_order_item_id: intensiveOrderItem.id,
-                    billing_starts_day: '56',
+                    billing_starts_day: '28',
                   },
                 })
 
@@ -2218,7 +2218,7 @@ export async function POST(request: NextRequest) {
                   current_period_start: subscriptionPeriod(visionProSubscription).start,
                   current_period_end: subscriptionPeriod(visionProSubscription).end,
                   trial_start: new Date().toISOString(),
-                  trial_end: new Date(Date.now() + (56 * 24 * 60 * 60 * 1000)).toISOString(),
+                  trial_end: new Date(Date.now() + (28 * 24 * 60 * 60 * 1000)).toISOString(),
                   order_id: order.id,
                   order_item_id: intensiveOrderItem.id,
                 })
@@ -2243,7 +2243,7 @@ export async function POST(request: NextRequest) {
                     currency: pi.currency || 'usd',
                     isSubscription: true,
                     subscriptionId: newSubscription?.id || null,
-                    metadata: { trial_days: 56, billing_starts_day: 56 },
+                    metadata: { trial_days: 28, billing_starts_day: 28 },
                     supabaseAdmin,
                   })) ||
                   (await createOrderItemByProductKey({
@@ -2253,7 +2253,7 @@ export async function POST(request: NextRequest) {
                     currency: pi.currency || 'usd',
                     isSubscription: true,
                     subscriptionId: newSubscription?.id || null,
-                    metadata: { trial_days: 56, billing_starts_day: 56 },
+                    metadata: { trial_days: 28, billing_starts_day: 28 },
                     supabaseAdmin,
                   }))
 

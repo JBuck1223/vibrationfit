@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     }
 
     // CLEAN SOLUTION: Only include Intensive in checkout (charges immediately)
-    // Vision Pro will be created separately in webhook with 56-day trial
+    // Vision Pro will be created separately in webhook with 28-day trial
     // Customer agrees to Vision Pro subscription (shown on your homepage/UI before checkout)
     
     const visionProPlanName = continuityPlan === 'annual' 
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
         price: intensivePriceId,
         quantity: intensiveQuantity,
       },
-      // Vision Pro is NOT in checkout - it will be created separately in webhook with 56-day trial
+      // Vision Pro is NOT in checkout - it will be created separately in webhook with 28-day trial
       // Show it as informational note via custom_text and line item description
     ]
     
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
     
     // Build Vision Pro subscription disclosure text for checkout
     // Use markdown formatting for emphasis (Stripe supports basic markdown)
-    const visionProDisclosure = `**${visionProPlanName}${planTypeText} subscription (${visionProPrice})** will automatically begin billing in **8 weeks (56 days)** after your purchase.
+    const visionProDisclosure = `**${visionProPlanName}${planTypeText} subscription (${visionProPrice})** will automatically begin billing in **4 weeks (28 days)** after your purchase.
 
 You can cancel anytime before the first billing to avoid charges.`
     
@@ -296,7 +296,7 @@ You can cancel anytime before the first billing to avoid charges.`
             intensive_payment_plan: intensivePaymentPlan,
             continuity_plan: continuityPlan,
             continuity_price_id: continuityPriceId,
-            billing_starts_day: '56',
+            billing_starts_day: '28',
           },
           // No trial - Intensive charges immediately
         },
@@ -311,7 +311,7 @@ You can cancel anytime before the first billing to avoid charges.`
             payment_plan: intensivePaymentPlan,
             continuity_plan: continuityPlan,
             continuity_price_id: continuityPriceId,
-            billing_starts_day: '56',
+            billing_starts_day: '28',
           },
         },
       } : {}),

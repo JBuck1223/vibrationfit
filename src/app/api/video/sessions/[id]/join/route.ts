@@ -9,6 +9,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createHostToken, createParticipantToken, ensureDailyRoom } from '@/lib/video/daily'
 import type { JoinSessionResponse, VideoSession } from '@/lib/video/types'
+import {
+  ALIGNMENT_GYM_GRADUATION_REQUIRED_MESSAGE,
+  isAlignmentGymSessionsLocked,
+} from '@/lib/intensive/alignment-gym-access'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -65,7 +69,18 @@ export async function POST(
       }
     }
 
-    // Open sessions (Alignment Gym + test types) are joinable by all authenticated users.
+    if (
+      !isHost &&
+      session.session_type === 'alignment_gym' &&
+      (await isAlignmentGymSessionsLocked(supabase, user.id))
+    ) {
+      return NextResponse.json(
+        { error: ALIGNMENT_GYM_GRADUATION_REQUIRED_MESSAGE },
+        { status: 403 },
+      )
+    }
+
+    // Open sessions (Alignment Gym + test types) are joinable by authenticated graduates.
     // Use admin client to bypass RLS — the RLS-bound client silently
     // drops insert errors, causing participants to get a 403 instead.
     const isOpenSession = session.session_type === 'alignment_gym'

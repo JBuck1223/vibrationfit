@@ -385,7 +385,7 @@ export function IntensiveSidebar() {
         { 
           id: 'alignment_gym_tour', 
           stepNumber: 12,
-          title: 'Alignment Gym', 
+          title: 'Alignment Gym Tour', 
           href: '/intensive/alignment-gym', 
           icon: Video,
           phase: 'Community',
@@ -407,7 +407,7 @@ export function IntensiveSidebar() {
         { 
           id: 'unlock', 
           stepNumber: 14,
-          title: 'Unlock Platform', 
+          title: 'Graduation', 
           href: '/intensive/unlock', 
           icon: Unlock,
           phase: 'Completion',

@@ -158,7 +158,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   alignment_gym_tour: {
     id: 'alignment_gym_tour',
     stepNumber: 12,
-    title: 'Alignment Gym',
+    title: 'Alignment Gym Tour',
     checklistKey: 'alignment_gym_toured',
     completedAtKey: 'alignment_gym_toured_at',
     href: '/intensive/alignment-gym',
@@ -182,7 +182,7 @@ export const INTENSIVE_STEPS: Record<string, IntensiveStepInfo> = {
   unlock: {
     id: 'unlock',
     stepNumber: 14,
-    title: 'Full Platform Unlock',
+    title: 'Graduation',
     checklistKey: 'unlock_completed',
     completedAtKey: 'unlock_completed_at',
     href: '/intensive/unlock',

@@ -27,6 +27,10 @@ import {
 import { AlertCircle, ArrowLeft, Lock, CheckCircle, Send } from 'lucide-react'
 import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionResponse } from '@/lib/video/types'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
+import {
+  ALIGNMENT_GYM_GRADUATION_REQUIRED_MESSAGE,
+  isAlignmentGymSessionsLocked,
+} from '@/lib/intensive/alignment-gym-access'
 
 type SessionWithParticipants = VideoSession & { participants?: VideoSessionParticipant[] }
 
@@ -91,6 +95,16 @@ export default function SessionPage() {
           if (response.ok) {
             setSession(data.session)
             setIsHost(data.is_host)
+
+            if (
+              !data.is_host &&
+              isAlignmentGymDirectorySession(data.session) &&
+              (await isAlignmentGymSessionsLocked(supabase, user.id))
+            ) {
+              setError(ALIGNMENT_GYM_GRADUATION_REQUIRED_MESSAGE)
+              setPageState('error')
+              return
+            }
 
             const host = data.session.participants?.find((p: { is_host: boolean }) => p.is_host)
             if (host?.name) setHostName(host.name)

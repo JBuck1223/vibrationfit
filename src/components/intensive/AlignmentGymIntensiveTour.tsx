@@ -27,7 +27,7 @@ const WALKTHROUGH_STEPS: { id: AlignmentGymTourAnchor; title: string; body: stri
   {
     id: 'next-session',
     title: 'Next live session',
-    body: 'The next session appears here \u2014 click the button when it\u2019s time to join live. Be sure to add this to your calendar.',
+    body: 'See when the next session is scheduled and add it to your calendar. Live sessions unlock at Graduation (Step 14).',
   },
   {
     id: 'coaching-request',
@@ -37,7 +37,7 @@ const WALKTHROUGH_STEPS: { id: AlignmentGymTourAnchor; title: string; body: stri
   {
     id: 'replays',
     title: 'Session replays',
-    body: 'Miss a week? Watch a past session here. Watching a replay also counts as showing up.',
+    body: 'After Graduation, watch past sessions here. Replays count toward your Alignment Gym streak.',
   },
 ]
 
@@ -123,9 +123,9 @@ export function AlignmentGymIntensiveTour({
               Think of your Profile as where you are now, your Life Vision as where you&apos;re headed, and wobbles as what&apos;s in the way.
             </p>
             <p className="text-sm text-neutral-500 leading-relaxed mb-6">
-              The page behind this overlay is the real Alignment Gym hub you will use after the
-              Intensive — live sessions, coaching requests, and replays. Next, we will walk through
-              each section together.
+              The page behind this overlay is the real Alignment Gym hub you will use after Graduation
+              — live sessions, coaching requests, and replays. Next, we will walk through each section
+              together.
             </p>
             <Button variant="primary" className="w-full" onClick={startWalkthrough}>
               Start walkthrough

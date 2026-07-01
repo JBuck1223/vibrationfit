@@ -61,7 +61,7 @@ const STEP_ROUTES: StepRoute[] = [
     subtitle: '',
   },
   { pathPrefix: '/intensive/journey', areaName: 'Journey', areaIcon: Compass, stepNumber: 0, stepLabel: '', subtitle: '' },
-  { pathPrefix: '/intensive/unlock', areaName: 'Unlock', areaIcon: Unlock, stepNumber: 14, stepLabel: 'Full Platform Unlock', subtitle: "Let's capture your journey and unlock your full membership." },
+  { pathPrefix: '/intensive/unlock', areaName: 'Graduation', areaIcon: Unlock, stepNumber: 14, stepLabel: 'Graduation', subtitle: "Graduate into full Vision Pro member mode." },
 ]
 
 function resolveStep(pathname: string): StepRoute {

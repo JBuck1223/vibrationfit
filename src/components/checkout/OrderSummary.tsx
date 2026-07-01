@@ -4,8 +4,6 @@ import { useState } from 'react'
 import { Card, Button, Input } from '@/lib/design-system/components'
 import { Check, Tag, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react'
 import type { CheckoutProduct } from '@/lib/checkout/products'
-import { formatTokensShort } from '@/lib/billing/config'
-import { useMembershipTiers, TIER_TYPES } from '@/hooks/useMembershipTiers'
 
 interface OrderSummaryProps {
   product: CheckoutProduct
@@ -22,7 +20,7 @@ function formatDollars(cents: number): string {
   return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`
 }
 
-function getDay56UpcomingLabel(
+function getDay28UpcomingLabel(
   continuity: 'annual' | '28day',
   planType: 'solo' | 'household',
 ): string {
@@ -34,7 +32,7 @@ function getDay56UpcomingLabel(
   return `Vision Pro Annual membership: $${price}, then renews annually`
 }
 
-/** Short money story for mobile collapsed header: "Today: $499 • Day 56: $99 every 28 days" */
+/** Short money story for mobile collapsed header: "Today: $499 • Day 28: $99 every 28 days" */
 function getMoneyStoryLine(
   todayCents: number,
   continuity: 'annual' | '28day',
@@ -42,11 +40,24 @@ function getMoneyStoryLine(
 ): string {
   const today = formatDollars(todayCents)
   if (continuity === '28day') {
-    const day56 = planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
-    return `Today: ${today} • Day 56: ${day56}`
+    const day28 = planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
+    return `Today: ${today} • Day 28: ${day28}`
   }
-  const day56 = planType === 'solo' ? '$999 per year' : '$1,499 per year'
-  return `Today: ${today} • Day 56: ${day56}`
+  const day28 = planType === 'solo' ? '$999 per year' : '$1,499 per year'
+  return `Today: ${today} • Day 28: ${day28}`
+}
+
+function getInstallmentScheduleNote(
+  paymentPlan: 'full' | '2pay' | '3pay',
+  installmentAmount: string,
+): string | null {
+  if (paymentPlan === '2pay') {
+    return `Remaining payment of ${installmentAmount} due on Day 28 (28 days after today).`
+  }
+  if (paymentPlan === '3pay') {
+    return `Remaining payments of ${installmentAmount} on Day 28 and ${installmentAmount} on Day 56 (every 28 days).`
+  }
+  return null
 }
 
 export default function OrderSummary({
@@ -82,22 +93,6 @@ export default function OrderSummary({
     paymentPlan === 'full' ? 'One-time payment' : paymentPlan === '2pay' ? '2 payments' : '3 payments'
   const planTypeLabel = planType === 'solo' ? 'Solo' : 'Household'
 
-  const { tokenGrant, storageQuota } = useMembershipTiers()
-
-  const intensiveTierType = TIER_TYPES.INTENSIVE
-  const intensiveTokens = tokenGrant(intensiveTierType)
-  const intensiveStorageGb = storageQuota(intensiveTierType) || 100
-
-  const membershipTierType = continuity === 'annual'
-    ? (planType === 'solo' ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
-    : (planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
-  const membershipTokenGrant = tokenGrant(membershipTierType)
-  const membershipStorageGb = storageQuota(membershipTierType)
-  const membershipTokenLabel =
-    continuity === 'annual'
-      ? `${formatTokensShort(membershipTokenGrant)} VIVA tokens per year`
-      : `${formatTokensShort(membershipTokenGrant)} VIVA tokens per 28 days`
-
   const todayChargeAmount =
     paymentPlan === 'full' ? total : (paymentPlan === '2pay' ? Math.round(total / 2) : Math.round(total / 3))
   const intensiveTotalAmount = total
@@ -105,6 +100,10 @@ export default function OrderSummary({
   const moneyStoryLine = isIntensive
     ? getMoneyStoryLine(todayChargeAmount, continuity, planType)
     : null
+  const installmentScheduleNote =
+    isIntensive && paymentPlan !== 'full'
+      ? getInstallmentScheduleNote(paymentPlan, formatDollars(todayChargeAmount))
+      : null
   const [mobileSummaryExpanded, setMobileSummaryExpanded] = useState(false)
 
   return (
@@ -135,7 +134,7 @@ export default function OrderSummary({
         <>
           <h2 className="text-xl font-bold text-white mb-1">Order + Renewal Summary</h2>
           <p className="text-lg font-semibold text-neutral-200 mb-1">
-            {isPremiumIntensive ? 'Activation Intensive + Premium Coaching' : 'Vision Activation Intensive'}
+            {isPremiumIntensive ? '72-Hour Vision Activation Intensive + Premium Coaching' : '72-Hour Vision Activation Intensive'}
           </p>
           <p className="text-sm text-neutral-400 mb-6">
             {planTypeLabel} – {paymentPlanLabel}
@@ -144,7 +143,7 @@ export default function OrderSummary({
           <ul className="space-y-3 mb-6">
             <li className="flex items-start gap-2 text-sm">
               <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
-              <span className="text-neutral-300">Full Activation Intensive experience</span>
+              <span className="text-neutral-300">Full 72-Hour Vision Activation Intensive experience</span>
             </li>
             {isPremiumIntensive && (
               <li className="flex items-start gap-2 text-sm">
@@ -154,16 +153,8 @@ export default function OrderSummary({
             )}
             <li className="flex items-start gap-2 text-sm">
               <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
-              <span className="text-neutral-300">{formatTokensShort(intensiveTokens)} VIVA tokens included</span>
-            </li>
-            <li className="flex items-start gap-2 text-sm">
-              <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
-              <span className="text-neutral-300">{intensiveStorageGb} GB Storage included</span>
-            </li>
-            <li className="flex items-start gap-2 text-sm">
-              <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
               <span className="text-neutral-300">
-                Vision Pro access for 8 weeks (no membership billing during this period)
+                First 28 days of Vision Pro included (no membership billing during this period)
               </span>
             </li>
             <li className="flex items-start gap-2 text-sm">
@@ -185,7 +176,7 @@ export default function OrderSummary({
           <div className="border-t border-[#333] pt-4 mb-4">
             <p className="text-sm font-semibold text-white mb-2 leading-snug">Today&apos;s charge</p>
             <p className="text-sm text-neutral-300 mb-1 leading-snug">
-              {isPremiumIntensive ? 'Activation Intensive + Premium Coaching' : 'Vision Activation Intensive'} – {planTypeLabel}
+              {isPremiumIntensive ? '72-Hour Vision Activation Intensive + Premium Coaching' : '72-Hour Vision Activation Intensive'} – {planTypeLabel}
             </p>
             {paymentPlan === 'full' ? (
               <p className="text-lg font-bold text-white leading-snug mb-2 py-0.5">{formatDollars(intensiveTotalAmount)}</p>
@@ -195,18 +186,21 @@ export default function OrderSummary({
                   1 of {paymentPlan === '2pay' ? '2' : '3'} payments: {formatDollars(todayChargeAmount)} today
                 </p>
                 <p className="text-sm text-neutral-500">Total Intensive investment: {formatDollars(intensiveTotalAmount)}</p>
+                {installmentScheduleNote && (
+                  <p className="text-sm text-neutral-500">{installmentScheduleNote}</p>
+                )}
               </div>
             )}
             <p className="text-xs text-neutral-500 mb-4">
-              Includes 8 weeks of Vision Pro (no membership charges during this period)
+              Includes first 28 days of Vision Pro (no membership charges during this period)
             </p>
 
             <p className="text-sm font-semibold text-white mb-2">Upcoming charges</p>
             <p className="text-sm text-neutral-300 mb-1">
-              <strong>Day 56:</strong> {getDay56UpcomingLabel(continuity, planType)}
+              <strong>Day 28:</strong> {getDay28UpcomingLabel(continuity, planType)}
             </p>
             <p className="text-xs text-neutral-500">
-              Change to Annual or cancel anytime before Day 56 in‑app. Covered by 16‑week Membership Guarantee.
+              Change to Annual or cancel anytime before Day 28 in‑app. Covered by 16‑week Membership Guarantee.
             </p>
           </div>
         </>

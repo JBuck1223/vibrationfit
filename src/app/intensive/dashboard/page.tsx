@@ -638,8 +638,8 @@ function IntensiveDashboardContent() {
       {
         id: 'alignment_gym_tour',
         stepNumber: 12,
-        title: 'Alignment Gym',
-        description: 'Take a guided tour of the weekly Alignment Gym sessions',
+        title: 'Alignment Gym Tour',
+        description: 'Take a guided tour of weekly Alignment Gym sessions (live sessions unlock at Graduation)',
         icon: Flame,
         phase: 'Community',
         completed: checklist.alignment_gym_toured,
@@ -666,8 +666,8 @@ function IntensiveDashboardContent() {
       {
         id: 'unlock',
         stepNumber: 14,
-        title: 'Full Platform Unlock',
-        description: 'Unlock the complete Vibration Fit platform',
+        title: 'Graduation',
+        description: 'Graduate into full Vision Pro member mode',
         icon: Unlock,
         phase: 'Completion',
         completed: checklist.unlock_completed || false,

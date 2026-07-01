@@ -29,6 +29,7 @@ import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-direct
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { formatDuration, isSessionJoinable } from '@/lib/video/types'
 import { createClient } from '@/lib/supabase/client'
+import { isAlignmentGymSessionsLocked } from '@/lib/intensive/alignment-gym-access'
 
 type SessionWithParticipants = VideoSession & {
   participants?: VideoSessionParticipant[]
@@ -106,6 +107,7 @@ export default function AlignmentGymSessionPage() {
 
   const [session, setSession] = useState<NullableSession>(null)
   const [userId, setUserId] = useState(null as string | null)
+  const [sessionsLocked, setSessionsLocked] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null as string | null)
   const [recapOpen, setRecapOpen] = useState(false)
@@ -156,8 +158,20 @@ export default function AlignmentGymSessionPage() {
   useEffect(() => {
     void createClient()
       .auth.getUser()
-      .then(({ data: { user } }) => setUserId(user?.id ?? null))
+      .then(async ({ data: { user } }) => {
+        setUserId(user?.id ?? null)
+        if (user) {
+          const supabase = createClient()
+          setSessionsLocked(await isAlignmentGymSessionsLocked(supabase, user.id))
+        }
+      })
   }, [])
+
+  useEffect(() => {
+    if (sessionsLocked) {
+      router.replace('/alignment-gym')
+    }
+  }, [sessionsLocked, router])
 
 
   if (loading) {

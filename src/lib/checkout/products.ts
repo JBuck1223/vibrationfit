@@ -80,7 +80,7 @@ function getIntensiveProduct(
           intensiveTokens > 0
             ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
             : 'VIVA tokens included',
-          `Vision Pro 28-Day starts billing Day 56`,
+          `Vision Pro 28-Day starts billing Day 28`,
           ...continuityFeatures.slice(0, 3),
         ]
       : [
@@ -89,7 +89,7 @@ function getIntensiveProduct(
           intensiveTokens > 0
             ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
             : 'VIVA tokens included',
-          `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
+          `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 28`,
           ...continuityFeatures.slice(0, 5),
         ],
     redirectAfterSuccess: '/intensive/dashboard',

@@ -15,8 +15,6 @@ import {
 import { toast } from 'sonner'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { GreenLineSection } from '@/components/GreenLineSection'
-import { formatTokensShort } from '@/lib/billing/config'
-import { useMembershipTiers, TIER_TYPES } from '@/hooks/useMembershipTiers'
 import {
   Stack,
   Inline,
@@ -85,7 +83,6 @@ export default function HomePage() {
   const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null)
   const [currentHash, setCurrentHash] = useState<string>('')
   const [promoCode, setPromoCode] = useState<string | null>(null)
-  const { byType, tokenGrant, storageQuota } = useMembershipTiers()
   const [referralSource, setReferralSource] = useState<string | null>(null)
   const [campaignName, setCampaignName] = useState<string | null>(null)
 
@@ -295,10 +292,6 @@ export default function HomePage() {
     return planType === 'solo' ? '99' : '149'
   }
   
-  const getVisionProAnnualPerCycle = () => {
-    return planType === 'solo' ? '76.85' : '115.31'
-  }
-  
   const getVisionProAnnualSavings = () => {
     return planType === 'solo' ? '22%' : '23%'
   }
@@ -307,18 +300,41 @@ export default function HomePage() {
     return planType === 'solo' ? '1 seat' : '2 seats included'
   }
 
-  const getVisionProTokensForPeriod = (period: 'annual' | '28day') => {
-    const tierType = period === 'annual'
-      ? (planType === 'solo' ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
-      : (planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
-    return tokenGrant(tierType)
+  const getDay28RenewalText = () => {
+    if (billingPeriod === 'annual') {
+      return `If you love it and do nothing, you'll renew at $${getVisionProAnnualPrice()}/year.`
+    }
+    return `If you love it and do nothing, you'll renew at $${getVisionProMonthlyPrice()} every 28 days.`
   }
 
-  const getVisionProStorageForPeriod = (period: 'annual' | '28day') => {
-    const tierType = period === 'annual'
-      ? (planType === 'solo' ? TIER_TYPES.ANNUAL : TIER_TYPES.HOUSEHOLD_ANNUAL)
-      : (planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)
-    return storageQuota(tierType)
+  const getDay28SwitchText = () => {
+    if (billingPeriod === 'annual') {
+      return `You can switch to Every 28 Days ($${getVisionProMonthlyPrice()}/28 days) or cancel any time before Day 28 in your account settings.`
+    }
+    return `You can switch to the Annual plan ($${getVisionProAnnualPrice()}/year) or cancel any time before Day 28 in your account settings.`
+  }
+
+  const getYoullGetRenewalMicrocopy = () => {
+    if (billingPeriod === 'annual') {
+      return `After your first 28 days included, Vision Pro continues at $${getVisionProAnnualPrice()}/year. Cancel anytime before Day 28 to avoid renewal, or switch to Every 28 Days ($${getVisionProMonthlyPrice()} every 28 days).`
+    }
+    return `After your first 28 days included, Vision Pro continues at $${getVisionProMonthlyPrice()} every 28 days. Cancel anytime before Day 28 to avoid renewal, or switch to annual ($${getVisionProAnnualPrice()}/year) and save.`
+  }
+
+  const getPromoDiscount = () => {
+    const total = planType === 'solo' ? 499 : 699
+    return (total - 1).toString()
+  }
+
+  const getInstallmentScheduleNote = (): string | null => {
+    const amount = `$${getPaymentAmount()}`
+    if (paymentPlan === '2pay') {
+      return `Remaining payment of ${amount} due on Day 28 (28 days after today).`
+    }
+    if (paymentPlan === '3pay') {
+      return `Remaining payments of ${amount} on Day 28 and ${amount} on Day 56 (every 28 days).`
+    }
+    return null
   }
 
   const handleIntensivePurchase = async () => {
@@ -424,7 +440,7 @@ export default function HomePage() {
                       <div className="flex flex-col items-center">
                         <Button variant="primary" size="xl" className="mt-1 md:mt-2" asChild>
                           <a href="#pricing">
-                            Start the Activation Intensive
+                            Start the 72-Hour Vision Activation Intensive
                           </a>
                         </Button>
 
@@ -450,7 +466,7 @@ export default function HomePage() {
 
                       {/* Price detail — separated from decision block */}
                       <Text size="xs" className="text-neutral-400 text-center mt-4">
-                        ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                        ${getIntensiveTotal()} today. First 28 days of Vision Pro included. Day 28: auto‑continue at your selected plan.
                       </Text>
                     </div>
                   </div>
@@ -535,17 +551,6 @@ export default function HomePage() {
           </Container>
         </section>
 
-        {/* Quote Block Section */}
-        <section>
-          <Container size="xl">
-            <div className="border-l-2 border-[#39FF14] bg-[#39FF14]/5 rounded-r-2xl p-6 md:p-8">
-              <Text size="lg" className="text-neutral-200 italic">
-                Vibrational fitness is your system for conscious creation—so 'thoughts become things' stops being random and starts being repeatable.
-              </Text>
-            </div>
-          </Container>
-        </section>
-
         {/* Social Proof - Videos + Screenshots */}
         <section>
           <Container size="xl">
@@ -608,7 +613,7 @@ export default function HomePage() {
                     What &quot;installed in 72 hours&quot; means
                 </Heading>
                   <Text size="sm" className="text-neutral-300 text-center mb-8 md:mb-10">
-                    The Activation Intensive is where we build and connect the parts of your Conscious Creation System so it&rsquo;s ready to run.
+                    The 72-Hour Vision Activation Intensive is where we build and connect the parts of your Conscious Creation System so it&rsquo;s ready to run.
                   </Text>
                   <div className="flex flex-col gap-4 items-start mx-auto text-left md:text-left">
                     <div className="flex items-center gap-3">
@@ -651,7 +656,7 @@ export default function HomePage() {
                   <div className="flex items-start gap-3 mt-4">
                     <Check className="w-4 h-4 flex-shrink-0 text-[#39FF14] mt-0.5" />
                     <Text size="sm" className="text-[#39FF14]/80 text-left italic">
-                      When all 14 guided steps are complete, you&apos;re fully activated: your MAP is running and the full platform unlocks.
+                      When all 14 guided steps are complete, you graduate into full Vision Pro member mode — your dashboard, advanced tools, and Alignment Gym live sessions turn on.
                     </Text>
                   </div>
                 </div>
@@ -665,7 +670,7 @@ export default function HomePage() {
                       </div>
                       <Heading level={4} className="text-white !mb-0">Creations (0–72h)</Heading>
                     </div>
-                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Complete your 72‑Hour Activation Intensive: profile + 12‑category Life Vision with VIVA, plus your first audios, board, journals, and My Alignment Plan.</Text>
+                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Complete your 72‑Hour Vision Activation Intensive: profile + 12‑category Life Vision with VIVA, plus your first audios, board, journals, and My Alignment Plan.</Text>
                   </div>
                   <div>
                     <div className="flex items-center gap-4 mb-2">
@@ -825,7 +830,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
                         <span className="text-xs font-mono text-neutral-600 w-4">12</span>
                         <Video className="w-3.5 h-3.5" />
-                        <span>Alignment Gym</span>
+                        <span>Alignment Gym Tour</span>
                       </div>
                     </div>
                   </div>
@@ -845,7 +850,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
                         <span className="text-xs font-mono text-neutral-600 w-4">14</span>
                         <Unlock className="w-3.5 h-3.5" />
-                        <span>Full Platform Unlock</span>
+                        <span>Graduation</span>
                       </div>
                     </div>
                   </div>
@@ -855,7 +860,7 @@ export default function HomePage() {
                 <div className="text-center">
                   <Button variant="primary" size="xl" asChild>
                     <a href="#pricing">
-                      Start the Activation Intensive
+                      Start the 72-Hour Vision Activation Intensive
                     </a>
                   </Button>
                 </div>
@@ -879,9 +884,9 @@ export default function HomePage() {
                     
                     {/* Header Section - PageHero style */}
                     <div className="text-center space-y-2">
-                      <Text size="xs" className="text-[#39FF14] uppercase tracking-wider font-semibold">72-Hour Activation Intensive</Text>
+                      <Text size="xs" className="text-[#39FF14] uppercase tracking-wider font-semibold">72-Hour Vision Activation Intensive</Text>
                       <Heading level={4} className="text-white">Your 14-Step Activation Path</Heading>
-                      <Text size="xs" className="text-neutral-400 max-w-md mx-auto">Follow each step in order. Complete all 14 to unlock the full platform.</Text>
+                      <Text size="xs" className="text-neutral-400 max-w-md mx-auto">Follow each step in order. Graduate at Step 14 to enter full Vision Pro member mode.</Text>
                       <div className="pt-2">
                         <span className="inline-flex items-center gap-2 bg-[#BF00FF]/20 border border-[#BF00FF]/30 rounded-full px-3 py-1 text-xs font-semibold text-[#BF00FF]">
                           Current Phase: Vision Creation · Step 4 of 14
@@ -1039,7 +1044,7 @@ export default function HomePage() {
                     {/* Completion Message */}
                     <div className="text-center bg-gradient-to-r from-[#39FF14]/5 to-[#14B8A6]/5 border border-[#39FF14]/20 rounded-xl p-3">
                       <Text size="xs" className="text-neutral-300">
-                        <strong className="text-[#39FF14]">Complete all 14 steps</strong> to unlock the full platform and your My Alignment Plan
+                        <strong className="text-[#39FF14]">Complete all 14 steps</strong> to graduate and enter your full Vision Pro member experience
                       </Text>
                     </div>
                   </div>
@@ -1048,7 +1053,7 @@ export default function HomePage() {
                   <div className="text-center">
                     <Button variant="primary" size="xl" asChild>
                       <a href="#pricing">
-                        Start the Activation Intensive
+                        Start the 72-Hour Vision Activation Intensive
                       </a>
                     </Button>
                   </div>
@@ -1125,22 +1130,19 @@ export default function HomePage() {
                     content: (
                       <Stack gap="md" className="text-left text-neutral-300 leading-relaxed">
                         <Text size="sm" className="text-justify">
-                          <span className="text-white font-semibold">😳 You can’t make this stuff up…</span>
+                          <span className="text-white font-semibold">You can&apos;t make this stuff up.</span> So here we are in Amalfi, sitting at dinner on Day 2 talking about how surreal it is that we&apos;re in Italy marking off another place from our vision board. Jordan pulls up the exact photo from our vision board and we wonder where it was taken. We knew it was somewhere along the Amalfi Coast, but little did we know when we got here that the Amalfi coast is actually 34 miles long and spans across many towns. Jordan asks our waiter if he knows where our vision board photo was taken and he says, &ldquo;That&apos;s Atrani. Only one minute north of Amalfi.&rdquo;
                         </Text>
                         <Text size="sm" className="text-justify">
-                          <span className="text-white font-semibold">🇮🇹</span> So here we are in Amalfi, sitting at dinner on Day 2 talking about how surreal it is that we’re in Italy marking off another place from our vision board. Jordan pulls up the exact photo from our vision board and we wonder where it was taken. We knew it was somewhere along the Amalfi Coast, but little did we know when we got here that the Amalfi coast is actually 34 miles long and spans across many towns. Jordan asks our waiter if he knows where our vision board photo was taken and he says, “That’s Atrani. Only one minute north of Amalfi.”
+                          It turned out that we had driven right through Atrani on our way to Ravello earlier that day—and that we were only staying about 12 minutes away the whole time!
                         </Text>
                         <Text size="sm" className="text-justify">
-                          <span className="text-white font-semibold">🚙</span> It turned out that we had driven right through Atrani on our way to Ravello earlier that day 😂 And that we were only staying about 12 minutes away the whole time!
+                          So on Day 3, a bright, beautiful, sunny day, we started the morning off by driving straight to Atrani to get our very own photo in the exact same location as the one we&apos;ve been staring at and dreaming about from our vision board for years!
                         </Text>
                         <Text size="sm" className="text-justify">
-                          <span className="text-white font-semibold">☀️</span> So on Day 3, a bright, beautiful, sunny day, we started the morning off by driving straight to Atrani to get our very own photo in the exact same location as the one we’ve been staring at and dreaming about from our vision board for years!
+                          The first photo is proof of us there; the second one is the photo from our vision board!
                         </Text>
                         <Text size="sm" className="text-justify">
-                          <span className="text-white font-semibold">😱</span> The first photo is proof of us there, the second one is the photo from our vision board!
-                        </Text>
-                        <Text size="sm" className="text-justify">
-                          <span className="text-white font-semibold">💫</span> This vision stuff truly works… we are constantly surprised and delighted by the Universe! We are across the world and somehow line up with the exact right places, people, and circumstances to experience the place we’ve had on our vision board for years. With no planning ahead of time… Now that’s manifestation at its best!
+                          This vision stuff truly works. We are constantly surprised and delighted by the Universe! We are across the world and somehow line up with the exact right places, people, and circumstances to experience the place we&apos;ve had on our vision board for years—with no planning ahead of time. That&apos;s conscious creation at its best.
                         </Text>
                       </Stack>
                     ),
@@ -1431,11 +1433,11 @@ export default function HomePage() {
                 <div className="text-center">
                   <Button variant="primary" size="xl" asChild>
                     <a href="#pricing">
-                      Start the Activation Intensive
+                      Start the 72-Hour Vision Activation Intensive
                     </a>
                   </Button>
                   <Text size="xs" className="text-neutral-400 text-center mt-2">
-                    ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                    ${getIntensiveTotal()} today. First 28 days of Vision Pro included. Day 28: auto‑continue at your selected plan.
                   </Text>
                 </div>
               </Stack>
@@ -1454,10 +1456,10 @@ export default function HomePage() {
                   </Heading>
                   <div className="max-w-2xl mx-auto text-center">
                     <Text size="lg" className="text-neutral-400">
-                      72‑Hour Activation Intensive + 8 weeks of Vision Pro included
+                      72‑Hour Vision Activation Intensive + first 28 days of Vision Pro included
                     </Text>
                     <Text size="sm" className="text-neutral-500 mt-1">
-                      (your plan auto‑starts Day 56)
+                      (your plan auto‑starts Day 28)
                     </Text>
                   </div>
                 </div>
@@ -1521,8 +1523,8 @@ export default function HomePage() {
                     },
                     {
                       id: 'community',
-                      title: 'Vibe Tribe & Alignment Gym (Steps 10–12)',
-                      description: 'What it is: Your first Vibe Tribe post, community engagement, and Alignment Gym tour.\nOutcome: Support unlocks as you move—connect with the tribe and experience weekly live coaching.\nDone when: You\'ve posted in Vibe Tribe, engaged with the community, and toured The Alignment Gym.',
+                      title: 'Vibe Tribe & Alignment Gym Tour (Steps 10–12)',
+                      description: 'What it is: Your first Vibe Tribe post, community engagement, and a guided Alignment Gym tour.\nOutcome: Start showing up in the community during your Intensive — post, engage, and preview weekly live coaching.\nDone when: You\'ve posted in Vibe Tribe, engaged with another member\'s post, and completed the Alignment Gym tour (live sessions unlock at Graduation).',
                       icon: Users,
                       included: true,
                       locked: true
@@ -1537,16 +1539,16 @@ export default function HomePage() {
                     },
                     {
                       id: 'full-unlock',
-                      title: 'Full Platform Unlock (Step 14)',
-                      description: 'What it is: Graduation moment—complete access to everything Vibration Fit offers.\nOutcome: Advanced Audio Suite unlocked, full platform access, and your conscious creation system live.\nDone when: All 14 steps are complete. You instantly unlock:\n  - Advanced Audio Suite: binaural beats, solfeggio layers, and frequency enhancements for your Vision Audio\n  - Unrestricted Vibe Tribe and Alignment Gym access\n  - Full Vision Pro platform—no more guided rails',
+                      title: 'Graduation (Step 14)',
+                      description: 'What it is: You graduate from Intensive mode into full Vision Pro member mode.\nOutcome: Your main dashboard, full navigation, advanced audio tools, and Alignment Gym live sessions + replays turn on — with stats, streaks, and MAP tracking.\nDone when: All 14 steps are complete. You instantly enter member mode with:\n  - Advanced Audio Suite: binaural beats, solfeggio layers, and frequency enhancements for your Vision Audio\n  - Full Vision Pro dashboard and navigation — no more guided rails\n  - Alignment Gym live sessions, replays, streaks, and MAP tracking\n  - Ongoing Vibe Tribe and Alignment Gym as a Vision Pro member',
                       icon: Unlock,
                       included: true,
                       locked: true
                     },
                     {
-                      id: '8-weeks-included',
-                      title: '8 Weeks of Vision Pro Included',
-                      description: 'What it is: Full access to VIVA and the platform while you activate and beyond.\nOutcome: Keep compounding after your 72‑Hour Activation before your plan starts.\nDone when: Your access is live now, and your selected plan is scheduled to begin automatically on Day 56 (Annual or Every 28 Days).',
+                      id: '28-days-included',
+                      title: 'First 28 Days of Vision Pro Included',
+                      description: 'What it is: Full access to VIVA and the platform while you activate and beyond.\nOutcome: Keep compounding after your 72‑Hour Activation before your plan starts.\nDone when: Your access is live now, and your selected plan is scheduled to begin automatically on Day 28 (Annual or Every 28 Days).',
                       icon: Crown,
                       included: true
                     }
@@ -1558,7 +1560,7 @@ export default function HomePage() {
                 <div className="text-center">
                   <Button variant="primary" size="xl" asChild>
                     <a href="#pricing">
-                      Start the Activation Intensive
+                      Start the 72-Hour Vision Activation Intensive
                     </a>
                   </Button>
                 </div>
@@ -1598,37 +1600,37 @@ export default function HomePage() {
                   </FeatureCard>
                   <FeatureCard 
                     icon={Image} 
-                    title={<><span>Layer 2</span><br /><span className="text-[#14B8A6]">Scene Builder</span></>}
+                    title={<><span>Layer 2</span><br /><span className="text-[#14B8A6]">Who / What / Where / Why</span></>}
                     iconColor="#14B8A6"
                     variant="outlined"
                     className="!bg-[#14B8A6]/10 !border-[#14B8A6]/30"
                   >
-                    Turn vague goals into vivid scenes. VIVA prompts for characters, action, setting, and meaning so your vision feels like a real experience.
+                    Turn vague desires into vivid scenes. VIVA prompts for who you are being, what you are doing, where you are, and why it matters so your vision feels like a real experience.
                   </FeatureCard>
                   <FeatureCard 
                     icon={RefreshCw} 
-                    title={<><span>Layer 3</span><br /><span className="text-[#BF00FF]">Flow Loops</span></>}
+                    title={<><span>Layer 3</span><br /><span className="text-[#BF00FF]">Being / Doing / Receiving</span></>}
                     iconColor="#BF00FF"
                     variant="outlined"
                     className="!bg-[#BF00FF]/10 !border-[#BF00FF]/30"
                   >
-                    Balance identity, action, and allowing so momentum compounds instead of stalling out.
+                    Balance identity, action, and evidence so momentum compounds instead of stalling out.
                   </FeatureCard>
                   <FeatureCard 
                     icon={Maximize2} 
-                    title={<><span>Layer 4</span><br /><span className="text-[#FFB701]">Breathing Pace</span></>}
+                    title={<><span>Layer 4</span><br /><span className="text-[#FFB701]">Micro–Macro Breathing</span></>}
                     iconColor="#FFB701"
                     variant="outlined"
                     className="!bg-[#FFB701]/10 !border-[#FFB701]/30"
                   >
-                    Zoom into sensory detail, zoom out to meaning—writing that feels alive (and sticks).
+                    Zoom into sensory detail, zoom out to meaning—paragraph rhythm that feels alive (and sticks).
                   </FeatureCard>
                 </Grid>
                 <Text size="base" className="text-neutral-300 text-center w-full">
                   This is why your vision paragraphs feel vivid and emotionally charged instead of like vague affirmations.
                 </Text>
                 <Button variant="primary" size="lg" asChild>
-                  <a href="#pricing">Start the Activation Intensive</a>
+                  <a href="#pricing">Start the 72-Hour Vision Activation Intensive</a>
                 </Button>
               </Stack>
             </div>
@@ -1668,10 +1670,10 @@ export default function HomePage() {
                       </p>
                     </div>
                       <Text size="sm" className="md:text-base text-white text-center">
-                      Complete your Activation Checklist in 72 hours. Not satisfied? Full refund of your ${getIntensiveTotal()} Intensive fee. No questions asked.
+                      Complete all 14 guided Activation Intensive steps in 72 hours. Not satisfied? Full refund of your ${getIntensiveTotal()} Intensive fee. No questions asked.
                     </Text>
                       <Text size="xs" className="md:text-sm text-neutral-300 text-center">
-                      Completion = all 14 guided steps done within 72 hours:<br />Account Settings &amp; Baseline Intake, Profile complete, 12‑category Life Vision built (with VIVA), Vision Audio &amp; Mix ready, Vision Board built (12 images), 1 journal entry logged, Vibe Tribe post + community engagement, Alignment Gym tour complete, MAP activated
+                      Completion = all 14 guided Activation Intensive steps done within 72 hours:<br />Account Settings &amp; Baseline Intake, Profile complete, 12‑category Life Vision built (with VIVA), Vision Audio &amp; Mix ready, Vision Board built (12 images), 1 journal entry logged, Vibe Tribe post + community engagement, Alignment Gym tour complete, MAP activated
                     </Text>
                   </Stack>
                   </Card>
@@ -1703,7 +1705,7 @@ export default function HomePage() {
                       </div>
                       <div className="text-xs md:text-sm text-neutral-300 text-center space-y-2">
                         <p className="font-semibold">Not satisfied within your 16‑week window?</p>
-                        <p>If your plan <strong className="font-semibold">hasn't billed yet</strong> (first charge is Day 56), we cancel the upcoming charge and end your membership at the end of the current paid period.</p>
+                        <p>If your plan <strong className="font-semibold">hasn't billed yet</strong> (first charge is Day 28), we cancel the upcoming charge and end your membership at the end of the current paid period.</p>
                         <p>If it <strong className="font-semibold">has billed</strong> inside your 16-week window, we refund that charge and cancel all future renewals.</p>
                       </div>
                 </Stack>
@@ -1770,11 +1772,11 @@ export default function HomePage() {
                   </Heading>
                   <div className="w-full h-px bg-gradient-to-r from-[#39FF14]/0 via-[#39FF14]/60 to-[#39FF14]/0 mx-auto mb-6 md:mb-8"></div>
                   <Heading level={3} className="mb-3 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
-                      Vision Activation Intensive
+                      72-Hour Vision Activation Intensive
                   </Heading>
                   <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-gradient-to-r from-[#BF00FF]/20 to-[#8B5CF6]/20 text-[#BF00FF] border-[#BF00FF]/30 mb-4">
                       <Clock className="w-4 h-4 inline mr-2" />
-                      72-Hour Activation
+                      Complete in 72 hours
                   </span>
                   <Text size="xl" className="text-neutral-300 max-w-3xl mx-auto">
                     Go from blank slate to fully activated in 72 hours. Vision drafted, board built, audios recorded, conscious creation system live.
@@ -1782,87 +1784,103 @@ export default function HomePage() {
                   </div>
 
                 {/* MAIN PRICING CONTENT */}
-                <Stack align="center" gap="lg">
+                <Stack align="center" gap="md">
                     
                     {/* DYNAMIC PRICE */}
                     <div className="text-center">
                       {promoCode ? (
-                        <div className="flex flex-col items-center gap-2 mb-4">
+                        <div className="flex flex-col items-center gap-2 mb-2">
                           <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-neutral-500 line-through opacity-50">
                             ${getIntensiveTotal()}
                           </div>
                           <div className="text-5xl md:text-7xl lg:text-9xl font-bold text-[#39FF14]">
                             $1
                           </div>
+                          <div className="text-xl text-white text-center">
+                            ${getPromoDiscount()} Off - Pay $1 to Verify Payment Method
+                          </div>
                         </div>
                       ) : (
-                        <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14] mb-4">
-                          ${getPaymentAmount()}
+                        <div className="flex flex-col items-center gap-1 mb-2">
+                          <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14]">
+                            ${getPaymentAmount()}
+                          </div>
+                          {paymentPlan !== 'full' && (
+                            <div className="text-xl text-white text-center">
+                              {paymentPlan === '2pay' ? `× 2 Payments = $${getIntensiveTotal()}` : `× 3 Payments = $${getIntensiveTotal()}`}
+                            </div>
+                          )}
                         </div>
                       )}
-                      <div className="text-xl text-white mb-2 text-center">
-                        {promoCode 
-                          ? '$498 Off - Pay $1 to Verify Payment Method' 
-                          : paymentPlan === 'full' ? 'Today' : paymentPlan === '2pay' ? `× 2 Payments = $${getIntensiveTotal()}` : `× 3 Payments = $${getIntensiveTotal()}`
-                        }
-                      </div>
-                      <Card className="mt-8 md:mt-10 bg-[#1F1F1F]/80 border-2 border-[#39FF14]/30 rounded-xl p-4 md:p-5 w-full max-w-sm mx-auto">
-                        <div className="text-center">
-                          <p className="text-base font-semibold text-white mb-3">Includes:</p>
-                          <ul className="flex flex-col items-center gap-2 text-neutral-300 text-sm">
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
-                              <span>8 weeks of Vision Pro access</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
-                              <span>{formatTokensShort(tokenGrant(TIER_TYPES.INTENSIVE))} VIVA Tokens</span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />
-                              <span>{storageQuota(planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)} GB Storage</span>
-                            </li>
-                          </ul>
+
+                      {/* PAYMENT OPTIONS */}
+                      <Stack align="center" gap="sm" className="mt-3 md:mt-4 mb-3 md:mb-4">
+                        <h3 className="text-lg font-bold text-white">Payment Options</h3>
+                        <div className="flex flex-row gap-2 justify-center flex-wrap">
+                          <Button
+                            variant={paymentPlan === 'full' ? 'primary' : 'outline'}
+                            size="md"
+                            className="px-2 py-2 text-xs flex-shrink-0"
+                            onClick={() => setPaymentPlan('full')}
+                          >
+                            Pay in Full
+                          </Button>
+                          <Button
+                            variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
+                            size="md"
+                            className="px-2 py-2 text-xs flex-shrink-0"
+                            onClick={() => setPaymentPlan('2pay')}
+                          >
+                            2 Payments
+                          </Button>
+                          <Button
+                            variant={paymentPlan === '3pay' ? 'primary' : 'outline'}
+                            size="md"
+                            className="px-2 py-2 text-xs flex-shrink-0"
+                            onClick={() => setPaymentPlan('3pay')}
+                          >
+                            3 Payments
+                          </Button>
+                        </div>
+                      </Stack>
+
+                      <Card className="bg-[#1F1F1F]/80 border-2 border-[#39FF14]/30 rounded-xl p-3 md:p-4 w-full max-w-2xl mx-auto">
+                        <div>
+                          <div className="flex items-center justify-center gap-2 md:gap-3 mb-3">
+                            <div className="h-px flex-1 max-w-12 md:max-w-16 bg-gradient-to-r from-transparent to-[#39FF14]/50" />
+                            <p className="text-sm md:text-base font-bold uppercase tracking-[0.18em] bg-gradient-to-r from-[#39FF14] via-[#00FFFF] to-[#39FF14] bg-clip-text text-transparent">
+                              You&apos;ll Get
+                            </p>
+                            <div className="h-px flex-1 max-w-12 md:max-w-16 bg-gradient-to-l from-transparent to-[#39FF14]/50" />
+                          </div>
+                          <div className="flex flex-col gap-2.5 text-left">
+                            <div className="flex items-start gap-3">
+                              <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-white font-medium text-sm">72-Hour Vision Activation Intensive</p>
+                                <p className="text-neutral-400 text-xs mt-0.5">14 guided steps with VIVA to design and lock in your new life vision.</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                              <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-white font-medium text-sm">First 28 days of Vision Pro included</p>
+                                <p className="text-neutral-400 text-xs mt-0.5">Full access to all practices, tools, and community.</p>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="mt-3 pt-3 border-t border-[#39FF14]/20 text-xs text-neutral-500 text-center leading-relaxed">
+                            {getYoullGetRenewalMicrocopy()}
+                          </p>
                         </div>
                       </Card>
                     </div>
-
-                    {/* PAYMENT OPTIONS INSIDE CARD */}
-                    <Stack align="center" gap="md">
-                      <h3 className="text-lg font-bold text-white">Payment Options</h3>
-                      <div className="flex flex-row gap-2 justify-center flex-wrap">
-                        <Button
-                          variant={paymentPlan === 'full' ? 'primary' : 'outline'}
-                          size="md"
-                          className="px-2 py-2 text-xs flex-shrink-0"
-                          onClick={() => setPaymentPlan('full')}
-                        >
-                          Pay in Full
-                        </Button>
-                        <Button
-                          variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
-                          size="md"
-                          className="px-2 py-2 text-xs flex-shrink-0"
-                          onClick={() => setPaymentPlan('2pay')}
-                        >
-                          2 Payments
-                        </Button>
-                        <Button
-                          variant={paymentPlan === '3pay' ? 'primary' : 'outline'}
-                          size="md"
-                          className="px-2 py-2 text-xs flex-shrink-0"
-                          onClick={() => setPaymentPlan('3pay')}
-                        >
-                          3 Payments
-                        </Button>
-                      </div>
-                    </Stack>
 
                     {/* SEPARATOR */}
                     <div className="w-full h-px bg-neutral-600"></div>
 
                     <Text size="lg" className="text-neutral-300 text-center max-w-2xl">
-                      Then choose how your Vision Pro membership continues after your 8 free weeks. Cancel anytime before Day 56 to avoid renewal.
+                      Choose how your Vision Pro membership continues after your first 28 days included.
                     </Text>
 
                     {/* Billing Toggle */}
@@ -1888,7 +1906,7 @@ export default function HomePage() {
                         <span className="flex items-center gap-2">
                           Annual
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFB701] text-black shadow-md">
-                            Save 22%
+                            Save {getVisionProAnnualSavings()}
                           </span>
                         </span>
                       </button>
@@ -1916,38 +1934,32 @@ export default function HomePage() {
                       <div className="text-center mb-8">
                         <Crown className="w-12 h-12 text-[#00FFFF] mx-auto mb-4" />
                         <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
-                        <Text size="base" className="text-neutral-400 mb-6">Full year, full power • {getPlanSeatsText()}</Text>
+                        <Text size="base" className="text-neutral-400 mb-6">Committed creator • {getPlanSeatsText()}</Text>
                         
                         <div className="inline-flex items-baseline gap-2 mb-2">
                               <span className="text-5xl font-bold text-white">${getVisionProAnnualPrice()}</span>
                               <span className="text-xl text-neutral-400">/year</span>
                         </div>
-                        <div className="text-neutral-500 text-sm mb-1">
-                              ${getVisionProAnnualPerCycle()}/28 days, billed annually
+                        <div className="text-[#00FFFF] text-sm font-semibold mb-1">
+                              2 months free
                         </div>
-                        <div className="text-[#00FFFF] text-sm font-semibold">
+                        <div className="text-neutral-500 text-sm">
                               Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()} every 28 days
                         </div>
                       </div>
 
                       <div className="space-y-3 mb-8">
                         {[
-                              'Platform access: Life Vision Builder (12 categories) with VIVA AI, Vision Boards + Vision Audio, Journal, Community, Library, Progress tracking',
-                              `Capacity: ${formatTokensShort(getVisionProTokensForPeriod('annual'))} VIVA tokens/year + ${getVisionProStorageForPeriod('annual')}GB storage; tokens reset at renewal`,
-                              'Priority response queue',
-                              '4 bonus calibration check‑ins per year',
-                              '16‑week satisfaction guarantee from today',
-                              '12‑month rate lock',
+                              'Full platform access',
+                              'Alignment Gym group coaching (1 hour / week)',
+                              'Protected by our 16‑week satisfaction guarantee',
+                              '12‑month rate lock (best value)',
                         ].map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
                             <Check className="w-5 h-5 text-[#00FFFF] flex-shrink-0 mt-0.5" />
                             <span className="text-neutral-200 text-sm">{feature}</span>
                           </div>
                         ))}
-                      </div>
-
-                      <div className="text-xs text-neutral-500 text-center mb-4">
-                        Tokens reset annually at renewal
                       </div>
                     </Card>
                       )}
@@ -1986,21 +1998,16 @@ export default function HomePage() {
 
                       <div className="space-y-3 mb-8">
                         {[
-                              'Platform access: same as Annual',
-                              `Capacity: ${formatTokensShort(getVisionProTokensForPeriod('28day'))} VIVA tokens per 28 days + ${getVisionProStorageForPeriod('28day')}GB storage; unused tokens roll over (max ${byType(planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)?.rollover_max_cycles ?? 3} cycles)`,
-                              'Standard support queue',
-                              '16‑week satisfaction guarantee from today',
-                              'Flexible — cancel any cycle',
+                              'Full platform access',
+                              'Alignment Gym group coaching (1 hour / week)',
+                              'Protected by our 16‑week satisfaction guarantee',
+                              'Flexible: cancel any 28‑day cycle',
                         ].map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
                             <Check className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
                             <span className="text-neutral-200 text-sm">{feature}</span>
                           </div>
                         ))}
-                      </div>
-
-                      <div className="text-xs text-neutral-500 text-center mb-4">
-                        Unused tokens roll over (max 3 cycles)
                       </div>
                     </Card>
                       )}
@@ -2022,38 +2029,32 @@ export default function HomePage() {
                           <div className="text-center mb-8">
                             <Crown className="w-12 h-12 text-[#00FFFF] mx-auto mb-4" />
                             <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Annual</h3>
-                            <Text size="base" className="text-neutral-400 mb-6">Full year, full power • {getPlanSeatsText()}</Text>
+                            <Text size="base" className="text-neutral-400 mb-6">Committed creator • {getPlanSeatsText()}</Text>
                             
                             <div className="inline-flex items-baseline gap-2 mb-2">
                               <span className="text-5xl font-bold text-white">${getVisionProAnnualPrice()}</span>
                               <span className="text-xl text-neutral-400">/year</span>
                             </div>
-                            <div className="text-neutral-500 text-sm mb-1">
-                              ${getVisionProAnnualPerCycle()}/28 days, billed annually
+                            <div className="text-[#00FFFF] text-sm font-semibold mb-1">
+                              2 months free
                             </div>
-                            <div className="text-[#00FFFF] text-sm font-semibold">
+                            <div className="text-neutral-500 text-sm">
                               Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()} every 28 days
             </div>
           </div>
 
                           <div className="space-y-3 mb-8">
                             {[
-                              'Platform access: Life Vision Builder (12 categories) with VIVA AI, Vision Boards + Vision Audio, Journal, Community, Library, Progress tracking',
-                              `Capacity: ${formatTokensShort(getVisionProTokensForPeriod('annual'))} VIVA tokens/year + ${getVisionProStorageForPeriod('annual')}GB storage; tokens reset at renewal`,
-                              'Priority response queue',
-                              '4 bonus calibration check‑ins per year',
-                              '16‑week satisfaction guarantee from today',
-                              '12‑month rate lock',
+                              'Full platform access',
+                              'Alignment Gym group coaching (1 hour / week)',
+                              'Protected by our 16‑week satisfaction guarantee',
+                              '12‑month rate lock (best value)',
                             ].map((feature, idx) => (
                               <div key={idx} className="flex items-start gap-3">
                                 <Check className="w-5 h-5 text-[#00FFFF] flex-shrink-0 mt-0.5" />
                                 <span className="text-neutral-200 text-sm">{feature}</span>
                               </div>
                             ))}
-                          </div>
-
-                          <div className="text-xs text-neutral-500 text-center mb-4">
-                            Tokens reset annually at renewal
                           </div>
                         </Card>
                       )}
@@ -2089,21 +2090,16 @@ export default function HomePage() {
 
                           <div className="space-y-3 mb-8">
                             {[
-                              'Platform access: same as Annual',
-                              `Capacity: ${formatTokensShort(getVisionProTokensForPeriod('28day'))} VIVA tokens per 28 days + ${getVisionProStorageForPeriod('28day')}GB storage; unused tokens roll over (max ${byType(planType === 'solo' ? TIER_TYPES.MONTHLY_28DAY : TIER_TYPES.HOUSEHOLD_28DAY)?.rollover_max_cycles ?? 3} cycles)`,
-                              'Standard support queue',
-                              '16‑week satisfaction guarantee from today',
-                              'Flexible — cancel any cycle',
+                              'Full platform access',
+                              'Alignment Gym group coaching (1 hour / week)',
+                              'Protected by our 16‑week satisfaction guarantee',
+                              'Flexible: cancel any 28‑day cycle',
                             ].map((feature, idx) => (
                               <div key={idx} className="flex items-start gap-3">
                                 <Check className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
                                 <span className="text-neutral-200 text-sm">{feature}</span>
                               </div>
                             ))}
-                          </div>
-
-                          <div className="text-xs text-neutral-500 text-center mb-4">
-                            Unused tokens roll over (max 3 cycles)
                           </div>
                         </Card>
                       )}
@@ -2112,53 +2108,49 @@ export default function HomePage() {
                     {/* RENEWAL TERMS & ORDER SUMMARY COMBINED */}
                     <Card className="bg-[#1F1F1F]/50 border-[#39FF14]/30 w-full max-w-5xl mx-auto">
                       <Stack gap="md" className="md:gap-8">
-                        <Heading level={4} className="text-[#39FF14] text-center">Order Summary & Renewal Terms</Heading>
+                        <Heading level={4} className="text-[#39FF14] text-center">Order Summary &amp; Renewal Terms</Heading>
                         
                         {/* Order Summary */}
                         <Stack gap="sm" align="center">
                           {promoCode && (
                             <Badge variant="premium" className="mb-2">
-                              🎉 {promoCode.toUpperCase()} Applied - $498 Off!
+                              {promoCode.toUpperCase()} Applied - ${getPromoDiscount()} Off!
                             </Badge>
                           )}
-                          <div className="text-white text-center text-sm md:text-base">
-                            {promoCode ? (
-                              // $1 payment verification with promo code
-                              <><strong>Today:</strong> <span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Intensive + 8 weeks included.</>
-                            ) : paymentPlan === 'full' ? (
-                              <><strong>Today:</strong> ${getIntensiveTotal()} for the 72‑Hour Intensive + 8 weeks included.</>
-                            ) : paymentPlan === '2pay' ? (
-                              <>
-                                <strong>Today:</strong> ${getPaymentAmount()} for the 72‑Hour Intensive + 8 weeks included.<br />
-                                <strong>In 4 weeks:</strong> ${getPaymentAmount()} (final payment)
-                              </>
-                            ) : (
-                              <>
-                                <strong>Today:</strong> ${getPaymentAmount()} for the 72‑Hour Intensive + 8 weeks included.<br />
-                                <strong>In 4 weeks:</strong> ${getPaymentAmount()}<br />
-                                <strong>In 8 weeks:</strong> ${getPaymentAmount()} (final payment)
-                              </>
+                          <div className="text-white text-center text-sm md:text-base space-y-2">
+                            <p>
+                              <strong>Today:</strong>{' '}
+                              {promoCode
+                                ? <><span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
+                                : paymentPlan === 'full'
+                                  ? <>${getIntensiveTotal()} for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
+                                  : paymentPlan === '2pay'
+                                    ? <>${getPaymentAmount()} (first of 2 payments) for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
+                                    : <>${getPaymentAmount()} (first of 3 payments) for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
+                              }
+                            </p>
+                            {getInstallmentScheduleNote() && (
+                              <p className="text-neutral-400 text-sm">
+                                {getInstallmentScheduleNote()}
+                              </p>
                             )}
                           </div>
                           <p className="text-neutral-400 text-xs text-center">
                             <Shield className="w-3 h-3 text-[#FFFF00] inline-block align-middle -mt-[2px] mr-1" aria-hidden />
                             72‑Hour Activation Guarantee
                           </p>
-                          <div className="text-white text-center text-sm md:text-base">
-                            <strong>Day 56:</strong> {billingPeriod === 'annual' 
-                              ? '$999 Payment (=$76.85/28 days). Renews annually.'
-                              : '$99 Payment. Renews every 28 days.'
-                            }
+                          <div className="text-white text-center text-sm md:text-base space-y-2">
+                            <p>
+                              <strong>Day 28:</strong>{' '}{getDay28RenewalText()}
+                            </p>
+                            <p className="text-neutral-400 text-sm">
+                              {getDay28SwitchText()}
+                            </p>
                           </div>
                           <p className="text-neutral-400 text-xs text-center">
                             <Shield className="w-3 h-3 text-[#FFFF00] inline-block align-middle -mt-[2px] mr-1" aria-hidden />
                             16‑week Membership Satisfaction Guarantee from today.
                           </p>
-                          <div className="flex justify-center text-center">
-                            <div className="text-white text-sm md:text-base max-w-[min(100%,20rem)] mx-auto">
-                              <strong>You can switch or cancel any time before Day 56.</strong>
-                            </div>
-                          </div>
                         </Stack>
 
                         {/* CTA BUTTON */}
@@ -2169,7 +2161,7 @@ export default function HomePage() {
                         onClick={handleIntensivePurchase}
                         disabled={isLoading}
                       >
-                        {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start Activation Intensive' : 'Start the Activation Intensive'}
+                        {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start 72-Hour Vision Activation Intensive' : 'Start the 72-Hour Vision Activation Intensive'}
                       </Button>
                       <p className="flex items-center justify-center gap-2 text-xs text-[#39FF14] text-center mt-2">
                         <ShoppingCart className="w-3.5 h-3.5" />
@@ -2216,16 +2208,16 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">When does billing start?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">${getIntensiveTotal()} today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.</p>
+                              <p className="text-neutral-300 text-sm">${getIntensiveTotal()} today for the Intensive + first 28 days of Vision Pro included. Day 28 your selected plan begins automatically.</p>
                             </div>
                           </div>
                           <div>
                             <div className="flex items-start gap-2 mb-2">
                               <span className="text-[#39FF14] text-sm mt-0.5">•</span>
-                              <h5 className="text-white font-semibold">Can I switch or cancel my membership before Day 56?</h5>
+                              <h5 className="text-white font-semibold">Can I switch or cancel my membership before Day 28?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">Yes—1‑click switch/cancel anytime before Day 56.</p>
+                              <p className="text-neutral-300 text-sm">Yes—1‑click switch/cancel anytime before Day 28.</p>
                             </div>
                           </div>
                           <div>
@@ -2261,7 +2253,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">What if I don't know what I want?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">VIVA AI turns contrast into clarity and drafts your 12‑category Life Vision for you.</p>
+                              <p className="text-neutral-300 text-sm">VIVA turns contrast into clarity and drafts your 12‑category Life Vision for you.</p>
                             </div>
                           </div>
                         </Stack>
@@ -2275,7 +2267,7 @@ export default function HomePage() {
                           <div>
                             <Button variant="primary" size="xl" asChild>
                               <a href="#pricing">
-                                Start the Activation Intensive
+                                Start the 72-Hour Vision Activation Intensive
                               </a>
                           </Button>
                           </div>
@@ -2333,7 +2325,7 @@ export default function HomePage() {
                       <Text size="base" className="text-neutral-300 font-semibold">The Conscious Creation System</Text>
                       <Text size="lg" className="text-[#39FF14] font-bold">Creations → Activations → Connections → Sessions</Text>
                       <Text size="xs" className="text-neutral-500">These are the 4 Parts of your Conscious Creation System.</Text>
-                      <Text size="base" className="text-neutral-300">turns scattered signals into a dominant point of attraction.</Text>
+                      <Text size="base" className="text-neutral-300">It turns scattered signals into a dominant point of attraction.</Text>
                     </div>
                     <Text size="sm" className="text-neutral-300 text-center">
                       <strong className="text-[#39FF14]">Cost of chaos:</strong> weeks pass, assets = 0.<br />
@@ -2348,7 +2340,7 @@ export default function HomePage() {
                     </Text>
                     <Button variant="primary" size="lg" asChild>
                       <a href="#pricing">
-                        Start the Activation Intensive
+                        Start the 72-Hour Vision Activation Intensive
                       </a>
                     </Button>
                   </div>
@@ -2477,7 +2469,7 @@ export default function HomePage() {
                 <div className="text-center">
                   <Button variant="primary" size="lg" asChild>
                     <a href="#pricing">
-                      Start the Activation Intensive
+                      Start the 72-Hour Vision Activation Intensive
                     </a>
                   </Button>
                 </div>
@@ -2546,11 +2538,11 @@ export default function HomePage() {
                 <div className="w-full max-w-xl">
                   <Button variant="primary" size="xl" className="w-full" asChild>
                     <a href="#pricing">
-                      Start the Activation Intensive
+                      Start the 72-Hour Vision Activation Intensive
                     </a>
                   </Button>
                   <Text size="xs" className="text-neutral-400 text-center mt-2">
-                    ${getIntensiveTotal()} today. Includes 8 weeks of Vision Pro. Day 56: auto‑continue at your selected plan.
+                    ${getIntensiveTotal()} today. First 28 days of Vision Pro included. Day 28: auto‑continue at your selected plan.
                   </Text>
                   <div className="flex flex-col items-center justify-center gap-3 text-xs uppercase tracking-wide text-neutral-400 mt-4">
                     <div className="flex items-center gap-2">
@@ -2591,12 +2583,12 @@ export default function HomePage() {
                 {
                   id: 'religious',
                   title: 'Is this religious?',
-                  description: 'No doctrine. No beliefs to adopt. It\'s a practical system with tools and habits. We measure observable outputs (vision built, audio generated, board created, journals logged, call completed) and track your progress over time.'
+                  description: 'No doctrine. No beliefs to adopt. It\'s a practical system with tools and habits. We measure observable outputs (vision built, audio generated, board created, journals logged, Alignment Gym tour complete) and track your progress over time.'
                 },
                 {
                   id: 'how-fast',
                   title: 'How fast is "fast"?',
-                  description: '"Active" in 72 hours means completing all 14 guided steps: Account Settings & Baseline Intake, Profile complete, 12-category Life Vision built (with VIVA), Vision Audio & Mix ready (voice recording optional), Vision Board built (12 images), 1 journal entry logged, Vibe Tribe post + community engagement, Alignment Gym tour complete, and MAP activated—with the full platform unlocked at graduation.'
+                  description: '"Active" in 72 hours means completing all 14 guided Activation Intensive steps: Account Settings & Baseline Intake, Profile complete, 12-category Life Vision built (with VIVA), Vision Audio & Mix ready (voice recording optional), Vision Board built (12 images), 1 journal entry logged, Vibe Tribe post + community engagement, Alignment Gym tour complete, and MAP activated—with the full platform unlocked at graduation.'
                 },
                 {
                   id: 'tried-loa',
@@ -2606,12 +2598,12 @@ export default function HomePage() {
                 {
                   id: 'dont-know',
                   title: 'What if I don\'t know what I want?',
-                  description: 'VIVA AI turns contrast into clarity and drafts your 12‑category Life Vision with you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
+                  description: 'VIVA turns contrast into clarity and drafts your 12‑category Life Vision with you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
                 },
                 {
                   id: 'doesnt-work',
                   title: 'What if it doesn\'t work for me?',
-                  description: 'You have two layers of protection: a 72‑Hour Activation Guarantee (complete your Activation Checklist in 72 hours; if you\'re not satisfied, you get a full refund of your Intensive fee) and a Membership Satisfaction Guarantee (16 weeks from your checkout date, no matter which plan you choose).'
+                  description: 'You have two layers of protection: a 72‑Hour Activation Guarantee (complete all 14 guided Activation Intensive steps in 72 hours; if you\'re not satisfied, you get a full refund of your Intensive fee) and a Membership Satisfaction Guarantee (16 weeks from your checkout date, no matter which plan you choose).'
                 },
                 {
                   id: 'guarantee-start',
@@ -2637,7 +2629,7 @@ export default function HomePage() {
                           <li>
                             Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Every 28 Days or Annual).
                             <br /><br />
-                            If your next plan charge hasn't billed yet (first charge is Day 56), we cancel the upcoming charge and end your membership at the end of the current paid period.
+                            If your next plan charge hasn't billed yet (first charge is Day 28), we cancel the upcoming charge and end your membership at the end of the current paid period.
                             <br />
                             If a plan charge occurred within your 16‑week window, we refund that charge in full and cancel all future renewals.
                           </li>
@@ -2673,7 +2665,7 @@ export default function HomePage() {
                 {
                   id: 'billing-start',
                   title: 'When does billing start?',
-                  description: `$${getIntensiveTotal()} today for the Intensive + 8 weeks included. Day 56 your selected plan begins automatically.`
+                  description: `$${getIntensiveTotal()} today for the Intensive + first 28 days of Vision Pro included. Day 28 your selected plan begins automatically.`
                 },
                 {
                   id: 'what-is-conscious-creation-system',
@@ -2699,7 +2691,7 @@ export default function HomePage() {
                 {
                   id: 'switch-cancel',
                   title: 'Can I switch or cancel before billing starts?',
-                  description: 'Yes—1‑click switch/cancel anytime before Day 56.'
+                  description: 'Yes—1‑click switch/cancel anytime before Day 28.'
                 },
                 {
                   id: 'change-plans',
@@ -2710,16 +2702,16 @@ export default function HomePage() {
                         <span className="font-semibold text-[#39FF14]">Short answer:</span> Yes. You can switch plans. Here's exactly how it works and why we do it this way.
                       </p>
                       <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Before your first plan charge (Day 56)</p>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Before your first plan charge (Day 28)</p>
                         <p>
-                          You can switch from Annual to Every 28 Days or vice-versa in one click. Your selection updates instantly; the first charge still occurs on Day 56 at the new plan.
+                          You can switch from Annual to Every 28 Days or vice-versa in one click. Your selection updates instantly; the first charge still occurs on Day 28 at the new plan.
                         </p>
                       </div>
                       <div className="space-y-2">
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">After billing starts (Day 56 and beyond)</p>
+                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">After billing starts (Day 28 and beyond)</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1">
                           <li>
-                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Want to lock in the Annual savings immediately and get access to more tokens and storage? Start your Annual plan today and we'll credit any unused time from your current 28‑day cycle toward your Annual payment. No penalties or extra fees.
+                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Want to lock in the Annual savings immediately? Start your Annual plan today and we'll credit any unused time from your current 28‑day cycle toward your Annual payment. No penalties or extra fees.
                           </li>
                           <li>
                             <span className="font-semibold text-white">Annual → Every 28 Days:</span> Switch effective at your annual renewal. Annual prepay is not split into partial refunds; you keep access through your paid year, then move to 28-day.
@@ -2753,7 +2745,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to switch</p>
                         <p className="text-sm text-neutral-300">
-                          When logged in, under "Account" &gt; <a href="/account/billing" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">"Billing"</a>, choose your desired plan change. If you're pre-Day 56, your first charge will run on Day 56 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
+                          When logged in, under "Account" &gt; <a href="/account/billing" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">"Billing"</a>, choose your desired plan change. If you're pre-Day 28, your first charge will run on Day 28 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
                         </p>
                       </div>
                       <div className="space-y-1">
@@ -2781,7 +2773,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The 5-Phase Conscious Creation Flow</p>
                         <p>
-                          The energetic rhythm of every paragraph. Each section naturally moves from Gratitude → Sensory Detail → Embodiment → Essence → Allowing.
+                          The energetic rhythm of every paragraph. Each section naturally moves from Gratitude → Sensory Detail → Embodiment → Essence → Surrender.
                         </p>
                       </div>
                       <div>
@@ -2805,23 +2797,6 @@ export default function HomePage() {
                       <p>
                         Together, these four layers turn your writing into a vibrational practice—helping you not just describe your dream life, but tune to it until it becomes your reality.
                       </p>
-                    </div>
-                  )
-                },
-                {
-                  id: 'tokens-storage',
-                  title: 'How do tokens and storage work?',
-                  description: (
-                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Annual token & storage capacity</p>
-                        <p>{formatTokensShort(tokenGrant(TIER_TYPES.ANNUAL))} VIVA tokens/year + {storageQuota(TIER_TYPES.ANNUAL)}GB storage; tokens reset at renewal.</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">28-Day token & storage capacity</p>
-                        <p>{formatTokensShort(tokenGrant(TIER_TYPES.MONTHLY_28DAY))} VIVA tokens per 28 days + {storageQuota(TIER_TYPES.MONTHLY_28DAY)}GB storage; unused tokens roll over (max {byType(TIER_TYPES.MONTHLY_28DAY)?.rollover_max_cycles ?? 3} cycles).</p>
-                      </div>
-                      <p>Both plans can add-on extra tokens or storage for a fee.</p>
                     </div>
                   )
                 },

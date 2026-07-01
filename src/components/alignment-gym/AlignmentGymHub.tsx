@@ -18,7 +18,7 @@ export interface AlignmentGymHubProps {
   forceWhatIsOpen?: boolean
   /** Skip MAP auto-verify on load (intensive preview) */
   skipMapAutoVerify?: boolean
-  /** Show zero reps until intensive graduation (daily reps start after unlock) */
+  /** Show zero reps until Graduation; live sessions and replays stay locked until then */
   statsUntilGraduation?: boolean
   /** Externally trigger the coaching request modal open */
   forceCoachingOpen?: boolean
@@ -60,7 +60,7 @@ import { RequestCoachingForm } from '@/components/alignment-gym/RequestCoachingF
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { createClient } from '@/lib/supabase/client'
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
-import { isSessionJoinable, formatDuration } from '@/lib/video/types'
+import { formatDuration } from '@/lib/video/types'
 import type { AreaStatsResponse as AreaStats } from '@/app/api/area-stats/route'
 
 type SessionWithParticipants = VideoSession & {
@@ -289,7 +289,7 @@ export function AlignmentGymHub({
   // Get next session
   const nextSession = upcomingSessions[0]
   const isLive = nextSession?.status === 'live'
-  const canJoin = nextSession && (isLive || isSessionJoinable(nextSession))
+  const sessionsLocked = statsUntilGraduation
 
   // Format relative time
   const getRelativeTime = (dateStr: string) => {
@@ -507,14 +507,25 @@ export function AlignmentGymHub({
           </Card>
         )}
 
+        {sessionsLocked && (
+          <Card className="p-4 md:p-5 bg-[#00FFFF]/5 border-[#00FFFF]/20 text-center">
+            <p className="text-sm text-neutral-300 leading-relaxed">
+              Live Alignment Gym sessions and replays unlock at <span className="text-white font-medium">Graduation</span> (Step 14).
+              Complete the tour below to continue your Intensive — add upcoming sessions to your calendar now if you like.
+            </p>
+          </Card>
+        )}
+
         <div data-alignment-gym-tour="next-session" className={tourClass('next-session')}>
         {nextSession ? (
           <Card 
-            className={`p-6 md:p-8 cursor-pointer transition-all hover:scale-[1.01] ${isLive 
+            className={`p-6 md:p-8 transition-all ${sessionsLocked ? '' : 'cursor-pointer hover:scale-[1.01]'} ${isLive 
               ? 'bg-gradient-to-br from-green-500/20 to-primary-500/10 border-green-500/40' 
               : 'bg-gradient-to-br from-primary-500/10 to-secondary-500/10 border-primary-500/30'
             }`}
-            onClick={() => router.push(`/session/${nextSession.id}`)}
+            onClick={() => {
+              if (!sessionsLocked) router.push(`/session/${nextSession.id}`)
+            }}
           >
             <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-4">
               <div className="flex-1 min-w-0">
@@ -566,18 +577,25 @@ export function AlignmentGymHub({
               </div>
 
               <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    router.push(`/session/${nextSession.id}`)
-                  }}
-                  className={isLive ? 'animate-pulse' : ''}
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  {isLive ? 'Join Live Session' : 'Join Session'}
-                </Button>
+                {sessionsLocked ? (
+                  <Button variant="outline" size="lg" disabled className="opacity-70">
+                    <Play className="w-5 h-5 mr-2" />
+                    Available after Graduation
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/session/${nextSession.id}`)
+                    }}
+                    className={isLive ? 'animate-pulse' : ''}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    {isLive ? 'Join Live Session' : 'Join Session'}
+                  </Button>
+                )}
                 <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
                   <button
                     type="button"
@@ -680,8 +698,10 @@ export function AlignmentGymHub({
                   return (
                     <div
                       key={session.id}
-                      className="cursor-pointer hover:bg-white/[0.03] transition-colors group"
-                      onClick={() => router.push(`/alignment-gym/${session.id}`)}
+                      className={`transition-colors group ${sessionsLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-white/[0.03]'}`}
+                      onClick={() => {
+                        if (!sessionsLocked) router.push(`/alignment-gym/${session.id}`)
+                      }}
                     >
                       <div className="px-4 py-3.5 md:px-5 md:py-4">
                         <div className="flex items-center gap-4">

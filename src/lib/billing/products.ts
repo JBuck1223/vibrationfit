@@ -143,13 +143,13 @@ async function resolveIntensiveProduct(
           'Custom vibration / practice plan',
           'Priority or private support',
           `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
-          `Vision Pro 28-Day starts billing Day 56`,
+          `Vision Pro 28-Day starts billing Day 28`,
           ...continuityFeatures.slice(0, 3),
         ]
       : [
           'Full Activation Intensive experience',
           `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
-          `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 56`,
+          `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 28`,
           ...continuityFeatures.slice(0, 5),
         ],
     redirectAfterSuccess: '/intensive/start',
