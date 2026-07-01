@@ -53,8 +53,10 @@ export async function resolveProduct(
   const { product, plan, continuity, planType, packKey } = params
 
   if (product === 'intensive' || product === 'intensive_premium') {
+    // 3-pay retired (Jun 2026): normalize stale plan values to a supported one.
+    const normalizedPlan: 'full' | '2pay' = plan === '2pay' ? '2pay' : 'full'
     return resolveIntensiveProduct(
-      (plan as 'full' | '2pay' | '3pay') || 'full',
+      normalizedPlan,
       (continuity as 'annual' | '28day') || '28day',
       (planType as 'solo' | 'household') || 'solo',
       supabase,

@@ -48,14 +48,11 @@ function getMoneyStoryLine(
 }
 
 function getInstallmentScheduleNote(
-  paymentPlan: 'full' | '2pay' | '3pay',
+  paymentPlan: 'full' | '2pay',
   installmentAmount: string,
 ): string | null {
   if (paymentPlan === '2pay') {
-    return `Remaining payment of ${installmentAmount} due on Day 28 (28 days after today).`
-  }
-  if (paymentPlan === '3pay') {
-    return `Remaining payments of ${installmentAmount} on Day 28 and ${installmentAmount} on Day 56 (every 28 days).`
+    return `Second payment of ${installmentAmount} charged automatically in 2 weeks (14 days after today).`
   }
   return null
 }
@@ -69,14 +66,11 @@ export default function OrderSummary({
   validatingPromo,
   hidePromoInput = false,
 }: OrderSummaryProps) {
-  const paymentPlan = (product.metadata?.intensive_payment_plan as 'full' | '2pay' | '3pay') || 'full'
-  // For 2-pay/3-pay, product.amount is the per-installment amount; full total = amount * numPayments
-  const fullPrice =
-    paymentPlan === 'full'
-      ? product.amount
-      : paymentPlan === '2pay'
-        ? product.amount * 2
-        : product.amount * 3
+  const rawPaymentPlan = (product.metadata?.intensive_payment_plan as string) || 'full'
+  // 3-pay retired: treat anything that isn't 2-pay as full pay.
+  const paymentPlan: 'full' | '2pay' = rawPaymentPlan === '2pay' ? '2pay' : 'full'
+  // For 2-pay, product.amount is the per-installment amount; full total = amount * 2
+  const fullPrice = paymentPlan === '2pay' ? product.amount * 2 : product.amount
   const subtotal = fullPrice
   const discount = promoDiscount?.amountOff ?? 0
   const total = Math.max(0, subtotal - discount)
@@ -90,11 +84,11 @@ export default function OrderSummary({
   const planType = (product.metadata?.plan_type as 'solo' | 'household') || 'solo'
 
   const paymentPlanLabel =
-    paymentPlan === 'full' ? 'One-time payment' : paymentPlan === '2pay' ? '2 payments' : '3 payments'
+    paymentPlan === 'full' ? 'One-time payment' : '2 payments'
   const planTypeLabel = planType === 'solo' ? 'Solo' : 'Household'
 
   const todayChargeAmount =
-    paymentPlan === 'full' ? total : (paymentPlan === '2pay' ? Math.round(total / 2) : Math.round(total / 3))
+    paymentPlan === '2pay' ? Math.round(total / 2) : total
   const intensiveTotalAmount = total
 
   const moneyStoryLine = isIntensive

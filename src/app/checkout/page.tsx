@@ -86,18 +86,18 @@ function CheckoutContent() {
 
   const isIntensive =
     product?.metadata?.purchase_type === 'intensive' || product?.key?.startsWith('intensive-')
-  const paymentPlan = (product?.metadata?.intensive_payment_plan as 'full' | '2pay' | '3pay') || 'full'
+  // 3-pay retired: treat anything that isn't 2-pay as full pay.
+  const paymentPlan: 'full' | '2pay' =
+    product?.metadata?.intensive_payment_plan === '2pay' ? '2pay' : 'full'
   const fullPrice =
     !product
       ? 0
-      : paymentPlan === 'full'
-        ? product.amount
-        : paymentPlan === '2pay'
-          ? product.amount * 2
-          : product.amount * 3
+      : paymentPlan === '2pay'
+        ? product.amount * 2
+        : product.amount
   const total = Math.max(0, fullPrice - (promoDiscount?.amountOff ?? 0))
   const todayCents =
-    paymentPlan === 'full' ? total : paymentPlan === '2pay' ? Math.round(total / 2) : Math.round(total / 3)
+    paymentPlan === '2pay' ? Math.round(total / 2) : total
   const todayDollars =
     todayCents % 100 === 0 ? (todayCents / 100).toString() : (todayCents / 100).toFixed(2)
   const submitLabel =
