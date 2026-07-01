@@ -286,7 +286,9 @@ export async function POST(request: NextRequest) {
         items: [{ price: priceId, quantity: 1 }],
         payment_behavior: 'default_incomplete',
         payment_settings: { save_default_payment_method: 'on_subscription' },
-        expand: ['latest_invoice.payment_intent'],
+        // Stripe API 2025-09-30.clover removed `invoice.payment_intent`; the
+        // first-payment client secret now lives on `invoice.confirmation_secret`.
+        expand: ['latest_invoice.confirmation_secret'],
         metadata: fullMetadata,
       }
 
@@ -302,9 +304,55 @@ export async function POST(request: NextRequest) {
       }
 
       const subscription = await stripe.subscriptions.create(subParams)
+
+      // Installment plans (e.g. 2-pay) are modeled as a recurring subscription
+      // whose Stripe price carries the per-payment amount + cadence. Cap the
+      // number of charges by scheduling cancellation after the final installment
+      // so the customer isn't billed indefinitely. Anchored to the price's own
+      // interval so it stays correct for any cadence (2-week, monthly, etc.).
+      const installments = plan === '2pay' ? 2 : plan === '3pay' ? 3 : 1
+      if (installments > 1) {
+        try {
+          const recurring = (subscription.items.data[0]?.price as Stripe.Price | undefined)?.recurring
+          if (recurring) {
+            const perInterval = recurring.interval_count || 1
+            const intervalDays =
+              recurring.interval === 'week' ? perInterval * 7
+              : recurring.interval === 'day' ? perInterval
+              : recurring.interval === 'month' ? perInterval * 30
+              : recurring.interval === 'year' ? perInterval * 365
+              : perInterval * 30
+            // Last charge lands at intervalDays*(installments-1); cancel roughly
+            // half an interval later so we never trigger the next charge.
+            const daysUntilCancel = intervalDays * (installments - 1) + Math.max(1, Math.floor(intervalDays / 2))
+            const cancelAt = Math.floor(Date.now() / 1000) + daysUntilCancel * 86400
+            await stripe.subscriptions.update(subscription.id, { cancel_at: cancelAt })
+          }
+        } catch (capErr) {
+          // Never block checkout on this; log loudly so a runaway installment
+          // subscription can be caught and cancelled manually.
+          console.error('[create-intent] failed to set installment cancel_at', {
+            subscriptionId: subscription.id,
+            plan,
+            error: capErr instanceof Error ? capErr.message : String(capErr),
+          })
+        }
+      }
+
       const invoice = subscription.latest_invoice as any
-      const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent
-      clientSecret = paymentIntent.client_secret!
+      clientSecret =
+        invoice?.confirmation_secret?.client_secret ||
+        (invoice?.payment_intent as Stripe.PaymentIntent | undefined)?.client_secret
+      if (!clientSecret) {
+        return NextResponse.json({ error: 'Failed to initialize payment' }, { status: 500 })
+      }
+      // The PaymentIntent object isn't expanded on 2025-09-30.clover; derive its
+      // id from the client secret (pi_xxx_secret_yyy) for order bookkeeping.
+      const paymentIntentId: string | null =
+        (invoice?.payment_intent as Stripe.PaymentIntent | undefined)?.id ||
+        (typeof clientSecret === 'string' && clientSecret.startsWith('pi_')
+          ? clientSecret.split('_secret_')[0]
+          : null)
 
       if (couponResult?.valid && couponResult.coupon && couponResult.codeRow) {
         recordRedemption({
@@ -326,7 +374,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         customer_id: customerRowId,
         cart_session_id: cartSessionId || null,
-        stripe_payment_intent_id: paymentIntent?.id || null,
+        stripe_payment_intent_id: paymentIntentId,
         total_amount: checkoutProduct.amount - discountAmount,
         currency: checkoutProduct.currency,
         status: 'pending',
@@ -596,7 +644,7 @@ export async function POST(request: NextRequest) {
     // 9. Return to client
     // ------------------------------------------------------------------
     const orderId = order?.id || null
-    const piId = paymentIntent?.id || null
+    const piId = paymentIntentId
     const redirectUrl = piId
       ? `${appUrl}/checkout/success?payment_intent=${piId}`
       : orderId

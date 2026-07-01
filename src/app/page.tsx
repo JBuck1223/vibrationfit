@@ -73,7 +73,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [planType, setPlanType] = useState<'solo' | 'household'>('solo')
   const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('28day')
-  const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay' | '3pay'>('full')
+  const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay'>('full')
   const [isLoading, setIsLoading] = useState(false)
   const [isYesHeld, setIsYesHeld] = useState(false)
   const [holdProgress, setHoldProgress] = useState(0)
@@ -268,20 +268,24 @@ export default function HomePage() {
   }
 
   const getPaymentAmount = () => {
-    const prices = planType === 'solo' 
-      ? { full: 499, twoPayment: 249.50, threePayment: 166.33 }
-      : { full: 699, twoPayment: 349.50, threePayment: 233 }
-    
+    const prices = planType === 'solo'
+      ? { full: 499, twoPayment: 275 }
+      : { full: 699, twoPayment: 375 }
+
     switch (paymentPlan) {
       case 'full': return prices.full.toFixed(2).replace('.00', '')
-      case '2pay': return prices.twoPayment.toFixed(2)
-      case '3pay': return prices.threePayment.toFixed(2)
+      case '2pay': return prices.twoPayment.toFixed(2).replace('.00', '')
       default: return prices.full.toFixed(2).replace('.00', '')
     }
   }
   
   const getIntensiveTotal = () => {
     return planType === 'solo' ? '499' : '699'
+  }
+
+  // Total across both installments when paying in 2 payments ($275x2 / $375x2).
+  const getTwoPayTotal = () => {
+    return planType === 'solo' ? '550' : '750'
   }
   
   const getVisionProAnnualPrice = () => {
@@ -329,10 +333,7 @@ export default function HomePage() {
   const getInstallmentScheduleNote = (): string | null => {
     const amount = `$${getPaymentAmount()}`
     if (paymentPlan === '2pay') {
-      return `Remaining payment of ${amount} due on Day 28 (28 days after today).`
-    }
-    if (paymentPlan === '3pay') {
-      return `Remaining payments of ${amount} on Day 28 and ${amount} on Day 56 (every 28 days).`
+      return `Second payment of ${amount} charged automatically in 2 weeks (14 days after today).`
     }
     return null
   }
@@ -1805,9 +1806,9 @@ export default function HomePage() {
                           <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14]">
                             ${getPaymentAmount()}
                           </div>
-                          {paymentPlan !== 'full' && (
+                          {paymentPlan === '2pay' && (
                             <div className="text-xl text-white text-center">
-                              {paymentPlan === '2pay' ? `× 2 Payments = $${getIntensiveTotal()}` : `× 3 Payments = $${getIntensiveTotal()}`}
+                              × 2 Payments = ${getTwoPayTotal()}
                             </div>
                           )}
                         </div>
@@ -1832,14 +1833,6 @@ export default function HomePage() {
                             onClick={() => setPaymentPlan('2pay')}
                           >
                             2 Payments
-                          </Button>
-                          <Button
-                            variant={paymentPlan === '3pay' ? 'primary' : 'outline'}
-                            size="md"
-                            className="px-2 py-2 text-xs flex-shrink-0"
-                            onClick={() => setPaymentPlan('3pay')}
-                          >
-                            3 Payments
                           </Button>
                         </div>
                       </Stack>
@@ -2124,9 +2117,7 @@ export default function HomePage() {
                                 ? <><span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
                                 : paymentPlan === 'full'
                                   ? <>${getIntensiveTotal()} for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
-                                  : paymentPlan === '2pay'
-                                    ? <>${getPaymentAmount()} (first of 2 payments) for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
-                                    : <>${getPaymentAmount()} (first of 3 payments) for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
+                                  : <>${getPaymentAmount()} (first of 2 payments) for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
                               }
                             </p>
                             {getInstallmentScheduleNote() && (
