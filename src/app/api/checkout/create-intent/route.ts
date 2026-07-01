@@ -439,14 +439,19 @@ export async function POST(request: NextRequest) {
     const isIntensiveProduct = product === 'intensive' || product === 'intensive_premium' || fullMetadata?.product_type === 'combined_intensive_continuity'
     if (isIntensiveProduct && order) {
       const continuityPlan = continuity || '28day'
+      const isHousehold = planType === 'household'
+      // Household buyers must continue on the household Vision Pro price + tier
+      // (2 seats, higher token/storage grant), not the solo defaults.
       const continuityPriceId = continuityPlan === 'annual'
-        ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL
-        : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY
+        ? (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_ANNUAL : process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL)
+        : (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_28DAY : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY)
 
       if (continuityPriceId && stripe) {
         try {
           const supabase = await createServerClient()
-          const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
+          const tierType = continuityPlan === 'annual'
+            ? (isHousehold ? 'vision_pro_household_annual' : 'vision_pro_annual')
+            : (isHousehold ? 'vision_pro_household_28day' : 'vision_pro_28day')
           const { data: tier } = await supabase
             .from('membership_tiers')
             .select('id')

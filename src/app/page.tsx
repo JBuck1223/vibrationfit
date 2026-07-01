@@ -289,7 +289,7 @@ export default function HomePage() {
   }
   
   const getVisionProAnnualPrice = () => {
-    return planType === 'solo' ? '999' : '1,499'
+    return planType === 'solo' ? '990' : '1,499'
   }
   
   const getVisionProMonthlyPrice = () => {
@@ -297,7 +297,7 @@ export default function HomePage() {
   }
   
   const getVisionProAnnualSavings = () => {
-    return planType === 'solo' ? '22%' : '23%'
+    return planType === 'solo' ? '23%' : '23%'
   }
   
   const getPlanSeatsText = () => {
@@ -1934,7 +1934,7 @@ export default function HomePage() {
                               <span className="text-xl text-neutral-400">/year</span>
                         </div>
                         <div className="text-[#00FFFF] text-sm font-semibold mb-1">
-                              2 months free
+                              3 billing cycles free
                         </div>
                         <div className="text-neutral-500 text-sm">
                               Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()} every 28 days
@@ -2029,7 +2029,7 @@ export default function HomePage() {
                               <span className="text-xl text-neutral-400">/year</span>
                             </div>
                             <div className="text-[#00FFFF] text-sm font-semibold mb-1">
-                              2 months free
+                              3 billing cycles free
                             </div>
                             <div className="text-neutral-500 text-sm">
                               Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()} every 28 days
