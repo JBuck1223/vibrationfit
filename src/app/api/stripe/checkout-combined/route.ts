@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (selectedPlanType === 'household') {
       // Household Vision Pro Prices
       if (continuityPlan === 'annual') {
-        // $1,499/year
+        // $1,490/year
         continuityPriceId = process.env.STRIPE_PRICE_HOUSEHOLD_ANNUAL || ''
         if (!continuityPriceId) {
           return NextResponse.json(
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       ? 'Vision Pro Annual' 
       : 'Vision Pro 28-Day'
     const visionProPrice = selectedPlanType === 'household'
-      ? (continuityPlan === 'annual' ? '$1,499/year' : '$149 every 28 days')
+      ? (continuityPlan === 'annual' ? '$1,490/year' : '$149 every 28 days')
       : (continuityPlan === 'annual' ? '$990/year' : '$99 every 28 days')
     const planTypeText = selectedPlanType === 'household' ? ' (Household - 2 seats)' : ''
     

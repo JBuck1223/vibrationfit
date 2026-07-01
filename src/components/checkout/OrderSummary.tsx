@@ -28,7 +28,7 @@ function getDay28UpcomingLabel(
     const price = planType === 'solo' ? 99 : 149
     return `Vision Pro 28‑Day membership: $${price}, then $${price} every 28 days`
   }
-  const price = planType === 'solo' ? 990 : 1499
+  const price = planType === 'solo' ? 990 : 1490
   return `Vision Pro Annual membership: $${price}, then renews annually`
 }
 
@@ -43,7 +43,7 @@ function getMoneyStoryLine(
     const day28 = planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
     return `Today: ${today} • Day 28: ${day28}`
   }
-  const day28 = planType === 'solo' ? '$990 per year' : '$1,499 per year'
+  const day28 = planType === 'solo' ? '$990 per year' : '$1,490 per year'
   return `Today: ${today} • Day 28: ${day28}`
 }
 

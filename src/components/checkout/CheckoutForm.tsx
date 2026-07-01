@@ -31,7 +31,7 @@ export interface AccountDetails {
 
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
   if (continuity === '28day') return planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
-  return planType === 'solo' ? '$990 per year' : '$1,499 per year'
+  return planType === 'solo' ? '$990 per year' : '$1,490 per year'
 }
 
 export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, submitLabelShort, continuity, planType }: CheckoutFormProps) {
