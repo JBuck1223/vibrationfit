@@ -289,7 +289,7 @@ export default function HomePage() {
   }
   
   const getVisionProAnnualPrice = () => {
-    return planType === 'solo' ? '990' : '1,499'
+    return planType === 'solo' ? '990' : '1,490'
   }
   
   const getVisionProMonthlyPrice = () => {

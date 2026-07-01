@@ -444,7 +444,7 @@ export default function NewCampaignPage() {
                 value={formData.continuity_plan}
                 onChange={(value) => handleChange('continuity_plan', value)}
                 options={[
-                  { value: 'annual', label: 'Annual - Solo: $990/year | Household: $1,499/year' },
+                  { value: 'annual', label: 'Annual - Solo: $990/year | Household: $1,490/year' },
                   { value: '28day', label: '28-Day - Solo: $99/cycle | Household: $149/cycle' },
                 ]}
                 placeholder="Select continuity plan"
