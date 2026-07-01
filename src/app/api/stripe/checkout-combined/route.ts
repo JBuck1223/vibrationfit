@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
       : 'Vision Pro 28-Day'
     const visionProPrice = selectedPlanType === 'household'
       ? (continuityPlan === 'annual' ? '$1,499/year' : '$149 every 28 days')
-      : (continuityPlan === 'annual' ? '$999/year' : '$99 every 28 days')
+      : (continuityPlan === 'annual' ? '$990/year' : '$99 every 28 days')
     const planTypeText = selectedPlanType === 'household' ? ' (Household - 2 seats)' : ''
     
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [

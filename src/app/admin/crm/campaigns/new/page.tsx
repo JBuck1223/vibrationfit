@@ -444,8 +444,8 @@ export default function NewCampaignPage() {
                 value={formData.continuity_plan}
                 onChange={(value) => handleChange('continuity_plan', value)}
                 options={[
-                  { value: 'annual', label: 'Annual - Solo: $999/year | Household: $1,399/year' },
-                  { value: '28day', label: '28-Day - Solo: $99/cycle | Household: $139/cycle' },
+                  { value: 'annual', label: 'Annual - Solo: $990/year | Household: $1,499/year' },
+                  { value: '28day', label: '28-Day - Solo: $99/cycle | Household: $149/cycle' },
                 ]}
                 placeholder="Select continuity plan"
               />
@@ -495,7 +495,7 @@ export default function NewCampaignPage() {
               </p>
               <ul className="text-xs text-neutral-400 space-y-1">
                 <li>• Intensive: {formData.promo_code ? <span className="text-primary-500">$1 (with {formData.promo_code})</span> : '$499'}</li>
-                <li>• Continuity: {formData.continuity_plan === 'annual' ? '$999/year' : '$99/28 days'}</li>
+                <li>• Continuity: {formData.continuity_plan === 'annual' ? '$990/year' : '$99/28 days'}</li>
               </ul>
             </div>
           </Card>

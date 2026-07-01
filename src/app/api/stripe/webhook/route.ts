@@ -866,10 +866,11 @@ export async function POST(request: NextRequest) {
           // Create Vision Pro subscription separately with 28-day trial
           // This ensures Vision Pro doesn't show in intensive checkout but starts after 28 days
           const continuityPlan = session.metadata.continuity_plan || 'annual'
+          const isHousehold = session.metadata.plan_type === 'household'
           const continuityPriceId = session.metadata.continuity_price_id || 
                                      (continuityPlan === 'annual' 
-                                       ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL 
-                                       : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY)
+                                       ? (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_ANNUAL : process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL)
+                                       : (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_28DAY : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY))
 
           if (continuityPriceId) {
             console.log('Creating Vision Pro subscription with 28-day trial...')
@@ -880,7 +881,9 @@ export async function POST(request: NextRequest) {
                   metadata: { supabase_user_id: userId },
                 })
 
-              const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
+              const tierType = continuityPlan === 'annual'
+                ? (isHousehold ? 'vision_pro_household_annual' : 'vision_pro_annual')
+                : (isHousehold ? 'vision_pro_household_28day' : 'vision_pro_28day')
               const { data: tier } = await supabase
                 .from('membership_tiers')
                 .select('id')
@@ -1089,12 +1092,14 @@ export async function POST(request: NextRequest) {
           const customerEmail = session.customer_details?.email
           const intensivePaymentPlan = session.metadata.intensive_payment_plan || session.metadata.payment_plan || 'full'
           const continuityPlan = session.metadata.continuity_plan || 'annual'
+          const isHousehold = session.metadata.plan_type === 'household'
           
-          // Get Vision Pro price ID from metadata (stored in checkout)
+          // Get Vision Pro price ID from metadata (stored in checkout).
+          // Fall back to the household or solo price based on plan type.
           const continuityPriceId = session.metadata.continuity_price_id || 
                                      (continuityPlan === 'annual' 
-                                       ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL 
-                                       : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY)
+                                       ? (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_ANNUAL : process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL)
+                                       : (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_28DAY : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY))
           
           if (!continuityPriceId) {
             console.error('Continuity price ID not found')
@@ -1190,7 +1195,9 @@ export async function POST(request: NextRequest) {
             }).eq('id', userId)
           }
 
-          const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
+          const tierType = continuityPlan === 'annual'
+            ? (isHousehold ? 'vision_pro_household_annual' : 'vision_pro_annual')
+            : (isHousehold ? 'vision_pro_household_28day' : 'vision_pro_28day')
 
           // Get membership tier
           const { data: tier } = await supabase
@@ -1715,6 +1722,57 @@ export async function POST(request: NextRequest) {
           const customerId = invoice.customer as string
           const subscriptionId = (invoice as any).subscription as string
 
+          // Intensive installment plans (2-pay) create a SEPARATE Vision Pro
+          // continuity subscription that trials for 28 days. Because the card is
+          // entered after checkout starts, that VP sub (and the customer default)
+          // can be created without a payment method. Once an installment invoice
+          // is paid, propagate the saved card to the customer default + the
+          // trialing VP sub so the Day-28 charge (and the 2nd installment) bill
+          // off-session. Safe/idempotent: only touches intensive installment subs.
+          try {
+            const installmentSub = await stripe.subscriptions.retrieve(subscriptionId, {
+              expand: ['default_payment_method'],
+            })
+            const isIntensiveInstallment =
+              installmentSub.metadata?.product_type === 'combined_intensive_continuity' ||
+              installmentSub.metadata?.purchase_type === 'intensive'
+            if (isIntensiveInstallment) {
+              let pmId: string | null =
+                typeof installmentSub.default_payment_method === 'string'
+                  ? installmentSub.default_payment_method
+                  : (installmentSub.default_payment_method as Stripe.PaymentMethod | null)?.id || null
+              if (!pmId) {
+                const piId = invoicePaymentIntentId(invoice)
+                if (piId) {
+                  const pi = await stripe.paymentIntents.retrieve(piId)
+                  pmId = typeof pi.payment_method === 'string'
+                    ? pi.payment_method
+                    : (pi.payment_method as Stripe.PaymentMethod | null)?.id || null
+                }
+              }
+              if (pmId) {
+                const cust = (await stripe.customers.retrieve(customerId)) as Stripe.Customer
+                if (!cust.invoice_settings?.default_payment_method) {
+                  await stripe.customers.update(customerId, {
+                    invoice_settings: { default_payment_method: pmId },
+                  })
+                }
+                const trialingSubs = await stripe.subscriptions.list({
+                  customer: customerId,
+                  status: 'trialing',
+                  limit: 10,
+                })
+                for (const vp of trialingSubs.data) {
+                  if (vp.metadata?.product_type === 'vision_pro_continuity' && !vp.default_payment_method) {
+                    await stripe.subscriptions.update(vp.id, { default_payment_method: pmId })
+                  }
+                }
+              }
+            }
+          } catch (pmErr) {
+            console.error('[webhook] installment PM propagation failed', pmErr)
+          }
+
           // Find user and subscription details
           const { data: subscription } = await supabase
             .from('customer_subscriptions')
@@ -2165,9 +2223,12 @@ export async function POST(request: NextRequest) {
         let subscriptionCreated = false
         if (isIntensive && intensiveOrderItem) {
           const continuityPlan = meta.continuity || 'annual'
+          // Household buyers must continue on the household Vision Pro price + tier
+          // (2 seats, higher grant), not the solo defaults.
+          const isHousehold = planType === 'household'
           const continuityPriceId = continuityPlan === 'annual'
-            ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL
-            : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY
+            ? (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_ANNUAL : process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL)
+            : (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_28DAY : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY)
 
           if (continuityPriceId) {
             try {
@@ -2178,7 +2239,9 @@ export async function POST(request: NextRequest) {
                        metadata: { supabase_user_id: userId },
                      })
 
-              const tierType = continuityPlan === 'annual' ? 'vision_pro_annual' : 'vision_pro_28day'
+              const tierType = continuityPlan === 'annual'
+                ? (isHousehold ? 'vision_pro_household_annual' : 'vision_pro_annual')
+                : (isHousehold ? 'vision_pro_household_28day' : 'vision_pro_28day')
               const { data: tier } = await supabase
                 .from('membership_tiers')
                 .select('id')
