@@ -221,8 +221,9 @@ export function GreenLineSection() {
 
       <div className="mx-auto mt-10 max-w-2xl text-center md:mt-12">
         <Text className="text-neutral-400 italic">
-          Your feelings are the signal. The Green Line is the threshold. Conscious
-          creation is choosing—again and again—to rise above it.
+          Your feelings are guidance. Vibrational fitness is choosing&mdash;again
+          and again&mdash;to intentionally shift your focus above the Green Line
+          so you feel good.
         </Text>
       </div>
     </div>

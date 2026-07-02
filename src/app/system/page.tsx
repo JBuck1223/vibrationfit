@@ -114,29 +114,26 @@ const operations = [
   {
     step: '01',
     title: 'Design',
-    tagline: 'Design the life you choose.',
     icon: Target,
     dot: 'bg-[#39FF14] shadow-[0_0_20px_#39FF14]',
     text: 'text-[#39FF14]',
-    desc: 'Your Life Vision is built, written, seen, and heard. We help you program it \u2014 you don\u2019t show up with it pre-set.',
+    desc: 'Choose what you want to include in your experience. The Life I Choose, Vision, audio, and board turn your dream life into something specific.',
   },
   {
     step: '02',
     title: 'Align',
-    tagline: 'Align with the emotional state of that life.',
     icon: RefreshCw,
     dot: 'bg-[#00FFFF] shadow-[0_0_20px_#00FFFF]',
     text: 'text-[#00FFFF]',
-    desc: 'Bring your thoughts, feelings, and actions into harmony with that vision, day after day. This is where MAP and your daily reps do their work.',
+    desc: 'MAP, Projects, and your four Parts (Creations, Activations, Connections, Sessions) bring your thoughts, feelings, and actions into harmony with that design.',
   },
   {
     step: '03',
     title: 'Enjoy',
-    tagline: 'Enjoy the freedom and joy available now.',
     icon: Heart,
     dot: 'bg-[#BF00FF] shadow-[0_0_20px_#BF00FF]',
     text: 'text-[#BF00FF]',
-    desc: 'Be present, appreciate, and savor \u2014 and notice the evidence already showing up. Enjoy is living above the Green Line right now.',
+    desc: 'The Green Line, Daily Paper, journal, and Abundance Tracker help you enjoy more freedom and joy now and see expansion as evidence, not a test.',
   },
 ]
 
@@ -155,14 +152,14 @@ const philosophy = [
   },
   {
     label: 'Mechanism',
-    title: 'Emotional states perpetuate themselves',
-    desc: 'Emotional states attract the conditions that perpetuate emotional states. In other words \u2014 emotions become experiences, and experiences reinforce emotions.',
+    title: 'Emotions as Guidance',
+    desc: 'Your emotions are guidance. Emotional states attract the conditions that perpetuate emotional states. In other words, emotions become experiences, and experiences reinforce emotions.',
     color: '#BF00FF',
   },
   {
     label: 'Practice',
     title: 'Design \u2192 Align \u2192 Enjoy',
-    desc: 'The Conscious Creation Cycle you run every day.',
+    desc: 'The Conscious Creation System you run every day.',
     color: '#FFD700',
   },
   {
@@ -217,6 +214,7 @@ const carCallouts = [
   { feature: 'VIVA', home: 'Co-Pilot', x: 46, y: 49, placement: 'bottom' as const },
   { feature: 'Life Vision', home: 'GPS \u00b7 Destination', x: 64, y: 44, placement: 'bottom' as const },
 ]
+
 
 export default function ConsciousCreationSystemPage() {
   return (
@@ -333,7 +331,25 @@ export default function ConsciousCreationSystemPage() {
           </p>
         </div>
 
-        <div className="relative mx-auto max-w-6xl">
+        <div className="relative mx-auto max-w-6xl px-6">
+          {/* Point B label — above image, top right */}
+          <div className="mb-2 flex justify-end md:mb-3">
+            <div className="flex items-end gap-2 md:gap-3">
+              <div className="text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#39FF14] md:text-xs">
+                  Point B
+                </p>
+                <p className="text-sm font-semibold text-white md:text-2xl">
+                  Your Life Vision
+                </p>
+              </div>
+              <svg className="h-6 w-6 shrink-0 text-[#39FF14] md:h-8 md:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 7l10 10" />
+                <path d="M17 7v10H7" />
+              </svg>
+            </div>
+          </div>
+
           <div className="relative aspect-[3/2]">
             <Image
               src="/images/system/system-journey-v4.png"
@@ -342,86 +358,69 @@ export default function ConsciousCreationSystemPage() {
               sizes="100vw"
               className="object-cover"
             />
-            {/* Point A label */}
-            <div className="absolute left-[5%] top-[10%] max-w-[40%] text-left">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-neutral-400 md:text-xs">
-                Point A
-              </p>
-              <p className="mt-1 text-sm font-semibold text-white md:text-2xl">
-                The life you have today
-              </p>
-            </div>
-            {/* Point B label */}
-            <div className="absolute right-[5%] top-[10%] max-w-[44%] text-right">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#39FF14] md:text-xs">
-                Point B
-              </p>
-              <p className="mt-1 text-sm font-semibold text-white md:text-2xl">
-                Your Life Vision
-              </p>
+          </div>
+
+          {/* Point A label — below image, bottom left */}
+          <div className="mt-2 flex justify-start md:mt-3">
+            <div className="flex items-start gap-2 md:gap-3">
+              <svg className="h-6 w-6 shrink-0 text-neutral-400 md:h-8 md:w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 17L7 7" />
+                <path d="M7 17V7h10" />
+              </svg>
+              <div className="text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-neutral-400 md:text-xs">
+                  Point A
+                </p>
+                <p className="text-sm font-semibold text-white md:text-2xl">
+                  The life you have today
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* ===================== THE CYCLE (3 OPERATIONS) ===================== */}
-      <section className="relative mx-auto mt-24 max-w-6xl px-6 md:mt-36">
-        <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
-          <div className="relative order-2 md:order-1">
-            <div className="pointer-events-none absolute inset-0 rounded-full bg-[#00FFFF]/5 blur-[100px]" />
-            <div className="relative aspect-square">
-              <Image
-                src="/images/system/system-cycle-v3.png"
-                alt="The Conscious Creation Cycle: Design, Align, Enjoy"
-                fill
-                sizes="(max-width: 768px) 100vw, 45vw"
-                className="object-contain"
-              />
-            </div>
-          </div>
+      <section className="relative mx-auto mt-24 max-w-3xl px-6 md:mt-36">
+        <div className="text-center">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.35em] text-neutral-500 md:text-xs">
+            The Conscious Creation System
+          </p>
+          <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
+            Design. Align. Enjoy.
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-base text-neutral-400 md:text-lg">
+            The three steps the system runs, over and over. Run the loop and
+            the outer world catches up.
+          </p>
+        </div>
 
-          <div className="order-1 md:order-2">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.35em] text-neutral-500 md:text-xs">
-              The Conscious Creation Cycle
-            </p>
-            <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
-              Design. Align.
-              <br />
-              Enjoy.
-            </h2>
-            <p className="mt-4 text-base text-neutral-400 md:text-lg">
-              The three steps the system runs, over and over. Run the loop and
-              the outer world catches up.
-            </p>
-
-            <div className="mt-10 space-y-8">
-              {operations.map((op) => (
-                <div key={op.title} className="flex gap-5">
-                  <div className="flex flex-col items-center pt-1">
-                    <span
-                      className={`h-3.5 w-3.5 shrink-0 rounded-full ${op.dot}`}
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-xs font-mono text-neutral-600">
-                        {op.step}
-                      </span>
-                      <h3 className={`text-xl font-bold ${op.text}`}>
-                        {op.title}
-                      </h3>
-                    </div>
-                    <p className="mt-0.5 text-sm font-medium text-neutral-300">
-                      {op.tagline}
-                    </p>
-                    <p className="mt-1.5 text-sm text-neutral-400 md:text-base">
-                      {op.desc}
-                    </p>
-                  </div>
+        <div className="mt-12 space-y-8">
+          {operations.map((op) => (
+            <div key={op.title} className="flex gap-5">
+              <div className="flex flex-col items-center pt-1">
+                <span
+                  className={`h-3.5 w-3.5 shrink-0 rounded-full ${op.dot}`}
+                />
+              </div>
+              <div>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-xs font-mono text-neutral-600">
+                    {op.step}
+                  </span>
+                  <h3 className={`text-xl font-bold ${op.text}`}>
+                    {op.title}
+                  </h3>
                 </div>
-              ))}
+                <p className="mt-0.5 text-sm font-medium text-neutral-300">
+                  {op.tagline}
+                </p>
+                <p className="mt-1.5 text-sm text-neutral-400 md:text-base">
+                  {op.desc}
+                </p>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -531,8 +530,8 @@ export default function ConsciousCreationSystemPage() {
                   <span className="absolute -translate-x-1/2 -translate-y-1/2 block h-2.5 w-2.5 rounded-full bg-[#39FF14] shadow-[0_0_12px_#39FF14]" />
                   {c.placement === 'top' ? (
                     <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 flex-col items-center">
-                      <div className="whitespace-nowrap text-center">
-                        <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
+                      <div className="whitespace-nowrap rounded-lg bg-black/70 px-2.5 py-1.5 text-center backdrop-blur-sm">
+                        <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">
                           {c.feature}
                         </p>
                         <p className="text-sm font-semibold text-white">
@@ -544,8 +543,8 @@ export default function ConsciousCreationSystemPage() {
                   ) : (
                     <div className="absolute top-0 left-1/2 flex -translate-x-1/2 flex-col items-center">
                       <span className="h-7 w-px bg-gradient-to-t from-transparent to-[#39FF14]/70" />
-                      <div className="whitespace-nowrap text-center">
-                        <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
+                      <div className="whitespace-nowrap rounded-lg bg-black/70 px-2.5 py-1.5 text-center backdrop-blur-sm">
+                        <p className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">
                           {c.feature}
                         </p>
                         <p className="text-sm font-semibold text-white">
@@ -677,7 +676,7 @@ export default function ConsciousCreationSystemPage() {
             Install it once. Run it daily. Update as life evolves.
           </h2>
         </div>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <div className="relative overflow-hidden rounded-3xl border border-[#39FF14]/20 bg-gradient-to-br from-[#39FF14]/10 to-transparent p-8 md:p-10">
             <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#39FF14]/15">
               <Factory className="h-6 w-6 text-[#39FF14]" />
@@ -710,7 +709,7 @@ export default function ConsciousCreationSystemPage() {
               actualization.
             </p>
           </div>
-          <div className="relative overflow-hidden rounded-3xl border border-[#BF00FF]/20 bg-gradient-to-br from-[#BF00FF]/10 to-transparent p-8 md:p-10 md:col-span-2">
+          <div className="relative overflow-hidden rounded-3xl border border-[#BF00FF]/20 bg-gradient-to-br from-[#BF00FF]/10 to-transparent p-8 md:p-10">
             <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#BF00FF]/15">
               <RefreshCw className="h-6 w-6 text-[#BF00FF]" />
             </div>
@@ -721,11 +720,9 @@ export default function ConsciousCreationSystemPage() {
               Update &amp; Look Back
             </h3>
             <p className="mt-3 text-base leading-relaxed text-neutral-300">
-              Everything at Vibration Fit is versioned. As your desires shift,
-              update your vision, audio, and MAP. Every past version is preserved
-              so you can look back on your journey and see how far you&rsquo;ve
-              come&mdash;and so VIVA can guide you with the full picture of who
-              you&rsquo;ve been and who you&rsquo;re becoming.
+              As your desires shift, update your profile, vision, audio, board
+              and MAP. Every past version is preserved so you can look back and
+              see how far you&rsquo;ve come.
             </p>
           </div>
         </div>
@@ -761,13 +758,24 @@ export default function ConsciousCreationSystemPage() {
             <summary className="cursor-pointer text-lg font-bold text-white">
               What is a Conscious Creation System?
             </summary>
-            <p className="mt-3 text-sm leading-relaxed text-neutral-400">
-              It&rsquo;s the machine that makes &ldquo;thoughts become
-              things&rdquo; reliable instead of random. We help you program the
-              destination (your Life Vision), build the machine in 72 hours, then
-              hand you a MAP to run it every day across four simple parts:
-              Creations, Activations, Connections, and Sessions.
-            </p>
+            <div className="mt-3 space-y-3 text-sm leading-relaxed text-neutral-400">
+              <p>
+                Conscious Creation is choosing what you want to include in your
+                experience, then aligning your thoughts, words, and actions with
+                that choice.
+              </p>
+              <p>
+                The Conscious Creation System is the structure in Vibration Fit
+                that makes that way of living repeatable: it helps you choose
+                what to include, align with it, and enjoy your life now, while
+                manifestations show up as evidence, not the goal.
+              </p>
+              <p>
+                In Vibration Fit, we install that system in 72 hours during the
+                Activation Intensive, then your MAP runs it daily across
+                Creations, Activations, Connections, and Sessions.
+              </p>
+            </div>
           </details>
           <details className="group rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
             <summary className="cursor-pointer text-lg font-bold text-white">

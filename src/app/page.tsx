@@ -622,48 +622,48 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6">
+              <Card variant="outlined" className="h-full border-neutral-800 bg-neutral-950">
                 <Heading level={3} className="text-white text-center mb-4 md:mb-5">
                   The 4 parts of your system
                 </Heading>
-                <Text size="sm" className="text-neutral-300 text-center mb-6 md:mb-8">
+                <Text size="sm" className="text-neutral-400 text-center mb-6 md:mb-8">
                   Every aligned action in Vibration Fit is one of these four. Your MAP schedules them, your dashboard tracks them.
                 </Text>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#39FF14]/20 border-2 border-[#39FF14]/30">
+                <div className="flex flex-col divide-y divide-neutral-800 rounded-xl border border-neutral-800">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10 border border-[#39FF14]/20">
                       <Brain className="w-5 h-5 text-[#39FF14]" />
                     </div>
                     <div>
                       <Text size="sm" className="text-white font-semibold">Creations</Text>
-                      <Text size="xs" className="text-neutral-400">Visions, audios, boards, journals — artifacts you build</Text>
+                      <Text size="xs" className="text-neutral-500">Visions, audios, boards, journals — artifacts you build</Text>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#14B8A6]/20 border-2 border-[#14B8A6]/30">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#14B8A6]/10 border border-[#14B8A6]/20">
                       <RadioTower className="w-5 h-5 text-[#14B8A6]" />
                     </div>
                     <div>
                       <Text size="sm" className="text-white font-semibold">Activations</Text>
-                      <Text size="xs" className="text-neutral-400">Daily reps that keep your signal aligned</Text>
+                      <Text size="xs" className="text-neutral-500">Daily reps that keep your signal aligned</Text>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#BF00FF]/20 border-2 border-[#BF00FF]/30">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#BF00FF]/10 border border-[#BF00FF]/20">
                       <Heart className="w-5 h-5 text-[#BF00FF]" />
                     </div>
                     <div>
                       <Text size="sm" className="text-white font-semibold">Connections</Text>
-                      <Text size="xs" className="text-neutral-400">Vibe Tribe posts, comments, and hearts</Text>
+                      <Text size="xs" className="text-neutral-500">Vibe Tribe posts, comments, and hearts</Text>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#FFB701]/20 border-2 border-[#FFB701]/30">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#FFB701]/10 border border-[#FFB701]/20">
                       <CalendarDays className="w-5 h-5 text-[#FFB701]" />
                     </div>
                     <div>
                       <Text size="sm" className="text-white font-semibold">Sessions</Text>
-                      <Text size="xs" className="text-neutral-400">Alignment Gym live coaching and replays</Text>
+                      <Text size="xs" className="text-neutral-500">Alignment Gym live coaching and replays</Text>
                     </div>
                   </div>
                 </div>
@@ -672,7 +672,7 @@ export default function HomePage() {
                     See how every part fits together →
                   </Link>
                 </div>
-              </div>
+              </Card>
             </TwoColumn>
           </Container>
         </section>
