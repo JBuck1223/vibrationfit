@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { ButtonLink } from '@/lib/design-system/components'
+import { GreenLineSection } from '@/components/GreenLineSection'
 import {
   MapPin,
   Factory,
@@ -135,7 +136,7 @@ const operations = [
     icon: Heart,
     dot: 'bg-[#BF00FF] shadow-[0_0_20px_#BF00FF]',
     text: 'text-[#BF00FF]',
-    desc: 'Be present, appreciate, and savor \u2014 and notice the evidence already showing up. Enjoy is living above the Green Line right now. The manifestations follow as feedback, not as the finish line.',
+    desc: 'Be present, appreciate, and savor \u2014 and notice the evidence already showing up. Enjoy is living above the Green Line right now.',
   },
 ]
 
@@ -155,7 +156,7 @@ const philosophy = [
   {
     label: 'Mechanism',
     title: 'Emotional states perpetuate themselves',
-    desc: 'The way you feel shapes the way you live, and the way you live shapes the way you feel. Emotions become experiences, and experiences reinforce emotions.',
+    desc: 'Emotional states attract the conditions that perpetuate emotional states. In other words \u2014 emotions become experiences, and experiences reinforce emotions.',
     color: '#BF00FF',
   },
   {
@@ -177,7 +178,7 @@ const parts = [
     title: 'Creations',
     bucket: 'Artifacts',
     question: 'What objects exist because of me?',
-    desc: 'Vision writing, scripting, and journaling that define your reality on purpose. Proof the inner work is real and accumulating.',
+    desc: 'Visions, audios, boards, journals \u2014 artifacts you build. Proof the inner work is real and accumulating.',
     icon: Sparkles,
     accent: '#FFD700',
   },
@@ -185,7 +186,7 @@ const parts = [
     title: 'Activations',
     bucket: 'Practice',
     question: 'How many times did I show up and do the work?',
-    desc: 'Audios and practices that shift your state into alignment with your vision. The frequency of your reps.',
+    desc: 'Daily reps that keep your signal aligned with your vision. The frequency of your practice.',
     icon: Play,
     accent: '#39FF14',
   },
@@ -193,7 +194,7 @@ const parts = [
     title: 'Connections',
     bucket: 'Community',
     question: 'How many times did I interact with the community?',
-    desc: 'How you plug your vision into the field of other humans. In Vibration Fit, this is your Vibe Tribe activity: posts, comments, and hearts.',
+    desc: 'Vibe Tribe posts, comments, and hearts. How you plug your vision into the field of other humans.',
     icon: Heart,
     accent: '#BF00FF',
   },
@@ -201,7 +202,7 @@ const parts = [
     title: 'Sessions',
     bucket: 'Coaching',
     question: 'How often am I showing up to live coaching?',
-    desc: 'Structured containers where you\u2019re guided back into alignment. In Vibration Fit, these are Alignment Gym calls and replays.',
+    desc: 'Alignment Gym live coaching and replays. Structured containers where you\u2019re guided back into alignment.',
     icon: Users,
     accent: '#14B8A6',
   },
@@ -259,9 +260,13 @@ export default function ConsciousCreationSystemPage() {
             then you drive it every day &mdash; engine running, dashboard lit,
             co-pilot beside you.
           </p>
+          <p className="mt-4 text-sm italic text-neutral-500 md:text-base">
+            If you&rsquo;ve ever tried to manifest with random journaling and
+            inconsistent practice, this is the system that fixes that.
+          </p>
           <div className="mt-8 flex justify-center">
-            <ButtonLink href="/intensive" variant="primary" size="lg">
-              Install your system
+            <ButtonLink href="/#pricing" variant="primary" size="lg">
+              Start the 72-Hour Activation Intensive
               <ArrowRight className="h-5 w-5" />
             </ButtonLink>
           </div>
@@ -331,7 +336,7 @@ export default function ConsciousCreationSystemPage() {
         <div className="relative mx-auto max-w-6xl">
           <div className="relative aspect-[3/2]">
             <Image
-              src="/images/system/system-journey-v3.png"
+              src="/images/system/system-journey-v4.png"
               alt="A glowing vehicle driving from your current reality toward your Life Vision"
               fill
               sizes="100vw"
@@ -386,8 +391,7 @@ export default function ConsciousCreationSystemPage() {
             </h2>
             <p className="mt-4 text-base text-neutral-400 md:text-lg">
               The three steps the system runs, over and over. Run the loop and
-              the outer world catches up &mdash; the manifestations show up as
-              the result, not the finish line.
+              the outer world catches up.
             </p>
 
             <div className="mt-10 space-y-8">
@@ -431,6 +435,10 @@ export default function ConsciousCreationSystemPage() {
             We only track four things.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base text-neutral-400 md:text-lg">
+            If it&rsquo;s not a Creation, Activation, Connection, or Session, we
+            don&rsquo;t track it. Your MAP only schedules these four.
+          </p>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-500 md:text-base">
             Each one answers a single, simple question. Together they are every
             rep your MAP schedules and your dashboard measures.
           </p>
@@ -582,11 +590,91 @@ export default function ConsciousCreationSystemPage() {
         </div>
       </section>
 
+      {/* ===================== THE ENGINE (4-Layer Architecture) ===================== */}
+      <section className="relative mx-auto mt-24 max-w-6xl px-6 md:mt-36">
+        <div className="mb-12 text-center">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.35em] text-neutral-500 md:text-xs">
+            The writing engine
+          </p>
+          <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
+            Meet the Engine Behind VIVA Vision
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-base text-neutral-400 md:text-lg">
+            When you do your Creations reps, VIVA uses a 4-Layer Conscious
+            Creation Writing Architecture to make your vision feel real and
+            stick.
+          </p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-neutral-500">
+            In 2011, Jordan wrote his first Life I Choose&trade;&mdash;and the
+            same pattern showed up again in 2014. When Vanessa joined, structure
+            met soul. We taught VIVA to guide anyone through it.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-[#39FF14]/30 bg-[#39FF14]/5 p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
+              Layer 1
+            </p>
+            <h3 className="mt-1 text-lg font-bold text-[#39FF14]">
+              5-Phase Flow
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+              The emotional arc inside VIVA Vision: Gratitude &rarr; Sensory
+              &rarr; Embodiment &rarr; Essence &rarr; Surrender. Each vision
+              paragraph follows this writing pattern.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/5 p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
+              Layer 2
+            </p>
+            <h3 className="mt-1 text-lg font-bold text-[#14B8A6]">
+              Who / What / Where / Why
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+              Turn vague desires into vivid scenes. VIVA prompts for who you are
+              being, what you are doing, where you are, and why it matters so
+              your vision feels like a real experience.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#BF00FF]/30 bg-[#BF00FF]/5 p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
+              Layer 3
+            </p>
+            <h3 className="mt-1 text-lg font-bold text-[#BF00FF]">
+              Being / Doing / Receiving
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+              Balance identity, action, and evidence so momentum compounds
+              instead of stalling out.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#FFB701]/30 bg-[#FFB701]/5 p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
+              Layer 4
+            </p>
+            <h3 className="mt-1 text-lg font-bold text-[#FFB701]">
+              Micro&ndash;Macro Breathing
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+              Zoom into sensory detail, zoom out to meaning&mdash;paragraph
+              rhythm that feels alive (and sticks).
+            </p>
+          </div>
+        </div>
+
+        <p className="mx-auto mt-8 max-w-xl text-center text-base text-neutral-300">
+          This is why your vision paragraphs feel vivid and emotionally charged
+          instead of like vague affirmations.
+        </p>
+      </section>
+
       {/* ===================== INSTALL / RUN ===================== */}
       <section className="relative mx-auto mt-24 max-w-6xl px-6 md:mt-36">
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Install it once. Run it for life.
+            Install it once. Run it daily. Update as life evolves.
           </h2>
         </div>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -622,37 +710,145 @@ export default function ConsciousCreationSystemPage() {
               actualization.
             </p>
           </div>
+          <div className="relative overflow-hidden rounded-3xl border border-[#BF00FF]/20 bg-gradient-to-br from-[#BF00FF]/10 to-transparent p-8 md:p-10 md:col-span-2">
+            <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#BF00FF]/15">
+              <RefreshCw className="h-6 w-6 text-[#BF00FF]" />
+            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-[#BF00FF]/80">
+              Phase 3 &middot; Evolve
+            </p>
+            <h3 className="mt-2 text-2xl font-bold text-white">
+              Update &amp; Look Back
+            </h3>
+            <p className="mt-3 text-base leading-relaxed text-neutral-300">
+              Everything at Vibration Fit is versioned. As your desires shift,
+              update your vision, audio, and MAP. Every past version is preserved
+              so you can look back on your journey and see how far you&rsquo;ve
+              come&mdash;and so VIVA can guide you with the full picture of who
+              you&rsquo;ve been and who you&rsquo;re becoming.
+            </p>
+          </div>
+        </div>
+
+        <div className="mx-auto mt-10 max-w-2xl text-center md:mt-14">
+          <p className="text-base text-neutral-300 md:text-lg">
+            You install it once during the Intensive. MAP runs it daily. You update it as life evolves.
+          </p>
+          <div className="mt-6 flex justify-center">
+            <ButtonLink href="/#pricing" variant="primary" size="lg">
+              Start the 72-Hour Activation Intensive
+              <ArrowRight className="h-5 w-5" />
+            </ButtonLink>
+          </div>
         </div>
       </section>
 
-      {/* ===================== GAUGE & GUIDE ===================== */}
-      <section className="relative mx-auto mt-20 max-w-6xl px-6 md:mt-28">
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <div className="rounded-3xl border border-neutral-800 bg-neutral-950 p-8">
-            <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#39FF14]/10">
-              <Activity className="h-5 w-5 text-[#39FF14]" />
-            </div>
-            <h3 className="text-xl font-bold text-white">
-              The Gauge: Above the Green Line
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-neutral-400 md:text-base">
-              Your Green Line shows whether you&rsquo;re spending enough time in
-              alignment. It&rsquo;s the quick readout of how healthy your system
-              is.
+      {/* ===================== GREEN LINE ===================== */}
+      <section className="relative mx-auto mt-20 max-w-5xl px-6 md:mt-28">
+        <GreenLineSection />
+      </section>
+
+      {/* ===================== FAQ ===================== */}
+      <section className="relative mx-auto mt-24 max-w-4xl px-6 md:mt-36">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
+            More Questions
+          </h2>
+        </div>
+
+        <div className="space-y-6">
+          <details className="group rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
+            <summary className="cursor-pointer text-lg font-bold text-white">
+              What is a Conscious Creation System?
+            </summary>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+              It&rsquo;s the machine that makes &ldquo;thoughts become
+              things&rdquo; reliable instead of random. We help you program the
+              destination (your Life Vision), build the machine in 72 hours, then
+              hand you a MAP to run it every day across four simple parts:
+              Creations, Activations, Connections, and Sessions.
             </p>
-          </div>
-          <div className="rounded-3xl border border-neutral-800 bg-neutral-950 p-8">
-            <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#BF00FF]/10">
-              <Compass className="h-5 w-5 text-[#BF00FF]" />
-            </div>
-            <h3 className="text-xl font-bold text-white">
-              The Guide: VIVA
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-neutral-400 md:text-base">
-              VIVA is your co-pilot. She teaches the system, reads your data, and
-              suggests the next best reps to keep you above the Green Line.
+          </details>
+          <details className="group rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
+            <summary className="cursor-pointer text-lg font-bold text-white">
+              What is Vibrational Fitness?
+            </summary>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+              Vibrational fitness is your system for conscious creation.
+              It&rsquo;s the practice of using a repeatable structure of
+              Creations, Activations, Connections, and Sessions to stay aligned
+              with your Life Vision, with your MAP showing you exactly what to do
+              so your outer world naturally starts to reflect it.
             </p>
-          </div>
+          </details>
+          <details className="group rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
+            <summary className="cursor-pointer text-lg font-bold text-white">
+              What is the 4-Layer Conscious Creation Writing Architecture?
+            </summary>
+            <div className="mt-3 space-y-3 text-sm leading-relaxed text-neutral-400">
+              <p>
+                The energetic blueprint behind The Life I Choose&trade; vision
+                document. Every Life I Choose document follows four interacting
+                layers:
+              </p>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>
+                  <strong className="text-white">5-Phase Flow:</strong>{' '}
+                  Gratitude &rarr; Sensory Detail &rarr; Embodiment &rarr;
+                  Essence &rarr; Surrender.
+                </li>
+                <li>
+                  <strong className="text-white">
+                    Who / What / Where / Why:
+                  </strong>{' '}
+                  Narrative orientation that gives your vision shape and clarity.
+                </li>
+                <li>
+                  <strong className="text-white">
+                    Being / Doing / Receiving:
+                  </strong>{' '}
+                  Vibrational cycling that keeps your energy balanced.
+                </li>
+                <li>
+                  <strong className="text-white">
+                    Micro&ndash;Macro Breathing:
+                  </strong>{' '}
+                  Emotional pacing that makes writing feel alive.
+                </li>
+              </ul>
+              <p>
+                Together, these four layers turn your writing into a vibrational
+                practice&mdash;helping you not just describe your dream life, but
+                tune to it until it becomes your reality.
+              </p>
+            </div>
+          </details>
+          <details className="group rounded-2xl border border-neutral-800 bg-neutral-950 p-6">
+            <summary className="cursor-pointer text-lg font-bold text-white">
+              Can I change plans later?
+            </summary>
+            <div className="mt-3 space-y-3 text-sm leading-relaxed text-neutral-400">
+              <p>
+                <strong className="text-white">Short answer:</strong> Yes. You
+                can switch plans.
+              </p>
+              <p>
+                <strong className="text-white">Before Day 28:</strong> Switch
+                from Annual to Every 28 Days or vice-versa in one click. The
+                first charge still occurs on Day 28 at the new plan.
+              </p>
+              <p>
+                <strong className="text-white">After billing starts:</strong>{' '}
+                Every 28 Days &rarr; Annual: upgrade immediately with a credit
+                for unused time. Annual &rarr; Every 28 Days: switch takes
+                effect at renewal.
+              </p>
+              <p>
+                Your Membership Satisfaction Guarantee (16 weeks from checkout)
+                stays intact when you switch.
+              </p>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -666,12 +862,13 @@ export default function ConsciousCreationSystemPage() {
             your system?
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-base text-neutral-300 md:text-lg">
-            The Activation Intensive is where we build your system, set your
-            rhythm, and hand you a MAP you can actually keep.
+            The Activation Intensive is where we install your Conscious Creation
+            System in 72 hours so you can stop manifesting from chaos and start
+            running a repeatable machine.
           </p>
           <div className="mt-9 flex justify-center">
-            <ButtonLink href="/intensive" variant="primary" size="lg">
-              Start the Activation Intensive
+            <ButtonLink href="/#pricing" variant="primary" size="lg">
+              Start the 72-Hour Activation Intensive
               <ArrowRight className="h-5 w-5" />
             </ButtonLink>
           </div>

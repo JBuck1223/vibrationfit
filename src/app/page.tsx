@@ -8,13 +8,12 @@ import {
   Gift, Zap, CheckCircle, ArrowRight, Star, Target,
   Brain, TrendingUp, Shield, Play, Award, Globe, Crown, Check, Clock, User, Dumbbell,
   Headphones, Image, BookOpen, CalendarDays, Lock, HelpCircle, Eye,
-  RefreshCw, Maximize2, Minimize2, Layers, Smile, Signal, RadioTower,
+  RadioTower,
   Settings, FileText, ClipboardCheck, Wand2, Music, Mic, Sliders, Calendar, Rocket, Unlock,
   ShoppingCart, MessageSquarePlus, Video, Map
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { GreenLineSection } from '@/components/GreenLineSection'
 import {
   Stack,
   Inline,
@@ -409,30 +408,34 @@ export default function HomePage() {
                     <Text size="sm" className="text-neutral-300 text-center md:text-left">
                       So freedom and joy become your baseline and manifestations turn into repeatable side‑effects.
                     </Text>
+
+                    <Text size="xs" className="text-neutral-400 italic text-center md:text-left">
+                      For people who believe in universal law but are stuck in inconsistent, on‑off practice.
+                    </Text>
                     
                     {/* Mobile bullets */}
                     <BulletedList className="leading-relaxed md:hidden">
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Design your dream life</strong> – A clear Life Vision, audio, and board in 72 hours.
+                        <strong>Design your dream life</strong> in 72 hours (vision, audio, board done).
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Align your days</strong> – Your MAP runs your system: Creations, Activations, Connections, Sessions.
+                        <strong>Turn it into a simple daily plan</strong> that runs on autopilot.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Enjoy your life now</strong> – VIVA, Daily Paper, and the Green Line bring more freedom and joy today.
+                        <strong>Enjoy more freedom and joy now</strong> while wins stack as evidence.
                       </ListItem>
                     </BulletedList>
 
                     {/* Desktop bullets */}
                     <BulletedList className="leading-relaxed lg:text-left lg:ml-6 hidden md:block">
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Design your dream life</strong> – Go from &ldquo;no idea what I even want&rdquo; to a clear Life Vision, audio, and board in 72 hours.
+                        <strong>Design your dream life</strong> in 72 hours (vision, audio, board done).
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Align your days with that design</strong> – Your My Alignment Plan (MAP) runs the four parts of your system for you: Creations, Activations, Connections, Sessions.
+                        <strong>Turn it into a simple daily plan</strong> that runs on autopilot.
                       </ListItem>
                       <ListItem icon={Zap} variant="primary" className="text-left text-neutral-300">
-                        <strong>Enjoy your life now</strong> – VIVA, Daily Paper, and the Green Line help you enjoy more freedom and joy today, while wins and abundance show up as evidence, not pressure.
+                        <strong>Enjoy more freedom and joy now</strong> while wins stack as evidence.
                       </ListItem>
                     </BulletedList>
                     
@@ -441,7 +444,7 @@ export default function HomePage() {
                       <div className="flex flex-col items-center">
                         <Button variant="primary" size="xl" className="mt-1 md:mt-2" asChild>
                           <a href="#pricing">
-                            Start the 72-Hour Vision Activation Intensive
+                            Start the 72-Hour Activation Intensive
                           </a>
                         </Button>
 
@@ -490,65 +493,22 @@ export default function HomePage() {
           </Cover>
         </section>
 
-        {/* Conscious Creation System Section */}
+        {/* How Vibration Fit Works — Slim Summary */}
         <section>
           <Container size="xl">
-            <Card variant="elevated" className="p-6 md:p-10 bg-black/40 border-[#39FF14]/20 border-2">
-              <div className="text-center max-w-3xl mx-auto mb-8 md:mb-10">
-                <Badge variant="primary" className="mb-4">How Vibration Fit works</Badge>
-                <Heading level={3} className="text-white !mb-4">
-                  The Conscious Creation System:<br />
-                  <span className="text-[#39FF14]">Design</span> &rarr; <span className="text-[#00FFFF]">Align</span> &rarr; <span className="text-[#FFFF00]">Enjoy</span>
-                </Heading>
-                <Text size="base" className="text-neutral-200 font-semibold mb-3">
-                  Basis of life: Freedom. Purpose of life: Joy.
-                </Text>
-                <Text size="sm" className="text-neutral-300">
-                  Your Conscious Creation System is the structure that helps you design your life on purpose, align your thoughts, words, and actions with that design, and enjoy the freedom and joy available right now.
-                </Text>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                {/* Design */}
-                <div className="bg-neutral-900/60 border-2 border-[#39FF14]/30 rounded-2xl p-6 flex flex-col">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="w-10 h-10 rounded-full bg-[#39FF14]/10 flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-5 h-5 text-[#39FF14]" />
-                    </span>
-                    <Heading level={4} className="text-[#39FF14] !mb-0">Design</Heading>
-                  </div>
-                  <Text size="sm" className="text-neutral-300">
-                    Choose what you want to include in your experience. With VIVA&rsquo;s guidance, your Life Vision (the Life I Choose), audio, and board turn your dream life into something specific and real.
-                  </Text>
-                </div>
-
-                {/* Align */}
-                <div className="bg-neutral-900/60 border-2 border-[#00FFFF]/30 rounded-2xl p-6 flex flex-col">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="w-10 h-10 rounded-full bg-[#00FFFF]/10 flex items-center justify-center flex-shrink-0">
-                      <Sliders className="w-5 h-5 text-[#00FFFF]" />
-                    </span>
-                    <Heading level={4} className="text-[#00FFFF] !mb-0">Align</Heading>
-                  </div>
-                  <Text size="sm" className="text-neutral-300">
-                    Become the version of you who naturally lives it. Your custom My Alignment Plan (MAP) and Projects turn your vision into consistent Creations, Activations, Connections, and Sessions that bring your thoughts, feelings, and actions into harmony with your design, day after day.
-                  </Text>
-                </div>
-
-                {/* Enjoy */}
-                <div className="bg-neutral-900/60 border-2 border-[#FFFF00]/30 rounded-2xl p-6 flex flex-col">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="w-10 h-10 rounded-full bg-[#FFFF00]/10 flex items-center justify-center flex-shrink-0">
-                      <Smile className="w-5 h-5 text-[#FFFF00]" />
-                    </span>
-                    <Heading level={4} className="text-[#FFFF00] !mb-0">Enjoy</Heading>
-                  </div>
-                  <Text size="sm" className="text-neutral-300">
-                    Freedom and joy aren&rsquo;t destinations; they&rsquo;re available today. Your Daily Paper, journal, Abundance Tracker, and the Green Line help you notice what feels good, enjoy it more, and gently move back above the line when you don&rsquo;t.
-                  </Text>
-                </div>
-              </div>
-            </Card>
+            <div className="text-center max-w-3xl mx-auto py-4">
+              <Badge variant="primary" className="mb-4">How Vibration Fit works</Badge>
+              <Heading level={3} className="text-white !mb-4">
+                <span className="text-[#39FF14]">Design</span> your Life Vision &rarr; <span className="text-[#00FFFF]">Install</span> it in 72 hours &rarr; <span className="text-[#FFFF00]">Run</span> it daily with MAP.
+              </Heading>
+              <Text size="base" className="text-neutral-300 mb-6">
+                Your Conscious Creation System gives you the structure so &ldquo;thoughts become things&rdquo; stops being random and starts being repeatable.
+              </Text>
+              <Link href="/system" className="inline-flex items-center gap-2 text-[#39FF14] hover:text-[#5EC49A] font-semibold transition-colors text-base">
+                See how the system works
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </Container>
         </section>
 
@@ -663,43 +623,54 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6">
-                <div className="flex flex-col gap-6">
-                  <div>
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#39FF14]/20 border-2 border-[#39FF14]/30">
-                        <Brain className="w-5 h-5 md:w-6 md:h-6 text-[#39FF14]" />
-                      </div>
-                      <Heading level={4} className="text-white !mb-0">Creations (0–72h)</Heading>
+                <Heading level={3} className="text-white text-center mb-4 md:mb-5">
+                  The 4 parts of your system
+                </Heading>
+                <Text size="sm" className="text-neutral-300 text-center mb-6 md:mb-8">
+                  Every aligned action in Vibration Fit is one of these four. Your MAP schedules them, your dashboard tracks them.
+                </Text>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#39FF14]/20 border-2 border-[#39FF14]/30">
+                      <Brain className="w-5 h-5 text-[#39FF14]" />
                     </div>
-                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Complete your 72‑Hour Vision Activation Intensive: profile + 12‑category Life Vision with VIVA, plus your first audios, board, journals, and My Alignment Plan.</Text>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#14B8A6]/20 border-2 border-[#14B8A6]/30">
-                        <RadioTower className="w-5 h-5 md:w-6 md:h-6 text-[#14B8A6]" />
-                      </div>
-                      <Heading level={4} className="text-white !mb-0">Activations</Heading>
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Creations</Text>
+                      <Text size="xs" className="text-neutral-400">Visions, audios, boards, journals — artifacts you build</Text>
                     </div>
-                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Keep your signal aligned as life evolves: follow your My Alignment Plan daily, listen to your Vision Audio, and refine your Life Vision and Vision Board as your clarity increases.</Text>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#BF00FF]/20 border-2 border-[#BF00FF]/30">
-                        <Heart className="w-5 h-5 md:w-6 md:h-6 text-[#BF00FF]" />
-                      </div>
-                      <Heading level={4} className="text-white !mb-0">Connections</Heading>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#14B8A6]/20 border-2 border-[#14B8A6]/30">
+                      <RadioTower className="w-5 h-5 text-[#14B8A6]" />
                     </div>
-                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Build visible momentum and proof: share wins, post updates, and celebrate actualizations inside the Vibe Tribe while your dashboard streaks grow.</Text>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#FFB701]/20 border-2 border-[#FFB701]/30">
-                        <CalendarDays className="w-5 h-5 md:w-6 md:h-6 text-[#FFB701]" />
-                      </div>
-                      <Heading level={4} className="text-white !mb-0">Sessions</Heading>
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Activations</Text>
+                      <Text size="xs" className="text-neutral-400">Daily reps that keep your signal aligned</Text>
                     </div>
-                    <Text size="sm" className="text-neutral-300 ml-14 md:ml-16">Stay calibrated in real time: attend The Alignment Gym (weekly live coaching) to refine your vision, adjust your MAP, and choose your next aligned actions.</Text>
                   </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#BF00FF]/20 border-2 border-[#BF00FF]/30">
+                      <Heart className="w-5 h-5 text-[#BF00FF]" />
+                    </div>
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Connections</Text>
+                      <Text size="xs" className="text-neutral-400">Vibe Tribe posts, comments, and hearts</Text>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#FFB701]/20 border-2 border-[#FFB701]/30">
+                      <CalendarDays className="w-5 h-5 text-[#FFB701]" />
+                    </div>
+                    <div>
+                      <Text size="sm" className="text-white font-semibold">Sessions</Text>
+                      <Text size="xs" className="text-neutral-400">Alignment Gym live coaching and replays</Text>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center mt-6">
+                  <Link href="/system" className="text-[#39FF14] hover:text-[#5EC49A] underline underline-offset-4 transition-colors text-sm">
+                    See how every part fits together →
+                  </Link>
                 </div>
               </div>
             </TwoColumn>
@@ -855,15 +826,6 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
-                </div>
-                
-                {/* CTA Button */}
-                <div className="text-center">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="#pricing">
-                      Start the 72-Hour Vision Activation Intensive
-                    </a>
-                  </Button>
                 </div>
               </Stack>
             </Card>
@@ -1048,15 +1010,6 @@ export default function HomePage() {
                         <strong className="text-[#39FF14]">Complete all 14 steps</strong> to graduate and enter your full Vision Pro member experience
                       </Text>
                     </div>
-                  </div>
-                  
-                  {/* CTA Button */}
-                  <div className="text-center">
-                    <Button variant="primary" size="xl" asChild>
-                      <a href="#pricing">
-                        Start the 72-Hour Vision Activation Intensive
-                      </a>
-                    </Button>
                   </div>
                 </Stack>
             </div>
@@ -1430,17 +1383,6 @@ export default function HomePage() {
                     VIVA asks, you answer. Prompts, checklists, and your My Alignment Plan tell you exactly what to do next—so staying aligned becomes a set of simple daily reps, not a mysterious practice you have to invent.
                   </FeatureCard>
                 </Grid>
-
-                <div className="text-center">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="#pricing">
-                      Start the 72-Hour Vision Activation Intensive
-                    </a>
-                  </Button>
-                  <Text size="xs" className="text-neutral-400 text-center mt-2">
-                    ${getIntensiveTotal()} today. First 28 days of Vision Pro included. Day 28: auto‑continue at your selected plan.
-                  </Text>
-                </div>
               </Stack>
             </div>
           </Container>
@@ -1557,82 +1499,6 @@ export default function HomePage() {
                   defaultExpanded={['setup']}
                   allowMultiple={true}
                 />
-                
-                <div className="text-center">
-                  <Button variant="primary" size="xl" asChild>
-                    <a href="#pricing">
-                      Start the 72-Hour Vision Activation Intensive
-                    </a>
-                  </Button>
-                </div>
-              </Stack>
-            </div>
-          </Container>
-        </section>
-
-        {/* Meet the Mechanism */}
-        <section>
-          <Container size="xl">
-            <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#333] border-2 rounded-2xl p-4 md:p-6 lg:p-8">
-              <Stack gap="sm" className="md:gap-6" align="center">
-                <div className="text-center space-y-4">
-                  <Heading level={2} className="text-white !mb-0">
-                    Meet the Engine Behind VIVA Vision
-                  </Heading>
-                  <Text size="lg" className="text-neutral-400 font-semibold !mt-4">
-                    The writing engine inside the Creations part of your Conscious Creation System.
-                  </Text>
-                  <Text size="base" className="text-neutral-300 w-full !mt-4">
-                    When you do your Creations reps, VIVA uses a 4‑Layer Conscious Creation Writing Architecture to make your vision feel real and stick. In 2011, Jordan wrote his first Life I Choose™—and the same pattern showed up again in 2014. When Vanessa joined, structure met soul. We taught VIVA to guide anyone through it.
-                  </Text>
-                  <Text size="sm" className="text-neutral-500 w-full">
-                    The 4‑Layer Architecture and 5‑Phase Flow are the writing pattern inside VIVA Vision—not a separate system.
-                  </Text>
-                </div>
-                <Grid responsiveCols={{ mobile: 1, desktop: 4 }} minWidth="200px" gap="sm">
-                  <FeatureCard 
-                    icon={Sparkles} 
-                    title={<><span>Layer 1</span><br /><span className="text-[#39FF14]">5‑Phase Flow</span></>}
-                    iconColor="#39FF14"
-                    variant="outlined"
-                    className="!bg-[#39FF14]/10 !border-[#39FF14]/30"
-                  >
-                    The emotional arc inside VIVA Vision: Gratitude → Sensory → Embodiment → Essence → Surrender. Each vision paragraph follows this writing pattern.
-                  </FeatureCard>
-                  <FeatureCard 
-                    icon={Image} 
-                    title={<><span>Layer 2</span><br /><span className="text-[#14B8A6]">Who / What / Where / Why</span></>}
-                    iconColor="#14B8A6"
-                    variant="outlined"
-                    className="!bg-[#14B8A6]/10 !border-[#14B8A6]/30"
-                  >
-                    Turn vague desires into vivid scenes. VIVA prompts for who you are being, what you are doing, where you are, and why it matters so your vision feels like a real experience.
-                  </FeatureCard>
-                  <FeatureCard 
-                    icon={RefreshCw} 
-                    title={<><span>Layer 3</span><br /><span className="text-[#BF00FF]">Being / Doing / Receiving</span></>}
-                    iconColor="#BF00FF"
-                    variant="outlined"
-                    className="!bg-[#BF00FF]/10 !border-[#BF00FF]/30"
-                  >
-                    Balance identity, action, and evidence so momentum compounds instead of stalling out.
-                  </FeatureCard>
-                  <FeatureCard 
-                    icon={Maximize2} 
-                    title={<><span>Layer 4</span><br /><span className="text-[#FFB701]">Micro–Macro Breathing</span></>}
-                    iconColor="#FFB701"
-                    variant="outlined"
-                    className="!bg-[#FFB701]/10 !border-[#FFB701]/30"
-                  >
-                    Zoom into sensory detail, zoom out to meaning—paragraph rhythm that feels alive (and sticks).
-                  </FeatureCard>
-                </Grid>
-                <Text size="base" className="text-neutral-300 text-center w-full">
-                  This is why your vision paragraphs feel vivid and emotionally charged instead of like vague affirmations.
-                </Text>
-                <Button variant="primary" size="lg" asChild>
-                  <a href="#pricing">Start the 72-Hour Vision Activation Intensive</a>
-                </Button>
               </Stack>
             </div>
           </Container>
@@ -2152,7 +2018,7 @@ export default function HomePage() {
                         onClick={handleIntensivePurchase}
                         disabled={isLoading}
                       >
-                        {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start 72-Hour Vision Activation Intensive' : 'Start the 72-Hour Vision Activation Intensive'}
+                        {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start 72-Hour Activation Intensive' : 'Start the 72-Hour Activation Intensive'}
                       </Button>
                       <p className="flex items-center justify-center gap-2 text-xs text-[#39FF14] text-center mt-2">
                         <ShoppingCart className="w-3.5 h-3.5" />
@@ -2258,7 +2124,7 @@ export default function HomePage() {
                           <div>
                             <Button variant="primary" size="xl" asChild>
                               <a href="#pricing">
-                                Start the 72-Hour Vision Activation Intensive
+                                Start the 72-Hour Activation Intensive
                               </a>
                           </Button>
                           </div>
@@ -2324,155 +2190,14 @@ export default function HomePage() {
                     </Text>
                   </div>
 
-                  {/* CTA */}
                   <div className="text-center">
-                    <Text size="sm" className="text-neutral-400 text-center mb-3">
-                      Ditch chaos in 72 hours
-                    </Text>
-                    <Button variant="primary" size="lg" asChild>
-                      <a href="#pricing">
-                        Start the 72-Hour Vision Activation Intensive
-                      </a>
-                    </Button>
+                    <Link href="/system" className="text-[#39FF14] hover:text-[#5EC49A] underline underline-offset-4 transition-colors text-sm md:text-base">
+                      See how the system fixes this →
+                    </Link>
                   </div>
                 </Stack>
               </Stack>
             </div>
-          </Container>
-        </section>
-
-        {/* The Solution: Conscious Creation System */}
-        <section id="solution">
-          <Container size="xl">
-            <Card variant="outlined" className="border-[#39FF14] bg-[#0F1612]/70 p-4 md:p-6 shadow-[0_18px_60px_rgba(57,255,20,0.12)]">
-              <Stack gap="lg">
-                <div className="text-center w-full space-y-3">
-                  <Heading level={2} className="text-white mb-4 leading-tight">
-                    The <span className="text-[#39FF14]">4 Parts</span> of Your Conscious Creation System
-                  </Heading>
-                  <Text size="base" className="text-neutral-200 max-w-3xl mx-auto">
-                    MAP runs four kinds of reps. These are the &ldquo;wheels&rdquo; that move your life: Creations, Activations, Connections, and Sessions.
-                  </Text>
-                  <Text size="sm" className="text-neutral-300 tracking-wide max-w-3xl mx-auto">
-                    Every aligned action in Vibration Fit touches one of these four. If the wheels are turning, you&rsquo;re aligning.
-                  </Text>
-                </div>
-
-                <Grid responsiveCols={{ mobile: 1, desktop: 4 }} gap="lg">
-                  <Card variant="elevated" className="h-full border-[#39FF14]/30 bg-[#39FF14]/6">
-                    <Stack gap="md" className="h-full">
-                      <div className="w-16 h-16 bg-gradient-to-br from-[#39FF14]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
-                        <Icon icon={Brain} size="lg" color="#39FF14" />
-                      </div>
-                      <Stack gap="sm" className="text-left items-center">
-                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
-                          Creations
-                        </Heading>
-                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(0–72h)</Text>
-                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Design and install your Life Vision</Text>
-                        <BulletedList className="space-y-1 text-neutral-100">
-                          <ListItem variant="success" icon={Check}>Complete your profile</ListItem>
-                          <ListItem variant="success" icon={Check}>Draft your 12‑category Life Vision with VIVA</ListItem>
-                          <ListItem variant="success" icon={Check}>Build your first Vision Board (12 images)</ListItem>
-                          <ListItem variant="success" icon={Check}>Generate your Vision Audio</ListItem>
-                          <ListItem variant="success" icon={Check}>Log your first journal entry (written, voice, or video)</ListItem>
-                        </BulletedList>
-                        <Text size="sm" className="text-neutral-200 text-center">
-                          <strong className="text-[#39FF14]">Done when:</strong> your Life Vision, board, and audios are created inside Vibration Fit.
-                        </Text>
-                      </Stack>
-                    </Stack>
-                  </Card>
-
-                  <Card variant="elevated" className="h-full border-[#00FFFF]/30 bg-[#00FFFF]/8">
-                    <Stack gap="md" className="h-full">
-                      <div className="w-16 h-16 bg-gradient-to-br from-[#00FFFF]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
-                        <Icon icon={RadioTower} size="lg" color="#00FFFF" />
-                      </div>
-                      <Stack gap="sm" className="text-left items-center">
-                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
-                          Activations
-                        </Heading>
-                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(ongoing)</Text>
-                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Run your daily MAP (My Alignment Plan)</Text>
-                        <BulletedList className="space-y-1">
-                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Follow your MAP for AM/PM audio listening</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Review your Life Vision on schedule</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Keep your commitments to yourself</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#00FFFF]">Keep your daily activation streak going</ListItem>
-                        </BulletedList>
-                        <Text size="sm" className="text-neutral-200 text-center">
-                          <strong className="text-[#00FFFF]">Done when:</strong> daily reps are complete and streak is active (7+ days).
-                        </Text>
-                      </Stack>
-                    </Stack>
-                  </Card>
-
-                  <Card variant="elevated" className="h-full border-[#BF00FF]/30 bg-[#BF00FF]/8">
-                    <Stack gap="md" className="h-full">
-                      <div className="w-16 h-16 bg-gradient-to-br from-[#BF00FF]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
-                        <Icon icon={Heart} size="lg" color="#BF00FF" />
-                      </div>
-                      <Stack gap="sm" className="text-left items-center">
-                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
-                          Connections
-                        </Heading>
-                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(ongoing)</Text>
-                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Create in community</Text>
-                        <BulletedList className="space-y-1">
-                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Share wins and realizations in Vibe Tribe</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Comment and send hearts on others' posts</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Post questions when you wobble</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#BF00FF]">Share actualization stories as they happen</ListItem>
-                        </BulletedList>
-                        <Text size="sm" className="text-neutral-200 text-center">
-                          <strong className="text-[#BF00FF]">Done when:</strong> you've shared at least one post and supported someone else this week.
-                        </Text>
-                      </Stack>
-                    </Stack>
-                  </Card>
-
-                  <Card variant="elevated" className="h-full border-[#FFB701]/30 bg-[#FFB701]/8">
-                    <Stack gap="md" className="h-full">
-                      <div className="w-16 h-16 bg-gradient-to-br from-[#FFB701]/25 to-transparent rounded-2xl flex items-center justify-center mx-auto">
-                        <Icon icon={CalendarDays} size="lg" color="#FFB701" />
-                      </div>
-                      <Stack gap="sm" className="text-left items-center">
-                        <Heading level={3} className="text-white text-center uppercase tracking-wide !mb-0">
-                          Sessions
-                        </Heading>
-                        <Text size="base" className="text-neutral-400 uppercase tracking-wide text-center -mt-1">(live)</Text>
-                        <Text size="sm" className="text-neutral-300 font-semibold text-center w-full">Get real‑time alignment</Text>
-                        <BulletedList className="space-y-1">
-                          <ListItem variant="accent" icon={Check} className="!text-[#FFB701]">Attend The Alignment Gym (weekly live coaching)</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#FFB701]">Bring your current contrast and questions</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#FFB701]">Refine your vision and MAP with guidance</ListItem>
-                          <ListItem variant="accent" icon={Check} className="!text-[#FFB701]">Leave with clear next actions</ListItem>
-                        </BulletedList>
-                        <Text size="sm" className="text-neutral-200 text-center">
-                          <strong className="text-[#FFB701]">Done when:</strong> at least one live session attended this month.
-                        </Text>
-                      </Stack>
-                    </Stack>
-                  </Card>
-                </Grid>
-
-                <div className="text-center">
-                  <Button variant="primary" size="lg" asChild>
-                    <a href="#pricing">
-                      Start the 72-Hour Vision Activation Intensive
-                    </a>
-                  </Button>
-                </div>
-              </Stack>
-            </Card>
-          </Container>
-        </section>
-
-        {/* Green Line Section */}
-        <section>
-          <Container size="lg">
-            <GreenLineSection />
           </Container>
         </section>
 
@@ -2529,12 +2254,9 @@ export default function HomePage() {
                 <div className="w-full max-w-xl">
                   <Button variant="primary" size="xl" className="w-full" asChild>
                     <a href="#pricing">
-                      Start the 72-Hour Vision Activation Intensive
+                      Start the 72-Hour Activation Intensive
                     </a>
                   </Button>
-                  <Text size="xs" className="text-neutral-400 text-center mt-2">
-                    ${getIntensiveTotal()} today. First 28 days of Vision Pro included. Day 28: auto‑continue at your selected plan.
-                  </Text>
                   <div className="flex flex-col items-center justify-center gap-3 text-xs uppercase tracking-wide text-neutral-400 mt-4">
                     <div className="flex items-center gap-2">
                       <Icon icon={Shield} size="sm" className="text-[#39FF14] flex-shrink-0" />
@@ -2572,16 +2294,6 @@ export default function HomePage() {
                   description: 'Good. That\'s why we stack raw proof, a structured mechanism, and guarantees. See the vision transformations (including $0.74 → $1M screenshots), the Conscious Creation System: Creations → Activations → Connections → Sessions, and our 72‑Hour Activation + Membership Guarantees.'
                 },
                 {
-                  id: 'religious',
-                  title: 'Is this religious?',
-                  description: 'No doctrine. No beliefs to adopt. It\'s a practical system with tools and habits. We measure observable outputs (vision built, audio generated, board created, journals logged, Alignment Gym tour complete) and track your progress over time.'
-                },
-                {
-                  id: 'how-fast',
-                  title: 'How fast is "fast"?',
-                  description: '"Active" in 72 hours means completing all 14 guided Activation Intensive steps: Account Settings & Baseline Intake, Profile complete, 12-category Life Vision built (with VIVA), Vision Audio & Mix ready (voice recording optional), Vision Board built (12 images), 1 journal entry logged, Vibe Tribe post + community engagement, Alignment Gym tour complete, and MAP activated. Step 14 (Graduation) moves you into full Vision Pro member mode—your main dashboard, advanced audio tools, and Alignment Gym live sessions with streaks and MAP tracking (Vibe Tribe continues from Steps 10–11).'
-                },
-                {
                   id: 'tried-loa',
                   title: 'What if I\'ve tried LoA and failed?',
                   description: 'Most people had belief without structure. We give you the mechanism (Creations → Activations → Connections → Sessions), a 72‑Hour Activation to get your Life Vision fully online, and a 28‑Day MAP (My Alignment Plan) so you know exactly what to do each day, plus proof and guarantees if you\'re not satisfied.'
@@ -2589,7 +2301,7 @@ export default function HomePage() {
                 {
                   id: 'dont-know',
                   title: 'What if I don\'t know what I want?',
-                  description: 'VIVA turns contrast into clarity and drafts your 12‑category Life Vision with you using our 4‑Layer Conscious Creation Writing Architecture (encoded in VIVA). You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
+                  description: 'VIVA turns contrast into clarity and drafts your 12‑category Life Vision with you. You\'ll have a concrete first draft to refine within 72 hours of starting—something that used to take Jordan and Vanessa months to do on their own without VIVA\'s help.'
                 },
                 {
                   id: 'doesnt-work',
@@ -2597,14 +2309,14 @@ export default function HomePage() {
                   description: 'You have two layers of protection: a 72‑Hour Activation Guarantee (complete all 14 guided Activation Intensive steps in 72 hours; if you\'re not satisfied, you get a full refund of your Intensive fee) and a Membership Satisfaction Guarantee (16 weeks from your checkout date, no matter which plan you choose).'
                 },
                 {
-                  id: 'guarantee-start',
-                  title: 'When do guarantees start?',
-                  description: 'All guarantees start from your checkout date. Your 72‑hour window begins the moment you enroll in the Intensive, and your Membership Satisfaction Guarantee runs for 16 weeks from that same checkout date, no matter which plan you choose.'
+                  id: 'billing-start',
+                  title: 'When does billing start?',
+                  description: `$${getIntensiveTotal()} today for the Intensive + first 28 days of Vision Pro included. Day 28 your selected plan begins automatically.`
                 },
                 {
-                  id: 'guarantee-qualify',
-                  title: 'What qualifies for the 72‑Hour Activation Guarantee?',
-                  description: `Complete all 14 guided Activation Intensive steps in 72 hours. Completion = Account Settings & Baseline Intake, Profile complete, 12-category Life Vision built (with VIVA), Vision Audio & Mix ready, Vision Board built (12 images), 1 journal entry logged, Vibe Tribe post + community engagement, Alignment Gym tour complete, MAP activated. If you complete all steps in 72 hours and are not satisfied, you'll get a full refund of your $${getIntensiveTotal()} Intensive fee. No questions asked.`
+                  id: 'switch-cancel',
+                  title: 'Can I switch or cancel before billing starts?',
+                  description: 'Yes—1‑click switch/cancel anytime before Day 28.'
                 },
                 {
                   id: 'refunds',
@@ -2615,7 +2327,7 @@ export default function HomePage() {
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What's covered</p>
                         <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1 text-sm text-neutral-300">
                           <li>
-                            72‑Hour Activation Guarantee: if you complete all 14 guided Activation Intensive steps in 72 hours and aren't satisfied, we refund the ${getIntensiveTotal()} Intensive fee. (Completion = Account Settings & Baseline Intake, Profile complete, 12-category Life Vision built (with VIVA), Vision Audio & Mix ready, Vision Board built (12 images), 1 journal entry logged, Vibe Tribe post + community engagement, Alignment Gym tour complete, MAP activated.)
+                            72‑Hour Activation Guarantee: if you complete all 14 guided Activation Intensive steps in 72 hours and aren't satisfied, we refund the ${getIntensiveTotal()} Intensive fee.
                           </li>
                           <li>
                             Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Every 28 Days or Annual).
@@ -2635,159 +2347,9 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How it's paid</p>
                         <p className="text-sm text-neutral-300">
-                          Refunds go back to the original payment method. Banks typically show the credit in 5–10 business days. (If the original charge is very recent, it can post as a reversal and the original charge disappears.)
+                          Refunds go back to the original payment method. Banks typically show the credit in 5–10 business days.
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">What happens to access</p>
-                        <p className="text-sm text-neutral-300">
-                          When we refund the Intensive, your account downgrades immediately. Membership refunds cancel future renewals and remove paid features tied to that plan.
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Limits</p>
-                        <p className="text-sm text-neutral-300">
-                          One refund per customer per product. We don't cover currency conversion, bank fees, or taxes outside our control. Abuse or duplicate accounts void guarantees.
-                        </p>
-                      </div>
-                    </div>
-                  )
-                },
-                {
-                  id: 'billing-start',
-                  title: 'When does billing start?',
-                  description: `$${getIntensiveTotal()} today for the Intensive + first 28 days of Vision Pro included. Day 28 your selected plan begins automatically.`
-                },
-                {
-                  id: 'what-is-conscious-creation-system',
-                  title: 'What is a Conscious Creation System?',
-                  description: (
-                    <div className="space-y-3 text-sm text-neutral-300 leading-relaxed">
-                      <p>
-                        It&apos;s the machine that makes &quot;thoughts become things&quot; reliable instead of random. We help you program the destination (your Life Vision), build the machine in 72 hours, then hand you a MAP to run it every day across four simple parts: Creations, Activations, Connections, and Sessions.
-                      </p>
-                      <p>
-                        <Link href="/system" className="text-[#39FF14] hover:underline">
-                          See how every part fits together →
-                        </Link>
-                      </p>
-                    </div>
-                  )
-                },
-                {
-                  id: 'what-is-vibrational-fitness',
-                  title: 'What is Vibrational Fitness?',
-                  description: 'Vibrational fitness is your system for conscious creation. It\'s the practice of using a repeatable structure of Creations, Activations, Connections, and Sessions to stay aligned with your Life Vision, with your MAP showing you exactly what to do so your outer world naturally starts to reflect it.'
-                },
-                {
-                  id: 'switch-cancel',
-                  title: 'Can I switch or cancel before billing starts?',
-                  description: 'Yes—1‑click switch/cancel anytime before Day 28.'
-                },
-                {
-                  id: 'change-plans',
-                  title: 'Can I change plans later?',
-                  description: (
-                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
-                      <p>
-                        <span className="font-semibold text-[#39FF14]">Short answer:</span> Yes. You can switch plans. Here's exactly how it works and why we do it this way.
-                      </p>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Before your first plan charge (Day 28)</p>
-                        <p>
-                          You can switch from Annual to Every 28 Days or vice-versa in one click. Your selection updates instantly; the first charge still occurs on Day 28 at the new plan.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">After billing starts (Day 28 and beyond)</p>
-                        <ul className="list-disc marker:text-[#39FF14] pl-5 space-y-1">
-                          <li>
-                            <span className="font-semibold text-white">Every 28 Days → Annual:</span> Want to lock in the Annual savings immediately? Start your Annual plan today and we'll credit any unused time from your current 28‑day cycle toward your Annual payment. No penalties or extra fees.
-                          </li>
-                          <li>
-                            <span className="font-semibold text-white">Annual → Every 28 Days:</span> Switch effective at your annual renewal. Annual prepay is not split into partial refunds; you keep access through your paid year, then move to 28-day.
-                          </li>
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Rate-lock (Annual)</p>
-                        <p>
-                          Annual prepay includes a 12-month rate lock—your price won't change during your paid year.
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Pricing cadence</p>
-                        <p>
-                          Every 28 Days bills every four weeks (13 cycles/year). We display savings using a 28-day equivalent for apples-to-apples comparison with Annual.
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Guarantees stay intact when you switch</p>
-                        <p>
-                          Your Membership Satisfaction Guarantee window starts at checkout (today) and runs for 16 weeks, no matter which plan you're on (Every 28 Days or Annual). Switching plans doesn't reset or extend the clock; it only changes what you'll be billed at your next renewal.
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Why we do it this way</p>
-                        <p className="text-sm text-neutral-300">
-                          Letting you switch at renewal gives flexibility without creating billing confusion.
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">How to switch</p>
-                        <p className="text-sm text-neutral-300">
-                          When logged in, under "Account" &gt; <a href="/account/billing" className="text-[#39FF14] underline underline-offset-4 hover:text-[#5EC49A] transition-colors">"Billing"</a>, choose your desired plan change. If you're pre-Day 28, your first charge will run on Day 28 at the selected plan. If you're mid-cycle, the change applies at the next renewal (or immediately for an upgrade to Annual if you choose to prepay now).
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p>
-                          We'll always show your next charge date and amount before you confirm any change.
-                        </p>
-                        <p>
-                          If we ever change prices for new customers, your annual rate-lock protects you through your paid year.
-                        </p>
-                      </div>
-                    </div>
-                  )
-                },
-                {
-                  id: '5-phase-flow',
-                  title: 'What is the 4‑Layer Conscious Creation Writing Architecture?',
-                  description: (
-                    <div className="space-y-4 text-sm text-neutral-300 leading-relaxed">
-                      <p>
-                        The 4-Layer Conscious Creation Writing Architecture is the energetic blueprint behind The Life I Choose™ vision document. It's how Vibration Fit transforms words on a page into a living, breathing frequency field that your subconscious can align with.
-                      </p>
-                      <p>
-                        Every Life I Choose document follows four interacting layers:
-                      </p>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The 5-Phase Conscious Creation Flow</p>
-                        <p>
-                          The energetic rhythm of every paragraph. Each section naturally moves from Gratitude → Sensory Detail → Embodiment → Essence → Surrender.
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The Who / What / Where / Why Framework</p>
-                        <p>
-                          The narrative orientation that gives your vision shape and clarity. It defines who you are being, what you're doing, where you are, and why it matters emotionally.
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">The Being / Doing / Receiving Loops</p>
-                        <p>
-                          The vibrational cycling that keeps your energy balanced. You activate the feeling (Being), express it through aligned action (Doing), and open space to let results flow in (Receiving).
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Micro–Macro Paragraph Breathing</p>
-                        <p>
-                          The emotional pacing that gives your writing life. Your paragraphs expand into vivid sensory scenes (macro) and then contract back into essence (micro), creating a rhythm that feels alive when you read or listen to it.
-                        </p>
-                      </div>
-                      <p>
-                        Together, these four layers turn your writing into a vibrational practice—helping you not just describe your dream life, but tune to it until it becomes your reality.
-                      </p>
                     </div>
                   )
                 },
@@ -2805,14 +2367,9 @@ export default function HomePage() {
                         <p>If a law or your location requires tax in the future, we'll calculate it from your billing address, show it clearly at checkout before you pay, and itemize it on your receipt. We'll notify you ahead of any change.</p>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">Receipts</p>
-                        <p>Your receipt will show a $0.00 tax line while tax collection is not enabled.</p>
-                      </div>
-                      <div>
                         <p className="text-sm font-semibold text-[#39FF14] uppercase tracking-wide">International buyers</p>
                         <p>Your bank may add currency conversion or cross-border fees—we don't control those.</p>
                       </div>
-                      <p>Note: This is not tax advice. If you're required to self-assess/use tax in your jurisdiction, consult your local guidance.</p>
                     </div>
                   )
                 }
