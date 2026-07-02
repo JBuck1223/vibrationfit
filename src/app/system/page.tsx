@@ -117,6 +117,7 @@ const operations = [
     icon: Target,
     dot: 'bg-[#39FF14] shadow-[0_0_20px_#39FF14]',
     text: 'text-[#39FF14]',
+    tagline: 'Choose the life you want to live.',
     desc: 'Choose what you want to include in your experience. The Life I Choose, Vision, audio, and board turn your dream life into something specific.',
   },
   {
@@ -125,6 +126,7 @@ const operations = [
     icon: RefreshCw,
     dot: 'bg-[#00FFFF] shadow-[0_0_20px_#00FFFF]',
     text: 'text-[#00FFFF]',
+    tagline: 'Bring your inner world into harmony with your design.',
     desc: 'MAP, Projects, and your four Parts (Creations, Activations, Connections, Sessions) bring your thoughts, feelings, and actions into harmony with that design.',
   },
   {
@@ -133,6 +135,7 @@ const operations = [
     icon: Heart,
     dot: 'bg-[#BF00FF] shadow-[0_0_20px_#BF00FF]',
     text: 'text-[#BF00FF]',
+    tagline: 'Experience the freedom and joy of the life you designed.',
     desc: 'The Green Line, Daily Paper, journal, and Abundance Tracker help you enjoy more freedom and joy now and see expansion as evidence, not a test.',
   },
 ]
