@@ -191,6 +191,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/crm/support/board',
     '/admin/crm/support/[id]',
     '/admin/crm/utm-builder',
+    '/admin/crm/links',
     
     // Email Management
     '/admin/emails',

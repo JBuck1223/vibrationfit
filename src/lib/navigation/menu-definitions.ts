@@ -387,6 +387,7 @@ export const adminNavigation: NavItem[] = [
       { name: 'Segments', href: '/admin/crm/segments', icon: UsersRound, description: 'Audience segments and targeting' },
       { name: 'Attribution', href: '/admin/crm/attribution', icon: Fingerprint, description: 'Visitor acquisition and session tracking' },
       { name: 'UTM Builder', href: '/admin/crm/utm-builder', icon: Link2, description: 'Build UTM tracking URLs' },
+      { name: 'Short Links', href: '/admin/crm/links', icon: Link2, description: 'Branded /go/ links you can re-point anytime' },
       { name: 'Coupons', href: '/admin/coupons', icon: Star, description: 'Manage coupon codes & discounts' },
       { name: 'Referrals', href: '/admin/referrals', icon: Share2, description: 'Referral program participants and stats' },
     ]

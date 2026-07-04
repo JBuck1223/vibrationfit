@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Badge, Container, Spinner, Stack, PageHero } from '@/lib/design-system/components'
-import { ArrowUpRight, Eye, Globe, Monitor, Smartphone, Tablet, Users, UserCheck, MousePointerClick, FileText } from 'lucide-react'
+import { ArrowUpRight, Eye, Globe, Monitor, Smartphone, Tablet, Users, UserCheck, MousePointerClick, FileText, Megaphone } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Visitor {
@@ -34,6 +34,8 @@ interface SourceBreakdown {
   conversionRate: number
 }
 
+type CreatorBreakdown = SourceBreakdown
+
 interface Totals {
   visitors: number
   converted: number
@@ -45,15 +47,18 @@ export default function AttributionPage() {
   const router = useRouter()
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [sources, setSources] = useState<SourceBreakdown[]>([])
+  const [creators, setCreators] = useState<CreatorBreakdown[]>([])
   const [mediums, setMediums] = useState<string[]>([])
+  const [creatorOptions, setCreatorOptions] = useState<string[]>([])
   const [totals, setTotals] = useState<Totals>({ visitors: 0, converted: 0, sessions: 0, pageviews: 0 })
   const [loading, setLoading] = useState(true)
 
   const [sourceFilter, setSourceFilter] = useState('all')
   const [mediumFilter, setMediumFilter] = useState('all')
+  const [contentFilter, setContentFilter] = useState('all')
   const [dateRange, setDateRange] = useState('30')
   const [showConverted, setShowConverted] = useState(false)
-  const [view, setView] = useState<'visitors' | 'sources'>('visitors')
+  const [view, setView] = useState<'visitors' | 'sources' | 'creators'>('visitors')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -61,6 +66,7 @@ export default function AttributionPage() {
       const params = new URLSearchParams()
       if (sourceFilter !== 'all') params.append('source', sourceFilter)
       if (mediumFilter !== 'all') params.append('medium', mediumFilter)
+      if (contentFilter !== 'all') params.append('content', contentFilter)
       params.append('date_range', dateRange)
       if (showConverted) params.append('converted', 'true')
 
@@ -70,7 +76,9 @@ export default function AttributionPage() {
       const data = await response.json()
       setVisitors(data.visitors)
       setSources(data.sources)
+      setCreators(data.creators || [])
       setMediums(data.mediums)
+      setCreatorOptions(data.creatorOptions || [])
       setTotals(data.totals)
     } catch (error) {
       console.error('Error fetching attribution:', error)
@@ -78,7 +86,7 @@ export default function AttributionPage() {
     } finally {
       setLoading(false)
     }
-  }, [sourceFilter, mediumFilter, dateRange, showConverted])
+  }, [sourceFilter, mediumFilter, contentFilter, dateRange, showConverted])
 
   useEffect(() => {
     fetchData()
@@ -151,6 +159,14 @@ export default function AttributionPage() {
               <Globe className="w-4 h-4 mr-1" />
               Sources
             </Button>
+            <Button
+              variant={view === 'creators' ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setView('creators')}
+            >
+              <Megaphone className="w-4 h-4 mr-1" />
+              Creators
+            </Button>
           </div>
         </PageHero>
 
@@ -221,6 +237,20 @@ export default function AttributionPage() {
               {mediums.map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
+            </select>
+          )}
+
+          {creatorOptions.length > 0 && (
+            <select
+              value={contentFilter}
+              onChange={(e) => setContentFilter(e.target.value)}
+              className="bg-[#1A1A1A] border border-[#333] rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-primary-500"
+            >
+              <option value="all">All Creators</option>
+              {creatorOptions.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+              <option value="none">No creator tag</option>
             </select>
           )}
 
@@ -297,6 +327,69 @@ export default function AttributionPage() {
           </Card>
         )}
 
+        {/* Creators View */}
+        {view === 'creators' && (
+          <Card className="p-0 overflow-x-auto">
+            <div className="min-w-[600px]">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#333]">
+                    <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Creator</th>
+                    <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Visitors</th>
+                    <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Converted</th>
+                    <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Conv. Rate</th>
+                    <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {creators.map((creator) => (
+                    <tr
+                      key={creator.name}
+                      className="border-b border-[#333] hover:bg-[#1F1F1F] cursor-pointer transition-colors"
+                      onClick={() => setContentFilter(creator.name)}
+                    >
+                      <td className="py-3 md:py-4 px-3 md:px-4">
+                        <Badge className={`${creator.name === 'none' ? 'bg-[#555] text-white' : 'bg-accent-500/20 text-accent-400'} px-2 py-1 text-xs`}>
+                          {creator.name === 'none' ? 'No creator tag' : creator.name}
+                        </Badge>
+                      </td>
+                      <td className="py-3 md:py-4 px-3 md:px-4 text-sm text-white font-medium">
+                        {creator.visitors}
+                      </td>
+                      <td className="py-3 md:py-4 px-3 md:px-4 text-sm text-primary-500">
+                        {creator.converted}
+                      </td>
+                      <td className="py-3 md:py-4 px-3 md:px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-2 bg-[#333] rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary-500 rounded-full"
+                              style={{ width: `${creator.conversionRate}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-neutral-300">{creator.conversionRate}%</span>
+                        </div>
+                      </td>
+                      <td className="py-3 md:py-4 px-3 md:px-4 text-sm text-neutral-400">
+                        {totals.visitors > 0
+                          ? Math.round((creator.visitors / totals.visitors) * 100)
+                          : 0}%
+                      </td>
+                    </tr>
+                  ))}
+                  {creators.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-center py-8 text-neutral-400 text-sm">
+                        No creator data for this period
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+
         {/* Visitors View */}
         {view === 'visitors' && (
           <>
@@ -313,6 +406,7 @@ export default function AttributionPage() {
                         <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Visitor</th>
                         <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Source</th>
                         <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm hidden md:table-cell">Medium</th>
+                        <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm hidden md:table-cell">Creator</th>
                         <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm hidden lg:table-cell">Landing Page</th>
                         <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm">Sessions</th>
                         <th className="text-left py-3 md:py-4 px-3 md:px-4 text-neutral-400 font-medium text-xs md:text-sm hidden md:table-cell">Pages</th>
@@ -351,6 +445,15 @@ export default function AttributionPage() {
                           </td>
                           <td className="py-3 md:py-4 px-3 md:px-4 text-neutral-400 text-xs md:text-sm hidden md:table-cell">
                             {visitor.first_utm_medium || '-'}
+                          </td>
+                          <td className="py-3 md:py-4 px-3 md:px-4 hidden md:table-cell">
+                            {visitor.first_utm_content ? (
+                              <Badge className="bg-accent-500/20 text-accent-400 px-2 py-1 text-xs">
+                                {visitor.first_utm_content}
+                              </Badge>
+                            ) : (
+                              <span className="text-neutral-400 text-xs md:text-sm">-</span>
+                            )}
                           </td>
                           <td className="py-3 md:py-4 px-3 md:px-4 text-neutral-400 text-xs hidden lg:table-cell">
                             <span title={visitor.first_landing_page || ''}>

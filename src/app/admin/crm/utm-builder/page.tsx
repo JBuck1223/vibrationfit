@@ -39,10 +39,7 @@ export default function UTMBuilderPage() {
     if (utmParams.referral) params.append('ref', utmParams.referral)
 
     const queryString = params.toString()
-    // Add #pricing anchor for intensive/promo links
-    const needsPricingAnchor = utmParams.promo || utmParams.referral
-    const anchor = needsPricingAnchor ? '#pricing' : ''
-    return queryString ? `${baseUrl}?${queryString}${anchor}` : baseUrl
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl
   }
 
   async function copyToClipboard() {
@@ -249,15 +246,15 @@ export default function UTMBuilderPage() {
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              Campaign Content <span className="text-neutral-500">(utm_content)</span>
+              Creator / Content <span className="text-neutral-500">(utm_content)</span>
             </label>
             <Input
               value={utmParams.content}
               onChange={(e) => handleParamChange('content', e.target.value)}
-              placeholder="ad-variant-a, logo-link, text-link"
+              placeholder="jordan, vanessa, ad-variant-a"
             />
             <p className="text-xs text-neutral-500 mt-1">
-              Differentiate ads or links (e.g., ad-variant-a, logo-link, text-link)
+              Who or which asset drove the click (e.g., jordan, vanessa) — shows in the Attribution → Creators view. Also works for ad variants.
             </p>
           </div>
 

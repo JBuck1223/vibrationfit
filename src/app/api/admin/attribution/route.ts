@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const source = searchParams.get('source')
     const medium = searchParams.get('medium')
+    const content = searchParams.get('content')
     const dateRange = searchParams.get('date_range') || '30'
     const onlyConverted = searchParams.get('converted') === 'true'
 
@@ -37,6 +38,14 @@ export async function GET(request: NextRequest) {
     }
     if (medium && medium !== 'all') {
       visitorsQuery = visitorsQuery.eq('first_utm_medium', medium)
+    }
+    // Creator = utm_content (e.g. jordan / vanessa). "none" = no creator tag.
+    if (content && content !== 'all') {
+      if (content === 'none') {
+        visitorsQuery = visitorsQuery.is('first_utm_content', null)
+      } else {
+        visitorsQuery = visitorsQuery.eq('first_utm_content', content)
+      }
     }
     if (onlyConverted) {
       visitorsQuery = visitorsQuery.not('user_id', 'is', null)
@@ -114,10 +123,37 @@ export async function GET(request: NextRequest) {
     // Unique mediums for filter
     const mediums = [...new Set(allVisitors.map(v => v.first_utm_medium).filter(Boolean))]
 
+    // Aggregate creator breakdown (utm_content), e.g. jordan / vanessa
+    const creatorBreakdown: Record<string, { visitors: number; converted: number }> = {}
+    for (const v of allVisitors) {
+      const creator = v.first_utm_content || 'none'
+      if (!creatorBreakdown[creator]) {
+        creatorBreakdown[creator] = { visitors: 0, converted: 0 }
+      }
+      creatorBreakdown[creator].visitors++
+      if (v.user_id) creatorBreakdown[creator].converted++
+    }
+
+    const creators = Object.entries(creatorBreakdown)
+      .map(([name, data]) => ({
+        name,
+        visitors: data.visitors,
+        converted: data.converted,
+        conversionRate: data.visitors > 0
+          ? Math.round((data.converted / data.visitors) * 100)
+          : 0,
+      }))
+      .sort((a, b) => b.visitors - a.visitors)
+
+    // Unique creators for filter dropdown (excludes the "none" bucket)
+    const creatorOptions = [...new Set(allVisitors.map(v => v.first_utm_content).filter(Boolean))]
+
     return NextResponse.json({
       visitors: enrichedVisitors,
       sources,
       mediums,
+      creators,
+      creatorOptions,
       totals: {
         visitors: allVisitors.length,
         converted: allVisitors.filter(v => v.user_id).length,
