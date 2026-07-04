@@ -69,6 +69,12 @@ const VISION_CATEGORIES = [
   { key: 'conclusion', label: 'Conclusion', icon: CheckCircle, description: 'Integration & completion' },
 ]
 
+// The $1 Activation Intensive offer is live for EVERYONE (no code/link required)
+// through October 1, 2026. After the cutoff the homepage automatically reverts to
+// full pricing. Solo-only for now; household is handled separately on the backend.
+const DOLLAR_OFFER_CODE = 'LAUNCH2026'
+const DOLLAR_OFFER_ENDS_AT = Date.parse('2026-10-02T04:00:00Z') // midnight Oct 2 ET (UTC-4)
+
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [planType, setPlanType] = useState<'solo' | 'household'>('solo')
@@ -93,8 +99,10 @@ export default function HomePage() {
       
       // Promo code
       const promo = params.get('promo')
+      let promoApplied = false
       if (promo) {
         setPromoCode(promo)
+        promoApplied = true
         console.log('🎉 Promo code applied:', promo)
       }
       
@@ -102,7 +110,17 @@ export default function HomePage() {
       const ref = params.get('ref') || params.get('source') || params.get('affiliate')
       if (ref) {
         setReferralSource(ref)
-        if (!promo) setPromoCode('LAUNCH2026')
+        if (!promoApplied) {
+          setPromoCode(DOLLAR_OFFER_CODE)
+          promoApplied = true
+        }
+      }
+
+      // Public $1 offer: live for EVERYONE through Oct 1, 2026 (no code/link needed).
+      // Reverts to full pricing automatically after the cutoff.
+      if (!promoApplied && Date.now() < DOLLAR_OFFER_ENDS_AT) {
+        setPromoCode(DOLLAR_OFFER_CODE)
+        promoApplied = true
       }
       
       // Campaign name
@@ -112,11 +130,10 @@ export default function HomePage() {
         console.log('📊 Campaign:', campaign)
       }
       
-      // Pre-select plan type (solo or household)
+      // Plan type: solo only for now (household is offered separately on the backend).
       const type = params.get('plan') || params.get('type') || params.get('planType')
-      if (type && ['solo', 'household'].includes(type)) {
-        setPlanType(type as 'solo' | 'household')
-        console.log('👥 Plan type:', type)
+      if (type === 'solo') {
+        setPlanType('solo')
       }
       
       // Pre-select continuity plan if provided
@@ -1723,48 +1740,6 @@ export default function HomePage() {
           <Container size="xl">
             <div className="bg-gradient-to-br from-[#39FF14]/5 to-[#14B8A6]/5 border-[#39FF14]/30 border-2 rounded-2xl p-4 md:p-6 lg:p-8">
               <Stack gap="xl" className="md:gap-12">
-                
-                {/* PLAN TYPE TOGGLE */}
-                <div className="flex justify-center">
-                  <div className="inline-flex w-auto items-center gap-1.5 p-1.5 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
-                    <button
-                      onClick={() => setPlanType('solo')}
-                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
-                        planType === 'solo'
-                          ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30'
-                          : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
-                      }`}
-                    >
-                      <span className="flex flex-col items-center gap-0">
-                        <span className="flex items-center gap-1.5 md:gap-2">
-                          <User className="w-4 h-4" />
-                          <span>Solo</span>
-                          <span className="hidden md:inline">·</span>
-                          <span className="hidden md:inline">1 Login</span>
-                        </span>
-                        <span className="text-xs md:hidden">1 Login</span>
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setPlanType('household')}
-                      className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
-                        planType === 'household'
-                          ? 'bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/30'
-                          : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
-                      }`}
-                    >
-                      <span className="flex flex-col items-center gap-0">
-                        <span className="flex items-center gap-1.5 md:gap-2">
-                          <Users className="w-4 h-4" />
-                          <span>Household</span>
-                          <span className="hidden md:inline">·</span>
-                          <span className="hidden md:inline">2 Logins</span>
-                        </span>
-                        <span className="text-xs md:hidden">2 Logins</span>
-                      </span>
-                    </button>
-                  </div>
-                </div>
                 
                 {/* ACTIVATION INTENSIVE TITLE - ENHANCED */}
                 <div className="text-center">
