@@ -58,6 +58,7 @@ interface FlowStep {
   confirm_text?: string
   confirm_known_text?: string
   confirm_button?: string
+  confirm_no_button?: string
   email_template?: string
   email_link?: string
   goto?: string
@@ -700,12 +701,20 @@ export default function MetaAutomationPage() {
                               onChange={(e) => updateStep(index, { confirm_text: e.target.value || undefined })}
                               placeholder={'Confirmation (default: I have your email as {{email}}, can you please confirm it is correct?)'}
                             />
-                            <Input
-                              value={step.confirm_button || ''}
-                              onChange={(e) => updateStep(index, { confirm_button: e.target.value || undefined })}
-                              placeholder="Button (default: Yes!)"
-                              className="md:w-44"
-                            />
+                            <div className="flex gap-2">
+                              <Input
+                                value={step.confirm_button || ''}
+                                onChange={(e) => updateStep(index, { confirm_button: e.target.value || undefined })}
+                                placeholder="Yes btn (Yes!)"
+                                className="md:w-36"
+                              />
+                              <Input
+                                value={step.confirm_no_button || ''}
+                                onChange={(e) => updateStep(index, { confirm_no_button: e.target.value || undefined })}
+                                placeholder="No btn (Different email)"
+                                className="md:w-44"
+                              />
+                            </div>
                           </div>
                           <Input
                             value={step.confirm_known_text || ''}

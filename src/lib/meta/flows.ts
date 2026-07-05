@@ -40,8 +40,10 @@ export interface FlowStep {
   confirm_text?: string
   /** confirmation message for returning contacts whose email we remember */
   confirm_known_text?: string
-  /** label for the confirmation quick-reply button */
+  /** label for the confirmation yes-button */
   confirm_button?: string
+  /** label for the "that email is wrong" button */
+  confirm_no_button?: string
   /** email_templates slug to send once the email is confirmed */
   email_template?: string
   /** value substituted for {{link}} in that template */
@@ -70,11 +72,19 @@ export interface FlowAccount {
 
 const PAYLOAD_PREFIX = 'flow:'
 const CONFIRM_PREFIX = 'flowc:'
+const RETYPE_PREFIX = 'flowr:' // "that email is wrong" -> ask them to type it
 const MAX_CHAIN = 10 // safety cap on message->goto chains
 const MAX_EMAIL_ATTEMPTS = 2
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const YES_RE = /^(yes|yes!|yep|yeah|yup|correct|confirm|yes please|sure)[.!]*$/i
-const NO_RE = /^(no|no!|nope|nah|wrong|incorrect|not correct|that's wrong|thats wrong|it's wrong|its wrong|it's not|its not)[.!]*$/i
+// Starts with a no-word ("no", "no, different email", "nope that's old"...)
+// or mentions wanting a different/corrected email anywhere in the reply.
+const NO_START_RE = /^(no|nope|nah)\b/i
+const NO_PHRASE_RE = /(different|another|other|new|wrong|incorrect|old)\s+(email|address|one)|not (correct|right)|that's wrong|thats wrong/i
+
+function isNegativeReply(text: string): boolean {
+  return NO_START_RE.test(text) || NO_PHRASE_RE.test(text)
+}
 
 export function hasFlow(rule: { flow?: Flow | null }): boolean {
   return !!rule.flow?.steps?.length
@@ -173,6 +183,10 @@ function confirmButtons(rule: FlowRule, step: FlowStep, email: string, known: bo
       title: step.confirm_button?.trim() || (known ? 'Yes please!' : 'Yes!'),
       payload: `${CONFIRM_PREFIX}${rule.id}:${step.id}:${email}`,
     },
+    {
+      title: step.confirm_no_button?.trim() || 'Different email',
+      payload: `${RETYPE_PREFIX}${rule.id}:${step.id}`,
+    },
   ]
 }
 
@@ -228,6 +242,25 @@ async function sendEmailPrompt(
   }
   await logOutbound(admin, account, senderId, prompt, rule.id)
   await parkState(admin, account, senderId, rule.id, step.id, 'email')
+}
+
+/**
+ * They said the email we have is wrong: ask them to type the right one and
+ * park the flow waiting for it.
+ */
+async function askForCorrectEmail(
+  admin: AdminClient,
+  account: FlowAccount,
+  senderId: string,
+  rule: FlowRule,
+  step: FlowStep
+): Promise<void> {
+  const askAgain = 'No problem! What is the correct email address?'
+  const result = await sendDM(messagingAccount(account), senderId, askAgain)
+  if (result.success) {
+    await logOutbound(admin, account, senderId, askAgain, rule.id)
+    await parkState(admin, account, senderId, rule.id, step.id, 'email')
+  }
 }
 
 /**
@@ -461,14 +494,27 @@ export async function runStep(
   }
 }
 
-async function loadRule(admin: AdminClient, ruleId: string): Promise<FlowRule | null> {
+/**
+ * Load an active rule, but only if it belongs to this account (or is
+ * unscoped). Guards against cross-account processing: when two of our own
+ * accounts share a DM thread, Meta delivers button taps to both webhooks,
+ * and without this check the other account would run the flow too.
+ */
+async function loadRule(
+  admin: AdminClient,
+  account: FlowAccount,
+  ruleId: string
+): Promise<FlowRule | null> {
   const { data } = await admin
     .from('meta_automation_rules')
-    .select('id, flow, reply_text, reply_link')
+    .select('id, account_id, flow, reply_text, reply_link')
     .eq('id', ruleId)
     .eq('is_active', true)
     .maybeSingle()
-  return (data as FlowRule) || null
+  if (!data) return null
+  const ruleAccountId = (data as { account_id: string | null }).account_id
+  if (ruleAccountId && ruleAccountId !== account.id) return null
+  return data as FlowRule
 }
 
 /**
@@ -488,10 +534,23 @@ export async function handleQuickReplyPayload(
     const email = emailParts.join(':').trim().toLowerCase()
     if (!ruleId || !stepId || !EMAIL_RE.test(email)) return true
 
-    const rule = await loadRule(admin, ruleId)
+    const rule = await loadRule(admin, account, ruleId)
     if (rule && hasFlow(rule)) {
       const step = findStep(rule.flow!, stepId)
       await completeCapture(admin, account, senderId, rule, step, email, senderUsername)
+    }
+    return true
+  }
+
+  // "Different email" tap: ask them to type the right one.
+  if (payload.startsWith(RETYPE_PREFIX)) {
+    const [ruleId, stepId] = payload.slice(RETYPE_PREFIX.length).split(':')
+    if (!ruleId || !stepId) return true
+
+    const rule = await loadRule(admin, account, ruleId)
+    if (rule && hasFlow(rule)) {
+      const step = findStep(rule.flow!, stepId)
+      if (step) await askForCorrectEmail(admin, account, senderId, rule, step)
     }
     return true
   }
@@ -501,7 +560,7 @@ export async function handleQuickReplyPayload(
     const [ruleId, stepId] = payload.slice(PAYLOAD_PREFIX.length).split(':')
     if (!ruleId || !stepId) return true
 
-    const rule = await loadRule(admin, ruleId)
+    const rule = await loadRule(admin, account, ruleId)
     if (rule && hasFlow(rule)) {
       await runStep(admin, account, senderId, rule, stepId)
     }
@@ -531,7 +590,7 @@ export async function handlePendingState(
 
   if (!state) return false
 
-  const rule = await loadRule(admin, state.rule_id)
+  const rule = await loadRule(admin, account, state.rule_id)
   if (!rule || !hasFlow(rule)) {
     await clearState(admin, account, senderId)
     return false
@@ -560,13 +619,8 @@ export async function handlePendingState(
       return false
     }
     // They said the email is wrong: ask for the correct one.
-    if (NO_RE.test(trimmed)) {
-      const askAgain = 'No problem! What is the correct email address?'
-      const result = await sendDM(messagingAccount(account), senderId, askAgain)
-      if (result.success) {
-        await logOutbound(admin, account, senderId, askAgain, rule.id)
-        if (step) await parkState(admin, account, senderId, rule.id, step.id, 'email')
-      }
+    if (isNegativeReply(trimmed)) {
+      if (step) await askForCorrectEmail(admin, account, senderId, rule, step)
       return true
     }
     // Anything else: they've probably moved on. Let it fall through once,

@@ -25,7 +25,7 @@ export function validateFlow(flow: unknown): string | null {
     if (step.email_template !== undefined && typeof step.email_template !== 'string') {
       return 'email_template must be a template slug string'
     }
-    for (const key of ['confirm_text', 'confirm_known_text', 'confirm_button'] as const) {
+    for (const key of ['confirm_text', 'confirm_known_text', 'confirm_button', 'confirm_no_button'] as const) {
       if (step[key] !== undefined && typeof step[key] !== 'string') {
         return `${key} must be a string`
       }
