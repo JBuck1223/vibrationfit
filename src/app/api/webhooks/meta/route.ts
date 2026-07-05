@@ -15,6 +15,14 @@ import {
   type MetaPlatform,
   type MessagingAccount,
 } from '@/lib/meta/messaging'
+import {
+  hasFlow,
+  startFlow,
+  startFlowFromComment,
+  handleQuickReplyPayload,
+  handlePendingState,
+  type Flow,
+} from '@/lib/meta/flows'
 
 interface MetaAccount {
   id: string
@@ -35,6 +43,7 @@ interface AutomationRule {
   reply_text: string
   reply_link: string | null
   media_id: string | null
+  flow: Flow | null
 }
 
 // ---------------------------------------------------------------------------
@@ -90,27 +99,40 @@ export async function POST(request: NextRequest) {
 }
 
 function verifySignature(rawBody: string, header: string | null): boolean {
-  const secret = process.env.META_APP_SECRET
-  if (!secret) {
-    console.error('[meta-webhook] META_APP_SECRET not set')
+  // Instagram (IG-login) events are signed with the Instagram app secret;
+  // Facebook Page events are signed with the main app secret. Accept either.
+  const secrets = [
+    process.env.INSTAGRAM_APP_SECRET,
+    process.env.META_APP_SECRET,
+  ].filter((s): s is string => !!s)
+
+  if (secrets.length === 0) {
+    console.error('[meta-webhook] No app secret configured')
     return false
   }
   if (!header?.startsWith('sha256=')) return false
 
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex')
   const received = header.slice('sha256='.length)
 
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(expected, 'hex'),
-      Buffer.from(received, 'hex')
-    )
-  } catch {
-    return false
+  for (const secret of secrets) {
+    const expected = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody)
+      .digest('hex')
+    try {
+      if (
+        crypto.timingSafeEqual(
+          Buffer.from(expected, 'hex'),
+          Buffer.from(received, 'hex')
+        )
+      ) {
+        return true
+      }
+    } catch {
+      // malformed header; try next secret
+    }
   }
+  return false
 }
 
 // ---------------------------------------------------------------------------
@@ -193,28 +215,60 @@ async function handleMessage(
       ? await getIgUsername(messagingAccount, senderId)
       : null
 
+  const { data: inboundRow } = await admin
+    .from('meta_messages')
+    .insert({
+      account_id: account.id,
+      platform: account.platform,
+      sender_id: senderId,
+      sender_username: username,
+      direction: 'inbound',
+      message_type: 'dm',
+      body: text || null,
+      external_message_id: messageId || null,
+      rule_id: null,
+    })
+    .select('id')
+    .single()
+
+  console.log(
+    `[meta-webhook] Inbound ${account.platform} DM to @${account.username} from ${username || senderId}`
+  )
+
+  // 1. Quick-reply button tap: continue the flow it points at.
+  const quickReplyPayload: string | undefined = message.quick_reply?.payload
+  if (
+    quickReplyPayload &&
+    (await handleQuickReplyPayload(admin, account, senderId, quickReplyPayload, username))
+  ) {
+    return
+  }
+
+  // 2. Parked capture step (e.g. waiting on an email): consume the reply.
+  if (text && (await handlePendingState(admin, account, senderId, text, username))) {
+    return
+  }
+
+  // 3. Keyword matching.
   const rule = text
     ? await matchRule(admin, account, 'dm_keyword', text)
     : null
 
-  await admin.from('meta_messages').insert({
-    account_id: account.id,
-    platform: account.platform,
-    sender_id: senderId,
-    sender_username: username,
-    direction: 'inbound',
-    message_type: 'dm',
-    body: text || null,
-    external_message_id: messageId || null,
-    rule_id: rule?.id || null,
-  })
-
-  console.log(
-    `[meta-webhook] Inbound ${account.platform} DM to @${account.username} from ${username || senderId}` +
-      (rule ? ` matched rule "${rule.keyword}"` : '')
-  )
-
   if (!rule) return
+
+  if (inboundRow) {
+    await admin
+      .from('meta_messages')
+      .update({ rule_id: rule.id })
+      .eq('id', inboundRow.id)
+  }
+  console.log(`[meta-webhook] Matched rule "${rule.keyword}"`)
+
+  if (hasFlow(rule)) {
+    await startFlow(admin, account, senderId, rule)
+    await admin.rpc('increment_meta_rule_hit', { p_rule_id: rule.id })
+    return
+  }
 
   const reply = composeReply(rule)
   const result = await sendDM(messagingAccount, senderId, reply)
@@ -324,6 +378,22 @@ async function processComment(
 
   if (!rule) return
 
+  // Flow rules: the first step goes out as the private reply (buttons
+  // supported on Instagram); the rest continues in DMs.
+  if (hasFlow(rule)) {
+    const sent = await startFlowFromComment(
+      admin,
+      account,
+      opts.fromId,
+      opts.commentId,
+      rule
+    )
+    if (sent) {
+      await admin.rpc('increment_meta_rule_hit', { p_rule_id: rule.id })
+    }
+    return
+  }
+
   const reply = composeReply(rule)
   const result = await sendPrivateReply(
     { platform: account.platform, access_token: account.access_token },
@@ -391,11 +461,18 @@ async function matchRule(
     if (rule.media_id && postId && rule.media_id !== postId) continue
     if (rule.media_id && !postId) continue
 
-    const keyword = rule.keyword.trim().toLowerCase()
-    const matched =
+    // The keyword field can hold several comma-separated keywords;
+    // any of them triggers the rule.
+    const keywords = rule.keyword
+      .split(',')
+      .map((k) => k.trim().toLowerCase())
+      .filter(Boolean)
+
+    const matched = keywords.some((keyword) =>
       rule.match_type === 'exact'
         ? normalized === keyword
         : normalized.includes(keyword)
+    )
 
     if (matched) return rule
   }

@@ -45,8 +45,9 @@ sends the reply with that account's token → logs to `meta_messages`.
 
 1. App dashboard → use case **"Manage messaging & content on Instagram"** →
    Customize → **API setup with Instagram login**.
-2. Note the **Instagram app secret** on that screen — this is `META_APP_SECRET`
-   (NOT the one under Settings → Basic).
+2. Note the **Instagram app secret** on that screen — this is
+   `INSTAGRAM_APP_SECRET` (distinct from the main app secret under
+   Settings → Basic, which stays in `META_APP_SECRET`).
 3. Permissions to have on the use case: `instagram_business_basic`,
    `instagram_business_manage_messages`, `instagram_business_manage_comments`
    (+ `instagram_business_content_publish`, `instagram_business_manage_insights`
@@ -69,7 +70,8 @@ Tokens last ~60 days; the daily cron refreshes any token expiring within
 
 | Variable | Value |
 |---|---|
-| `META_APP_SECRET` | Instagram app secret (step 2) |
+| `INSTAGRAM_APP_SECRET` | Instagram app secret (step 2) — IG webhook signatures + token refresh |
+| `META_APP_SECRET` | Main app secret (Settings → Basic) — Facebook Page webhooks, app-level use |
 | `META_WEBHOOK_VERIFY_TOKEN` | Any random string (used in step 5) |
 
 Per-account tokens live in the database, not in env vars.
