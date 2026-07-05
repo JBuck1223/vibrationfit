@@ -155,6 +155,9 @@ async function handleEntries(platform: MetaPlatform, entries: any[]) {
     for (const event of entry.messaging || []) {
       if (event.message) {
         await handleMessage(admin, account, event)
+      } else if (event.postback) {
+        // Inline button tap (button template)
+        await handlePostback(admin, account, event)
       }
     }
 
@@ -288,6 +291,51 @@ async function handleMessage(
   if (result.success) {
     await admin.rpc('increment_meta_rule_hit', { p_rule_id: rule.id })
   }
+}
+
+/**
+ * Inline button (button template) tap. The payload format is identical to
+ * quick replies, so it routes through the same flow handler.
+ */
+async function handlePostback(
+  admin: ReturnType<typeof createAdminClient>,
+  account: MetaAccount,
+  event: any
+) {
+  const senderId: string | undefined = event.sender?.id
+  const payload: string | undefined = event.postback?.payload
+  const postbackId: string | undefined = event.postback?.mid
+
+  if (!senderId || !payload) return
+  if (senderId === account.ig_user_id) return
+  if (postbackId && (await alreadyProcessed(admin, postbackId))) return
+
+  const messagingAccount: MessagingAccount = {
+    platform: account.platform,
+    access_token: account.access_token,
+  }
+  const username =
+    account.platform === 'instagram'
+      ? await getIgUsername(messagingAccount, senderId)
+      : null
+
+  await admin.from('meta_messages').insert({
+    account_id: account.id,
+    platform: account.platform,
+    sender_id: senderId,
+    sender_username: username,
+    direction: 'inbound',
+    message_type: 'dm',
+    body: event.postback?.title || '(button tap)',
+    external_message_id: postbackId || null,
+    rule_id: null,
+  })
+
+  console.log(
+    `[meta-webhook] Postback to @${account.username} from ${username || senderId}`
+  )
+
+  await handleQuickReplyPayload(admin, account, senderId, payload, username)
 }
 
 // ---------------------------------------------------------------------------

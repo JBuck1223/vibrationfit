@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
-import { getIgIdentity, exchangeIgToken, refreshIgToken } from '@/lib/meta/messaging'
+import {
+  getIgIdentity,
+  exchangeIgToken,
+  refreshIgToken,
+  subscribeIgWebhooks,
+} from '@/lib/meta/messaging'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,5 +92,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save account' }, { status: 500 })
   }
 
-  return NextResponse.json({ account: data })
+  // Without this per-account subscription, Meta sends no webhook events
+  // for the account even though the app-level callback URL is configured.
+  const subscription = await subscribeIgWebhooks(accessToken)
+  if (!subscription.success) {
+    console.error('[instagram-accounts] Webhook subscription failed:', subscription.error)
+  }
+
+  return NextResponse.json({ account: data, webhooks_subscribed: subscription.success })
 }
