@@ -27,6 +27,7 @@ export async function PATCH(
     reply_text?: string
     reply_link?: string | null
     media_id?: string | null
+    public_reply_text?: string | null
     is_active?: boolean
     flow?: unknown
   }
@@ -85,6 +86,9 @@ export async function PATCH(
   }
   if (body.media_id !== undefined) {
     updates.media_id = (body.media_id || '').trim() || null
+  }
+  if (body.public_reply_text !== undefined) {
+    updates.public_reply_text = (body.public_reply_text || '').trim() || null
   }
   if (body.account_id !== undefined) {
     updates.account_id = body.account_id || null

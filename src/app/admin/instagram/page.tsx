@@ -74,6 +74,7 @@ interface AutomationRule {
   reply_text: string
   reply_link: string | null
   media_id: string | null
+  public_reply_text: string | null
   flow: { steps: FlowStep[] } | null
   is_active: boolean
   hit_count: number
@@ -105,6 +106,7 @@ const EMPTY_FORM = {
   reply_text: '',
   reply_link: '',
   media_id: '',
+  public_reply_text: '',
 }
 
 function newStepId(steps: FlowStep[]): string {
@@ -340,6 +342,7 @@ export default function MetaAutomationPage() {
       reply_text: rule.reply_text,
       reply_link: rule.reply_link || '',
       media_id: rule.media_id || '',
+      public_reply_text: rule.public_reply_text || '',
     })
     setFlowSteps(rule.flow?.steps || [])
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -793,6 +796,21 @@ export default function MetaAutomationPage() {
                   placeholder="Leave blank for all posts"
                 />
               </div>
+              {form.trigger_type === 'comment_keyword' && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-200 mb-2">
+                    Public comment reply <span className="text-neutral-500">(optional)</span>
+                  </label>
+                  <Input
+                    value={form.public_reply_text}
+                    onChange={(e) => setForm({ ...form, public_reply_text: e.target.value })}
+                    placeholder="Just sent it over -- check your DMs!"
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Posted publicly under their comment after the DM sends successfully.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
