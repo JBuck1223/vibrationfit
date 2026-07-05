@@ -64,32 +64,65 @@ export interface SendResult {
   error?: string
 }
 
-/** Quick-reply button shown under a DM (tap sends the payload back to us). */
+/** Tappable button attached to a DM (tap sends the payload back to us). */
 export interface QuickReply {
   title: string
   payload: string
 }
 
+const MAX_INLINE_BUTTONS = 3 // button-template cap; more falls back to quick replies
+
+/** Floating pills above the keyboard; disappear once tapped. Up to 13. */
+function quickReplyMessage(text: string, buttons: QuickReply[]) {
+  return {
+    text,
+    quick_replies: buttons.slice(0, 13).map((qr) => ({
+      content_type: 'text',
+      // IG/Messenger cap quick-reply titles at 20 chars
+      title: qr.title.slice(0, 20),
+      payload: qr.payload,
+    })),
+  }
+}
+
+/** Buttons rendered inside the message bubble itself (ManyChat style). */
+function buttonTemplateMessage(text: string, buttons: QuickReply[]) {
+  return {
+    attachment: {
+      type: 'template',
+      payload: {
+        template_type: 'button',
+        text: text.slice(0, 640),
+        buttons: buttons.slice(0, MAX_INLINE_BUTTONS).map((b) => ({
+          type: 'postback',
+          title: b.title.slice(0, 20),
+          payload: b.payload,
+        })),
+      },
+    },
+  }
+}
+
+function buildMessage(text: string, buttons?: QuickReply[]): Record<string, unknown> {
+  if (!buttons?.length) return { text }
+  return buttons.length <= MAX_INLINE_BUTTONS
+    ? buttonTemplateMessage(text, buttons)
+    : quickReplyMessage(text, buttons)
+}
+
 /**
  * Send a DM reply to a user who has messaged the account (24-hour window).
- * Optional quick replies render as tappable buttons under the message.
+ * Buttons render inside the message bubble (button template, up to 3); more
+ * than 3 fall back to floating quick replies. If the template is rejected,
+ * we retry once as quick replies.
  */
 export async function sendDM(
   account: MessagingAccount,
   recipientId: string,
   text: string,
-  quickReplies?: QuickReply[]
+  buttons?: QuickReply[]
 ): Promise<SendResult> {
-  try {
-    const message: Record<string, unknown> = { text }
-    if (quickReplies?.length) {
-      message.quick_replies = quickReplies.slice(0, 13).map((qr) => ({
-        content_type: 'text',
-        // IG/Messenger cap quick-reply titles at 20 chars
-        title: qr.title.slice(0, 20),
-        payload: qr.payload,
-      }))
-    }
+  const send = async (message: Record<string, unknown>) => {
     const body: Record<string, unknown> = {
       recipient: { id: recipientId },
       message,
@@ -97,14 +130,21 @@ export async function sendDM(
     if (account.platform === 'facebook') {
       body.messaging_type = 'RESPONSE'
     }
-    const result = await graphPost(
-      baseUrl(account.platform),
-      '/me/messages',
-      account.access_token,
-      body
-    )
+    return graphPost(baseUrl(account.platform), '/me/messages', account.access_token, body)
+  }
+
+  try {
+    const result = await send(buildMessage(text, buttons))
     return { success: true, messageId: result.message_id }
   } catch (err) {
+    if (buttons?.length && buttons.length <= MAX_INLINE_BUTTONS) {
+      try {
+        const result = await send(quickReplyMessage(text, buttons))
+        return { success: true, messageId: result.message_id }
+      } catch (retryErr) {
+        return { success: false, error: (retryErr as Error).message }
+      }
+    }
     return { success: false, error: (err as Error).message }
   }
 }
@@ -119,23 +159,25 @@ export async function sendPrivateReply(
   account: MessagingAccount,
   commentId: string,
   text: string,
-  quickReplies?: QuickReply[]
+  buttons?: QuickReply[]
 ): Promise<SendResult> {
   try {
     if (account.platform === 'instagram') {
-      const message: Record<string, unknown> = { text }
-      if (quickReplies?.length) {
-        message.quick_replies = quickReplies.slice(0, 13).map((qr) => ({
-          content_type: 'text',
-          title: qr.title.slice(0, 20),
-          payload: qr.payload,
-        }))
+      const send = (message: Record<string, unknown>) =>
+        graphPost(GRAPH_IG, '/me/messages', account.access_token, {
+          recipient: { comment_id: commentId },
+          message,
+        })
+      try {
+        const result = await send(buildMessage(text, buttons))
+        return { success: true, messageId: result.message_id }
+      } catch (err) {
+        if (buttons?.length && buttons.length <= MAX_INLINE_BUTTONS) {
+          const result = await send(quickReplyMessage(text, buttons))
+          return { success: true, messageId: result.message_id }
+        }
+        throw err
       }
-      const result = await graphPost(GRAPH_IG, '/me/messages', account.access_token, {
-        recipient: { comment_id: commentId },
-        message,
-      })
-      return { success: true, messageId: result.message_id }
     }
     const result = await graphPost(
       GRAPH_FB,
@@ -191,6 +233,27 @@ export async function getIgIdentity(accessToken: string): Promise<IgIdentity> {
   return {
     igUserId: String(result.user_id || result.id),
     username: result.username || null,
+  }
+}
+
+/**
+ * Subscribe the account to the app's webhooks. Without this, Meta delivers
+ * no message/comment events for the account, even with the app-level
+ * webhook callback configured.
+ */
+export async function subscribeIgWebhooks(
+  accessToken: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await graphPost(
+      GRAPH_IG,
+      '/me/subscribed_apps?subscribed_fields=messages,comments,messaging_postbacks',
+      accessToken,
+      {}
+    )
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: (err as Error).message }
   }
 }
 
