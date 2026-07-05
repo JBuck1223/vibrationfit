@@ -31,6 +31,10 @@
     {
       "path": "/api/map/generate-occurrences",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/meta-refresh-tokens",
+      "schedule": "0 8 * * *"
     }
   ],
   "functions": {
