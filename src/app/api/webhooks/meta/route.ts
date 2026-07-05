@@ -11,6 +11,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   sendDM,
   sendPrivateReply,
+  replyToComment,
   getIgUsername,
   type MetaPlatform,
   type MessagingAccount,
@@ -43,6 +44,7 @@ interface AutomationRule {
   reply_text: string
   reply_link: string | null
   media_id: string | null
+  public_reply_text: string | null
   flow: Flow | null
 }
 
@@ -438,6 +440,7 @@ async function processComment(
     )
     if (sent) {
       await admin.rpc('increment_meta_rule_hit', { p_rule_id: rule.id })
+      await sendPublicReply(admin, account, rule, opts)
     }
     return
   }
@@ -463,7 +466,48 @@ async function processComment(
 
   if (result.success) {
     await admin.rpc('increment_meta_rule_hit', { p_rule_id: rule.id })
+    await sendPublicReply(admin, account, rule, opts)
   }
+}
+
+/**
+ * After the DM went out, optionally reply publicly on the comment itself
+ * ("Just sent it over -- check your DMs!") so the commenter knows to look.
+ */
+async function sendPublicReply(
+  admin: ReturnType<typeof createAdminClient>,
+  account: MetaAccount,
+  rule: AutomationRule,
+  opts: { commentId: string; fromId: string; username: string | null }
+) {
+  const text = rule.public_reply_text?.trim()
+  if (!text) return
+
+  const result = await replyToComment(
+    { platform: account.platform, access_token: account.access_token },
+    opts.commentId,
+    text
+  )
+
+  if (!result.success) {
+    console.error(
+      `[meta-webhook] Public comment reply failed for rule ${rule.id}:`,
+      result.error
+    )
+    return
+  }
+
+  await admin.from('meta_messages').insert({
+    account_id: account.id,
+    platform: account.platform,
+    sender_id: opts.fromId,
+    sender_username: opts.username,
+    direction: 'outbound',
+    message_type: 'comment',
+    body: text,
+    external_message_id: result.messageId || null,
+    rule_id: rule.id,
+  })
 }
 
 // ---------------------------------------------------------------------------

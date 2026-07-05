@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     reply_text?: string
     reply_link?: string
     media_id?: string
+    public_reply_text?: string
     is_active?: boolean
     flow?: unknown
   }
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
       flow: hasFlowSteps ? body.flow : null,
       reply_link: replyLink || null,
       media_id: (body.media_id || '').trim() || null,
+      public_reply_text: (body.public_reply_text || '').trim() || null,
       is_active: body.is_active ?? true,
       created_by: auth.user.id,
     })

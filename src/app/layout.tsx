@@ -5,7 +5,6 @@ import { GlobalLayoutShell } from '@/components/GlobalLayoutShell'
 import { AuthProvider } from '@/components/AuthProvider'
 import { TrackingProvider } from '@/components/TrackingProvider'
 import { AppErrorHandling } from '@/components/AppErrorHandling'
-import { ASSETS } from '@/lib/storage/s3-storage-presigned'
 import { PixelScripts } from '@/components/PixelScripts'
 import { Toaster } from 'sonner'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
@@ -18,6 +17,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://vibrationfit.com'),
   title: {
     template: '%s | Vibration Fit',
     default: 'Vibration Fit',
@@ -31,16 +31,16 @@ export const metadata: Metadata = {
     apple: '/apple-icon.png',
   },
   openGraph: {
-    title: "Vibration Fit - Above the Green Line",
+    title: "Vibration Fit - Conscious Creation on Autopilot",
     description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
-    images: [
-      {
-        url: ASSETS.brand.logo,
-        width: 1200,
-        height: 630,
-        alt: "Vibration Fit Logo",
-      },
-    ],
+    url: 'https://vibrationfit.com',
+    siteName: 'Vibration Fit',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Vibration Fit - Conscious Creation on Autopilot",
+    description: "The SaaS platform for conscious creation. Build your vision, align daily, and actualize your dreams.",
   },
 };
 

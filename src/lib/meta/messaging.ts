@@ -192,6 +192,33 @@ export async function sendPrivateReply(
 }
 
 /**
+ * Post a public reply on a comment (visible to everyone under the post),
+ * e.g. "Just sent it over -- check your DMs!".
+ */
+export async function replyToComment(
+  account: MessagingAccount,
+  commentId: string,
+  text: string
+): Promise<SendResult> {
+  try {
+    // IG uses /replies; FB Pages use /comments for threaded replies
+    const path =
+      account.platform === 'instagram'
+        ? `/${commentId}/replies`
+        : `/${commentId}/comments`
+    const result = await graphPost(
+      baseUrl(account.platform),
+      path,
+      account.access_token,
+      { message: text }
+    )
+    return { success: true, messageId: result.id }
+  } catch (err) {
+    return { success: false, error: (err as Error).message }
+  }
+}
+
+/**
  * Look up an Instagram user's username from their IGSID (best effort;
  * used to make the admin activity feed human-readable).
  */

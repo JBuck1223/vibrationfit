@@ -58,6 +58,7 @@ interface FlowStep {
   confirm_text?: string
   confirm_known_text?: string
   confirm_button?: string
+  confirm_no_button?: string
   email_template?: string
   email_link?: string
   goto?: string
@@ -73,6 +74,7 @@ interface AutomationRule {
   reply_text: string
   reply_link: string | null
   media_id: string | null
+  public_reply_text: string | null
   flow: { steps: FlowStep[] } | null
   is_active: boolean
   hit_count: number
@@ -104,6 +106,7 @@ const EMPTY_FORM = {
   reply_text: '',
   reply_link: '',
   media_id: '',
+  public_reply_text: '',
 }
 
 function newStepId(steps: FlowStep[]): string {
@@ -339,6 +342,7 @@ export default function MetaAutomationPage() {
       reply_text: rule.reply_text,
       reply_link: rule.reply_link || '',
       media_id: rule.media_id || '',
+      public_reply_text: rule.public_reply_text || '',
     })
     setFlowSteps(rule.flow?.steps || [])
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -700,12 +704,20 @@ export default function MetaAutomationPage() {
                               onChange={(e) => updateStep(index, { confirm_text: e.target.value || undefined })}
                               placeholder={'Confirmation (default: I have your email as {{email}}, can you please confirm it is correct?)'}
                             />
-                            <Input
-                              value={step.confirm_button || ''}
-                              onChange={(e) => updateStep(index, { confirm_button: e.target.value || undefined })}
-                              placeholder="Button (default: Yes!)"
-                              className="md:w-44"
-                            />
+                            <div className="flex gap-2">
+                              <Input
+                                value={step.confirm_button || ''}
+                                onChange={(e) => updateStep(index, { confirm_button: e.target.value || undefined })}
+                                placeholder="Yes btn (Yes!)"
+                                className="md:w-36"
+                              />
+                              <Input
+                                value={step.confirm_no_button || ''}
+                                onChange={(e) => updateStep(index, { confirm_no_button: e.target.value || undefined })}
+                                placeholder="No btn (Different email)"
+                                className="md:w-44"
+                              />
+                            </div>
                           </div>
                           <Input
                             value={step.confirm_known_text || ''}
@@ -784,6 +796,21 @@ export default function MetaAutomationPage() {
                   placeholder="Leave blank for all posts"
                 />
               </div>
+              {form.trigger_type === 'comment_keyword' && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-200 mb-2">
+                    Public comment reply <span className="text-neutral-500">(optional)</span>
+                  </label>
+                  <Input
+                    value={form.public_reply_text}
+                    onChange={(e) => setForm({ ...form, public_reply_text: e.target.value })}
+                    placeholder="Just sent it over -- check your DMs!"
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Posted publicly under their comment after the DM sends successfully.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
