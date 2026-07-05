@@ -64,18 +64,35 @@ export interface SendResult {
   error?: string
 }
 
+/** Quick-reply button shown under a DM (tap sends the payload back to us). */
+export interface QuickReply {
+  title: string
+  payload: string
+}
+
 /**
  * Send a DM reply to a user who has messaged the account (24-hour window).
+ * Optional quick replies render as tappable buttons under the message.
  */
 export async function sendDM(
   account: MessagingAccount,
   recipientId: string,
-  text: string
+  text: string,
+  quickReplies?: QuickReply[]
 ): Promise<SendResult> {
   try {
+    const message: Record<string, unknown> = { text }
+    if (quickReplies?.length) {
+      message.quick_replies = quickReplies.slice(0, 13).map((qr) => ({
+        content_type: 'text',
+        // IG/Messenger cap quick-reply titles at 20 chars
+        title: qr.title.slice(0, 20),
+        payload: qr.payload,
+      }))
+    }
     const body: Record<string, unknown> = {
       recipient: { id: recipientId },
-      message: { text },
+      message,
     }
     if (account.platform === 'facebook') {
       body.messaging_type = 'RESPONSE'
@@ -94,19 +111,29 @@ export async function sendDM(
 
 /**
  * Send a private reply to a comment (arrives as a DM to the commenter).
- * Instagram: POST /me/messages with recipient.comment_id.
- * Facebook: POST /{comment_id}/private_replies (one-shot, within 7 days).
+ * Instagram: POST /me/messages with recipient.comment_id (supports quick
+ * replies). Facebook: POST /{comment_id}/private_replies (text only,
+ * one-shot, within 7 days).
  */
 export async function sendPrivateReply(
   account: MessagingAccount,
   commentId: string,
-  text: string
+  text: string,
+  quickReplies?: QuickReply[]
 ): Promise<SendResult> {
   try {
     if (account.platform === 'instagram') {
+      const message: Record<string, unknown> = { text }
+      if (quickReplies?.length) {
+        message.quick_replies = quickReplies.slice(0, 13).map((qr) => ({
+          content_type: 'text',
+          title: qr.title.slice(0, 20),
+          payload: qr.payload,
+        }))
+      }
       const result = await graphPost(GRAPH_IG, '/me/messages', account.access_token, {
         recipient: { comment_id: commentId },
-        message: { text },
+        message,
       })
       return { success: true, messageId: result.message_id }
     }
@@ -175,8 +202,8 @@ export async function getIgIdentity(accessToken: string): Promise<IgIdentity> {
 export async function exchangeIgToken(
   shortLivedToken: string
 ): Promise<{ accessToken: string; expiresAt: Date }> {
-  const appSecret = process.env.META_APP_SECRET
-  if (!appSecret) throw new Error('META_APP_SECRET not set')
+  const appSecret = process.env.INSTAGRAM_APP_SECRET || process.env.META_APP_SECRET
+  if (!appSecret) throw new Error('INSTAGRAM_APP_SECRET not set')
 
   const qs = new URLSearchParams({
     grant_type: 'ig_exchange_token',

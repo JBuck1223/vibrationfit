@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
+import { validateFlow } from '@/lib/meta/flow-validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,16 +43,22 @@ export async function POST(request: NextRequest) {
     reply_link?: string
     media_id?: string
     is_active?: boolean
+    flow?: unknown
   }
 
   const keyword = (body.keyword || '').trim()
   const replyText = (body.reply_text || '').trim()
+  const hasFlowSteps = !!(body.flow as { steps?: unknown[] } | null | undefined)?.steps?.length
 
   if (!keyword) {
     return NextResponse.json({ error: 'A keyword is required' }, { status: 400 })
   }
-  if (!replyText) {
+  if (!replyText && !hasFlowSteps) {
     return NextResponse.json({ error: 'Reply text is required' }, { status: 400 })
+  }
+  const flowError = validateFlow(hasFlowSteps ? body.flow : null)
+  if (flowError) {
+    return NextResponse.json({ error: flowError }, { status: 400 })
   }
   if (!TRIGGER_TYPES.includes(body.trigger_type || '')) {
     return NextResponse.json({ error: 'Invalid trigger type' }, { status: 400 })
@@ -83,6 +90,7 @@ export async function POST(request: NextRequest) {
       keyword,
       match_type: body.match_type || 'contains',
       reply_text: replyText,
+      flow: hasFlowSteps ? body.flow : null,
       reply_link: replyLink || null,
       media_id: (body.media_id || '').trim() || null,
       is_active: body.is_active ?? true,

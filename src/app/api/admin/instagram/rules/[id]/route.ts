@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
+import { validateFlow } from '@/lib/meta/flow-validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,7 @@ export async function PATCH(
     reply_link?: string | null
     media_id?: string | null
     is_active?: boolean
+    flow?: unknown
   }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
@@ -36,9 +38,19 @@ export async function PATCH(
     if (!keyword) return NextResponse.json({ error: 'A keyword is required' }, { status: 400 })
     updates.keyword = keyword
   }
+  const hasFlowSteps = !!(body.flow as { steps?: unknown[] } | null | undefined)?.steps?.length
+  if (body.flow !== undefined) {
+    const flowError = validateFlow(hasFlowSteps ? body.flow : null)
+    if (flowError) {
+      return NextResponse.json({ error: flowError }, { status: 400 })
+    }
+    updates.flow = hasFlowSteps ? body.flow : null
+  }
   if (body.reply_text !== undefined) {
     const replyText = body.reply_text.trim()
-    if (!replyText) return NextResponse.json({ error: 'Reply text is required' }, { status: 400 })
+    if (!replyText && !hasFlowSteps) {
+      return NextResponse.json({ error: 'Reply text is required' }, { status: 400 })
+    }
     updates.reply_text = replyText
   }
   if (body.platform !== undefined) {

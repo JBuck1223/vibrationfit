@@ -26,6 +26,9 @@ import {
   ArrowUpRight,
   UserPlus,
   KeyRound,
+  GitBranch,
+  Plus,
+  Mail,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -39,6 +42,27 @@ interface MetaAccount {
   created_at: string
 }
 
+interface FlowButton {
+  label: string
+  goto: string
+}
+
+interface FlowStep {
+  id: string
+  type: 'message' | 'capture_email'
+  text?: string
+  link?: string
+  buttons?: FlowButton[]
+  prompt?: string
+  success_text?: string
+  confirm_text?: string
+  confirm_known_text?: string
+  confirm_button?: string
+  email_template?: string
+  email_link?: string
+  goto?: string
+}
+
 interface AutomationRule {
   id: string
   account_id: string | null
@@ -49,6 +73,7 @@ interface AutomationRule {
   reply_text: string
   reply_link: string | null
   media_id: string | null
+  flow: { steps: FlowStep[] } | null
   is_active: boolean
   hit_count: number
   last_hit_at: string | null
@@ -79,6 +104,19 @@ const EMPTY_FORM = {
   reply_text: '',
   reply_link: '',
   media_id: '',
+}
+
+function newStepId(steps: FlowStep[]): string {
+  let n = steps.length + 1
+  while (steps.some((s) => s.id === `s${n}`)) n++
+  return `s${n}`
+}
+
+function stepLabel(steps: FlowStep[], id: string): string {
+  const idx = steps.findIndex((s) => s.id === id)
+  if (idx === -1) return id
+  const step = steps[idx]
+  return `Step ${idx + 1} (${step.type === 'capture_email' ? 'email capture' : 'message'})`
 }
 
 function PlatformBadge({ platform }: { platform: string }) {
@@ -113,6 +151,8 @@ export default function MetaAutomationPage() {
   const [newToken, setNewToken] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
+  const [flowSteps, setFlowSteps] = useState<FlowStep[]>([])
+  const isFlowMode = flowSteps.length > 0
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -222,11 +262,44 @@ export default function MetaAutomationPage() {
   function resetForm() {
     setEditingId(null)
     setForm({ ...EMPTY_FORM })
+    setFlowSteps([])
+  }
+
+  function updateStep(index: number, patch: Partial<FlowStep>) {
+    setFlowSteps((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)))
+  }
+
+  function addStep(type: FlowStep['type']) {
+    setFlowSteps((prev) => [...prev, { id: newStepId(prev), type }])
+  }
+
+  function removeStep(index: number) {
+    setFlowSteps((prev) => {
+      const removed = prev[index]
+      return prev
+        .filter((_, i) => i !== index)
+        .map((s) => ({
+          ...s,
+          goto: s.goto === removed.id ? undefined : s.goto,
+          buttons: s.buttons?.filter((b) => b.goto !== removed.id),
+        }))
+    })
   }
 
   async function handleSubmit() {
     if (!form.keyword.trim()) return toast.error('Enter a keyword')
-    if (!form.reply_text.trim()) return toast.error('Enter the reply text')
+    if (!isFlowMode && !form.reply_text.trim()) return toast.error('Enter the reply text')
+    if (isFlowMode) {
+      for (const step of flowSteps) {
+        if (step.type === 'message' && !(step.text || '').trim()) {
+          return toast.error('Every message step needs text')
+        }
+        for (const b of step.buttons || []) {
+          if (!b.label.trim()) return toast.error('Every button needs a label')
+          if (!b.goto) return toast.error('Every button needs a target step')
+        }
+      }
+    }
 
     setSaving(true)
     try {
@@ -236,7 +309,11 @@ export default function MetaAutomationPage() {
         {
           method: isEdit ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...form, account_id: form.account_id || null }),
+          body: JSON.stringify({
+            ...form,
+            account_id: form.account_id || null,
+            flow: isFlowMode ? { steps: flowSteps } : null,
+          }),
         }
       )
       const data = await res.json()
@@ -263,6 +340,7 @@ export default function MetaAutomationPage() {
       reply_link: rule.reply_link || '',
       media_id: rule.media_id || '',
     })
+    setFlowSteps(rule.flow?.steps || [])
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -415,12 +493,15 @@ export default function MetaAutomationPage() {
                 ]}
               />
               <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-2">Keyword</label>
+                <label className="block text-sm font-medium text-neutral-200 mb-2">Keyword(s)</label>
                 <Input
                   value={form.keyword}
                   onChange={(e) => setForm({ ...form, keyword: e.target.value })}
-                  placeholder="VISION"
+                  placeholder="VISION, INTENSIVE"
                 />
+                <p className="text-xs text-neutral-500 mt-1">
+                  Separate multiple keywords with commas; any of them triggers the rule.
+                </p>
               </div>
               <Select
                 label="Match"
@@ -433,27 +514,266 @@ export default function MetaAutomationPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-neutral-200 mb-2">Reply text</label>
-              <Textarea
-                value={form.reply_text}
-                onChange={(e) => setForm({ ...form, reply_text: e.target.value })}
-                placeholder="Here it is! Tap the link below to start your Life Vision."
-                rows={3}
-              />
+            {/* Reply mode toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-neutral-200">Reply type:</span>
+              <Button
+                variant={isFlowMode ? 'ghost' : 'secondary'}
+                size="sm"
+                onClick={() => setFlowSteps([])}
+              >
+                Simple reply
+              </Button>
+              <Button
+                variant={isFlowMode ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => {
+                  if (!isFlowMode) setFlowSteps([{ id: 's1', type: 'message', text: form.reply_text, link: form.reply_link || undefined }])
+                }}
+              >
+                <GitBranch className="w-4 h-4 mr-1" />
+                Multi-step flow
+              </Button>
             </div>
 
+            {!isFlowMode && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-200 mb-2">Reply text</label>
+                  <Textarea
+                    value={form.reply_text}
+                    onChange={(e) => setForm({ ...form, reply_text: e.target.value })}
+                    placeholder="Here it is! Tap the link below to start your Life Vision."
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-200 mb-2">
+                    Reply link <span className="text-neutral-500">(optional, appended to reply)</span>
+                  </label>
+                  <Input
+                    value={form.reply_link}
+                    onChange={(e) => setForm({ ...form, reply_link: e.target.value })}
+                    placeholder="https://vibrationfit.com/go/vision"
+                  />
+                </div>
+              </>
+            )}
+
+            {isFlowMode && (
+              <Stack gap="sm">
+                {form.trigger_type === 'comment_keyword' && (
+                  <p className="text-xs text-neutral-500">
+                    Comment triggers send only the first step as the private reply
+                    (an email-capture first step continues in DMs). Buttons and
+                    multi-step chains need a DM keyword trigger.
+                  </p>
+                )}
+                {flowSteps.map((step, index) => (
+                  <Card key={step.id} className="p-4 bg-[#1A1A1A]">
+                    <Stack gap="sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-white font-medium">
+                          Step {index + 1}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={step.type}
+                            onChange={(v) =>
+                              updateStep(index, { type: v as FlowStep['type'] })
+                            }
+                            options={[
+                              { value: 'message', label: 'Send message' },
+                              { value: 'capture_email', label: 'Capture email' },
+                            ]}
+                            className="w-44"
+                          />
+                          <Button variant="ghost" size="sm" onClick={() => removeStep(index)} title="Remove step">
+                            <Trash2 className="w-4 h-4 text-[#FF0040]" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {step.type === 'message' ? (
+                        <>
+                          <Textarea
+                            value={step.text || ''}
+                            onChange={(e) => updateStep(index, { text: e.target.value })}
+                            placeholder="Message text"
+                            rows={2}
+                          />
+                          <Input
+                            value={step.link || ''}
+                            onChange={(e) => updateStep(index, { link: e.target.value || undefined })}
+                            placeholder="Optional link (appended to the message)"
+                          />
+
+                          {/* Buttons */}
+                          {(step.buttons || []).map((btn, bIndex) => (
+                            <div key={bIndex} className="flex flex-col md:flex-row gap-2 md:items-center pl-4 border-l-2 border-[#333]">
+                              <Input
+                                value={btn.label}
+                                onChange={(e) =>
+                                  updateStep(index, {
+                                    buttons: step.buttons!.map((b, i) =>
+                                      i === bIndex ? { ...b, label: e.target.value } : b
+                                    ),
+                                  })
+                                }
+                                placeholder="Button label (max 20 chars)"
+                                maxLength={20}
+                                className="md:w-56"
+                              />
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className="text-xs text-neutral-500 whitespace-nowrap">goes to</span>
+                                <Select
+                                  value={btn.goto}
+                                  onChange={(v) =>
+                                    updateStep(index, {
+                                      buttons: step.buttons!.map((b, i) =>
+                                        i === bIndex ? { ...b, goto: v } : b
+                                      ),
+                                    })
+                                  }
+                                  placeholder="Pick a step…"
+                                  options={flowSteps
+                                    .filter((s) => s.id !== step.id)
+                                    .map((s) => ({ value: s.id, label: stepLabel(flowSteps, s.id) }))}
+                                  className="flex-1"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    updateStep(index, {
+                                      buttons: step.buttons!.filter((_, i) => i !== bIndex),
+                                    })
+                                  }
+                                  title="Remove button"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                updateStep(index, {
+                                  buttons: [...(step.buttons || []), { label: '', goto: '' }],
+                                })
+                              }
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Add button
+                            </Button>
+                            {!(step.buttons || []).length && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-neutral-500">then</span>
+                                <Select
+                                  value={step.goto || ''}
+                                  onChange={(v) => updateStep(index, { goto: v || undefined })}
+                                  options={[
+                                    { value: '', label: 'End flow' },
+                                    ...flowSteps
+                                      .filter((s) => s.id !== step.id)
+                                      .map((s) => ({ value: s.id, label: stepLabel(flowSteps, s.id) })),
+                                  ]}
+                                  className="w-56"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Input
+                            value={step.prompt || ''}
+                            onChange={(e) => updateStep(index, { prompt: e.target.value || undefined })}
+                            placeholder="Prompt (default: What is your best email address?)"
+                          />
+                          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+                            <Input
+                              value={step.confirm_text || ''}
+                              onChange={(e) => updateStep(index, { confirm_text: e.target.value || undefined })}
+                              placeholder={'Confirmation (default: I have your email as {{email}}, can you please confirm it is correct?)'}
+                            />
+                            <Input
+                              value={step.confirm_button || ''}
+                              onChange={(e) => updateStep(index, { confirm_button: e.target.value || undefined })}
+                              placeholder="Button (default: Yes!)"
+                              className="md:w-44"
+                            />
+                          </div>
+                          <Input
+                            value={step.confirm_known_text || ''}
+                            onChange={(e) => updateStep(index, { confirm_known_text: e.target.value || undefined })}
+                            placeholder={'Returning contact (default: Is {{email}} the best email to send it over to?)'}
+                          />
+                          <Input
+                            value={step.success_text || ''}
+                            onChange={(e) => updateStep(index, { success_text: e.target.value || undefined })}
+                            placeholder="Message after they confirm (optional)"
+                          />
+                          <p className="text-xs text-neutral-500">
+                            Use the {'{{email}}'} merge tag anywhere in these messages (and in later
+                            message steps) to insert the email we have on file for them.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <Input
+                              value={step.email_template || ''}
+                              onChange={(e) => updateStep(index, { email_template: e.target.value || undefined })}
+                              placeholder="Email template slug (optional)"
+                            />
+                            <Input
+                              value={step.email_link || ''}
+                              onChange={(e) => updateStep(index, { email_link: e.target.value || undefined })}
+                              placeholder="Link for {{link}} in that email"
+                            />
+                          </div>
+                          <p className="text-xs text-neutral-500">
+                            If a template slug is set, the confirmed email address instantly
+                            receives that email (from Admin → Emails → Templates).
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-neutral-500">after capture, go to</span>
+                            <Select
+                              value={step.goto || ''}
+                              onChange={(v) => updateStep(index, { goto: v || undefined })}
+                              options={[
+                                { value: '', label: 'End flow' },
+                                ...flowSteps
+                                  .filter((s) => s.id !== step.id)
+                                  .map((s) => ({ value: s.id, label: stepLabel(flowSteps, s.id) })),
+                              ]}
+                              className="w-56"
+                            />
+                          </div>
+                          <p className="text-xs text-neutral-500">
+                            Valid emails are saved to the CRM leads table (source: instagram_dm).
+                          </p>
+                        </>
+                      )}
+                    </Stack>
+                  </Card>
+                ))}
+
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => addStep('message')}>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add message step
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => addStep('capture_email')}>
+                    <Mail className="w-4 h-4 mr-1" />
+                    Add email capture step
+                  </Button>
+                </div>
+              </Stack>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-200 mb-2">
-                  Reply link <span className="text-neutral-500">(optional, appended to reply)</span>
-                </label>
-                <Input
-                  value={form.reply_link}
-                  onChange={(e) => setForm({ ...form, reply_link: e.target.value })}
-                  placeholder="https://vibrationfit.com/go/vision"
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-200 mb-2">
                   Post ID <span className="text-neutral-500">(optional, scope comment rules to one post)</span>
@@ -516,11 +836,23 @@ export default function MetaAutomationPage() {
                         </span>
                       </td>
                       <td className="py-3 md:py-4 px-3 md:px-4">
-                        <div className="text-xs text-neutral-400 truncate max-w-[260px]" title={rule.reply_text}>
-                          {rule.reply_text}
-                        </div>
-                        {rule.reply_link && (
-                          <div className="text-xs text-neutral-600 truncate max-w-[260px]">{rule.reply_link}</div>
+                        {rule.flow?.steps?.length ? (
+                          <span className="flex items-center gap-1.5 text-xs text-neutral-300">
+                            <GitBranch className="w-3.5 h-3.5 text-[#BF00FF]" />
+                            Flow · {rule.flow.steps.length} step{rule.flow.steps.length === 1 ? '' : 's'}
+                            {rule.flow.steps.some((s) => s.type === 'capture_email') && (
+                              <Mail className="w-3.5 h-3.5 text-neutral-500" />
+                            )}
+                          </span>
+                        ) : (
+                          <>
+                            <div className="text-xs text-neutral-400 truncate max-w-[260px]" title={rule.reply_text}>
+                              {rule.reply_text}
+                            </div>
+                            {rule.reply_link && (
+                              <div className="text-xs text-neutral-600 truncate max-w-[260px]">{rule.reply_link}</div>
+                            )}
+                          </>
                         )}
                       </td>
                       <td className="py-3 md:py-4 px-3 md:px-4">
