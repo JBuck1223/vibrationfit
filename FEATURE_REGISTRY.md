@@ -1,6 +1,6 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** April 23, 2026  
+**Last Updated:** July 8, 2026  
 **Purpose:** Single source of truth for all features, their versions, and status
 
 > ⚠️ **FOR AI AGENTS:** Before modifying ANY feature, check this registry first. Features marked 🔒 LOCKED should NOT be modified without explicit user permission.
@@ -217,7 +217,7 @@
 ---
 
 ### 🔒 Design System
-**Version:** `v1.8.0`  
+**Version:** `v1.8.1`  
 **Status:** 🔒 LOCKED (Core UI system)  
 **Last Modified:** November 10, 2024  
 **Doc:** `docs/design-system/README.md`  
@@ -313,7 +313,7 @@ Visit any page and verify:
 ---
 
 ### 🔒 Database Schema
-**Version:** `v4.12.0`  
+**Version:** `v4.13.0`  
 **Status:** 🔒 LOCKED (Production database)  
 **Last Modified:** November 17, 2024  
 **Doc:** `docs/generated/SCHEMA.md` (auto-generated)  
@@ -324,6 +324,11 @@ Visit any page and verify:
 - Tables for all features
 - RLS policies for security
 - Stored functions and triggers
+
+**Recent Changes (July 8, 2026):**
+- Added `get_user_id_by_email(text)` SECURITY DEFINER function (service_role only)
+  for targeted auth user lookup in checkout/webhook hot paths. Additive only —
+  no table or RLS changes. Migration: `20260708000001_get_user_id_by_email.sql`.
 
 **Recent Changes (June 21, 2026):**
 - Renamed all `idea_*` tables to `project_*` (`idea_projects` → `projects`, etc.) and
@@ -554,6 +559,8 @@ Verification:
 
 | Feature | Version | Date | Change |
 |---------|---------|------|--------|
+| Database Schema | v4.12.0 → v4.13.0 | Jul 8 2026 | Added get_user_id_by_email() function (additive, service_role only) |
+| Design System | v1.8.0 → v1.8.1 | Jul 8 2026 | Attribute-only: lazy-load below-fold imgs in SocialProofSection/SwipeableCards/ProofWall; Poppins now via next/font |
 | FEATURE_REGISTRY | v1.0.0 → v1.1.0 | Dec 10 | Added PageHero component with lock rules |
 | FEATURE_REGISTRY | - → v1.0.0 | Nov 18 | Added UI components tracking |
 | Media Recorder | - → v3.5.0 | Nov 18 | Documented current state (locked) |
