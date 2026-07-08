@@ -30,6 +30,40 @@ export async function POST(request: NextRequest) {
     // Use admin client to bypass RLS for public lead capture
     const supabase = createAdminClient()
 
+    // Backfill UTM attribution from the visitor record when the form didn't
+    // pass it explicitly (most forms only send visitor_id)
+    let utm = {
+      utm_source: body.utm_source || null,
+      utm_medium: body.utm_medium || null,
+      utm_campaign: body.utm_campaign || null,
+      utm_content: body.utm_content || null,
+      utm_term: body.utm_term || null,
+      referrer: body.referrer || null,
+      landing_page: body.landing_page || null,
+    }
+    if (!utm.utm_source && body.visitor_id) {
+      try {
+        const { data: visitor } = await supabase
+          .from('visitors')
+          .select('first_utm_source, first_utm_medium, first_utm_campaign, first_utm_content, first_utm_term, first_referrer, first_landing_page')
+          .eq('id', body.visitor_id)
+          .maybeSingle()
+        if (visitor?.first_utm_source) {
+          utm = {
+            utm_source: visitor.first_utm_source,
+            utm_medium: visitor.first_utm_medium || null,
+            utm_campaign: visitor.first_utm_campaign || null,
+            utm_content: visitor.first_utm_content || null,
+            utm_term: visitor.first_utm_term || null,
+            referrer: utm.referrer || visitor.first_referrer || null,
+            landing_page: utm.landing_page || visitor.first_landing_page || null,
+          }
+        }
+      } catch (utmErr) {
+        console.error('[leads] UTM backfill error (non-fatal):', utmErr)
+      }
+    }
+
     // Create lead record
     const { data: lead, error } = await supabase
       .from('leads')
@@ -44,14 +78,8 @@ export async function POST(request: NextRequest) {
         source: body.source || 'website',
         metadata: body.metadata || {},
         
-        // Attribution
-        utm_source: body.utm_source || null,
-        utm_medium: body.utm_medium || null,
-        utm_campaign: body.utm_campaign || null,
-        utm_content: body.utm_content || null,
-        utm_term: body.utm_term || null,
-        referrer: body.referrer || null,
-        landing_page: body.landing_page || null,
+        // Attribution (backfilled from visitor record when not passed)
+        ...utm,
         
         // Engagement
         visitor_id: body.visitor_id || null,
@@ -70,8 +98,10 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Lead created:', lead.id)
 
-    // Credit referrer if this lead came via a referral link
-    const refCode = body.ref || body.referral_code
+    // Credit referrer if this lead came via a referral link.
+    // Falls back to the vf_ref cookie (set by /api/referral/track) so credit
+    // fires even when the form doesn't pass the code explicitly.
+    const refCode = body.ref || body.referral_code || request.cookies.get('vf_ref')?.value
     if (refCode) {
       try {
         const referrer = await resolveReferralCode(supabase, refCode)
