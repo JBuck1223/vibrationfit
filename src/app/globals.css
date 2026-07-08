@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "../styles/brand.css";
 
@@ -13,14 +12,15 @@ html {
 }
 
 body {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+  /* Poppins is self-hosted via next/font (--font-poppins on <html>) */
+  font-family: var(--font-poppins, 'Poppins'), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
   /* Ensure proper mobile scrolling */
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
 
 * {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+  font-family: var(--font-poppins, 'Poppins'), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
 }
 
 /* Dev tools compatibility */
@@ -41,7 +41,7 @@ body {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-sans: var(--font-poppins, 'Poppins'), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   --font-mono: 'Courier New', monospace;
   
   /* Surfaces: deep panel (match colors.neutral.embeddedPanel) */

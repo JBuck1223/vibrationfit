@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import '@/styles/brand.css'
 import { GlobalLayoutShell } from '@/components/GlobalLayoutShell'
@@ -10,6 +11,13 @@ import { Toaster } from 'sonner'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import { ReferralBanner } from '@/components/ReferralBanner'
 import { GlobalAudioPlayerShell } from '@/lib/design-system/components'
+
+const poppins = Poppins({
+  weight: ['300', '400', '500', '600', '700', '800'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-poppins',
+})
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -50,15 +58,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={poppins.variable} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://media.vibrationfit.com" />
       </head>
       <body
         className="antialiased"
-        style={{ fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif' }}
         suppressHydrationWarning={true}
       >
         <PixelScripts />
