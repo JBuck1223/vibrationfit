@@ -7,6 +7,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { toTitleCase } from '@/lib/utils'
 import { ensureCustomerWithAttribution } from '@/lib/tracking/customer-attribution'
+import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -176,10 +177,9 @@ export async function POST(request: NextRequest) {
 
     let userId: string
     let redirectToSetupPassword = false
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
-    const existingUser = existingUsers?.users?.find(u => u.email === email)
-    if (existingUser) {
-      userId = existingUser.id
+    const foundUserId = await getUserIdByEmail(supabaseAdmin, email)
+    if (foundUserId) {
+      userId = foundUserId
       if (hasPassword) {
         await supabaseAdmin.auth.admin.updateUserById(userId, { password: password! })
       } else {

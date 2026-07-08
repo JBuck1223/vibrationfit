@@ -18,6 +18,7 @@ import { sendSMS } from '@/lib/messaging/twilio'
 import { createAdminNotification } from '@/lib/admin/notifications'
 import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
 import { ensureCustomerWithAttribution } from '@/lib/tracking/customer-attribution'
+import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
 import { OUTBOUND_URL } from '@/lib/urls'
 
 // Stripe API 2025-03-31.basil+ moved `current_period_start`/`current_period_end`
@@ -702,11 +703,10 @@ export async function POST(request: NextRequest) {
             console.log('Looking up or creating user account for:', customerEmail)
             
             // Check if user already exists (may have been created by custom checkout)
-            const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
-            const existingUser = existingUsers?.users?.find((u: any) => u.email === customerEmail)
-            
-            if (existingUser) {
-              userId = existingUser.id
+            const foundUserId = await getUserIdByEmail(supabaseAdmin, customerEmail)
+
+            if (foundUserId) {
+              userId = foundUserId
               console.log('Found existing user account:', userId)
             } else {
               const customerName = session.customer_details?.name || ''
@@ -1137,11 +1137,10 @@ export async function POST(request: NextRequest) {
           if (!userId && customerEmail) {
             console.log('Looking up or creating user for combined checkout:', customerEmail)
             
-            const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
-            const existingUser = existingUsers?.users?.find((u: any) => u.email === customerEmail)
-            
-            if (existingUser) {
-              userId = existingUser.id
+            const foundUserId = await getUserIdByEmail(supabaseAdmin, customerEmail)
+
+            if (foundUserId) {
+              userId = foundUserId
               console.log('Found existing user for combined checkout:', userId)
             } else {
               const customerName = session.customer_details?.name || ''
@@ -2049,10 +2048,9 @@ export async function POST(request: NextRequest) {
         const firstName = nameParts[0] ? toTitleCase(nameParts[0]) : null
         const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : null
 
-        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
-        const existingUser = existingUsers?.users?.find((u: { email?: string }) => u.email === email)
-        if (existingUser) {
-          userId = existingUser.id
+        const foundUserId = await getUserIdByEmail(supabaseAdmin, email)
+        if (foundUserId) {
+          userId = foundUserId
         } else {
           const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
             email,
