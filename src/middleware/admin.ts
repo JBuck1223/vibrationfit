@@ -30,8 +30,14 @@ const FALLBACK_ADMIN_EMAILS = [
 ]
 
 export function isAdminRoute(pathname: string): boolean {
-  // Only check for exact admin routes, not API routes
-  return ADMIN_ROUTES.some(route => pathname.startsWith(route) && !pathname.startsWith('/api/'))
+  // Match exact routes or sub-paths only (segment-aware), not API routes.
+  // Plain startsWith would also catch public files like /sitemap.xml via
+  // the /sitemap admin page entry.
+  return ADMIN_ROUTES.some(
+    route =>
+      (pathname === route || pathname.startsWith(`${route}/`)) &&
+      !pathname.startsWith('/api/')
+  )
 }
 
 /**
