@@ -9,8 +9,12 @@ import { triggerEvent } from '@/lib/messaging/events'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { createAdminNotification } from '@/lib/admin/notifications'
 import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, 'leads', 5)
+  if (limited) return limited
+
   try {
     const body = await request.json()
 
