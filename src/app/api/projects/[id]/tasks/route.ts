@@ -25,13 +25,13 @@ function buildTaskTree(tasks: IdeaTask[]): IdeaTask[] {
   return topLevel
 }
 
-// Confirm the project belongs to the current member (RLS also enforces this).
-async function assertOwnership(supabase: any, projectId: string, userId: string) {
+// Confirm the current member can collaborate on the project: RLS returns the
+// row for the owner and for household members it is shared with.
+async function assertOwnership(supabase: any, projectId: string, _userId: string) {
   const { data } = await supabase
     .from('projects')
     .select('id')
     .eq('id', projectId)
-    .eq('created_by', userId)
     .single()
   return !!data
 }

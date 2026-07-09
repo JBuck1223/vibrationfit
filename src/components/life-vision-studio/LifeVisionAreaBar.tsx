@@ -50,6 +50,30 @@ export function LifeVisionAreaBar() {
   let contextNav: AreaBarContextNavItem[] | undefined
   let contextText: string | undefined
 
+  // Two-document model: the user's personal visions ("Life I Choose"),
+  // joint household visions ("Life We Choose"), and personal visions other
+  // household members share ("Shared With Me"). Groups only render as
+  // headers when more than one group exists.
+  const myPersonal = visions.filter(v => v.is_mine && !v.is_household)
+  const householdVisions = visions.filter(v => v.is_household)
+  const sharedPersonal = visions.filter(v => !v.is_mine && !v.is_household && !v.is_draft)
+  const hasVisionGroups = householdVisions.length > 0 || sharedPersonal.length > 0
+
+  const dateSublabel = (v: { created_at: string }) =>
+    new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  const toVisionOption = (v: (typeof visions)[number], group?: string) => ({
+    id: v.id,
+    label: v.is_draft ? 'Draft' : `Version ${v.version_number}`,
+    sublabel: dateSublabel(v),
+    badge: v.is_draft ? 'Draft' : (v.is_active ? 'Active' : undefined),
+    badgeVariant: v.is_draft ? ('draft' as const) : undefined,
+    isActive: !v.is_draft && v.is_active,
+    icon: v.is_household ? Users : undefined,
+    iconPosition: v.is_household ? ('right' as const) : undefined,
+    group,
+  })
+
   if (isViewOverview) {
     const detailVisionId = isVisionDetail ? pathname.split('/')[2] : undefined
     const printVisionId = isPrintPage ? pathname.split('/')[2] : activeVisionId
@@ -61,29 +85,26 @@ export function LifeVisionAreaBar() {
       ...(pdfPath ? [{ label: 'Download PDF', path: pdfPath, icon: Download, isActive: isPrintPage }] : []),
     ]
 
-    const draftVisions = visions.filter(v => v.is_draft)
-    const nonDraftVisions = visions.filter(v => !v.is_draft)
+    const draftVisions = visions.filter(v => v.is_draft && (v.is_mine || v.is_household))
     const isViewingDraftDetail =
       !!(isVisionDetail && detailVisionId && draftVisions.some(v => v.id === detailVisionId))
 
     if (isPrintPage) {
       contextText = 'Preview and download a printable PDF of your Life Vision.'
 
-      if (nonDraftVisions.length > 0) {
+      const printOptions = [
+        ...myPersonal.filter(v => !v.is_draft).map(v => toVisionOption(v, hasVisionGroups ? 'Life I Choose' : undefined)),
+        ...householdVisions.filter(v => !v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
+        ...sharedPersonal.map(v => toVisionOption(v, 'Shared With Me')),
+      ]
+
+      if (printOptions.length > 0) {
         versionSelectors = [{
           id: 'vision-version',
           label: 'Vision',
           position: 'contextRow',
-          options: nonDraftVisions.map(v => ({
-            id: v.id,
-            label: `Version ${v.version_number}`,
-            sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            badge: v.is_active ? 'Active' : undefined,
-            isActive: v.is_active,
-            icon: v.household_id ? Users : undefined,
-            iconPosition: v.household_id ? 'right' as const : undefined,
-          })),
-          selectedId: printVisionId || nonDraftVisions[0].id,
+          options: printOptions,
+          selectedId: printVisionId || printOptions[0].id,
           onSelect: (id: string) => router.push(`/life-vision/${id}/print`),
         }]
       }
@@ -98,28 +119,15 @@ export function LifeVisionAreaBar() {
         contextText = 'Read or listen to your Life Vision.'
       }
 
-      const draftOptions = draftVisions.map(v => ({
-        id: v.id,
-        label: 'Draft',
-        sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        badge: 'Draft',
-        badgeVariant: 'draft' as const,
-        isActive: false,
-        icon: v.household_id ? Users : undefined,
-        iconPosition: v.household_id ? 'right' as const : undefined,
-      }))
-
-      const nonDraftOptions = nonDraftVisions.map(v => ({
-        id: v.id,
-        label: `Version ${v.version_number}`,
-        sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        badge: v.is_active ? 'Active' : undefined,
-        isActive: v.is_active,
-        icon: v.household_id ? Users : undefined,
-        iconPosition: v.household_id ? 'right' as const : undefined,
-      }))
-
-      const visionOptions = [...draftOptions, ...nonDraftOptions]
+      const myGroup = hasVisionGroups ? 'Life I Choose' : undefined
+      const visionOptions = [
+        ...myPersonal.filter(v => v.is_draft).map(v => toVisionOption(v, myGroup)),
+        ...myPersonal.filter(v => !v.is_draft).map(v => toVisionOption(v, myGroup)),
+        ...householdVisions.filter(v => v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
+        ...householdVisions.filter(v => !v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
+        ...sharedPersonal.map(v => toVisionOption(v, 'Shared With Me')),
+      ]
+      const nonDraftVisions = [...myPersonal, ...householdVisions, ...sharedPersonal].filter(v => !v.is_draft)
 
       let selectedVisionId = detailVisionId
       if (!selectedVisionId || !visionOptions.some(o => o.id === selectedVisionId)) {
@@ -207,9 +215,10 @@ export function LifeVisionAreaBar() {
         contextText = 'Review your draft changes and commit when ready.'
       }
 
-      // Version selector — draft (current) at top, then all prior non-draft versions
-      const draft = visions.find(v => v.is_draft)
-      const nonDraftVisions = visions.filter(v => !v.is_draft)
+      // Version selector — draft (current) at top, then all prior non-draft versions.
+      // The refine/commit flows only ever operate on the user's personal document.
+      const draft = myPersonal.find(v => v.is_draft)
+      const nonDraftVisions = myPersonal.filter(v => !v.is_draft)
       if ((isOnRefineSubpage || isOnCommitSubpage) && (draft || nonDraftVisions.length > 0)) {
         // Draft version_number in context is 0 as a marker; the draft will become
         // nonDraftVisions.length + 1 when committed, so show that as its label.
@@ -255,8 +264,8 @@ export function LifeVisionAreaBar() {
         }]
       }
     } else if (isFreshFlow) {
-      const draft = visions.find(v => v.is_draft)
-      const nonDraftVisions = visions.filter(v => !v.is_draft)
+      const draft = myPersonal.find(v => v.is_draft)
+      const nonDraftVisions = myPersonal.filter(v => !v.is_draft)
       const draftDisplayVersion = nonDraftVisions.length + 1
 
       contextNav = [

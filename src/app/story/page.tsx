@@ -25,6 +25,8 @@ import {
   Button,
   Spinner,
   Text,
+  HouseholdScopeToggle,
+  type HouseholdScope,
 } from '@/lib/design-system/components'
 import { useStoryStudio } from '@/components/story-studio'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -48,15 +50,31 @@ const FILTER_OPTIONS = [
 
 export default function StoryHubPage() {
   const router = useRouter()
-  const { stories, loading, activePill, setActivePill } = useStoryStudio()
+  const { stories, loading, activePill, setActivePill, currentUserId, household } = useStoryStudio()
 
   const [showFilters, setShowFilters] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [scope, setScope] = useState<HouseholdScope>('me')
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const memberById = useMemo(() => {
+    const map = new Map<string, { displayName: string; isSelf: boolean }>()
+    for (const m of household?.members || []) {
+      map.set(m.userId, { displayName: m.firstName || m.displayName, isSelf: m.isSelf })
+    }
+    return map
+  }, [household])
 
   const filtered = useMemo(() => {
     let result = activePill === 'all' ? stories : stories.filter(s => s.entity_type === activePill)
+
+    // Household lens
+    if (scope === 'me') {
+      result = result.filter(s => !currentUserId || s.user_id === currentUserId)
+    } else if (scope !== 'all') {
+      result = result.filter(s => s.user_id === scope)
+    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
@@ -66,7 +84,7 @@ export default function StoryHubPage() {
     }
 
     return result
-  }, [stories, activePill, searchQuery])
+  }, [stories, activePill, searchQuery, scope, currentUserId])
 
   if (loading) {
     return (
@@ -120,6 +138,21 @@ export default function StoryHubPage() {
               </button>
             </div>
           </div>
+
+          {household?.isMultiMember && (
+            <div className="flex items-center justify-center">
+              <HouseholdScopeToggle
+                members={household.members.map(m => ({
+                  userId: m.userId,
+                  displayName: m.firstName || m.displayName,
+                  avatarUrl: m.avatarUrl,
+                  isSelf: m.isSelf,
+                }))}
+                value={scope}
+                onChange={setScope}
+              />
+            </div>
+          )}
 
           {searchOpen && (
             <div className="relative animate-in slide-in-from-top-2 duration-200">
@@ -215,6 +248,8 @@ export default function StoryHubPage() {
               const meta = ENTITY_TYPE_META[story.entity_type] || ENTITY_TYPE_META.custom
               const hasAiAudio = !!story.audio_set_id
               const hasRecording = !!story.user_audio_url
+              const creator = memberById.get(story.user_id)
+              const showCreator = scope !== 'me' && creator && !creator.isSelf
               const storyCategories: string[] = story.metadata?.selected_categories || []
               const wordCount = story.word_count || 0
               const readTime = Math.max(1, Math.ceil(wordCount / 200))
@@ -258,6 +293,11 @@ export default function StoryHubPage() {
                               </span>
                             )
                           })}
+                          {showCreator && (
+                            <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border border-[#00FFFF]/30 text-[#00FFFF] bg-[#00FFFF]/10 font-medium flex-shrink-0">
+                              {creator.displayName}
+                            </span>
+                          )}
                           {story.status !== 'completed' && (
                             <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ${
                               story.status === 'generating'

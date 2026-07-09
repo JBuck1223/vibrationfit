@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { PeriodType } from '@/lib/abundance/period-utils'
 import { getPeriodStartEnd } from '@/lib/abundance/period-utils'
+import { getHouseholdContext } from '@/lib/household/context'
+import { getShareAllMemberIds } from '@/lib/household/sharing'
 
 export async function GET(request: Request) {
   try {
@@ -58,10 +60,24 @@ export async function GET(request: Request) {
       )
     }
 
-    const { data: events, error: fetchError } = await supabase
-      .from('abundance_events')
-      .select('*')
-      .eq('user_id', user.id)
+    // scope=all combines household-shared events into the report
+    const scope = searchParams.get('scope') === 'all' ? 'all' : 'mine'
+    const household = await getHouseholdContext(user.id)
+
+    let query = supabase.from('abundance_events').select('*')
+
+    if (scope === 'all' && household?.isMultiMember) {
+      const shareAllIds = await getShareAllMemberIds(supabase, household.householdId, 'abundance')
+      const conditions = [`user_id.eq.${user.id}`, `household_id.eq.${household.householdId}`]
+      if (shareAllIds.length > 0) {
+        conditions.push(`user_id.in.(${shareAllIds.join(',')})`)
+      }
+      query = query.or(conditions.join(','))
+    } else {
+      query = query.eq('user_id', user.id)
+    }
+
+    const { data: events, error: fetchError } = await query
       .gte('date', start)
       .lte('date', end)
       .order('date', { ascending: false })
@@ -70,7 +86,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 })
     }
 
-    const list = events || []
+    const list = (events || []).map((ev) => ({
+      ...ev,
+      isMine: ev.user_id === user.id,
+      member: household?.memberMap?.[ev.user_id]
+        ? {
+            userId: ev.user_id,
+            displayName: household.memberMap[ev.user_id].displayName,
+            avatarUrl: household.memberMap[ev.user_id].avatarUrl,
+            isSelf: ev.user_id === user.id,
+          }
+        : null,
+    }))
     let moneyTotal = 0
     let valueTotal = 0
     const entryBreakdown: Record<string, { count: number; amount: number }> = {}
@@ -107,6 +134,14 @@ export async function GET(request: Request) {
       entryBreakdown,
       visionBreakdown,
       events: list,
+      household: household?.isMultiMember
+        ? {
+            id: household.householdId,
+            name: household.householdName,
+            isMultiMember: household.isMultiMember,
+            members: household.members,
+          }
+        : null,
     })
   } catch (error) {
     console.error('Error fetching abundance report:', error)

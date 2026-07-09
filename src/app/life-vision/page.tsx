@@ -39,7 +39,11 @@ export default function VisionListPage() {
       return
     }
 
-    const firstVision = visions.find(v => !v.is_draft)
+    // Prefer the user's own personal vision; fall back to a household vision
+    // they participate in. A partner's shared personal vision never hijacks
+    // the redirect - without a vision of their own, users see the create CTA.
+    const firstVision = visions.find(v => !v.is_draft && v.is_mine && !v.is_household)
+      || visions.find(v => !v.is_draft && v.is_household)
     if (firstVision?.id) {
       redirected.current = true
       router.replace(`/life-vision/${firstVision.id}`)
@@ -47,7 +51,7 @@ export default function VisionListPage() {
   }, [loading, activeVisionId, visions, router, skipRedirect])
 
   const showSpinner =
-    !skipRedirect && (loading || activeVisionId || visions.some(v => !v.is_draft))
+    !skipRedirect && (loading || activeVisionId || visions.some(v => !v.is_draft && (v.is_mine || v.is_household)))
 
   if (showSpinner) {
     return (

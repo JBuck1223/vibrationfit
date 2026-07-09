@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Card, Input, Badge, Spinner, Stack, Modal } from '@/lib/design-system/components'
 import { Pencil } from 'lucide-react'
+import { HouseholdSharingSettingsCard } from './HouseholdSharingSettingsCard'
 
 const glassCard = 'border border-white/[0.06] p-4 shadow-none sm:p-5'
 
@@ -277,6 +278,8 @@ export function AccountHouseholdSettings() {
               </div>
             </Card>
           )}
+
+          {(household.members?.length || 0) > 1 && <HouseholdSharingSettingsCard />}
 
           {household.isAdmin && (
             <Card variant="glass" className={glassCard}>

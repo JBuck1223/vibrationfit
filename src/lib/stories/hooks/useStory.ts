@@ -32,11 +32,12 @@ export function useStory(storyId: string | null): UseStoryReturn {
         return
       }
 
+      // No user_id filter: RLS grants access to the creator and to household
+      // members the story is shared with (explicitly or via share-all).
       const { data, error: fetchError } = await supabase
         .from('stories')
         .select('*')
         .eq('id', storyId)
-        .eq('user_id', user.id)
         .single()
 
       if (fetchError) {

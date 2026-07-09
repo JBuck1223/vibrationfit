@@ -50,7 +50,10 @@ export function SongRegeneratePanel({
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
-  const [youtubeUrl, setYoutubeUrl] = useState(savedReference?.youtube_url || '')
+  // The paste field stays empty and always visible; the URL belonging to the
+  // ACTIVE reference lives in referenceYoutubeUrl so a new URL can be pasted
+  // to replace the current reference at any time.
+  const [youtubeUrl, setYoutubeUrl] = useState('')
   const [audioLoading, setAudioLoading] = useState(false)
   const [audioError, setAudioError] = useState<string | null>(null)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
@@ -60,6 +63,7 @@ export function SongRegeneratePanel({
   const [referenceId, setReferenceId] = useState<string | null>(savedReference?.mureka_file_id || null)
   const [referenceTitle, setReferenceTitle] = useState<string | null>(savedReference?.title || null)
   const [referenceClipUrl, setReferenceClipUrl] = useState<string | null>(savedReference?.clip_url || null)
+  const [referenceYoutubeUrl, setReferenceYoutubeUrl] = useState<string | null>(savedReference?.youtube_url || null)
 
   const waveformRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<any>(null)
@@ -73,15 +77,19 @@ export function SongRegeneratePanel({
     setStylePrompt(initialStylePrompt || '')
   }, [initialStylePrompt])
 
-  const loadYoutubeAudio = async () => {
-    if (!youtubeUrl.trim()) return
+  const loadYoutubeAudio = async (url: string = youtubeUrl) => {
+    if (!url.trim()) return
     setAudioLoading(true)
     setAudioError(null)
     setAudioUrl(null)
     setReferenceId(null)
+    setReferenceYoutubeUrl(null)
+    // Keep the field in sync when the URL came from elsewhere (Change section)
+    // so the upload path still records the source YouTube URL.
+    setYoutubeUrl(url)
 
     try {
-      const { audio_url, title } = await extractYoutubeAudio(youtubeUrl)
+      const { audio_url, title } = await extractYoutubeAudio(url)
       setAudioUrl(audio_url)
       setRegionEnd(30)
       setReferenceTitle(title || null)
@@ -193,6 +201,9 @@ export function SongRegeneratePanel({
     if (!lyrics.trim() || isGenerating) return
 
     let refId = referenceId
+    // For an already-selected reference use its own stored URL; for a fresh
+    // upload use the pasted URL.
+    const refYoutubeUrl = refId ? referenceYoutubeUrl : (youtubeUrl || null)
     if (audioUrl && !refId) {
       const refResponse = await fetch('/api/songs/upload-reference', {
         method: 'POST',
@@ -214,6 +225,7 @@ export function SongRegeneratePanel({
       refId = refData.reference_id
       setReferenceId(refId)
       setReferenceClipUrl(refData.clip_url || null)
+      setReferenceYoutubeUrl(youtubeUrl || null)
     }
 
     await onGenerate({
@@ -221,7 +233,7 @@ export function SongRegeneratePanel({
       style_prompt: stylePrompt.trim() || undefined,
       reference_id: refId || undefined,
       reference_meta: refId ? {
-        youtube_url: youtubeUrl || undefined,
+        youtube_url: refYoutubeUrl || undefined,
         title: referenceTitle || undefined,
         clip_url: referenceClipUrl || undefined,
         start: regionStart,
@@ -271,7 +283,10 @@ export function SongRegeneratePanel({
               <ReferenceLibraryPicker
                 className="mb-2"
                 onSelect={(ref: ReferenceTrack) => {
-                  if (ref.youtube_url) setYoutubeUrl(ref.youtube_url)
+                  setReferenceYoutubeUrl(ref.youtube_url || null)
+                  // Leave the paste field empty so a new URL can be pasted to
+                  // replace this reference at any time.
+                  setYoutubeUrl('')
                   setAudioUrl(null)
                   if (ref.title) setReferenceTitle(ref.title)
                   if (ref.mureka_file_id) setReferenceId(ref.mureka_file_id)
@@ -293,16 +308,18 @@ export function SongRegeneratePanel({
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
+                    {referenceYoutubeUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setReferenceId(null); setReferenceClipUrl(null); loadYoutubeAudio(referenceYoutubeUrl) }}
+                        className="rounded px-2 py-1 text-[10px] font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+                      >
+                        Change section
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => { setReferenceId(null); setReferenceClipUrl(null); loadYoutubeAudio() }}
-                      className="rounded px-2 py-1 text-[10px] font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
-                    >
-                      Change section
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setReferenceId(null); setReferenceTitle(null); setReferenceClipUrl(null); setYoutubeUrl('') }}
+                      onClick={() => { setReferenceId(null); setReferenceTitle(null); setReferenceClipUrl(null); setReferenceYoutubeUrl(null); setYoutubeUrl('') }}
                       className="text-neutral-500 hover:text-neutral-300"
                     >
                       <X className="h-4 w-4" />
@@ -321,24 +338,24 @@ export function SongRegeneratePanel({
                 ]}
                 cycleDuration={5000}
               />
-              {!referenceId && (
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-neutral-700 bg-black/40 px-3 focus-within:border-[#39FF14]/50">
-                    <Youtube className="h-4 w-4 shrink-0 text-neutral-500" />
-                    <input
-                      type="url"
-                      value={youtubeUrl}
-                      onChange={e => setYoutubeUrl(e.target.value)}
-                      placeholder="https://youtube.com/watch?v=..."
-                      className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none"
-                      onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
-                    />
-                  </div>
-                  <Button variant="ghost" onClick={loadYoutubeAudio} disabled={!youtubeUrl.trim() || audioLoading}>
-                    {audioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load'}
-                  </Button>
+              {/* Always visible so a new URL can be pasted even while a reference
+                  is selected — loading it replaces the current reference. */}
+              <div className="flex items-center gap-2">
+                <div className="flex flex-1 items-center gap-2 rounded-lg border border-neutral-700 bg-black/40 px-3 focus-within:border-[#39FF14]/50">
+                  <Youtube className="h-4 w-4 shrink-0 text-neutral-500" />
+                  <input
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={e => setYoutubeUrl(e.target.value)}
+                    placeholder={referenceId ? 'Paste a YouTube URL to replace this reference...' : 'https://youtube.com/watch?v=...'}
+                    className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-white placeholder:text-neutral-600 focus:outline-none"
+                    onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
+                  />
                 </div>
-              )}
+                <Button variant="ghost" onClick={() => loadYoutubeAudio()} disabled={!youtubeUrl.trim() || audioLoading}>
+                  {audioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : referenceId ? 'Replace' : 'Load'}
+                </Button>
+              </div>
 
               {audioError && <p className="mt-2 text-xs text-red-400">{audioError}</p>}
 

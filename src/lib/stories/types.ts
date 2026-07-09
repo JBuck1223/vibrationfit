@@ -42,6 +42,8 @@ export interface StoryMetadata {
 export interface Story {
   id: string
   user_id: string
+  /** NULL = personal/private. Set = shared with the household (creator via user_id). */
+  household_id?: string | null
   entity_type: StoryEntityType
   entity_id: string
   title: string | null
@@ -91,6 +93,8 @@ export interface UpdateStoryPayload {
   error_message?: string | null
   pending_content?: string | null
   pending_title?: string | null
+  /** Set to share with the household, null to make personal again (creator only). */
+  household_id?: string | null
 }
 
 // Component props

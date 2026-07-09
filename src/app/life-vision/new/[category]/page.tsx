@@ -420,7 +420,7 @@ export default function UnifiedCategoryPage() {
             ? activeVal
             : undefined
         const activeVersionNumber = activeVision?.version_number
-          ?? visions.filter(v => !v.is_draft).find(v => v.is_active)?.version_number
+          ?? visions.filter(v => !v.is_draft && v.is_mine && !v.is_household).find(v => v.is_active)?.version_number
           ?? null
         const referenceLabel =
           mode === 'iterate_draft' && referenceForRefine
@@ -755,7 +755,7 @@ export default function UnifiedCategoryPage() {
   const isFirstTime = !activeVision || !activeValue.trim()
   const gridMode = draftVision?.parent_id ? 'draft' : 'completion'
 
-  const nonDraftVisions = visions.filter(v => !v.is_draft)
+  const nonDraftVisions = visions.filter(v => !v.is_draft && v.is_mine && !v.is_household)
   const activeVisionVersion = nonDraftVisions.find(v => v.is_active)?.version_number ?? nonDraftVisions.length
   const draftVersionLabel = `V${nonDraftVisions.length + 1}`
   const activeVersionLabel = `V${activeVisionVersion}`

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
-import { Container, Stack, Button, Select, DatePicker } from '@/lib/design-system/components'
+import { Container, Stack, Button, Select, DatePicker, HouseholdScopeToggle, type HouseholdScope } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
 import { getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -22,6 +22,12 @@ interface ReportData {
   totalAmount: number
   entryBreakdown: Record<string, { count: number; amount: number }>
   visionBreakdown: Record<string, { count: number; amount: number }>
+  household?: {
+    id: string
+    name: string
+    isMultiMember: boolean
+    members: { userId: string; firstName?: string | null; displayName: string; avatarUrl: string | null; isSelf: boolean }[]
+  } | null
 }
 
 const MONEY_COLOR = colors.secondary[500]
@@ -101,6 +107,7 @@ export default function AbundanceReportsPage() {
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(false)
   const [categoryView, setCategoryView] = useState<'entry' | 'vision'>('entry')
+  const [scope, setScope] = useState<HouseholdScope>('me')
 
   useEffect(() => {
     if (period === 'month') {
@@ -138,6 +145,7 @@ export default function AbundanceReportsPage() {
       } else {
         url += `period=${period}&key=${encodeURIComponent(periodKey)}`
       }
+      if (scope !== 'me') url += '&scope=all'
       const res = await fetch(url)
       if (!res.ok) throw new Error('Failed to load report')
       const json = await res.json()
@@ -148,7 +156,7 @@ export default function AbundanceReportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [period, periodKey, customStart, customEnd])
+  }, [period, periodKey, customStart, customEnd, scope])
 
   useEffect(() => {
     if (period === 'custom' && (!customStart || !customEnd)) {
@@ -202,6 +210,23 @@ export default function AbundanceReportsPage() {
     <Container size="xl">
       <Stack gap="md">
         <h1 className="sr-only">Reports</h1>
+
+        {/* Household lens: combined report when on Both */}
+        {data?.household?.isMultiMember && (
+          <div className="flex items-center justify-center">
+            <HouseholdScopeToggle
+              compact
+              members={(data.household.members || []).map((m) => ({
+                userId: m.userId,
+                displayName: m.firstName || m.displayName,
+                avatarUrl: m.avatarUrl,
+                isSelf: m.isSelf,
+              }))}
+              value={scope}
+              onChange={setScope}
+            />
+          </div>
+        )}
 
         {/* Period selector — app shell aligned with Abundance Tracker overview */}
         <div className={shellCard}>

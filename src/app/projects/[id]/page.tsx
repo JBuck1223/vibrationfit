@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Container, Card, Button, Input, Textarea, Stack, Spinner } from '@/lib/design-system/components'
 import {
   Plus, Trash2, ChevronRight, CheckCircle2, Calendar,
-  Check, Archive, RotateCcw,
+  Check, Archive, RotateCcw, Home,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { IdeaTask, IdeaStatus } from '@/lib/projects/types'
@@ -21,6 +21,8 @@ interface ProjectDetail {
   tasks: IdeaTask[]
   task_count: number
   task_done_count: number
+  household_id?: string | null
+  isMine?: boolean
 }
 
 export default function ProjectDetailPage() {
@@ -34,6 +36,27 @@ export default function ProjectDetailPage() {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
   const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [householdInfo, setHouseholdInfo] = useState<{ name: string; isMultiMember: boolean } | null>(null)
+
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/household?includeMembers=true')
+        if (!res.ok) return
+        const json = await res.json()
+        if (active && json.household) {
+          setHouseholdInfo({
+            name: json.household.name,
+            isMultiMember: (json.members?.length || 0) > 1,
+          })
+        }
+      } catch {
+        // household lens is optional
+      }
+    })()
+    return () => { active = false }
+  }, [])
 
   const fetchProject = useCallback(async () => {
     try {
@@ -187,6 +210,32 @@ export default function ProjectDetailPage() {
             <div className="mb-2 flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-800/50 px-3 py-1.5 w-fit">
               <Archive className="h-3.5 w-3.5 text-neutral-400" />
               <span className="text-xs font-medium text-neutral-400">Archived</span>
+            </div>
+          )}
+          {householdInfo?.isMultiMember && (project.isMine ?? true) && (
+            <button
+              type="button"
+              onClick={async () => {
+                const next = !project.household_id
+                await updateProject({ shareWithHousehold: next })
+                toast.success(next ? `Shared with ${householdInfo.name}` : 'No longer shared')
+              }}
+              className={`mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 w-fit transition-colors ${
+                project.household_id
+                  ? 'border-[#00FFFF]/30 bg-[#00FFFF]/[0.08] text-[#00FFFF]'
+                  : 'border-neutral-700 bg-neutral-800/50 text-neutral-400 hover:border-neutral-500'
+              }`}
+            >
+              <Home className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium">
+                {project.household_id ? `Shared with ${householdInfo.name}` : `Share with ${householdInfo.name}`}
+              </span>
+            </button>
+          )}
+          {householdInfo?.isMultiMember && project.isMine === false && project.household_id && (
+            <div className="mb-2 flex items-center gap-2 rounded-lg border border-[#00FFFF]/30 bg-[#00FFFF]/[0.08] px-3 py-1.5 w-fit">
+              <Home className="h-3.5 w-3.5 text-[#00FFFF]" />
+              <span className="text-xs font-medium text-[#00FFFF]">Shared household project</span>
             </div>
           )}
           <input

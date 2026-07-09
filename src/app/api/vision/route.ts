@@ -22,22 +22,16 @@ export async function GET(request: NextRequest) {
     // If requesting a specific vision
     if (visionId) {
       try {
+        // No user_id filter: RLS grants access to the owner plus household
+        // members (joint "Life We Choose" visions and share-all personal visions).
         const { data: vision, error: visionError } = await supabase
           .from('vision_versions')
           .select('*')
           .eq('id', visionId)
-          .eq('user_id', user.id)
           .single()
 
         if (visionError) {
           console.error('Vision fetch error:', visionError)
-          
-          if (visionError.code === 'PGRST116') {
-            // Vision not found for this user — check if it exists for another user
-            // (e.g. household vision) before returning 404
-            return NextResponse.json({ error: 'Vision not found' }, { status: 404 })
-          }
-          
           return NextResponse.json({ error: 'Vision not found' }, { status: 404 })
         }
 
@@ -324,12 +318,12 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString()
     }
 
-    // Update the vision
+    // No user_id filter: RLS allows the owner and household collaborators
+    // (joint household visions and share-all personal visions) to edit.
     const { data: updatedVision, error: updateError } = await supabase
       .from('vision_versions')
       .update(updateData)
       .eq('id', visionId)
-      .eq('user_id', user.id)
       .select()
       .single()
 

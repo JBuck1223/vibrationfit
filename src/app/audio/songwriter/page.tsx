@@ -79,6 +79,10 @@ export default function SongwriterPage() {
   const [referenceId, setReferenceId] = useState<string | null>(null)
   const [referenceTitle, setReferenceTitle] = useState<string | null>(null)
   const [referenceClipUrl, setReferenceClipUrl] = useState<string | null>(null)
+  // YouTube URL tied to the ACTIVE reference (library pick or completed upload).
+  // Kept separate from the paste field so the input can stay visible and empty,
+  // ready for a replacement URL, while a reference is selected.
+  const [referenceYoutubeUrl, setReferenceYoutubeUrl] = useState<string | null>(null)
   const [refPickerOpen, setRefPickerOpen] = useState(false)
   const [songPickerOpen, setSongPickerOpen] = useState(false)
 
@@ -353,16 +357,21 @@ export default function SongwriterPage() {
     }
   }
 
-  // Load YouTube audio
-  const loadYoutubeAudio = async () => {
-    if (!youtubeUrl.trim()) return
+  // Load YouTube audio. Accepts an explicit URL (e.g. "Change section" on a
+  // library reference) and falls back to the paste field.
+  const loadYoutubeAudio = async (url: string = youtubeUrl) => {
+    if (!url.trim()) return
     setAudioLoading(true)
     setAudioError(null)
     setAudioUrl(null)
     setReferenceId(null)
+    setReferenceYoutubeUrl(null)
+    // Keep the field in sync when the URL came from elsewhere (Change section)
+    // so the upload path still records the source YouTube URL.
+    setYoutubeUrl(url)
 
     try {
-      const { audio_url, duration, title } = await extractYoutubeAudio(youtubeUrl)
+      const { audio_url, duration, title } = await extractYoutubeAudio(url)
       setAudioUrl(audio_url)
       setAudioDuration(duration || 180)
       setRegionEnd(Math.min(30, duration || 30))
@@ -550,6 +559,11 @@ export default function SongwriterPage() {
     try {
       let refId = referenceId
 
+      // The reference's own YouTube URL: for a fresh upload it's whatever is in
+      // the paste field; for an already-selected reference it's the URL stored
+      // with that reference (the paste field may be empty or hold a new URL).
+      const refYoutubeUrl = refId ? referenceYoutubeUrl : (youtubeUrl || null)
+
       if (audioUrl && !refId) {
         const refResponse = await fetch('/api/songs/upload-reference', {
           method: 'POST',
@@ -570,6 +584,7 @@ export default function SongwriterPage() {
         refId = refData.reference_id
         setReferenceId(refId)
         setReferenceClipUrl(refData.clip_url || null)
+        setReferenceYoutubeUrl(youtubeUrl || null)
       }
 
       // Persist the EXACT on-screen lyrics before generating so members never
@@ -585,7 +600,7 @@ export default function SongwriterPage() {
           reference_id: refId || undefined,
           life_categories: categoryTags,
           reference_meta: refId ? {
-            youtube_url: youtubeUrl || undefined,
+            youtube_url: refYoutubeUrl || undefined,
             title: referenceTitle || undefined,
             clip_url: referenceClipUrl || undefined,
             start: regionStart,
@@ -930,7 +945,10 @@ export default function SongwriterPage() {
                 className={`min-w-0${refPickerOpen ? ' md:col-span-2' : ''}`}
                 onOpenChange={setRefPickerOpen}
                 onSelect={(ref: ReferenceTrack) => {
-                  if (ref.youtube_url) setYoutubeUrl(ref.youtube_url)
+                  setReferenceYoutubeUrl(ref.youtube_url || null)
+                  // Leave the paste field empty so a new URL can be pasted to
+                  // replace this reference at any time.
+                  setYoutubeUrl('')
                   setAudioUrl(null)
                   if (ref.title) setReferenceTitle(ref.title)
                   if (ref.mureka_file_id) setReferenceId(ref.mureka_file_id)
@@ -948,6 +966,7 @@ export default function SongwriterPage() {
                   setYoutubeUrl('')
                   setReferenceId(null)
                   setReferenceClipUrl(null)
+                  setReferenceYoutubeUrl(null)
                   setReferenceTitle(song.title)
                   setRegionStart(0)
                   setRegionEnd(Math.min(30, song.duration_seconds || 30))
@@ -971,16 +990,18 @@ export default function SongwriterPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1 self-end sm:self-auto">
+                  {referenceYoutubeUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { setReferenceId(null); setReferenceClipUrl(null); loadYoutubeAudio(referenceYoutubeUrl) }}
+                      className="whitespace-nowrap rounded px-2 py-1 text-[10px] font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+                    >
+                      Change section
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => { setReferenceId(null); setReferenceClipUrl(null); loadYoutubeAudio() }}
-                    className="whitespace-nowrap rounded px-2 py-1 text-[10px] font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
-                  >
-                    Change section
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setReferenceId(null); setReferenceTitle(null); setReferenceClipUrl(null); setYoutubeUrl('') }}
+                    onClick={() => { setReferenceId(null); setReferenceTitle(null); setReferenceClipUrl(null); setReferenceYoutubeUrl(null); setYoutubeUrl('') }}
                     className="shrink-0 text-neutral-500 hover:text-neutral-300"
                   >
                     <X className="h-4 w-4" />
@@ -989,28 +1010,28 @@ export default function SongwriterPage() {
               </div>
             )}
 
-            {!referenceId && (
-              <div className="flex min-w-0 gap-2">
-                <div className="relative min-w-0 flex-1">
-                  <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-                  <input
-                    type="url"
-                    value={youtubeUrl}
-                    onChange={e => setYoutubeUrl(e.target.value)}
-                    placeholder="https://youtube.com/watch?v=..."
-                    className="w-full rounded-lg border border-neutral-700 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-neutral-600 focus:border-[#39FF14]/50 focus:outline-none"
-                    onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
-                  />
-                </div>
-                <Button
-                  variant="ghost"
-                  onClick={loadYoutubeAudio}
-                  disabled={!youtubeUrl.trim() || audioLoading}
-                >
-                  {audioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load'}
-                </Button>
+            {/* Always visible so a new URL can be pasted even while a reference
+                is selected — loading it replaces the current reference. */}
+            <div className="flex min-w-0 gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                <input
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={e => setYoutubeUrl(e.target.value)}
+                  placeholder={referenceId ? 'Paste a YouTube URL to replace this reference...' : 'https://youtube.com/watch?v=...'}
+                  className="w-full rounded-lg border border-neutral-700 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-neutral-600 focus:border-[#39FF14]/50 focus:outline-none"
+                  onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
+                />
               </div>
-            )}
+              <Button
+                variant="ghost"
+                onClick={() => loadYoutubeAudio()}
+                disabled={!youtubeUrl.trim() || audioLoading}
+              >
+                {audioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : referenceId ? 'Replace' : 'Load'}
+              </Button>
+            </div>
 
             {audioError && (
               <p className="text-xs text-red-400">{audioError}</p>

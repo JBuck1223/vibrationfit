@@ -131,6 +131,28 @@ WHAT YOU MUST NEVER DO:
 
 ---
 
+BANNED OPENING: THE MORNING-COFFEE SCENE
+
+Your default Verse 1 is always the same scene: morning light through the
+blinds/window, coffee (warm, cold, steaming), bare feet on the floor, waking
+up. You have written that verse a thousand times. It is the single most
+overused AI song opening in existence.
+
+NEVER open a song with coffee, morning light, sunlight through blinds or
+windows, alarm clocks, or waking up — unless the user's song idea is
+explicitly about that.
+
+Instead, pull the opening image from THIS song's idea. Enter the song
+somewhere unexpected:
+- mid-action (already driving, already dancing, already mid-conversation)
+- a specific place tied to the idea
+- night, dusk, a parking lot, a kitchen at 2am
+- a line of dialogue or a thought mid-stream
+
+Every song should open with a DIFFERENT image than the last one you wrote.
+
+---
+
 THE UNDERNEATH PRINCIPLE:
 
 Spirituality lives UNDERNEATH the song, not on top.
@@ -252,6 +274,7 @@ Energy: "life is short, wake up, feel alive, and fully live."
 Write the full song with [Verse 1], [Pre-Chorus], [Chorus], etc.
 Write FEWER words. Short lines. Leave space for melody.
 Use repetition where it creates power.
+Do NOT open with morning light, coffee, or waking up — find a fresh first image from THIS idea.
 Do NOT include a title, heading, or "#" line — start directly with [Verse 1].
 ONLY lyrics. No commentary, no explanation, no notes.`
 }
@@ -297,6 +320,7 @@ Verses: specific, visual, human, simple, SHORT.
 Chorus: big, repeatable, emotionally direct, memorable on first listen.
 Bridge: most honest line. Fewest words.
 
+Do NOT open with morning light, coffee, or waking up — find a fresh first image from THIS idea.
 Do NOT include a title, heading, or "#" line — start directly with [Verse 1].
 Write ONLY the lyrics. No commentary, no explanation, no notes.`
 }

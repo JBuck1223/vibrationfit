@@ -443,6 +443,21 @@ export async function generateAudioTracks(params: {
     return '50% voice, 50% background'
   }
   
+  // Audio generated from a household-shared source (joint "Life We Choose"
+  // vision or shared story) is household-listenable: new sets inherit the
+  // source's household_id.
+  let sourceHouseholdId: string | null = null
+  try {
+    const { data: sourceRow } = await supabase
+      .from(isStory ? 'stories' : 'vision_versions')
+      .select('household_id')
+      .eq('id', entityId)
+      .maybeSingle()
+    sourceHouseholdId = sourceRow?.household_id ?? null
+  } catch (err) {
+    console.error('[Audio Set] Failed to resolve source household_id:', err)
+  }
+
   if (audioSetId) {
     // Use specified audio set
     targetAudioSetId = audioSetId
@@ -458,6 +473,7 @@ export async function generateAudioTracks(params: {
       voice_id: storedVoiceId,
       metadata: audioSetMetadata || null,
       content_type: contentType,
+      household_id: sourceHouseholdId,
     }
     if (isStory) {
       setInsert.content_id = entityId
@@ -509,6 +525,7 @@ export async function generateAudioTracks(params: {
         voice_id: voice,
         metadata: audioSetMetadata || null,
         content_type: contentType,
+        household_id: sourceHouseholdId,
       }
       if (isStory) {
         setInsert.content_id = entityId

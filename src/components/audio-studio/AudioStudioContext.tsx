@@ -16,6 +16,10 @@ interface VisionData {
   is_draft: boolean
   created_at: string
   title?: string
+  /** false when the vision belongs to another household member (shared with you) */
+  is_mine?: boolean
+  /** true for "Life We Choose" household visions */
+  is_household?: boolean
   [key: string]: any
 }
 
@@ -240,25 +244,40 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
       return
     }
 
+    // No user_id filter: RLS returns own visions plus household-shared ones
+    // ("Life We Choose" joint visions and any personal visions a household
+    // member shares, explicitly or via share-all).
     const { data: versions } = await supabase
       .from('vision_versions')
       .select('*')
-      .eq('user_id', user.id)
       .eq('is_draft', false)
       .order('created_at', { ascending: false })
 
     if (versions && versions.length > 0) {
-      const enriched: VisionData[] = []
-      for (let i = 0; i < versions.length; i++) {
-        const v = versions[i]
-        enriched.push({
-          ...v,
-          version_number: versions.length - i,
-        })
+      // Version numbers count within each document group: personal visions
+      // ("Life I Choose") and household visions ("Life We Choose") each start at 1.
+      const groupCounts: Record<string, number> = {}
+      for (const v of versions) {
+        const groupKey = v.household_id ? `hh:${v.household_id}` : `me:${v.user_id}`
+        groupCounts[groupKey] = (groupCounts[groupKey] || 0) + 1
       }
+      const groupSeen: Record<string, number> = {}
+      const enriched: VisionData[] = versions.map((v) => {
+        const groupKey = v.household_id ? `hh:${v.household_id}` : `me:${v.user_id}`
+        groupSeen[groupKey] = (groupSeen[groupKey] || 0) + 1
+        return {
+          ...v,
+          version_number: groupCounts[groupKey] - groupSeen[groupKey] + 1,
+          is_mine: v.user_id === user.id,
+          is_household: !!v.household_id,
+        }
+      })
       setAllVisions(enriched)
 
-      const active = enriched.find(v => v.is_active) || enriched[0]
+      const active =
+        enriched.find(v => v.is_active && v.user_id === user.id && !v.household_id) ||
+        enriched.find(v => v.user_id === user.id && !v.household_id) ||
+        enriched[0]
       setVision(active)
       setVisionId(active.id)
     }
@@ -390,17 +409,17 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     const user = session?.user
     if (!user) { setStoriesWithAudioLoading(false); return }
 
-    // Get stories with direct audio links
+    // Get stories with direct audio links. No user_id filter: RLS also returns
+    // household-shared stories, whose audio follows the story.
     const { data: directStories } = await supabase
-      .from('stories').select('*').eq('user_id', user.id).eq('status', 'completed')
+      .from('stories').select('*').eq('status', 'completed')
       .or('audio_set_id.not.is.null,user_audio_url.not.is.null')
       .order('updated_at', { ascending: false })
 
-    // Also find stories referenced by audio_sets via content_id
+    // Also find stories referenced by audio_sets via content_id (RLS-visible)
     const { data: audioSetStoryIds } = await supabase
       .from('audio_sets')
       .select('content_id')
-      .eq('user_id', user.id)
       .eq('content_type', 'story')
       .not('content_id', 'is', null)
 

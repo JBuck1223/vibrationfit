@@ -133,8 +133,8 @@ export default function AcceptInvitationPage() {
         return
       }
 
-      // Success - redirect to household settings
-      router.push('/account/household')
+      // Success - walk the new member through one-time sharing setup
+      router.push('/household/welcome')
       
     } catch (err) {
       setError('Failed to accept invitation')

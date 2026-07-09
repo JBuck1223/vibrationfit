@@ -36,6 +36,8 @@ import {
   Text,
   DeleteConfirmationDialog,
   ImageLightbox,
+  HouseholdScopeToggle,
+  type HouseholdScope,
 } from '@/lib/design-system/components'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { AbundanceEditModal } from '@/components/abundance-tracker/AbundanceEditModal'
@@ -46,6 +48,8 @@ import { ENTRY_LABELS, ABUNDANCE_ENTRY_CATEGORIES, getEntryCategoryDisplay } fro
 
 interface AbundanceEvent {
   id: string
+  user_id?: string
+  household_id?: string | null
   date: string
   value_type: 'money' | 'value'
   amount: number | null
@@ -56,6 +60,8 @@ interface AbundanceEvent {
   created_at: string
   updated_at?: string
   audio_recordings?: unknown[]
+  isMine?: boolean
+  member?: { userId: string; displayName: string; avatarUrl: string | null; isSelf: boolean } | null
 }
 
 interface AbundanceData {
@@ -74,6 +80,12 @@ interface AbundanceData {
   entryBreakdown: Record<string, { count: number; amount: number }>
   visionBreakdown: Record<string, { count: number; amount: number }>
   recentEvents: AbundanceEvent[]
+  household?: {
+    id: string
+    name: string
+    isMultiMember: boolean
+    members: { userId: string; firstName?: string | null; displayName: string; avatarUrl: string | null; isSelf: boolean }[]
+  } | null
 }
 
 function formatCurrency(value: number): string {
@@ -140,6 +152,7 @@ export default function AbundanceDashboardPage() {
   const kindDropdownRef = useRef<HTMLDivElement>(null)
   const visionDropdownRef = useRef<HTMLDivElement>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [scope, setScope] = useState<HouseholdScope>('me')
   const [editEntryId, setEditEntryId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -147,14 +160,14 @@ export default function AbundanceDashboardPage() {
 
   const refetchAbundance = useCallback(async () => {
     try {
-      const res = await fetch('/api/vibration/abundance')
+      const res = await fetch(`/api/vibration/abundance${scope === 'me' ? '' : '?scope=all'}`)
       if (!res.ok) return
       const json = await res.json()
       setData(json)
     } catch (e) {
       console.error(e)
     }
-  }, [])
+  }, [scope])
 
   const confirmDeleteEntry = async () => {
     if (!deleteConfirmId) return
@@ -214,7 +227,7 @@ export default function AbundanceDashboardPage() {
     setLoading(true)
     setLoadError(false)
     try {
-      const res = await fetch('/api/vibration/abundance')
+      const res = await fetch(`/api/vibration/abundance${scope === 'me' ? '' : '?scope=all'}`)
       if (!res.ok) throw new Error('Failed to load')
       const json = await res.json()
       setData(json)
@@ -224,7 +237,7 @@ export default function AbundanceDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [scope])
 
   useEffect(() => {
     loadAbundance()
@@ -348,6 +361,23 @@ export default function AbundanceDashboardPage() {
     <Container size="xl">
       <Stack gap="lg">
         <h1 className="sr-only">Abundance Tracker</h1>
+
+        {/* Household lens: totals and lists combine both members when on Both */}
+        {data?.household?.isMultiMember && (
+          <div className="flex items-center justify-center">
+            <HouseholdScopeToggle
+              compact
+              members={(data.household.members || []).map((m) => ({
+                userId: m.userId,
+                displayName: m.firstName || m.displayName,
+                avatarUrl: m.avatarUrl,
+                isSelf: m.isSelf,
+              }))}
+              value={scope}
+              onChange={setScope}
+            />
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-16">
@@ -799,6 +829,11 @@ export default function AbundanceDashboardPage() {
                                 </div>
                               </div>
                               <div className="mt-2 flex flex-wrap gap-1">
+                                {scope !== 'me' && event.member && !event.member.isSelf && (
+                                  <span className="inline-flex max-w-full items-center truncate rounded border border-[#00FFFF]/30 bg-[#00FFFF]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#00FFFF]">
+                                    {event.member.displayName}
+                                  </span>
+                                )}
                                 <span
                                   className={`inline-flex max-w-full items-center truncate rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                                     event.value_type === 'money'
@@ -851,22 +886,26 @@ export default function AbundanceDashboardPage() {
                                   })}
                                 </time>
                                 <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/10 hover:text-white"
-                                    aria-label="Delete entry"
-                                    onClick={() => setDeleteConfirmId(event.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/10 hover:text-white"
-                                    aria-label="Edit entry"
-                                    onClick={() => setEditEntryId(event.id)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </button>
+                                  {event.isMine !== false && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/10 hover:text-white"
+                                        aria-label="Delete entry"
+                                        onClick={() => setDeleteConfirmId(event.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-white/10 hover:text-white"
+                                        aria-label="Edit entry"
+                                        onClick={() => setEditEntryId(event.id)}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </button>
+                                    </>
+                                  )}
                                   <button
                                     type="button"
                                     className="rounded-lg px-2 py-1.5 text-xs font-medium text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
@@ -1028,6 +1067,11 @@ export default function AbundanceDashboardPage() {
                                   {formatEntryDate(event.date)}
                                 </time>
                                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                                  {scope !== 'me' && event.member && !event.member.isSelf && (
+                                    <span className="inline-flex shrink-0 rounded border border-[#00FFFF]/30 bg-[#00FFFF]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#00FFFF]">
+                                      {event.member.displayName}
+                                    </span>
+                                  )}
                                   <span
                                     className={`inline-flex shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                                       event.value_type === 'money'
@@ -1073,6 +1117,8 @@ export default function AbundanceDashboardPage() {
                                   })}
                                 </span>
                                 <div className="flex items-center gap-1">
+                                  {event.isMine !== false && (
+                                  <>
                                   <button
                                     type="button"
                                     className="rounded-lg p-1.5 text-red-500 hover:bg-red-500/10"
@@ -1095,6 +1141,8 @@ export default function AbundanceDashboardPage() {
                                   >
                                     <Edit className="h-4 w-4" />
                                   </button>
+                                  </>
+                                  )}
                                 </div>
                               </div>
                             )}
