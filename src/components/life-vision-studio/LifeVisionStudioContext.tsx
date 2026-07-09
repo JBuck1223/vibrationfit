@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 interface VisionVersion {
   id: string
+  user_id: string
   version_number: number
   is_active: boolean
   is_draft: boolean
@@ -14,6 +15,10 @@ interface VisionVersion {
   updated_at: string
   title?: string
   refined_categories?: string[]
+  /** false when the vision belongs to another household member (shared with you) */
+  is_mine: boolean
+  /** true for "Life We Choose" household visions */
+  is_household: boolean
 }
 
 export interface AudioSetOption {
@@ -80,10 +85,12 @@ export function LifeVisionStudioProvider({ children }: { children: React.ReactNo
     }
 
     const [visionsResult, profileResult, profileCountResult] = await Promise.all([
+      // No user_id filter: RLS returns own visions plus household-shared ones
+      // ("Life We Choose" joint visions and any personal visions a household
+      // member shares, explicitly or via share-all).
       supabase
         .from('vision_versions')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false }),
       supabase
         .from('user_profiles')
@@ -100,16 +107,34 @@ export function LifeVisionStudioProvider({ children }: { children: React.ReactNo
     ])
 
     if (!visionsResult.error && visionsResult.data) {
-      const nonDrafts = visionsResult.data.filter((v: any) => !v.is_draft)
-      const enriched: VisionVersion[] = visionsResult.data.map((v: any) => ({
-        ...v,
-        version_number: v.is_draft
-          ? 0
-          : nonDrafts.length - nonDrafts.findIndex((nd: any) => nd.id === v.id),
-      }))
+      // Versions are numbered per group: "Life I Choose" (each member's
+      // personal visions) and "Life We Choose" (household visions) each start
+      // at 1. Rows are ordered newest-first, so newest gets the highest number.
+      const groupKeyOf = (v: any) => (v.household_id ? `hh:${v.household_id}` : `me:${v.user_id}`)
+      const groupCounts: Record<string, number> = {}
+      for (const v of visionsResult.data) {
+        if (v.is_draft) continue
+        const key = groupKeyOf(v)
+        groupCounts[key] = (groupCounts[key] || 0) + 1
+      }
+      const groupSeen: Record<string, number> = {}
+      const enriched: VisionVersion[] = visionsResult.data.map((v: any) => {
+        const key = groupKeyOf(v)
+        let versionNumber = 0
+        if (!v.is_draft) {
+          groupSeen[key] = (groupSeen[key] || 0) + 1
+          versionNumber = (groupCounts[key] || 0) - groupSeen[key] + 1
+        }
+        return {
+          ...v,
+          version_number: versionNumber,
+          is_mine: v.user_id === user.id,
+          is_household: !!v.household_id,
+        }
+      })
       setVisions(enriched)
 
-      const activeVision = visionsResult.data.find((v: any) => v.is_active && !v.is_draft)
+      const activeVision = enriched.find(v => v.is_active && !v.is_draft && v.is_mine && !v.is_household)
       if (activeVision && profileResult.data?.created_at) {
         setProfileNewerThanVision(
           new Date(profileResult.data.created_at) > new Date(activeVision.created_at)
@@ -128,12 +153,15 @@ export function LifeVisionStudioProvider({ children }: { children: React.ReactNo
     loadVisions()
   }, [loadVisions])
 
-  const activeVision = visions.find(v => v.is_active && !v.is_draft)
+  // "Active vision" and "draft" always refer to the user's own personal
+  // ("Life I Choose") documents; shared and household visions never drive
+  // the create/refine flows.
+  const activeVision = visions.find(v => v.is_active && !v.is_draft && v.is_mine && !v.is_household)
   const activeVisionId = activeVision?.id ?? null
   const activeVisionVersion = activeVision?.version_number ?? null
   const activeVisionDate = activeVision?.updated_at ?? activeVision?.created_at ?? null
 
-  const draft = visions.find(v => v.is_draft)
+  const draft = visions.find(v => v.is_draft && v.is_mine && !v.is_household)
   const draftId = draft?.id ?? null
   const draftParentId = draft?.parent_id ?? null
   const draftCreatedAt = draft?.created_at ?? null

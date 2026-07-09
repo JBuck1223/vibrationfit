@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdContext } from '@/lib/household/context'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +38,8 @@ export async function GET(
 
     const { id } = await params
 
+    // No created_by filter: RLS grants access to the owner and to household
+    // members the project is shared with (explicitly or via share-all).
     const { data: project, error } = await supabase
       .from('projects')
       .select(`
@@ -44,7 +47,6 @@ export async function GET(
         project_tasks(*)
       `)
       .eq('id', id)
-      .eq('created_by', user.id)
       .order('sort_order', { referencedTable: 'project_tasks', ascending: true })
       .single()
 
@@ -62,6 +64,7 @@ export async function GET(
       task_count: (project.project_tasks || []).length,
       task_done_count: (project.project_tasks || []).filter((t: any) => t.is_complete).length,
       project_tasks: undefined,
+      isMine: project.created_by === user.id,
     }
 
     return NextResponse.json({ project: result })
@@ -84,7 +87,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, description, life_categories, status, sort_order, due_date } = body
+    const { title, description, life_categories, status, sort_order, due_date, shareWithHousehold } = body
 
     const VALID_STATUSES = ['active', 'done', 'archived']
     const updates: Record<string, unknown> = {}
@@ -95,11 +98,22 @@ export async function PATCH(
     if (sort_order !== undefined) updates.sort_order = sort_order
     if (due_date !== undefined) updates.due_date = due_date || null
 
+    // Explicit household sharing toggle (creator only; enforced again by RLS)
+    if (shareWithHousehold === true) {
+      const household = await getHouseholdContext(user.id)
+      if (household?.isMultiMember) {
+        updates.household_id = household.householdId
+      }
+    } else if (shareWithHousehold === false) {
+      updates.household_id = null
+    }
+
+    // No created_by filter: RLS allows the owner and household collaborators
+    // (shared project or share-all) to edit.
     const { data: project, error } = await supabase
       .from('projects')
       .update(updates)
       .eq('id', id)
-      .eq('created_by', user.id)
       .select()
       .single()
 
@@ -128,11 +142,12 @@ export async function DELETE(
 
     const { id } = await params
 
+    // RLS enforces delete rights: owner always; for household-shared projects
+    // the creator or a household admin.
     const { error } = await supabase
       .from('projects')
       .delete()
       .eq('id', id)
-      .eq('created_by', user.id)
 
     if (error) {
       console.error('Error deleting member project:', error)

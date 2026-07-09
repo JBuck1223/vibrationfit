@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
             status: 'lyrics_complete',
             generation_count: 1,
             metadata: {
-              prompt_version: 'songwriter-v1',
+              prompt_version: 'songwriter-v2-no-coffee-opening',
               model_used: response?.modelId || SONGWRITER_MODEL,
             },
             updated_at: new Date().toISOString(),

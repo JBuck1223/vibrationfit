@@ -1,6 +1,6 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** April 23, 2026  
+**Last Updated:** July 9, 2026  
 **Purpose:** Single source of truth for all features, their versions, and status
 
 > ⚠️ **FOR AI AGENTS:** Before modifying ANY feature, check this registry first. Features marked 🔒 LOCKED should NOT be modified without explicit user permission.
@@ -386,6 +386,38 @@ npm run docs:schema
 
 ---
 
+### 🚧 Household Sharing System
+**Version:** `v1.0.0`  
+**Status:** 🚧 IN PROGRESS  
+**Last Modified:** July 9, 2026  
+**Doc:** `docs/features/household-sharing/README.md`  
+**Schema:** `household_sharing_settings`, `household_id` columns on `vision_versions`, `vision_board_items`, `abundance_events`, `abundance_goals`, `audio_sets`, `projects`, `stories`  
+**Helpers (SECURITY DEFINER):** `household_shares_all()`, `is_household_admin()`, `can_listen_audio_set()`, `can_collaborate_on_project()`  
+**API:** `/api/household/sharing-settings`, `/api/household/context`, `/api/household/hub`, scope params on feature APIs  
+**UI:** `/household` (hub), `/household/welcome` (one-time builder), `/account/household` (settings card), `HouseholdScopeToggle` in the design system
+
+**What It Does:**
+- Per-member, per-feature sharing modes ("share all" vs "select items") across
+  Life Visions, Vision Board, Abundance, Audios, Projects, and Stories.
+- Uniform visibility model in RLS: owner + explicitly shared (`household_id` set)
+  + share-all members. Shared content is fully editable; delete stays with the
+  creator (or household admin for explicitly shared items).
+- Household lens (`HouseholdScopeToggle`: Me / member / Both-Everyone) on all
+  shared feature pages, with creator attribution badges.
+- Two-document Life Vision model: "Life I Choose" (personal) and "Life We Choose"
+  (household), each numbered from 1, grouped in area-bar/document selectors.
+- Audio generated from household visions or shared stories is household-listenable
+  (new audio sets inherit the source's `household_id`).
+- One-time sharing setup builder (MapSystemBuilder-style) after upgrade/invite.
+
+**Critical Rules:**
+- ❌ DO NOT expose drafts through share-all (RLS excludes `is_draft = true`).
+- ❌ DO NOT let share-all mode grant delete on someone else's personal content.
+- ✅ New feature APIs should drop owner filters on reads/updates and rely on RLS,
+  returning `isMine` + member attribution instead.
+
+---
+
 ### 🚧 Actualization Blueprints
 **Version:** `v1.5.0`  
 **Status:** 🚧 IN PROGRESS  
@@ -554,6 +586,7 @@ Verification:
 
 | Feature | Version | Date | Change |
 |---------|---------|------|--------|
+| Household Sharing | - → v1.0.0 | Jul 9 2026 | Per-feature sharing modes, RLS policies, scope toggles, hub |
 | FEATURE_REGISTRY | v1.0.0 → v1.1.0 | Dec 10 | Added PageHero component with lock rules |
 | FEATURE_REGISTRY | - → v1.0.0 | Nov 18 | Added UI components tracking |
 | Media Recorder | - → v3.5.0 | Nov 18 | Documented current state (locked) |

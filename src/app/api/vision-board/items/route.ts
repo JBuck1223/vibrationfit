@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { generateImage } from '@/lib/services/imageService'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 import { getHouseholdContext } from '@/lib/household/context'
+import { getShareAllMemberIds } from '@/lib/household/sharing'
 
 // Image generation (fal/DALL-E) often takes 20-60s; avoid Vercel killing the request
 export const maxDuration = 120
@@ -36,15 +37,26 @@ export async function GET(request: NextRequest) {
     // surface the household lens and attribute shared items.
     const household = await getHouseholdContext(user.id)
 
+    // Members with "share all" enabled contribute everything they created,
+    // even items without an explicit household_id (visible via RLS).
+    const shareAllIds = household?.isMultiMember
+      ? await getShareAllMemberIds(supabase, household.householdId, 'vision_board')
+      : []
+    const shareAllSet = new Set(shareAllIds)
+
     let query = supabase.from('vision_board_items').select('*')
 
     if (scope === 'mine' || !household) {
       query = query.eq('user_id', user.id)
-    } else if (scope === 'household') {
-      query = query.eq('household_id', household.householdId)
     } else {
-      // all: my items OR anything shared with my household
-      query = query.or(`user_id.eq.${user.id},household_id.eq.${household.householdId}`)
+      const conditions = [`household_id.eq.${household.householdId}`]
+      if (shareAllIds.length > 0) {
+        conditions.push(`user_id.in.(${shareAllIds.join(',')})`)
+      }
+      if (scope === 'all') {
+        conditions.push(`user_id.eq.${user.id}`)
+      }
+      query = query.or(conditions.join(','))
     }
 
     const { data: items, error } = await query.order('created_at', { ascending: false })
@@ -57,7 +69,7 @@ export async function GET(request: NextRequest) {
     // Attribute shared items to their creator so the UI can show "whose" it is
     const enriched = (items || []).map((item) => ({
       ...item,
-      isShared: !!item.household_id,
+      isShared: !!item.household_id || shareAllSet.has(item.user_id),
       isMine: item.user_id === user.id,
       member: household?.memberMap?.[item.user_id]
         ? {

@@ -57,6 +57,8 @@ export interface VersionOption {
   icon?: LucideIcon
   iconPosition?: 'left' | 'right'
   count?: number
+  /** Optional group header — consecutive options sharing a group render under one label (e.g. "Life I Choose" / "Life We Choose") */
+  group?: string
 }
 
 export interface AreaBarVersionSelector {
@@ -303,12 +305,19 @@ function VersionSelectorDropdown({
                 <p className="text-xs text-neutral-500">{search.trim() ? `No results for "${search}"` : 'No options'}</p>
               </div>
             ) : (
-              filteredOptions.map(option => {
+              filteredOptions.map((option, optionIndex) => {
                 const isSelected = option.id === selector.selectedId
                 const OptionIcon = option.icon
+                const showGroupHeader =
+                  !!option.group && filteredOptions[optionIndex - 1]?.group !== option.group
                 return (
+                  <React.Fragment key={option.id}>
+                  {showGroupHeader && (
+                    <div className={`px-3.5 md:px-3 pt-2.5 pb-1 ${optionIndex > 0 ? 'mt-1 border-t border-neutral-800' : ''}`}>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500">{option.group}</p>
+                    </div>
+                  )}
                   <button
-                    key={option.id}
                     type="button"
                     onClick={() => handleSelect(option.id)}
                     className={`w-full px-3.5 py-2.5 md:px-3 md:py-2 flex items-center gap-2.5 text-left transition-colors ${
@@ -341,6 +350,7 @@ function VersionSelectorDropdown({
                     )}
                     {isSelected && <Check className="w-4 h-4 md:w-3.5 md:h-3.5 text-[#39FF14] flex-shrink-0" />}
                   </button>
+                  </React.Fragment>
                 )
               })
             )}
@@ -419,12 +429,19 @@ function VersionSelectorSheet({
               <p className="text-sm text-neutral-500">{search.trim() ? `No results for "${search}"` : 'No options'}</p>
             </div>
           ) : (
-            filteredOptions.map(option => {
+            filteredOptions.map((option, optionIndex) => {
               const isSelected = option.id === selector.selectedId
               const OptionIcon = option.icon
+              const showGroupHeader =
+                !!option.group && filteredOptions[optionIndex - 1]?.group !== option.group
               return (
+                <React.Fragment key={option.id}>
+                {showGroupHeader && (
+                  <div className={`px-4 pt-3 pb-1.5 ${optionIndex > 0 ? 'mt-1 border-t border-neutral-800' : ''}`}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500">{option.group}</p>
+                  </div>
+                )}
                 <button
-                  key={option.id}
                   type="button"
                   onClick={() => { selector.onSelect(option.id); onClose() }}
                   className={`w-full px-4 py-3.5 flex items-center gap-3 rounded-xl text-left transition-colors mb-1 ${
@@ -453,6 +470,7 @@ function VersionSelectorSheet({
                   {option.count !== undefined && <span className="text-xs text-neutral-500 flex-shrink-0">{option.count}</span>}
                   {isSelected && <Check className="w-5 h-5 text-[#39FF14] flex-shrink-0" />}
                 </button>
+                </React.Fragment>
               )
             })
           )}

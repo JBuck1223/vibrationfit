@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createVibrationalEventFromSource } from '@/lib/vibration/service'
 import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
+import { getHouseholdContext } from '@/lib/household/context'
+import { getShareAllMemberIds } from '@/lib/household/sharing'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient()
     const {
@@ -15,17 +17,42 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: events, error: fetchError } = await supabase
-      .from('abundance_events')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false })
+    // scope=mine (default) | all — 'all' adds household-shared events (explicit
+    // shares + share-all members) so totals and lists combine the household.
+    const scope = new URL(request.url).searchParams.get('scope') === 'all' ? 'all' : 'mine'
+    const household = await getHouseholdContext(user.id)
+
+    let query = supabase.from('abundance_events').select('*')
+
+    if (scope === 'all' && household?.isMultiMember) {
+      const shareAllIds = await getShareAllMemberIds(supabase, household.householdId, 'abundance')
+      const conditions = [`user_id.eq.${user.id}`, `household_id.eq.${household.householdId}`]
+      if (shareAllIds.length > 0) {
+        conditions.push(`user_id.in.(${shareAllIds.join(',')})`)
+      }
+      query = query.or(conditions.join(','))
+    } else {
+      query = query.eq('user_id', user.id)
+    }
+
+    const { data: events, error: fetchError } = await query.order('date', { ascending: false })
 
     if (fetchError) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 })
     }
 
-    const allEvents = events || []
+    const allEvents = (events || []).map((ev) => ({
+      ...ev,
+      isMine: ev.user_id === user.id,
+      member: household?.memberMap?.[ev.user_id]
+        ? {
+            userId: ev.user_id,
+            displayName: household.memberMap[ev.user_id].displayName,
+            avatarUrl: household.memberMap[ev.user_id].avatarUrl,
+            isSelf: ev.user_id === user.id,
+          }
+        : null,
+    }))
 
     const now = new Date()
     const startOfWeek = new Date(now)
@@ -103,6 +130,14 @@ export async function GET() {
       entryBreakdown,
       visionBreakdown,
       recentEvents: allEvents.slice(0, 10),
+      household: household?.isMultiMember
+        ? {
+            id: household.householdId,
+            name: household.householdName,
+            isMultiMember: household.isMultiMember,
+            members: household.members,
+          }
+        : null,
     })
   } catch (error) {
     console.error('Error fetching abundance data:', error)
@@ -123,7 +158,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { date, valueType, amount, visionCategory, visionCategories, entryCategory, note, imageUrl, audioRecordings } = body ?? {}
+    const { date, valueType, amount, visionCategory, visionCategories, entryCategory, note, imageUrl, audioRecordings, shareWithHousehold } = body ?? {}
     const visionCategoryValue =
       Array.isArray(visionCategories) && visionCategories.length > 0
         ? visionCategories.join(',')
@@ -144,6 +179,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Money entries require a valid amount.' }, { status: 400 })
     }
 
+    // Optional explicit share with the household (per-item sharing)
+    let householdId: string | null = null
+    if (shareWithHousehold === true) {
+      const household = await getHouseholdContext(user.id)
+      if (household?.isMultiMember) {
+        householdId = household.householdId
+      }
+    }
+
     // Insert without image_url so the request succeeds even if the column doesn't exist yet (migration not run).
     const insertPayload = {
       user_id: user.id,
@@ -153,6 +197,7 @@ export async function POST(request: Request) {
       vision_category: visionCategoryValue,
       entry_category: entryCategory ?? null,
       note,
+      household_id: householdId,
     }
 
     const { data: abundanceEvent, error: insertError } = await supabase

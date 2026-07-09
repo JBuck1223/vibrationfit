@@ -22,6 +22,7 @@ import {
   Edit,
   Save,
   X,
+  Home,
 } from 'lucide-react'
 import {
   Container,
@@ -35,6 +36,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useStory } from '@/lib/stories'
 import type { UpdateStoryPayload } from '@/lib/stories'
+import { useStoryStudio } from '@/components/story-studio'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
@@ -94,6 +96,7 @@ export default function StoryDetailPage({
   }, [params])
 
   const { story, loading, error, saving, updateStory, deleteStory } = useStory(storyId)
+  const { currentUserId, household } = useStoryStudio()
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -333,6 +336,14 @@ export default function StoryDetailPage({
 
   const meta = ENTITY_META[story.entity_type] || ENTITY_META.custom
   const EntityIcon = meta.icon
+  const isMine = !currentUserId || story.user_id === currentUserId
+  const selfMember = household?.members.find(m => m.isSelf)
+  const creatorMember = household?.members.find(m => m.userId === story.user_id)
+  const canDelete = isMine || (!!story.household_id && !!selfMember?.isAdmin)
+  const toggleShare = async () => {
+    if (!household) return
+    await updateStory({ household_id: story.household_id ? null : household.householdId })
+  }
   const wordCount = story.word_count || 0
   const readTime = Math.max(1, Math.ceil(wordCount / 200))
   const focusAreas = (story.metadata?.selected_categories as string[] | undefined) || []
@@ -379,6 +390,29 @@ export default function StoryDetailPage({
                       <EntityIcon className="w-3 h-3 shrink-0" />
                       {meta.label}
                     </span>
+                    {household?.isMultiMember && isMine && (
+                      <button
+                        type="button"
+                        onClick={toggleShare}
+                        disabled={saving}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs font-semibold border transition-colors ${
+                          story.household_id
+                            ? 'text-[#00FFFF] bg-[#00FFFF]/10 border-[#00FFFF]/30'
+                            : 'text-neutral-400 bg-[#1A1A1A] border-[#282828] hover:border-neutral-500'
+                        }`}
+                      >
+                        <Home className="w-3 h-3 shrink-0" />
+                        {story.household_id
+                          ? `Shared with ${household.householdName}`
+                          : `Share with ${household.householdName}`}
+                      </button>
+                    )}
+                    {household?.isMultiMember && !isMine && creatorMember && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs font-semibold border text-[#00FFFF] bg-[#00FFFF]/10 border-[#00FFFF]/30">
+                        <Home className="w-3 h-3 shrink-0" />
+                        {creatorMember.firstName || creatorMember.displayName}
+                      </span>
+                    )}
                     {focusAreas.length > 0 && focusAreas.map((cat: string) => (
                       <span key={cat} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] md:text-xs font-medium border border-[#282828] text-neutral-300 bg-[#1A1A1A]">
                         {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -599,16 +633,18 @@ export default function StoryDetailPage({
                 </section>
 
                 <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-1">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="flex-1 sm:flex-none sm:w-auto"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    {deleting ? 'Deleting...' : 'Delete'}
-                  </Button>
+                  {canDelete && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="flex-1 sm:flex-none sm:w-auto"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {deleting ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  )}
                   <Button
                     variant="primary"
                     size="sm"

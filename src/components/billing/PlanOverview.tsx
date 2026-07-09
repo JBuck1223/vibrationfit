@@ -519,6 +519,10 @@ export default function PlanOverview({
       toast.success(successMsg)
       resetUpgradeState()
       onRefresh()
+      if (activeFlow === 'household') {
+        // Walk the admin through one-time household sharing setup
+        window.location.href = '/household/welcome'
+      }
     } catch (err: any) {
       toast.error(err.message)
       setUpgradeState('confirming')

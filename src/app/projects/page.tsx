@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Input, Textarea, Stack, Spinner, Modal } from '@/lib/design-system/components'
+import { Container, Card, Button, Input, Textarea, Stack, Spinner, Modal, HouseholdScopeToggle, type HouseholdScope } from '@/lib/design-system/components'
 import { CategoryGrid, DatePicker } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import {
@@ -52,6 +52,16 @@ interface MemberProject {
   created_at: string
   task_count: number
   task_done_count: number
+  household_id?: string | null
+  isMine?: boolean
+  member?: { userId: string; displayName: string; avatarUrl: string | null; isSelf: boolean } | null
+}
+
+interface ProjectsHousehold {
+  id: string
+  name: string
+  isMultiMember: boolean
+  members: { userId: string; firstName?: string | null; displayName: string; avatarUrl: string | null; isSelf: boolean }[]
 }
 
 function ProjectsListContent() {
@@ -60,6 +70,8 @@ function ProjectsListContent() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [projects, setProjects] = useState<MemberProject[]>([])
+  const [household, setHousehold] = useState<ProjectsHousehold | null>(null)
+  const [scope, setScope] = useState<HouseholdScope>('me')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all_active')
 
@@ -68,6 +80,7 @@ function ProjectsListContent() {
   const [newDescription, setNewDescription] = useState('')
   const [newDueDate, setNewDueDate] = useState('')
   const [newLifeCategories, setNewLifeCategories] = useState<string[]>([])
+  const [newShareWithHousehold, setNewShareWithHousehold] = useState(false)
   const [creating, setCreating] = useState(false)
 
   const fetchStatus = filter === 'actualized' ? 'done' : filter === 'archived' ? 'archived' : 'active'
@@ -78,10 +91,12 @@ function ProjectsListContent() {
       const params = new URLSearchParams()
       params.set('status', fetchStatus)
       if (search) params.set('search', search)
+      if (scope !== 'me') params.set('scope', 'all')
       const res = await fetch(`/api/projects?${params}`)
       if (res.ok) {
         const data = await res.json()
         setProjects(data.projects || [])
+        setHousehold(data.household || null)
       } else {
         setLoadError(true)
       }
@@ -91,7 +106,7 @@ function ProjectsListContent() {
     } finally {
       setLoading(false)
     }
-  }, [fetchStatus, search])
+  }, [fetchStatus, search, scope])
 
   useEffect(() => {
     setLoading(true)
@@ -100,6 +115,8 @@ function ProjectsListContent() {
   }, [fetchProjects, search])
 
   const filteredProjects = projects.filter(project => {
+    // Specific-member lens narrows the combined fetch client-side
+    if (scope !== 'me' && scope !== 'all' && project.member?.userId !== scope) return false
     if (filter === 'all_active' || filter === 'actualized' || filter === 'archived') return true
     const col = getVisualColumn(project.status as any, project.task_done_count)
     return col === filter
@@ -114,6 +131,7 @@ function ProjectsListContent() {
     setNewDescription('')
     setNewDueDate('')
     setNewLifeCategories([])
+    setNewShareWithHousehold(false)
   }
 
   const handleCreate = async () => {
@@ -128,6 +146,7 @@ function ProjectsListContent() {
           description: newDescription || null,
           due_date: newDueDate || null,
           life_categories: newLifeCategories,
+          shareWithHousehold: newShareWithHousehold,
         }),
       })
       if (res.ok) {
@@ -166,6 +185,22 @@ function ProjectsListContent() {
             </Button>
           </div>
         </div>
+
+        {/* Household lens */}
+        {household?.isMultiMember && (
+          <div className="flex items-center justify-center">
+            <HouseholdScopeToggle
+              members={(household.members || []).map((m) => ({
+                userId: m.userId,
+                displayName: m.firstName || m.displayName,
+                avatarUrl: m.avatarUrl,
+                isSelf: m.isSelf,
+              }))}
+              value={scope}
+              onChange={setScope}
+            />
+          </div>
+        )}
 
         {/* Filter pills */}
         <div className="flex flex-wrap justify-center gap-1.5">
@@ -263,6 +298,11 @@ function ProjectsListContent() {
                         {isArchived && (
                           <span className="shrink-0 rounded-full border border-neutral-600/50 bg-neutral-800/50 px-2 py-0.5 text-[11px] font-semibold text-neutral-400">
                             Archived
+                          </span>
+                        )}
+                        {scope !== 'me' && project.member && !project.member.isSelf && (
+                          <span className="shrink-0 rounded-full border border-[#00FFFF]/30 bg-[#00FFFF]/10 px-2 py-0.5 text-[11px] font-medium text-[#00FFFF]">
+                            {project.member.displayName}
                           </span>
                         )}
                         {project.life_categories.slice(0, 2).map(key => {
@@ -422,6 +462,32 @@ function ProjectsListContent() {
               />
             </div>
           </div>
+
+          {/* Household sharing */}
+          {household?.isMultiMember && (
+            <button
+              type="button"
+              onClick={() => setNewShareWithHousehold(prev => !prev)}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all ${
+                newShareWithHousehold
+                  ? 'border-[#00FFFF]/40 bg-[#00FFFF]/10'
+                  : 'border-white/[0.06] bg-white/[0.02] hover:border-neutral-600'
+              }`}
+            >
+              <span className="text-sm font-medium text-white">Share with {household.name}</span>
+              <span
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  newShareWithHousehold ? 'bg-[#00FFFF]' : 'bg-neutral-700'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-black transition-transform ${
+                    newShareWithHousehold ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </span>
+            </button>
+          )}
 
           {/* Life categories */}
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">

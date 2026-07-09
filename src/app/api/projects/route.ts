@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getHouseholdContext } from '@/lib/household/context'
+import { getShareAllMemberIds } from '@/lib/household/sharing'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/projects - list the current member's own projects
+// GET /api/projects - list the member's projects (scope=all adds household-shared)
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -17,6 +19,9 @@ export async function GET(request: NextRequest) {
     const lifeCategory = searchParams.get('life_category')
     const search = searchParams.get('search')
     const sort = searchParams.get('sort') || 'sort_order'
+    const scope = searchParams.get('scope') === 'all' ? 'all' : 'mine'
+
+    const household = await getHouseholdContext(user.id)
 
     let query = supabase
       .from('projects')
@@ -24,7 +29,17 @@ export async function GET(request: NextRequest) {
         *,
         project_tasks(id, is_complete)
       `)
-      .eq('created_by', user.id)
+
+    if (scope === 'all' && household?.isMultiMember) {
+      const shareAllIds = await getShareAllMemberIds(supabase, household.householdId, 'projects')
+      const conditions = [`created_by.eq.${user.id}`, `household_id.eq.${household.householdId}`]
+      if (shareAllIds.length > 0) {
+        conditions.push(`created_by.in.(${shareAllIds.join(',')})`)
+      }
+      query = query.or(conditions.join(','))
+    } else {
+      query = query.eq('created_by', user.id)
+    }
 
     if (status && status !== 'all') {
       query = query.eq('status', status)
@@ -68,9 +83,28 @@ export async function GET(request: NextRequest) {
       task_count: (p.project_tasks || []).length,
       task_done_count: (p.project_tasks || []).filter((t: any) => t.is_complete).length,
       project_tasks: undefined,
+      isMine: p.created_by === user.id,
+      member: household?.memberMap?.[p.created_by]
+        ? {
+            userId: p.created_by,
+            displayName: household.memberMap[p.created_by].displayName,
+            avatarUrl: household.memberMap[p.created_by].avatarUrl,
+            isSelf: p.created_by === user.id,
+          }
+        : null,
     }))
 
-    return NextResponse.json({ projects })
+    return NextResponse.json({
+      projects,
+      household: household?.isMultiMember
+        ? {
+            id: household.householdId,
+            name: household.householdName,
+            isMultiMember: household.isMultiMember,
+            members: household.members,
+          }
+        : null,
+    })
   } catch (error) {
     console.error('Error in member projects GET:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -87,10 +121,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, life_categories, due_date } = body
+    const { title, description, life_categories, due_date, shareWithHousehold } = body
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+    }
+
+    let householdId: string | null = null
+    if (shareWithHousehold === true) {
+      const household = await getHouseholdContext(user.id)
+      if (household?.isMultiMember) {
+        householdId = household.householdId
+      }
     }
 
     // Get max sort_order for this user to place new project at top
@@ -116,6 +158,7 @@ export async function POST(request: NextRequest) {
         sort_order: nextSortOrder,
         due_date: due_date || null,
         created_by: user.id,
+        household_id: householdId,
       })
       .select()
       .single()

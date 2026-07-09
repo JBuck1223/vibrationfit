@@ -10,7 +10,7 @@ import {
   type VisionBoardStatusEvent,
 } from '@/lib/vision-board/snapshot'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
-import { Card, Button, Badge, CategoryGrid, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, Spinner, Input, Textarea, FileUpload, ImageLightbox, DatePicker, type ImageLightboxImage } from '@/lib/design-system'
+import { Card, Button, Badge, CategoryGrid, DeleteConfirmationDialog, ActionButtons, Icon, Container, Stack, Spinner, Input, Textarea, FileUpload, ImageLightbox, DatePicker, HouseholdScopeToggle, type HouseholdScope, type ImageLightboxImage } from '@/lib/design-system'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { useAreaStats } from '@/hooks/useAreaStats'
@@ -149,8 +149,8 @@ export default function VisionBoardPage() {
   const { stats: practiceStats } = useAreaStats('vision-board')
   const columnCount = useColumnCount()
   const [items, setItems] = useState<any[]>([])
-  const [scope, setScope] = useState<'mine' | 'household'>(
-    searchParams.get('scope') === 'household' ? 'household' : 'mine'
+  const [scope, setScope] = useState<HouseholdScope>(
+    searchParams.get('scope') === 'household' ? 'all' : 'me'
   )
   const [household, setHousehold] = useState<{
     id: string
@@ -324,12 +324,13 @@ export default function VisionBoardPage() {
     recordActivation()
   }, [])
 
-  const fetchItems = async (currentScope: 'mine' | 'household' = scope) => {
+  const fetchItems = async (currentScope: HouseholdScope = scope) => {
     try {
       setLoading(true)
-      // 'household' lens shows everything shared with the household (by anyone);
-      // 'mine' shows the user's own creations.
-      const apiScope = currentScope === 'household' ? 'household' : 'mine'
+      // 'me' shows the user's own creations. Any other scope ('all' or a
+      // specific member) fetches the combined lens; member filtering happens
+      // client-side so switching members doesn't refetch.
+      const apiScope = currentScope === 'me' ? 'mine' : 'all'
       const res = await fetch(`/api/vision-board/items?scope=${apiScope}`)
 
       if (res.status === 401) {
@@ -348,9 +349,13 @@ export default function VisionBoardPage() {
   }
 
   const boardItems = useMemo(() => {
-    if (!snapshotDate) return items
-    return resolveBoardSnapshot(items, statusEvents, snapshotDate)
-  }, [items, statusEvents, snapshotDate])
+    const base = !snapshotDate ? items : resolveBoardSnapshot(items, statusEvents, snapshotDate)
+    // Specific-member lens: narrow the combined fetch to that member's items
+    if (scope !== 'me' && scope !== 'all') {
+      return base.filter((i) => i.user_id === scope)
+    }
+    return base
+  }, [items, statusEvents, snapshotDate, scope])
 
   const missingCategories = useMemo(() => {
     if (!isIntensivePath) return []
@@ -893,8 +898,9 @@ export default function VisionBoardPage() {
               }
             : i
         )
-        // When viewing the household lens, drop items that were just unshared
-        .filter(i => scope !== 'household' || i.household_id)
+        // When viewing a household lens, drop other members' items that were
+        // just unshared (own items always stay visible)
+        .filter(i => scope === 'me' || i.isMine || i.household_id || i.isShared)
       )
 
       setEditingItemId(null)
@@ -1872,33 +1878,19 @@ export default function VisionBoardPage() {
           </div>
         )}
 
-        {/* Household lens: switch between personal creations and the shared household board */}
+        {/* Household lens: Me / member / Both (Everyone for 3+) */}
         {household?.isMultiMember && !isSnapshotMode && (
           <div className="flex items-center justify-center">
-            <div className="inline-flex items-center gap-1 bg-[#1F1F1F] rounded-full p-1">
-              <button
-                onClick={() => setScope('mine')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                  scope === 'mine'
-                    ? 'bg-[#39FF14] text-black'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                <Grid className="w-4 h-4" />
-                My Board
-              </button>
-              <button
-                onClick={() => setScope('household')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                  scope === 'household'
-                    ? 'bg-[#00FFFF] text-black'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                <Home className="w-4 h-4" />
-                {household.name}
-              </button>
-            </div>
+            <HouseholdScopeToggle
+              members={(household.members || []).map((m: any) => ({
+                userId: m.userId,
+                displayName: m.firstName || m.displayName,
+                avatarUrl: m.avatarUrl,
+                isSelf: m.isSelf,
+              }))}
+              value={scope}
+              onChange={setScope}
+            />
           </div>
         )}
 
@@ -1930,7 +1922,7 @@ export default function VisionBoardPage() {
               <button
                 onClick={() => {
                   const base = isIntensivePath ? '/intensive/vision-board/new' : '/vision-board/new'
-                  const query = scope === 'household' && household?.isMultiMember ? '?household=1' : ''
+                  const query = scope !== 'me' && household?.isMultiMember ? '?household=1' : ''
                   router.push(base + query)
                 }}
                 className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
@@ -2246,7 +2238,7 @@ export default function VisionBoardPage() {
                             onClick={() => bulkMode && toggleItemSelection(item.id)}
                           >
                             <span className="flex-1 text-sm font-semibold text-white truncate">{item.name}</span>
-                            {scope === 'household' && item.member && !item.member.isSelf && (
+                            {scope !== 'me' && item.member && !item.member.isSelf && (
                               <span className="inline-flex items-center gap-1 text-[10px] text-[#00FFFF] bg-[#00FFFF]/10 px-2 py-0.5 rounded-full flex-shrink-0">
                                 <Users className="w-3 h-3" />
                                 {item.member.displayName}
@@ -2382,7 +2374,7 @@ export default function VisionBoardPage() {
                           <div className="flex items-start gap-2 mb-2">
                             <div className="flex-1 min-w-0">
                               <h3 className="text-xl font-semibold text-white break-words">{item.name}</h3>
-                              {scope === 'household' && item.member && !item.member.isSelf && (
+                              {scope !== 'me' && item.member && !item.member.isSelf && (
                                 <span className="inline-flex items-center gap-1 text-xs text-[#00FFFF] bg-[#00FFFF]/10 px-2 py-0.5 rounded-full mt-1">
                                   <Users className="w-3 h-3" />
                                   {item.member.displayName}

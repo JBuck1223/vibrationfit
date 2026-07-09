@@ -93,17 +93,31 @@ export function AudioAreaBar() {
 
     // Version selectors depend on content type
     if (listenContentType === 'life-vision' && allVisions.length > 1) {
+      // Group the dropdown: personal versions ("Life I Choose"), joint household
+      // versions ("Life We Choose"), then anything shared with you by a member.
+      const mine = allVisions.filter(v => v.is_mine !== false && !v.is_household)
+      const household = allVisions.filter(v => v.is_household)
+      const sharedWithMe = allVisions.filter(v => v.is_mine === false && !v.is_household)
+      const hasGroups = household.length > 0 || sharedWithMe.length > 0
+
+      const toOption = (v: (typeof allVisions)[number], group?: string) => ({
+        id: v.id,
+        label: `Version ${v.version_number}`,
+        sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        badge: v.is_active ? 'Active' : undefined,
+        isActive: v.is_active,
+        group,
+      })
+
       versionSelectors = [{
         id: 'listen-vision',
         label: 'Vision version',
         position: 'contextRow',
-        options: allVisions.map(v => ({
-          id: v.id,
-          label: `Version ${v.version_number}`,
-          sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          badge: v.is_active ? 'Active' : undefined,
-          isActive: v.is_active,
-        })),
+        options: [
+          ...mine.map(v => toOption(v, hasGroups ? 'Life I Choose' : undefined)),
+          ...household.map(v => toOption(v, 'Life We Choose')),
+          ...sharedWithMe.map(v => toOption(v, 'Shared With Me')),
+        ],
         selectedId: vision?.id || '',
         onSelect: (id: string) => switchVision(id),
       }]

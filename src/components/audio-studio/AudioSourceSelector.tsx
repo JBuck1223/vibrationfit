@@ -27,11 +27,21 @@ const STORY_SOURCE_FILTERS = [
   { value: 'custom', label: 'Custom', icon: Lightbulb },
 ]
 
-const VISION_TYPE_CHIPS = [
-  { key: 'all', label: 'All' },
-  { key: 'individual', label: 'Individual' },
-  { key: 'household', label: 'Household' },
-]
+// Two-document model: personal visions ("Life I Choose"), joint household
+// visions ("Life We Choose"), and personal visions shared by other members.
+type VisionKind = 'mine' | 'household' | 'shared'
+
+const VISION_KIND_LABELS: Record<VisionKind, string> = {
+  mine: 'Life I Choose',
+  household: 'Life We Choose',
+  shared: 'Shared With Me',
+}
+
+function visionKind(v: VisionData): VisionKind {
+  if (v.household_id || v.is_household) return 'household'
+  if (v.is_mine === false) return 'shared'
+  return 'mine'
+}
 
 // ─── Shared hook ─────────────────────────────────────────────────────────────
 
@@ -80,16 +90,23 @@ export function VisionDropdown({
   }
 
   const selected = selectedId ? visions.find(v => v.id === selectedId) : null
-  const isHousehold = (v: VisionData) => !!v.household_id
-  const hasHouseholdVisions = visions.some(isHousehold)
+  const isHousehold = (v: VisionData) => visionKind(v) === 'household'
+  const presentKinds = new Set(visions.map(visionKind))
+  const hasMultipleKinds = presentKinds.size > 1
+
+  const kindChips: { key: 'all' | VisionKind; label: string }[] = [
+    { key: 'all', label: 'All' },
+    ...(['mine', 'household', 'shared'] as VisionKind[])
+      .filter(kind => presentKinds.has(kind))
+      .map(kind => ({ key: kind, label: VISION_KIND_LABELS[kind] })),
+  ]
 
   const filtered = visions.filter(v => {
-    if (typeFilter === 'individual' && isHousehold(v)) return false
-    if (typeFilter === 'household' && !isHousehold(v)) return false
+    if (typeFilter !== 'all' && visionKind(v) !== typeFilter) return false
     if (search.trim()) {
       const q = search.toLowerCase()
       const dateStr = new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      const typeLabel = isHousehold(v) ? 'household' : 'individual'
+      const typeLabel = VISION_KIND_LABELS[visionKind(v)].toLowerCase()
       return (
         String(v.version_number).includes(q) ||
         `v${v.version_number}`.includes(q) ||
@@ -126,10 +143,10 @@ export function VisionDropdown({
       {open && (
         <div className="absolute z-50 left-0 right-0 mt-2 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl overflow-hidden">
           <div className="p-2 border-b border-neutral-700/50">
-            <div className="flex items-center gap-2">
-              {hasHouseholdVisions && (
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {VISION_TYPE_CHIPS.map(chip => (
+            <div className="flex items-center gap-2 flex-wrap">
+              {hasMultipleKinds && (
+                <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
+                  {kindChips.map(chip => (
                     <button
                       key={chip.key}
                       type="button"
@@ -188,7 +205,7 @@ export function VisionDropdown({
                         )}
                       </p>
                       <p className="text-xs text-neutral-500">
-                        <span className="text-neutral-400">{isHousehold(v) ? 'Household' : 'Individual'}</span>
+                        <span className="text-neutral-400">{VISION_KIND_LABELS[visionKind(v)]}</span>
                         {' · '}
                         {new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </p>
