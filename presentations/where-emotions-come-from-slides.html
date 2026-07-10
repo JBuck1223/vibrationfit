@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Where Emotions Actually Come From</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6vh 10vw;
+    background: radial-gradient(ellipse at 50% 120%, rgba(57, 255, 20, 0.07), transparent 60%), #0a0a0a;
+    cursor: pointer;
+  }
+  .slide.active { display: flex; animation: fadeUp 0.5s ease both; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .kicker {
+    font-size: clamp(12px, 1.2vw, 16px);
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #39FF14;
+    margin-bottom: 3.5vh;
+  }
+
+  h1 {
+    font-size: clamp(36px, 5.2vw, 76px);
+    font-weight: 800;
+    line-height: 1.12;
+    color: #fff;
+    max-width: 18ch;
+    letter-spacing: -0.02em;
+  }
+  h1 .hl { color: #39FF14; }
+  h1 .hl-cyan { color: #00FFFF; }
+
+  .sub {
+    margin-top: 3.5vh;
+    font-size: clamp(18px, 2vw, 30px);
+    font-weight: 500;
+    color: #999;
+    max-width: 40ch;
+    line-height: 1.5;
+  }
+  .sub strong { color: #fff; font-weight: 600; }
+
+  .footer {
+    position: absolute;
+    bottom: 4vh;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2a2a2a;
+    transition: all 0.3s ease;
+  }
+  .dot.on { background: #39FF14; transform: scale(1.25); }
+
+  .brand {
+    position: absolute;
+    top: 4vh;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: clamp(11px, 1vw, 14px);
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #444;
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 4vh;
+    right: 3vw;
+    font-size: 12px;
+    color: #333;
+    letter-spacing: 0.05em;
+  }
+
+  /* Green Line slide */
+  .gl-slide { padding: 10vh 8vw 9vh; justify-content: center; gap: 3vh; }
+  .gl-slide h1 { font-size: clamp(26px, 3.2vw, 46px); }
+
+  .gl-graphic {
+    width: min(880px, 82vw);
+    border: 2px solid #1F1F1F;
+    border-radius: 24px;
+    overflow: hidden;
+    background: #0A0A0A;
+  }
+  .gl-half {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4vw;
+    padding: 3.2vh 4vw;
+    text-align: left;
+  }
+  .gl-above {
+    background: radial-gradient(120% 90% at 50% 100%, rgba(57,255,20,0.18), rgba(0,255,255,0.06) 45%, transparent 70%);
+  }
+  .gl-below {
+    background: radial-gradient(120% 90% at 50% 0%, rgba(255,0,64,0.16), rgba(255,0,64,0.04) 45%, transparent 70%);
+  }
+  .gl-half svg { width: clamp(140px, 16vw, 220px); flex-shrink: 0; }
+  .gl-above svg { color: #39FF14; filter: drop-shadow(0 0 18px rgba(57,255,20,0.45)); }
+  .gl-below svg { color: #FF0040; filter: drop-shadow(0 0 16px rgba(255,0,64,0.4)); }
+
+  .gl-badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: clamp(10px, 0.9vw, 13px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+  }
+  .gl-badge.above { color: #39FF14; border: 1px solid rgba(57,255,20,0.4); background: rgba(57,255,20,0.1); }
+  .gl-badge.below { color: #FF0040; border: 1px solid rgba(255,0,64,0.4); background: rgba(255,0,64,0.1); }
+
+  .gl-text p {
+    font-size: clamp(15px, 1.6vw, 23px);
+    font-weight: 500;
+    color: #ccc;
+    line-height: 1.4;
+    max-width: 30ch;
+  }
+  .gl-text p strong { color: #fff; }
+  .gl-text .above-word { color: #39FF14; font-weight: 700; }
+  .gl-text .below-word { color: #FF0040; font-weight: 700; }
+
+  .gl-line {
+    position: relative;
+    height: 3px;
+    background: #39FF14;
+    box-shadow: 0 0 12px 2px rgba(57,255,20,0.7);
+  }
+  .gl-line span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    border: 1px solid #39FF14;
+    background: #000;
+    border-radius: 999px;
+    padding: 4px 16px;
+    font-size: clamp(9px, 0.8vw, 12px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #39FF14;
+    box-shadow: 0 0 18px rgba(57,255,20,0.5);
+  }
+</style>
+</head>
+<body>
+
+<section class="slide active">
+  <div class="kicker">Real talk</div>
+  <h1>This is what <span class="hl">actually causes</span> your emotions.</h1>
+</section>
+
+<section class="slide">
+  <h1>There are <span class="hl">two</span> of you.</h1>
+  <p class="sub"><strong>Physical you.</strong> &nbsp;&middot;&nbsp; <strong>Non-physical you.</strong></p>
+</section>
+
+<section class="slide">
+  <h1>Same life. <span class="hl-cyan">Two points of focus.</span></h1>
+  <p class="sub">Physical you zooms in on what's missing. Non-physical you is focused on who you <strong>actually are</strong>.</p>
+</section>
+
+<section class="slide">
+  <h1>Emotion is the <span class="hl">gap</span> between the two views.</h1>
+  <p class="sub">Thoughts that <strong>match</strong> that broader view feel good. Thoughts that <strong>clash</strong> with it feel bad.</p>
+</section>
+
+<section class="slide gl-slide">
+  <h1>That's the <span class="hl">Green Line</span>.</h1>
+  <div class="gl-graphic">
+    <div class="gl-half gl-above">
+      <svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="120" cy="40" r="12" />
+        <circle cx="115" cy="38" r="1.6" fill="currentColor" stroke="none" />
+        <circle cx="125" cy="38" r="1.6" fill="currentColor" stroke="none" />
+        <path d="M113 44 Q120 52 127 44" stroke-width="2" />
+        <line x1="120" y1="53" x2="120" y2="92" />
+        <path d="M120 62 L93 33" stroke-width="3" />
+        <path d="M120 62 L147 33" stroke-width="3" />
+        <path d="M120 92 L101 122" stroke-width="3" />
+        <path d="M120 92 L139 122" stroke-width="3" />
+        <line x1="74" y1="134" x2="166" y2="134" stroke-width="2" opacity="0.4" />
+        <path d="M95 130 q6 5 12 0" stroke-width="2" opacity="0.55" />
+        <path d="M133 130 q6 5 12 0" stroke-width="2" opacity="0.55" />
+        <path d="M58 38 v12 M52 44 h12" stroke-width="2" opacity="0.7" />
+        <path d="M186 50 v10 M181 55 h10" stroke-width="2" opacity="0.6" />
+        <circle cx="170" cy="28" r="1.8" fill="currentColor" stroke="none" opacity="0.7" />
+        <circle cx="64" cy="74" r="1.6" fill="currentColor" stroke="none" opacity="0.6" />
+      </svg>
+      <div class="gl-text">
+        <span class="gl-badge above">Above the Green Line</span>
+        <p>Thoughts in <strong>alignment</strong> with the non-physical view feel like <span class="above-word">freedom</span> and <span class="above-word">joy</span>.</p>
+      </div>
+    </div>
+    <div class="gl-line"><span>The Green Line</span></div>
+    <div class="gl-half gl-below">
+      <div class="gl-text">
+        <span class="gl-badge below">Below the Green Line</span>
+        <p>Thoughts <strong>out of alignment</strong> with that view feel like <span class="below-word">bondage</span> and <span class="below-word">pain</span>.</p>
+      </div>
+      <svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="62" y="34" width="116" height="104" rx="4" stroke-width="3.5" />
+        <path d="M62 34 L84 14 L200 14 L178 34" stroke-width="2" opacity="0.55" />
+        <path d="M178 138 L200 118 L200 14" stroke-width="2" opacity="0.55" />
+        <circle cx="116" cy="64" r="11" />
+        <circle cx="111.5" cy="62" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="120" cy="62" r="1.5" fill="currentColor" stroke="none" />
+        <path d="M111 69 Q116 64 121 69" stroke-width="2" />
+        <path d="M116 75 Q108 96 120 116" />
+        <path d="M120 116 L104 128" />
+        <path d="M120 116 L138 126" />
+        <path d="M114 86 Q128 92 138 92" />
+        <path d="M118 96 Q130 98 138 96" />
+        <circle cx="142" cy="92" r="4.5" stroke-width="2.5" />
+        <circle cx="142" cy="96" r="4.5" stroke-width="2.5" />
+        <path d="M147 92 l6 1 l-6 3" stroke-width="2" opacity="0.8" />
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="slide">
+  <h1>It's like a <span class="hl-cyan">lens</span> on a camera.</h1>
+  <p class="sub">Change the focus &mdash; the whole picture is <strong>completely different</strong>.</p>
+</section>
+
+<section class="slide">
+  <h1>Your emotions are your <span class="hl">navigation system</span>.</h1>
+  <p class="sub">Real-time feedback on how close your thought is to the way the biggest part of you sees your life.</p>
+</section>
+
+<section class="slide">
+  <h1>Change the focus. <span class="hl">Change the picture.</span></h1>
+  <p class="sub">Catch one thought that feels bad and reach for the one that feels <strong>even a little better</strong>.</p>
+</section>
+
+<div class="brand">VibrationFit</div>
+<div class="footer" id="dots"></div>
+<div class="hint">click / arrows to advance</div>
+
+<script>
+  const slides = document.querySelectorAll(".slide");
+  const dotsEl = document.getElementById("dots");
+  let i = 0;
+
+  slides.forEach((_, n) => {
+    const d = document.createElement("div");
+    d.className = "dot" + (n === 0 ? " on" : "");
+    dotsEl.appendChild(d);
+  });
+  const dots = dotsEl.querySelectorAll(".dot");
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    dots.forEach((d, k) => d.classList.toggle("on", k === i));
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (["ArrowRight", " ", "Enter", "ArrowDown"].includes(e.key)) show(i + 1);
+    if (["ArrowLeft", "Backspace", "ArrowUp"].includes(e.key)) show(i - 1);
+  });
+  document.addEventListener("click", () => show(i + 1));
+</script>
+
+</body>
+</html>

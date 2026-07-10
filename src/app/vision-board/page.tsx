@@ -17,10 +17,11 @@ import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown, Users, Home } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown, Users, Home, Play } from 'lucide-react'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
+import { VisionBoardSlideshow } from '@/components/VisionBoardSlideshow'
 import { colors } from '@/lib/design-system/tokens'
 import { toast } from 'sonner'
 
@@ -163,6 +164,7 @@ export default function VisionBoardPage() {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'actualized', 'inactive'])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [slideshowOpen, setSlideshowOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
@@ -1982,6 +1984,17 @@ export default function VisionBoardPage() {
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">PDF</span>
             </Button>
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={() => setSlideshowOpen(true)}
+              disabled={filteredItems.length === 0}
+              className="flex items-center gap-2"
+              aria-label="Play slideshow"
+            >
+              <Play className="w-4 h-4" />
+              <span className="hidden sm:inline">Play</span>
+            </Button>
           </div>
           <div className="flex-1 flex justify-end">
             <div className="flex items-center gap-1">
@@ -3019,6 +3032,12 @@ export default function VisionBoardPage() {
           onNavigate={(i) => setEditImagePreview((p) => ({ ...p, index: i }))}
           showCopyButton={false}
           showThumbnails={editImagePreview.images.length > 1}
+        />
+
+        <VisionBoardSlideshow
+          items={filteredItems}
+          isOpen={slideshowOpen}
+          onClose={() => setSlideshowOpen(false)}
         />
 
       </Stack>
