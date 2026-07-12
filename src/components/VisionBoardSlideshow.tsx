@@ -41,6 +41,18 @@ const SPEED_OPTIONS = [
 ]
 
 const CONTROLS_HIDE_DELAY_MS = 3000
+const CROSSFADE_MS = 800
+
+interface SlideLayer {
+  key: number
+  url: string
+  alt: string
+  /** Alternates per slide to vary the Ken Burns pan direction */
+  parity: number
+  /** Ken Burns duration is frozen at layer creation so speed changes don't restart the motion */
+  motionDurationSec: number
+  state: 'in' | 'out'
+}
 
 function getSlideImageUrl(item: SlideshowItem): string | null {
   if (item.status === 'actualized' && item.actualized_image_url) {
@@ -86,12 +98,11 @@ export function VisionBoardSlideshow({
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [controlsVisible, setControlsVisible] = useState(true)
   const [speedMenuOpen, setSpeedMenuOpen] = useState(false)
-  const [prevSlideKey, setPrevSlideKey] = useState<{ url: string; key: number } | null>(null)
+  const [layers, setLayers] = useState<SlideLayer[]>([])
 
   const containerRef = useRef<HTMLDivElement>(null)
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const touchStartX = useRef<number | null>(null)
-  const lastShownUrl = useRef<string | null>(null)
   const slideKeyCounter = useRef(0)
 
   // Reset state each time the slideshow opens
@@ -104,22 +115,44 @@ export function VisionBoardSlideshow({
     setShuffled(false)
     setControlsVisible(true)
     setSpeedMenuOpen(false)
-    setPrevSlideKey(null)
-    lastShownUrl.current = null
+    setLayers([])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   const currentSlide = slides[order[pos]] ?? null
 
-  // Track the previous image so we can crossfade between slides
+  // Slide layers: the outgoing layer keeps its React key (and DOM node) so its
+  // Ken Burns animation continues uninterrupted while it fades out underneath
+  // the incoming layer — otherwise the image snaps back to its starting scale.
   useEffect(() => {
-    if (!currentSlide) return
-    if (lastShownUrl.current && lastShownUrl.current !== currentSlide.url) {
+    if (!isOpen || !currentSlide) return
+    setLayers((prev) => {
+      const top = prev[prev.length - 1]
+      if (top && top.state === 'in' && top.url === currentSlide.url) return prev
       slideKeyCounter.current += 1
-      setPrevSlideKey({ url: lastShownUrl.current, key: slideKeyCounter.current })
-    }
-    lastShownUrl.current = currentSlide.url
-  }, [currentSlide])
+      return [
+        ...prev.map((layer) => ({ ...layer, state: 'out' as const })),
+        {
+          key: slideKeyCounter.current,
+          url: currentSlide.url,
+          alt: currentSlide.item.name,
+          parity: slideKeyCounter.current % 2,
+          motionDurationSec: Math.max(intervalSec, 4) + 2,
+          state: 'in' as const,
+        },
+      ]
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, currentSlide])
+
+  // Cull faded-out layers once the crossfade completes
+  useEffect(() => {
+    if (!layers.some((layer) => layer.state === 'out')) return
+    const timer = setTimeout(() => {
+      setLayers((prev) => prev.filter((layer) => layer.state !== 'out'))
+    }, CROSSFADE_MS + 50)
+    return () => clearTimeout(timer)
+  }, [layers])
 
   const goNext = useCallback(() => {
     setPos((p) => (slides.length ? (p + 1) % slides.length : 0))
@@ -280,10 +313,6 @@ export function VisionBoardSlideshow({
           from { transform: scale(1.08) translate(1%, -1%); }
           to { transform: scale(1) translate(0, 0); }
         }
-        @keyframes vb-slideshow-progress {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
       `}</style>
 
       {slides.length === 0 ? (
@@ -299,38 +328,37 @@ export function VisionBoardSlideshow({
         </div>
       ) : (
         <>
-          {/* Slide layers: previous image fades out underneath the incoming one */}
+          {/* Slide layers: the outgoing image fades out underneath the incoming one */}
           <div className="absolute inset-0 overflow-hidden">
-            {prevSlideKey && (
-              <img
-                key={`prev-${prevSlideKey.key}`}
-                src={prevSlideKey.url}
-                alt=""
-                className="absolute inset-0 w-full h-full object-contain"
-                style={{ animation: 'vb-slideshow-fade-out 800ms ease forwards' }}
-              />
-            )}
-            {currentSlide && (
+            {layers.map((layer) => (
               <div
-                key={`slide-${order[pos]}-${pos}`}
+                key={layer.key}
                 className="absolute inset-0"
-                style={{ animation: 'vb-slideshow-fade-in 800ms ease both' }}
+                style={{
+                  animationName: layer.state === 'in' ? 'vb-slideshow-fade-in' : 'vb-slideshow-fade-out',
+                  animationDuration: `${CROSSFADE_MS}ms`,
+                  animationTimingFunction: 'ease',
+                  animationFillMode: 'both',
+                }}
               >
                 <img
-                  src={currentSlide.url}
-                  alt={currentSlide.item.name}
+                  src={layer.url}
+                  alt={layer.alt}
                   className="w-full h-full object-contain"
                   style={
                     motionEnabled
                       ? {
-                          animation: `${pos % 2 === 0 ? 'vb-slideshow-kenburns-a' : 'vb-slideshow-kenburns-b'} ${Math.max(intervalSec, 4) + 2}s ease-out both`,
+                          animationName: layer.parity === 0 ? 'vb-slideshow-kenburns-a' : 'vb-slideshow-kenburns-b',
+                          animationDuration: `${layer.motionDurationSec}s`,
+                          animationTimingFunction: 'ease-out',
+                          animationFillMode: 'both',
                           animationPlayState: playing ? 'running' : 'paused',
                         }
                       : undefined
                   }
                 />
               </div>
-            )}
+            ))}
           </div>
 
           {/* Caption overlay */}
@@ -348,17 +376,6 @@ export function VisionBoardSlideshow({
                   {currentSlide.item.description}
                 </p>
               )}
-            </div>
-          )}
-
-          {/* Progress bar for current slide */}
-          {playing && slides.length > 1 && (
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/10">
-              <div
-                key={`progress-${pos}-${intervalSec}`}
-                className="h-full bg-[#39FF14]"
-                style={{ animation: `vb-slideshow-progress ${intervalSec}s linear both` }}
-              />
             </div>
           )}
 

@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>From $100K in Debt to $100K in the Bank — Vibration Fit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --lime: #39ff14;
+        --cyan: #00ffff;
+        --purple: #bf00ff;
+        --yellow: #ffff00;
+        --red: #ff0040;
+        --bg: #000000;
+        --card: #1f1f1f;
+        --border: #333333;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      @page { size: letter; margin: 0; }
+
+      html, body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Inter", -apple-system, sans-serif;
+        font-size: 10.5pt;
+        line-height: 1.55;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .page {
+        width: 8.5in;
+        height: 11in;
+        padding: 0.55in 0.65in 0.85in;
+        position: relative;
+        overflow: hidden;
+        background: var(--bg);
+        page-break-after: always;
+        display: flex;
+        flex-direction: column;
+      }
+      /* Never compress page children in print: overlap is worse than overflow. */
+      .page > * { flex-shrink: 0; }
+      .page:last-child { page-break-after: auto; }
+
+      /* Subtle glow accents */
+      .page::before {
+        content: "";
+        position: absolute;
+        top: -180px;
+        right: -180px;
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(57, 255, 20, 0.10) 0%, transparent 65%);
+        pointer-events: none;
+      }
+      .page.p-incant::before {
+        background: radial-gradient(circle, rgba(191, 0, 255, 0.14) 0%, transparent 65%);
+      }
+
+      h1, h2, h3 { font-family: "Poppins", sans-serif; }
+
+      .footer {
+        position: absolute;
+        bottom: 0.35in;
+        left: 0.65in;
+        right: 0.65in;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 8pt;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+        padding-top: 8pt;
+      }
+      .footer .site { color: var(--lime); font-weight: 700; letter-spacing: 0.08em; text-transform: none; font-size: 9pt; }
+
+      /* ============ COVER ============ */
+      .cover { justify-content: center; text-align: center; align-items: center; }
+      .cover-logo img { height: 42px; }
+      .eyebrow {
+        margin-top: 34pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 9pt;
+        font-weight: 600;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--cyan);
+      }
+      .cover h1 {
+        margin-top: 10pt;
+        font-size: 33pt;
+        font-weight: 800;
+        line-height: 1.18;
+        color: #ffffff;
+      }
+      .cover h1 .hole { color: var(--red); }
+      .cover h1 .bank { color: var(--lime); }
+      .cover .sub {
+        margin: 16pt auto 0;
+        max-width: 5.6in;
+        font-size: 12.5pt;
+        line-height: 1.6;
+        color: var(--text);
+      }
+      .cover .sub strong { color: var(--lime); font-weight: 700; }
+
+      .step-grid {
+        margin-top: 30pt;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10pt;
+        width: 100%;
+      }
+      .step-card {
+        border: 2px solid var(--border);
+        border-radius: 14pt;
+        background: var(--card);
+        padding: 14pt 10pt 12pt;
+        text-align: center;
+      }
+      .step-card .letter {
+        font-family: "Poppins", sans-serif;
+        font-size: 22pt;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .step-card .name {
+        margin-top: 5pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 10.5pt;
+        font-weight: 700;
+        color: #ffffff;
+      }
+      .step-card .desc { margin-top: 4pt; font-size: 8pt; color: var(--muted); line-height: 1.45; }
+      /* Cover contents cards: uniform neutral style so the four-color coding
+         stays exclusive to the A.U.R.A. step boxes inside the document. */
+      .step-card { border-color: #2a2a2a; }
+      .step-card .letter { color: var(--lime); }
+
+      .cover-by {
+        margin-top: 30pt;
+        font-size: 10pt;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .cover-by strong { color: #ffffff; font-size: 11pt; }
+
+      /* ============ A.U.R.A. OVERVIEW (steps page intro) ============ */
+      .aura-overview-title {
+        text-align: center;
+        font-family: "Poppins", sans-serif;
+        font-size: 15pt;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 10pt;
+      }
+      .aura-overview-title .la { color: var(--yellow); }
+      .aura-overview-title .lu { color: var(--cyan); }
+      .aura-overview-title .lr { color: var(--purple); }
+      .aura-overview-title .lact { color: var(--lime); }
+      .aura-overview {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8pt;
+        margin-bottom: 18pt;
+      }
+      .aura-ov-card {
+        border: 2px solid var(--border);
+        border-radius: 12pt;
+        background: var(--card);
+        padding: 9pt 8pt 8pt;
+        text-align: center;
+      }
+      .aura-ov-card .letter {
+        font-family: "Poppins", sans-serif;
+        font-size: 16pt;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .aura-ov-card .name {
+        margin-top: 3pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 9pt;
+        font-weight: 700;
+        color: #ffffff;
+      }
+      .aura-ov-card .desc { margin-top: 2.5pt; font-size: 7.2pt; color: var(--muted); line-height: 1.4; }
+      .aura-ov-card.au1 { border-color: rgba(255, 255, 0, 0.5); }
+      .aura-ov-card.au1 .letter { color: var(--yellow); }
+      .aura-ov-card.au2 { border-color: rgba(0, 255, 255, 0.55); }
+      .aura-ov-card.au2 .letter { color: var(--cyan); }
+      .aura-ov-card.au3 { border-color: rgba(191, 0, 255, 0.6); }
+      .aura-ov-card.au3 .letter { color: var(--purple); }
+      .aura-ov-card.au4 { border-color: rgba(57, 255, 20, 0.55); }
+      .aura-ov-card.au4 .letter { color: var(--lime); }
+
+      /* ============ STEP PAGES ============ */
+      .step-block { margin-bottom: 18pt; }
+      .step-head {
+        display: flex;
+        align-items: center;
+        gap: 12pt;
+        margin-bottom: 12pt;
+      }
+      .step-num {
+        flex: 0 0 auto;
+        width: 34pt;
+        height: 34pt;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Poppins", sans-serif;
+        font-size: 16pt;
+        font-weight: 800;
+        color: #000000;
+      }
+      .step-banner {
+        flex: 1;
+        border-radius: 999pt;
+        padding: 8pt 18pt;
+      }
+      .step-banner h2 {
+        font-size: 14.5pt;
+        font-weight: 700;
+        color: #000000;
+        line-height: 1.2;
+      }
+      .step-block.a1 .step-num, .step-block.a1 .step-banner { background: var(--yellow); }
+      .step-block.a2 .step-num, .step-block.a2 .step-banner { background: var(--cyan); }
+      .step-block.a3 .step-num, .step-block.a3 .step-banner { background: var(--purple); }
+      .step-block.a3 .step-banner h2, .step-block.a3 .step-num { color: #ffffff; }
+      .step-block.a4 .step-num, .step-block.a4 .step-banner { background: var(--lime); }
+
+      .step-body { padding: 0 4pt; }
+      .step-body .intro { font-size: 10.5pt; color: var(--text); }
+
+      .qa-label {
+        margin-top: 10pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 10pt;
+        font-weight: 700;
+        color: #ffffff;
+      }
+      ul.qs { margin: 6pt 0 0 14pt; }
+      ul.qs li { margin-bottom: 4pt; font-size: 10pt; color: var(--text); }
+      ul.qs li::marker { color: var(--yellow); }
+      .a2 ul.qs li::marker { color: var(--cyan); }
+      .a3 ul.qs li::marker { color: var(--purple); }
+      .a4 ul.qs li::marker { color: var(--lime); }
+
+      .example {
+        margin-top: 10pt;
+        border-left: 3pt solid var(--border);
+        background: var(--card);
+        border-radius: 0 10pt 10pt 0;
+        padding: 9pt 12pt;
+      }
+      .example .ex-tag {
+        font-family: "Poppins", sans-serif;
+        font-size: 8pt;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .example p { margin-top: 4pt; font-size: 9.5pt; font-style: italic; color: var(--text); line-height: 1.55; }
+      .a1 .example { border-left-color: var(--yellow); }
+      .a1 .ex-tag { color: var(--yellow); }
+      .a2 .example { border-left-color: var(--cyan); }
+      .a2 .ex-tag { color: var(--cyan); }
+      .a3 .example { border-left-color: var(--purple); }
+      .a3 .ex-tag { color: var(--purple); }
+      .a4 .example { border-left-color: var(--lime); }
+      .a4 .ex-tag { color: var(--lime); }
+
+      .greenline-note {
+        margin-top: auto;
+        border: 1px solid var(--border);
+        border-radius: 10pt;
+        padding: 9pt 12pt;
+        font-size: 9pt;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .greenline-note strong.above { color: var(--lime); }
+      .greenline-note strong.below { color: var(--red); }
+
+      /* ============ GREEN LINE PAGE ============ */
+      .p-greenline .eyebrow { margin-top: 0; color: var(--lime); }
+      .p-greenline h1 {
+        margin-top: 8pt;
+        font-size: 26pt;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.12;
+        text-align: center;
+      }
+      .p-greenline h1 .grad {
+        background: linear-gradient(90deg, var(--lime), var(--cyan));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .gl-intro {
+        margin: 10pt auto 0;
+        max-width: 6in;
+        text-align: center;
+        font-size: 10.5pt;
+        color: var(--text);
+      }
+      .gl-intro strong { color: var(--lime); }
+
+      .gl-card {
+        margin-top: 16pt;
+        border: 2px solid var(--border);
+        border-radius: 16pt;
+        background: #0a0a0a;
+        overflow: hidden;
+      }
+      .gl-half {
+        display: grid;
+        grid-template-columns: 2.1in 1fr;
+        gap: 16pt;
+        align-items: center;
+        padding: 16pt 20pt;
+      }
+      .gl-half.below { grid-template-columns: 1fr 2.1in; }
+      .gl-half .fig svg { width: 100%; height: auto; display: block; }
+      .gl-half.above { background: radial-gradient(120% 90% at 50% 100%, rgba(57, 255, 20, 0.14), rgba(0, 255, 255, 0.05) 45%, transparent 70%); }
+      .gl-half.below { background: radial-gradient(120% 90% at 50% 0%, rgba(255, 0, 64, 0.13), rgba(255, 0, 64, 0.04) 45%, transparent 70%); }
+      .gl-half .fig.above-fig { color: var(--lime); }
+      .gl-half .fig.below-fig { color: var(--red); }
+
+      .gl-tag {
+        display: inline-block;
+        border-radius: 999pt;
+        padding: 2.5pt 10pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 7pt;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .gl-tag.above { border: 1px solid rgba(57, 255, 20, 0.45); background: rgba(57, 255, 20, 0.1); color: var(--lime); }
+      .gl-tag.below { border: 1px solid rgba(255, 0, 64, 0.45); background: rgba(255, 0, 64, 0.1); color: var(--red); }
+      .gl-half h3 { margin-top: 6pt; font-size: 14pt; font-weight: 700; color: #ffffff; }
+      .gl-half .lines { margin-top: 5pt; }
+      .gl-half .lines p {
+        font-family: "Poppins", sans-serif;
+        font-size: 10.5pt;
+        font-weight: 600;
+        color: #ffffff;
+        line-height: 1.45;
+      }
+      .gl-half .lines p .hl-above { color: var(--lime); }
+      .gl-half .lines p .hl-below { color: var(--red); }
+      .gl-half .gl-desc { margin-top: 5pt; font-size: 9pt; color: var(--muted); line-height: 1.5; }
+      .gl-chips { margin-top: 7pt; display: flex; flex-wrap: wrap; gap: 4pt; }
+      .gl-chips .chip-a {
+        border: 1px solid rgba(57, 255, 20, 0.35);
+        background: rgba(57, 255, 20, 0.1);
+        color: var(--lime);
+        border-radius: 999pt;
+        padding: 2pt 9pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 8pt;
+        font-weight: 600;
+      }
+      .gl-chips .chip-b {
+        border: 1px solid rgba(255, 0, 64, 0.35);
+        background: rgba(255, 0, 64, 0.1);
+        color: var(--red);
+        border-radius: 999pt;
+        padding: 2pt 9pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 8pt;
+        font-weight: 600;
+      }
+
+      .gl-divider { position: relative; height: 3pt; background: var(--lime); box-shadow: 0 0 10pt rgba(57, 255, 20, 0.7); }
+      .gl-divider .pill {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        border: 1px solid var(--lime);
+        background: #000000;
+        border-radius: 999pt;
+        padding: 2.5pt 12pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 7.5pt;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--lime);
+        white-space: nowrap;
+      }
+
+      .gl-close {
+        margin: 14pt auto 0;
+        max-width: 5.6in;
+        text-align: center;
+        font-size: 9.5pt;
+        font-style: italic;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      /* ============ EGS PAGE ============ */
+      .p-egs .eyebrow { margin-top: 0; color: var(--yellow); }
+      .p-egs h1 {
+        margin-top: 8pt;
+        font-size: 24pt;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.12;
+        text-align: center;
+      }
+      .p-egs h1 .grad {
+        background: linear-gradient(90deg, var(--yellow), var(--lime));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .egs-frame {
+        margin: 14pt auto 0;
+        background: #ffffff;
+        border-radius: 14pt;
+        padding: 8pt;
+        width: 6.05in;
+      }
+      .egs-frame img { display: block; width: 100%; height: auto; border-radius: 8pt; }
+      .egs-caption {
+        margin: 10pt auto 0;
+        max-width: 6.2in;
+        text-align: center;
+        font-size: 8.5pt;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .egs-caption strong { color: var(--text); }
+
+      /* ============ MONEY FRAMEWORK PAGE ============ */
+      .p-money { padding-top: 0.4in; }
+      .p-money .eyebrow { margin-top: 0; color: var(--lime); }
+      .p-money h1 {
+        margin-top: 5pt;
+        font-size: 18.5pt;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.15;
+        text-align: center;
+      }
+      .p-money h1 .grad {
+        background: linear-gradient(90deg, var(--lime), var(--cyan));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .money-lead {
+        margin: 6pt auto 0;
+        max-width: 6.6in;
+        text-align: center;
+        font-size: 8.8pt;
+        color: var(--text);
+        line-height: 1.45;
+      }
+
+      .money-steps { margin-top: 8pt; }
+      .money-step {
+        display: grid;
+        grid-template-columns: 20pt 1fr;
+        gap: 8pt;
+        align-items: start;
+        padding: 4.5pt 0;
+        border-bottom: 1px solid #1a1a1a;
+      }
+      .money-step:last-child { border-bottom: none; }
+      .money-step .m-num {
+        width: 18pt;
+        height: 18pt;
+        border-radius: 50%;
+        background: var(--lime);
+        color: #000000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Poppins", sans-serif;
+        font-size: 10pt;
+        font-weight: 800;
+        margin-top: 1pt;
+      }
+      .money-step h3 {
+        font-size: 9.8pt;
+        font-weight: 700;
+        color: #ffffff;
+      }
+      .money-step h3 .m-hl { color: var(--lime); }
+      .money-step p { margin-top: 1pt; font-size: 8.2pt; color: var(--text); line-height: 1.38; }
+      .money-step p strong { color: var(--cyan); font-weight: 600; }
+
+      .money-ours {
+        margin-top: 9pt;
+        border: 2px solid rgba(0, 255, 255, 0.45);
+        border-radius: 12pt;
+        background: linear-gradient(135deg, rgba(0, 255, 255, 0.07), rgba(57, 255, 20, 0.06));
+        padding: 8pt 12pt;
+      }
+      .money-ours h3 {
+        font-family: "Poppins", sans-serif;
+        font-size: 8.5pt;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--cyan);
+      }
+      .money-ours p { margin-top: 3pt; font-size: 8.2pt; color: var(--text); line-height: 1.42; }
+      .money-ours p strong { color: var(--lime); }
+
+      .money-close {
+        margin: 8pt auto 0;
+        max-width: 6.6in;
+        text-align: center;
+        font-size: 8pt;
+        font-style: italic;
+        color: var(--muted);
+        line-height: 1.42;
+      }
+      .money-close strong { color: var(--text); font-style: normal; }
+
+      /* ============ INCANTATION PAGE ============ */
+      .p-incant .eyebrow { margin-top: 0; color: var(--purple); }
+      .p-incant h1 {
+        margin-top: 8pt;
+        font-size: 27pt;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.12;
+      }
+      .p-incant h1 .grad {
+        background: linear-gradient(90deg, var(--purple), var(--cyan));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .incant-lead { margin-top: 10pt; font-size: 10.5pt; color: var(--text); max-width: 6.6in; }
+
+      .incant-card {
+        margin-top: 18pt;
+        border: 2px solid rgba(191, 0, 255, 0.6);
+        border-radius: 16pt;
+        background: linear-gradient(150deg, rgba(191, 0, 255, 0.12), rgba(0, 255, 255, 0.06) 60%, rgba(57, 255, 20, 0.08));
+        padding: 22pt 26pt;
+        text-align: center;
+      }
+      .incant-card .words {
+        font-family: "Poppins", sans-serif;
+        font-size: 15.5pt;
+        font-weight: 600;
+        line-height: 1.6;
+        color: #ffffff;
+      }
+      .incant-card .words em {
+        font-style: normal;
+        color: var(--lime);
+      }
+      .incant-origin {
+        margin-top: 10pt;
+        font-size: 8.5pt;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .how-grid {
+        margin-top: 14pt;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10pt;
+      }
+      .how-card {
+        border: 1px solid var(--border);
+        border-radius: 12pt;
+        background: var(--card);
+        padding: 9pt 11pt;
+      }
+      .how-card h3 { font-size: 9.5pt; font-weight: 700; color: var(--cyan); }
+      .how-card p { margin-top: 3pt; font-size: 8.2pt; color: var(--text); line-height: 1.45; }
+
+      /* ============ WORKSHEET PAGES ============ */
+      .p-ws .eyebrow { margin-top: 0; color: var(--cyan); }
+      .p-ws h1 {
+        margin-top: 5pt;
+        font-size: 20pt;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.15;
+        text-align: center;
+      }
+      .p-ws h1 .grad {
+        background: linear-gradient(90deg, var(--cyan), var(--lime));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .ws-lead {
+        margin: 6pt auto 0;
+        max-width: 6.4in;
+        text-align: center;
+        font-size: 9pt;
+        color: var(--text);
+        line-height: 1.5;
+      }
+
+      .ws-section { margin-top: 14pt; }
+      .ws-section h2 {
+        font-family: "Poppins", sans-serif;
+        font-size: 11.5pt;
+        font-weight: 700;
+        color: #ffffff;
+      }
+      .ws-section h2 .ws-num { color: var(--lime); margin-right: 4pt; }
+      .ws-section .ws-hint { margin-top: 2pt; font-size: 8.3pt; color: var(--muted); line-height: 1.45; }
+      .ws-section .ws-hint strong { color: var(--lime); }
+
+      .fill {
+        display: inline-block;
+        border-bottom: 1.5px solid #555555;
+        min-width: 90pt;
+        height: 11pt;
+        vertical-align: bottom;
+      }
+      .fill.wide { min-width: 170pt; }
+
+      .ws-bigbox {
+        margin-top: 8pt;
+        border: 2px solid rgba(57, 255, 20, 0.55);
+        border-radius: 12pt;
+        background: rgba(57, 255, 20, 0.06);
+        padding: 10pt 14pt;
+        display: flex;
+        align-items: baseline;
+        gap: 10pt;
+      }
+      .ws-bigbox .lbl {
+        font-family: "Poppins", sans-serif;
+        font-size: 11pt;
+        font-weight: 800;
+        color: var(--lime);
+        white-space: nowrap;
+      }
+      .ws-bigbox .fill { flex: 1; border-bottom-color: rgba(57, 255, 20, 0.6); height: 16pt; }
+
+      .ws-line { margin-top: 7pt; font-size: 9pt; color: var(--text); line-height: 1.9; }
+
+      table.ws {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 7pt;
+      }
+      table.ws th {
+        font-family: "Poppins", sans-serif;
+        font-size: 7.5pt;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--cyan);
+        text-align: left;
+        padding: 4pt 6pt;
+        border-bottom: 1.5px solid rgba(0, 255, 255, 0.4);
+      }
+      table.ws td {
+        border-bottom: 1px solid #2a2a2a;
+        height: 19pt;
+        padding: 0 6pt;
+        font-size: 8.5pt;
+        color: var(--text);
+      }
+      table.ws td.mo {
+        font-family: "Poppins", sans-serif;
+        font-size: 8pt;
+        font-weight: 600;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      /* Printer-friendly white worksheet pages */
+      .page.p-ws { background: #ffffff; }
+      .page.p-ws::before { display: none; }
+      .p-ws .eyebrow { color: #0e7490; }
+      .p-ws h1 { color: #111111; }
+      .p-ws h1 .grad {
+        background: linear-gradient(90deg, #0e7490, #199d48);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .p-ws .ws-lead { color: #333333; }
+      .p-ws .ws-section h2 { color: #111111; }
+      .p-ws .ws-section h2 .ws-num { color: #199d48; }
+      .p-ws .ws-section .ws-hint { color: #555555; }
+      .p-ws .ws-section .ws-hint strong { color: #199d48; }
+      .p-ws .ws-line { color: #333333; }
+      .p-ws .fill { border-bottom-color: #999999; }
+      .p-ws .ws-bigbox {
+        border-color: #199d48;
+        background: rgba(25, 157, 72, 0.06);
+      }
+      .p-ws .ws-bigbox .lbl { color: #199d48; }
+      .p-ws .ws-bigbox .fill { border-bottom-color: #199d48; }
+      .p-ws table.ws th { color: #0e7490; border-bottom-color: rgba(14, 116, 144, 0.5); }
+      .p-ws table.ws td { border-bottom-color: #d1d5db; color: #333333; }
+      .p-ws table.ws td.mo { color: #555555; }
+      .p-ws .footer { color: #777777; border-top-color: #dddddd; }
+      .p-ws .footer .site { color: #199d48; }
+
+      /* ============ CTA ============ */
+      .cta {
+        margin-top: 16pt;
+        border: 2px solid rgba(57, 255, 20, 0.55);
+        border-radius: 16pt;
+        background: linear-gradient(135deg, rgba(57, 255, 20, 0.10), rgba(0, 255, 255, 0.06));
+        padding: 14pt 20pt;
+        text-align: center;
+      }
+      .cta h2 {
+        font-size: 15pt;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.3;
+      }
+      .cta h2 .site { color: var(--lime); }
+      .cta .cta-sub { margin-top: 5pt; font-size: 9.5pt; color: var(--text); }
+      .cat-chips {
+        margin-top: 10pt;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5pt;
+      }
+      .chip {
+        border: 1px solid rgba(0, 255, 255, 0.5);
+        border-radius: 999pt;
+        padding: 3pt 10pt;
+        font-family: "Poppins", sans-serif;
+        font-size: 8pt;
+        font-weight: 600;
+        color: var(--cyan);
+      }
+      .cta .url-pill {
+        display: inline-block;
+        margin-top: 12pt;
+        background: var(--lime);
+        color: #000000;
+        font-family: "Poppins", sans-serif;
+        font-size: 11.5pt;
+        font-weight: 700;
+        border-radius: 999pt;
+        padding: 8pt 26pt;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ==================== PAGE 1 · COVER ==================== -->
+    <div class="page cover">
+      <div class="cover-logo">
+        <img src="https://media.vibrationfit.com/site-assets/brand/logo/logo-white.svg" alt="Vibration Fit" />
+      </div>
+      <div class="eyebrow">As promised — everything that worked for us</div>
+      <h1 class="cover-journey">From <span class="hole">$100K in Debt</span><br />to <span class="bank">$100K in the Bank</span></h1>
+      <p class="sub">
+        This is exactly what we used: the A.U.R.A. Process, the daily incantation, and the
+        money playbook that carried us out of the hole and into freedom. Use them to replace
+        any vibration that isn't serving you with one that does.
+      </p>
+
+      <div class="step-grid">
+        <div class="step-card s1">
+          <div class="letter">01</div>
+          <div class="name">The Green Line</div>
+          <div class="desc">The two concepts everything else is built on.</div>
+        </div>
+        <div class="step-card s2">
+          <div class="letter">02</div>
+          <div class="name">A.U.R.A. Process</div>
+          <div class="desc">Four steps to replace any vibration that isn't serving you.</div>
+        </div>
+        <div class="step-card s3">
+          <div class="letter">03</div>
+          <div class="name">The Incantation</div>
+          <div class="desc">The words we said out loud every single day.</div>
+        </div>
+        <div class="step-card s4">
+          <div class="letter">04</div>
+          <div class="name">Money Playbook</div>
+          <div class="desc">The exact money flow that set us free.</div>
+        </div>
+      </div>
+
+      <div class="cover-by">Love,<br /><strong>Vanessa &amp; Jordan Buckingham</strong><br />Founders of Vibration Fit</div>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>&nbsp;</span>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 2 · LIVING ABOVE THE GREEN LINE ==================== -->
+    <div class="page p-greenline">
+      <div style="text-align: center;"><span class="eyebrow" style="margin-top: 0;">Before the four steps — two concepts you'll need</span></div>
+      <h1>Living <span class="grad">Above the Green Line</span></h1>
+      <p class="gl-intro">
+        The basis of life is <strong>freedom</strong>. The purpose of life is <strong>joy</strong>.
+        Everything in the A.U.R.A. Process exists to help you spend more of your life above the Green Line.
+        What follows is exactly what worked for us: these two concepts, the four steps, our daily
+        incantation — and the money playbook we ran until we were completely free.
+      </p>
+
+      <div class="gl-card">
+        <div class="gl-half above">
+          <div class="fig above-fig">
+            <svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="120" cy="40" r="12" />
+              <circle cx="115" cy="38" r="1.6" fill="currentColor" stroke="none" />
+              <circle cx="125" cy="38" r="1.6" fill="currentColor" stroke="none" />
+              <path d="M113 44 Q120 52 127 44" stroke-width="2" />
+              <line x1="120" y1="53" x2="120" y2="92" />
+              <path d="M120 62 L93 33" />
+              <path d="M120 62 L147 33" />
+              <path d="M120 92 L101 122" />
+              <path d="M120 92 L139 122" />
+              <line x1="74" y1="134" x2="166" y2="134" stroke-width="2" opacity="0.4" />
+              <path d="M95 130 q6 5 12 0" stroke-width="2" opacity="0.55" />
+              <path d="M133 130 q6 5 12 0" stroke-width="2" opacity="0.55" />
+              <path d="M58 38 v12 M52 44 h12" stroke-width="2" opacity="0.7" />
+              <path d="M186 50 v10 M181 55 h10" stroke-width="2" opacity="0.6" />
+              <circle cx="170" cy="28" r="1.8" fill="currentColor" stroke="none" opacity="0.7" />
+              <circle cx="64" cy="74" r="1.6" fill="currentColor" stroke="none" opacity="0.6" />
+            </svg>
+          </div>
+          <div>
+            <span class="gl-tag above">Above the Green Line</span>
+            <h3>Freedom &amp; Joy</h3>
+            <div class="lines">
+              <p>The basis of life is <span class="hl-above">freedom</span>.</p>
+              <p>The purpose of life is <span class="hl-above">joy</span>.</p>
+            </div>
+            <p class="gl-desc">
+              Above the Green Line you live from this truth — open, light, and free to be,
+              do, and have what you truly want.
+            </p>
+            <div class="gl-chips">
+              <span class="chip-a">Freedom</span>
+              <span class="chip-a">Joy</span>
+              <span class="chip-a">Ease</span>
+              <span class="chip-a">Love</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="gl-divider"><span class="pill">The Green Line</span></div>
+
+        <div class="gl-half below">
+          <div>
+            <span class="gl-tag below">Below the Green Line</span>
+            <h3>Bondage &amp; Pain</h3>
+            <div class="lines">
+              <p>Lose your freedom and life feels like <span class="hl-below">bondage</span>.</p>
+              <p>Lose your joy and life turns to <span class="hl-below">pain</span>.</p>
+            </div>
+            <p class="gl-desc">
+              Below the Green Line life feels heavy, stuck, and constricted — boxed in by
+              fear, stress, and resistance.
+            </p>
+            <div class="gl-chips">
+              <span class="chip-b">Bondage</span>
+              <span class="chip-b">Pain</span>
+              <span class="chip-b">Fear</span>
+              <span class="chip-b">Heaviness</span>
+            </div>
+          </div>
+          <div class="fig below-fig">
+            <svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="62" y="34" width="116" height="104" rx="4" stroke-width="3.5" />
+              <path d="M62 34 L84 14 L200 14 L178 34" stroke-width="2" opacity="0.55" />
+              <path d="M178 138 L200 118 L200 14" stroke-width="2" opacity="0.55" />
+              <circle cx="116" cy="64" r="11" />
+              <circle cx="111.5" cy="62" r="1.5" fill="currentColor" stroke="none" />
+              <circle cx="120" cy="62" r="1.5" fill="currentColor" stroke="none" />
+              <path d="M111 69 Q116 64 121 69" stroke-width="2" />
+              <path d="M116 75 Q108 96 120 116" />
+              <path d="M120 116 L104 128" />
+              <path d="M120 116 L138 126" />
+              <path d="M114 86 Q128 92 138 92" />
+              <path d="M118 96 Q130 98 138 96" />
+              <circle cx="142" cy="92" r="4.5" stroke-width="2.5" />
+              <circle cx="142" cy="96" r="4.5" stroke-width="2.5" />
+              <path d="M147 92 l6 1 l-6 3" stroke-width="2" opacity="0.8" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <p class="gl-close">
+        Your feelings are guidance. Vibrational fitness is choosing — again and again — to
+        intentionally shift your focus above the Green Line so you feel good.
+      </p>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>1</span>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 3 · EMOTIONAL GUIDANCE SCALE ==================== -->
+    <div class="page p-egs">
+      <div style="text-align: center;"><span class="eyebrow" style="margin-top: 0;">Your built-in GPS</span></div>
+      <h1>The <span class="grad">Emotional Guidance Scale</span></h1>
+
+      <div class="egs-frame">
+        <img src="emotional-guidance-scale.png" alt="Emotional Guidance Scale and the Green Line" />
+      </div>
+
+      <p class="egs-caption">
+        The Emotional Guidance Scale, as described by <strong>Abraham Hicks</strong>. Every emotion is
+        information — a reading on how close your current vibration is to the life you're choosing.
+        The Green Line sits between contentment and boredom: above it, momentum lifts you higher;
+        below it, momentum pulls you further down. In the Awareness step, use this scale to locate
+        exactly where you are — then use the rest of A.U.R.A. to climb.
+      </p>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>2</span>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 4 · STEPS 1 & 2 ==================== -->
+    <div class="page">
+      <div class="aura-overview-title">The <span class="la">A</span>.<span class="lu">U</span>.<span class="lr">R</span>.<span class="lact">A</span>. Process</div>
+      <div class="aura-overview">
+        <div class="aura-ov-card au1">
+          <div class="letter">A</div>
+          <div class="name">Awareness</div>
+          <div class="desc">Recognize the vibration you're currently carrying.</div>
+        </div>
+        <div class="aura-ov-card au2">
+          <div class="letter">U</div>
+          <div class="name">Unplug</div>
+          <div class="desc">Step back. You are the observer, not the thought.</div>
+        </div>
+        <div class="aura-ov-card au3">
+          <div class="letter">R</div>
+          <div class="name">Replace</div>
+          <div class="desc">Choose a new, better-feeling direction.</div>
+        </div>
+        <div class="aura-ov-card au4">
+          <div class="letter">A</div>
+          <div class="name">Activate</div>
+          <div class="desc">Reinforce the new vibration until it's your default.</div>
+        </div>
+      </div>
+
+      <div class="step-block a1">
+        <div class="step-head">
+          <div class="step-num">1</div>
+          <div class="step-banner"><h2>Awareness — Recognizing the Vibration</h2></div>
+        </div>
+        <div class="step-body">
+          <p class="intro">
+            Awareness is the first step to shifting your vibration. In this step, we bring conscious
+            attention to your current vibration and the way that it feels.
+          </p>
+          <div class="qa-label">Questions to ask yourself:</div>
+          <ul class="qs">
+            <li>What emotions am I currently experiencing? (Refer to the Emotional Guidance Scale)</li>
+            <li>Do I feel above or below the Green Line?</li>
+            <li>Do I have clarity on what situation, thought, or belief is contributing to this feeling?</li>
+            <li>Would I like to continue carrying this vibration forward?</li>
+          </ul>
+          <div class="example">
+            <div class="ex-tag">Example</div>
+            <p>
+              "I feel anxious about money. Every time I look at my credit card balance, my stomach
+              drops. This feels below the Green Line. If I continue holding onto this, I will keep
+              feeling stressed and stuck. I don't want to stay in this vibration."
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block a2">
+        <div class="step-head">
+          <div class="step-num">2</div>
+          <div class="step-banner"><h2>Unplug — Disengaging the Old Vibration</h2></div>
+        </div>
+        <div class="step-body">
+          <p class="intro">
+            Now that you are aware, it's time to step back from identifying with the emotion.
+            You are not your thoughts. You are not your emotions. You are the observer.
+          </p>
+          <div class="qa-label">Questions to ask yourself:</div>
+          <ul class="qs">
+            <li>Can I imagine myself as an observer, simply watching this thought without engaging with it?</li>
+            <li>What would happen if I decided to let go of the story that's perpetuating this vibration?</li>
+            <li>How does it feel to take a step back and recognize that I am not my thoughts?</li>
+          </ul>
+          <div class="example">
+            <div class="ex-tag">Example</div>
+            <p>
+              "I am aware that I feel anxious because of the way I am focused on my debt. The
+              balance is just a number — it is not who I am. I choose to consciously unplug from
+              this energy by shifting my focus elsewhere whenever the money stress comes up."
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>3</span>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 5 · STEPS 3 & 4 ==================== -->
+    <div class="page">
+      <div class="step-block a3">
+        <div class="step-head">
+          <div class="step-num">3</div>
+          <div class="step-banner"><h2>Replace — Choosing a New Direction</h2></div>
+        </div>
+        <div class="step-body">
+          <p class="intro">
+            Now that you have unplugged from the old vibration, it's time to introduce a new one.
+          </p>
+          <div class="qa-label">Questions to ask yourself:</div>
+          <ul class="qs">
+            <li>What is a better-feeling thought I can choose instead?</li>
+            <li>What is the best-case scenario in this situation?</li>
+            <li>What emotion would I like to feel instead?</li>
+            <li>Can I think of a time when I felt this way before? What did that feel like?</li>
+            <li>How can I shift my focus toward a more empowering perspective?</li>
+          </ul>
+          <div class="example">
+            <div class="ex-tag">Example</div>
+            <p>
+              "Instead of focusing on what I owe, I can choose to focus on the money that is
+              already flowing to me. The best-case scenario is that surplus keeps showing up and my
+              Safe Number grows month after month. I want to feel abundant and at ease. I remember
+              a time when money felt easy — and it felt amazing."
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block a4">
+        <div class="step-head">
+          <div class="step-num">4</div>
+          <div class="step-banner"><h2>Activate — Reinforcing the New Vibration</h2></div>
+        </div>
+        <div class="step-body">
+          <p class="intro">
+            Now that you have chosen a new perspective, you must activate it through repetition and focus.
+          </p>
+          <div class="qa-label">How to activate:</div>
+          <ul class="qs">
+            <li>
+              Use activation cycles — holding the new thought for at least 68 seconds at a time —
+              to solidify the new vibrational signature.
+            </li>
+            <li>
+              Intentionally activate the new thought pattern anytime you become aware that the old
+              default pattern is engaged. Repeat this until your chosen thought pattern is your new default.
+            </li>
+          </ul>
+          <div class="example">
+            <div class="ex-tag">Example</div>
+            <p>
+              "I will take three deep breaths and remind myself that I am in control of my energy.
+              I will repeat: 'God's wealth is circulating in my life! His wealth cascades to me in
+              avalanches of abundance.' I will visualize (for at least 68 seconds at a time) my
+              Safe Number sitting in my account and my balances shrinking. I will check in with
+              myself throughout the day — especially when I pay bills — to keep activating my
+              chosen vibration."
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="greenline-note">
+        You can't U-turn at 70 mph. If you're heading the wrong direction at full speed, you can't
+        safely flip it instantly — and vibration works exactly the same way. A.U.R.A. is how you
+        slow down, turn around, and build speed in the direction you actually want to go.
+      </div>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>4</span>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 6 · THE INCANTATION + CTA ==================== -->
+    <div class="page p-incant">
+      <div class="eyebrow">The words we said out loud — every single day</div>
+      <h1>The <span class="grad">Incantation</span> That Carried Us<br />From Debt to Abundance</h1>
+      <p class="incant-lead">
+        When we were six figures in debt — literally moving 43 cents between bank accounts to dodge
+        an overdraft fee — this was the incantation we repeated daily to activate a vibration of
+        abundance. It became the soundtrack of our turnaround.
+      </p>
+
+      <div class="incant-card">
+        <div class="words">
+          God's wealth is circulating in our lives!<br />
+          His wealth cascades to us in <em>avalanches of abundance</em>.<br />
+          All of our needs, desires and goals are met instantaneously by infinite intelligence —
+          for we are one with God and God is everything.
+        </div>
+      </div>
+      <p class="incant-origin">
+        Adapted from an incantation shared by Tony Robbins and Louise Hay — we exchanged a few
+        words to make it land even more for us. Make it yours, too.
+      </p>
+
+      <div class="how-grid">
+        <div class="how-card">
+          <h3>Say it out loud</h3>
+          <p>
+            Whispering doesn't cut it. Speak it with your whole body — rhythm, breath, and
+            certainty — until you feel the words, not just hear them.
+          </p>
+        </div>
+        <div class="how-card">
+          <h3>Repeat it daily</h3>
+          <p>
+            In the car, in the shower, on a walk. Repetition is the point: you're training a new
+            default vibration, one activation cycle at a time.
+          </p>
+        </div>
+        <div class="how-card">
+          <h3>Hold it 68 seconds</h3>
+          <p>
+            Hold the feeling of the words for at least 68 seconds without contradicting them.
+            That's one clean activation — stack them until abundance is your baseline.
+          </p>
+        </div>
+      </div>
+
+      <div class="cta">
+        <h2>Visit <span class="site">VibrationFit.com</span> to consciously create your reality<br />around 12 life categories</h2>
+        <p class="cta-sub">
+          A.U.R.A. is one tool inside a complete conscious creation system — your written life
+          vision, personalized vision audios, vision board, and daily activation practices.
+        </p>
+        <div class="cat-chips">
+          <span class="chip">Fun</span>
+          <span class="chip">Health</span>
+          <span class="chip">Travel</span>
+          <span class="chip">Love</span>
+          <span class="chip">Family</span>
+          <span class="chip">Social</span>
+          <span class="chip">Home</span>
+          <span class="chip">Work</span>
+          <span class="chip">Money</span>
+          <span class="chip">Stuff</span>
+          <span class="chip">Giving</span>
+          <span class="chip">Spirituality</span>
+        </div>
+        <div class="url-pill">VibrationFit.com</div>
+      </div>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>5</span>
+      </div>
+    </div>
+    <!-- ==================== PAGE 7 · THE MONEY FRAMEWORK ==================== -->
+    <div class="page p-money">
+      <div style="text-align: center;"><span class="eyebrow" style="margin-top: 0;">The exact playbook we followed</span></div>
+      <h1>The Money Framework:<br />From <span class="grad">$100K in the Hole</span> to <span class="grad">$100K in the Bank</span></h1>
+      <p class="money-lead">
+        This is the flow that carried us out of six figures of debt — very simple, but very powerful.
+        The target at every step: vibrational harmony with the infinite abundance already available to you.
+      </p>
+
+      <div class="money-steps">
+        <div class="money-step">
+          <div class="m-num">1</div>
+          <div>
+            <h3>Determine your <span class="m-hl">Safe Number</span></h3>
+            <p>
+              This is the number that, if it were sitting in the bank, would make you actually
+              <strong>feel safe for a minimum of 90 days</strong> — even if no new money came in.
+            </p>
+          </div>
+        </div>
+        <div class="money-step">
+          <div class="m-num">2</div>
+          <div>
+            <h3>Go to minimums on all debt</h3>
+            <p>
+              Instead of trying to allocate more money to debt, begin by making the absolute
+              minimum payment on everything — just enough to keep it from getting larger. This is
+              especially true for high-interest credit cards.
+            </p>
+          </div>
+        </div>
+        <div class="money-step">
+          <div class="m-num">3</div>
+          <div>
+            <h3>Tune to the vibration of <span class="m-hl">more than enough</span></h3>
+            <p>
+              The universe is infinitely abundant — there is always more available to you than you
+              are currently letting in, because there is just always more available! Get into
+              vibrational harmony with additional abundance — whether it's <strong>$1, $100, $1,000, or
+              $10,000</strong> — and look for any way to create a surplus beyond what you normally bring in.
+            </p>
+          </div>
+        </div>
+        <div class="money-step">
+          <div class="m-num">4</div>
+          <div>
+            <h3>Build to your Safe Number</h3>
+            <p>
+              Allocate all additional money — everything beyond your absolute spending and your
+              minimums — to your Safe Number until you reach it.
+            </p>
+          </div>
+        </div>
+        <div class="money-step">
+          <div class="m-num">5</div>
+          <div>
+            <h3>Sweep the high-interest debt — monthly</h3>
+            <p>
+              Once your Safe Number is in place, stay above that line. Then, <strong>at the end of each
+              month, once all your payments are satisfied</strong>, sweep everything above your Safe Number
+              to debt. <strong>Above 5% is high interest; below 5% is low interest</strong> (we'll deal with that
+              later). Sweep to the smallest balance first, killing cards and obligations one at a
+              time, until all high-interest debt is gone!
+            </p>
+          </div>
+        </div>
+        <div class="money-step">
+          <div class="m-num">6</div>
+          <div>
+            <h3>Escalate to your <span class="m-hl">Super Safe Number</span></h3>
+            <p>
+              You'll be tempted to start paying down the low-interest debt for that amazing feeling
+              of being completely debt-free — but not yet. First, escalate your Safe Number to a
+              minimum of <strong>6 months of feeling safe, up to 12 months</strong> depending on your family
+              situation. For many people this lands somewhere around $30,000&ndash;$50,000. Keep making
+              normal payments on all low-interest debt until you reach it.
+            </p>
+          </div>
+        </div>
+        <div class="money-step">
+          <div class="m-num">7</div>
+          <div>
+            <h3>Sweep again — and go completely debt-free</h3>
+            <p>
+              With your Super Safe Number in place, perform the same sweeping process to eliminate all
+              low-interest debt — student loans, car payments, all of it. When you owe no one in the
+              world anything and you are completely liquid, you hit a <strong>magical pivot point</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="money-ours">
+        <h3>Our numbers</h3>
+        <p>
+          Our first Safe Number — back when it was just the two of us, no children — was
+          <strong>$10,000</strong>. We held that number solid and swept everything left at the end of each
+          month exactly as described above. Our Super Safe Number was <strong>$50,000</strong>; once we reached it,
+          we swept away the remaining student debt, car payments, and every last low-interest
+          balance. Then the pivot: completely liquid and debt-free, cash began popping like crazy —
+          the first <strong>$100,000</strong> was quickly in hand, and it grew to <strong>$250,000 and beyond</strong>. That
+          base cash put 20% down on our dream home, paid cash for a brand-new Honda Odyssey Elite,
+          and set us and our kids up for a life of freedom and fun.
+        </p>
+      </div>
+
+      <p class="money-close">
+        No matter where you are, we truly believe a vibrational shift can be made in your life.
+        Reality is subjective, so your experience will be your own — but the target is always
+        vibrational harmony with infinite abundance. As our incantation says: all of our needs,
+        desires and goals are met instantaneously by infinite intelligence, for we are one with God
+        and God is everything. <strong>Love and light to you, from us!</strong> We look forward to hearing about
+        your transformation as you step into the life you choose.
+      </p>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>6</span>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 8 · WORKSHEET 1 ==================== -->
+    <div class="page p-ws">
+      <div style="text-align: center;"><span class="eyebrow" style="margin-top: 0;">Do the work — this is where it becomes real</span></div>
+      <h1>Worksheet: <span class="grad">My Safe Number &amp; My Debts</span></h1>
+      <p class="ws-lead">
+        Grab a pen and work the playbook from the previous page. Be honest — the more real you are
+        here, the more powerful everything that follows becomes.
+      </p>
+
+      <div class="ws-section">
+        <h2><span class="ws-num">1.</span>What is my Safe Number?</h2>
+        <p class="ws-hint">
+          If I had this amount in the bank, I would <strong>genuinely feel safe for at least 90 days</strong> —
+          even if no new money came in. Feel for the number that relaxes your body, not just the math.
+        </p>
+        <div class="ws-bigbox">
+          <span class="lbl">MY SAFE NUMBER: $</span>
+          <span class="fill"></span>
+        </div>
+        <p class="ws-line">
+          Gut-check: my absolute monthly essentials are $<span class="fill" style="min-width: 70pt;"></span>
+          &times; 3 months = $<span class="fill" style="min-width: 70pt;"></span>. Does my Safe Number feel safe?
+        </p>
+        <p class="ws-line">
+          For later — once all high-interest debt is gone, my <strong style="color: #007a7a;">Super Safe Number</strong>
+          (6&ndash;12 months of feeling safe): $<span class="fill" style="min-width: 90pt;"></span>
+        </p>
+      </div>
+
+      <div class="ws-section">
+        <h2><span class="ws-num">2.</span>What are all of my debts?</h2>
+        <p class="ws-hint">
+          Every single one — cards, loans, obligations. <strong>Above 5% = high interest.</strong> Your attack
+          order: smallest high-interest balance first, one at a time, minimums on everything else.
+        </p>
+        <table class="ws">
+          <tr>
+            <th style="width: 32%;">Debt</th>
+            <th style="width: 18%;">Balance</th>
+            <th style="width: 14%;">Rate %</th>
+            <th style="width: 18%;">High or Low?</th>
+            <th style="width: 18%;">Minimum payment</th>
+          </tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td></tr>
+        </table>
+      </div>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>7</span>
+      </div>
+    </div>
+
+    <!-- ==================== PAGE 9 · WORKSHEET 2 ==================== -->
+    <div class="page p-ws">
+      <div style="text-align: center;"><span class="eyebrow" style="margin-top: 0;">Track it all — what you focus on expands</span></div>
+      <h1>Worksheet: <span class="grad">The Build &amp; The Sweep</span></h1>
+
+      <div class="ws-section">
+        <h2><span class="ws-num">3.</span>What abundance have I noticed coming in?</h2>
+        <p class="ws-hint">
+          Track everything — <strong>even a penny you find on the ground counts</strong>. What you focus on
+          expands, am I right?! Every entry is evidence that more is always available.
+        </p>
+        <table class="ws">
+          <tr>
+            <th style="width: 20%;">Date</th>
+            <th style="width: 58%;">What showed up</th>
+            <th style="width: 22%;">Amount</th>
+          </tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td></tr>
+        </table>
+      </div>
+
+      <div class="ws-section">
+        <h2><span class="ws-num">4.</span>The build to my Safe Number</h2>
+        <p class="ws-hint">
+          Every extra dollar beyond essentials and minimums goes here — until your Safe Number is
+          fully in place.
+        </p>
+        <table class="ws">
+          <tr>
+            <th style="width: 16%;">Month</th>
+            <th style="width: 28%;">Surplus I created</th>
+            <th style="width: 28%;">Running total</th>
+            <th style="width: 28%;">% of Safe Number</th>
+          </tr>
+          <tr><td class="mo">Month 1</td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 2</td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 3</td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 4</td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 5</td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 6</td><td></td><td></td><td></td></tr>
+        </table>
+      </div>
+
+      <div class="ws-section">
+        <h2><span class="ws-num">5.</span>My monthly sweep</h2>
+        <p class="ws-hint">
+          At the end of each month, once all payments are satisfied, sweep everything above your
+          Safe Number to the smallest high-interest balance. Celebrate every kill!
+        </p>
+        <table class="ws">
+          <tr>
+            <th style="width: 16%;">Month</th>
+            <th style="width: 22%;">Amount swept</th>
+            <th style="width: 26%;">Debt I targeted</th>
+            <th style="width: 22%;">New balance</th>
+            <th style="width: 14%;">Killed it?</th>
+          </tr>
+          <tr><td class="mo">Month 1</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 2</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 3</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 4</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 5</td><td></td><td></td><td></td><td></td></tr>
+          <tr><td class="mo">Month 6</td><td></td><td></td><td></td><td></td></tr>
+        </table>
+      </div>
+
+      <div class="footer">
+        <span>From $100K in Debt to $100K in the Bank</span>
+        <span class="site">VibrationFit.com</span>
+        <span>8</span>
+      </div>
+    </div>
+
+  </body>
+</html>
