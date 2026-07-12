@@ -134,6 +134,13 @@ export interface SongTrack {
   is_favorite: boolean
   stems_url: string | null
   stems_s3_key: string | null
+  /** Public sharing (non-members): permanent token for /music/[token] */
+  share_token?: string | null
+  /** Whether the public share link is active */
+  is_shared?: boolean
+  /** Whether the track is listed on the public /music discover page */
+  is_public?: boolean
+  shared_at?: string | null
   status: SongTrackStatus
   metadata: SongTrackMetadata
   created_at: string

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat,
   Edit2, Download, CheckCircle, Loader2, Mic, Music, Waves, Save, Plus, Trash2, Heart, MoreHorizontal,
-  Library, Send,
+  Library, Send, Share2,
 } from 'lucide-react'
 import { cn } from '../../shared-utils'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
@@ -77,6 +77,8 @@ interface EmbeddedPlayerProps {
   trackLibraryState?: Record<string, boolean>
   onAddToLibrary?: (track: AudioTrack, index: number) => void
   onSubmitForPublishing?: (track: AudioTrack, index: number) => void
+  /** Opens the public share flow for a track (share with non-members) */
+  onShareTrack?: (track: AudioTrack, index: number) => void
   /** MAP activity to verify on listen; inferred from setIconKey when omitted */
   mapActivityType?: 'vision_audio' | 'story_audio' | 'music_listen' | 'song_listen'
   /** When true, clicking now-playing artwork opens a full-size lightbox (requires thumbnail) */
@@ -112,6 +114,7 @@ export function EmbeddedPlayer({
   trackLibraryState,
   onAddToLibrary,
   onSubmitForPublishing,
+  onShareTrack,
   mapActivityType: mapActivityTypeProp,
   enableArtworkLightbox = false,
 }: EmbeddedPlayerProps) {
@@ -842,6 +845,21 @@ export function EmbeddedPlayer({
                 >
                   <Library className="w-4 h-4 text-neutral-400" />
                   {trackLibraryState?.[menuTrack.id] ? 'Remove from member library' : 'Add to member library'}
+                </button>
+              )}
+              {onShareTrack && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    closeTrackMenu()
+                    onShareTrack(menuTrack, menuIndex)
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-800"
+                >
+                  <Share2 className="w-4 h-4 text-neutral-400" />
+                  Share song
                 </button>
               )}
               {onSubmitForPublishing && (

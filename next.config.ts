@@ -9,6 +9,17 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // Short links for the free guide PDF
+        source: '/downloads/100k.pdf',
+        destination: '/downloads/from-100k-in-debt-to-100k-in-the-bank.pdf',
+        permanent: false,
+      },
+      {
+        source: '/100k.pdf',
+        destination: '/downloads/from-100k-in-debt-to-100k-in-the-bank.pdf',
+        permanent: false,
+      },
+      {
         source: '/alignment-gym/survey',
         destination: '/survey/alignment-gym',
         permanent: false,

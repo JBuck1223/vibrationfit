@@ -33,9 +33,12 @@ import {
 } from '@/lib/songs/catalog-sync'
 import type { Story } from '@/lib/stories/types'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
+import { shareSongLink } from '@/lib/songs/share-message'
 import type { Song } from '@/lib/songs/types'
 import { AlbumArtModal } from '@/components/audio-studio/AlbumArtModal'
 import { SubmitForPublishingSheet } from '@/components/audio-studio/SubmitForPublishingSheet'
+import { ShareSongSheet } from '@/components/audio-studio/ShareSongSheet'
+import { toast } from 'sonner'
 
 function firstTrackIndexForStory(tracks: AudioTrack[], storyId: string) {
   const prefix = `${storyId}:`
@@ -578,6 +581,8 @@ export default function AudioListenPage() {
   const [songTrackLibrary, setSongTrackLibrary] = useState<Record<string, boolean>>({})
   const [publishSheetOpen, setPublishSheetOpen] = useState(false)
   const [publishSheetTrack, setPublishSheetTrack] = useState<{ songId: string; trackId: string; title?: string } | null>(null)
+  const [shareSheetOpen, setShareSheetOpen] = useState(false)
+  const [shareSheetTrack, setShareSheetTrack] = useState<{ songId: string; trackId: string; title?: string } | null>(null)
 
   const selectedSong = useMemo(
     () => userSongs.find((s: Song) => s.id === selectedSongId) ?? null,
@@ -740,6 +745,13 @@ export default function AudioListenPage() {
     const songTitle = userSongs.find(s => s.id === selectedSongId)?.title
     setPublishSheetTrack({ songId: selectedSongId, trackId: track.id, title: songTitle })
     setPublishSheetOpen(true)
+  }
+
+  function handleSongShare(track: BaseAudioTrack) {
+    if (!selectedSongId) return
+    const songTitle = userSongs.find(s => s.id === selectedSongId)?.title
+    setShareSheetTrack({ songId: selectedSongId, trackId: track.id, title: songTitle })
+    setShareSheetOpen(true)
   }
 
   useEffect(() => {
@@ -1076,6 +1088,32 @@ export default function AudioListenPage() {
       musicPlayerTracks: tracksForPlayer,
     }
   }, [contentType, musicTracks, musicCategoryFilter])
+
+  // Every track on /audio/music is community-shared (member library or
+  // official catalog), so anyone can grab a public share link for it.
+  // Mints the link server-side, then opens the native share sheet with a
+  // "Check out this song..." message (or copies message + link as fallback).
+  async function handleMusicShare(track: BaseAudioTrack) {
+    try {
+      const res = await fetch('/api/music/share-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: track.url }),
+      })
+      if (!res.ok) throw new Error('Failed to create share link')
+      const data = await res.json()
+      const outcome = await shareSongLink({
+        url: data.share_url,
+        title: track.title,
+        isCreator: data.is_creator === true,
+      })
+      if (outcome === 'copied') {
+        toast.success('Share message copied — paste it anywhere, no account needed to listen')
+      }
+    } catch {
+      toast.error('Could not create a share link for this track')
+    }
+  }
 
   const globalStoreIndex = useGlobalAudioStore(s => s.currentIndex)
   const globalStoreTrackIds = useGlobalAudioStore(s => s.tracks)
@@ -1620,6 +1658,7 @@ export default function AudioListenPage() {
                     onToggleFavorite={(track) => handleSongToggleFavorite(track)}
                     trackLibraryState={songTrackLibrary}
                     onAddToLibrary={(track) => handleSongAddToLibrary(track)}
+                    onShareTrack={(track) => handleSongShare(track)}
                     onSubmitForPublishing={(track) => handleSongSubmitForPublishing(track)}
                     onRemoveTrack={(track) => setSongDeleteTarget(track)}
                     headerContent={
@@ -1879,6 +1918,7 @@ export default function AudioListenPage() {
                         trackCount={artistTracks.length}
                         enableArtworkLightbox
                         onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
+                        onShareTrack={(track) => handleMusicShare(track)}
                         headerContent={
                           <div className="bg-black/40 px-3 pt-3 pb-3 md:px-4 border-b border-neutral-800/50">
                             <div className="flex items-center gap-3">
@@ -1990,6 +2030,7 @@ export default function AudioListenPage() {
                       trackCount={musicPlayerTracks.length}
                       enableArtworkLightbox
                       onAddToPlaylist={(track) => handleAddToPlaylist(track, 'music')}
+                      onShareTrack={(track) => handleMusicShare(track)}
                       headerContent={
                       <div>
                         <div className="bg-black/40 px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
@@ -2111,6 +2152,16 @@ export default function AudioListenPage() {
           songId={publishSheetTrack.songId}
           trackId={publishSheetTrack.trackId}
           trackTitle={publishSheetTrack.title}
+        />
+      )}
+
+      {shareSheetTrack && (
+        <ShareSongSheet
+          isOpen={shareSheetOpen}
+          onClose={() => { setShareSheetOpen(false); setShareSheetTrack(null) }}
+          songId={shareSheetTrack.songId}
+          trackId={shareSheetTrack.trackId}
+          trackTitle={shareSheetTrack.title}
         />
       )}
 

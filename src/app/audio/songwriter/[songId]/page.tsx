@@ -3,10 +3,11 @@
 import React, { useCallback, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Container, Stack, Card, Button } from '@/lib/design-system/components'
-import { ChevronLeft, Loader2, CheckCircle, Headphones, Music2 } from 'lucide-react'
+import { ChevronLeft, Loader2, CheckCircle, Headphones, Music2, Music, Share2 } from 'lucide-react'
 import { useSong } from '@/lib/songs/hooks/useSong'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
 import { SongRegeneratePanel } from '@/components/audio-studio/SongRegeneratePanel'
+import { ShareSongSheet } from '@/components/audio-studio/ShareSongSheet'
 
 export default function SongDetailPage() {
   const params = useParams()
@@ -14,6 +15,7 @@ export default function SongDetailPage() {
   const songId = params.songId as string
   const { song, tracks, loading, error, refetch } = useSong(songId)
   const [justCompleted, setJustCompleted] = useState(false)
+  const [shareTrack, setShareTrack] = useState<{ trackId: string; title?: string } | null>(null)
 
   const { generateMore, isGenerating, error: generateError } = useSongGeneration({
     song,
@@ -129,6 +131,43 @@ export default function SongDetailPage() {
           />
         )}
 
+        {tracks.filter(t => t.status === 'completed' && t.mp3_url).length > 0 && (
+          <Card variant="glass" className="p-5">
+            <h3 className="mb-3 text-sm font-medium text-neutral-300">Versions</h3>
+            <div className="space-y-1">
+              {tracks
+                .filter(t => t.status === 'completed' && t.mp3_url)
+                .map(track => (
+                  <div key={track.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/5">
+                    {track.cover_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={track.cover_url}
+                        alt=""
+                        className="h-9 w-9 flex-shrink-0 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-neutral-800">
+                        <Music className="h-4 w-4 text-neutral-500" />
+                      </div>
+                    )}
+                    <p className="flex-1 min-w-0 truncate text-sm text-neutral-200">
+                      {track.title || song.title || 'Untitled'} — v{track.version}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShareTrack({ trackId: track.id, title: track.title || song.title || undefined })}
+                      className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:bg-neutral-700"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      Share
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </Card>
+        )}
+
         {song.lyrics && tracks.length === 0 && !isGenerating && (
           <Card variant="glass" className="p-5">
             <h3 className="mb-3 text-sm font-medium text-neutral-300">Lyrics</h3>
@@ -138,6 +177,16 @@ export default function SongDetailPage() {
           </Card>
         )}
       </Stack>
+
+      {shareTrack && (
+        <ShareSongSheet
+          isOpen={true}
+          onClose={() => setShareTrack(null)}
+          songId={songId}
+          trackId={shareTrack.trackId}
+          trackTitle={shareTrack.title}
+        />
+      )}
     </Container>
   )
 }

@@ -240,6 +240,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/',
     '/privacy-policy',
     '/terms-of-service',
+    '/100k',                           // From $100K in Debt to $100K in the Bank (free guide)
     
     // Authentication
     '/auth/login',
@@ -256,6 +257,10 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Public Utilities
     '/vision/build',
+    
+    // Public Music Sharing (shared songs, accessible without auth)
+    '/music',
+    '/music/[token]',
     
     // Video Session Join (accessible without auth, prompts login)
     '/session/[id]',
