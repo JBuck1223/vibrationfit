@@ -63,3 +63,6 @@ s3-backup/
 docs/generated/
 # macOS metadata files
 ._*
+
+# Temporary/debug files
+temp/

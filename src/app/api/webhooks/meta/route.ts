@@ -473,6 +473,8 @@ async function processComment(
 /**
  * After the DM went out, optionally reply publicly on the comment itself
  * ("Just sent it over -- check your DMs!") so the commenter knows to look.
+ * The field holds one variant per line; a random one is posted each time so
+ * repeated replies don't look copy-pasted (and dodge spam rate limits).
  */
 async function sendPublicReply(
   admin: ReturnType<typeof createAdminClient>,
@@ -480,8 +482,13 @@ async function sendPublicReply(
   rule: AutomationRule,
   opts: { commentId: string; fromId: string; username: string | null }
 ) {
-  const text = rule.public_reply_text?.trim()
-  if (!text) return
+  const variants = (rule.public_reply_text || '')
+    .split('\n')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  if (!variants.length) return
+
+  const text = variants[Math.floor(Math.random() * variants.length)]
 
   const result = await replyToComment(
     { platform: account.platform, access_token: account.access_token },

@@ -801,13 +801,16 @@ export default function MetaAutomationPage() {
                   <label className="block text-sm font-medium text-neutral-200 mb-2">
                     Public comment reply <span className="text-neutral-500">(optional)</span>
                   </label>
-                  <Input
+                  <Textarea
                     value={form.public_reply_text}
                     onChange={(e) => setForm({ ...form, public_reply_text: e.target.value })}
-                    placeholder="Just sent it over -- check your DMs!"
+                    placeholder={'Just sent it over -- check your DMs!\nSent! Check your inbox\nOn its way -- check your DMs'}
+                    rows={3}
                   />
                   <p className="text-xs text-neutral-500 mt-1">
                     Posted publicly under their comment after the DM sends successfully.
+                    One variant per line; a random one is picked each time so replies
+                    don&apos;t look copy-pasted.
                   </p>
                 </div>
               )}

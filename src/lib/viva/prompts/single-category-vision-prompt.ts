@@ -348,6 +348,7 @@ NEGATIVE FRAMING — This is an INCLUSION-BASED universe. Only name what you're 
   "It never drains me..." → "It energizes me."
   "The feeling of X slipping through the cracks is a distant memory" → DELETE entirely. Just describe the abundance.
   "free from..." / "without the weight of..." / "no longer burdened by..." → gone. Describe the lightness directly.
+  "without feeling overwhelmed" / "without stress" / "without [any negative]" → NEVER. Naming the negative invokes it. "I handle busy days without feeling overwhelmed" → "I move through busy days with calm and ease."
 
 ═══════════════════════════════════════════════════════════════
 PHASE 2: EXPAND — Make it vivid, specific, and REAL

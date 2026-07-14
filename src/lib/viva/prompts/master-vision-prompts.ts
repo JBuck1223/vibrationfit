@@ -35,6 +35,7 @@ OUTPUT RULES (non-negotiable):
   "Essence", "Scene", "Loop", "Zooming out/in", "Being/Doing/Receiving"
 - Avoid "but/however/even though"
 - No "I want / I will / I'm trying to" (silently transform to present tense)
+- NEVER name the absence of a negative: no "without feeling overwhelmed", "without stress", "free from...", "no longer...". Naming the negative invokes it — state what IS present instead ("without feeling overwhelmed" → "with calm and ease")
 
 SOURCE PRIORITY (use in this order):
 1) USER'S IMAGINATION = primary phrasing + wording source (borrow heavily)
@@ -545,6 +546,7 @@ The imagination text IS the vision. Your job is to make it FLOW:
 LIGHT POLISH:
 - Convert future → present tense ("We will have" → "We have")
 - Convert wanting → having ("I want to travel" → "I travel")
+- Flip lack/absence phrasing to positive presence ("without feeling overwhelmed" → "with calm and ease"; "no stress" → "total ease"). Never name the absence of a negative.
 - Smooth transitions between ideas
 - Add a sensory detail here and there (sparingly)
 
