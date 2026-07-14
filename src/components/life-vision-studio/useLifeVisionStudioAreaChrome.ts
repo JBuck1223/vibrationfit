@@ -4,8 +4,9 @@ import { useEffect } from 'react'
 import { useLifeVisionStudio, type LifeVisionStudioAreaChrome } from './LifeVisionStudioContext'
 
 /**
- * Pushes headline / eyebrow / helper text into `LifeVisionAreaBar` for the current route.
- * Inline `chrome` objects are fine: updates follow `headline`, `contextEyebrow`, and `contextText`.
+ * Pushes eyebrow / helper text into `LifeVisionAreaBar` for the current route.
+ * Inline `chrome` objects are fine: updates follow `contextEyebrow` and `contextText`.
+ * The area title always stays "Life Vision".
  */
 export function useLifeVisionStudioAreaChrome(chrome: LifeVisionStudioAreaChrome | null) {
   const { setStudioAreaChrome } = useLifeVisionStudio()
@@ -14,5 +15,5 @@ export function useLifeVisionStudioAreaChrome(chrome: LifeVisionStudioAreaChrome
     return () => {
       setStudioAreaChrome(null)
     }
-  }, [setStudioAreaChrome, chrome?.headline, chrome?.contextEyebrow, chrome?.contextText])
+  }, [setStudioAreaChrome, chrome?.contextEyebrow, chrome?.contextText])
 }

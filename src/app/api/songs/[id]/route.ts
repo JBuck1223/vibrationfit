@@ -48,6 +48,22 @@ export async function PATCH(
     }
 
     if (body.title !== undefined) {
+      // Renaming is allowed until a track of this song is published to the catalog.
+      const { data: publishedRequest } = await supabase
+        .from('song_publish_requests')
+        .select('id')
+        .eq('song_id', id)
+        .eq('user_id', user.id)
+        .eq('status', 'published')
+        .limit(1)
+        .maybeSingle()
+
+      if (publishedRequest) {
+        return NextResponse.json({
+          error: 'This song has been published and can no longer be renamed',
+        }, { status: 403 })
+      }
+
       updates.title = body.title.trim() || null
     }
 

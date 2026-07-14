@@ -604,6 +604,9 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
       console.log('Vision deleted successfully')
 
+      // Refresh the studio list so hub redirects don't target the deleted vision
+      await refreshVisions()
+
       // Navigate back to appropriate page (household or personal)
       if (vision.household_id) {
         router.push('/life-vision/household')

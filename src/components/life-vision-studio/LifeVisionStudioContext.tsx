@@ -29,9 +29,9 @@ export interface AudioSetOption {
   track_count: number
 }
 
-/** Optional page-level copy merged into `LifeVisionAreaBar` (replaces former PageHero). */
+/** Optional page-level copy merged into `LifeVisionAreaBar` (replaces former PageHero).
+ * The area title itself never changes — pages may only adjust the eyebrow/context text. */
 export interface LifeVisionStudioAreaChrome {
-  headline?: string
   contextEyebrow?: string
   contextText?: string
 }
@@ -39,6 +39,8 @@ export interface LifeVisionStudioAreaChrome {
 interface LifeVisionStudioContextValue {
   visions: VisionVersion[]
   loading: boolean
+  /** true when the user belongs to a household account */
+  hasHousehold: boolean
   activeVisionId: string | null
   activeVisionVersion: number | null
   activeVisionDate: string | null
@@ -69,6 +71,7 @@ export function useLifeVisionStudio() {
 export function LifeVisionStudioProvider({ children }: { children: React.ReactNode }) {
   const [visions, setVisions] = useState<VisionVersion[]>([])
   const [loading, setLoading] = useState(true)
+  const [hasHousehold, setHasHousehold] = useState(false)
   const [profileNewerThanVision, setProfileNewerThanVision] = useState(false)
   const [profileVersionNumber, setProfileVersionNumber] = useState<number | null>(null)
   const [audioSets, setAudioSets] = useState<AudioSetOption[]>([])
@@ -153,6 +156,20 @@ export function LifeVisionStudioProvider({ children }: { children: React.ReactNo
     loadVisions()
   }, [loadVisions])
 
+  // Household membership rarely changes; fetch once per mount.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/household')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!cancelled) setHasHousehold(!!data?.household)
+      })
+      .catch(() => {
+        if (!cancelled) setHasHousehold(false)
+      })
+    return () => { cancelled = true }
+  }, [])
+
   // "Active vision" and "draft" always refer to the user's own personal
   // ("Life I Choose") documents; shared and household visions never drive
   // the create/refine flows.
@@ -175,6 +192,7 @@ export function LifeVisionStudioProvider({ children }: { children: React.ReactNo
       value={{
         visions,
         loading,
+        hasHousehold,
         activeVisionId,
         activeVisionVersion,
         activeVisionDate,

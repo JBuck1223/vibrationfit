@@ -12,7 +12,7 @@ export const ALIGNMENT_GYM_TOUR_STEPS = [
   {
     id: 'stats',
     title: 'Your stats',
-    body: 'Streak and weekly reps show how consistently you are showing up. Attending live or opening a replay counts.',
+    body: 'Streak and weekly reps show how consistently you are showing up. Attending live or watching a replay counts.',
   },
   {
     id: 'about',

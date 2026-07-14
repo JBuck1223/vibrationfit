@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { X } from 'lucide-react'
-import { Card, Button, Spinner, Badge } from '@/lib/design-system/components'
+import { X, Check, Copy } from 'lucide-react'
+import { Card, Button, Spinner } from '@/lib/design-system/components'
+import { computePersonalVersionNumbers, formatVisionDate } from './vision-version-labels'
 
 interface VisionData {
   id: string
   user_id: string
   title: string
   created_at: string
+  is_active: boolean
 }
 
 interface MergeVisionsToolProps {
@@ -93,10 +95,8 @@ export function MergeVisionsTool({
       // Success! Navigate to the new vision (draft or active)
       onSuccess?.()
       if (data.isActive) {
-        // Active vision - go to detail page
         router.push(`/life-vision/${data.visionId}`)
       } else {
-        // Draft vision - go to draft page
         router.push(`/life-vision/${data.visionId}/draft`)
       }
     } catch (err: any) {
@@ -112,15 +112,51 @@ export function MergeVisionsTool({
     return `${member.profile.first_name} ${member.profile.last_name || ''}`.trim()
   }
 
+  function toggleVision(visionId: string) {
+    setError('')
+    setSelectedVisions(prev =>
+      prev.includes(visionId)
+        ? prev.filter(id => id !== visionId)
+        : prev.length < 2 ? [...prev, visionId] : prev
+    )
+  }
+
+  const versionNumbers = useMemo(
+    () => computePersonalVersionNumbers(personalVisions),
+    [personalVisions]
+  )
+
+  // Group visions by owner so options read like the area bar dropdown
+  // ("Jordan's Visions" -> Version 2, Version 1) instead of raw titles.
+  const groupedVisions = useMemo(() => {
+    const groups: Array<{ ownerId: string; ownerName: string; visions: VisionData[] }> = []
+    for (const vision of personalVisions) {
+      const existing = groups.find(g => g.ownerId === vision.user_id)
+      if (existing) {
+        existing.visions.push(vision)
+      } else {
+        groups.push({
+          ownerId: vision.user_id,
+          ownerName: getOwnerName(vision.user_id),
+          visions: [vision],
+        })
+      }
+    }
+    return groups
+  }, [personalVisions, householdMembers])
+
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-      <Card className="max-w-3xl w-full max-h-[90vh] overflow-auto p-6 md:p-8">
+      <Card className="max-w-2xl w-full max-h-[90vh] overflow-auto p-6 md:p-8">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Merge Personal Visions</h2>
+            <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+              <Copy className="w-6 h-6 text-primary-500" />
+              Merge Two Visions
+            </h2>
             <p className="text-neutral-400">
-              Select 2 personal visions to combine into one household vision
+              Choose 2 personal vision versions to combine into one household vision
             </p>
           </div>
           <button
@@ -154,63 +190,55 @@ export function MergeVisionsTool({
           </div>
         ) : (
           <>
-            {/* Vision Selection */}
-            <div className="space-y-3 mb-6">
-              {personalVisions.map((vision) => {
-                const isSelected = selectedVisions.includes(vision.id)
-                const isDisabled = 
-                  selectedVisions.length === 2 && !isSelected
+            {/* Vision Selection — grouped by owner, labeled like the Vision dropdown */}
+            <div className="space-y-4 mb-6">
+              {groupedVisions.map((group) => (
+                <div key={group.ownerId}>
+                  <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500">
+                    {group.ownerName}
+                  </p>
+                  <div className="space-y-1.5">
+                    {group.visions.map((vision) => {
+                      const isSelected = selectedVisions.includes(vision.id)
+                      const isDisabled = selectedVisions.length === 2 && !isSelected
 
-                return (
-                  <label
-                    key={vision.id}
-                    className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-primary-500 bg-primary-500/10'
-                        : isDisabled
-                        ? 'border-neutral-700 bg-neutral-800/50 opacity-50 cursor-not-allowed'
-                        : 'border-neutral-700 bg-neutral-800/50 hover:border-neutral-600'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      disabled={isDisabled}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedVisions([...selectedVisions, vision.id])
-                        } else {
-                          setSelectedVisions(
-                            selectedVisions.filter(id => id !== vision.id)
-                          )
-                        }
-                        setError('')
-                      }}
-                      className="mt-1 w-5 h-5"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-white">
-                          {vision.title || 'Untitled Vision'}
-                        </h3>
-                        <Badge variant="neutral" className="text-xs">
-                          {getOwnerName(vision.user_id)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-neutral-400">
-                        Created {new Date(vision.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </label>
-                )
-              })}
+                      return (
+                        <button
+                          key={vision.id}
+                          onClick={() => toggleVision(vision.id)}
+                          disabled={isDisabled}
+                          className={`w-full px-4 py-3 flex items-center gap-3 rounded-xl border text-left transition-colors ${
+                            isSelected
+                              ? 'border-[#39FF14]/50 bg-[#39FF14]/10'
+                              : isDisabled
+                              ? 'border-neutral-800 bg-neutral-900/60 opacity-50 cursor-not-allowed'
+                              : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-800/60'
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium truncate ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
+                              Version {versionNumbers[vision.id]}
+                            </p>
+                            <p className="text-xs text-neutral-500">{formatVisionDate(vision.created_at)}</p>
+                          </div>
+                          {vision.is_active && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 text-[#39FF14] bg-[#39FF14]/10">
+                              Active
+                            </span>
+                          )}
+                          {isSelected && <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Info */}
             <div className="bg-secondary-500/10 border border-secondary-500/20 rounded-lg p-4 mb-6">
               <p className="text-sm text-secondary-400">
-                💡 <strong>Tip:</strong> The merge will combine both visions' content. 
-                You'll be able to refine the result together afterwards.
+                <strong>Tip:</strong> The merge combines both visions&apos; content. You&apos;ll be able to refine the result together afterwards.
               </p>
             </div>
 
@@ -240,4 +268,3 @@ export function MergeVisionsTool({
     </div>
   )
 }
-

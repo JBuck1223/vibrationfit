@@ -14,13 +14,27 @@ export function songShareMessage(isCreator: boolean): string {
     : 'Check out this song I found on VibrationFit.com'
 }
 
+export function artistShareMessage(isSelf: boolean): string {
+  return isSelf
+    ? 'Check out my music on VibrationFit.com'
+    : 'Check out this artist on VibrationFit.com'
+}
+
 export async function shareSongLink(options: {
   url: string
   title?: string
   isCreator: boolean
 }): Promise<ShareSongOutcome> {
   const { url, title, isCreator } = options
-  const message = songShareMessage(isCreator)
+  return shareLinkWithMessage({ url, title, message: songShareMessage(isCreator) })
+}
+
+export async function shareLinkWithMessage(options: {
+  url: string
+  title?: string
+  message: string
+}): Promise<ShareSongOutcome> {
+  const { url, title, message } = options
 
   if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
     try {

@@ -9,10 +9,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { mureka } from '@/lib/mureka/client'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { SONG_PUBLISHING_AGREEMENT_VERSION } from '@/lib/songs/publishing-agreement'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -213,79 +211,6 @@ export async function GET(
       .update({ status: 'completed', updated_at: new Date().toISOString() })
       .eq('id', songId)
       .eq('user_id', user.id)
-
-    // Auto-submit publish requests for admin users so songs appear in /admin/song-submissions
-    if (tracks.length > 0) {
-      const adminDb = createAdminClient()
-      const { data: userAccount } = await adminDb
-        .from('user_accounts')
-        .select('role, song_publishing_legal_name, full_name, first_name, last_name')
-        .eq('id', user.id)
-        .single()
-
-      if (userAccount?.role === 'admin' || userAccount?.role === 'super_admin') {
-        const legalName = userAccount.song_publishing_legal_name
-          || userAccount.full_name
-          || [userAccount.first_name, userAccount.last_name].filter(Boolean).join(' ')
-          || user.email || 'Admin'
-
-        // Get song life_categories for context
-        const { data: songData } = await adminDb
-          .from('songs')
-          .select('life_categories, entity_type, entity_id')
-          .eq('id', songId)
-          .single()
-
-        let lifeCategories: string[] = songData?.life_categories || []
-
-        // If no life_categories on the song, try to derive from the source entity
-        if (lifeCategories.length === 0 && songData?.entity_id) {
-          if (songData.entity_type === 'life_vision') {
-            const { data: vision } = await adminDb
-              .from('life_visions')
-              .select('category')
-              .eq('id', songData.entity_id)
-              .single()
-            if (vision?.category) lifeCategories = [vision.category]
-          } else if (songData.entity_type === 'vision_board_item') {
-            const { data: item } = await adminDb
-              .from('vision_board_items')
-              .select('life_category')
-              .eq('id', songData.entity_id)
-              .single()
-            if (item?.life_category) lifeCategories = [item.life_category]
-          }
-        }
-
-        for (const track of tracks) {
-          const { error: publishError } = await adminDb
-            .from('song_publish_requests')
-            .insert({
-              user_id: user.id,
-              song_id: songId,
-              track_id: track.id,
-              songwriter_legal_name: legalName,
-              life_categories: lifeCategories.length > 0 ? lifeCategories : ['personal_growth'],
-              royalty_split_percent: 50,
-              status: 'approved',
-              agreement_version: SONG_PUBLISHING_AGREEMENT_VERSION,
-              reviewed_by: user.id,
-              reviewed_at: new Date().toISOString(),
-            })
-            .select('id')
-            .single()
-
-          if (publishError) {
-            // 23505 = duplicate; skip if already exists
-            if ((publishError as { code?: string }).code !== '23505') {
-              console.error(`[SongPoll] Auto-publish request failed for track ${track.id}:`, publishError)
-            }
-          } else {
-            console.log(`[SongPoll] Auto-created publish request for admin track ${track.id}`)
-          }
-        }
-      }
-    }
 
     console.log(`[SongPoll] Done. ${tracks.length} tracks created for song ${songId}`)
 

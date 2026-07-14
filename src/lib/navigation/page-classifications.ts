@@ -261,6 +261,7 @@ export const PAGE_CLASSIFICATIONS = {
     // Public Music Sharing (shared songs, accessible without auth)
     '/music',
     '/music/[token]',
+    '/music/artist/[handle]',
     
     // Video Session Join (accessible without auth, prompts login)
     '/session/[id]',

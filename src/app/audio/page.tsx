@@ -11,7 +11,7 @@ import {
   Sparkles, Mic, Music, Trash2, BookOpen, Image, Edit2,
   Volume2, Plus, Music2, ChevronDown, CheckCircle, Target, Lightbulb,
   Clock, ChevronRight, Library, AlertTriangle, RefreshCw,
-  Users, ArrowLeft, Search,
+  Users, ArrowLeft, Search, Share2,
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
@@ -33,9 +33,10 @@ import {
 } from '@/lib/songs/catalog-sync'
 import type { Story } from '@/lib/stories/types'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
-import { shareSongLink } from '@/lib/songs/share-message'
+import { shareSongLink, shareLinkWithMessage, artistShareMessage } from '@/lib/songs/share-message'
 import type { Song } from '@/lib/songs/types'
 import { AlbumArtModal } from '@/components/audio-studio/AlbumArtModal'
+import { RenameSongModal } from '@/components/audio-studio/RenameSongModal'
 import { SubmitForPublishingSheet } from '@/components/audio-studio/SubmitForPublishingSheet'
 import { ShareSongSheet } from '@/components/audio-studio/ShareSongSheet'
 import { toast } from 'sonner'
@@ -578,6 +579,7 @@ export default function AudioListenPage() {
   const [songDeleting, setSongDeleting] = useState(false)
   const [songArtistName, setSongArtistName] = useState('')
   const [albumArtModalOpen, setAlbumArtModalOpen] = useState(false)
+  const [renameModalOpen, setRenameModalOpen] = useState(false)
   const [songTrackLibrary, setSongTrackLibrary] = useState<Record<string, boolean>>({})
   const [publishSheetOpen, setPublishSheetOpen] = useState(false)
   const [publishSheetTrack, setPublishSheetTrack] = useState<{ songId: string; trackId: string; title?: string } | null>(null)
@@ -1112,6 +1114,29 @@ export default function AudioListenPage() {
       }
     } catch {
       toast.error('Could not create a share link for this track')
+    }
+  }
+
+  // Share a member artist's public page (/music/artist/[handle]).
+  async function handleArtistShare(artist: { id: string; name: string }) {
+    try {
+      const res = await fetch('/api/music/artist-share-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: artist.id }),
+      })
+      if (!res.ok) throw new Error('Failed to create artist link')
+      const data = await res.json()
+      const outcome = await shareLinkWithMessage({
+        url: data.share_url,
+        title: `${artist.name} | Vibration Fit`,
+        message: artistShareMessage(data.is_self === true),
+      })
+      if (outcome === 'copied') {
+        toast.success('Artist link copied — paste it anywhere, no account needed to listen')
+      }
+    } catch {
+      toast.error('Could not create a share link for this artist')
     }
   }
 
@@ -1738,6 +1763,14 @@ export default function AudioListenPage() {
                               <RefreshCw className="h-3.5 w-3.5" />
                               Create More Versions
                             </Link>
+                            <button
+                              type="button"
+                              onClick={() => setRenameModalOpen(true)}
+                              className="inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                              Rename Song
+                            </button>
                             {selectedSong?.lyrics && (
                               <button
                                 type="button"
@@ -1946,6 +1979,16 @@ export default function AudioListenPage() {
                                   {artistTracks.length} {artistTracks.length === 1 ? 'song' : 'songs'}
                                 </p>
                               </div>
+                              {selectedArtist && !selectedArtist.isOfficial && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleArtistShare(selectedArtist)}
+                                  className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:bg-neutral-700"
+                                >
+                                  <Share2 className="w-3.5 h-3.5" />
+                                  Share
+                                </button>
+                              )}
                             </div>
                           </div>
                         }
@@ -2130,6 +2173,19 @@ export default function AudioListenPage() {
         itemName={songDeleteTarget?.versionLabel || undefined}
         isDeleting={songDeleting}
       />
+
+      {selectedSongId && (
+        <RenameSongModal
+          isOpen={renameModalOpen}
+          onClose={() => setRenameModalOpen(false)}
+          songId={selectedSongId}
+          currentTitle={selectedSong?.title || ''}
+          onRenamed={(newTitle) => {
+            setUserSongs(prev => prev.map(s => s.id === selectedSongId ? { ...s, title: newTitle } : s))
+            setSongTracks(prev => prev.map(t => ({ ...t, title: newTitle })))
+          }}
+        />
+      )}
 
       {selectedSongId && selectedSong?.lyrics && (
         <AlbumArtModal

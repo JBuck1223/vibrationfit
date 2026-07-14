@@ -20,6 +20,8 @@ export interface SharedTrack {
   title: string
   artist_name: string
   artist_avatar_url: string | null
+  /** Handle for the public artist page (/music/artist/[handle]), if any */
+  artist_handle: string | null
   mp3_url: string
   cover_url: string | null
   duration_ms: number | null
@@ -38,7 +40,7 @@ export interface SharedTrackResult {
 }
 
 async function getCreatorInfo(adminDb: ReturnType<typeof createAdminClient>, userId: string | null) {
-  if (!userId) return { name: null, avatarUrl: null, referralCode: null }
+  if (!userId) return { name: null, avatarUrl: null, referralCode: null, handle: null }
 
   const [{ data: account }, { data: referral }] = await Promise.all([
     adminDb
@@ -61,6 +63,8 @@ async function getCreatorInfo(adminDb: ReturnType<typeof createAdminClient>, use
     name,
     avatarUrl: account?.profile_picture_url || null,
     referralCode: referral?.referral_code || null,
+    // Artist page handle: referral code (app-wide username) or raw user id.
+    handle: referral?.referral_code || userId,
   }
 }
 
@@ -98,6 +102,7 @@ async function getSharedSongTrack(
       title: track.title || song?.title || 'VIVA Song',
       artist_name: creator.name || 'Vibration Fit Member',
       artist_avatar_url: creator.avatarUrl,
+      artist_handle: creator.handle,
       mp3_url: track.mp3_url!,
       cover_url: track.cover_url,
       duration_ms: track.duration_ms,
@@ -140,6 +145,7 @@ async function getSharedCatalogTrack(
       title: row.title,
       artist_name: creator.name || (row.artist || '').trim() || 'Vibration Fit',
       artist_avatar_url: creator.avatarUrl,
+      artist_handle: creator.handle,
       mp3_url: row.preview_url!,
       cover_url: row.artwork_url,
       duration_ms: typeof row.duration_seconds === 'number' ? row.duration_seconds * 1000 : null,

@@ -1,17 +1,15 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import Link from 'next/link'
-import { Download, ArrowRight } from 'lucide-react'
-import { Container, Heading, Text, Button } from '@/lib/design-system'
+import { ArrowRight } from 'lucide-react'
+import { Container, Heading, Text, ButtonLink } from '@/lib/design-system'
 import { GreenLineSection } from '@/components/GreenLineSection'
+import { DownloadButton } from './DownloadButton'
 
 export const metadata: Metadata = {
   title: 'From $100K in Debt to $100K in the Bank | Vibration Fit',
   description:
     'The A.U.R.A. Process, the daily incantation, and the exact money playbook that carried us out of six figures of debt and into freedom. Free guide with worksheets.',
 }
-
-const PDF_URL = '/downloads/from-100k-in-debt-to-100k-in-the-bank.pdf'
 
 const CONTENT_CARDS = [
   {
@@ -241,17 +239,6 @@ const CATEGORIES = [
   'Giving',
   'Spirituality',
 ]
-
-function DownloadButton({ label = 'Download the Free PDF' }: { label?: string }) {
-  return (
-    <Button asChild variant="primary" size="lg">
-      <a href={PDF_URL} download>
-        <Download className="mr-2 h-5 w-5" />
-        {label}
-      </a>
-    </Button>
-  )
-}
 
 function Eyebrow({ children, color = '#00FFFF' }: { children: React.ReactNode; color?: string }) {
   return (
@@ -626,12 +613,10 @@ export default function HundredKPage() {
               ))}
             </div>
             <div className="mt-10 flex justify-center">
-              <Button asChild variant="primary" size="lg">
-                <Link href="/">
-                  Check Out Our Conscious Creation System at VibrationFit.com
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
+              <ButtonLink href="/" variant="primary" size="lg">
+                Learn More at VibrationFit.com
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </ButtonLink>
             </div>
           </div>
         </Container>

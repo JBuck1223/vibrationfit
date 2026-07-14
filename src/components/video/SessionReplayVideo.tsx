@@ -18,6 +18,8 @@ type SessionReplayVideoProps = {
   /** Seconds to skip from the start once duration is known (does not re-encode the file). */
   playbackStartSeconds?: number | null
   className?: string
+  /** Fired once, the first time playback actually starts. */
+  onFirstPlay?: () => void
 }
 
 /**
@@ -35,8 +37,9 @@ type SessionReplayVideoProps = {
  *  - Falls through quality candidates if a variant 404s
  */
 export const SessionReplayVideo = forwardRef<SessionReplayVideoHandle, SessionReplayVideoProps>(
-  function SessionReplayVideo({ src, poster, playbackStartSeconds = 0, className = '' }, ref) {
+  function SessionReplayVideo({ src, poster, playbackStartSeconds = 0, className = '', onFirstPlay }, ref) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const hasReportedPlay = useRef(false)
 
   useImperativeHandle(ref, () => ({
     seekTo(seconds: number) {
@@ -108,7 +111,11 @@ export const SessionReplayVideo = forwardRef<SessionReplayVideoHandle, SessionRe
   // "The play() request was interrupted by a call to pause()."
   const handlePlaying = useCallback(() => {
     seekToStart()
-  }, [seekToStart])
+    if (!hasReportedPlay.current) {
+      hasReportedPlay.current = true
+      onFirstPlay?.()
+    }
+  }, [seekToStart, onFirstPlay])
 
   const handleError = useCallback(() => {
     if (candidateIndex < candidates.length - 1) {

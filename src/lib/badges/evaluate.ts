@@ -93,12 +93,12 @@ export async function getUserBadgeProgress(
     tribeCommentDates,
     tribeHeartDates,
   ] = await Promise.all([
-    // Sessions attended (Alignment Gym)
+    // Sessions attended (Alignment Gym) — live attendance or replay view
     supabase
       .from('video_session_participants')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('attended', true),
+      .or('attended.eq.true,replay_viewed_at.not.is.null'),
 
     // Vibe Tribe posts (count)
     supabase
@@ -276,13 +276,15 @@ async function getDistinctActivationDays(
         .eq('user_id', userId)
         .then(r => r.data?.map(d => d.created_at) || []),
 
-      // Alignment Gym sessions (attended)
+      // Alignment Gym sessions — live attendance or replay view
       supabase
         .from('video_session_participants')
-        .select('joined_at')
+        .select('joined_at, attended, replay_viewed_at')
         .eq('user_id', userId)
-        .eq('attended', true)
-        .then(r => r.data?.map(d => d.joined_at) || []),
+        .or('attended.eq.true,replay_viewed_at.not.is.null')
+        .then(r =>
+          r.data?.map(d => (d.attended ? d.joined_at : d.replay_viewed_at)) || [],
+        ),
 
       // Vibe Tribe posts
       supabase
