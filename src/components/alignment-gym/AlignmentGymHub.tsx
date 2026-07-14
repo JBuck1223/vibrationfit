@@ -208,8 +208,11 @@ export function AlignmentGymHub({
 
       setSessions(sessionsWithParticipants)
 
+      // Live attendance and replay views both count as showing up
       const attendedSessions = sessionsWithParticipants.filter(session =>
-        session.participants?.some((p: VideoSessionParticipant) => p.attended),
+        session.participants?.some(
+          (p: VideoSessionParticipant) => p.attended || p.replay_viewed_at,
+        ),
       )
 
       setAttendanceStats({

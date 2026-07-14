@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, CheckCircle, Sparkles, ArrowRight } from 'lucide-react'
-import { Card, Button, Badge, Spinner } from '@/lib/design-system/components'
+import { X, Check, Sparkles, ArrowRight } from 'lucide-react'
+import { Card, Button, Spinner } from '@/lib/design-system/components'
+import { computePersonalVersionNumbers, formatVisionDate } from './vision-version-labels'
 
 interface ConvertVisionToolProps {
   householdId: string
@@ -91,10 +92,8 @@ export function ConvertVisionTool({
       // Success! Navigate to the new vision (draft or active)
       onSuccess?.()
       if (data.isActive) {
-        // Active vision - go to detail page
         router.push(`/life-vision/${data.visionId}`)
       } else {
-        // Draft vision - go to draft page
         router.push(`/life-vision/${data.visionId}/draft`)
       }
     } catch (err: any) {
@@ -110,6 +109,30 @@ export function ConvertVisionTool({
     return `${member.profile.first_name} ${member.profile.last_name || ''}`.trim()
   }
 
+  const versionNumbers = useMemo(
+    () => computePersonalVersionNumbers(personalVisions),
+    [personalVisions]
+  )
+
+  // Group visions by owner so options read like the area bar dropdown
+  // ("Jordan's Visions" -> Version 2, Version 1) instead of raw titles.
+  const groupedVisions = useMemo(() => {
+    const groups: Array<{ ownerId: string; ownerName: string; visions: PersonalVision[] }> = []
+    for (const vision of personalVisions) {
+      const existing = groups.find(g => g.ownerId === vision.user_id)
+      if (existing) {
+        existing.visions.push(vision)
+      } else {
+        groups.push({
+          ownerId: vision.user_id,
+          ownerName: getOwnerName(vision.user_id),
+          visions: [vision],
+        })
+      }
+    }
+    return groups
+  }, [personalVisions, householdMembers])
+
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
       <Card className="max-w-2xl w-full max-h-[90vh] overflow-auto p-6 md:p-8">
@@ -121,7 +144,7 @@ export function ConvertVisionTool({
               Convert to Household Vision
             </h2>
             <p className="text-neutral-400">
-              Select a personal vision to convert into a shared household vision
+              Choose the personal vision version to convert into a shared household vision
             </p>
           </div>
           <button
@@ -151,52 +174,51 @@ export function ConvertVisionTool({
           </div>
         ) : (
           <>
-            {/* Vision List */}
-            <div className="space-y-3 mb-6">
-              {personalVisions.map((vision) => {
-                const isSelected = selectedVision === vision.id
-                const ownerName = getOwnerName(vision.user_id)
+            {/* Vision List — grouped by owner, labeled like the Vision dropdown */}
+            <div className="space-y-4 mb-6">
+              {groupedVisions.map((group) => (
+                <div key={group.ownerId}>
+                  <p className="px-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500">
+                    {group.ownerName}
+                  </p>
+                  <div className="space-y-1.5">
+                    {group.visions.map((vision) => {
+                      const isSelected = selectedVision === vision.id
 
-                return (
-                  <button
-                    key={vision.id}
-                    onClick={() => setSelectedVision(vision.id)}
-                    className={`
-                      w-full text-left p-4 rounded-xl border-2 transition-all duration-200
-                      ${isSelected 
-                        ? 'border-primary-500 bg-primary-500/10' 
-                        : 'border-neutral-700 hover:border-neutral-600 bg-neutral-800/50'
-                      }
-                    `}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-white">
-                            {vision.title || 'Untitled Vision'}
-                          </h3>
+                      return (
+                        <button
+                          key={vision.id}
+                          onClick={() => setSelectedVision(vision.id)}
+                          className={`w-full px-4 py-3 flex items-center gap-3 rounded-xl border text-left transition-colors ${
+                            isSelected
+                              ? 'border-[#39FF14]/50 bg-[#39FF14]/10'
+                              : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-800/60'
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium truncate ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
+                              Version {versionNumbers[vision.id]}
+                            </p>
+                            <p className="text-xs text-neutral-500">{formatVisionDate(vision.created_at)}</p>
+                          </div>
                           {vision.is_active && (
-                            <Badge variant="success" className="!text-xs">Active</Badge>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 text-[#39FF14] bg-[#39FF14]/10">
+                              Active
+                            </span>
                           )}
-                        </div>
-                        <p className="text-sm text-neutral-400">by {ownerName}</p>
-                        <p className="text-xs text-neutral-500 mt-1">
-                          {new Date(vision.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <CheckCircle className="w-6 h-6 text-primary-500 shrink-0" />
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
+                          {isSelected && <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Info */}
             <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4 mb-6">
               <p className="text-sm text-primary-300">
-                <strong>Note:</strong> This will create a household version while keeping your original personal vision unchanged.
+                <strong>Note:</strong> This creates a new household version. The original personal vision stays unchanged.
               </p>
             </div>
 
@@ -227,4 +249,3 @@ export function ConvertVisionTool({
     </div>
   )
 }
-

@@ -58,6 +58,8 @@ function triggerFileSave(blob: Blob, title: string) {
 interface PublicSongPlayerProps {
   title: string
   artistName: string
+  /** Optional link target for the artist name (e.g. /music/artist/[handle]) */
+  artistHref?: string | null
   mp3Url: string
   coverUrl: string | null
   lyrics: string | null
@@ -71,6 +73,7 @@ interface PublicSongPlayerProps {
 export function PublicSongPlayer({
   title,
   artistName,
+  artistHref = null,
   mp3Url,
   coverUrl,
   lyrics,
@@ -199,7 +202,16 @@ export function PublicSongPlayer({
 
           <div className="text-center mb-5 w-full">
             <h1 className="text-2xl font-bold text-white truncate">{title}</h1>
-            <p className="text-sm text-neutral-400 mt-1 truncate">{artistName}</p>
+            {artistHref ? (
+              <a
+                href={artistHref}
+                className="block text-sm text-neutral-400 mt-1 truncate hover:text-[#39FF14] transition-colors"
+              >
+                {artistName}
+              </a>
+            ) : (
+              <p className="text-sm text-neutral-400 mt-1 truncate">{artistName}</p>
+            )}
             {tags.length > 0 && (
               <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
                 {tags.map(tag => (

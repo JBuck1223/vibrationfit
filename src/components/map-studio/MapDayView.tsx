@@ -187,7 +187,7 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
         .from('video_session_participants')
         .select('id, video_sessions!inner(session_type, title)', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('attended', true)
+        .or('attended.eq.true,replay_viewed_at.not.is.null')
         .or('session_type.eq.alignment_gym,title.ilike.%alignment gym%', {
           referencedTable: 'video_sessions',
         })

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, Eye, Gem, Download, VolumeX, Edit3, Trash2, Copy, Sparkles, X, Calendar } from 'lucide-react'
+import { Gem, Copy, Sparkles, X, Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getDraftVision, commitDraft, getDraftCategories } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
@@ -14,13 +14,16 @@ import {
   Icon,
   VersionBadge,
   StatusBadge,
-  WarningConfirmationDialog,
   Badge,
   Container,
   Stack,
-  PageHero,
+  CategoryGrid,
+  FullBleed,
+  ProgressBar,
   IntensiveStepCompleteModal
 } from '@/lib/design-system/components'
+import { useLifeVisionStudioAreaChrome } from '@/components/life-vision-studio/useLifeVisionStudioAreaChrome'
+import { VersionActionToolbar } from '@/components/VersionActionToolbar'
 import { VisionCategoryCard } from '../../components/VisionCategoryCard'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { colors } from '@/lib/design-system/tokens'
@@ -80,7 +83,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [refinedCategories, setRefinedCategories] = useState<string[]>([])
   const [completionPercentage, setCompletionPercentage] = useState(0)
   const [isCommitting, setIsCommitting] = useState(false)
-  const [showCommitDialog, setShowCommitDialog] = useState(false)
   const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   const [committedVisionId, setCommittedVisionId] = useState<string | null>(null)
   const [isNotDraft, setIsNotDraft] = useState(false)
@@ -89,19 +91,48 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [saving, setSaving] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [deletingDraft, setDeletingDraft] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showCloneDialog, setShowCloneDialog] = useState(false)
   const [isCloning, setIsCloning] = useState(false)
   const [isIntensiveMode, setIsIntensiveMode] = useState(false)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    VISION_SECTIONS.map(cat => cat.key)
+  )
+
+  const handleCategoryToggle = (categoryKey: string) => {
+    setSelectedCategories(prev => {
+      // If all are selected, clicking one category isolates that category.
+      if (prev.length === VISION_SECTIONS.length) {
+        return [categoryKey]
+      }
+      return prev.includes(categoryKey)
+        ? prev.filter(key => key !== categoryKey)
+        : [...prev, categoryKey]
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedCategories.length === VISION_SECTIONS.length) {
+      setSelectedCategories([])
+    } else {
+      setSelectedCategories(VISION_SECTIONS.map(cat => cat.key))
+    }
+  }
 
   const hasActiveVision = !!activeVision
 
-  // Show commit confirmation dialog
-  const handleCommitAsActive = () => {
-    if (!draftVision) {
-      alert('No draft vision to commit')
-      return
-    }
+  // Page copy renders in the Life Vision area bar instead of an in-page hero
+  useLifeVisionStudioAreaChrome(
+    draftVision
+      ? {
+          contextEyebrow: draftVision.household_id ? 'The Life We Choose' : undefined,
+          contextText: 'Refined categories show in yellow. Once you are happy with your refinements, commit this draft as your active vision.',
+        }
+      : null
+  )
+
+  // Confirm commit (confirmation handled by VersionActionToolbar's dialog)
+  const confirmCommit = async () => {
+    if (!draftVision) return
 
     // Only require refined categories when there's an active vision to compare against
     if (hasActiveVision && refinedCategories.length === 0) {
@@ -109,14 +140,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       return
     }
 
-    setShowCommitDialog(true)
-  }
-
-  // Confirm commit
-  const confirmCommit = async () => {
-    if (!draftVision) return
-
-    setShowCommitDialog(false)
     setIsCommitting(true)
 
     try {
@@ -133,20 +156,10 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  // Show delete confirmation dialog
-  const handleDeleteDraft = () => {
-    if (!draftVision) {
-      alert('No draft vision to delete')
-      return
-    }
-    setShowDeleteDialog(true)
-  }
-
-  // Confirm delete
+  // Confirm delete (confirmation handled by VersionActionToolbar's dialog)
   const confirmDelete = async () => {
     if (!draftVision) return
 
-    setShowDeleteDialog(false)
     setDeletingDraft(true)
 
     try {
@@ -185,7 +198,9 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  // Load draft vision
+  // Load draft vision. No user_id filter: RLS scopes access to the user's own
+  // visions plus household visions, so household drafts created by another
+  // member load too.
   const loadDraftVision = useCallback(async (draftId: string, userId: string) => {
     try {
       console.log('Loading draft vision:', draftId)
@@ -195,7 +210,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         .from('vision_versions')
         .select('*')
         .eq('id', draftId)
-        .eq('user_id', userId)
         .single()
 
       if (draftError || !draftData || !draftData.is_draft) {
@@ -204,7 +218,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
           .from('vision_versions')
           .select('*')
           .eq('id', draftId)
-          .eq('user_id', userId)
           .single()
 
         if (activeVision && !activeVision.is_draft) {
@@ -238,14 +251,17 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         setIsIntensiveMode(true)
       }
 
-      // Fetch the active vision for comparison
-      const { data: activeVisionData } = await supabase
+      // Fetch the active vision for comparison — from the same document group
+      // (household drafts compare against the active household vision).
+      let activeQuery = supabase
         .from('vision_versions')
         .select('*')
-        .eq('user_id', userId)
         .eq('is_active', true)
         .eq('is_draft', false)
-        .maybeSingle()
+      activeQuery = draftData.household_id
+        ? activeQuery.eq('household_id', draftData.household_id)
+        : activeQuery.eq('user_id', userId).is('household_id', null)
+      const { data: activeVisionData } = await activeQuery.maybeSingle()
       
       if (activeVisionData) {
         const activeVersion = await calculateVersionNumber(activeVisionData.id)
@@ -378,90 +394,25 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       const versionId = resolvedParams.id
       console.log('Cloning vision with ID:', versionId)
 
-      // Delete ALL existing drafts using API route (bypasses RLS recursion issues)
-      // First, fetch all existing drafts
-      const { data: existingDrafts, error: draftsFetchError } = await supabase
-        .from('vision_versions')
-        .select('id')
-        .eq('user_id', currentUser.id)
-        .eq('is_draft', true)
-        .eq('is_active', false)
+      // The create API replaces any existing draft in the same document group
+      // (personal or household) and copies household_id from the source.
+      const response = await fetch('/api/vision/draft/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visionId: versionId, replaceExisting: true }),
+      })
 
-      if (draftsFetchError) {
-        console.error('Error fetching existing drafts:', draftsFetchError)
-        // Continue anyway - might not be any drafts
-      } else if (existingDrafts && existingDrafts.length > 0) {
-        console.log(`Found ${existingDrafts.length} existing draft(s) to delete`)
-        // Delete each draft using the API route (bypasses RLS)
-        for (const draft of existingDrafts) {
-          try {
-            const deleteResponse = await fetch(`/api/vision?id=${draft.id}`, {
-              method: 'DELETE',
-            })
-            if (!deleteResponse.ok) {
-              const errorData = await deleteResponse.json()
-              console.error(`Failed to delete draft ${draft.id}:`, errorData.error)
-            } else {
-              console.log(`Deleted draft ${draft.id}`)
-            }
-          } catch (err) {
-            console.error(`Error deleting draft ${draft.id}:`, err)
-          }
-        }
-      }
-
-      // Fetch the version to clone
-      const { data: sourceVersion, error: sourceFetchError } = await supabase
-        .from('vision_versions')
-        .select('*')
-        .eq('id', versionId)
-        .eq('user_id', currentUser.id)
-        .single()
-
-      if (sourceFetchError || !sourceVersion) {
-        alert('Failed to fetch version to clone')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({} as { error?: string }))
+        alert(`Failed to clone version: ${errorData.error || 'Unknown error'}`)
         setIsCloning(false)
         return
       }
 
-      // Create new version with copied data
-      const { data: newVersion, error: insertError } = await supabase
-        .from('vision_versions')
-        .insert({
-          user_id: currentUser.id,
-          parent_id: sourceVersion.id, // Track where this draft came from
-          title: sourceVersion.title || 'Vision Draft',
-          perspective: sourceVersion.perspective || 'singular',
-          forward: sourceVersion.forward,
-          fun: sourceVersion.fun,
-          travel: sourceVersion.travel,
-          home: sourceVersion.home,
-          family: sourceVersion.family,
-          love: sourceVersion.love,
-          health: sourceVersion.health,
-          money: sourceVersion.money,
-          work: sourceVersion.work,
-          social: sourceVersion.social,
-          stuff: sourceVersion.stuff,
-          giving: sourceVersion.giving,
-          spirituality: sourceVersion.spirituality,
-          conclusion: sourceVersion.conclusion,
-          is_draft: true,
-          is_active: false
-        })
-        .select()
-        .single()
-
-      if (insertError) {
-        console.error('Clone insert error:', insertError)
-        console.error('Insert error details:', JSON.stringify(insertError, null, 2))
-        alert(`Failed to clone version: ${insertError.message || 'Unknown error'}`)
-        setIsCloning(false)
-        return
-      }
+      const { draft: newVersion } = await response.json()
 
       if (!newVersion) {
-        console.error('No new version returned from insert')
+        console.error('No new version returned from draft create')
         alert('Failed to clone version: No data returned')
         setIsCloning(false)
         return
@@ -689,143 +640,119 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
-        {/* Header */}
-        <PageHero
-          eyebrow={vision.household_id ? "THE LIFE WE CHOOSE" : "DRAFT VISION"}
-          title={vision.household_id ? "Refine Our Life Vision" : "Refine Your Life Vision"}
-          subtitle="Refined categories will show in yellow. Once you are happy with your refinements, click 'Commit as Active Vision'."
-        >
-          {/* Version Info Badges */}
-          <div className="text-center">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
-              <VersionBadge 
-                versionNumber={vision.version_number} 
-                status="draft"
-                isHouseholdVision={!!vision.household_id}
-              />
-              <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
-              <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
-                <Calendar className="w-3.5 h-3.5" />
-                Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </div>
-              {refinedCount > 0 && (
-                <Badge 
-                  variant="warning" 
-                  className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
-                >
-                  {refinedCount} of {VISION_CATEGORIES.length} Refined
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-row flex-wrap lg:flex-nowrap gap-2 md:gap-4 max-w-2xl mx-auto">
-            <Button
-              onClick={() => router.push('/life-vision')}
-              variant="outline"
-              size="sm"
-              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Icon icon={Eye} size="sm" className="shrink-0" />
-              <span>All Visions</span>
-            </Button>
-            <Button
-              asChild
-              variant="outline-purple"
-              size="sm"
-              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              <Link href={`/life-vision/${vision.id}/refine`}>
-                <Icon icon={Gem} size="sm" className="shrink-0" />
-                <span>Refine with VIVA</span>
-              </Link>
-            </Button>
-            <Button
-              onClick={handleCommitAsActive}
-              disabled={isCommitting || (hasActiveVision && refinedCount === 0)}
-              variant="primary"
-              size="sm"
-              className="flex-1 flex items-center justify-center gap-1 md:gap-2 hover:-translate-y-0.5 transition-all duration-300 text-xs md:text-sm"
-            >
-              {isCommitting ? (
-                <>
-                  <Spinner variant="primary" size="sm" />
-                  <span>Committing...</span>
-                </>
-              ) : (
-                <>
-                  <Icon icon={CheckCircle} size="sm" className="shrink-0" />
-                  <span>Commit as Active Vision</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </PageHero>
-
-      {/* Vision Categories Grid */}
-      <div className="grid grid-cols-1 gap-6 mb-8">
-        {VISION_SECTIONS.map((category) => {
-          const categoryKey = category.key
-          const originalContent = vision[categoryKey as keyof VisionData] as string
-          const isEditing = editingCategory === categoryKey
-          const content = isEditing ? editContent : originalContent
-          const isDraft = refinedCategories.includes(categoryKey)
-          
-          return (
-            <VisionCategoryCard
-              key={categoryKey}
-              category={category}
-              content={content}
-              isEditing={isEditing}
-              onSave={handleSaveEdit}
-              onCancel={handleCancelEdit}
-              onUpdate={handleUpdateContent}
-              saving={saving}
-              onEditCategory={handleEditCategory}
-              vision={vision}
-              editable={true}
-              isRefined={isDraft}
+      <Stack gap="md">
+        {/* Version badges */}
+        <div className="text-center">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+            <VersionBadge 
+              versionNumber={vision.version_number} 
+              status="draft"
+              isHouseholdVision={!!vision.household_id}
             />
-          )
-        })}
-      </div>
+            <StatusBadge status="draft" subtle={true} className="uppercase tracking-[0.25em]" />
+            <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
+              <Calendar className="w-3.5 h-3.5" />
+              Created: {new Date(vision.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+            {refinedCount > 0 && (
+              <Badge 
+                variant="warning" 
+                className="!bg-[#FFFF00]/20 !text-[#FFFF00] !border-[#FFFF00]/30"
+              >
+                {refinedCount} of {VISION_CATEGORIES.length} Refined
+              </Badge>
+            )}
+          </div>
+        </div>
 
-              {/* Delete Button */}
-              <div className="text-center pt-8 border-t border-neutral-800">
-                <Button
-                  onClick={handleDeleteDraft}
-                  variant="danger"
-                  size="sm"
-                  className="flex items-center gap-2 mx-auto"
-                  disabled={deletingDraft || isCommitting}
-                >
-                  {deletingDraft ? (
-                    <>
-                      <Spinner variant="primary" size="sm" />
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4" />
-                      Delete Draft
-                    </>
-                  )}
-                </Button>
-              </div>
+        {/* Draft actions — same toolbar as the vision detail draft view */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            asChild
+            variant="outline-purple"
+            size="sm"
+            className="gap-2"
+          >
+            <Link href={`/life-vision/${vision.id}/refine`}>
+              <Icon icon={Gem} size="sm" className="shrink-0" />
+              <span>Refine with VIVA</span>
+            </Link>
+          </Button>
+          <VersionActionToolbar
+            versionId={vision.id}
+            versionNumber={vision.version_number ?? 1}
+            isActive={false}
+            isDraft={true}
+            onCommitAsActive={confirmCommit}
+            onDelete={confirmDelete}
+            isLoading={isCommitting || deletingDraft}
+          />
+        </div>
 
-              {/* Delete Confirmation Dialog */}
-              <WarningConfirmationDialog
-                isOpen={showDeleteDialog}
-                onClose={() => setShowDeleteDialog(false)}
-                onConfirm={confirmDelete}
-                title="Delete Draft Vision?"
-                message="Are you sure you want to delete this draft? This action cannot be undone and all your refinements will be lost."
-                confirmText={deletingDraft ? 'Deleting...' : 'Delete Draft'}
-                type="delete"
-                isLoading={deletingDraft}
+      {/* Category Filter Strip — refined categories show a yellow check */}
+      <FullBleed>
+        <CategoryGrid
+          categories={VISION_SECTIONS}
+          selectedCategories={selectedCategories}
+          refinedCategories={refinedCategories}
+          mode="draft"
+          onCategoryClick={handleCategoryToggle}
+          showSelectAll
+          onSelectAll={handleSelectAll}
+          lifeVisionCategoryStrip
+          pillLabel="Life Areas"
+        />
+      </FullBleed>
+
+      {/* Refinement Progress */}
+      {hasActiveVision && (
+        <div className="flex items-center gap-3">
+          <ProgressBar
+            value={Math.round((refinedCount / VISION_SECTIONS.length) * 100)}
+            variant="accent"
+            className="h-2 flex-1"
+          />
+          <span className="text-xs text-neutral-400 whitespace-nowrap">
+            {refinedCount} of {VISION_SECTIONS.length} refined · {Math.round((refinedCount / VISION_SECTIONS.length) * 100)}%
+          </span>
+        </div>
+      )}
+
+      {/* Vision Cards */}
+      {selectedCategories.length > 0 ? (
+        <>
+          {selectedCategories.map((categoryKey) => {
+            const category = VISION_SECTIONS.find(cat => cat.key === categoryKey)
+            if (!category) return null
+
+            const originalContent = vision[categoryKey as keyof VisionData] as string
+            const isEditing = editingCategory === categoryKey
+            const content = isEditing ? editContent : originalContent
+            const isDraft = refinedCategories.includes(categoryKey)
+
+            return (
+              <VisionCategoryCard
+                key={categoryKey}
+                category={category}
+                content={content}
+                isEditing={isEditing}
+                onSave={handleSaveEdit}
+                onCancel={handleCancelEdit}
+                onUpdate={handleUpdateContent}
+                saving={saving}
+                onEditCategory={handleEditCategory}
+                vision={vision}
+                editable={true}
+                isRefined={isDraft}
               />
+            )
+          })}
+        </>
+      ) : (
+        <div className="text-center py-8 text-neutral-500 text-sm">
+          Tap a category above to view it.
+        </div>
+      )}
 
       {/* Clone Override Dialog */}
       {showCloneDialog && (
@@ -894,20 +821,6 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {/* Commit Confirmation Dialog */}
-      <WarningConfirmationDialog
-        isOpen={showCommitDialog}
-        onClose={() => setShowCommitDialog(false)}
-        onConfirm={confirmCommit}
-        title="Commit Draft as Active Vision?"
-        message={hasActiveVision
-          ? `Are you sure you want to commit this draft vision with ${refinedCount} refined ${refinedCount === 1 ? 'category' : 'categories'} as your active vision? This will create a new version.`
-          : 'Are you sure you want to activate this draft as your Life Vision?'
-        }
-        confirmText={isCommitting ? 'Committing...' : 'Commit as Active Vision'}
-        type="commit"
-        isLoading={isCommitting}
-      />
       </Stack>
 
       <IntensiveStepCompleteModal

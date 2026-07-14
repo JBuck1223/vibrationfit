@@ -130,19 +130,6 @@ export default function AlignmentGymSessionPage() {
       }
       setSession(s)
       setError(null)
-
-      try {
-        const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
-        autoVerifyClient({ activityType: 'alignment_gym' })
-      } catch {
-        // best-effort MAP verify
-      }
-
-      if (s.status === 'completed') {
-        fetch(`/api/video/sessions/${sessionId}/replay-viewed`, {
-          method: 'POST',
-        }).catch(() => {})
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load session')
       setSession(null)
@@ -154,6 +141,46 @@ export default function AlignmentGymSessionPage() {
   useEffect(() => {
     if (sessionId) fetchSession()
   }, [sessionId, fetchSession])
+
+  // Credit the replay view once playback actually starts (not on page open),
+  // then reflect it in local state so the "Viewed replay" badge shows immediately.
+  const handleReplayFirstPlay = useCallback(async () => {
+    try {
+      const { autoVerifyClient } = await import('@/lib/map/auto-verify-client')
+      autoVerifyClient({ activityType: 'alignment_gym' })
+    } catch {
+      // best-effort MAP verify
+    }
+    try {
+      const res = await fetch(`/api/video/sessions/${sessionId}/replay-viewed`, {
+        method: 'POST',
+      })
+      if (!res.ok) return
+      const now = new Date().toISOString()
+      setSession(prev => {
+        if (!prev || !userId) return prev
+        const participants = prev.participants ?? []
+        const existing = participants.find(p => p.user_id === userId)
+        const updated = existing
+          ? participants.map(p =>
+              p.user_id === userId && !p.replay_viewed_at
+                ? { ...p, replay_viewed_at: now }
+                : p,
+            )
+          : [
+              ...participants,
+              {
+                session_id: prev.id,
+                user_id: userId,
+                replay_viewed_at: now,
+              } as VideoSessionParticipant,
+            ]
+        return { ...prev, participants: updated }
+      })
+    } catch {
+      // best-effort replay tracking
+    }
+  }, [sessionId, userId])
 
   useEffect(() => {
     void createClient()
@@ -246,6 +273,7 @@ export default function AlignmentGymSessionPage() {
                   src={session.recording_url}
                   playbackStartSeconds={skip}
                   className="w-full h-full"
+                  onFirstPlay={handleReplayFirstPlay}
                 />
               </div>
             </div>

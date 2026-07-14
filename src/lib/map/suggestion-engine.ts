@@ -98,7 +98,7 @@ export function suggestFirstCommitments(diagnosis: GreenLineDiagnosis): Suggeste
 
   suggestions.push({
     title: 'Alignment Gym Session',
-    description: 'Attend live or open the session page after; both count. Times are in Alignment Gym.',
+    description: 'Attend live or watch the replay after; both count. Times are in Alignment Gym.',
     category: 'sessions',
     cadence: { kind: 'days_per_week', count: 1 },
     deepLink: '/alignment-gym',

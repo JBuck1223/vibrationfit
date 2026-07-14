@@ -68,17 +68,33 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (existing) {
       if (!existing.replay_viewed_at) {
-        await admin
+        const { error: updateError } = await admin
           .from('video_session_participants')
           .update({ replay_viewed_at: now })
           .eq('id', existing.id)
+        if (updateError) {
+          console.error('Error updating replay_viewed_at:', updateError)
+          return NextResponse.json(
+            { error: 'Failed to record replay view' },
+            { status: 500 }
+          )
+        }
       }
     } else {
-      await admin.from('video_session_participants').insert({
-        session_id: sessionId,
-        user_id: user.id,
-        replay_viewed_at: now,
-      })
+      const { error: insertError } = await admin
+        .from('video_session_participants')
+        .insert({
+          session_id: sessionId,
+          user_id: user.id,
+          replay_viewed_at: now,
+        })
+      if (insertError) {
+        console.error('Error inserting replay view participant:', insertError)
+        return NextResponse.json(
+          { error: 'Failed to record replay view' },
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json({ ok: true })

@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const result = await getSharedTrackByToken(token)
 
   if (!result) {
-    return { title: 'Song Not Found | Vibration Fit' }
+    return { title: 'Song Not Found' }
   }
 
   const { track } = result
@@ -34,7 +34,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = `Check out "${track.title}" on VibrationFit.com — a song made with VIVA. Listen free, no account needed.`
 
   return {
-    title: `${title} | Vibration Fit`,
+    // Root layout template appends "| Vibration Fit".
+    title,
     description,
     openGraph: {
       title,
@@ -71,6 +72,7 @@ export default async function PublicSongPage({ params }: PageProps) {
       <PublicSongPlayer
         title={track.title}
         artistName={track.artist_name}
+        artistHref={track.artist_handle ? `/music/artist/${encodeURIComponent(track.artist_handle)}` : null}
         mp3Url={track.mp3_url}
         coverUrl={track.cover_url}
         lyrics={track.lyrics}

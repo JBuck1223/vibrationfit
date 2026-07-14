@@ -81,6 +81,8 @@ export interface AreaBarProps {
   tabs: AreaBarTab[]
   /** Context Nav — secondary tab strip rendered below Top Nav */
   contextNav?: AreaBarContextNavItem[]
+  /** Sub Nav — subordinate strip rendered below Context Nav (e.g. tools for the active context item) */
+  subNav?: AreaBarContextNavItem[]
   /** Small uppercase line above context text (e.g. former PageHero eyebrow) */
   contextEyebrow?: string
   /** Context Text — descriptive subtext rendered below Context Nav */
@@ -187,11 +189,11 @@ const CONTEXT_NAV_LINK_CLASS_INACTIVE =
 const CONTEXT_NAV_LINK_BASE =
   'flex min-h-[2.75rem] w-full min-w-0 flex-col items-center justify-center gap-0.5 border-b-2 px-0.5 py-2 sm:min-h-11 sm:flex-row sm:gap-1 sm:px-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40'
 
-function ContextNavStrip({ items }: { items: AreaBarContextNavItem[] }) {
+function ContextNavStrip({ items, maxWidthClass = 'sm:max-w-2xl' }: { items: AreaBarContextNavItem[]; maxWidthClass?: string }) {
   const n = Math.max(1, Math.min(6, items.length))
   const gridCols = GRID_COLS[n] ?? 'grid-cols-3'
   return (
-    <div className="w-full sm:max-w-2xl sm:mx-auto">
+    <div className={`w-full ${maxWidthClass} sm:mx-auto`}>
       <div className="w-full overflow-hidden rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]">
         <nav className={`grid w-full ${gridCols}`}>
           {items.map((item, idx) => {
@@ -487,6 +489,7 @@ export function AreaBar({
   areaHeadline,
   tabs,
   contextNav,
+  subNav,
   contextEyebrow,
   contextText,
   versionSelectors,
@@ -516,10 +519,11 @@ export function AreaBar({
   const contextRowSelectors = versionSelectors?.filter(v => v.position !== 'topRight') ?? []
 
   const hasContextNav = !!(contextNav && contextNav.length > 0)
+  const hasSubNav = !!(subNav && subNav.length > 0)
   const hasContextEyebrow = !!contextEyebrow
   const hasContextText = !!contextText
   const hasContextRowSelectors = contextRowSelectors.length > 0
-  const hasContextRows = hasContextNav || hasContextEyebrow || hasContextText || hasContextRowSelectors
+  const hasContextRows = hasContextNav || hasSubNav || hasContextEyebrow || hasContextText || hasContextRowSelectors
   const suppressActiveTab = !!(breadcrumb || (hasContextRows && !keepTabActive))
 
   // Shared waterfall rendering — called from both mobile and desktop sections
@@ -558,6 +562,16 @@ export function AreaBar({
             {sep}
             <div className={`${innerPad} ${centerCls} w-full min-w-0`}>
               <ContextNavStrip items={contextNav!} />
+            </div>
+          </div>
+        )}
+
+        {/* Sub Nav — subordinate strip, slightly narrower so it reads as a submenu */}
+        {hasSubNav && (
+          <div className={rowCls}>
+            {sep}
+            <div className={`${innerPad} ${centerCls} w-full min-w-0`}>
+              <ContextNavStrip items={subNav!} maxWidthClass="sm:max-w-xl" />
             </div>
           </div>
         )}
