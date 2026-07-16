@@ -90,6 +90,8 @@ export const ProofWall = React.forwardRef<HTMLDivElement, ProofWallProps>(
                     src={primaryItem.beforeImage || 'https://media.vibrationfit.com/site-assets/proof-wall/boa-screenshot.jpg'}
                     alt={primaryItem.beforeAlt || 'Before transformation'}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               </div>
@@ -103,6 +105,8 @@ export const ProofWall = React.forwardRef<HTMLDivElement, ProofWallProps>(
                     src={primaryItem.afterImage || 'https://media.vibrationfit.com/site-assets/proof-wall/business-account-1.jpg'}
                     alt={primaryItem.afterAlt || 'After transformation'}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rate-limit'
 
 /**
  * Receives client-side errors from the logger and logs them server-side.
@@ -7,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server'
  * browser console. No PII is logged by default; add carefully if needed.
  */
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, 'client-error', 10)
+  if (limited) return limited
+
   try {
     const body = await request.json()
     const { message, stack, type, url, label } = body as {

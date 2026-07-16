@@ -210,6 +210,7 @@ As you compose, ensure ZERO instances of:
 - Process framing — no "It's not about X, it's about Y" — just say Y
 - Clinical data — NEVER include height, weight, body measurements, or medical data. A vision is not a chart.
 - Negative framing — no "never demands", "doesn't drain", "no longer weighs on me", "free from", "there is no conflict", "there is no tension", "there is no struggle". Do NOT name the absence of something negative. State what IS present, not what isn't. This is an inclusion-based universe — only name what you're including. "There is no conflict" → "Everything flows in harmony." "It never drains me" → "It energizes me."
+- "Without" constructions — no "without feeling overwhelmed", "without stress", "without worry", "without [any negative]". Naming the negative invokes it. "I handle busy days without feeling overwhelmed" → "I move through busy days with calm and ease."
 
 ═══════════════════════════════════════════════════════════════
 PHASE 2: EXPAND — Make it vivid, specific, and REAL

@@ -12,8 +12,12 @@ import { triggerEvent } from '@/lib/messaging/events'
 import { createAdminNotification, notifyAdminSMS } from '@/lib/admin/notifications'
 import { sendNotification } from '@/lib/notifications/config'
 import { OUTBOUND_URL } from '@/lib/urls'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, 'support-tickets', 10)
+  if (limited) return limited
+
   try {
     const body = await request.json()
     const supabase = await createClient()

@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateUniqueCode } from '@/lib/referral/helpers'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, 'referral-join', 5)
+  if (limited) return limited
+
   try {
     const body = await request.json()
     const adminDb = createAdminClient()

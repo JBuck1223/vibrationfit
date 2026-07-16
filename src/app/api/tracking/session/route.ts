@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit } from '@/lib/rate-limit'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,9 @@ const supabase = createClient(
 )
 
 export async function POST(request: NextRequest) {
+  const limited = await rateLimit(request, 'tracking-session', 60)
+  if (limited) return limited
+
   try {
     const body = await request.json()
     const {

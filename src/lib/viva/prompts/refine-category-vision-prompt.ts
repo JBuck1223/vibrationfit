@@ -255,6 +255,7 @@ Wrong: "I have creative freedom working from home, which supports my health and 
 
 GLOBAL RULES:
 - Present tense, embodied "having now" language.
+- NEVER name the absence of a negative: no "without feeling overwhelmed", "without stress", "free from...", "no longer...". State what IS present instead ("without feeling overwhelmed" → "with calm and ease").
 - PRESERVE THE EXISTING PERSPECTIVE: If the text uses "I/my", keep "I/my". If it uses "we/our", keep "we/our". Do NOT change perspective.
 - Keep the overall shape and structure unless explicitly requested to change.
 - Maintain the member's voice, tone, and specifics exactly.

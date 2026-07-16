@@ -36,6 +36,9 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
 
     initTracking().then(({ visitorId, sessionId }) => {
       setCtx({ visitorId, sessionId, ready: true })
+      // Record the initial landing pageview (the session API only writes
+      // visitors/sessions rows, so this is the sole page_views insert)
+      trackPageView(window.location.pathname, document.title)
     })
   }, [])
 
@@ -43,6 +46,7 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
     if (!ctx.ready) return
     if (prevPathname.current === pathname) return
     if (prevPathname.current === null) {
+      // Initial pageview already fired from initTracking above
       prevPathname.current = pathname
       return
     }

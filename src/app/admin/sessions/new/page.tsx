@@ -61,6 +61,12 @@ interface LookupUser {
 
 type SessionTypeKey = VideoSessionType | 'calibration_call'
 
+// Format a Date as YYYY-MM-DD in local time. Never use toISOString() for this:
+// it returns the UTC date, which after 8 PM ET is already "tomorrow" and
+// blocks same-day scheduling in the evening.
+const toLocalDateString = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 interface FormData {
   title: string
   description: string
@@ -195,7 +201,7 @@ function NewSessionContent() {
     const now = new Date()
     now.setHours(now.getHours() + 1, 0, 0, 0)
     
-    const date = now.toISOString().split('T')[0]
+    const date = toLocalDateString(now)
     const time = now.toTimeString().slice(0, 5)
     
     setFormData(prev => ({
@@ -305,7 +311,10 @@ function NewSessionContent() {
       const scheduledAt = new Date(`${formData.scheduled_date}T${formData.scheduled_time}`)
       
       const isTestSession = formData.session_type === 'test_1on1' || formData.session_type === 'test_group'
-      if (!isTestSession && scheduledAt <= new Date()) {
+      // Allow a 30-minute grace window so a last-minute session can be created
+      // for a slot that just passed (e.g. it's 9:05 and the session starts "now" at 9:00)
+      const graceMs = 30 * 60 * 1000
+      if (!isTestSession && scheduledAt.getTime() <= Date.now() - graceMs) {
         throw new Error('Please select a future date and time')
       }
 
@@ -759,7 +768,7 @@ function NewSessionContent() {
                   label="Date *"
                   value={formData.scheduled_date}
                   onChange={(date) => handleChange('scheduled_date', date)}
-                  minDate={new Date().toISOString().split('T')[0]}
+                  minDate={toLocalDateString(new Date())}
                 />
                 <TimePicker
                   label="Time (ET) *"

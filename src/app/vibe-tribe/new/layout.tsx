@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Welcome to Vibe Tribe | Vibration Fit',
+  title: 'Welcome to Vibe Tribe',
   description: 'Get started with Vibe Tribe. Learn how to post, use tags, and connect with the community.',
 }
 

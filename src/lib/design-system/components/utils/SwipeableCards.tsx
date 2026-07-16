@@ -654,6 +654,8 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                                 src={card.activeImage}
                                 alt={card.activeImageAlt || card.title || 'Active vision'}
                                 className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                                loading="lazy"
+                                decoding="async"
                               />
                               {/* Active Badge - top right corner */}
                               <div className="absolute top-2 right-2 bg-green-600 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
@@ -689,6 +691,8 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                                 src={card.actualizedImage}
                                 alt={card.actualizedImageAlt || card.title || 'Actualized result'}
                                 className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                                loading="lazy"
+                                decoding="async"
                               />
                               {/* Actualized Badge - top right corner */}
                               <div className="absolute top-2 right-2 bg-purple-500 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
@@ -707,6 +711,8 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                             src={card.image}
                             alt={card.imageAlt || card.title || 'Card image'}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                           {card.badge && (
                             <div className="absolute top-2 right-2">
@@ -868,6 +874,8 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                                   src={card.activeImage}
                                   alt={card.activeImageAlt || card.title || 'Active vision'}
                                   className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                                  loading="lazy"
+                                  decoding="async"
                                 />
                                 <div className="absolute top-2 right-2 bg-green-600 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
                                   <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
@@ -899,6 +907,8 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                                   src={card.actualizedImage}
                                   alt={card.actualizedImageAlt || card.title || 'Actualized result'}
                                   className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                                  loading="lazy"
+                                  decoding="async"
                                 />
                                 <div className="absolute top-2 right-2 bg-purple-500 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
                                   <CheckCircle className="w-4 h-4 text-white" />
@@ -914,6 +924,8 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                               src={card.image}
                               alt={card.imageAlt || card.title || 'Card image'}
                               className="w-full h-full object-cover"
+                              loading="lazy"
+                              decoding="async"
                             />
                             {card.badge && (
                               <div className="absolute top-2 right-2">

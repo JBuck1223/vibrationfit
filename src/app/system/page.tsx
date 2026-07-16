@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  title: 'What is a Conscious Creation System? | Vibration Fit',
+  title: 'What is a Conscious Creation System?',
   description:
     'Your Conscious Creation System is the machine that drives you from the life you have to the life you choose. See how every part fits together.',
 }

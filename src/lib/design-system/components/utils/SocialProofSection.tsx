@@ -312,6 +312,8 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
                           src={screenshot.src}
                           alt={screenshot.alt}
                           className="w-full h-auto block"
+                          loading="lazy"
+                          decoding="async"
                           draggable={false}
                         />
                       </button>
