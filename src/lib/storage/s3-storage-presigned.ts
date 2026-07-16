@@ -774,6 +774,14 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
         'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg',
       ],
     },
+    songStoryRecordings: {
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB for story recordings (video or audio, supports multipart upload)
+      types: [
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+        'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/x-m4a',
+      ],
+    },
     supportVideoRecordings: {
       maxSize: 5 * 1024 * 1024 * 1024, // 5GB for support clips (supports multipart upload)
       types: [
