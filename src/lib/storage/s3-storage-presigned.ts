@@ -33,6 +33,7 @@ export const USER_FOLDERS = {
   storyAudioRecordings: 'stories/audio-recordings',
   // Songs (songwriter feature)
   songs: 'songs',
+  songStoryRecordings: 'songs/story-recordings',
   // Support requests (screen/video clips, voice memos, and file attachments)
   supportVideoRecordings: 'support/video-recordings',
   supportAudioRecordings: 'support/audio-recordings',

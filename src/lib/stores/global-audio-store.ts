@@ -31,6 +31,8 @@ interface GlobalAudioState {
 
   setRepeatMode: (mode: 'off' | 'all' | 'one') => void
   toggleShuffle: () => void
+  /** Replace the queue with a reordered copy of the same tracks, preserving the playing track */
+  reorderQueue: (newTracks: AudioTrack[]) => void
 
   openDrawer: () => void
   closeDrawer: () => void
@@ -325,6 +327,22 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
         currentIndex: newCurrentIndex,
       })
     }
+  },
+
+  reorderQueue: (newTracks) => {
+    const s = get()
+    if (s.isShuffled) return
+    if (newTracks.length !== s.tracks.length) return
+    const currentIds = new Set(s.tracks.map(t => t.id))
+    if (!newTracks.every(t => currentIds.has(t.id))) return
+
+    const playingId = s.tracks[s.currentIndex]?.id
+    const newIndex = playingId ? newTracks.findIndex(t => t.id === playingId) : 0
+    set({
+      tracks: newTracks,
+      currentIndex: newIndex >= 0 ? newIndex : 0,
+    })
+    preloadNextTrack(newTracks[(newIndex >= 0 ? newIndex : 0) + 1])
   },
 
   openDrawer: () => set({ isDrawerOpen: true }),

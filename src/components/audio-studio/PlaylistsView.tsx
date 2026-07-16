@@ -2,8 +2,23 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import {
-  ListMusic, Plus, Trash2, Edit2, ChevronLeft, Loader2,
+  ListMusic, Plus, Trash2, Edit2, ChevronLeft, Loader2, GripVertical,
 } from 'lucide-react'
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Card, Button, Spinner, DeleteConfirmationDialog, EmbeddedPlayer } from '@/lib/design-system/components'
 import {
   getUserPlaylists,
@@ -12,6 +27,8 @@ import {
   createPlaylist,
   deletePlaylist,
   renamePlaylist,
+  reorderPlaylists,
+  reorderPlaylistTracks,
   removeTrackFromPlaylist,
   type UserPlaylist,
   type PlaylistTrackRow,
@@ -24,6 +41,64 @@ function formatTotalDuration(seconds: number): string {
   const mins = Math.floor((seconds % 3600) / 60)
   if (hrs > 0) return `${hrs}h ${mins}m`
   return `${mins} min`
+}
+
+function SortablePlaylistRow({
+  playlist,
+  onSelect,
+}: {
+  playlist: UserPlaylist
+  onSelect: (id: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: playlist.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(playlist.id)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(playlist.id) } }}
+      className="flex items-center gap-3 w-full pl-2 pr-4 py-3 rounded-xl bg-embedded-panel border border-neutral-800 hover:border-neutral-700 transition-colors text-left cursor-pointer"
+    >
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        onClick={e => e.stopPropagation()}
+        className="p-1 text-neutral-600 hover:text-neutral-400 cursor-grab active:cursor-grabbing touch-none shrink-0"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neutral-800 text-neutral-400">
+        <ListMusic className="w-5 h-5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-white truncate">{playlist.name}</p>
+        <p className="text-xs text-neutral-500 mt-0.5">
+          {playlist.track_count} {playlist.track_count === 1 ? 'track' : 'tracks'}
+          {playlist.total_duration > 0 && ` · ${formatTotalDuration(playlist.total_duration)}`}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export function PlaylistsView() {
@@ -44,6 +119,10 @@ export function PlaylistsView() {
   const [deleting, setDeleting] = useState(false)
 
   const [removingTrackId, setRemovingTrackId] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  )
 
   const loadPlaylists = useCallback(async () => {
     setLoading(true)
@@ -123,6 +202,22 @@ export function PlaylistsView() {
     loadTracks(id)
   }
 
+  const handlePlaylistDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = playlists.findIndex(p => p.id === active.id)
+    const newIndex = playlists.findIndex(p => p.id === over.id)
+    if (oldIndex < 0 || newIndex < 0) return
+
+    const previous = playlists
+    const reordered = arrayMove(playlists, oldIndex, newIndex)
+    setPlaylists(reordered)
+
+    const ok = await reorderPlaylists(reordered.map(p => p.id))
+    if (!ok) setPlaylists(previous)
+  }, [playlists])
+
   const audioTracks = playlistTracksToAudioTracks(tracks)
 
   const trackIdToRowId = new Map(tracks.map(row => [row.track_data.id, row.id]))
@@ -131,6 +226,20 @@ export function PlaylistsView() {
     const rowId = trackIdToRowId.get(track.id)
     if (rowId) handleRemoveTrack(rowId)
   }, [tracks, trackIdToRowId])
+
+  const handleReorderTracks = useCallback(async (reordered: AudioTrack[]) => {
+    if (!selectedPlaylistId) return
+    const rowByTrackId = new Map(tracks.map(r => [r.track_data.id, r]))
+    const reorderedRows = reordered
+      .map(t => rowByTrackId.get(t.id))
+      .filter((r): r is PlaylistTrackRow => !!r)
+    if (reorderedRows.length !== tracks.length) return
+
+    const previous = tracks
+    setTracks(reorderedRows)
+    const ok = await reorderPlaylistTracks(selectedPlaylistId, reorderedRows.map(r => r.id))
+    if (!ok) setTracks(previous)
+  }, [selectedPlaylistId, tracks])
 
   // Detail view
   if (selectedPlaylistId && selectedPlaylist) {
@@ -214,6 +323,7 @@ export function PlaylistsView() {
             }}
             onDelete={() => setDeleteTarget({ id: selectedPlaylistId, name: selectedPlaylist.name })}
             onRemoveTrack={(track) => handleRemoveFromPlayer(track)}
+            onReorderTracks={handleReorderTracks}
           />
         )}
 
@@ -299,29 +409,22 @@ export function PlaylistsView() {
               </Button>
             </Card>
           ) : (
-            <div className="space-y-2">
-              {playlists.map(playlist => (
-                <div
-                  key={playlist.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleSelectPlaylist(playlist.id)}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectPlaylist(playlist.id) } }}
-                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-embedded-panel border border-neutral-800 hover:border-neutral-700 transition-colors text-left cursor-pointer"
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-neutral-800 text-neutral-400">
-                    <ListMusic className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{playlist.name}</p>
-                    <p className="text-xs text-neutral-500 mt-0.5">
-                      {playlist.track_count} {playlist.track_count === 1 ? 'track' : 'tracks'}
-                      {playlist.total_duration > 0 && ` · ${formatTotalDuration(playlist.total_duration)}`}
-                    </p>
-                  </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePlaylistDragEnd}>
+              <SortableContext
+                items={playlists.map(p => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {playlists.map(playlist => (
+                    <SortablePlaylistRow
+                      key={playlist.id}
+                      playlist={playlist}
+                      onSelect={handleSelectPlaylist}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </>
       )}

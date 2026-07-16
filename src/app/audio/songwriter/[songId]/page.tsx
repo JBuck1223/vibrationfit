@@ -8,6 +8,7 @@ import { useSong } from '@/lib/songs/hooks/useSong'
 import { useSongGeneration } from '@/lib/songs/hooks/useSongGeneration'
 import { SongRegeneratePanel } from '@/components/audio-studio/SongRegeneratePanel'
 import { ShareSongSheet } from '@/components/audio-studio/ShareSongSheet'
+import { SongStorySection } from '@/components/audio-studio/SongStorySection'
 
 export default function SongDetailPage() {
   const params = useParams()
@@ -166,6 +167,10 @@ export default function SongDetailPage() {
                 ))}
             </div>
           </Card>
+        )}
+
+        {tracks.some(t => t.status === 'completed' && t.mp3_url) && (
+          <SongStorySection song={song} onSaved={refetch} />
         )}
 
         {song.lyrics && tracks.length === 0 && !isGenerating && (

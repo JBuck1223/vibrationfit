@@ -635,7 +635,7 @@ export default function AudioListenPage() {
     }
     const { data } = await supabase
       .from('songs')
-      .select('id, title, status, created_at, entity_type, lyrics, style_prompt, metadata, generation_count')
+      .select('id, title, status, created_at, entity_type, lyrics, style_prompt, metadata, generation_count, story_media_url, story_media_type')
       .in('status', ['completed', 'generating_music'])
       .order('created_at', { ascending: false })
       .limit(50)
@@ -1762,6 +1762,13 @@ export default function AudioListenPage() {
                             >
                               <RefreshCw className="h-3.5 w-3.5" />
                               Create More Versions
+                            </Link>
+                            <Link
+                              href={`/audio/songwriter/${selectedSongId}#story`}
+                              className="inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
+                            >
+                              <BookOpen className="h-3.5 w-3.5" />
+                              {selectedSong?.story_media_url ? 'Story Behind This Song' : 'Tell the Story Behind This Song'}
                             </Link>
                             <button
                               type="button"

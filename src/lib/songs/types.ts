@@ -96,6 +96,10 @@ export interface Song {
   metadata: SongMetadata
   generation_count: number
   display_order: number
+  /** Story Behind the Song: member-recorded video/audio telling the story */
+  story_media_url: string | null
+  story_media_type: 'video' | 'audio' | null
+  story_recorded_at: string | null
   created_at: string
   updated_at: string
 }

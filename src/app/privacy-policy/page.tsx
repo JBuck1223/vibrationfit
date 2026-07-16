@@ -6,7 +6,7 @@
 import { Container, Stack, PageHero, Card } from '@/lib/design-system/components'
 
 export default function PrivacyPolicyPage() {
-  const lastUpdated = 'February 24, 2026'
+  const lastUpdated = 'July 15, 2026'
 
   return (
     <Container size="xl">
@@ -238,8 +238,25 @@ export default function PrivacyPolicyPage() {
 
             <section className="mb-8">
               <h2 className="text-xl font-bold text-white mb-4">11. Third-Party Services</h2>
-              <p className="text-neutral-300">
+              <p className="text-neutral-300 mb-6">
                 The Services may include links to or integrations with third-party platforms. We are not responsible for the privacy practices of those services and encourage you to review their policies before sharing information.
+              </p>
+
+              <h3 className="text-lg font-semibold text-white mb-3">11.1 YouTube API Services</h3>
+              <p className="text-neutral-300 mb-4">
+                Our internal content publishing tools (including VibrationFit Social Studio) use YouTube API Services to upload videos we produce to our own YouTube channel. By using features that interact with YouTube, you are also agreeing to the{' '}
+                <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">YouTube Terms of Service</a>. Google&apos;s handling of data is described in the{' '}
+                <a href="http://www.google.com/policies/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">Google Privacy Policy</a>.
+              </p>
+              <p className="text-neutral-300 mb-2">In connection with YouTube API Services, we:</p>
+              <ul className="list-disc list-inside text-neutral-300 mb-4 space-y-2">
+                <li>Store OAuth tokens that authorize uploads to our own YouTube channel. These tokens are kept in our secured database, are used solely to publish and manage our own videos, and are never sold or shared with third parties.</li>
+                <li>Access basic channel information (channel name and ID) to confirm the connected account.</li>
+                <li>Do not access, collect, or store any YouTube data belonging to other users.</li>
+              </ul>
+              <p className="text-neutral-300 mb-4">
+                Stored authorization tokens are retained until the connection is removed. You can revoke our access to YouTube data at any time via the{' '}
+                <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" className="text-primary-500 hover:underline">Google security settings page</a>, which immediately invalidates the stored tokens. You may also request deletion of any stored YouTube-related data by contacting us through our <a href="/contact" className="text-primary-500 hover:underline">contact page</a>; such requests are honored within 30 days.
               </p>
             </section>
 

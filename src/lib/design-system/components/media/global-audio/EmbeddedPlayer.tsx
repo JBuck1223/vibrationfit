@@ -5,8 +5,23 @@ import { createPortal } from 'react-dom'
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat,
   Edit2, Download, CheckCircle, Loader2, Mic, Music, Waves, Save, Plus, Trash2, Heart, MoreHorizontal,
-  Library, Send, Share2,
+  Library, Send, Share2, GripVertical,
 } from 'lucide-react'
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { cn } from '../../shared-utils'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
@@ -71,6 +86,8 @@ interface EmbeddedPlayerProps {
   nowPlayingAccessory?: React.ReactNode
   onAddToPlaylist?: (track: AudioTrack, index: number) => void
   onRemoveTrack?: (track: AudioTrack, index: number) => void
+  /** When provided, track rows get a drag handle for manual reordering */
+  onReorderTracks?: (reorderedTracks: AudioTrack[]) => void
   trackFavorites?: Record<string, boolean>
   onToggleFavorite?: (track: AudioTrack, index: number) => void
   /** Track-level member library state (keyed by track id) */
@@ -92,6 +109,51 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+function SortableTrackRow({
+  id,
+  children,
+}: {
+  id: string
+  children: (dragHandle: React.ReactNode) => React.ReactNode
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+  }
+
+  const dragHandle = (
+    <button
+      ref={setActivatorNodeRef}
+      type="button"
+      onClick={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      className="p-1 text-neutral-600 hover:text-neutral-400 cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+      aria-label="Drag to reorder"
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical className="w-4 h-4" />
+    </button>
+  )
+
+  return (
+    <div ref={setNodeRef} style={style} className={isDragging ? 'relative z-10' : undefined}>
+      {children(dragHandle)}
+    </div>
+  )
+}
+
 export function EmbeddedPlayer({
   tracks,
   className = '',
@@ -109,6 +171,7 @@ export function EmbeddedPlayer({
   nowPlayingAccessory,
   onAddToPlaylist,
   onRemoveTrack,
+  onReorderTracks,
   trackFavorites,
   onToggleFavorite,
   trackLibraryState,
@@ -135,6 +198,11 @@ export function EmbeddedPlayer({
   const skipPrev = useGlobalAudioStore(s => s.skipPrev)
   const setRepeatMode = useGlobalAudioStore(s => s.setRepeatMode)
   const toggleShuffle = useGlobalAudioStore(s => s.toggleShuffle)
+  const reorderQueue = useGlobalAudioStore(s => s.reorderQueue)
+
+  const dragSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  )
 
   const [probedDurations, setProbedDurations] = useState<Map<string, number>>(new Map())
   const [isEditingName, setIsEditingName] = useState(false)
@@ -254,6 +322,20 @@ export function EmbeddedPlayer({
   const currentTime = isThisSetActive ? storeCurrentTime : 0
   const duration = isThisSetActive ? storeDuration : 0
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+
+  const handleTrackDragEnd = useCallback((event: DragEndEvent) => {
+    if (!onReorderTracks) return
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = tracks.findIndex(t => t.id === active.id)
+    const newIndex = tracks.findIndex(t => t.id === over.id)
+    if (oldIndex < 0 || newIndex < 0) return
+
+    const reordered = arrayMove(tracks, oldIndex, newIndex)
+    if (isThisSetActive) reorderQueue(reordered)
+    onReorderTracks(reordered)
+  }, [onReorderTracks, tracks, isThisSetActive, reorderQueue])
 
   useEffect(() => {
     hasTrackedListenRef.current = false
@@ -670,6 +752,8 @@ export function EmbeddedPlayer({
             {savingTrackIds.size > 0 ? 'Downloading...' : 'Download MP3s'}
           </button>
         </div>
+        {(() => {
+          const trackList = (
         <div
           ref={trackListRef}
           className="space-y-0.5 max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent"
@@ -682,7 +766,7 @@ export function EmbeddedPlayer({
             const isMenuOpen = openMenuTrackId === track.id
             const isFavorited = !!trackFavorites?.[track.id]
 
-            return (
+            const row = (dragHandle?: React.ReactNode) => (
               <div
                 key={track.id}
                 className={cn(
@@ -700,6 +784,7 @@ export function EmbeddedPlayer({
                 onTouchEnd={cancelLongPressMenu}
                 onTouchMove={cancelLongPressMenu}
               >
+                {dragHandle}
                 <button
                   onClick={() => handleTrackClick(index)}
                   className={cn(
@@ -792,8 +877,35 @@ export function EmbeddedPlayer({
                 </div>
               </div>
             )
+
+            if (onReorderTracks) {
+              return (
+                <SortableTrackRow key={track.id} id={track.id}>
+                  {row}
+                </SortableTrackRow>
+              )
+            }
+            return row()
           })}
         </div>
+          )
+
+          if (!onReorderTracks) return trackList
+          return (
+            <DndContext
+              sensors={dragSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleTrackDragEnd}
+            >
+              <SortableContext
+                items={tracks.map(t => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {trackList}
+              </SortableContext>
+            </DndContext>
+          )
+        })()}
       </div>
 
       {openMenuTrackId && menuPosition && typeof document !== 'undefined' && (() => {

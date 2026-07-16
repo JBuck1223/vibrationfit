@@ -14,6 +14,8 @@ interface UpdateSongBody {
   lyrics?: string
   style_prompt?: string
   title?: string
+  story_media_url?: string | null
+  story_media_type?: 'video' | 'audio' | null
 }
 
 export async function PATCH(
@@ -67,6 +69,22 @@ export async function PATCH(
       updates.title = body.title.trim() || null
     }
 
+    // Story Behind the Song recording (set together, or clear both with null)
+    if (body.story_media_url !== undefined) {
+      if (body.story_media_url === null) {
+        updates.story_media_url = null
+        updates.story_media_type = null
+        updates.story_recorded_at = null
+      } else {
+        if (body.story_media_type !== 'video' && body.story_media_type !== 'audio') {
+          return NextResponse.json({ error: 'story_media_type must be "video" or "audio"' }, { status: 400 })
+        }
+        updates.story_media_url = body.story_media_url
+        updates.story_media_type = body.story_media_type
+        updates.story_recorded_at = new Date().toISOString()
+      }
+    }
+
     if (Object.keys(updates).length <= 1) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
@@ -76,7 +94,7 @@ export async function PATCH(
       .update(updates)
       .eq('id', id)
       .eq('user_id', user.id)
-      .select('id, title, lyrics, style_prompt, status, generation_count, metadata')
+      .select('id, title, lyrics, style_prompt, status, generation_count, metadata, story_media_url, story_media_type, story_recorded_at')
       .single()
 
     if (error || !song) {

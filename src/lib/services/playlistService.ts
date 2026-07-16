@@ -8,6 +8,7 @@ export interface UserPlaylist {
   name: string
   description: string | null
   icon_key: string | null
+  sort_order: number
   created_at: string
   updated_at: string
   track_count: number
@@ -29,6 +30,7 @@ export async function getUserPlaylists(): Promise<UserPlaylist[]> {
   const { data: playlists, error } = await supabase
     .from('user_playlists')
     .select('*, user_playlist_tracks(id, track_data)')
+    .order('sort_order', { ascending: true })
     .order('updated_at', { ascending: false })
 
   if (error || !playlists) return []
@@ -45,6 +47,7 @@ export async function getUserPlaylists(): Promise<UserPlaylist[]> {
       name: p.name,
       description: p.description,
       icon_key: p.icon_key,
+      sort_order: p.sort_order ?? 0,
       created_at: p.created_at,
       updated_at: p.updated_at,
       track_count: tracks.length,
@@ -77,9 +80,18 @@ export async function createPlaylist(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  // New playlists go to the top of the list
+  const { data: first } = await supabase
+    .from('user_playlists')
+    .select('sort_order')
+    .order('sort_order', { ascending: true })
+    .limit(1)
+
+  const sortOrder = first && first.length > 0 ? first[0].sort_order - 1 : 0
+
   const { data, error } = await supabase
     .from('user_playlists')
-    .insert({ user_id: user.id, name, description: description ?? null })
+    .insert({ user_id: user.id, name, description: description ?? null, sort_order: sortOrder })
     .select()
     .single()
 
@@ -90,6 +102,20 @@ export async function createPlaylist(
     track_count: 0,
     total_duration: 0,
   }
+}
+
+export async function reorderPlaylists(orderedPlaylistIds: string[]): Promise<boolean> {
+  const supabase = createClient()
+
+  for (let i = 0; i < orderedPlaylistIds.length; i++) {
+    const { error } = await supabase
+      .from('user_playlists')
+      .update({ sort_order: i })
+      .eq('id', orderedPlaylistIds[i])
+    if (error) return false
+  }
+
+  return true
 }
 
 export async function deletePlaylist(playlistId: string): Promise<boolean> {
@@ -198,6 +224,17 @@ export async function reorderPlaylistTracks(
   orderedTrackIds: string[]
 ): Promise<boolean> {
   const supabase = createClient()
+
+  // Two-phase update: (playlist_id, position) has a unique index, so park every
+  // row at a temporary negative position before assigning the final order.
+  for (let i = 0; i < orderedTrackIds.length; i++) {
+    const { error } = await supabase
+      .from('user_playlist_tracks')
+      .update({ position: -(i + 1) })
+      .eq('id', orderedTrackIds[i])
+      .eq('playlist_id', playlistId)
+    if (error) return false
+  }
 
   for (let i = 0; i < orderedTrackIds.length; i++) {
     const { error } = await supabase
