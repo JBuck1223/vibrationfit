@@ -47,8 +47,16 @@ const VOICE_NAMES: Record<string, string> = {
   echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage',
 }
 
-function triggerFileSave(blob: Blob, title: string) {
-  const filename = title.replace(/[^a-zA-Z0-9\s\-_.]/g, '').trim().replace(/\s+/g, '-') + '.mp3'
+function extensionFromContentType(contentType: string | null): string {
+  const type = (contentType || '').split(';')[0].trim().toLowerCase()
+  if (type === 'audio/wav' || type === 'audio/x-wav') return 'wav'
+  if (type === 'audio/mp4' || type === 'audio/x-m4a') return 'm4a'
+  if (type === 'audio/ogg') return 'ogg'
+  return 'mp3'
+}
+
+function triggerFileSave(blob: Blob, title: string, extension = 'mp3') {
+  const filename = title.replace(/[^a-zA-Z0-9\s\-_.]/g, '').trim().replace(/\s+/g, '-') + `.${extension}`
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -237,12 +245,12 @@ export function EmbeddedPlayer({
         const fallback = await fetch(track.url)
         if (!fallback.ok) throw new Error('Download failed')
         const blob = await fallback.blob()
-        triggerFileSave(blob, track.title)
+        triggerFileSave(blob, track.title, extensionFromContentType(fallback.headers.get('Content-Type')))
         return
       }
       if (!response.ok) throw new Error('Download failed')
       const blob = await response.blob()
-      triggerFileSave(blob, track.title)
+      triggerFileSave(blob, track.title, extensionFromContentType(response.headers.get('Content-Type')))
     } catch (err) {
       console.error('Save to device failed:', err)
     } finally {
