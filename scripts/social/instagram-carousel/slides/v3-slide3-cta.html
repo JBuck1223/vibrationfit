@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, height=1350" />
+  <title>Green Line V3 — Slide 3 CTA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/base.css" />
+  <style>
+    .slide {
+      align-items: center;
+      justify-content: center;
+      padding: 140px 80px 160px;
+      background:
+        radial-gradient(100% 55% at 50% 100%, rgba(57, 255, 20, 0.14), transparent 65%),
+        var(--bg);
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
+      text-align: center;
+      max-width: 920px;
+    }
+
+    .headline {
+      font-size: 72px;
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      color: var(--white);
+    }
+
+    .headline .accent {
+      color: var(--lime);
+      text-shadow: 0 0 28px rgba(57, 255, 20, 0.35);
+    }
+
+    .icons {
+      display: flex;
+      gap: 48px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icons svg {
+      width: 72px;
+      height: 72px;
+      color: var(--lime);
+      filter: drop-shadow(0 0 14px rgba(57, 255, 20, 0.45));
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <div class="green-line-accent top"></div>
+    <div class="content">
+      <h1 class="headline">
+        Save &amp; share this<br />
+        so you <span class="accent">have words</span><br />
+        when you don’t <span class="accent">have words.</span>
+      </h1>
+      <div class="icons" aria-hidden="true">
+        <!-- Bookmark / Save -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15.2l-6.5-3.9-6.5 3.9V5A1.5 1.5 0 0 1 7 3.5z" />
+        </svg>
+        <!-- Share / Paper plane -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 3 10 14" />
+          <path d="M21 3 14.5 21 10 14 3 9.5 21 3z" />
+        </svg>
+      </div>
+    </div>
+    <p class="handle">@vibrationfit</p>
+  </div>
+</body>
+</html>

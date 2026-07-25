@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, height=1350" />
+  <title>Green Line V3 — Slide 1 Hook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../shared/base.css" />
+  <style>
+    .slide {
+      align-items: center;
+      justify-content: center;
+      padding: 120px 80px 140px;
+      background:
+        radial-gradient(90% 50% at 50% 100%, rgba(57, 255, 20, 0.1), transparent 70%),
+        var(--bg);
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 36px;
+      text-align: center;
+      max-width: 900px;
+    }
+
+    .headline {
+      font-size: 72px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--white);
+    }
+
+    .subhead {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--lime);
+      text-shadow: 0 0 28px rgba(57, 255, 20, 0.35);
+    }
+
+    .arrow {
+      margin-top: 12px;
+      font-size: 64px;
+      font-weight: 700;
+      color: var(--lime);
+      line-height: 1;
+      align-self: flex-end;
+      margin-right: 40px;
+      text-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <div class="green-line-accent bottom"></div>
+    <div class="content">
+      <h1 class="headline">Struggle to explain<br />how you actually feel?</h1>
+      <p class="subhead">Steal these 2 sentences.</p>
+      <div class="arrow" aria-hidden="true">→</div>
+    </div>
+  </div>
+</body>
+</html>
