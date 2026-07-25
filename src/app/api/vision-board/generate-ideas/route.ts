@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
-import OpenAI from 'openai'
+import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 const VISION_BOARD_IDEAS_SYSTEM_PROMPT = `You are VIVA, the Vibration Fit AI assistant. Generate exactly 3 vision board items per category based on the user's Life Vision.
 
@@ -185,9 +181,10 @@ export async function POST(request: NextRequest) {
     ]
     const openaiParams = buildOpenAIParams(toolConfig, messages)
 
-    // Add response format for JSON
-    const completion = await openai.chat.completions.create({
+    // Add response format for JSON; route through the gateway for exact billing
+    const completion = await gatewayClient.chat.completions.create({
       ...openaiParams,
+      model: `openai/${toolConfig.model_name}`,
       response_format: { type: 'json_object' },
     })
 
@@ -277,6 +274,8 @@ export async function POST(request: NextRequest) {
           input_tokens: completion.usage.prompt_tokens || 0,
           output_tokens: completion.usage.completion_tokens || 0,
           actual_cost_cents: 0, // Will be calculated by trackTokenUsage
+          provider: 'vercel_gateway',
+          provider_request_id: completion.id,
           openai_request_id: completion.id,
           openai_created: completion.created,
           system_fingerprint: completion.system_fingerprint,

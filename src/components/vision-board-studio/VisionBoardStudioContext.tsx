@@ -1,7 +1,9 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useContext, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { keys } from '@/lib/query/keys'
 
 interface VisionBoardStudioContextValue {
   itemCount: number
@@ -17,38 +19,38 @@ export function useVisionBoardStudio() {
   return ctx
 }
 
+async function fetchItemCount(): Promise<number> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return 0
+
+  const { count } = await supabase
+    .from('vision_board_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  return count ?? 0
+}
+
 export function VisionBoardStudioProvider({ children }: { children: React.ReactNode }) {
-  const [itemCount, setItemCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
-  const loadCount = useCallback(async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) {
-      setLoading(false)
-      return
-    }
+  const { data: itemCount = 0, isLoading: loading } = useQuery({
+    queryKey: keys.visionBoardCount,
+    queryFn: fetchItemCount,
+  })
 
-    const { count } = await supabase
-      .from('vision_board_items')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-
-    setItemCount(count ?? 0)
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    loadCount()
-  }, [loadCount])
+  const refreshCount = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.visionBoardCount })
+  }, [queryClient])
 
   return (
     <VisionBoardStudioContext.Provider
       value={{
         itemCount,
         loading,
-        refreshCount: loadCount,
+        refreshCount,
       }}
     >
       {children}

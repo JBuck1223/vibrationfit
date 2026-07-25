@@ -14,7 +14,8 @@
  */
 
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 export type VivaMode = 'connection' | 'coaching' | 'momentum' | 'crisis' | 'guide'
 
@@ -57,7 +58,8 @@ No markdown, no explanation outside the JSON.`
  */
 export async function detectMode(
   latestMessage: string,
-  recentMessages?: { role: string; content: string }[]
+  recentMessages?: { role: string; content: string }[],
+  userId?: string
 ): Promise<ModeDetectionResult> {
   try {
     // Build minimal context (last 3 messages + current)
@@ -70,11 +72,29 @@ export async function detectMode(
     const prompt = `${contextText}Latest message from member:\n"${latestMessage}"`
 
     const result = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: gateway('openai/gpt-4o-mini'),
       system: MODE_DETECTION_PROMPT,
       prompt,
       temperature: 0.1,
     })
+
+    // Cost ledger: background helper call — cost-tracking only, never
+    // deducts member tokens. Fire-and-forget so it doesn't add latency.
+    if (result.usage?.totalTokens) {
+      trackTokenUsage({
+        user_id: userId ?? null,
+        action_type: 'background_processing',
+        model_used: 'gpt-4o-mini',
+        tokens_used: result.usage.totalTokens,
+        input_tokens: result.usage.inputTokens || 0,
+        output_tokens: result.usage.outputTokens || 0,
+        provider: 'vercel_gateway',
+        provider_request_id: gatewayGenerationId(result),
+        billable: false,
+        success: true,
+        metadata: { helper: 'mode_detector' },
+      }).catch(() => {})
+    }
 
     const parsed = JSON.parse(result.text.trim())
 

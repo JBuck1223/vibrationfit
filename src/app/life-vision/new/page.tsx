@@ -15,6 +15,7 @@ import {
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, CheckCircle, FileCheck } from 'lucide-react'
 import { commitDraft } from '@/lib/life-vision/draft-helpers'
+import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 import { VISION_CATEGORIES, ORDERED_VISION_CATEGORIES, META_CATEGORY_KEYS, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
 
@@ -33,6 +34,7 @@ interface CategoryProgress {
 
 export default function VIVALifeVisionLandingPage() {
   const router = useRouter()
+  const { refreshVisions } = useLifeVisionStudio()
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<CategoryProgress>({})
   const [visionStatus, setVisionStatus] = useState<'none' | 'in_progress' | 'completed'>('none')
@@ -181,6 +183,8 @@ export default function VIVALifeVisionLandingPage() {
     setCommitError(null)
     try {
       const vision = await commitDraft(draftVisionId)
+      // Update the studio context so the area bar reflects the new active vision
+      await refreshVisions()
       router.push(`/life-vision/${vision.id}`)
     } catch (err) {
       console.error('Error committing draft:', err)

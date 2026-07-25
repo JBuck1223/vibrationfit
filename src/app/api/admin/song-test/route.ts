@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { streamText } from 'ai'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
-import { gateway } from '@/lib/ai/gateway'
+import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import {
   MASTER_SONGWRITER_SYSTEM_PROMPT,
   buildSimpleSongPrompt,
@@ -35,6 +36,22 @@ export async function POST(request: NextRequest) {
       system: MASTER_SONGWRITER_SYSTEM_PROMPT,
       prompt,
       temperature,
+      onFinish: async (event) => {
+        // Cost ledger: admin test tool — cost-tracking only.
+        await trackTokenUsage({
+          user_id: auth.user.id,
+          action_type: 'admin_tool',
+          model_used: modelName,
+          tokens_used: event.usage?.totalTokens || 0,
+          input_tokens: event.usage?.inputTokens || 0,
+          output_tokens: event.usage?.outputTokens || 0,
+          provider: 'vercel_gateway',
+          provider_request_id: gatewayGenerationId(event),
+          billable: false,
+          success: true,
+          metadata: { tool: 'song_test' },
+        }).catch(() => {})
+      },
     })
 
     return new Response(result.textStream, {

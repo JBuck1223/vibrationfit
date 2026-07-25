@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { mureka } from '@/lib/mureka/client'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 export const maxDuration = 120
@@ -72,6 +73,19 @@ export async function POST(
     console.log(`[SongStems] Requesting stems for track ${track_id}, URL: ${originalMp3Url.slice(0, 80)}...`)
 
     const stemResult = await mureka.generateStems({ url: originalMp3Url })
+
+    // Cost ledger: Mureka audio separation is billed per song.
+    await trackTokenUsage({
+      user_id: user.id,
+      action_type: 'song_stems_generation',
+      model_used: 'mureka-stems',
+      tokens_used: 0,
+      unit_count: 1,
+      provider: 'mureka',
+      billable: false,
+      success: true,
+      metadata: { song_id: songId, track_id },
+    })
 
     console.log(`[SongStems] Mureka returned ZIP URL, downloading to S3...`)
 

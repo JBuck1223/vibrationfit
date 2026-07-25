@@ -10,7 +10,7 @@
  */
 
 import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildCoachSystemPrompt, buildRetrievalIndicators } from '@/lib/viva/prompts/coach-system-prompt'
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
       // Layer 1: Skip AI classification when user explicitly chose intent
       hasModeHint
         ? Promise.resolve({ mode: modeHint as VivaMode, emotional_state: 'unclear' as const, confidence: 1, reasoning: 'User selected intent' })
-        : detectMode(latestContent, messages?.slice(-4)),
+        : detectMode(latestContent, messages?.slice(-4), user.id),
 
       // Layer 2: Context loading (parallel Supabase queries)
       loadCoachContext({
@@ -223,7 +223,8 @@ export async function POST(req: Request) {
 
     // Stream the response
     const result = streamText({
-      model: openai(MODEL),
+      // Routed through the Vercel AI Gateway for exact per-request billing
+      model: gateway(`openai/${MODEL}`),
       system: systemPrompt,
       messages: chatMessages,
       temperature: mode === 'crisis' ? 0.4 : 0.8,
@@ -261,6 +262,8 @@ export async function POST(req: Request) {
               input_tokens: usage.inputTokens || 0,
               output_tokens: usage.outputTokens || 0,
               actual_cost_cents: 0,
+              provider: 'vercel_gateway',
+              provider_request_id: aiResponse?.id,
               openai_request_id: aiResponse?.id,
               success: true,
               metadata: {

@@ -2,6 +2,14 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
+import { trackTokenUsage, type TokenProvider } from '@/lib/tokens/tracking'
+
+// TTS pricing is per character; model names match ai_model_pricing rows.
+const PREVIEW_MODELS: Record<string, { model: string; provider: TokenProvider }> = {
+  openai: { model: 'tts-1', provider: 'openai' },
+  google: { model: 'google-tts', provider: 'google' },
+  elevenlabs: { model: 'elevenlabs-eleven_multilingual_v2', provider: 'elevenlabs' },
+}
 
 // ── OpenAI TTS (direct REST, same pattern as audioService) ──────────────────
 
@@ -162,6 +170,22 @@ export async function POST(request: NextRequest) {
           { error: `Unknown provider: ${provider}` },
           { status: 400 }
         )
+    }
+
+    // Cost ledger: admin TTS preview — character-priced, cost-tracking only.
+    const previewModel = PREVIEW_MODELS[provider]
+    if (previewModel) {
+      trackTokenUsage({
+        user_id: null,
+        action_type: 'admin_tool',
+        model_used: previewModel.model,
+        tokens_used: 0,
+        input_tokens: text.length,
+        provider: previewModel.provider,
+        billable: false,
+        success: true,
+        metadata: { tool: 'audio_preview', voice, characters: text.length },
+      }).catch(() => {})
     }
 
     return new NextResponse(new Uint8Array(audioBuffer), {

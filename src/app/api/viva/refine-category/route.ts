@@ -64,12 +64,11 @@ async function buildRefinementPrompt(
   // Get user data
   const supabase = await createClient();
 
-  // Get vision context
+  // Get vision context (RLS scopes access: own visions + household visions)
   const { data: vision } = await supabase
     .from("vision_versions")
     .select("*")
     .eq("id", request.visionId)
-    .eq("user_id", userId)
     .single();
 
   // Get profile
@@ -298,7 +297,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         .from("vision_versions")
         .select("*")
         .eq("id", visionId)
-        .eq("user_id", user.id)
         .single();
 
       if (fullVision) {
@@ -338,15 +336,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Verify vision ownership
+    // Verify access: own visions and household visions may be refined —
+    // not a personal vision another member merely shared with you.
     const { data: vision } = await supabase
       .from("vision_versions")
-      .select("user_id")
+      .select("user_id, household_id")
       .eq("id", visionId)
-      .eq("user_id", user.id)
       .single();
 
-    if (!vision) {
+    if (!vision || (vision.user_id !== user.id && !vision.household_id)) {
       return NextResponse.json(
         {
           success: false,

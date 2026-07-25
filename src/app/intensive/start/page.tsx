@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { startIntensive } from '@/lib/intensive/utils-client'
 import { checkUserHasPassword } from '@/lib/auth/check-password'
+import { checkSuperAdminAccess } from '@/lib/intensive/admin-access'
 import { 
   Container, 
   Stack,
@@ -75,10 +76,14 @@ export default function IntensiveStartPage() {
       }
 
       // Guard: ensure user has set a password before accessing intensive
-      const hasPassword = await checkUserHasPassword(supabase, user)
-      if (!hasPassword) {
-        window.location.href = '/auth/setup-password'
-        return
+      // Super admins bypass this check
+      const { isSuperAdmin } = await checkSuperAdminAccess(supabase)
+      if (!isSuperAdmin) {
+        const hasPassword = await checkUserHasPassword(supabase, user)
+        if (!hasPassword) {
+          window.location.href = '/auth/setup-password'
+          return
+        }
       }
 
       // Check for active intensive
@@ -90,6 +95,11 @@ export default function IntensiveStartPage() {
         .maybeSingle()
 
       if (!checklist) {
+        // Super admins can preview this page without an active intensive
+        if (isSuperAdmin) {
+          setLoading(false)
+          return
+        }
         // No intensive purchased
         router.push('/#pricing')
         return

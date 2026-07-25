@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { mureka } from '@/lib/mureka/client'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 export const maxDuration = 30
@@ -211,6 +212,26 @@ export async function GET(
       .update({ status: 'completed', updated_at: new Date().toISOString() })
       .eq('id', songId)
       .eq('user_id', user.id)
+
+    // Cost ledger: Mureka bills per generated song. Recorded once per task
+    // (the already-inserted guard above prevents duplicate rows on re-polls).
+    // billable: false = cost-tracking only; does not deduct member tokens.
+    await trackTokenUsage({
+      user_id: user.id,
+      action_type: 'song_music_generation',
+      model_used: 'mureka-song',
+      tokens_used: 0,
+      unit_count: songs.length,
+      provider: 'mureka',
+      provider_request_id: taskId,
+      billable: false,
+      success: true,
+      metadata: {
+        song_id: songId,
+        songs_generated: songs.length,
+        mureka_model: (songMeta.mureka_model as string) || null,
+      },
+    })
 
     console.log(`[SongPoll] Done. ${tracks.length} tracks created for song ${songId}`)
 

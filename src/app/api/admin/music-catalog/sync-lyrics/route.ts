@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import OpenAI from 'openai'
 import { spawn } from 'child_process'
 import { tmpdir } from 'os'
@@ -170,6 +171,19 @@ export async function POST(request: NextRequest) {
       response_format: 'verbose_json',
       timestamp_granularities: ['word'],
     })
+
+    // Cost ledger: admin Whisper transcription — per-minute pricing.
+    trackTokenUsage({
+      user_id: auth.user.id,
+      action_type: 'admin_tool',
+      model_used: 'whisper-1',
+      tokens_used: 0,
+      audio_seconds: (transcription as any).duration || 0,
+      provider: 'openai',
+      billable: false,
+      success: true,
+      metadata: { tool: 'sync_lyrics', catalog_id: catalogId },
+    }).catch(() => {})
 
     const whisperWords: WhisperWord[] = (
       (transcription as any).words || []

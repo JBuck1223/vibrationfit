@@ -121,14 +121,17 @@ export function LifeVisionAreaBar() {
     const pdfVisionId = detailVisionId || printVisionId
     const pdfPath = pdfVisionId ? `/life-vision/${pdfVisionId}/print` : undefined
 
-    // When viewing a household ("Life We Choose") vision detail, highlight
-    // Household instead of My Visions.
     const viewingHouseholdVision =
       !!(detailVisionId && householdVisions.some(v => v.id === detailVisionId))
 
+    // Single navigation axis: the grouped document selector (Life I Choose /
+    // Life We Choose / Shared With Me) is the one switching control. The
+    // context row only carries actions — plus an entry point to the household
+    // workshop for members who don't have a joint vision yet.
     contextNav = [
-      { label: 'My Visions', path: '/life-vision', icon: Target, isActive: isVisionList || (isVisionDetail && !viewingHouseholdVision) },
-      ...(showHouseholdNav ? [{ label: 'Household', path: '/life-vision/household', icon: Users, isActive: viewingHouseholdVision }] : []),
+      ...(showHouseholdNav && householdVisions.length === 0
+        ? [{ label: 'Start Household Vision', path: '/life-vision/household', icon: Users, isActive: false }]
+        : []),
       ...(pdfPath ? [{ label: 'Download PDF', path: pdfPath, icon: Download, isActive: isPrintPage }] : []),
     ]
 
@@ -229,36 +232,41 @@ export function LifeVisionAreaBar() {
       }
     }
   } else if (isHousehold) {
-    // Same three-item row as the view pages. Download PDF targets the active
-    // household vision (else newest, else the user's personal active vision).
+    // Household workshop (convert/merge + empty state). Download PDF targets
+    // the active household vision (else newest, else the personal active).
     const householdPdfVisionId =
       householdVisions.find(v => v.is_active && !v.is_draft)?.id
       || householdVisions.find(v => !v.is_draft)?.id
       || activeVisionId
 
     contextNav = [
-      { label: 'My Visions', path: '/life-vision', icon: Target, isActive: false },
-      { label: 'Household', path: '/life-vision/household', icon: Users, isActive: true },
       ...(householdPdfVisionId ? [{ label: 'Download PDF', path: `/life-vision/${householdPdfVisionId}/print`, icon: Download, isActive: false }] : []),
     ]
     subNav = householdToolsSubNav()
     contextText = 'Create and manage shared "Life We Choose" visions for your household.'
 
-    const householdOptions = [
-      ...householdVisions.filter(v => v.is_draft).map(v => toVisionOption(v)),
-      ...householdVisions.filter(v => !v.is_draft).map(v => toVisionOption(v)),
+    // Same grouped document selector as the view pages — one control everywhere.
+    const myGroup = hasVisionGroups ? 'Life I Choose' : undefined
+    const workshopOptions = [
+      ...myPersonal.filter(v => !v.is_draft).map(v => toVisionOption(v, myGroup)),
+      ...householdVisions.filter(v => v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
+      ...householdVisions.filter(v => !v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
+      ...sharedPersonal.map(v => toVisionOption(v, 'Shared With Me')),
     ]
 
-    if (householdOptions.length > 0) {
-      const activeOption = householdOptions.find(o => o.isActive)
+    if (workshopOptions.length > 0) {
+      const householdActive = householdVisions.find(v => v.is_active && !v.is_draft)
+      const selectedId = householdActive?.id
+        || householdVisions.find(v => !v.is_draft)?.id
+        || workshopOptions[0].id
       versionSelectors = [{
         id: 'vision-version',
         label: 'Vision',
         position: 'contextRow',
-        options: householdOptions,
-        selectedId: activeOption?.id || householdOptions[0].id,
+        options: workshopOptions,
+        selectedId,
         onSelect: (id: string) => {
-          const selected = householdVisions.find(v => v.id === id)
+          const selected = visions.find(v => v.id === id)
           if (selected?.is_draft) router.push(`/life-vision/${id}/draft`)
           else router.push(`/life-vision/${id}`)
         },
@@ -316,15 +324,22 @@ export function LifeVisionAreaBar() {
         contextText = 'Review your draft changes and commit when ready.'
       }
 
-      // Version selector — draft (current) at top, then all prior non-draft
-      // versions from the same document group. Refining a household draft
-      // shows household ("Life We Choose") versions; otherwise personal ones.
-      const docGroup = routeDraft?.is_household ? householdVisions : myPersonal
+      // Version selector — the current document's draft at top, then its prior
+      // versions, followed by the other document group (personal <-> household)
+      // so you can jump between updating "Life I Choose" and "Life We Choose".
+      const isHouseholdDoc = !!routeDraft?.is_household
+      const docGroup = isHouseholdDoc ? householdVisions : myPersonal
+      const otherGroup = isHouseholdDoc ? myPersonal : householdVisions
       const draft = routeDraft ?? docGroup.find(v => v.is_draft)
       const nonDraftVisions = docGroup.filter(v => !v.is_draft)
       if ((isOnRefineSubpage || isOnCommitSubpage) && (draft || nonDraftVisions.length > 0)) {
-        // Draft version_number in context is 0 as a marker; the draft will become
-        // nonDraftVisions.length + 1 when committed, so show that as its label.
+        // Group headers only render when the other document group has entries.
+        const showGroups = otherGroup.length > 0
+        const currentGroupLabel = showGroups ? (isHouseholdDoc ? 'Life We Choose' : 'Life I Choose') : undefined
+        const otherGroupLabel = isHouseholdDoc ? 'Life I Choose' : 'Life We Choose'
+
+        // Draft version_number in context is 0 as a marker; a draft will become
+        // (non-drafts in its own group) + 1 when committed, so show that label.
         const draftDisplayVersion = nonDraftVisions.length + 1
         const draftOption = draft
           ? [{
@@ -336,30 +351,56 @@ export function LifeVisionAreaBar() {
               isActive: false,
               icon: draft.household_id ? Users : undefined,
               iconPosition: (draft.household_id ? 'right' : undefined) as ('right' | undefined),
+              group: currentGroupLabel,
             }]
           : []
 
-        const nonDraftOptions = nonDraftVisions.map(v => ({
+        const toRefineOption = (v: (typeof visions)[number], group?: string, draftVersion?: number) => ({
           id: v.id,
-          label: `Version ${v.version_number}`,
+          label: v.is_draft ? `Version ${draftVersion ?? '?'}` : `Version ${v.version_number}`,
           sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          badge: v.is_active ? 'Active' : undefined,
-          badgeVariant: v.is_active ? ('active' as const) : undefined,
-          isActive: v.is_active,
+          badge: v.is_draft ? 'Draft' : (v.is_active ? 'Active' : undefined),
+          badgeVariant: v.is_draft ? ('draft' as const) : (v.is_active ? ('active' as const) : undefined),
+          isActive: !v.is_draft && v.is_active,
           icon: v.household_id ? Users : undefined,
           iconPosition: (v.household_id ? 'right' : undefined) as ('right' | undefined),
-        }))
+          group,
+        })
+
+        const nonDraftOptions = nonDraftVisions.map(v => toRefineOption(v, currentGroupLabel))
+
+        // Other document group: its draft first (numbered per its own group),
+        // then its non-draft versions.
+        const otherDraft = otherGroup.find(v => v.is_draft)
+        const otherNonDrafts = otherGroup.filter(v => !v.is_draft)
+        const otherDraftDisplayVersion = otherNonDrafts.length + 1
+        const otherOptions = [
+          ...(otherDraft ? [toRefineOption(otherDraft, otherGroupLabel, otherDraftDisplayVersion)] : []),
+          ...otherNonDrafts.map(v => toRefineOption(v, otherGroupLabel)),
+        ]
 
         versionSelectors = [{
           id: 'vision-version',
           label: 'Vision',
           position: 'contextRow',
-          options: [...draftOption, ...nonDraftOptions],
+          options: [...draftOption, ...nonDraftOptions, ...otherOptions],
           selectedId: draft ? draft.id : (activeVisionId ?? nonDraftVisions[0]?.id ?? ''),
           onSelect: (id: string) => {
             if (draft && id === draft.id) {
               if (isOnCommitSubpage) router.push(`/life-vision/${id}/draft`)
               else router.push(`/life-vision/${id}/refine`)
+              return
+            }
+            const selected = visions.find(v => v.id === id)
+            if (selected?.is_draft) {
+              // The other document's draft — continue updating that document
+              if (isOnCommitSubpage) router.push(`/life-vision/${id}/draft`)
+              else router.push(`/life-vision/${id}/refine`)
+              return
+            }
+            if (selected?.is_household) {
+              // Household version without a draft — start its update cycle
+              void handleHouseholdUpdateNav(id)
               return
             }
             router.push(`/life-vision/${id}`)
@@ -379,6 +420,10 @@ export function LifeVisionAreaBar() {
         contextText = 'Create each category of your new Life Vision with VIVA.'
       }
 
+      // Group headers only render when more than one group exists — same rule
+      // as the View pages ("Shared With Me" is excluded from Update flows).
+      const myGroup = hasVisionGroups ? 'Life I Choose' : undefined
+
       const draftOption = draft
         ? {
             id: draft.id,
@@ -389,6 +434,7 @@ export function LifeVisionAreaBar() {
             isActive: false,
             icon: draft.household_id ? Users : undefined,
             iconPosition: (draft.household_id ? 'right' : undefined) as ('right' | undefined),
+            group: myGroup,
           }
         : {
             id: '__in-progress__',
@@ -397,6 +443,7 @@ export function LifeVisionAreaBar() {
             badge: 'Draft',
             badgeVariant: 'draft' as const,
             isActive: false,
+            group: myGroup,
           }
 
       const nonDraftOptions = nonDraftVisions.map(v => ({
@@ -408,16 +455,33 @@ export function LifeVisionAreaBar() {
         isActive: v.is_active,
         icon: v.household_id ? Users : undefined,
         iconPosition: (v.household_id ? 'right' : undefined) as ('right' | undefined),
+        group: myGroup,
       }))
+
+      // "Life We Choose" household documents — selecting one routes into the
+      // household update cycle (open its draft, or create one from it).
+      const householdOptions = [
+        ...householdVisions.filter(v => v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
+        ...householdVisions.filter(v => !v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
+      ]
 
       versionSelectors = [{
         id: 'vision-version',
         label: 'Vision',
         position: 'contextRow',
-        options: [draftOption, ...nonDraftOptions],
+        options: [draftOption, ...nonDraftOptions, ...householdOptions],
         selectedId: draftOption.id,
         onSelect: (id: string) => {
           if (id === draftOption.id) return
+          const selected = visions.find(v => v.id === id)
+          if (selected?.is_household) {
+            if (selected.is_draft) {
+              router.push(`/life-vision/${id}/refine`)
+              return
+            }
+            void handleHouseholdUpdateNav(id)
+            return
+          }
           router.push(`/life-vision/${id}`)
         },
       }]

@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState } from 'react'
 import { X, Plus, ListMusic, Check, Loader2 } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
+import { keys } from '@/lib/query/keys'
 import {
   getUserPlaylists,
   createPlaylist,
@@ -26,28 +28,38 @@ export function AddToPlaylistSheet({
   sourceType,
   sourceId,
 }: AddToPlaylistSheetProps) {
-  const [playlists, setPlaylists] = useState<UserPlaylist[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [adding, setAdding] = useState<string | null>(null)
   const [added, setAdded] = useState<Set<string>>(new Set())
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
 
+  // Shared cache with PlaylistsView: updates here show up there instantly.
+  const { data: playlists = [], isLoading: loading } = useQuery({
+    queryKey: keys.playlists,
+    queryFn: getUserPlaylists,
+    enabled: isOpen,
+  })
+
   useEffect(() => {
     if (isOpen) {
       setAdded(new Set())
       setShowCreate(false)
       setNewName('')
-      loadPlaylists()
     }
   }, [isOpen])
 
-  async function loadPlaylists() {
-    setLoading(true)
-    const data = await getUserPlaylists()
-    setPlaylists(data)
-    setLoading(false)
+  function bumpPlaylistCount(playlistId: string, trackDuration: number) {
+    queryClient.setQueryData<UserPlaylist[]>(keys.playlists, prev =>
+      (prev ?? []).map(p =>
+        p.id === playlistId
+          ? { ...p, track_count: p.track_count + 1, total_duration: p.total_duration + trackDuration }
+          : p
+      )
+    )
+    // Reconcile with the server (track list of the target playlist included)
+    void queryClient.invalidateQueries({ queryKey: keys.playlists })
   }
 
   async function handleAdd(playlistId: string) {
@@ -56,6 +68,7 @@ export function AddToPlaylistSheet({
     const ok = await addTrackToPlaylist(playlistId, sourceType, sourceId, track)
     if (ok) {
       setAdded(prev => new Set(prev).add(playlistId))
+      bumpPlaylistCount(playlistId, track.duration ?? 0)
     }
     setAdding(null)
   }
@@ -65,14 +78,19 @@ export function AddToPlaylistSheet({
     setCreating(true)
     const playlist = await createPlaylist(newName.trim())
     if (playlist) {
-      setPlaylists(prev => [playlist, ...prev])
+      queryClient.setQueryData<UserPlaylist[]>(keys.playlists, prev => [playlist, ...(prev ?? [])])
       setShowCreate(false)
       setNewName('')
       if (track) {
         setAdding(playlist.id)
         const ok = await addTrackToPlaylist(playlist.id, sourceType, sourceId, track)
-        if (ok) setAdded(prev => new Set(prev).add(playlist.id))
+        if (ok) {
+          setAdded(prev => new Set(prev).add(playlist.id))
+          bumpPlaylistCount(playlist.id, track.duration ?? 0)
+        }
         setAdding(null)
+      } else {
+        void queryClient.invalidateQueries({ queryKey: keys.playlists })
       }
     }
     setCreating(false)

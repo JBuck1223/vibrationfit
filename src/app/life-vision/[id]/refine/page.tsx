@@ -57,6 +57,7 @@ import {
 } from '@/lib/life-vision/draft-helpers'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 
 interface VisionData {
   id: string
@@ -261,6 +262,7 @@ const ChatInterface = ({
 
 export default function VisionRefinementPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const { refreshVisions } = useLifeVisionStudio()
   const searchParams = useSearchParams()
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [vision, setVision] = useState<VisionData | null>(null)
@@ -328,14 +330,16 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
         const calculatedVersion = await calculateVersionNumber(draft.id)
         const draftWithVersion = { ...draft, version_number: calculatedVersion }
         console.log('Draft vision loaded:', draftWithVersion.id, 'Version:', calculatedVersion, 'Refined categories:', draftWithVersion.refined_categories)
-        setDraftVision(draftWithVersion)
+        // Only fill in when the route hasn't already loaded a draft (e.g. a
+        // household draft) — never clobber it with the personal fallback.
+        setDraftVision(prev => prev ?? draftWithVersion)
       } else {
         console.log('No draft vision found for user')
-        setDraftVision(null)
+        setDraftVision(prev => prev ?? null)
       }
     } catch (error) {
       console.error('Error loading draft vision:', error)
-      setDraftVision(null)
+      setDraftVision(prev => prev ?? null)
     }
   }, [user])
 
@@ -351,15 +355,23 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       setVisionId(resolvedParams.id)
 
-      // Get the vision data by ID
+      // Get the vision data by ID. No user_id filter: RLS scopes access to the
+      // user's own visions plus household visions, so household drafts created
+      // by another member load too.
       const { data: visionData, error: visionError } = await supabase
         .from('vision_versions')
         .select('*')
         .eq('id', resolvedParams.id)
-        .eq('user_id', user.id)
         .single()
 
       if (visionError || !visionData) {
+        setError('Vision not found or access denied')
+        return
+      }
+
+      // Refining is allowed on your own visions and household visions — not on
+      // a personal vision another member merely shared with you.
+      if (visionData.user_id !== user.id && !visionData.household_id) {
         setError('Vision not found or access denied')
         return
       }
@@ -368,14 +380,14 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       if (visionData.is_draft !== true) {
         console.log('Vision is not a draft, checking for existing draft...')
         
-        // Check if a draft already exists for this vision
+        // Check if a draft already exists for this vision (any household
+        // member's draft counts for household visions)
         const { data: existingDraft } = await supabase
           .from('vision_versions')
           .select('id')
           .eq('parent_id', visionData.id)
           .eq('is_draft', true)
           .eq('is_active', false)
-          .eq('user_id', user.id)
           .maybeSingle()
         
         if (existingDraft) {
@@ -398,26 +410,29 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setDraftVision(visionWithVersion)
       console.log('Draft vision loaded successfully:', visionWithVersion.id, 'Version:', calculatedVersion)
       
-      // Fetch the active vision for comparison
-      const { data: activeVisionData } = await supabase
+      // Fetch the active vision for comparison, scoped to the draft's own
+      // document group (household draft -> household active, else personal)
+      let activeQuery = supabase
         .from('vision_versions')
         .select('*')
-        .eq('user_id', user.id)
         .eq('is_active', true)
         .eq('is_draft', false)
-        .maybeSingle()
+      activeQuery = visionData.household_id
+        ? activeQuery.eq('household_id', visionData.household_id)
+        : activeQuery.eq('user_id', user.id).is('household_id', null)
+      const { data: activeVisionData } = await activeQuery.maybeSingle()
       
       if (activeVisionData) {
         const activeVersion = await calculateVersionNumber(activeVisionData.id)
         setVision({ ...activeVisionData, version_number: activeVersion })
         console.log('Active vision loaded for comparison:', activeVisionData.id, 'Version:', activeVersion)
       } else if (visionData.parent_id) {
-        // No active vision but draft has a parent — fetch the parent as baseline
+        // No active vision but draft has a parent — fetch the parent as
+        // baseline (RLS handles access, including household parents)
         const { data: parentVision } = await supabase
           .from('vision_versions')
           .select('*')
           .eq('id', visionData.parent_id)
-          .eq('user_id', user.id)
           .maybeSingle()
         
         if (parentVision) {
@@ -473,6 +488,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
       setDraftStatus('committed')
       setTimeout(() => setDraftStatus('none'), 2000)
 
+      // Update the studio context so the area bar reflects the new active vision
+      await refreshVisions()
+
       // Redirect to the new active vision
       router.push(`/life-vision/${newActive.id}`)
     } catch (error) {
@@ -481,7 +499,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     } finally {
       setIsDraftSaving(false)
     }
-  }, [draftVision, router])
+  }, [draftVision, router, refreshVisions])
 
 
   // Initialize user auth state first (before loading vision)

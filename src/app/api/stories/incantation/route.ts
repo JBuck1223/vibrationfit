@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import {
   trackTokenUsage,
@@ -142,8 +142,9 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Incantation API] Using model ${toolConfig.model_name}`)
 
+    // Routed through the Vercel AI Gateway for exact per-request billing
     const result = await generateText({
-      model: openai(toolConfig.model_name),
+      model: gateway(`openai/${toolConfig.model_name}`),
       system: INCANTATION_SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.7) : undefined,
@@ -173,6 +174,8 @@ export async function POST(req: NextRequest) {
       actual_cost_cents: 0,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
+      provider: 'vercel_gateway',
+      provider_request_id: gatewayGenerationId(result),
       success: true,
       metadata: {
         source_label: sourceLabel || null,

@@ -4,6 +4,7 @@
 import { fal } from '@fal-ai/client'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { resolveVideoModel } from './fal-models'
 import { buildVideoFalInput, assertVideoInputsValid } from './fal-video-input'
 import type { CuClip, KeyframeWithMedia, GenerationMetadata } from './types'
@@ -114,6 +115,20 @@ export async function generateClip(
       .single()
 
     if (mediaError) throw new Error(`Failed to save media: ${mediaError.message}`)
+
+    // Cost ledger: fal video generation is priced per second of output.
+    trackTokenUsage({
+      user_id: null,
+      action_type: 'video_generation',
+      model_used: falModel,
+      tokens_used: 0,
+      audio_seconds: clip.duration_seconds || 6,
+      provider: 'fal',
+      provider_request_id: falRequestId,
+      billable: false,
+      success: true,
+      metadata: { pipeline: 'cinematic_clip', clip_id: clip.id, episode_id: clip.episode_id },
+    }, supabase).catch(() => {})
 
     const completedAt = new Date().toISOString()
     const metadata: GenerationMetadata = {

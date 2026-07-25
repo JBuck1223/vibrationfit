@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { mureka } from '@/lib/mureka/client'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
@@ -101,6 +102,20 @@ export async function POST(request: NextRequest) {
       })
 
       console.log(`[SongReference] Upload complete, reference_id: ${result.id}`)
+
+      // Cost ledger: reference uploads are free but tracked for audit trail.
+      await trackTokenUsage({
+        user_id: user.id,
+        action_type: 'song_music_generation',
+        model_used: 'mureka-upload',
+        tokens_used: 0,
+        unit_count: 1,
+        provider: 'mureka',
+        provider_request_id: result.id,
+        billable: false,
+        success: true,
+        metadata: { purpose: 'reference', clip_url: clipUrl },
+      })
 
       // Auto-save to reference tracks library
       await supabase

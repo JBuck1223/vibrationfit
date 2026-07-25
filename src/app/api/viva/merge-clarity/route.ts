@@ -7,13 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
-import OpenAI from 'openai'
+import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildMergeStatePrompt, MERGE_STATE_SYSTEM_PROMPT } from '@/lib/viva/prompts/merge-clarity-prompt'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,10 +62,12 @@ export async function POST(request: NextRequest) {
     const openaiParams = buildOpenAIParams(toolConfig, messages, {
       forceNoJsonMode: true // We want plain text output, not JSON
     })
+    // Route through the Vercel AI Gateway for exact per-request billing
+    openaiParams.model = `openai/${toolConfig.model_name}`
 
     // Make API call
     const startTime = Date.now()
-    const response = await openai.chat.completions.create(openaiParams)
+    const response = await gatewayClient.chat.completions.create(openaiParams)
 
     const duration = Date.now() - startTime
     const mergedState = response.choices[0]?.message?.content?.trim() || ''
@@ -87,7 +85,8 @@ export async function POST(request: NextRequest) {
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       actual_cost_cents: 0, // Calculated by trackTokenUsage
-      // OpenAI reconciliation fields
+      provider: 'vercel_gateway',
+      provider_request_id: response.id,
       openai_request_id: response.id,
       openai_created: response.created,
       system_fingerprint: response.system_fingerprint,

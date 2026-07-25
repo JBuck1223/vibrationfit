@@ -47,16 +47,27 @@ export async function GET(request: NextRequest) {
           console.warn('Could not calculate version number, using default:', error)
         }
 
-        // Load versions if requested
+        // Load versions if requested. Versions are scoped to the open vision's
+        // document group: household visions ("Life We Choose") show household
+        // history; personal visions (own or shared-with-me) show the owner's
+        // personal history. RLS governs what the viewer can actually read.
         let versions = []
         if (includeVersions) {
-          const { data: versionsData } = await supabase
+          let versionsQuery = supabase
             .from('vision_versions')
             .select('*')
-            .eq('user_id', user.id)
-            .is('household_id', null)  // Only personal visions (exclude household)
             .eq('is_draft', false)  // Exclude drafts from main query (will add separately)
             .order('created_at', { ascending: false })
+
+          if (vision.household_id) {
+            versionsQuery = versionsQuery.eq('household_id', vision.household_id)
+          } else {
+            versionsQuery = versionsQuery
+              .eq('user_id', vision.user_id)
+              .is('household_id', null)
+          }
+
+          const { data: versionsData } = await versionsQuery
           
           // Calculate version numbers based on chronological order
           if (versionsData) {
@@ -75,17 +86,28 @@ export async function GET(request: NextRequest) {
             )
           }
 
-        // Check if draft vision exists (is_draft=true, is_active=false)
+        // Check if a draft exists in the same document group.
+        // Household drafts are visible to all members; personal drafts only to
+        // their owner (share-all RLS excludes drafts), so partner documents
+        // simply return none here.
         // Use limit(1) instead of maybeSingle() to handle case where multiple drafts exist
-        const { data: draftVisions } = await supabase
+        let draftQuery = supabase
           .from('vision_versions')
           .select('*')
-          .eq('user_id', user.id)
-          .is('household_id', null)  // Only personal visions
           .eq('is_draft', true)
           .eq('is_active', false)
           .order('created_at', { ascending: false })
           .limit(1)
+
+        if (vision.household_id) {
+          draftQuery = draftQuery.eq('household_id', vision.household_id)
+        } else {
+          draftQuery = draftQuery
+            .eq('user_id', vision.user_id)
+            .is('household_id', null)
+        }
+
+        const { data: draftVisions } = await draftQuery
 
         const draftVision = draftVisions?.[0] || null
 
@@ -362,16 +384,31 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing vision ID' }, { status: 400 })
     }
 
-    // Verify the vision belongs to the user before deleting
+    // Load the vision through RLS (owner, household member, or share-all)
     const { data: vision, error: fetchError } = await supabase
       .from('vision_versions')
-      .select('id, user_id, is_draft')
+      .select('id, user_id, household_id, is_draft')
       .eq('id', visionId)
-      .eq('user_id', user.id)
       .single()
 
     if (fetchError || !vision) {
       return NextResponse.json({ error: 'Vision not found or access denied' }, { status: 404 })
+    }
+
+    // Delete rule (matches household-sharing docs): the creator can always
+    // delete; the household admin can also delete household visions.
+    let canDelete = vision.user_id === user.id
+    if (!canDelete && vision.household_id) {
+      const { data: isAdmin } = await supabase
+        .rpc('is_household_admin', { h: vision.household_id, u: user.id })
+      canDelete = !!isAdmin
+    }
+
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: 'Only the creator (or the household admin, for household visions) can delete this vision' },
+        { status: 403 }
+      )
     }
 
     // Use admin client to bypass RLS recursion issues
@@ -380,7 +417,6 @@ export async function DELETE(request: NextRequest) {
       .from('vision_versions')
       .delete()
       .eq('id', visionId)
-      .eq('user_id', user.id)
 
     if (deleteError) {
       console.error('Vision delete error:', deleteError)

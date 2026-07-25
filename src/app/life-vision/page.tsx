@@ -25,7 +25,7 @@ function useHubPreviewFlags() {
 
 export default function VisionListPage() {
   const router = useRouter()
-  const { visions, loading, activeVisionId } = useLifeVisionStudio()
+  const { visions, loading, activeVisionId, householdActiveVisionId } = useLifeVisionStudio()
   const redirected = useRef(false)
   const { allowPreview, previewEmpty, previewDebug, skipRedirect } = useHubPreviewFlags()
 
@@ -33,22 +33,27 @@ export default function VisionListPage() {
     if (skipRedirect) return
     if (loading || redirected.current) return
 
-    if (activeVisionId) {
+    // Actives first: personal ("Life I Choose"), then household ("Life We
+    // Choose") — an active household vision is a first-class active, not a
+    // fallback (after a household commit it may be the user's only active).
+    const activeId = activeVisionId || householdActiveVisionId
+    if (activeId) {
       redirected.current = true
-      router.replace(`/life-vision/${activeVisionId}`)
+      router.replace(`/life-vision/${activeId}`)
       return
     }
 
-    // Prefer the user's own personal vision; fall back to a household vision
-    // they participate in. A partner's shared personal vision never hijacks
-    // the redirect - without a vision of their own, users see the create CTA.
+    // No active anywhere: prefer the user's own personal vision, then any
+    // household vision they participate in. A partner's shared personal
+    // vision never hijacks the redirect - without a vision of their own,
+    // users see the create CTA.
     const firstVision = visions.find(v => !v.is_draft && v.is_mine && !v.is_household)
       || visions.find(v => !v.is_draft && v.is_household)
     if (firstVision?.id) {
       redirected.current = true
       router.replace(`/life-vision/${firstVision.id}`)
     }
-  }, [loading, activeVisionId, visions, router, skipRedirect])
+  }, [loading, activeVisionId, householdActiveVisionId, visions, router, skipRedirect])
 
   const showSpinner =
     !skipRedirect && (loading || activeVisionId || visions.some(v => !v.is_draft && (v.is_mine || v.is_household)))

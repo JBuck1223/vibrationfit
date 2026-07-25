@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/meta-refresh-tokens",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/sync-provider-costs",
+      "schedule": "30 6 * * *"
     }
   ],
   "functions": {
@@ -50,6 +54,9 @@
     "src/app/api/cron/auto-transcribe/route.ts": {
       "maxDuration": 300,
       "memory": 1024
+    },
+    "src/app/api/cron/sync-provider-costs/route.ts": {
+      "maxDuration": 300
     },
     "src/app/api/upload/route.ts": {
       "maxDuration": 300,

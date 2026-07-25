@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
-import OpenAI from 'openai'
+import { gatewayClient } from '@/lib/ai/gateway'
 import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildCategorySummaryPrompt, CATEGORY_SUMMARY_SYSTEM_PROMPT } from '@/lib/viva/prompts/category-summary-prompt'
 import { getCategoryStateField } from '@/lib/design-system/vision-categories'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 function getCategoryProfileFields(category: string, profile: any): string {
   if (!profile) return ''
@@ -169,9 +165,10 @@ export async function POST(request: NextRequest) {
           { role: 'user' as const, content: prompt }
         ]
         const openaiParams = buildOpenAIParams(toolConfig, messages)
+        // Route through the Vercel AI Gateway for exact per-request billing
+        openaiParams.model = `openai/${toolConfig.model_name}`
 
-        // Call OpenAI
-        const completion = await openai.chat.completions.create(openaiParams)
+        const completion = await gatewayClient.chat.completions.create(openaiParams)
 
         const summary = completion.choices[0]?.message?.content
 
@@ -190,6 +187,8 @@ export async function POST(request: NextRequest) {
               input_tokens: completion.usage.prompt_tokens || 0,
               output_tokens: completion.usage.completion_tokens || 0,
               actual_cost_cents: 0,
+              provider: 'vercel_gateway',
+              provider_request_id: completion.id,
               openai_request_id: completion.id,
               openai_created: completion.created,
               system_fingerprint: completion.system_fingerprint,

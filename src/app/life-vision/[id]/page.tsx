@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, Gem, Eye, FileText, ArrowUp, Headphones, Moon, Zap, Music, Mic } from 'lucide-react'
+import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, Gem, Eye, FileText, ArrowUp, Headphones, Moon, Zap, Music, Mic, Users } from 'lucide-react'
 import { commitDraft, getRefinedCategories } from '@/lib/life-vision/draft-helpers'
 import { 
   Button, 
@@ -114,6 +114,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [versionToolbarLoading, setVersionToolbarLoading] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [householdCtx, setHouseholdCtx] = useState<{
+    isAdmin: boolean
+    memberMap: Record<string, { displayName: string; isSelf: boolean }>
+  } | null>(null)
 
   // Card-based view functions
   const handleCategoryToggle = (categoryKey: string) => {
@@ -446,6 +451,21 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
         setVision(vision)
         setCompletionPercentage(actualCompletion)
+        setCurrentUserId(user.id)
+
+        // Household context (admin flag + member names) is only needed for
+        // household visions and partner visions shared with me.
+        if (vision.household_id || vision.user_id !== user.id) {
+          try {
+            const ctxRes = await fetch('/api/household/context')
+            if (ctxRes.ok) {
+              const ctxJson = await ctxRes.json()
+              if (isMounted) setHouseholdCtx(ctxJson.household || null)
+            }
+          } catch {
+            // attribution/admin extras only - page works without them
+          }
+        }
 
         // Fetch user profile for PDF generation
         const { data: profile } = await supabase
@@ -880,9 +900,31 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
   const displayStatus = getDisplayStatus()
 
+  // A partner's personal vision visible via share-all (not mine, not household)
+  const isSharedWithMe = !!currentUserId && vision.user_id !== currentUserId && !vision.household_id
+  const sharedOwnerName = isSharedWithMe
+    ? householdCtx?.memberMap?.[vision.user_id]?.displayName ?? null
+    : null
+
+  // Delete rule (matches the API): creator always; household admin for household visions
+  const canDelete = !!currentUserId && (
+    vision.user_id === currentUserId ||
+    (!!vision.household_id && !!householdCtx?.isAdmin)
+  )
+
   return (
     <div className="pb-6">
       <Stack gap="md">
+        {isSharedWithMe && (
+          <Container size="xl">
+            <div className="flex justify-center">
+              <span className="inline-flex items-center gap-1.5 text-xs text-[#00FFFF] bg-[#00FFFF]/10 px-3 py-1 rounded-full">
+                <Users className="w-3 h-3" />
+                {sharedOwnerName ? `${sharedOwnerName}'s vision - shared with you` : 'Shared with you'}
+              </span>
+            </div>
+          </Container>
+        )}
         {displayStatus === 'draft' && vision && (
           <Container size="xl">
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -1043,8 +1085,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           </div>
         )}
 
-        {/* Navigation — full delete hidden for drafts (VersionActionToolbar includes Delete Draft) */}
-        {displayStatus !== 'draft' && (
+        {/* Navigation — full delete hidden for drafts (VersionActionToolbar includes
+            Delete Draft) and for viewers who can't delete (non-creators, except the
+            household admin on household visions) */}
+        {displayStatus !== 'draft' && canDelete && (
           <div className="text-center space-y-4">
             <div>
               <Button

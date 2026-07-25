@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { streamText } from 'ai'
 import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
-import { gateway } from '@/lib/ai/gateway'
+import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { buildIndividualCategoryPrompt } from '@/lib/viva/prompts/single-category-vision-prompt'
 import {
   buildImaginationStarterPrompt,
@@ -130,6 +131,22 @@ export async function POST(request: NextRequest) {
       system: systemPrompt,
       prompt,
       temperature: 0.8,
+      onFinish: async (event) => {
+        // Cost ledger: admin test tool — cost-tracking only.
+        await trackTokenUsage({
+          user_id: auth.user.id,
+          action_type: 'admin_tool',
+          model_used: modelName,
+          tokens_used: event.usage?.totalTokens || 0,
+          input_tokens: event.usage?.inputTokens || 0,
+          output_tokens: event.usage?.outputTokens || 0,
+          provider: 'vercel_gateway',
+          provider_request_id: gatewayGenerationId(event),
+          billable: false,
+          success: true,
+          metadata: { tool: 'vision_test', test_user_id: userId, category: categoryKey, prompt_type: promptType },
+        }).catch(() => {})
+      },
     })
 
     return new Response(result.textStream, {

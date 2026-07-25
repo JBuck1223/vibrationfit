@@ -37,7 +37,8 @@ export async function POST(req: Request) {
     // Extract new memories
     const { memories, shouldGenerateCoachingCard } = await extractMemories(
       messages,
-      existingContent
+      existingContent,
+      user.id
     )
 
     // Save extracted memories

@@ -159,10 +159,15 @@ Return ONLY the revised narrative text. No explanations, no headings, no comment
         let fullText = ''
         let streamUsage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null
         let actualModel: string | null = null
+        let generationId: string | null = null
 
         for await (const chunk of completion) {
           if (!actualModel && chunk.model) {
             actualModel = chunk.model
+          }
+          if (!generationId && chunk.id) {
+            // Gateway generation id (chat completion id) for cost reconciliation
+            generationId = chunk.id
           }
           const content = chunk.choices[0]?.delta?.content
           if (content) {
@@ -188,6 +193,8 @@ Return ONLY the revised narrative text. No explanations, no headings, no comment
           actual_cost_cents: 0,
           input_tokens: inputTokens,
           output_tokens: outputTokens,
+          provider: 'vercel_gateway',
+          provider_request_id: generationId || undefined,
           success: true,
           metadata: {
             story_id: storyId,

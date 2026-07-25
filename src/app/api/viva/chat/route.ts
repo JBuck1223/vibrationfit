@@ -2,7 +2,7 @@
 // Streaming AI chat endpoint with OpenAI
 
 import { streamText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildVivaSystemPrompt } from '@/lib/viva/prompts/chat-system-prompt'
@@ -501,7 +501,8 @@ export async function POST(req: Request) {
 
     // Build streamText params - don't include messages if we have a prompt
     const streamParams: any = {
-      model: openai(MODEL),
+      // Routed through the Vercel AI Gateway for exact per-request billing
+      model: gateway(`openai/${MODEL}`),
       system: systemPrompt,
       temperature: 0.8,
     }
@@ -574,6 +575,8 @@ export async function POST(req: Request) {
               input_tokens: usage.inputTokens || 0,
               output_tokens: usage.outputTokens || 0,
               actual_cost_cents: 0,
+              provider: 'vercel_gateway',
+              provider_request_id: aiResponse?.id,
               openai_request_id: aiResponse?.id,
               success: true,
               metadata: {

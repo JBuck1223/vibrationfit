@@ -1,7 +1,9 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useContext, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { keys } from '@/lib/query/keys'
 
 interface JournalEntry {
   id: string
@@ -26,34 +28,33 @@ export function useJournalStudio() {
   return ctx
 }
 
+async function fetchEntries(): Promise<JournalEntry[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return []
+
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('id, title, date, categories, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+  return data
+}
+
 export function JournalStudioProvider({ children }: { children: React.ReactNode }) {
-  const [entries, setEntries] = useState<JournalEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
-  const loadEntries = useCallback(async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) {
-      setLoading(false)
-      return
-    }
+  const { data: entries = [], isLoading: loading } = useQuery({
+    queryKey: keys.journalEntries,
+    queryFn: fetchEntries,
+  })
 
-    const { data, error } = await supabase
-      .from('journal_entries')
-      .select('id, title, date, categories, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-
-    if (!error && data) {
-      setEntries(data)
-    }
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    loadEntries()
-  }, [loadEntries])
+  const refreshEntries = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.journalEntries })
+  }, [queryClient])
 
   return (
     <JournalStudioContext.Provider
@@ -61,7 +62,7 @@ export function JournalStudioProvider({ children }: { children: React.ReactNode 
         entries,
         loading,
         entryCount: entries.length,
-        refreshEntries: loadEntries,
+        refreshEntries,
       }}
     >
       {children}

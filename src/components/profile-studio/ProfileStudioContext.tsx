@@ -1,6 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useContext, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { keys } from '@/lib/query/keys'
 
 interface ProfileVersion {
   id: string
@@ -35,28 +37,29 @@ export function useProfileStudio() {
   return ctx
 }
 
+async function fetchVersions(): Promise<ProfileVersion[]> {
+  try {
+    const response = await fetch('/api/profile?includeVersions=true')
+    // Silently return empty - user may not be logged in
+    if (!response.ok) return []
+    const data = await response.json()
+    return data.versions || []
+  } catch {
+    return []
+  }
+}
+
 export function ProfileStudioProvider({ children }: { children: React.ReactNode }) {
-  const [versions, setVersions] = useState<ProfileVersion[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
-  const loadVersions = useCallback(async () => {
-    try {
-      const response = await fetch('/api/profile?includeVersions=true')
-      if (!response.ok) {
-        setLoading(false)
-        return
-      }
-      const data = await response.json()
-      setVersions(data.versions || [])
-    } catch {
-      // Silently fail - user may not be logged in
-    }
-    setLoading(false)
-  }, [])
+  const { data: versions = [], isLoading: loading } = useQuery({
+    queryKey: keys.profileVersions,
+    queryFn: fetchVersions,
+  })
 
-  useEffect(() => {
-    loadVersions()
-  }, [loadVersions])
+  const refreshVersions = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.profile })
+  }, [queryClient])
 
   const activeProfile = versions.find(v => v.is_active && !v.is_draft)
   const activeProfileId = activeProfile?.id ?? null
@@ -83,7 +86,7 @@ export function ProfileStudioProvider({ children }: { children: React.ReactNode 
         draftParentId,
         draftParentVersion,
         draftCreatedAt,
-        refreshVersions: loadVersions,
+        refreshVersions,
       }}
     >
       {children}

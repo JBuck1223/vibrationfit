@@ -216,6 +216,28 @@ The `<Video>` component from the design system **automatically derives** the thu
 
 ---
 
+## 🔄 Data Fetching & Cache Invalidation (CRITICAL)
+
+The app uses **TanStack Query** as the single client-side cache, with automatic
+invalidation via Supabase Realtime (`src/components/RealtimeInvalidationBridge.tsx`).
+
+**For NEW client-side data fetching:**
+1. ✅ Use `useQuery` with a key from `src/lib/query/keys.ts` (add new keys there — never inline ad-hoc keys for shared entities)
+2. ✅ Scope child keys under a registry prefix (e.g. `[...keys.stories, 'with-audio']`) so table-level invalidation covers them
+3. ✅ After mutations, call `queryClient.invalidateQueries({ queryKey: keys.X })` for instant updates (Realtime is the backstop, not the primary path)
+4. ❌ NEVER use `useEffect` + `useState` fetch-on-mount for shared entity data
+5. ❌ NEVER add manual refresh wiring (window events, prop-drilled callbacks) — invalidate the query key instead
+
+**When adding a new core table** that client queries depend on:
+1. Map it in `TABLE_TO_KEYS` in `src/lib/query/keys.ts`
+2. Add it to the `supabase_realtime` publication via migration (`ALTER PUBLICATION supabase_realtime ADD TABLE public.<table>`)
+
+**Studio contexts** (`LifeVisionStudioContext`, `JournalStudioContext`, etc.) are
+query-backed; their `refresh*()` functions invalidate query keys. Keep their
+public APIs stable.
+
+---
+
 ## Code & Component Rules
 
 ### NO EMOJIS IN CODE

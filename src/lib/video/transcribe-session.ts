@@ -9,8 +9,36 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { fal } from '@fal-ai/client'
 import OpenAI from 'openai'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+/**
+ * Record a GPT key-points extraction in the cost ledger.
+ * System-attributed (no acting member) and cost-tracking only.
+ */
+function trackKeyPointsUsage(
+  completion: OpenAI.Chat.Completions.ChatCompletion,
+  sessionId: string,
+  helper: string,
+  supabase: ReturnType<typeof createServiceClient>
+): void {
+  const usage = completion.usage
+  if (!usage) return
+  trackTokenUsage({
+    user_id: null,
+    action_type: 'background_processing',
+    model_used: completion.model || 'gpt-4o',
+    tokens_used: usage.total_tokens,
+    input_tokens: usage.prompt_tokens,
+    output_tokens: usage.completion_tokens,
+    provider: 'openai',
+    billable: false,
+    openai_request_id: completion.id,
+    success: true,
+    metadata: { helper, session_id: sessionId },
+  }, supabase).catch(() => {})
+}
 
 interface WhisperChunk {
   text: string
@@ -196,6 +224,8 @@ Rules:
       response_format: { type: 'json_object' },
     })
 
+    trackKeyPointsUsage(completion, sessionId, 'regenerate_key_points', supabase)
+
     const raw = completion.choices[0]?.message?.content
     if (raw) {
       keyPoints = JSON.parse(raw)
@@ -292,6 +322,22 @@ export async function transcribeSession(
 
   console.log(`[transcribe-session] Whisper complete: ${whisperResult.text.split(' ').length} words, ${whisperResult.chunks?.length || 0} segments`)
 
+  // Cost ledger: fal Whisper is priced per audio minute. Duration comes from
+  // the final chunk's end timestamp. System-attributed, cost-tracking only.
+  const lastChunk = whisperResult.chunks?.[whisperResult.chunks.length - 1]
+  const audioSeconds = lastChunk?.timestamp?.[1] || 0
+  trackTokenUsage({
+    user_id: null,
+    action_type: 'transcription',
+    model_used: 'fal-ai/whisper',
+    tokens_used: 0,
+    audio_seconds: audioSeconds,
+    provider: 'fal',
+    billable: false,
+    success: true,
+    metadata: { helper: 'transcribe_session', session_id: sessionId, segments: whisperResult.chunks?.length || 0 },
+  }, supabase).catch(() => {})
+
   // Step 2: Extract key points with timestamps via GPT-4o
   let keyPoints: TranscriptKeyPoints | null = null
 
@@ -350,6 +396,8 @@ Rules:
       ],
       response_format: { type: 'json_object' },
     })
+
+    trackKeyPointsUsage(completion, sessionId, 'transcribe_session_key_points', supabase)
 
     const raw = completion.choices[0]?.message?.content
     if (raw) {

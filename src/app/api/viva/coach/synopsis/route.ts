@@ -9,8 +9,8 @@
  * GET: Fetch existing synopsis for a conversation
  */
 
-import { openai } from '@ai-sdk/openai'
 import { generateText } from 'ai'
+import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 
@@ -103,9 +103,9 @@ export async function POST(req: Request) {
       .map(msg => `${msg.role === 'user' ? 'MEMBER' : 'VIVA'}: ${msg.message}`)
       .join('\n\n')
 
-    // Generate synopsis
+    // Generate synopsis (via the Vercel AI Gateway for exact per-request billing)
     const result = await generateText({
-      model: openai(MODEL),
+      model: gateway(`openai/${MODEL}`),
       system: SYNOPSIS_PROMPT,
       prompt: conversationText,
       temperature: 0.6,
@@ -162,6 +162,8 @@ export async function POST(req: Request) {
         input_tokens: usage.inputTokens || 0,
         output_tokens: usage.outputTokens || 0,
         actual_cost_cents: 0,
+        provider: 'vercel_gateway',
+        provider_request_id: gatewayGenerationId(result),
         success: true,
         metadata: { conversationId, type: 'coach_synopsis' },
       })

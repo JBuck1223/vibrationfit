@@ -24,15 +24,15 @@ export async function PATCH(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Verify draft exists and user owns it
+    // Verify draft exists and the user may edit it: their own drafts plus
+    // household drafts (RLS lets active household members update those).
     const { data: draft, error: draftError } = await supabase
       .from('vision_versions')
-      .select('id, user_id, is_draft, is_active')
+      .select('id, user_id, household_id, is_draft, is_active')
       .eq('id', draftId)
-      .eq('user_id', user.id)
       .single()
 
-    if (draftError || !draft) {
+    if (draftError || !draft || (draft.user_id !== user.id && !draft.household_id)) {
       return NextResponse.json({ 
         error: 'Draft not found or access denied' 
       }, { status: 404 })

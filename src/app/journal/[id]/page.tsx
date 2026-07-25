@@ -11,6 +11,7 @@ import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { useJournalStudio } from '@/components/journal-studio'
 
 interface JournalEntry {
   id: string
@@ -28,6 +29,7 @@ interface JournalEntry {
 
 export default function JournalEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const { refreshEntries } = useJournalStudio()
   const [entry, setEntry] = useState<JournalEntry | null>(null)
   const [loading, setLoading] = useState(true)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -342,7 +344,8 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
         return
       }
 
-      // Navigate back to journal list
+      // Keep the area bar entry list in sync, then navigate back
+      await refreshEntries()
       router.push('/journal')
     } catch (error) {
       console.error('Error deleting journal entry:', error)

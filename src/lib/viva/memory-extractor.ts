@@ -18,8 +18,9 @@
  */
 
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 export interface MemoryItem {
   type: 'preference' | 'pattern' | 'trigger' | 'desire' | 'voice_style' | 'life_context' | 'coaching_note'
@@ -76,7 +77,8 @@ No markdown fences. JSON only.`
  */
 export async function extractMemories(
   messages: { role: string; content: string }[],
-  existingMemories?: string[]
+  existingMemories?: string[],
+  userId?: string
 ): Promise<MemoryExtractionResult> {
   try {
     // Format conversation
@@ -91,11 +93,29 @@ export async function extractMemories(
     }
 
     const result = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: gateway('openai/gpt-4o-mini'),
       system: MEMORY_EXTRACTION_PROMPT,
       prompt: `${contextNote}Conversation:\n\n${conversationText}`,
       temperature: 0.2,
     })
+
+    // Cost ledger: background helper call — cost-tracking only, never
+    // deducts member tokens. Fire-and-forget so it doesn't add latency.
+    if (result.usage?.totalTokens) {
+      trackTokenUsage({
+        user_id: userId ?? null,
+        action_type: 'background_processing',
+        model_used: 'gpt-4o-mini',
+        tokens_used: result.usage.totalTokens,
+        input_tokens: result.usage.inputTokens || 0,
+        output_tokens: result.usage.outputTokens || 0,
+        provider: 'vercel_gateway',
+        provider_request_id: gatewayGenerationId(result),
+        billable: false,
+        success: true,
+        metadata: { helper: 'memory_extractor' },
+      }).catch(() => {})
+    }
 
     const cleaned = result.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const parsed = JSON.parse(cleaned)

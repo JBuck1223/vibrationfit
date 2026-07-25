@@ -23,6 +23,7 @@ import {
   IntensiveStepCompleteModal
 } from '@/lib/design-system/components'
 import { useLifeVisionStudioAreaChrome } from '@/components/life-vision-studio/useLifeVisionStudioAreaChrome'
+import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 import { VersionActionToolbar } from '@/components/VersionActionToolbar'
 import { VisionCategoryCard } from '../../components/VisionCategoryCard'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -74,6 +75,7 @@ function calculateCompletionPercentage(vision: VisionData) {
 export default function VisionDraftPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const supabase = createClient()
+  const { refreshVisions } = useLifeVisionStudio()
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -144,7 +146,10 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
 
     try {
       const committedVision = await commitDraft(draftVision.id)
-      
+
+      // Update the studio context so the area bar reflects the new active vision
+      await refreshVisions()
+
       // Navigate to the new active vision
       router.push(`/life-vision/${committedVision.id}`)
     } catch (err) {
@@ -185,6 +190,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       }
 
       console.log('Draft deleted successfully')
+      await refreshVisions()
       // Navigate back to appropriate page (household or personal)
       if (draftVision.household_id) {
         router.push('/life-vision/household')
@@ -418,8 +424,10 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
         return
       }
 
+      // Update the studio context so the area bar knows about the new draft
+      await refreshVisions()
+
       // Navigate directly to the draft page to avoid redirect bounce
-      // No need to refresh since we're navigating away
       router.push(`/life-vision/${newVersion.id}/draft`)
       // Don't set isCloning(false) - keep loading overlay visible during navigation
     } catch (error) {

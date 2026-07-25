@@ -113,15 +113,15 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        // Verify vision ownership
+        // Verify access: own visions and household visions may be refined —
+        // not a personal vision another member merely shared with you.
         const { data: vision } = await supabase
           .from("vision_versions")
           .select("*")
           .eq("id", visionId)
-          .eq("user_id", user.id)
           .single();
 
-        if (!vision) {
+        if (!vision || (vision.user_id !== user.id && !vision.household_id)) {
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ error: "Vision not found or access denied" })}\n\n`
@@ -226,10 +226,15 @@ export async function POST(req: NextRequest) {
         let fullText = '';
         let streamUsage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
         let actualModel: string | null = null;
+        let generationId: string | null = null;
 
         for await (const chunk of completion) {
           if (!actualModel && chunk.model) {
             actualModel = chunk.model;
+          }
+          if (!generationId && chunk.id) {
+            // Gateway generation id (chat completion id) for cost reconciliation
+            generationId = chunk.id;
           }
           const content = chunk.choices[0]?.delta?.content;
           if (content) {
@@ -255,6 +260,8 @@ export async function POST(req: NextRequest) {
           actual_cost_cents: 0,
           input_tokens: inputTokens,
           output_tokens: outputTokens,
+          provider: 'vercel_gateway',
+          provider_request_id: generationId || undefined,
           success: true,
           metadata: {
             streaming: true,

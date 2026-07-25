@@ -22,17 +22,17 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing draftId or visionData' }, { status: 400 })
     }
 
-    // Verify the draft belongs to the user
+    // Verify the user may edit this draft: their own drafts plus household
+    // drafts (RLS lets active household members update those).
     const { data: existingDraft, error: fetchError } = await supabase
       .from('vision_versions')
       .select('*')
       .eq('id', draftId)
-      .eq('user_id', user.id)
       .eq('is_draft', true)
       .eq('is_active', false)
       .single()
 
-    if (fetchError || !existingDraft) {
+    if (fetchError || !existingDraft || (existingDraft.user_id !== user.id && !existingDraft.household_id)) {
       return NextResponse.json({ error: 'Draft not found or access denied' }, { status: 404 })
     }
 

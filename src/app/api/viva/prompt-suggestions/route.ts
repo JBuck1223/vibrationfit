@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
-import OpenAI from 'openai'
+import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { ellipsize, flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
 import { buildPromptSuggestionsPrompt } from '@/lib/viva/prompts/prompt-suggestions-prompt'
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 export async function POST(request: NextRequest) {
   try {
@@ -139,8 +137,10 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: prompt }
     ]
     const openaiParams = buildOpenAIParams(toolConfig, messages)
+    // Route through the Vercel AI Gateway for exact per-request billing
+    openaiParams.model = `openai/${toolConfig.model_name}`
 
-    const completion = await openai.chat.completions.create(openaiParams)
+    const completion = await gatewayClient.chat.completions.create(openaiParams)
 
     const responseText = completion.choices[0]?.message?.content
     if (!responseText) {
@@ -171,7 +171,8 @@ export async function POST(request: NextRequest) {
           input_tokens: completion.usage.prompt_tokens || 0,
           output_tokens: completion.usage.completion_tokens || 0,
           actual_cost_cents: 0, // Will be calculated by trackTokenUsage
-          // OpenAI reconciliation fields
+          provider: 'vercel_gateway',
+          provider_request_id: completion.id,
           openai_request_id: completion.id,
           openai_created: completion.created,
           system_fingerprint: completion.system_fingerprint,

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, Stack, IntensiveStepCompleteModal } from '@/lib/design-system'
 import { JournalSuccessScreen } from '@/components/JournalSuccessScreen'
 import { NewJournalEntryForm } from '@/components/journal/NewJournalEntryForm'
+import { useJournalStudio } from '@/components/journal-studio'
 import { createClient } from '@/lib/supabase/client'
 
 export default function NewJournalEntryPage() {
@@ -12,6 +13,7 @@ export default function NewJournalEntryPage() {
   const searchParams = useSearchParams()
   const isIntensiveUrlParam = searchParams.get('intensive') === 'true'
   const supabase = createClient()
+  const { refreshEntries } = useJournalStudio()
 
   const [showSuccess, setShowSuccess] = useState(false)
   const [savedTitle, setSavedTitle] = useState('')
@@ -57,6 +59,8 @@ export default function NewJournalEntryPage() {
 
   const handleSuccess = async (_entryId: string, meta?: { title: string }) => {
     if (meta?.title) setSavedTitle(meta.title)
+    // Update the studio context so the area bar entry list includes the new entry
+    void refreshEntries()
     if (isUserInIntensive) {
       const { markIntensiveStep } = await import('@/lib/intensive/checklist')
       await markIntensiveStep('first_journal_entry')

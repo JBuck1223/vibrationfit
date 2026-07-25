@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { gateway } from '@/lib/ai/gateway'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { 
@@ -101,9 +101,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`[FocusSuggest] Using model ${toolConfig.model_name}`)
 
-    // Generate highlights
+    // Generate highlights (via the Vercel AI Gateway for exact per-request billing)
     const result = await generateText({
-      model: openai(toolConfig.model_name),
+      model: gateway(`openai/${toolConfig.model_name}`),
       prompt: prompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.7) : undefined,
     })
@@ -154,6 +154,8 @@ export async function POST(request: NextRequest) {
         input_tokens: result.usage.inputTokens || 0,
         output_tokens: result.usage.outputTokens || 0,
         actual_cost_cents: 0,
+        provider: 'vercel_gateway',
+        provider_request_id: result.response?.id,
         openai_request_id: result.response?.id,
         success: true,
         metadata: {

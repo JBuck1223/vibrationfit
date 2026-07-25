@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,6 +63,20 @@ export async function POST(request: NextRequest) {
 
     const result = await elevenLabsResponse.json()
     console.log('[Voice Clone] Success! Voice ID:', result.voice_id)
+
+    // Cost ledger: ElevenLabs voice cloning is subscription-included but
+    // tracked for the audit trail (no per-call charge).
+    trackTokenUsage({
+      user_id: user.id,
+      action_type: 'voice_profile_analysis',
+      model_used: 'elevenlabs-voice-clone',
+      tokens_used: 0,
+      provider: 'elevenlabs',
+      provider_request_id: result.voice_id,
+      billable: false,
+      success: true,
+      metadata: { tool: 'clone_voice', voice_name: voiceName },
+    }).catch(() => {})
 
     return NextResponse.json({
       voiceId: result.voice_id,

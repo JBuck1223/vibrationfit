@@ -3,13 +3,13 @@
 import React, {
   createContext,
   useContext,
-  useEffect,
-  useRef,
   useState,
   useCallback,
   useMemo,
 } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { keys } from '@/lib/query/keys'
 import {
   partitionCommitments,
   groupSystemByPillar,
@@ -80,83 +80,195 @@ export function useMapStudio() {
   return ctx
 }
 
+// Child keys under the registry prefixes so table-level invalidation
+// (e.g. commitments changed) refetches them automatically.
+const selectableDatesKey = [...keys.commitments, 'selectable-dates'] as const
+const planKey = (date: string) => [...keys.commitments, 'plan', date] as const
+const occurrenceSummaryKey = [...keys.commitmentOccurrences, 'summary'] as const
+const dateOccurrencesKey = (date: string) => [...keys.commitmentOccurrences, 'date', date] as const
+
+async function fetchMaps(): Promise<UserMap[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return []
+
+  const { data } = await supabase
+    .from('user_maps')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .order('version_number', { ascending: false })
+
+  return data ?? []
+}
+
+async function fetchTargets(): Promise<VisionTarget[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return []
+
+  const { data } = await supabase
+    .from('vision_targets')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .order('created_at', { ascending: false })
+
+  return data ?? []
+}
+
+async function fetchCommitments(): Promise<Commitment[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return []
+
+  const { data } = await supabase
+    .from('commitments')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .eq('status', 'active')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  return data ?? []
+}
+
+async function fetchSelectableDates(): Promise<string[]> {
+  const res = await fetch('/api/map/selectable-dates')
+  if (!res.ok) return []
+  const data = await res.json()
+  return (data.dates || []) as string[]
+}
+
+interface OccurrenceSummary {
+  today: CommitmentOccurrence[]
+  recent: CommitmentOccurrence[]
+}
+
+async function fetchOccurrenceSummary(): Promise<OccurrenceSummary> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user) return { today: [], recent: [] }
+
+  const today = todayDateString()
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const thirtyDaysAgoStr = toDateString(thirtyDaysAgo)
+
+  const [todayResult, recentResult] = await Promise.all([
+    supabase
+      .from('commitment_occurrences')
+      .select('*, commitment:commitments(*)')
+      .eq('user_id', session.user.id)
+      .eq('occurred_on', today)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('commitment_occurrences')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .gte('occurred_on', thirtyDaysAgoStr)
+      .order('occurred_on', { ascending: false }),
+  ])
+
+  return {
+    today: todayResult.data ?? [],
+    recent: recentResult.data ?? [],
+  }
+}
+
+interface PlanSnapshot {
+  plan: Commitment[]
+  earliestDate: string | null
+}
+
 export function MapStudioProvider({ children }: { children: React.ReactNode }) {
-  const [maps, setMaps] = useState<UserMap[]>([])
-  const [targets, setTargets] = useState<VisionTarget[]>([])
-  const [commitments, setCommitments] = useState<Commitment[]>([])
-  const commitmentsRef = useRef<Commitment[]>([])
-  const [planCommitments, setPlanCommitments] = useState<Commitment[]>([])
-  const [planSnapshotLoading, setPlanSnapshotLoading] = useState(false)
-  const [earliestPlanDate, setEarliestPlanDate] = useState<string | null>(null)
-  const [selectablePlanDates, setSelectablePlanDates] = useState<ReadonlySet<string>>(new Set())
-  const [todayOccurrences, setTodayOccurrences] = useState<CommitmentOccurrence[]>([])
-  const [dateOccurrences, setDateOccurrences] = useState<CommitmentOccurrence[]>([])
-  const [recentOccurrences, setRecentOccurrences] = useState<CommitmentOccurrence[]>([])
-  const [commitmentStats, setCommitmentStats] = useState<Map<string, CommitmentStats>>(new Map())
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+
   const [selectedDate, setSelectedDateState] = useState(todayDateString)
   const [viewMode, setViewModeState] = useState<MapViewMode>('day')
 
-  const loadMaps = useCallback(async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) return
+  const { data: maps = [], isLoading: mapsLoading } = useQuery({
+    queryKey: keys.maps,
+    queryFn: fetchMaps,
+  })
 
-    const { data } = await supabase
-      .from('user_maps')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('version_number', { ascending: false })
+  const { data: targets = [], isLoading: targetsLoading } = useQuery({
+    queryKey: keys.mapTargets,
+    queryFn: fetchTargets,
+  })
 
-    if (data) setMaps(data)
-  }, [])
+  const { data: commitments = [], isLoading: commitmentsLoading } = useQuery({
+    queryKey: keys.commitments,
+    queryFn: fetchCommitments,
+  })
 
-  const loadTargets = useCallback(async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) return
+  const { data: selectableDates = [] } = useQuery({
+    queryKey: selectableDatesKey,
+    queryFn: fetchSelectableDates,
+  })
 
-    const { data } = await supabase
-      .from('vision_targets')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
+  const { data: occurrenceSummary, isLoading: occurrencesLoading } = useQuery({
+    queryKey: occurrenceSummaryKey,
+    queryFn: fetchOccurrenceSummary,
+  })
 
-    if (data) setTargets(data)
-  }, [])
+  const loading = mapsLoading || targetsLoading || commitmentsLoading || occurrencesLoading
 
-  const loadSelectablePlanDates = useCallback(async () => {
-    const res = await fetch('/api/map/selectable-dates')
-    if (!res.ok) return
-    const data = await res.json()
-    const dates = (data.dates || []) as string[]
-    setSelectablePlanDates(new Set(dates))
-    if (dates.length > 0) {
-      setEarliestPlanDate(dates[0])
-    } else {
-      setEarliestPlanDate(null)
-    }
-  }, [])
+  const todayStr = todayDateString()
+  const isHistoricalPlan = selectedDate < todayStr
 
-  const loadCommitments = useCallback(async (): Promise<Commitment[]> => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) return []
+  // Occurrences for the selected date: the server generates any missing rows
+  // ("ensure") before we read them back.
+  const { data: dateOccurrencesData } = useQuery({
+    queryKey: dateOccurrencesKey(selectedDate),
+    queryFn: async () => {
+      await fetch('/api/map/occurrences/ensure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: selectedDate }),
+      })
+      const res = await fetch(`/api/map/occurrences?date=${selectedDate}`)
+      if (!res.ok) return [] as CommitmentOccurrence[]
+      const data = await res.json()
+      return (data.occurrences || []) as CommitmentOccurrence[]
+    },
+    enabled: !loading,
+  })
+  const dateOccurrences = dateOccurrencesData ?? []
 
-    const { data } = await supabase
-      .from('commitments')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .eq('status', 'active')
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: false })
+  // Historical plan snapshot; today/future dates use live active commitments.
+  const { data: planSnapshot, isFetching: planSnapshotFetching } = useQuery({
+    queryKey: planKey(selectedDate),
+    queryFn: async (): Promise<PlanSnapshot> => {
+      const res = await fetch(`/api/map/snapshot?date=${selectedDate}`)
+      if (!res.ok) return { plan: [], earliestDate: null }
+      const data = await res.json()
+      return {
+        plan: (data.plan || []) as Commitment[],
+        earliestDate: data.meta?.earliestDate ?? null,
+      }
+    },
+    enabled: !loading && isHistoricalPlan,
+  })
+  const planSnapshotLoading = isHistoricalPlan && planSnapshotFetching
 
-    const rows = data ?? []
-    setCommitments(rows)
-    commitmentsRef.current = rows
-    await loadSelectablePlanDates()
-    return rows
-  }, [loadSelectablePlanDates])
+  // Fall back to current active commitments when no historical snapshot
+  // exists — lets the user backfill past days for recently added commitments.
+  const planCommitments = isHistoricalPlan
+    ? (planSnapshot && planSnapshot.plan.length > 0 ? planSnapshot.plan : commitments)
+    : commitments
+
+  const earliestPlanDate = planSnapshot?.earliestDate ?? (selectableDates.length > 0 ? selectableDates[0] : null)
+  const selectablePlanDates = useMemo(() => new Set(selectableDates) as ReadonlySet<string>, [selectableDates])
+
+  const recentOccurrences = occurrenceSummary?.recent ?? []
+  const commitmentStats = useMemo(() => computeStats(recentOccurrences), [recentOccurrences])
+
+  // When viewing today, the date query is the freshest source (it runs the
+  // "ensure" step); otherwise fall back to the summary query.
+  const todayOccurrences = selectedDate === todayStr && dateOccurrencesData
+    ? dateOccurrencesData
+    : occurrenceSummary?.today ?? []
+
+  // --- Imperative helpers (uncached request/response) ---
 
   const loadOccurrencesForDate = useCallback(async (date: string) => {
     const res = await fetch(`/api/map/occurrences?date=${date}`)
@@ -180,47 +292,52 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  const loadOccurrences = useCallback(async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) return
+  // --- Refresh functions (cache invalidation) ---
 
-    const today = todayDateString()
+  const refreshMaps = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.maps })
+  }, [queryClient])
 
-    const { data: todayData } = await supabase
-      .from('commitment_occurrences')
-      .select('*, commitment:commitments(*)')
-      .eq('user_id', session.user.id)
-      .eq('occurred_on', today)
-      .order('created_at', { ascending: true })
+  const refreshTargets = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.mapTargets })
+  }, [queryClient])
 
-    if (todayData) setTodayOccurrences(todayData)
+  const refreshCommitments = useCallback(async (): Promise<Commitment[]> => {
+    // Prefix invalidation also refetches selectable dates and plan snapshots.
+    await queryClient.invalidateQueries({ queryKey: keys.commitments })
+    return queryClient.getQueryData<Commitment[]>(keys.commitments) ?? []
+  }, [queryClient])
 
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const thirtyDaysAgoStr = toDateString(thirtyDaysAgo)
+  const refreshOccurrences = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.commitmentOccurrences })
+  }, [queryClient])
 
-    const { data: recentData } = await supabase
-      .from('commitment_occurrences')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .gte('occurred_on', thirtyDaysAgoStr)
-      .order('occurred_on', { ascending: false })
+  const refreshAll = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.maps }),
+      queryClient.invalidateQueries({ queryKey: keys.mapTargets }),
+      queryClient.invalidateQueries({ queryKey: keys.commitments }),
+      queryClient.invalidateQueries({ queryKey: keys.commitmentOccurrences }),
+    ])
+  }, [queryClient])
 
-    if (recentData) {
-      setRecentOccurrences(recentData)
-      setCommitmentStats(computeStats(recentData))
-    }
-  }, [])
+  const refreshPlanForDate = useCallback(async (date: string) => {
+    await queryClient.invalidateQueries({ queryKey: planKey(date) })
+  }, [queryClient])
 
   const refreshDateOccurrences = useCallback(async (date: string) => {
-    await ensureOccurrencesForDateFn(date)
-    const occs = await loadOccurrencesForDate(date)
-    setDateOccurrences(occs)
-    if (date === todayDateString()) {
-      setTodayOccurrences(occs)
+    if (date === selectedDate) {
+      await queryClient.invalidateQueries({ queryKey: dateOccurrencesKey(date) })
+    } else {
+      // Not the currently viewed date: ensure + prime the cache for it.
+      await ensureOccurrencesForDateFn(date)
+      const occs = await loadOccurrencesForDate(date)
+      queryClient.setQueryData(dateOccurrencesKey(date), occs)
     }
-  }, [ensureOccurrencesForDateFn, loadOccurrencesForDate])
+    if (date === todayDateString()) {
+      await queryClient.invalidateQueries({ queryKey: occurrenceSummaryKey })
+    }
+  }, [queryClient, selectedDate, ensureOccurrencesForDateFn, loadOccurrencesForDate])
 
   const verifyOccurrence = useCallback(async (
     id: string,
@@ -233,63 +350,8 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ id, status, note }),
     })
     if (!res.ok) throw new Error('Failed to verify')
-    await refreshDateOccurrences(selectedDate)
-    await loadOccurrences()
-  }, [selectedDate, refreshDateOccurrences, loadOccurrences])
-
-  const refreshPlanForDate = useCallback(async (date: string) => {
-    const today = todayDateString()
-    if (date >= today) {
-      setPlanSnapshotLoading(false)
-      const active = await loadCommitments()
-      setPlanCommitments(active)
-      return
-    }
-
-    setPlanSnapshotLoading(true)
-    try {
-      const res = await fetch(`/api/map/snapshot?date=${date}`)
-      if (!res.ok) return
-      const data = await res.json()
-      const snapshotPlan = (data.plan || []) as Commitment[]
-      if (data.meta?.earliestDate) {
-        setEarliestPlanDate(data.meta.earliestDate)
-      }
-      // Fall back to current active commitments when no historical snapshot
-      // exists — lets the user backfill past days for recently added commitments.
-      setPlanCommitments(snapshotPlan.length > 0 ? snapshotPlan : commitmentsRef.current)
-    } finally {
-      setPlanSnapshotLoading(false)
-    }
-  }, [loadCommitments])
-
-  const loadAll = useCallback(async () => {
-    setLoading(true)
-    await Promise.all([loadMaps(), loadTargets(), loadCommitments(), loadOccurrences()])
-    setLoading(false)
-  }, [loadMaps, loadTargets, loadCommitments, loadOccurrences])
-
-  const refreshAll = useCallback(async () => {
-    await loadAll()
-    await refreshDateOccurrences(selectedDate)
-  }, [loadAll, refreshDateOccurrences, selectedDate])
-
-  useEffect(() => {
-    loadAll()
-  }, [loadAll])
-
-  useEffect(() => {
-    if (loading) return
-    refreshDateOccurrences(selectedDate)
-    void refreshPlanForDate(selectedDate)
-  }, [selectedDate, loading, refreshDateOccurrences, refreshPlanForDate])
-
-  useEffect(() => {
-    const today = todayDateString()
-    if (selectedDate >= today) {
-      setPlanCommitments(commitments)
-    }
-  }, [commitments, selectedDate])
+    await queryClient.invalidateQueries({ queryKey: keys.commitmentOccurrences })
+  }, [queryClient])
 
   const setSelectedDate = useCallback((date: string) => {
     setSelectedDateState(date)
@@ -301,9 +363,6 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
 
   const activeMap = maps.find(m => m.is_active && !m.is_draft) ?? null
   const draftMap = maps.find(m => m.is_draft) ?? null
-
-  const todayStr = todayDateString()
-  const isHistoricalPlan = selectedDate < todayStr
 
   const activeCommitments = useMemo(
     () => commitments.filter(c => c.status === 'active'),
@@ -358,10 +417,10 @@ export function MapStudioProvider({ children }: { children: React.ReactNode }) {
         viewMode,
         setSelectedDate,
         setViewMode,
-        refreshMaps: loadMaps,
-        refreshTargets: loadTargets,
-        refreshCommitments: loadCommitments,
-        refreshOccurrences: loadOccurrences,
+        refreshMaps,
+        refreshTargets,
+        refreshCommitments,
+        refreshOccurrences,
         refreshAll,
         refreshPlanForDate,
         refreshDateOccurrences,

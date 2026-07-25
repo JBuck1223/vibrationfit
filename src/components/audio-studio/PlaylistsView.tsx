@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import {
   ListMusic, Plus, Trash2, Edit2, ChevronLeft, Loader2, GripVertical,
 } from 'lucide-react'
@@ -19,7 +19,9 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, Button, Spinner, DeleteConfirmationDialog, EmbeddedPlayer } from '@/lib/design-system/components'
+import { keys } from '@/lib/query/keys'
 import {
   getUserPlaylists,
   getPlaylistTracks,
@@ -102,11 +104,9 @@ function SortablePlaylistRow({
 }
 
 export function PlaylistsView() {
-  const [playlists, setPlaylists] = useState<UserPlaylist[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null)
-  const [tracks, setTracks] = useState<PlaylistTrackRow[]>([])
-  const [tracksLoading, setTracksLoading] = useState(false)
 
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
@@ -124,21 +124,24 @@ export function PlaylistsView() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
 
-  const loadPlaylists = useCallback(async () => {
-    setLoading(true)
-    const data = await getUserPlaylists()
-    setPlaylists(data)
-    setLoading(false)
-  }, [])
+  const { data: playlists = [], isLoading: loading } = useQuery({
+    queryKey: keys.playlists,
+    queryFn: getUserPlaylists,
+  })
 
-  useEffect(() => { loadPlaylists() }, [loadPlaylists])
+  const { data: tracks = [], isLoading: tracksLoading } = useQuery({
+    queryKey: keys.playlistTracks(selectedPlaylistId ?? 'none'),
+    queryFn: () => getPlaylistTracks(selectedPlaylistId!),
+    enabled: !!selectedPlaylistId,
+  })
 
-  const loadTracks = useCallback(async (playlistId: string) => {
-    setTracksLoading(true)
-    const data = await getPlaylistTracks(playlistId)
-    setTracks(data)
-    setTracksLoading(false)
-  }, [])
+  const setPlaylistsCache = useCallback((updater: (prev: UserPlaylist[]) => UserPlaylist[]) => {
+    queryClient.setQueryData<UserPlaylist[]>(keys.playlists, prev => updater(prev ?? []))
+  }, [queryClient])
+
+  const setTracksCache = useCallback((playlistId: string, updater: (prev: PlaylistTrackRow[]) => PlaylistTrackRow[]) => {
+    queryClient.setQueryData<PlaylistTrackRow[]>(keys.playlistTracks(playlistId), prev => updater(prev ?? []))
+  }, [queryClient])
 
   const selectedPlaylist = playlists.find(p => p.id === selectedPlaylistId)
 
@@ -147,7 +150,7 @@ export function PlaylistsView() {
     setCreating(true)
     const playlist = await createPlaylist(newName.trim())
     if (playlist) {
-      setPlaylists(prev => [playlist, ...prev])
+      setPlaylistsCache(prev => [playlist, ...prev])
       setShowCreate(false)
       setNewName('')
     }
@@ -159,10 +162,9 @@ export function PlaylistsView() {
     setDeleting(true)
     const ok = await deletePlaylist(deleteTarget.id)
     if (ok) {
-      setPlaylists(prev => prev.filter(p => p.id !== deleteTarget.id))
+      setPlaylistsCache(prev => prev.filter(p => p.id !== deleteTarget.id))
       if (selectedPlaylistId === deleteTarget.id) {
         setSelectedPlaylistId(null)
-        setTracks([])
       }
     }
     setDeleting(false)
@@ -174,19 +176,20 @@ export function PlaylistsView() {
     if (!name) { setEditingId(null); return }
     const ok = await renamePlaylist(id, name)
     if (ok) {
-      setPlaylists(prev => prev.map(p => p.id === id ? { ...p, name } : p))
+      setPlaylistsCache(prev => prev.map(p => p.id === id ? { ...p, name } : p))
     }
     setEditingId(null)
   }
 
   async function handleRemoveTrack(trackId: string) {
+    if (!selectedPlaylistId) return
     setRemovingTrackId(trackId)
     const ok = await removeTrackFromPlaylist(trackId)
     if (ok) {
-      setTracks(prev => prev.filter(t => t.id !== trackId))
-      setPlaylists(prev => prev.map(p => {
+      const remaining = tracks.filter(t => t.id !== trackId)
+      setTracksCache(selectedPlaylistId, prev => prev.filter(t => t.id !== trackId))
+      setPlaylistsCache(prev => prev.map(p => {
         if (p.id !== selectedPlaylistId) return p
-        const remaining = tracks.filter(t => t.id !== trackId)
         return {
           ...p,
           track_count: remaining.length,
@@ -199,7 +202,6 @@ export function PlaylistsView() {
 
   function handleSelectPlaylist(id: string) {
     setSelectedPlaylistId(id)
-    loadTracks(id)
   }
 
   const handlePlaylistDragEnd = useCallback(async (event: DragEndEvent) => {
@@ -212,11 +214,11 @@ export function PlaylistsView() {
 
     const previous = playlists
     const reordered = arrayMove(playlists, oldIndex, newIndex)
-    setPlaylists(reordered)
+    setPlaylistsCache(() => reordered)
 
     const ok = await reorderPlaylists(reordered.map(p => p.id))
-    if (!ok) setPlaylists(previous)
-  }, [playlists])
+    if (!ok) setPlaylistsCache(() => previous)
+  }, [playlists, setPlaylistsCache])
 
   const audioTracks = playlistTracksToAudioTracks(tracks)
 
@@ -236,10 +238,10 @@ export function PlaylistsView() {
     if (reorderedRows.length !== tracks.length) return
 
     const previous = tracks
-    setTracks(reorderedRows)
+    setTracksCache(selectedPlaylistId, () => reorderedRows)
     const ok = await reorderPlaylistTracks(selectedPlaylistId, reorderedRows.map(r => r.id))
-    if (!ok) setTracks(previous)
-  }, [selectedPlaylistId, tracks])
+    if (!ok) setTracksCache(selectedPlaylistId, () => previous)
+  }, [selectedPlaylistId, tracks, setTracksCache])
 
   // Detail view
   if (selectedPlaylistId && selectedPlaylist) {
@@ -248,7 +250,7 @@ export function PlaylistsView() {
         <div className="flex justify-center mb-3">
           <button
             type="button"
-            onClick={() => { setSelectedPlaylistId(null); setTracks([]) }}
+            onClick={() => setSelectedPlaylistId(null)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-neutral-300 bg-neutral-800 hover:bg-neutral-700 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -318,7 +320,7 @@ export function PlaylistsView() {
             trackCount={selectedPlaylist.track_count}
             onRename={(newName) => {
               renamePlaylist(selectedPlaylistId, newName).then(ok => {
-                if (ok) setPlaylists(prev => prev.map(p => p.id === selectedPlaylistId ? { ...p, name: newName } : p))
+                if (ok) setPlaylistsCache(prev => prev.map(p => p.id === selectedPlaylistId ? { ...p, name: newName } : p))
               })
             }}
             onDelete={() => setDeleteTarget({ id: selectedPlaylistId, name: selectedPlaylist.name })}

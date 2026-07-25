@@ -1,103 +1,75 @@
 // ============================================================================
 // Fetch Real Costs from OpenAI API
 // ============================================================================
-// Fetches actual billed costs from OpenAI and updates database
+// Uses the OpenAI Costs API (org-level daily totals) to store provider-billed
+// spend in provider_costs_daily and report variance against the token_usage
+// ledger.
+//
+// Requirements: OPENAI_ADMIN_KEY (an organization Admin API key). The regular
+// project API key returns 401 on /v1/organization/* endpoints.
+//
+// Note: OpenAI cannot attribute costs to individual requests or end users —
+// per-user attribution always comes from the token_usage ledger. This module
+// exists purely to verify the ledger against what OpenAI actually billed.
+// (The old per-row proportional scaling hack was removed: it fabricated
+// per-request "actual" costs and, post-gateway-migration, would have smeared
+// OpenAI org costs across Vercel AI Gateway rows.)
 
-interface OpenAIUsageData {
-  aggregation_timestamp: number
-  n_requests: number
-  operation: string
-  snapshot_id: string
-  n_context_tokens_total: number
-  n_generated_tokens_total: number
-  cost?: number
-}
-
-interface OpenAICostData {
-  object: string
-  data: {
-    amount: {
-      value: number
-      currency: string
-    }
-    aggregation_timestamp: number
+interface OpenAICostBucket {
+  start_time: number
+  end_time: number
+  results: {
+    amount?: { value: number; currency: string }
+    line_item?: string | null
+    project_id?: string | null
   }[]
 }
 
 /**
- * Fetch usage data from OpenAI (daily aggregated)
- */
-export async function fetchOpenAIUsageData(
-  startDate: Date,
-  endDate: Date
-): Promise<OpenAIUsageData[] | null> {
-  const apiKey = process.env.OPENAI_API_KEY
-  
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured')
-  }
-
-  try {
-    const start = Math.floor(startDate.getTime() / 1000)
-    const end = Math.floor(endDate.getTime() / 1000)
-    
-    // OpenAI Usage API endpoint
-    const url = `https://api.openai.com/v1/organization/usage?start_time=${start}&end_time=${end}`
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(`OpenAI Usage API error: ${response.status} - ${JSON.stringify(error)}`)
-    }
-
-    const data = await response.json()
-    return data.data || []
-  } catch (error) {
-    console.error('Error fetching OpenAI usage:', error)
-    return null
-  }
-}
-
-/**
- * Fetch actual costs from OpenAI Costs API
+ * Fetch daily cost buckets from the OpenAI Costs API.
  */
 export async function fetchOpenAICosts(
   startDate: Date,
   endDate: Date
-): Promise<OpenAICostData | null> {
-  const apiKey = process.env.OPENAI_API_KEY
-  
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY not configured')
+): Promise<OpenAICostBucket[] | null> {
+  const adminKey = process.env.OPENAI_ADMIN_KEY
+
+  if (!adminKey) {
+    throw new Error('OPENAI_ADMIN_KEY not configured (org Admin API key required for the Costs API)')
   }
 
   try {
-    const start = startDate.toISOString().split('T')[0]  // YYYY-MM-DD
-    const end = endDate.toISOString().split('T')[0]      // YYYY-MM-DD
-    
-    // OpenAI Costs API endpoint
-    const url = `https://api.openai.com/v1/organization/costs?start_date=${start}&end_date=${end}`
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    const buckets: OpenAICostBucket[] = []
+    let page: string | undefined
+
+    do {
+      const params = new URLSearchParams({
+        start_time: String(Math.floor(startDate.getTime() / 1000)),
+        end_time: String(Math.floor(endDate.getTime() / 1000)),
+        bucket_width: '1d',
+        limit: '180',
+      })
+      params.append('group_by', 'line_item')
+      if (page) params.set('page', page)
+
+      const response = await fetch(`https://api.openai.com/v1/organization/costs?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${adminKey}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(`OpenAI Costs API error: ${response.status} - ${JSON.stringify(error)}`)
       }
-    })
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(`OpenAI Costs API error: ${response.status} - ${JSON.stringify(error)}`)
-    }
+      const data = await response.json()
+      buckets.push(...(data.data || []))
+      page = data.has_more ? data.next_page : undefined
+    } while (page)
 
-    const data = await response.json()
-    return data
+    return buckets
   } catch (error) {
     console.error('Error fetching OpenAI costs:', error)
     return null
@@ -105,21 +77,8 @@ export async function fetchOpenAICosts(
 }
 
 /**
- * Calculate cost per request from aggregated daily data
- * Note: OpenAI's API gives aggregated data, not per-request costs
- * This estimates cost per request based on token usage
- */
-export function calculateCostPerRequest(
-  usageData: OpenAIUsageData[],
-  totalCost: number
-): number {
-  const totalRequests = usageData.reduce((sum, d) => sum + d.n_requests, 0)
-  return totalRequests > 0 ? totalCost / totalRequests : 0
-}
-
-/**
- * Update database with real costs for a date range
- * This uses the aggregated cost data to update individual records
+ * Sync OpenAI daily billed costs into provider_costs_daily and report
+ * variance against the ledger's attributed (estimated) OpenAI spend.
  */
 export async function updateRealCosts(
   supabase: any,
@@ -128,96 +87,86 @@ export async function updateRealCosts(
 ): Promise<{
   updated: number
   totalActualCost: number
+  totalAttributedCost: number
+  variancePercent: number
   errors: string[]
 }> {
   const result = {
     updated: 0,
-    totalActualCost: 0,
-    errors: [] as string[]
+    totalActualCost: 0, // cents, from OpenAI billing
+    totalAttributedCost: 0, // cents, from token_usage ledger
+    variancePercent: 0,
+    errors: [] as string[],
   }
 
   try {
-    // Fetch actual costs from OpenAI
-    const costsData = await fetchOpenAICosts(startDate, endDate)
-    
-    if (!costsData || !costsData.data || costsData.data.length === 0) {
+    const buckets = await fetchOpenAICosts(startDate, endDate)
+
+    if (!buckets || buckets.length === 0) {
       result.errors.push('No cost data returned from OpenAI')
       return result
     }
 
-    // Calculate total actual cost for the period
-    const totalCostUSD = costsData.data.reduce((sum, item) => {
-      return sum + (item.amount.value || 0)
-    }, 0)
-    
-    result.totalActualCost = Math.round(totalCostUSD * 100) // Convert to cents
+    // Store daily line-item totals in provider_costs_daily
+    for (const bucket of buckets) {
+      const day = new Date(bucket.start_time * 1000).toISOString().split('T')[0]
+      for (const item of bucket.results || []) {
+        const usd = Number(item.amount?.value || 0)
+        result.totalActualCost += usd * 100
 
-    // Get all pending records in this date range
-    const { data: pendingRecords, error: fetchError } = await supabase
-      .from('token_usage')
-      .select('id, calculated_cost_cents, openai_request_id, created_at')
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString())
-      .eq('reconciliation_status', 'pending')
-      .not('openai_request_id', 'is', null)
+        const { error: upsertError } = await supabase
+          .from('provider_costs_daily')
+          .upsert(
+            {
+              provider: 'openai',
+              day,
+              line_item: item.line_item || '',
+              amount_cents: Math.round(usd * 100 * 10000) / 10000,
+              raw: item,
+              fetched_at: new Date().toISOString(),
+            },
+            { onConflict: 'provider,day,line_item' }
+          )
 
-    if (fetchError) {
-      result.errors.push(`Database fetch error: ${fetchError.message}`)
-      return result
-    }
-
-    if (!pendingRecords || pendingRecords.length === 0) {
-      result.errors.push('No pending records found in date range')
-      return result
-    }
-
-    // Calculate total estimated cost for these records
-    const totalEstimatedCents = pendingRecords.reduce((sum: number, r: any) => sum + (r.calculated_cost_cents || 0), 0)
-
-    // Calculate scaling factor (actual / estimated)
-    const scalingFactor = totalEstimatedCents > 0 
-      ? result.totalActualCost / totalEstimatedCents
-      : 1
-
-    console.log(`Reconciling ${pendingRecords.length} records`)
-    console.log(`Total estimated: $${totalEstimatedCents / 100}`)
-    console.log(`Total actual: $${result.totalActualCost / 100}`)
-    console.log(`Scaling factor: ${scalingFactor.toFixed(4)}`)
-
-    // Update each record with proportional actual cost
-    for (const record of pendingRecords) {
-      const estimatedCents = record.calculated_cost_cents || 0
-      const actualCents = Math.round(estimatedCents * scalingFactor)
-      
-      const difference = Math.abs(actualCents - estimatedCents)
-      const differencePercent = estimatedCents > 0 
-        ? (difference / estimatedCents * 100)
-        : 0
-
-      // Determine status
-      const status = (differencePercent <= 5 || difference <= 5) ? 'matched' : 'discrepancy'
-
-      const { error: updateError } = await supabase
-        .from('token_usage')
-        .update({
-          actual_cost_cents: actualCents,
-          reconciliation_status: status,
-          reconciled_at: new Date().toISOString()
-        })
-        .eq('id', record.id)
-
-      if (updateError) {
-        result.errors.push(`Failed to update ${record.id}: ${updateError.message}`)
-      } else {
-        result.updated++
+        if (upsertError) {
+          result.errors.push(`Failed to store ${day}/${item.line_item}: ${upsertError.message}`)
+        } else {
+          result.updated++
+        }
       }
     }
 
-    return result
+    // Attributed OpenAI spend from the ledger for the same window
+    const { data: ledgerRows, error: ledgerError } = await supabase
+      .from('token_usage')
+      .select('calculated_cost_cents, actual_cost_cents')
+      .eq('provider', 'openai')
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString())
 
+    if (ledgerError) {
+      result.errors.push(`Ledger fetch error: ${ledgerError.message}`)
+    } else {
+      result.totalAttributedCost = (ledgerRows || []).reduce(
+        (sum: number, r: any) => sum + Number(r.actual_cost_cents ?? r.calculated_cost_cents ?? 0),
+        0
+      )
+    }
+
+    result.variancePercent =
+      result.totalActualCost > 0
+        ? ((result.totalActualCost - result.totalAttributedCost) / result.totalActualCost) * 100
+        : 0
+
+    console.log(
+      `OpenAI cost sync: billed $${(result.totalActualCost / 100).toFixed(2)}, ` +
+        `attributed $${(result.totalAttributedCost / 100).toFixed(2)}, ` +
+        `variance ${result.variancePercent.toFixed(1)}%`
+    )
+
+    return result
   } catch (error) {
     result.errors.push(error instanceof Error ? error.message : 'Unknown error')
     return result
   }
 }
-

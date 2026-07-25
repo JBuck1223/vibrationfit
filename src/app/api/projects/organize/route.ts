@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
-import OpenAI from 'openai'
+import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { flattenProfile, flattenProfileStories } from '@/lib/viva/prompt-flatteners'
 import { PROJECT_ORGANIZE_SYSTEM_PROMPT, buildProjectOrganizePrompt } from '@/lib/viva/prompts'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 export async function POST(request: NextRequest) {
   try {
@@ -101,7 +99,9 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: prompt },
     ]
     const params = buildOpenAIParams(toolConfig, messages)
-    const completion = await openai.chat.completions.create(params)
+    // Route through the Vercel AI Gateway for exact per-request billing
+    params.model = `openai/${toolConfig.model_name}`
+    const completion = await gatewayClient.chat.completions.create(params)
 
     const responseText = completion.choices[0]?.message?.content || '{}'
 
@@ -127,6 +127,8 @@ export async function POST(request: NextRequest) {
       tokens_used: completion.usage?.total_tokens || 0,
       input_tokens: completion.usage?.prompt_tokens || 0,
       output_tokens: completion.usage?.completion_tokens || 0,
+      provider: 'vercel_gateway',
+      provider_request_id: completion.id,
       success: true,
       metadata: { brain_dump_length: brainDump.length, projects_suggested: organized.projects.length },
     }, supabase)

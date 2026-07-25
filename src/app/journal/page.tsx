@@ -9,6 +9,7 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import Link from 'next/link'
 import { Plus, FileText, ChevronDown, Filter, BookOpen, Flame, Shield, Search, X, Edit, Trash2, ImageOff, Play } from 'lucide-react'
 import { JournalEditModal, RecoverableTranscriptsBanner, type JournalEditEntry } from '@/components/journal'
+import { useJournalStudio } from '@/components/journal-studio'
 import { useEffect, useState, useRef, useMemo } from 'react'
 
 function JournalImage({ src, alt, className, onClick, loading }: {
@@ -147,6 +148,7 @@ export default function JournalPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { stats: practiceStats } = useAreaStats('journal')
+  const { refreshEntries } = useJournalStudio()
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -290,6 +292,8 @@ export default function JournalPage() {
       })
     }
     setExpandedId(editEntry.id)
+    // Keep the area bar entry list in sync
+    void refreshEntries()
   }
 
   const handleDelete = async (entryId: string) => {
@@ -326,6 +330,8 @@ export default function JournalPage() {
 
       setEntries(prev => prev.filter(e => e.id !== entryId))
       setExpandedId(null)
+      // Keep the area bar entry list in sync
+      void refreshEntries()
     } catch (err) {
       console.error('Delete failed:', err)
     } finally {

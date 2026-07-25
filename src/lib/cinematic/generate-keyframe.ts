@@ -4,6 +4,7 @@
 import { fal } from '@fal-ai/client'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { resolveImageModel, resolveEditModel, targetSizeToAspectRatio } from './fal-models'
 import { resolveReferenceImageUrl } from './resolve-keyframe-refs'
 import type { CuKeyframe, KeyframeWithMedia, GenerationMetadata, PreviousVersion } from './types'
@@ -160,6 +161,20 @@ export async function generateKeyframe(
       .single()
 
     if (mediaError) throw new Error(`Failed to save media: ${mediaError.message}`)
+
+    // Cost ledger: fal image generation, system-attributed (admin pipeline).
+    trackTokenUsage({
+      user_id: null,
+      action_type: 'image_generation',
+      model_used: falModel,
+      tokens_used: 0,
+      unit_count: 1,
+      provider: 'fal',
+      provider_request_id: falRequestId,
+      billable: false,
+      success: true,
+      metadata: { pipeline: 'cinematic_keyframe', keyframe_id: keyframe.id, episode_id: keyframe.episode_id },
+    }, supabase).catch(() => {})
 
     const completedAt = new Date().toISOString()
     const metadata: GenerationMetadata = {

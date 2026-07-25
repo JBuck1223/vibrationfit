@@ -1,7 +1,9 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { keys } from '@/lib/query/keys'
 import type { Story, StoryEntityType } from '@/lib/stories/types'
 
 type FilterType = 'all' | StoryEntityType
@@ -45,70 +47,84 @@ export function useStoryStudio() {
   return ctx
 }
 
+interface StoriesPayload {
+  stories: Story[]
+  userId: string | null
+}
+
+async function fetchStories(): Promise<StoriesPayload> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return { stories: [], userId: null }
+
+  // No user_id filter: RLS returns the user's own stories plus household
+  // stories shared with them (explicitly or via a member's share-all mode).
+  const { data, error } = await supabase
+    .from('stories')
+    .select('*')
+    .order('updated_at', { ascending: false })
+
+  return { stories: !error && data ? data : [], userId: user.id }
+}
+
+async function fetchHousehold(): Promise<StoryHousehold | null> {
+  try {
+    const res = await fetch('/api/household/context')
+    if (!res.ok) return null
+    const json = await res.json()
+    if (!json.household?.isMultiMember) return null
+    return {
+      householdId: json.household.householdId,
+      householdName: json.household.householdName,
+      isMultiMember: json.household.isMultiMember,
+      members: (json.household.members || []).map((m: any) => ({
+        userId: m.userId,
+        firstName: m.firstName ?? null,
+        displayName: m.displayName,
+        avatarUrl: m.avatarUrl ?? null,
+        isSelf: m.isSelf,
+        isAdmin: Boolean(m.isAdmin),
+      })),
+    }
+  } catch {
+    // Household lens is optional; stories still load without it.
+    return null
+  }
+}
+
 export function StoryStudioProvider({ children }: { children: React.ReactNode }) {
-  const [stories, setStories] = useState<Story[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+
+  // UI-only state
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null)
   const [activePill, setActivePill] = useState('all')
   const [updateTargetId, setUpdateTargetId] = useState<string | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [household, setHousehold] = useState<StoryHousehold | null>(null)
 
+  const { data: storiesPayload, isLoading: loading } = useQuery({
+    queryKey: keys.stories,
+    queryFn: fetchStories,
+  })
+  const stories = storiesPayload?.stories ?? []
+  const currentUserId = storiesPayload?.userId ?? null
+
+  // Household membership rarely changes; keep it fresh for 5 minutes.
+  const { data: household = null } = useQuery({
+    queryKey: keys.householdContext,
+    queryFn: fetchHousehold,
+    staleTime: 5 * 60_000,
+  })
+
+  // Auto-select the newest story once loaded (previous mount-time behavior).
   useEffect(() => {
-    loadStories()
-    loadHousehold()
-  }, [])
-
-  const loadStories = useCallback(async () => {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) {
-      setLoading(false)
-      return
+    if (!selectedStoryId && stories.length > 0) {
+      setSelectedStoryId(stories[0].id)
     }
-    setCurrentUserId(user.id)
+  }, [selectedStoryId, stories])
 
-    // No user_id filter: RLS returns the user's own stories plus household
-    // stories shared with them (explicitly or via a member's share-all mode).
-    const { data, error } = await supabase
-      .from('stories')
-      .select('*')
-      .order('updated_at', { ascending: false })
-
-    if (!error && data) {
-      setStories(data)
-      if (!selectedStoryId && data.length > 0) {
-        setSelectedStoryId(data[0].id)
-      }
-    }
-    setLoading(false)
-  }, [selectedStoryId])
-
-  const loadHousehold = useCallback(async () => {
-    try {
-      const res = await fetch('/api/household/context')
-      if (!res.ok) return
-      const json = await res.json()
-      if (json.household?.isMultiMember) {
-        setHousehold({
-          householdId: json.household.householdId,
-          householdName: json.household.householdName,
-          isMultiMember: json.household.isMultiMember,
-          members: (json.household.members || []).map((m: any) => ({
-            userId: m.userId,
-            firstName: m.firstName ?? null,
-            displayName: m.displayName,
-            avatarUrl: m.avatarUrl ?? null,
-            isSelf: m.isSelf,
-            isAdmin: Boolean(m.isAdmin),
-          })),
-        })
-      }
-    } catch {
-      // Household lens is optional; stories still load without it.
-    }
-  }, [])
+  const refreshStories = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.stories })
+  }, [queryClient])
 
   const selectStory = useCallback((id: string) => {
     setSelectedStoryId(id)
@@ -126,7 +142,7 @@ export function StoryStudioProvider({ children }: { children: React.ReactNode })
         selectStory,
         activePill,
         setActivePill,
-        refreshStories: loadStories,
+        refreshStories,
         updateTargetId,
         setUpdateTargetId,
         currentUserId,

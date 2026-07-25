@@ -5,6 +5,8 @@ import '@/styles/brand.css'
 import { GlobalLayoutShell } from '@/components/GlobalLayoutShell'
 import { AuthProvider } from '@/components/AuthProvider'
 import { TrackingProvider } from '@/components/TrackingProvider'
+import { QueryProvider } from '@/lib/query/QueryProvider'
+import { RealtimeInvalidationBridge } from '@/components/RealtimeInvalidationBridge'
 import { AppErrorHandling } from '@/components/AppErrorHandling'
 import { PixelScripts } from '@/components/PixelScripts'
 import { Toaster } from 'sonner'
@@ -70,6 +72,8 @@ export default function RootLayout({
         <ImpersonationBanner />
         <ReferralBanner />
         <AuthProvider>
+          <QueryProvider>
+          <RealtimeInvalidationBridge />
           <TrackingProvider>
           <AppErrorHandling>
           <GlobalLayoutShell>
@@ -78,6 +82,7 @@ export default function RootLayout({
           <GlobalAudioPlayerShell />
           </AppErrorHandling>
           </TrackingProvider>
+          </QueryProvider>
           <Toaster 
             theme="dark"
             position="top-right"

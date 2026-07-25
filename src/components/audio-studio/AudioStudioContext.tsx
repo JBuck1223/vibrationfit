@@ -2,7 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { keys } from '@/lib/query/keys'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import type { Story } from '@/lib/stories/types'
 
@@ -128,32 +130,229 @@ export function useAudioStudio() {
   return ctx
 }
 
-export function AudioStudioProvider({ children }: { children: React.ReactNode }) {
-  const [visionId, setVisionId] = useState<string | null>(null)
-  const [vision, setVision] = useState<VisionData | null>(null)
-  const [allVisions, setAllVisions] = useState<VisionData[]>([])
-  const [visionLoading, setVisionLoading] = useState(true)
-  const [audioSets, setAudioSets] = useState<AudioSetItem[]>([])
-  const [audioSetsLoading, setAudioSetsLoading] = useState(true)
-  const [activeBatches, setActiveBatches] = useState<QueueBatch[]>([])
-  const [checklist, setChecklist] = useState<ActivationChecklist>({
-    hasMainVisionAudio: false,
-    hasFocusStoryWithAudio: false,
-    hasPersonalRecording: false,
+// Child keys under registry prefixes so table-level realtime invalidation
+// refetches them automatically.
+const publishedVisionsKey = [...keys.visions, 'published'] as const
+const storyAudioChecklistKey = [...keys.stories, 'audio-checklist'] as const
+const storiesWithAudioKey = [...keys.stories, 'with-audio'] as const
+const completedStoriesKey = [...keys.stories, 'completed-mine'] as const
+const visionAudioSetsKey = (visionId: string) => [...keys.audioSets, 'life-vision', visionId] as const
+const visionBatchesKey = (visionId: string) => [...keys.audioBatches, 'vision', visionId] as const
+const allBatchesKey = [...keys.audioBatches, 'all'] as const
+
+const BATCH_POLL_FALLBACK_MS = 15_000
+
+function hasPendingBatches(batches: QueueBatch[] | undefined): boolean {
+  return (batches ?? []).some(b => ['pending', 'processing'].includes(b.status))
+}
+
+async function fetchPublishedVisions(): Promise<VisionData[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return []
+
+  // No user_id filter: RLS returns own visions plus household-shared ones
+  // ("Life We Choose" joint visions and any personal visions a household
+  // member shares, explicitly or via share-all).
+  const { data: versions } = await supabase
+    .from('vision_versions')
+    .select('*')
+    .eq('is_draft', false)
+    .order('created_at', { ascending: false })
+
+  if (!versions || versions.length === 0) return []
+
+  // Version numbers count within each document group: personal visions
+  // ("Life I Choose") and household visions ("Life We Choose") each start at 1.
+  const groupCounts: Record<string, number> = {}
+  for (const v of versions) {
+    const groupKey = v.household_id ? `hh:${v.household_id}` : `me:${v.user_id}`
+    groupCounts[groupKey] = (groupCounts[groupKey] || 0) + 1
+  }
+  const groupSeen: Record<string, number> = {}
+  return versions.map((v) => {
+    const groupKey = v.household_id ? `hh:${v.household_id}` : `me:${v.user_id}`
+    groupSeen[groupKey] = (groupSeen[groupKey] || 0) + 1
+    return {
+      ...v,
+      version_number: groupCounts[groupKey] - groupSeen[groupKey] + 1,
+      is_mine: v.user_id === user.id,
+      is_household: !!v.household_id,
+    }
   })
+}
+
+async function fetchHasFocusStoryWithAudio(): Promise<boolean> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return false
+
+  const { count } = await supabase
+    .from('stories')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .not('audio_set_id', 'is', null)
+    .eq('status', 'completed')
+
+  return (count || 0) > 0
+}
+
+async function fetchAudioSets(visionId: string): Promise<AudioSetItem[]> {
+  const supabase = createClient()
+
+  const { data: sets } = await supabase
+    .from('audio_sets')
+    .select('*, audio_tracks(count)')
+    .eq('vision_id', visionId)
+    .eq('content_type', 'life_vision')
+    .order('created_at', { ascending: false })
+
+  if (!sets) return []
+
+  return Promise.all(sets.map(async (set: any) => {
+    const { data: tracks } = await supabase
+      .from('audio_tracks')
+      .select('mix_status, status')
+      .eq('audio_set_id', set.id)
+      .limit(1)
+
+    const hasCompletedVoice = tracks?.some((t: any) => t.status === 'completed')
+    const hasCompletedMixing = tracks?.some((t: any) => t.mix_status === 'completed')
+    const isMixing = tracks?.some((t: any) => t.mix_status === 'mixing' || t.mix_status === 'pending')
+
+    let mixRatio: string | undefined
+    let backgroundTrack: string | undefined
+    let frequencyTrack: string | undefined
+    let frequencyType: AudioSetItem['frequencyType']
+
+    if (set.metadata) {
+      const md = set.metadata as any
+      const voiceVol = md.voice_volume
+      const bgVol = md.bg_volume
+      const freqVol = md.frequency_volume ?? md.binaural_volume
+
+      if (voiceVol !== undefined && bgVol !== undefined) {
+        mixRatio = freqVol && freqVol > 0
+          ? `${voiceVol}% / ${bgVol}% / ${freqVol}%`
+          : `${voiceVol}% / ${bgVol}%`
+      }
+      backgroundTrack = md.background_track_name
+      frequencyTrack = md.frequency_track_name ?? md.binaural_track_name
+      frequencyType = md.frequency_type
+    }
+
+    return {
+      id: set.id,
+      name: set.name,
+      description: set.description || '',
+      variant: set.variant,
+      voice_id: set.voice_id,
+      is_active: set.is_active,
+      created_at: set.created_at,
+      track_count: set.audio_tracks?.[0]?.count || 0,
+      isReady: !!(hasCompletedVoice && (set.variant === 'standard' || set.variant === 'personal' || hasCompletedMixing)),
+      isMixing: !!isMixing,
+      mixRatio,
+      backgroundTrack,
+      frequencyTrack,
+      frequencyType,
+      metadata: set.metadata,
+    } as AudioSetItem
+  }))
+}
+
+async function fetchVisionBatches(visionId: string): Promise<QueueBatch[]> {
+  const supabase = createClient()
+  const { data: batches } = await supabase
+    .from('audio_generation_batches')
+    .select('*')
+    .eq('vision_id', visionId)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  return batches ?? []
+}
+
+async function fetchAllBatches(): Promise<QueueBatch[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return []
+
+  const { data: batches } = await supabase
+    .from('audio_generation_batches')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(50)
+  return batches ?? []
+}
+
+async function fetchStoriesWithAudio(): Promise<Story[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return []
+
+  // Get stories with direct audio links. No user_id filter: RLS also returns
+  // household-shared stories, whose audio follows the story.
+  const { data: directStories } = await supabase
+    .from('stories').select('*').eq('status', 'completed')
+    .or('audio_set_id.not.is.null,user_audio_url.not.is.null')
+    .order('updated_at', { ascending: false })
+
+  // Also find stories referenced by audio_sets via content_id (RLS-visible)
+  const { data: audioSetStoryIds } = await supabase
+    .from('audio_sets')
+    .select('content_id')
+    .eq('content_type', 'story')
+    .not('content_id', 'is', null)
+
+  const directIds = new Set((directStories || []).map(s => s.id))
+  const extraIds = (audioSetStoryIds || [])
+    .map(r => r.content_id)
+    .filter((id): id is string => !!id && !directIds.has(id))
+
+  let allStories = (directStories || []) as Story[]
+
+  if (extraIds.length > 0) {
+    const { data: extraStories } = await supabase
+      .from('stories').select('*').in('id', extraIds).eq('status', 'completed')
+      .order('updated_at', { ascending: false })
+    if (extraStories) allStories = [...allStories, ...(extraStories as Story[])]
+  }
+
+  return allStories
+}
+
+async function fetchCompletedStories(): Promise<Story[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('stories')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('status', 'completed')
+    .order('updated_at', { ascending: false })
+  return (data ?? []) as Story[]
+}
+
+export function AudioStudioProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient()
+
+  // UI state
+  const [selectedVisionId, setSelectedVisionId] = useState<string | null>(null)
   const [activePill, setActivePill] = useState('life-vision')
   const [listenContentType, setListenContentType] = useState('life-vision')
   const [listenStoryFilter, setListenStoryFilter] = useState('all')
-  const [storiesWithAudio, setStoriesWithAudio] = useState<Story[]>([])
-  const [storiesWithAudioLoading, setStoriesWithAudioLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [sourceType, setSourceType] = useState<AudioSourceType>(null)
   const [sourceId, setSourceId] = useState<string | null>(null)
-  const [allStories, setAllStories] = useState<Story[]>([])
-  const [allStoriesLoading, setAllStoriesLoading] = useState(true)
-  const [allBatches, setAllBatches] = useState<QueueBatch[]>([])
-  const [allBatchesLoading, setAllBatchesLoading] = useState(false)
 
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -177,26 +376,88 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  // Load active vision on mount
-  useEffect(() => {
-    loadActiveVision()
+  // --- Entity data (query-backed, realtime-invalidated) ---
+
+  const { data: allVisions = [], isLoading: visionLoading } = useQuery({
+    queryKey: publishedVisionsKey,
+    queryFn: fetchPublishedVisions,
+  })
+
+  // Selected vision falls back to the best default: active personal vision,
+  // then any personal vision, then the newest visible one.
+  const vision = useMemo(() => {
+    const explicit = selectedVisionId ? allVisions.find(v => v.id === selectedVisionId) : null
+    if (explicit) return explicit
+    return (
+      allVisions.find(v => v.is_active && v.is_mine && !v.is_household) ||
+      allVisions.find(v => v.is_mine && !v.is_household) ||
+      allVisions[0] ||
+      null
+    )
+  }, [allVisions, selectedVisionId])
+  const visionId = vision?.id ?? null
+
+  const switchVision = useCallback((id: string) => {
+    setSelectedVisionId(id)
   }, [])
 
-  // Load audio sets + batches when vision is available
-  useEffect(() => {
-    if (!visionId) return
-    loadAudioSets()
-    loadBatches()
-  }, [visionId])
+  const { data: hasFocusStoryWithAudio = false } = useQuery({
+    queryKey: storyAudioChecklistKey,
+    queryFn: fetchHasFocusStoryWithAudio,
+  })
 
-  // Poll for batch updates when active batches exist
-  useEffect(() => {
-    const hasActive = activeBatches.some(b => ['pending', 'processing'].includes(b.status))
-    if (!hasActive || !visionId) return
+  // isPending (not isLoading) so this stays true until the first load,
+  // matching the previous behavior while the vision itself is still loading.
+  const { data: audioSets = [], isPending: audioSetsLoading } = useQuery({
+    queryKey: visionAudioSetsKey(visionId ?? 'none'),
+    queryFn: () => fetchAudioSets(visionId!),
+    enabled: !!visionId,
+  })
 
-    const interval = setInterval(loadBatches, 5000)
-    return () => clearInterval(interval)
-  }, [activeBatches, visionId])
+  const checklist = useMemo<ActivationChecklist>(() => ({
+    hasMainVisionAudio: audioSets.some(s => s.isReady && s.variant !== 'personal'),
+    hasFocusStoryWithAudio,
+    hasPersonalRecording: audioSets.some(s => s.isReady && s.variant === 'personal'),
+  }), [audioSets, hasFocusStoryWithAudio])
+
+  // Batch status changes arrive via realtime invalidation; the slow poll is a
+  // fallback in case the websocket drops while a batch is generating.
+  const { data: activeBatches = [] } = useQuery({
+    queryKey: visionBatchesKey(visionId ?? 'none'),
+    queryFn: () => fetchVisionBatches(visionId!),
+    enabled: !!visionId,
+    refetchInterval: query => (hasPendingBatches(query.state.data) ? BATCH_POLL_FALLBACK_MS : false),
+  })
+
+  const { data: allBatches = [], isLoading: allBatchesLoading } = useQuery({
+    queryKey: allBatchesKey,
+    queryFn: fetchAllBatches,
+    refetchInterval: query => (hasPendingBatches(query.state.data) ? BATCH_POLL_FALLBACK_MS : false),
+  })
+
+  const { data: storiesWithAudio = [], isLoading: storiesWithAudioLoading } = useQuery({
+    queryKey: storiesWithAudioKey,
+    queryFn: fetchStoriesWithAudio,
+  })
+
+  const { data: allStories = [], isLoading: allStoriesLoading } = useQuery({
+    queryKey: completedStoriesKey,
+    queryFn: fetchCompletedStories,
+  })
+
+  const refreshAudioSets = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.audioSets })
+  }, [queryClient])
+
+  const refreshBatches = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: keys.audioBatches })
+  }, [queryClient])
+
+  const refreshAllBatches = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: allBatchesKey })
+  }, [queryClient])
+
+  // --- Player (ephemeral state, untouched by the cache) ---
 
   // Wire up audio element events
   useEffect(() => {
@@ -235,214 +496,6 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     }
   }, [player.currentIndex, player.tracks])
 
-  async function loadActiveVision() {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) {
-      setVisionLoading(false)
-      return
-    }
-
-    // No user_id filter: RLS returns own visions plus household-shared ones
-    // ("Life We Choose" joint visions and any personal visions a household
-    // member shares, explicitly or via share-all).
-    const { data: versions } = await supabase
-      .from('vision_versions')
-      .select('*')
-      .eq('is_draft', false)
-      .order('created_at', { ascending: false })
-
-    if (versions && versions.length > 0) {
-      // Version numbers count within each document group: personal visions
-      // ("Life I Choose") and household visions ("Life We Choose") each start at 1.
-      const groupCounts: Record<string, number> = {}
-      for (const v of versions) {
-        const groupKey = v.household_id ? `hh:${v.household_id}` : `me:${v.user_id}`
-        groupCounts[groupKey] = (groupCounts[groupKey] || 0) + 1
-      }
-      const groupSeen: Record<string, number> = {}
-      const enriched: VisionData[] = versions.map((v) => {
-        const groupKey = v.household_id ? `hh:${v.household_id}` : `me:${v.user_id}`
-        groupSeen[groupKey] = (groupSeen[groupKey] || 0) + 1
-        return {
-          ...v,
-          version_number: groupCounts[groupKey] - groupSeen[groupKey] + 1,
-          is_mine: v.user_id === user.id,
-          is_household: !!v.household_id,
-        }
-      })
-      setAllVisions(enriched)
-
-      const active =
-        enriched.find(v => v.is_active && v.user_id === user.id && !v.household_id) ||
-        enriched.find(v => v.user_id === user.id && !v.household_id) ||
-        enriched[0]
-      setVision(active)
-      setVisionId(active.id)
-    }
-
-    // Load activation checklist
-    const { count: storyAudioCount } = await supabase
-      .from('stories')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .not('audio_set_id', 'is', null)
-      .eq('status', 'completed')
-
-    setChecklist(prev => ({
-      ...prev,
-      hasFocusStoryWithAudio: (storyAudioCount || 0) > 0,
-    }))
-
-    setVisionLoading(false)
-  }
-
-  function switchVision(id: string) {
-    const target = allVisions.find(v => v.id === id)
-    if (!target) return
-    setVision(target)
-    setVisionId(target.id)
-  }
-
-  async function loadAudioSets() {
-    if (!visionId) return
-    setAudioSetsLoading(true)
-    const supabase = createClient()
-
-    const { data: sets } = await supabase
-      .from('audio_sets')
-      .select('*, audio_tracks(count)')
-      .eq('vision_id', visionId)
-      .eq('content_type', 'life_vision')
-      .order('created_at', { ascending: false })
-
-    if (!sets) {
-      setAudioSetsLoading(false)
-      return
-    }
-
-    const enriched = await Promise.all(sets.map(async (set: any) => {
-      const { data: tracks } = await supabase
-        .from('audio_tracks')
-        .select('mix_status, status')
-        .eq('audio_set_id', set.id)
-        .limit(1)
-
-      const hasCompletedVoice = tracks?.some((t: any) => t.status === 'completed')
-      const hasCompletedMixing = tracks?.some((t: any) => t.mix_status === 'completed')
-      const isMixing = tracks?.some((t: any) => t.mix_status === 'mixing' || t.mix_status === 'pending')
-
-      let mixRatio: string | undefined
-      let backgroundTrack: string | undefined
-      let frequencyTrack: string | undefined
-      let frequencyType: AudioSetItem['frequencyType']
-
-      if (set.metadata) {
-        const md = set.metadata as any
-        const voiceVol = md.voice_volume
-        const bgVol = md.bg_volume
-        const freqVol = md.frequency_volume ?? md.binaural_volume
-
-        if (voiceVol !== undefined && bgVol !== undefined) {
-          mixRatio = freqVol && freqVol > 0
-            ? `${voiceVol}% / ${bgVol}% / ${freqVol}%`
-            : `${voiceVol}% / ${bgVol}%`
-        }
-        backgroundTrack = md.background_track_name
-        frequencyTrack = md.frequency_track_name ?? md.binaural_track_name
-        frequencyType = md.frequency_type
-      }
-
-      return {
-        id: set.id,
-        name: set.name,
-        description: set.description || '',
-        variant: set.variant,
-        voice_id: set.voice_id,
-        is_active: set.is_active,
-        created_at: set.created_at,
-        track_count: set.audio_tracks?.[0]?.count || 0,
-        isReady: !!(hasCompletedVoice && (set.variant === 'standard' || set.variant === 'personal' || hasCompletedMixing)),
-        isMixing: !!isMixing,
-        mixRatio,
-        backgroundTrack,
-        frequencyTrack,
-        frequencyType,
-        metadata: set.metadata,
-      } as AudioSetItem
-    }))
-
-    setAudioSets(enriched)
-
-    const hasMain = enriched.some(s => s.isReady && s.variant !== 'personal')
-    const hasPersonal = enriched.some(s => s.isReady && s.variant === 'personal')
-    setChecklist(prev => ({
-      ...prev,
-      hasMainVisionAudio: hasMain,
-      hasPersonalRecording: hasPersonal,
-    }))
-
-    setAudioSetsLoading(false)
-  }
-
-  async function loadBatches() {
-    if (!visionId) return
-    const supabase = createClient()
-
-    const { data: batches } = await supabase
-      .from('audio_generation_batches')
-      .select('*')
-      .eq('vision_id', visionId)
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    if (batches) {
-      setActiveBatches(batches)
-    }
-  }
-
-  async function loadStoriesWithAudio() {
-    setStoriesWithAudioLoading(true)
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) { setStoriesWithAudioLoading(false); return }
-
-    // Get stories with direct audio links. No user_id filter: RLS also returns
-    // household-shared stories, whose audio follows the story.
-    const { data: directStories } = await supabase
-      .from('stories').select('*').eq('status', 'completed')
-      .or('audio_set_id.not.is.null,user_audio_url.not.is.null')
-      .order('updated_at', { ascending: false })
-
-    // Also find stories referenced by audio_sets via content_id (RLS-visible)
-    const { data: audioSetStoryIds } = await supabase
-      .from('audio_sets')
-      .select('content_id')
-      .eq('content_type', 'story')
-      .not('content_id', 'is', null)
-
-    const directIds = new Set((directStories || []).map(s => s.id))
-    const extraIds = (audioSetStoryIds || [])
-      .map(r => r.content_id)
-      .filter((id): id is string => !!id && !directIds.has(id))
-
-    let allStories = (directStories || []) as Story[]
-
-    if (extraIds.length > 0) {
-      const { data: extraStories } = await supabase
-        .from('stories').select('*').in('id', extraIds).eq('status', 'completed')
-        .order('updated_at', { ascending: false })
-      if (extraStories) allStories = [...allStories, ...(extraStories as Story[])]
-    }
-
-    setStoriesWithAudio(allStories)
-    setStoriesWithAudioLoading(false)
-  }
-
-  useEffect(() => { loadStoriesWithAudio() }, [])
-
   // Read source params from URL on mount
   useEffect(() => {
     const urlSource = searchParams.get('source') as AudioSourceType
@@ -457,54 +510,6 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     setSourceType(type)
     setSourceId(id)
   }, [])
-
-  // Load all completed stories (for source selectors)
-  useEffect(() => { loadAllStories() }, [])
-
-  async function loadAllStories() {
-    setAllStoriesLoading(true)
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) { setAllStoriesLoading(false); return }
-    const { data } = await supabase
-      .from('stories')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('status', 'completed')
-      .order('updated_at', { ascending: false })
-    if (data) setAllStories(data as Story[])
-    setAllStoriesLoading(false)
-  }
-
-  // Load all batches across all sources (for unified queue)
-  async function loadAllBatches() {
-    setAllBatchesLoading(true)
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) { setAllBatchesLoading(false); return }
-    const { data: batches } = await supabase
-      .from('audio_generation_batches')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50)
-    if (batches) setAllBatches(batches)
-    setAllBatchesLoading(false)
-  }
-
-  const refreshAllBatches = useCallback(async () => {
-    await loadAllBatches()
-  }, [])
-
-  // Poll for all-batch updates when active batches exist
-  useEffect(() => {
-    const hasActive = allBatches.some(b => ['pending', 'processing'].includes(b.status))
-    if (!hasActive) return
-    const interval = setInterval(loadAllBatches, 5000)
-    return () => clearInterval(interval)
-  }, [allBatches])
 
   const playTracks = useCallback((tracks: AudioTrack[], startIndex = 0, setName?: string) => {
     if (!audioRef.current || tracks.length === 0) return
@@ -584,10 +589,10 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
         checklist,
         audioSets,
         audioSetsLoading,
-        refreshAudioSets: loadAudioSets,
+        refreshAudioSets,
         activeBatches,
         activeBatchCount,
-        refreshBatches: loadBatches,
+        refreshBatches,
         activePill,
         setActivePill,
         listenContentType,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
-import { gateway, VISION_MODEL } from '@/lib/ai/gateway'
+import { gateway, gatewayGenerationId, VISION_MODEL } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import {
@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
         tokens_used: result.usage.totalTokens || 0,
         input_tokens: result.usage.inputTokens || 0,
         output_tokens: result.usage.outputTokens || 0,
+        provider: 'vercel_gateway',
+        provider_request_id: gatewayGenerationId(result),
         success: true,
       }).catch(err => console.error('[Proofread] Token tracking error:', err))
     }

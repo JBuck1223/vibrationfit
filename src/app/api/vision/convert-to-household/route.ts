@@ -119,9 +119,10 @@ export async function POST(request: NextRequest) {
         spirituality: sourceVision.spirituality,
         conclusion: sourceVision.conclusion,
         
-        // State: Auto-activate if first household vision
+        // State: Auto-activate if first household vision (activation happens
+        // via set_vision_active below so cross-scope rules apply uniformly)
         is_draft: !shouldBeActive,              // Draft only if already have active
-        is_active: shouldBeActive,              // Active if first household vision
+        is_active: false,
         
         // Copy metadata if present
         richness_metadata: sourceVision.richness_metadata,
@@ -135,6 +136,25 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create household vision' },
         { status: 500 }
       )
+    }
+
+    // 6b. Activate through set_vision_active so the same rules run as when
+    // committing a household draft (deactivates other household actives and
+    // the actor's personal active vision).
+    if (shouldBeActive) {
+      const { error: activateError } = await supabase
+        .rpc('set_vision_active', {
+          p_vision_id: householdVision.id,
+          p_user_id: user.id
+        })
+
+      if (activateError) {
+        console.error('Error activating household vision:', activateError)
+        return NextResponse.json(
+          { error: 'Household vision created but could not be activated' },
+          { status: 500 }
+        )
+      }
     }
 
     // 7. TODO: Call VIVA to pluralize each category

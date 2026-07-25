@@ -2,7 +2,8 @@
 // Takes a story prompt + character set and produces a structured keyframe execution plan.
 
 import { generateObject } from 'ai'
-import { gateway, VISION_MODEL } from '@/lib/ai/gateway'
+import { gateway, gatewayGenerationId, VISION_MODEL } from '@/lib/ai/gateway'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { z } from 'zod'
 import type { ExecutionPlan, CuCharacter, StyleGuide } from './types'
 
@@ -320,12 +321,29 @@ export async function generateExecutionPlan(
     .filter(Boolean)
     .join('\n')
 
-  const { object } = await generateObject({
+  const result = await generateObject({
     model: gateway(VISION_MODEL),
     schema: executionPlanSchema,
     system: systemPrompt,
     prompt: userPrompt,
   })
 
-  return object as ExecutionPlan
+  // Cost ledger: system-attributed gateway call (admin cinematic pipeline).
+  if (result.usage?.totalTokens) {
+    trackTokenUsage({
+      user_id: null,
+      action_type: 'background_processing',
+      model_used: VISION_MODEL,
+      tokens_used: result.usage.totalTokens,
+      input_tokens: result.usage.inputTokens || 0,
+      output_tokens: result.usage.outputTokens || 0,
+      provider: 'vercel_gateway',
+      provider_request_id: gatewayGenerationId(result),
+      billable: false,
+      success: true,
+      metadata: { pipeline: 'cinematic_execution_plan' },
+    }).catch(() => {})
+  }
+
+  return result.object as ExecutionPlan
 }

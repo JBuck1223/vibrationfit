@@ -7,15 +7,22 @@ import { createClient } from '@/lib/supabase/client'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
+export type TokenProvider = 'openai' | 'vercel_gateway' | 'mureka' | 'fal' | 'elevenlabs' | 'google'
+
 export interface TokenUsage {
   id?: string
-  user_id: string
-  action_type: 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'transcription' | 'admin_grant' | 'admin_deduct' | 'subscription_grant' | 'trial_grant' | 'token_pack_purchase' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'life_vision_category_generation' | 'prompt_suggestions' | 'frequency_flip' | 'vibrational_analysis' | 'viva_scene_generation' | 'north_star_reflection' | 'voice_profile_analysis' | 'vision_board_ideas' | 'imagination_starter' | 'focus_story_generation' | 'incantation_generation' | 'story_refinement' | 'song_lyrics_generation' | 'project_organize'
+  user_id: string | null // null = system-attributed spend (cron/pipeline work with no acting member)
+  action_type: 'vision_generation' | 'vision_refinement' | 'blueprint_generation' | 'chat_conversation' | 'audio_generation' | 'image_generation' | 'transcription' | 'admin_grant' | 'admin_deduct' | 'subscription_grant' | 'trial_grant' | 'token_pack_purchase' | 'life_vision_category_summary' | 'life_vision_master_assembly' | 'life_vision_category_generation' | 'prompt_suggestions' | 'frequency_flip' | 'vibrational_analysis' | 'viva_scene_generation' | 'north_star_reflection' | 'voice_profile_analysis' | 'vision_board_ideas' | 'imagination_starter' | 'focus_story_generation' | 'incantation_generation' | 'story_refinement' | 'song_lyrics_generation' | 'project_organize' | 'song_music_generation' | 'song_stems_generation' | 'video_generation' | 'background_processing' | 'admin_tool'
   model_used: string
   tokens_used: number
   input_tokens?: number
   output_tokens?: number
   calculated_cost_cents?: number // Accurate cost from ai_model_pricing
+  // Unified cost ledger fields
+  provider?: TokenProvider // inferred from model name when omitted
+  provider_request_id?: string // gateway generationId, Mureka task id, fal request id
+  billable?: boolean // false = cost-tracking only; never deducts member balance
+  unit_count?: number // quantity for flat per-unit pricing (songs, stems, calls)
   // Audio-specific fields
   audio_seconds?: number
   audio_duration_formatted?: string
@@ -82,6 +89,23 @@ function roundCents(cents: number): number {
 }
 
 /**
+ * Infer the billing provider from a model name when the caller doesn't
+ * pass one explicitly. Gateway callers should always pass 'vercel_gateway'
+ * since OpenAI-model names are ambiguous between direct and gateway.
+ */
+export function inferProvider(model: string): TokenProvider | null {
+  const m = (model || '').toLowerCase()
+  if (m.startsWith('mureka')) return 'mureka'
+  if (m.startsWith('fal-ai') || m.startsWith('bytedance/')) return 'fal'
+  if (m.startsWith('elevenlabs')) return 'elevenlabs'
+  if (m.startsWith('google-tts')) return 'google'
+  if (m.startsWith('gemini') || m.startsWith('claude') || m.includes('/')) return 'vercel_gateway'
+  if (m.startsWith('gpt') || m.startsWith('o1') || m.startsWith('o3') || m.startsWith('chatgpt') ||
+      m.startsWith('dall-e') || m.startsWith('whisper') || m.startsWith('tts')) return 'openai'
+  return null
+}
+
+/**
  * Calculate accurate cost (in cents) from ai_model_pricing table.
  * Handles all unit_type values currently stored in the DB:
  *   - text models: input_price_per_1m / output_price_per_1m (per 1M tokens)
@@ -96,7 +120,8 @@ async function calculateAccurateTokenCost(
   model: string,
   inputTokens: number,
   outputTokens: number,
-  audioSeconds?: number
+  audioSeconds?: number,
+  unitCount?: number
 ): Promise<number> {
   const normalizedModel = normalizeModelName(model)
 
@@ -111,7 +136,13 @@ async function calculateAccurateTokenCost(
     const unit = (pricing.unit_type ?? '') as string
     const pricePerUnit = Number(pricing.price_per_unit ?? 0)
 
-    // Whisper / audio transcription — price per minute or per second
+    // Flat per-unit pricing (Mureka songs/stems, generic per-call charges)
+    if (unit === 'song' || unit === 'stems' || unit === 'call') {
+      return roundCents(pricePerUnit * (unitCount || 1) * 100)
+    }
+
+    // Whisper / audio transcription — price per minute or per second.
+    // 'second' is also used for fal video models (price per second of video).
     if (unit === 'minute' && audioSeconds) {
       return roundCents((audioSeconds / 60) * pricePerUnit * 100)
     }
@@ -263,7 +294,8 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
       normalizedModel,
       usage.input_tokens || 0,
       usage.output_tokens || 0,
-      audioSeconds
+      audioSeconds,
+      usage.unit_count
     )
 
     // Determine effective tokens (use override if no input/output tokens provided)
@@ -294,6 +326,17 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
             ? roundCents(usage.actual_cost_cents)
             : 0)
 
+    // Unified ledger fields: resolve provider (explicit beats inferred) and
+    // reconciliation status. Gateway rows with a request id get per-request
+    // actual costs from GET /v1/generation; OpenAI keeps the legacy behavior.
+    const provider = usage.provider || inferProvider(normalizedModel)
+    const providerRequestId = usage.provider_request_id || usage.openai_request_id || null
+    const reconciliationStatus =
+      usage.reconciliation_status ||
+      ((provider === 'vercel_gateway' && providerRequestId) || usage.openai_request_id
+        ? 'pending'
+        : 'not_applicable')
+
     // 1. Insert audit trail record (for user history)
     const { error: auditError } = await supabase
       .from('token_usage')
@@ -305,6 +348,10 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
         calculated_cost_cents: finalCalculatedCostCents, // Accurate cost from ai_model_pricing (fallback: caller-provided actual)
         input_tokens: usage.input_tokens || 0,
         output_tokens: usage.output_tokens || 0,
+        // Unified cost ledger fields
+        provider,
+        provider_request_id: providerRequestId,
+        billable: usage.billable !== false,
         // Audio-specific fields
         audio_seconds: audioSeconds ?? null,
         audio_duration_formatted: usage.audio_duration_formatted || null,
@@ -312,7 +359,7 @@ export async function trackTokenUsage(usage: Omit<TokenUsage, 'id' | 'created_at
         openai_request_id: usage.openai_request_id,
         openai_created: usage.openai_created,
         system_fingerprint: usage.system_fingerprint,
-        reconciliation_status: usage.openai_request_id ? 'pending' : 'not_applicable',
+        reconciliation_status: reconciliationStatus,
         success: usage.success,
         error_message: usage.error_message,
         metadata: usage.metadata || {},
