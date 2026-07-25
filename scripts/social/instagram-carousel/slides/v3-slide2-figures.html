@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, height=1350" />
+  <title>Green Line — Slide 2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --lime: #39ff14;
+      --red: #ff0040;
+      --bg: #0a0a0a;
+      --white: #ffffff;
+      --muted: #d4d4d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      color: var(--white);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .slide {
+      position: relative;
+      width: 1080px;
+      height: 1350px;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .half {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 48px 40px;
+      gap: 18px;
+    }
+
+    .half.above {
+      background:
+        radial-gradient(120% 90% at 50% 100%, rgba(57, 255, 20, 0.18), rgba(0, 255, 255, 0.05) 45%, transparent 70%);
+    }
+
+    .half.below {
+      background:
+        radial-gradient(120% 90% at 50% 0%, rgba(255, 0, 64, 0.16), rgba(255, 0, 64, 0.04) 45%, transparent 70%);
+    }
+
+    .figure {
+      width: 220px;
+      height: auto;
+      flex-shrink: 0;
+    }
+
+    .figure.lime {
+      color: var(--lime);
+      filter: drop-shadow(0 0 18px rgba(57, 255, 20, 0.45));
+    }
+
+    .figure.red {
+      color: var(--red);
+      filter: drop-shadow(0 0 16px rgba(255, 0, 64, 0.4));
+    }
+
+    .sentence {
+      font-size: 68px;
+      font-weight: 800;
+      line-height: 1.12;
+      text-align: center;
+      letter-spacing: -0.025em;
+      max-width: 960px;
+    }
+
+    .sentence.lime {
+      color: var(--lime);
+      text-shadow: 0 0 24px rgba(57, 255, 20, 0.35);
+    }
+
+    .sentence.red {
+      color: var(--red);
+      text-shadow: 0 0 24px rgba(255, 0, 64, 0.35);
+    }
+
+    .descriptors {
+      font-size: 42px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.01em;
+    }
+
+    .descriptors .good { color: var(--lime); }
+    .descriptors .bad { color: var(--red); }
+
+    .green-line {
+      position: relative;
+      height: 3px;
+      width: 100%;
+      flex-shrink: 0;
+      z-index: 2;
+    }
+
+    .green-line::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--lime);
+      box-shadow: 0 0 12px rgba(57, 255, 20, 0.7), 0 0 28px rgba(57, 255, 20, 0.4);
+    }
+
+    .line-badge {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: #000;
+      border: 2px solid var(--lime);
+      border-radius: 999px;
+      padding: 14px 32px;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--lime);
+      white-space: nowrap;
+      box-shadow: 0 0 18px rgba(57, 255, 20, 0.45);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide">
+    <section class="half above">
+      <svg class="figure lime" viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="120" cy="40" r="12" />
+        <circle cx="115" cy="38" r="1.6" fill="currentColor" stroke="none" />
+        <circle cx="125" cy="38" r="1.6" fill="currentColor" stroke="none" />
+        <path d="M113 44 Q120 52 127 44" stroke-width="2" />
+        <line x1="120" y1="53" x2="120" y2="92" />
+        <path d="M120 62 L93 33" stroke-width="3" />
+        <path d="M120 62 L147 33" stroke-width="3" />
+        <path d="M120 92 L101 122" stroke-width="3" />
+        <path d="M120 92 L139 122" stroke-width="3" />
+        <line x1="74" y1="134" x2="166" y2="134" stroke-width="2" opacity="0.4" />
+        <path d="M95 130 q6 5 12 0" stroke-width="2" opacity="0.55" />
+        <path d="M133 130 q6 5 12 0" stroke-width="2" opacity="0.55" />
+        <path d="M58 38 v12 M52 44 h12" stroke-width="2" opacity="0.7" />
+        <path d="M186 50 v10 M181 55 h10" stroke-width="2" opacity="0.6" />
+        <circle cx="170" cy="28" r="1.8" fill="currentColor" stroke="none" opacity="0.7" />
+        <circle cx="64" cy="74" r="1.6" fill="currentColor" stroke="none" opacity="0.6" />
+      </svg>
+      <p class="sentence lime">“I feel above the Green Line.”</p>
+      <p class="descriptors">light, open, hopeful <span class="good">(good)</span></p>
+    </section>
+
+    <div class="green-line">
+      <span class="line-badge">The Green Line</span>
+    </div>
+
+    <section class="half below">
+      <svg class="figure red" viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="62" y="34" width="116" height="104" rx="4" stroke-width="3.5" />
+        <path d="M62 34 L84 14 L200 14 L178 34" stroke-width="2" opacity="0.55" />
+        <path d="M178 138 L200 118 L200 14" stroke-width="2" opacity="0.55" />
+        <circle cx="116" cy="64" r="11" />
+        <circle cx="111.5" cy="62" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="120" cy="62" r="1.5" fill="currentColor" stroke="none" />
+        <path d="M111 69 Q116 64 121 69" stroke-width="2" />
+        <path d="M116 75 Q108 96 120 116" />
+        <path d="M120 116 L104 128" />
+        <path d="M120 116 L138 126" />
+        <path d="M114 86 Q128 92 138 92" />
+        <path d="M118 96 Q130 98 138 96" />
+        <circle cx="142" cy="92" r="4.5" stroke-width="2.5" />
+        <circle cx="142" cy="96" r="4.5" stroke-width="2.5" />
+        <path d="M147 92 l6 1 l-6 3" stroke-width="2" opacity="0.8" />
+      </svg>
+      <p class="sentence red">“I feel below the Green Line.”</p>
+      <p class="descriptors">heavy, tight, stuck <span class="bad">(bad)</span></p>
+    </section>
+  </div>
+</body>
+</html>
