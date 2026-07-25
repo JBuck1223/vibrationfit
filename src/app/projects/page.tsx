@@ -178,8 +178,8 @@ function ProjectsListContent() {
               className="border-neutral-800 bg-neutral-900/50 pl-10"
             />
           </div>
-          <div className="flex shrink-0 items-center justify-end">
-            <Button variant="primary" size="sm" onClick={() => setShowNewModal(true)}>
+          <div className="-order-1 flex shrink-0 items-center md:order-none md:justify-end">
+            <Button variant="primary" size="sm" onClick={() => setShowNewModal(true)} className="w-full md:w-auto">
               <Plus className="w-4 h-4 mr-1" />
               New Project
             </Button>
@@ -287,7 +287,7 @@ function ProjectsListContent() {
                     {/* Content */}
                     <div className="min-w-0 flex-1">
                       <div className="mb-0.5 flex min-w-0 flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-medium text-white">
+                        <p className="min-w-0 break-words text-sm font-medium text-white">
                           {project.title}
                         </p>
                         {isComplete && (

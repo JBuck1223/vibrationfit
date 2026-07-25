@@ -145,7 +145,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { task_id, title, is_complete, sort_order, description } = body
+    const { task_id, title, is_complete, sort_order, description, target_project_id } = body
 
     if (!task_id) {
       return NextResponse.json({ error: 'task_id is required' }, { status: 400 })
@@ -157,6 +157,32 @@ export async function PATCH(
     if (sort_order !== undefined) updates.sort_order = sort_order
     if (description !== undefined) updates.description = description
 
+    // Move the task to another project (RLS confirms access to the target).
+    const isMove = target_project_id && target_project_id !== id
+    if (isMove) {
+      const { data: target } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', target_project_id)
+        .single()
+      if (!target) {
+        return NextResponse.json({ error: 'Target project not found' }, { status: 404 })
+      }
+
+      const { data: existing } = await supabase
+        .from('project_tasks')
+        .select('sort_order')
+        .eq('project_id', target_project_id)
+        .is('parent_task_id', null)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+
+      updates.project_id = target_project_id
+      // A moved subtask becomes a top-level task in the target project
+      updates.parent_task_id = null
+      updates.sort_order = existing?.[0] ? existing[0].sort_order + 1 : 0
+    }
+
     const { data, error } = await supabase
       .from('project_tasks')
       .update(updates)
@@ -167,6 +193,17 @@ export async function PATCH(
 
     if (error) {
       return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
+    }
+
+    // Bring any subtasks along with their parent
+    if (isMove) {
+      const { error: subError } = await supabase
+        .from('project_tasks')
+        .update({ project_id: target_project_id })
+        .eq('parent_task_id', task_id)
+      if (subError) {
+        console.error('Error moving subtasks with task:', subError)
+      }
     }
 
     return NextResponse.json({ task: data })

@@ -1,15 +1,54 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Container, Card, Button, Input, Textarea, Stack, Spinner } from '@/lib/design-system/components'
+import { Container, Card, Button, Input, Stack, Spinner, Modal, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { scrollSafeAutoResize } from '@/lib/design-system/components/forms/auto-resize-utils'
 import {
   Plus, Trash2, ChevronRight, CheckCircle2, Calendar,
-  Check, Archive, RotateCcw, Home,
+  Check, Archive, RotateCcw, Home, FolderInput, FolderKanban,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { IdeaTask, IdeaStatus } from '@/lib/projects/types'
 import { getLifeCategoryInfo } from '@/lib/projects/types'
+
+// Single-line-style text field that wraps and grows with its content so long
+// titles are never clipped. Enter commits (blurs) instead of inserting a newline.
+function GrowingTextInput({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  className,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onFocus?: (el: HTMLTextAreaElement) => void
+  onBlur?: (el: HTMLTextAreaElement) => void
+  className?: string
+}) {
+  return (
+    <textarea
+      rows={1}
+      value={value}
+      ref={(el) => { if (el) scrollSafeAutoResize(el) }}
+      onChange={(e) => {
+        onChange(e.target.value)
+        scrollSafeAutoResize(e.target)
+      }}
+      onFocus={(e) => onFocus?.(e.currentTarget)}
+      onBlur={(e) => onBlur?.(e.currentTarget)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          e.currentTarget.blur()
+        }
+      }}
+      className={`block resize-none overflow-hidden bg-transparent outline-none ${className || ''}`}
+    />
+  )
+}
 
 interface ProjectDetail {
   id: string
@@ -37,6 +76,18 @@ export default function ProjectDetailPage() {
   const [addingSubtaskTo, setAddingSubtaskTo] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [householdInfo, setHouseholdInfo] = useState<{ name: string; isMultiMember: boolean } | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [movingTask, setMovingTask] = useState<IdeaTask | null>(null)
+  const [moveTargets, setMoveTargets] = useState<{ id: string; title: string }[] | null>(null)
+  const [movingTo, setMovingTo] = useState<string | null>(null)
+
+  // Latest description text, so we can persist right after a voice transcript
+  // lands (state updates haven't flushed yet at that point)
+  const descriptionRef = useRef('')
+  useEffect(() => {
+    descriptionRef.current = project?.description || ''
+  }, [project?.description])
 
   useEffect(() => {
     let active = true
@@ -179,6 +230,65 @@ export default function ProjectDetailPage() {
     fetchProject()
   }
 
+  const handleDeleteProject = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Project deleted')
+        router.push('/projects')
+      } else {
+        toast.error('Failed to delete project')
+        setDeleting(false)
+      }
+    } catch {
+      toast.error('Failed to delete project')
+      setDeleting(false)
+    }
+  }
+
+  const openMoveTask = async (task: IdeaTask) => {
+    setMovingTask(task)
+    setMoveTargets(null)
+    try {
+      const res = await fetch('/api/projects?sort=updated')
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setMoveTargets(
+        (data.projects || [])
+          .filter((p: { id: string }) => p.id !== id)
+          .map((p: { id: string; title: string }) => ({ id: p.id, title: p.title }))
+      )
+    } catch {
+      toast.error('Failed to load projects')
+      setMovingTask(null)
+    }
+  }
+
+  const moveTaskToProject = async (targetProjectId: string) => {
+    if (!movingTask) return
+    setMovingTo(targetProjectId)
+    try {
+      const res = await fetch(`/api/projects/${id}/tasks`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: movingTask.id, target_project_id: targetProjectId }),
+      })
+      if (res.ok) {
+        const target = moveTargets?.find(p => p.id === targetProjectId)
+        toast.success(target ? `Task moved to "${target.title}"` : 'Task moved')
+        setMovingTask(null)
+        fetchProject()
+      } else {
+        toast.error('Failed to move task')
+      }
+    } catch {
+      toast.error('Failed to move task')
+    } finally {
+      setMovingTo(null)
+    }
+  }
+
   if (loading) {
     return (
       <Container size="xl">
@@ -195,95 +305,110 @@ export default function ProjectDetailPage() {
     ? Math.round((project.task_done_count / project.task_count) * 100)
     : 0
 
+  const hasMetaRow =
+    project.status === 'done' ||
+    project.status === 'archived' ||
+    (project.life_categories?.length ?? 0) > 0 ||
+    !!project.due_date ||
+    !!householdInfo?.isMultiMember
+
   return (
     <Container size="xl" className="pt-2 pb-6 sm:pb-8">
       <Stack gap="md">
         {/* Title + categories — outside description card */}
         <div className="px-1">
-          {project.status === 'done' && (
-            <div className="mb-2 flex items-center gap-2 rounded-lg border border-[#39FF14]/20 bg-[#39FF14]/[0.06] px-3 py-1.5 w-fit">
-              <Check className="h-3.5 w-3.5 text-[#39FF14]" />
-              <span className="text-xs font-medium text-[#39FF14]">Complete</span>
-            </div>
-          )}
-          {project.status === 'archived' && (
-            <div className="mb-2 flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-800/50 px-3 py-1.5 w-fit">
-              <Archive className="h-3.5 w-3.5 text-neutral-400" />
-              <span className="text-xs font-medium text-neutral-400">Archived</span>
-            </div>
-          )}
-          {householdInfo?.isMultiMember && (project.isMine ?? true) && (
-            <button
-              type="button"
-              onClick={async () => {
-                const next = !project.household_id
-                await updateProject({ shareWithHousehold: next })
-                toast.success(next ? `Shared with ${householdInfo.name}` : 'No longer shared')
-              }}
-              className={`mb-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 w-fit transition-colors ${
-                project.household_id
-                  ? 'border-[#00FFFF]/30 bg-[#00FFFF]/[0.08] text-[#00FFFF]'
-                  : 'border-neutral-700 bg-neutral-800/50 text-neutral-400 hover:border-neutral-500'
-              }`}
-            >
-              <Home className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium">
-                {project.household_id ? `Shared with ${householdInfo.name}` : `Share with ${householdInfo.name}`}
-              </span>
-            </button>
-          )}
-          {householdInfo?.isMultiMember && project.isMine === false && project.household_id && (
-            <div className="mb-2 flex items-center gap-2 rounded-lg border border-[#00FFFF]/30 bg-[#00FFFF]/[0.08] px-3 py-1.5 w-fit">
-              <Home className="h-3.5 w-3.5 text-[#00FFFF]" />
-              <span className="text-xs font-medium text-[#00FFFF]">Shared household project</span>
-            </div>
-          )}
-          <input
+          <GrowingTextInput
             value={project.title}
-            onChange={(e) => setProject({ ...project, title: e.target.value })}
+            onChange={(value) => setProject({ ...project, title: value })}
             onBlur={() => updateProject({ title: project.title })}
-            className="min-w-0 w-full bg-transparent text-lg font-bold text-white outline-none sm:text-xl"
+            className="min-w-0 w-full text-xl font-bold text-white sm:text-2xl"
           />
-          {project.life_categories?.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {project.life_categories.map(key => {
-                const lc = getLifeCategoryInfo(key)
-                return (
-                  <span
-                    key={key}
-                    className="rounded-full border border-neutral-700 bg-neutral-800/50 px-2 py-0.5 text-[10px] font-medium text-neutral-400"
-                  >
-                    {lc.label}
-                  </span>
-                )
-              })}
-            </div>
-          )}
-          {project.due_date && (
-            <p className="mt-2 flex items-center gap-1 text-xs text-neutral-500">
-              <Calendar className="h-3 w-3" />
-              Due {new Date(project.due_date).toLocaleDateString()}
-            </p>
+          {hasMetaRow && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {project.status === 'done' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#39FF14]/25 bg-[#39FF14]/[0.08] px-2.5 py-1 text-xs font-medium text-[#39FF14]">
+                <Check className="h-3.5 w-3.5" />
+                Complete
+              </span>
+            )}
+            {project.status === 'archived' && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-700 bg-neutral-800/60 px-2.5 py-1 text-xs font-medium text-neutral-400">
+                <Archive className="h-3.5 w-3.5" />
+                Archived
+              </span>
+            )}
+            {project.life_categories?.map(key => {
+              const lc = getLifeCategoryInfo(key)
+              return (
+                <span
+                  key={key}
+                  className="inline-flex items-center rounded-full border border-neutral-700/80 bg-neutral-800/40 px-2.5 py-1 text-xs font-medium text-neutral-300"
+                >
+                  {lc.label}
+                </span>
+              )
+            })}
+            {project.due_date && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-700/80 bg-neutral-800/40 px-2.5 py-1 text-xs font-medium text-neutral-400">
+                <Calendar className="h-3.5 w-3.5" />
+                Due {new Date(project.due_date).toLocaleDateString()}
+              </span>
+            )}
+            {householdInfo?.isMultiMember && (project.isMine ?? true) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const next = !project.household_id
+                  await updateProject({ shareWithHousehold: next })
+                  toast.success(next ? `Shared with ${householdInfo.name}` : 'No longer shared')
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                  project.household_id
+                    ? 'border-[#00FFFF]/30 bg-[#00FFFF]/[0.08] text-[#00FFFF] hover:border-[#00FFFF]/50'
+                    : 'border-neutral-700 bg-neutral-800/40 text-neutral-400 hover:border-neutral-500 hover:text-neutral-300'
+                }`}
+              >
+                <Home className="h-3.5 w-3.5" />
+                {project.household_id ? `Shared with ${householdInfo.name}` : `Share with ${householdInfo.name}`}
+              </button>
+            )}
+            {householdInfo?.isMultiMember && project.isMine === false && project.household_id && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00FFFF]/30 bg-[#00FFFF]/[0.08] px-2.5 py-1 text-xs font-medium text-[#00FFFF]">
+                <Home className="h-3.5 w-3.5" />
+                Shared household project
+              </span>
+            )}
+          </div>
           )}
         </div>
 
         {/* Description */}
-        <Card
-          variant="glass"
-          className="relative overflow-hidden border border-white/[0.06] p-3 shadow-none sm:p-4"
+        <div
+          onBlur={(e) => {
+            // Only persist when focus leaves the description area entirely
+            // (not when tapping the mic/record controls inside it)
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+              updateProject({ description: descriptionRef.current })
+            }
+          }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-[#39FF14]/[0.02] via-transparent to-[#00FFFF]/[0.02] pointer-events-none" />
-          <div className="relative">
-            <Textarea
-              value={project.description || ''}
-              onChange={(e) => setProject({ ...project, description: e.target.value })}
-              onBlur={() => updateProject({ description: project.description })}
-              placeholder="Add a description..."
-              rows={2}
-              className="!border-neutral-800 !bg-neutral-900/50 text-sm"
-            />
-          </div>
-        </Card>
+          <RecordingTextarea
+            value={project.description || ''}
+            onChange={(value) => {
+              descriptionRef.current = value
+              setProject({ ...project, description: value })
+            }}
+            placeholder="Add a description... or tap the mic to record."
+            rows={2}
+            recordingPurpose="quick"
+            storageFolder="journal"
+            category="project-description"
+            instanceId={`project-description-${id}`}
+            hideClear
+            className="!bg-[#1A1A1A] !border-[#282828] text-sm"
+            onAudioSaved={() => updateProject({ description: descriptionRef.current })}
+          />
+        </div>
 
         {/* Tasks */}
         <Card
@@ -339,25 +464,21 @@ export default function ProjectDetailPage() {
                         />
                       </button>
                     ) : null}
-                    <input
-                      type="text"
+                    <GrowingTextInput
                       value={task.title}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setProject(prev =>
-                          prev ? { ...prev, tasks: patchTaskInTree(prev.tasks, task.id, { title: e.target.value }) } : prev
+                          prev ? { ...prev, tasks: patchTaskInTree(prev.tasks, task.id, { title: value }) } : prev
                         )
                       }
-                      onFocus={(e) => {
-                        e.currentTarget.dataset.originalTitle = e.currentTarget.value
+                      onFocus={(el) => {
+                        el.dataset.originalTitle = el.value
                       }}
-                      onBlur={(e) => {
-                        const original = e.currentTarget.dataset.originalTitle ?? e.currentTarget.value
-                        handleTaskTitleBlur(task.id, e.currentTarget.value, original)
+                      onBlur={(el) => {
+                        const original = el.dataset.originalTitle ?? el.value
+                        handleTaskTitleBlur(task.id, el.value, original)
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') e.currentTarget.blur()
-                      }}
-                      className={`min-w-0 flex-1 bg-transparent text-sm outline-none focus:rounded-lg focus:bg-white/[0.04] focus:px-1 ${
+                      className={`min-w-0 flex-1 text-sm focus:rounded-lg focus:bg-white/[0.04] focus:px-1 ${
                         task.is_complete
                           ? 'text-neutral-500 line-through decoration-neutral-600'
                           : 'text-white'
@@ -370,6 +491,14 @@ export default function ProjectDetailPage() {
                       title="Add subtask"
                     >
                       <Plus className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openMoveTask(task)}
+                      className="rounded-lg p-1.5 text-neutral-600 opacity-100 transition-colors hover:bg-white/[0.06] hover:text-[#00FFFF] sm:opacity-0 sm:group-hover:opacity-100"
+                      title="Move to another project"
+                    >
+                      <FolderInput className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
@@ -397,28 +526,32 @@ export default function ProjectDetailPage() {
                       >
                         {sub.is_complete && <CheckCircle2 className="h-3.5 w-3.5 text-[#39FF14]" />}
                       </button>
-                      <input
-                        type="text"
+                      <GrowingTextInput
                         value={sub.title}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           setProject(prev =>
-                            prev ? { ...prev, tasks: patchTaskInTree(prev.tasks, sub.id, { title: e.target.value }) } : prev
+                            prev ? { ...prev, tasks: patchTaskInTree(prev.tasks, sub.id, { title: value }) } : prev
                           )
                         }
-                        onFocus={(e) => {
-                          e.currentTarget.dataset.originalTitle = e.currentTarget.value
+                        onFocus={(el) => {
+                          el.dataset.originalTitle = el.value
                         }}
-                        onBlur={(e) => {
-                          const original = e.currentTarget.dataset.originalTitle ?? e.currentTarget.value
-                          handleTaskTitleBlur(sub.id, e.currentTarget.value, original)
+                        onBlur={(el) => {
+                          const original = el.dataset.originalTitle ?? el.value
+                          handleTaskTitleBlur(sub.id, el.value, original)
                         }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') e.currentTarget.blur()
-                        }}
-                        className={`min-w-0 flex-1 bg-transparent text-sm outline-none focus:rounded-lg focus:bg-white/[0.04] focus:px-1 ${
+                        className={`min-w-0 flex-1 text-sm focus:rounded-lg focus:bg-white/[0.04] focus:px-1 ${
                           sub.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-300'
                         }`}
                       />
+                      <button
+                        type="button"
+                        onClick={() => openMoveTask(sub)}
+                        className="rounded-lg p-1.5 text-neutral-600 opacity-100 transition-colors hover:bg-white/[0.06] hover:text-[#00FFFF] sm:opacity-0 sm:group-hover:opacity-100"
+                        title="Move to another project"
+                      >
+                        <FolderInput className="h-4 w-4" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => deleteTask(sub.id)}
@@ -464,39 +597,92 @@ export default function ProjectDetailPage() {
           </div>
         </Card>
 
-        <div className="flex items-center justify-center gap-3 pt-2">
-          {project.status === 'active' && (
-            <>
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-neutral-400 hover:text-red-400"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+            {(project.status === 'active' || project.status === 'done') && (
               <Button size="sm" variant="ghost" onClick={handleArchive} className="text-neutral-400 hover:text-neutral-200">
                 <Archive className="h-4 w-4 mr-1" />
                 Archive
               </Button>
-              <Button size="sm" variant="primary" onClick={handleMarkComplete}>
-                <Check className="h-4 w-4 mr-1" />
-                Mark Complete
-              </Button>
-            </>
-          )}
-          {project.status === 'done' && (
-            <>
-              <Button size="sm" variant="ghost" onClick={handleArchive} className="text-neutral-400 hover:text-neutral-200">
-                <Archive className="h-4 w-4 mr-1" />
-                Archive
-              </Button>
+            )}
+            {(project.status === 'done' || project.status === 'archived') && (
               <Button size="sm" variant="ghost" onClick={handleRestore} className="text-neutral-400 hover:text-neutral-200">
                 <RotateCcw className="h-4 w-4 mr-1" />
                 Restore
               </Button>
-            </>
-          )}
-          {project.status === 'archived' && (
-            <Button size="sm" variant="ghost" onClick={handleRestore} className="text-neutral-400 hover:text-neutral-200">
-              <RotateCcw className="h-4 w-4 mr-1" />
-              Restore
+            )}
+          </div>
+          {project.status === 'active' && (
+            <Button size="sm" variant="primary" onClick={handleMarkComplete} className="w-full sm:w-auto">
+              <Check className="h-4 w-4 mr-1" />
+              Mark Complete
             </Button>
           )}
         </div>
       </Stack>
+
+      {/* Move task to another project */}
+      <Modal
+        isOpen={!!movingTask}
+        onClose={() => setMovingTask(null)}
+        title="Move Task"
+        size="md"
+        className="!border !border-white/[0.06] bg-[#1F1F1F]/95 backdrop-blur-xl shadow-2xl"
+      >
+        <p className="mb-4 text-sm text-neutral-400">
+          Move <span className="font-medium text-white">&ldquo;{movingTask?.title}&rdquo;</span> to another project.
+          {movingTask?.subtasks && movingTask.subtasks.length > 0 && ' Its subtasks will move with it.'}
+        </p>
+        {moveTargets === null ? (
+          <div className="flex items-center justify-center py-8">
+            <Spinner size="md" />
+          </div>
+        ) : moveTargets.length === 0 ? (
+          <p className="py-6 text-center text-sm text-neutral-500">
+            No other active projects. Create another project first.
+          </p>
+        ) : (
+          <div className="max-h-[50vh] space-y-1 overflow-y-auto">
+            {moveTargets.map(target => (
+              <button
+                key={target.id}
+                type="button"
+                disabled={movingTo !== null}
+                onClick={() => moveTaskToProject(target.id)}
+                className="flex w-full items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-left transition-colors hover:border-[#00FFFF]/40 hover:bg-[#00FFFF]/[0.06] disabled:opacity-50"
+              >
+                <FolderKanban className="h-4 w-4 shrink-0 text-[#00FFFF]" />
+                <span className="min-w-0 flex-1 text-sm text-white">{target.title}</span>
+                {movingTo === target.id ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-neutral-600" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete project confirmation */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteProject}
+        title="Delete Project"
+        message="This permanently deletes the project and all of its tasks. This action cannot be undone."
+        itemName={project.title}
+        isDeleting={deleting}
+      />
     </Container>
   )
 }

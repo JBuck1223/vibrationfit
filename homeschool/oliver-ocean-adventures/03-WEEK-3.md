@@ -1,116 +1,99 @@
-# Week 3: Young Researcher Week
+# Week 3: Young Researcher Week — Silent E & Place Value
 
-**Focus Letters:** E and A (E says /e/ as in eel; A says /a/ as in "A is for Apple" — and Anemone!)
-**Goal Word Progress:** Build O-C-E-A; the word is almost complete
-**Vocabulary:** tide, waves, current, deep (plus any words from his research)
-**Big Idea:** Oliver investigates his own Wonder Wall questions — books, videos, and the Mote Marine visit.
+**Phonics Focus:** **Silent (magic) e** — it makes the vowel say its name: fin → **fine**, cap → **cape**, wav → **wave**, tid → **tide**, hug → **huge**
+**Sight Words:** said, have, from, what, were
+**Vocabulary:** tide, current, deep, predator, camouflage
+**Math Focus:** Place value (tens and ones) + two-digit addition and subtraction with objects; measuring with a real ruler
+**Big Idea:** Oliver investigates his own Wonder Wall questions — books, experiments, and the Mote Marine visit.
+
+**Daily spine:** calendar + date, counting warm-up (this week: count by 10s off the decade — 27, 37, 47...), 10 min reading, journal sentence.
 
 ---
 
 ## Books This Week
 
-Pull books that match HIS Wonder Wall questions. Strong general picks:
-- *The Big Book of the Blue* — Yuval Zommer (gorgeous, browsable nonfiction)
-- *Shark Lady* — Jess Keating (true story of scientist Eugenie Clark — a real Mote connection! She founded the lab)
-- *If Sharks Disappeared* — Lily Williams (why the ocean needs sharks)
-- *Manfish: A Story of Jacques Cousteau* — Jennifer Berne (a boy whose questions became a life of discovery)
+Pull books matching HIS Wonder Wall questions, plus: *The Big Book of the Blue*, *Shark Lady* (Eugenie Clark founded Mote — read before the visit!), *If Sharks Disappeared*, *Manfish*
+Notice with him: **wave, tide, dive, whale, cave** — this week's magic-e words are all over these books.
 
 ---
 
-## Monday — Letter E + Pick Research Questions
+## Monday — The Magic E Wand
 
-**Letter Time:** Introduce E. Trace in flour, punch-trace, Play-Doh. "E says /e/ — Eel!" Brainstorm E words. Build O-C-E with magnetic letters.
+**Phonics: Magic E**
+Make a "magic wand" (pencil with a star, whatever). Write *fin*. He reads it. Now tap the wand and add **e**: *fine* — "the e is silent, but it makes the i say its NAME." Transform: cap→cape, tid(e)→tide, wav(e)→wave, rid→ride, hug→huge, not→note.
+- He reads pairs and tells you which is the real word in: "The whale made a huge wave at high tide."
+- Dictation: "Write *wave*. Write *dive*."
 
-**Inquiry: Become a Young Researcher**
-Go to the Wonder Wall together. Have Oliver pick **2–3 questions** he most wants to answer this week. Write them in the Scientist Journal, one per page.
-
-For each question, ask HIM: "How could we find out?" Guide him toward:
-- Nonfiction books from the library (make the library trip today or tomorrow)
-- Age-appropriate documentaries and educational websites (watch together)
-- Asking a marine educator at Mote (save one question for Tuesday!)
-- A simple experiment (see Wednesday)
-
-**Prediction first:** Before researching each question, he records a prediction (draws or dictates it). Scientists predict, then investigate.
+**Inquiry: Pick Research Questions**
+At the Wonder Wall, he picks **2–3 questions** to investigate this week. One page each in the Scientist Journal. For each: "What do you PREDICT the answer is?" — he writes or draws the prediction. Then: "How could we find out?" (books, videos, asking a Mote educator tomorrow)
 
 ---
 
-## Tuesday — Mote Marine Laboratory & Aquarium Visit
+## Tuesday — Mote Marine Laboratory & Aquarium (1:30 homeschool program)
 
-**Homeschool program: Tuesday at 1:30** (book ahead).
+**Before:** review his research questions; pick 1–2 to ask an educator. Predict: "What's the biggest animal we'll see?"
+**There:** let him lead. Photograph what excites him. He asks his question out loud himself.
+**After:** What did you learn? What surprised you? Did you answer a question? New questions for the wall?
 
-**Before you go:**
-- Review his research questions; pick 1–2 to ask an educator or look for in the exhibits.
-- Predict: "What do you think will be the biggest animal we see today?"
-
-**While there:**
-- Let him lead. Follow what grabs him.
-- Photograph anything he's excited about (for the journal).
-- Encourage him to ask his question out loud — building confidence asking questions is a monthly goal.
-
-**After (in the car or at home):**
-- What did you learn today? What surprised you?
-- Did you find an answer to one of your questions?
-- What new questions do you have now? (Wonder Wall gets new entries)
-
-**Journal:** He draws his favorite animal from the visit and dictates or writes one sentence about it.
+**Journal:** he draws his favorite animal and **writes 2–3 sentences about it himself** — this is expository writing from a real source, genuine 1st grade work: "I saw a shark. It has five gills. It never stops swimming."
 
 ---
 
-## Wednesday — Letter A + Ocean Science Experiment
+## Wednesday — Experiment Day
 
-**Letter Time:** Introduce A. "A says /a/ — A is for Apple... and Anemone!" Exaggerate the sound while tracing. Build O-C-E-A. Ask: "What letter comes next to finish our word?" (Build suspense for next week.)
+Pick one (predict → test → record):
+- **Sink or Float:** predict for 8–10 objects, test, tally the results in a chart
+- **Salt Water Density:** does an egg float better in fresh or salt water? (The ocean is salty!)
+- **Wave in a Bottle:** water + blue coloring + oil; tip to make waves — introduce *tide* and *current*
 
-**Science Experiment (pick one — predict first, observe, then record in the journal):**
-- **Sink or Float:** Gather shells, rocks, toys, a sponge. Predict each one, test it, sort into sink/float groups (science + sorting math in one).
-- **Salt Water Density:** Two glasses of water, stir salt into one. Will an egg float differently? (The ocean is salty — things float better!)
-- **Wave in a Bottle:** Water + blue food coloring + oil in a sealed bottle. Tip it to make waves. Introduce vocabulary: wave, current.
+**Record like a scientist, in his own writing:** My prediction → What I did → What happened → What I learned. Two to four sentences, his spelling. This page is portfolio gold.
 
-**Record like a scientist:** My prediction → What I did → What happened → What I learned. (He draws, you scribe.)
-
----
-
-## Thursday — Patterning Day
-
-**Letter Time:** Review all four letters with the trays: O in sand, C in sugar, E in flour, A on the whiteboard. Sound check on each.
-
-**Math Through Play: Patterns**
-Use goldfish crackers, shells, LEGO, buttons, or toy animals.
-
-1. **AB pattern:** Fish – Shell – Fish – Shell – Fish – Shell...
-   Ask: "What comes next? How do you know? Can you continue it? Can you build your own AB pattern?"
-2. **ABC pattern:** Fish – Shell – Crab – Fish – Shell – Crab...
-   Continue it together, then he creates his own.
-3. **Challenge:** Can he make a pattern for YOU to continue? Can he find patterns around the house (tiles, stripes, fence posts)?
-
-By the end of this lesson Oliver should: recognize that patterns repeat, identify the pattern rule, continue AB and ABC patterns, and create his own. (Printable pattern cards — AB, ABC, AABB, etc. — are a good backup for rainy days.)
+**Phonics quick hit:** the experiment used magic-e words — wave, fine, huge. He finds them in his write-up.
 
 ---
 
-## Friday — Research Share-Out + Reflection
+## Thursday — Shell Bank Day (Place Value + Two-Digit Math)
 
-**Letter Time:** Oliver teaches you E and A. Builds O-C-E-A from memory.
+**Math: The Shell Bank**
+Dump 40–60 shells. Counting one at a time is slow — so become shell bankers:
+1. Scoop shells into cups of exactly **10**.
+2. Count cups by tens, add the loose ones: "4 cups and 3 loose — **43!**"
+3. Reverse: "Show me 27 the fast way." (2 cups + 7)
+4. **Two-digit addition with objects:** "You have 26 shells and find 5 more on the beach. Count on: 26... 27, 28, 29, 30, 31." When a cup fills, celebrate the regroup: "Ten loose shells — trade them for a cup!"
+5. **Ten more / ten less:** "You have 43. A wave brings a whole cup of 10 more — how many now?" (Just add a cup: 53. No recounting!)
 
-**Inquiry: Share the discoveries**
-Oliver presents what he learned this week to the family (dinner table works great). For each research question:
-- What was my question? What did I predict? What did I find out?
-- Move answered questions to the "Discovered!" section of the Wonder Wall.
+**Measurement:** measure 3 toy animals with the goldfish crackers AND a real ruler: "9 crackers long... and 6 inches!" Compare and order the three lengths.
 
-This builds the monthly social-emotional goal: confidence sharing ideas.
+**Patterns (warm-up only):** one quick AB/ABC pattern with shells — good thinking practice, but the main course is the Shell Bank.
 
-**Movement:** "Tide In, Tide Out" — he's a wave rushing in (run forward), tide goes out (walk backward slowly). Add balance: stand on one foot like a heron hunting in a tide pool.
+---
 
-**Measurement bonus (from monthly goals):** Measure ocean animals with non-standard units — "The stuffed shark is 9 goldfish crackers long! How many crackers long is the crab?"
+## Friday — Research Share-Out
 
-**Snack:** Shark Week snack mix — he creates a pattern with the mix pieces before eating it.
+**Teach-back:** Oliver teaches YOU magic e — he transforms *fin* into *fine* with the wand and explains the rule.
+
+**Share the discoveries:** at dinner, he presents each research question: "My question was... I predicted... I found out..." Move answered questions to "Discovered!" on the Wonder Wall. Presenting orally in complete sentences is a graded 1st grade skill — and confidence-building is the whole point.
+
+**Movement:** "Tide In, Tide Out" — rush in like a wave, retreat slowly; balance on one foot like a heron in a tide pool.
+
+**Snack:** Shark Week snack mix — he counts pieces into cups of ten first. "Three cups and 4 extra — how many?"
+
+---
+
+## Stepping Down / Stepping Up
+
+- **Down:** if magic e confuses, spend the week reading digraph + CVC words in his decodables and do magic e orally only (fin/fine with toys). Shell Bank still works — just keep totals under 30.
+- **Up:** two-digit subtraction with the shells ("43, a wave steals a whole cup"), and introduce r-controlled vowels: under the wateR, oveR the reef, huRt, biRd, tuRtle — tuRtle is the mascot for er/ir/ur.
 
 ---
 
 ## Week 3 Checklist
 
-- [ ] Letters E and A: recognizes both cases, says sounds, prints them
-- [ ] Mote Marine visit done; he asked at least one question out loud
-- [ ] 2–3 Wonder Wall questions researched, with predictions recorded first
-- [ ] At least one experiment completed and recorded in the Scientist Journal
-- [ ] Continues AB and ABC patterns; created his own pattern
-- [ ] Measured something with non-standard units
-- [ ] Shared his discoveries with the family
+- [ ] Reads and writes magic-e words; can explain the rule
+- [ ] Mote visit done; he asked his question out loud
+- [ ] 2–3 research questions investigated with written predictions
+- [ ] Experiment recorded in his own writing (prediction → result)
+- [ ] Builds two-digit numbers as tens and ones, both directions
+- [ ] Added a one-digit number to a two-digit number with objects
+- [ ] Measured and ordered lengths with a real ruler (inches)
+- [ ] Presented his findings to the family

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Container, Card, Button, Stack, Spinner } from '@/lib/design-system/components'
 import { VIVALoadingOverlay } from '@/lib/design-system/components/overlays'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
-import { Sparkles, Check, ChevronDown, ChevronRight, FolderKanban, Plus, ArrowRight } from 'lucide-react'
+import { Sparkles, Check, ChevronDown, ChevronRight, FolderKanban, Plus, ArrowRight, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { getLifeCategoryInfo } from '@/lib/projects/types'
 
@@ -77,7 +77,9 @@ export default function ProjectOrganizePage() {
     if (!result) return
 
     const projectsToCreate = result.projects.filter((_, i) => selectedProjects.has(i))
-    const mergesToApply = result.merge_into_existing.filter((_, i) => selectedMerges.has(i))
+    const mergesToApply = result.merge_into_existing.filter(
+      (m, i) => selectedMerges.has(i) && m.tasks_to_add.length > 0
+    )
 
     if (projectsToCreate.length === 0 && mergesToApply.length === 0) {
       toast.error('Select at least one project or merge to apply')
@@ -137,6 +139,26 @@ export default function ProjectOrganizePage() {
       if (next.has(idx)) next.delete(idx)
       else next.add(idx)
       return next
+    })
+  }
+
+  const removeProjectTask = (projIdx: number, taskIdx: number) => {
+    setResult(prev => {
+      if (!prev) return prev
+      const projects = prev.projects.map((p, i) =>
+        i === projIdx ? { ...p, tasks: p.tasks.filter((_, ti) => ti !== taskIdx) } : p
+      )
+      return { ...prev, projects }
+    })
+  }
+
+  const removeMergeTask = (mergeIdx: number, taskIdx: number) => {
+    setResult(prev => {
+      if (!prev) return prev
+      const merges = prev.merge_into_existing.map((m, i) =>
+        i === mergeIdx ? { ...m, tasks_to_add: m.tasks_to_add.filter((_, ti) => ti !== taskIdx) } : m
+      )
+      return { ...prev, merge_into_existing: merges }
     })
   }
 
@@ -293,9 +315,17 @@ export default function ProjectOrganizePage() {
                           {isExpanded && (
                             <ul className="mt-3 space-y-1.5 border-t border-white/[0.04] pt-3">
                               {proj.tasks.map((task, ti) => (
-                                <li key={ti} className="flex items-start gap-2 text-sm text-neutral-300">
+                                <li key={ti} className="group flex items-start gap-2 text-sm text-neutral-300">
                                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-600" />
-                                  {task}
+                                  <span className="min-w-0 flex-1">{task}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeProjectTask(idx, ti)}
+                                    className="shrink-0 rounded p-0.5 text-neutral-600 opacity-100 transition-colors hover:bg-red-500/10 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
+                                    title="Remove task"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
                                 </li>
                               ))}
                             </ul>
@@ -345,9 +375,17 @@ export default function ProjectOrganizePage() {
                           </div>
                           <ul className="mt-2 space-y-1">
                             {merge.tasks_to_add.map((task, ti) => (
-                              <li key={ti} className="flex items-start gap-2 text-sm text-neutral-400">
+                              <li key={ti} className="group flex items-start gap-2 text-sm text-neutral-400">
                                 <Plus className="mt-0.5 h-3 w-3 shrink-0 text-[#00FFFF]/60" />
-                                {task}
+                                <span className="min-w-0 flex-1">{task}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeMergeTask(idx, ti)}
+                                  className="shrink-0 rounded p-0.5 text-neutral-600 opacity-100 transition-colors hover:bg-red-500/10 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
+                                  title="Remove task"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
                               </li>
                             ))}
                           </ul>

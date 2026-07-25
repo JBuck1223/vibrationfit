@@ -29,6 +29,8 @@ export function ReferenceLibraryPicker({ onSelect, className, onOpenChange }: Re
   const [loading, setLoading] = useState(false)
   const [references, setReferences] = useState<ReferenceTrack[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const loadReferences = useCallback(async () => {
     if (loaded && references.length > 0) return
@@ -58,10 +60,20 @@ export function ReferenceLibraryPicker({ onSelect, className, onOpenChange }: Re
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     if (!confirm('Remove this reference from your library?')) return
+    setDeleteError(null)
+    setDeletingId(id)
     try {
-      await fetch(`/api/songs/references?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/songs/references?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to remove reference')
+      }
       setReferences(prev => prev.filter(r => r.id !== id))
-    } catch {}
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to remove reference')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   if (!open) {
@@ -94,6 +106,9 @@ export function ReferenceLibraryPicker({ onSelect, className, onOpenChange }: Re
       </button>
 
       <div className="min-w-0 border-t border-neutral-800 px-1.5 pb-1.5">
+        {deleteError && (
+          <p className="px-2.5 pt-2 text-[11px] text-[#FF0040]">{deleteError}</p>
+        )}
         {loading ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-4 w-4 animate-spin text-neutral-500" />
@@ -142,10 +157,15 @@ export function ReferenceLibraryPicker({ onSelect, className, onOpenChange }: Re
                 <button
                   type="button"
                   onClick={(e) => handleDelete(e, ref.id)}
-                  className="shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 text-neutral-600 hover:text-[#FF0040] transition-all"
+                  disabled={deletingId === ref.id}
+                  className="shrink-0 p-1.5 rounded text-neutral-500 hover:text-[#FF0040] hover:bg-[#FF0040]/10 transition-all disabled:opacity-50"
                   title="Remove from library"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  {deletingId === ref.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
                 </button>
               </div>
             ))}

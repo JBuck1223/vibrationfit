@@ -1,137 +1,132 @@
-# Week 1: "What Do I Already Know?"
+# Week 1: Placement Week — "What Do I Already Know?"
 
-**Focus Letter:** O (uppercase + lowercase, sound /o/)
-**Goal Word Progress:** Introduce the word OCEAN — just meet it, don't master it
+**Phonics Focus:** Short vowel sounds + reading and writing CVC words (fin, net, sun, map, dig)
+**Challenge Word:** OCEAN (say it, spell it, write it — it's the month's anchor word)
 **Vocabulary:** ocean, wave, beach, sand, shell
-**Big Idea:** Discover what Oliver already knows and what he wonders — this shapes the whole month.
+**Big Idea:** Find Oliver's true starting point in reading and math, and discover what he knows and wonders about the ocean.
 
 ---
 
-## Books This Week (see `05-BOOKS-AND-MEDIA.md` for the full list)
+## The Skills Ladder (used all month)
 
-- *Commotion in the Ocean* — Giles Andreae (rhyming intro to lots of ocean animals)
-- *Ocean! Waves for All* — Stacy McAnulty (the ocean "narrates" its own story)
-- *Swimmy* — Leo Lionni (classic; problem-solving and teamwork)
+Monday's placement check finds Oliver's rung. Each week of this unit targets the next rung up — if he's already solid on a rung, move up; if he hits a wall, camp there. That's the whole advantage of homeschool.
+
+1. **Rung 1:** Letter names and sounds
+2. **Rung 2:** Short vowels; read/write CVC words (this week)
+3. **Rung 3:** Digraphs sh/ch/th/wh; sight words (Week 2)
+4. **Rung 4:** Silent e — long vowels (Week 3)
+5. **Rung 5:** Vowel teams (ee, ea, ai, ay) + compound words (Week 4)
+
+**Every day, all month:** 10 minutes of real reading practice (decodable readers at his rung — BOB Books or similar), one journal sentence he writes himself (capital letter, finger spaces, end period — invented spelling welcome), and morning calendar (see below).
+
+**New morning circle routine:** He reads the calendar and writes today's date ("Monday, July 20"), answers "What was yesterday? What is tomorrow?", and does one counting warm-up (count on from a random number, or skip count by 2s/5s/10s).
 
 ---
 
-## Monday — Letter Assessment + Brainstorm
+## Books This Week (see `05-BOOKS-AND-MEDIA.md`)
 
-**Letter Time: Letter Recognition Assessment**
-Using the whiteboard, then trays of sand, sugar, and flour, have Oliver:
-1. Identify uppercase letters as you show/say them
-2. Identify lowercase letters
-3. Print each letter independently
+Read-alouds: *Commotion in the Ocean*, *Ocean! Waves for All*, *Swimmy*
+His own reading: decodable readers at his placement rung, 10 min daily
 
-Note (in your own notes, not in front of him) which letters need extra practice — these guide the rest of the month. Keep it playful: "Can you draw a B in the sugar? Now stomp like a crab to the flour tray!"
+---
+
+## Monday — Placement Day
+
+**Literacy Placement (15–20 min, keep it light and gamey)**
+Work up the ladder until he slows down — that's his rung. In your notes, record where he lands:
+1. Quick letter check: point to 8–10 letters (mixed case) — names and sounds. (If this is shaky, THAT's the work; see "Stepping down" below.)
+2. Short vowels: "What sound does A make? E? I? O? U?"
+3. Read CVC words: map, net, fin, hot, sun, wet
+4. Read digraph words: ship, fish, chat, that, whale
+5. Read silent-e words: wave, tide, cave, ride
+6. Sight words: the, was, they, said, have
+7. Write a sentence from dictation: "The fish swims." (Watch: capital? spaces? period? spelling attempt?)
+
+**Math Placement**
+- Pour out 20–30 ocean animals/shells: how high can he count accurately? Count backward from 20. Count on from 26.
+- "You have 5 fish and 3 more swim over — how many?" Then 8 + 4. Then "10 fish, 6 swim away?"
+- Show him 1:00 on a clock, a nickel and dime, a hexagon — just to see what's already there.
+
+Record the ceilings. This is your baseline for the Week 4 re-check and the portfolio.
 
 **Inquiry: What Do I Already Know? (Brainstorm)**
-Ask these open-ended questions and **record every response exactly as he says it**:
-- What do you already know about the ocean?
-- What animals live there?
-- Which ocean animal is your favorite?
-- Have you ever seen an ocean animal in real life?
-- What do you think is at the very bottom of the ocean?
-- What do you think lives in the deepest parts of the sea?
-- Why do you think the ocean is important?
+Ask and **record every response exactly as he says it**:
+- What do you already know about the ocean? What animals live there?
+- What do you think is at the very bottom? Why is the ocean important?
 
-Post his answers on the left column of the **Wonder Wall** ("What Oliver Knows").
-
-**Play-Doh:** Build uppercase and lowercase **O**. Say "/o/ — O is for Ocean, Octopus, Otter."
+Post his answers on the **Wonder Wall** left column ("What Oliver Knows").
 
 ---
 
-## Tuesday — Wonder Wall + Letter O
+## Tuesday — Short Vowels + Shark Chomp Math
 
-**Letter Time:** Trace O in the sand tray while exaggerating the sound. Punch-trace an O tracing page with a thumbtack (cardboard underneath). Hold it up to the window to reveal the letter, then finger-trace it saying "O says /o/."
+**Phonics: Vowel Sound Sort**
+- Say the five short vowel sounds together with gestures (a as in crab-claw pinch, o as in "octopus").
+- Sort toy objects or pictures by their vowel sound: crab/map/sand (a), shell/net/wet (e), fish/fin/dig (i), pot/rock/dot (o), sun/mud/tug (u).
+- Build CVC words with magnetic letters, then play **change-one-letter chains**: fin → fan → man → map → mop. He reads each new word.
 
-**Inquiry: Wonder Wall**
-Shift from knowing to wondering. Ask:
-- What would you like to know about the ocean?
-- If you could ask a marine scientist one question, what would it be?
-- What do you wonder about sharks? About dolphins?
-- What would you like to learn this month?
+**Wonder Wall:** Shift to curiosity. "What would you like to know about the ocean? What do you wonder about sharks? If you could ask a marine scientist one question...?" Post questions on the right column.
 
-Post questions on the right column ("What Oliver Is Wondering"). These become research topics in Week 3.
-
-**Math Through Play:** First counting session — count 10 ocean animals, then count backward from 10 while "diving deeper" (crouch lower with each number).
-
-**Play-Doh:** Letter O again. Can he make a whole octopus out of O shapes?
+**Math: Shark Chomp (comparing numbers)**
+Draw a shark mouth on a clothespin or just use his hand — **the shark always chomps the bigger number.** Deal two piles of shells (or write two numbers, up to 100 as he's ready): 34 vs 43 — chomp! Have him read both numbers aloud first. Then order three numbers smallest to biggest.
 
 ---
 
 ## Wednesday — Creative Drawing Day (Drawing #1 — save this!)
 
-**Letter Time:** Write O on the whiteboard; hunt for the letter O around the house (cereal boxes, books, labels).
+**Creative Time: "Draw the Ocean"**
+Before showing any books, he draws what HE thinks the ocean looks like. Be curious, not instructional: "Tell me about your picture. What's happening under the water that we can't see? If you could jump inside, where would you go first?"
 
-**Creative Time: "Draw the Ocean" (the big one)**
-Before showing any books or pictures, invite Oliver to draw what HE thinks the ocean looks like. There is no right or wrong. While he draws, be curious, not instructional:
-- "Tell me about your picture."
-- "What is happening here?"
-- "Who lives here?"
-- "What do you think is happening underneath the water that we can't see?"
-- "If you could jump inside your drawing, where would you go first?"
+**First-grade upgrade:** instead of you scribing everything, **he writes 1–2 sentences under the drawing himself** (invented spelling fine — "The oktopus haz 8 legz" is perfect first grade work). He labels 3–4 things with sounded-out words. You scribe the longer story he tells on the back.
 
-**Write his words on the back of the artwork.** Date it. You will compare this to a second drawing in Week 4 — keep it safe.
+**Date it and save it** — he'll draw again in Week 4 and compare.
 
-**Extend the drawing (literacy + math + science in one):**
-- Can you write the word OCEAN at the top? (Help as needed)
-- Can you find the letter O in your drawing?
-- How many fish did you draw? Count them together.
-- Which animal is biggest? Smallest?
-- Which animals have fins? Shells?
-
-**Storytelling Extension:** "What should we call your picture? Who is the main character? What problem do they have? How do they solve it?" Write his story exactly as he tells it. If he's ready, he writes one sentence beneath the picture himself.
-
-**Display the artwork somewhere special.** Praise the thinking: "Your imagination created an amazing underwater world."
+**Math tie-in:** Count the animals in the drawing. "Which is biggest? If two more sharks swam in, how many animals would there be?"
 
 ---
 
-## Thursday — Ocean Sorting + Vocabulary
+## Thursday — Sorting, Tally Charts & Syllables
 
-**Letter Time:** Play-Doh O, then introduce the five letter cards O-C-E-A-N laid out in order. "These letters spell a very important word this month..."
+**Phonics:** Reread yesterday's sentences. Quick CVC dictation on the whiteboard: "Write *sun*. Now change it to *fun*. Now *fin*."
 
-**Math Through Play: Ocean Sorting**
-Give Oliver the ocean animals, shells, rocks, buttons. Ask him to sort them **as many different ways as possible**:
-- By color? Size? Animal type? Number of legs?
-- Animals that swim? Animals with shells? Big vs. small?
+**Math: Ocean Sorting → Tally Chart**
+Sort the ocean animals as many ways as possible (color, size, legs, shells, swims/crawls) and always ask "Why did you put these together?" Then pick one sort and **record it as a tally chart** — tally each group, count by 5s, and answer: "Which group has the most? How many more fish than crabs?"
 
-There's more than one right answer. Always ask: **"Why did you put these together?"** — that explanation is the real math.
-
-**Vocabulary:** Introduce this week's five words (ocean, wave, beach, sand, shell). Clap the syllables of each: o-cean (2 claps), wave (1), shell (1). Use them naturally the rest of the week.
+**Vocabulary + Syllables:** Clap this week's words into syllables. Bonus seed: o-cean starts with an **open syllable** — the o says its own name because nothing closes it in. Just plant the idea.
 
 ---
 
-## Friday — Movement, Story, and Reflection
+## Friday — Oliver Teaches, Then We Celebrate the Week
 
-**Letter Time:** Oliver teaches YOU the letter O — he shows you how to write it in the flour tray and tells you its sound. (Teaching it back = mastery check.)
+**Teach-back (keep this — it's the best part):** Oliver teaches YOU the five short vowel sounds and shows you how to build two CVC words. Teaching it back = mastery check.
 
-**Movement (use any/all of these all week as brain breaks):**
-- [Ocean movement video 1](https://www.youtube.com/watch?v=f8H-Iu6emxo)
-- [Ocean movement video 2](https://www.youtube.com/watch?v=gCMc3Bjl3I0&list=RDgCMc3Bjl3I0&start_radio=1)
-- [Ocean movement video 3](https://www.youtube.com/watch?v=SH-7A3NVQbY&list=RDSH-7A3NVQbY&start_radio=1)
-- Game: "Ocean Animal Freeze Dance" — call an animal, he moves like it; pause the music, he freezes.
+**Movement (use as brain breaks all week):**
+- [Under the Sea Chase — Just Dance](https://www.youtube.com/watch?v=f8H-Iu6emxo)
+- [Under the Sea Workout](https://www.youtube.com/watch?v=gCMc3Bjl3I0&list=RDgCMc3Bjl3I0&start_radio=1)
+- [Just Dance Disney Under the Sea](https://www.youtube.com/watch?v=SH-7A3NVQbY&list=RDSH-7A3NVQbY&start_radio=1)
 
-**Story Time Online (or a book from the list):**
-- [Story time video 1](https://www.youtube.com/watch?v=6MuJWIyu9ds)
-- [Story time video 2](https://www.youtube.com/watch?v=uGKeb2hTl90)
-- [Story time video 3](https://www.youtube.com/watch?v=X2wLWn2PcQ4)
+**Story Time:** a book from the list or a [story-time video](https://www.youtube.com/watch?v=6MuJWIyu9ds). Before reading, he finds the **title, author, and illustrator** (do this every read-aloud from now on).
 
-**Weekly Reflection (do this every Friday):**
-- What did you learn this week?
-- What surprised you?
-- What new questions do you have? (Add them to the Wonder Wall)
+**Weekly Reflection:** What did you learn? What surprised you? New questions for the Wonder Wall?
 
-**Snack:** Goldfish crackers — sort by color, count them into groups of 5, THEN eat them.
+**Snack:** Goldfish crackers — sort by color, group by 5s, count the batch by 5s. Then: "You have 15 and you eat 5 — how many left?"
+
+---
+
+## Stepping Down / Stepping Up
+
+- **If placement shows he's still on Rung 1 (letter names/sounds):** spend this month there without guilt — use multi-sensory letter work daily (Play-Doh letters, sand tray, thumbtack punch-tracing) focused on OCEAN's letters plus whatever the check flagged, and shift this plan's phonics down one rung per week. Progress from HIS starting point is exactly what Florida requires.
+- **If he flies through CVC words:** start Week 2's digraphs tomorrow and let the month end at Rung 5+ (r-controlled er/ir/ur — "under the wateR").
 
 ---
 
 ## Week 1 Checklist
 
-- [ ] Letter assessment done; tricky letters noted
-- [ ] Wonder Wall is up with both columns filled
-- [ ] Drawing #1 completed, his words written on back, dated, and saved
-- [ ] Letter O: recognizes uppercase + lowercase, says /o/, prints it
-- [ ] Sorted objects at least 3 different ways and explained why
-- [ ] 5 vocabulary words introduced and clapped into syllables
-- [ ] Booked Mote Marine homeschool program for a Tuesday (1:30) — ideally Week 3
+- [ ] Literacy placement done — his rung: ______
+- [ ] Math ceilings recorded (counting: ____, facts: ____, knows clock/coins/shapes? ____)
+- [ ] Wonder Wall up, both columns filled
+- [ ] Drawing #1 done with his own written sentences, dated, saved
+- [ ] Read decodables 10 min daily; journal sentence daily
+- [ ] Calendar routine started (reads and writes the date)
+- [ ] Made a tally chart and interpreted it
+- [ ] Booked Mote Marine homeschool program (Tuesday 1:30) for Week 3

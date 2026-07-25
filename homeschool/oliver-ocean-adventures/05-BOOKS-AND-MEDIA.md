@@ -1,6 +1,21 @@
-# Books & Media List — Ocean Adventures (Age 6)
+# Books & Media List — Ocean Adventures (Age 6, 1st Grade)
 
 All picks are age-appropriate for a 6-year-old. Request them from your library a week ahead (most library apps let you place holds online). Aim for a mix of story books and real-photo nonfiction each week.
+
+---
+
+## Books OLIVER Reads (10 minutes daily — the most important list)
+
+These match the month's phonics ladder. Start at his Week 1 placement rung:
+
+| Rung | What to Get | Notes |
+|------|-------------|-------|
+| CVC / short vowels | **BOB Books Set 1–2**, or free decodables at progressivephonics.com / flyleafpublishing.com | Short, winnable — confidence first |
+| Digraphs & blends | BOB Books Set 3; *Half Pint Kids* readers | Week 2's sh/ch/th/wh show up constantly |
+| Silent e & vowel teams | BOB Books Sight Words / Set 4–5 | Matches Weeks 3–4 |
+| Graduating up | **Elephant & Piggie** (Mo Willems), *Fly Guy*, Nat Geo Readers Level 1 (*Swim, Fish!*, *Sea Turtles*) | Real books with training wheels off — huge motivators |
+
+Let him reread the same book until it's smooth — rereading builds fluency, it isn't cheating.
 
 ---
 
