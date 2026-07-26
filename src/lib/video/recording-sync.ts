@@ -11,7 +11,7 @@
 
 import { createServiceClient } from '@/lib/supabase/service'
 import { listRecordings, getRecording } from '@/lib/video/daily'
-import { optimizeRecording } from '@/lib/video/recording-optimize'
+import { optimizeRecording, finalizePendingOptimizations } from '@/lib/video/recording-optimize'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 import { transcribeSession } from '@/lib/video/transcribe-session'
 
@@ -82,7 +82,12 @@ export async function syncRecordings(opts?: {
 
   for (const session of pendingSessions || []) {
     try {
-      if (session.recording_url && session.recording_status === 'uploaded') {
+      // A session with a recording URL has already been synced from Daily.
+      // 'processing' here means a MediaConvert optimization is in flight —
+      // finalizePendingOptimizations() below handles it. Re-syncing it would
+      // flip the status back to 'uploaded' and resubmit the MediaConvert job
+      // every 5 minutes (the Jul 23-24 cost runaway).
+      if (session.recording_url) {
         results.push({
           session_id: session.id,
           room_name: session.daily_room_name,
@@ -200,6 +205,20 @@ export async function syncRecordings(opts?: {
     transcribeSession(s.id).catch((err) =>
       console.error(`[recording-sync] auto-transcribe failed for ${s.id}:`, err)
     )
+  }
+
+  // Finalize any in-flight MediaConvert optimizations (swap URL to the
+  // optimized file when the job completes). Awaited so the status flip
+  // happens before the next cron cycle re-reads these sessions.
+  try {
+    const finalize = await finalizePendingOptimizations()
+    if (finalize.checked > 0) {
+      console.log(
+        `[recording-sync] optimizations: ${finalize.checked} checked, ${finalize.finalized} finalized, ${finalize.errored} errored`
+      )
+    }
+  } catch (err) {
+    console.error('[recording-sync] finalize step failed:', err)
   }
 
   return {

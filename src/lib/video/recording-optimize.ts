@@ -44,14 +44,18 @@ export interface OptimizeResult {
 
 /**
  * Submit a MediaConvert optimization job for a session recording.
- * Safe to call multiple times — skips if already optimized or currently processing.
+ * Safe to call multiple times — skips if already optimized, currently
+ * processing, or a job was already submitted for this session.
  */
-export async function optimizeRecording(sessionId: string): Promise<OptimizeResult> {
+export async function optimizeRecording(
+  sessionId: string,
+  opts?: { force?: boolean }
+): Promise<OptimizeResult> {
   const supabase = createServiceClient()
 
   const { data: session, error: fetchErr } = await supabase
     .from('video_sessions')
-    .select('id, recording_s3_key, recording_url, recording_status')
+    .select('id, recording_s3_key, recording_url, recording_status, optimize_job_id')
     .eq('id', sessionId)
     .single()
 
@@ -65,6 +69,16 @@ export async function optimizeRecording(sessionId: string): Promise<OptimizeResu
   }
   if (session.recording_status === 'processing') {
     return { session_id: sessionId, status: 'skipped', detail: 'Already processing' }
+  }
+  // A job was already submitted for this session. This is the hard guard that
+  // prevents duplicate MediaConvert spend — never resubmit unless forced
+  // (finalizePendingOptimizations clears the id if the job errored).
+  if (session.optimize_job_id && !opts?.force) {
+    return {
+      session_id: sessionId,
+      status: 'skipped',
+      detail: `Job ${session.optimize_job_id} already submitted`,
+    }
   }
 
   const s3Key =
@@ -168,7 +182,11 @@ export async function optimizeRecording(sessionId: string): Promise<OptimizeResu
 
     await supabase
       .from('video_sessions')
-      .update({ recording_status: 'processing' })
+      .update({
+        recording_status: 'processing',
+        optimize_job_id: jobId,
+        optimize_submitted_at: new Date().toISOString(),
+      })
       .eq('id', sessionId)
 
     console.log(
@@ -228,11 +246,52 @@ export async function checkOptimizationJob(
 
   if (status === 'ERROR') {
     const supabase = createServiceClient()
+    // Clear the job id so a future optimize attempt is allowed
     await supabase
       .from('video_sessions')
-      .update({ recording_status: 'uploaded' })
+      .update({ recording_status: 'uploaded', optimize_job_id: null })
       .eq('id', sessionId)
   }
 
   return { status }
+}
+
+/**
+ * Finalize in-flight optimization jobs. Called from the recording-sync cron.
+ *
+ * For every session stuck in 'processing' with a tracked MediaConvert job,
+ * polls the job and swaps the recording URL to the optimized file when
+ * complete. This closes the loop that previously required a manual admin
+ * endpoint call (and caused duplicate job submissions while it never came).
+ */
+export async function finalizePendingOptimizations(): Promise<{
+  checked: number
+  finalized: number
+  errored: number
+}> {
+  const supabase = createServiceClient()
+  const summary = { checked: 0, finalized: 0, errored: 0 }
+
+  const { data: pending } = await supabase
+    .from('video_sessions')
+    .select('id, optimize_job_id')
+    .eq('recording_status', 'processing')
+    .not('optimize_job_id', 'is', null)
+    .limit(20)
+
+  for (const session of pending || []) {
+    summary.checked++
+    try {
+      const result = await checkOptimizationJob(session.optimize_job_id, session.id)
+      if (result.finalized) summary.finalized++
+      if (result.status === 'ERROR') summary.errored++
+    } catch (err) {
+      console.error(
+        `[recording-optimize] finalize check failed for ${session.id}:`,
+        err instanceof Error ? err.message : err
+      )
+    }
+  }
+
+  return summary
 }
