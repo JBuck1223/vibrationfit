@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe/config'
@@ -6,7 +7,18 @@ import { ROLLOVER_LIMITS, PRICING } from '@/lib/billing/config'
 
 const SEAT_PRICE_IDS: Record<string, string | undefined> = {
   '28day': process.env.STRIPE_PRICE_SEAT_ADDON_28DAY,
+  month: process.env.STRIPE_PRICE_SEAT_ADDON_MONTH,
   year: process.env.STRIPE_PRICE_SEAT_ADDON_ANNUAL,
+}
+
+// The seat price must match the base subscription's billing interval (Stripe
+// rejects mixed intervals): legacy subs bill day/28, post-Jul-2026 subs month/1.
+// All items on a subscription share one interval, so any item works.
+function seatIntervalFromSub(stripeSub: Stripe.Subscription): '28day' | 'month' | 'year' {
+  const recurring = stripeSub.items.data[0]?.price?.recurring
+  if (recurring?.interval === 'year') return 'year'
+  if (recurring?.interval === 'day') return '28day'
+  return 'month'
 }
 
 /**
@@ -22,7 +34,7 @@ export async function GET() {
 
     const { data: subscription } = await supabase
       .from('customer_subscriptions')
-      .select('membership_tier_id, tier:membership_tiers(billing_interval, is_household_plan)')
+      .select('membership_tier_id, stripe_subscription_id, tier:membership_tiers(billing_interval, is_household_plan)')
       .eq('user_id', user.id)
       .in('status', ['active', 'trialing'])
       .limit(1)
@@ -37,9 +49,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Not on a household plan' }, { status: 400 })
     }
 
-    const interval = tier.billing_interval === 'year' ? 'year' : '28day'
+    let interval: '28day' | 'month' | 'year' = tier.billing_interval === 'year' ? 'year' : 'month'
+    if (interval !== 'year' && stripe && subscription.stripe_subscription_id) {
+      const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
+      interval = seatIntervalFromSub(stripeSub)
+    }
     const price = interval === 'year' ? PRICING.ADDON_ANNUAL : PRICING.ADDON_28DAY
-    const intervalLabel = interval === 'year' ? '/year' : '/28 days'
+    const intervalLabel = interval === 'year' ? '/year' : interval === 'month' ? '/month' : '/28 days'
 
     return NextResponse.json({
       pricePerSeat: price,
@@ -109,14 +125,14 @@ export async function POST() {
       return NextResponse.json({ error: `Maximum seats reached (${ROLLOVER_LIMITS.HOUSEHOLD_MAX_MEMBERS})` }, { status: 400 })
     }
 
-    const interval = tier.billing_interval === 'year' ? 'year' : '28day'
+    const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
+    const interval = seatIntervalFromSub(stripeSub)
     const seatPriceId = SEAT_PRICE_IDS[interval]
 
     if (!seatPriceId) {
       return NextResponse.json({ error: 'Seat add-on pricing not configured' }, { status: 500 })
     }
 
-    const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
     const existingSeatItem = stripeSub.items.data.find(item => item.price.id === seatPriceId)
 
     if (existingSeatItem) {
@@ -222,11 +238,11 @@ export async function DELETE() {
       }, { status: 400 })
     }
 
-    const interval = tier.billing_interval === 'year' ? 'year' : '28day'
+    const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
+    const interval = seatIntervalFromSub(stripeSub)
     const seatPriceId = SEAT_PRICE_IDS[interval]
 
     if (seatPriceId) {
-      const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
       const seatItem = stripeSub.items.data.find(item => item.price.id === seatPriceId)
 
       if (seatItem) {

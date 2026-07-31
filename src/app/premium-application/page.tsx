@@ -83,7 +83,7 @@ export default function PremiumApplicationPage() {
                   '10 private sessions over 8 weeks (2x/week weeks 1-2, 1x/week weeks 3-8)',
                   'Custom "Vibration Protocol" PDF',
                   'Priority DM / voice support (M-F, 8 weeks)',
-                  'First 28 days of Vibration Fit membership included',
+                  'First month of Vibration Fit membership included',
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-[#BF00FF] flex-shrink-0 mt-0.5" />

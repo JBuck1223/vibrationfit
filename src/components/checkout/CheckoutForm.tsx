@@ -10,7 +10,7 @@ interface CheckoutFormProps {
   onSubmit: (accountDetails: AccountDetails) => Promise<{ clientSecret: string; redirectUrl: string } | null>
   isProcessing: boolean
   submitLabel?: string
-  /** Short label for mobile (e.g. "Pay $499"); if set, shown on small screens instead of submitLabel */
+  /** Short label for mobile (e.g. "Pay $97"); if set, shown on small screens instead of submitLabel */
   submitLabelShort?: string
   /** For intensive checkout: 'annual' | '28day' - used to show membership billing in agreement text */
   continuity?: 'annual' | '28day' | null
@@ -30,8 +30,8 @@ export interface AccountDetails {
 }
 
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
-  if (continuity === '28day') return planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
-  return planType === 'solo' ? '$990 per year' : '$1,490 per year'
+  if (continuity === '28day') return planType === 'solo' ? '$37 per month' : '$57 per month'
+  return planType === 'solo' ? '$370 per year' : '$570 per year'
 }
 
 export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, submitLabelShort, continuity, planType }: CheckoutFormProps) {
@@ -41,8 +41,8 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
   const membershipBillingPhrase =
     continuity && planType ? getMembershipBillingPhrase(continuity, planType) : null
   const agreementLabel = membershipBillingPhrase
-    ? `I understand and agree to the charges shown, including that my Vision Pro membership will begin billing on Day 28 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
-    : "I agree to the charges shown, including Vision Pro billing starting on Day 28 at my selected plan, covered by the 16‑week guarantee."
+    ? `I understand and agree to the charges shown, including that my Vision Pro membership will begin billing on Day 30 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
+    : "I agree to the charges shown, including Vision Pro billing starting on Day 30 at my selected plan, covered by the 16‑week guarantee."
 
   const isHousehold = planType === 'household'
 

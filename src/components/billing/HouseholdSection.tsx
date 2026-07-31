@@ -107,7 +107,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
   const paidSeats = Math.max(0, totalOccupied - INCLUDED_SEATS)
 
   const seatPrice = billingInterval === 'year' ? PRICING.ADDON_ANNUAL : PRICING.ADDON_28DAY
-  const seatIntervalLabel = billingInterval === 'year' ? '/year' : '/28 days'
+  const seatIntervalLabel = billingInterval === 'year' ? '/year' : '/month'
   const willNeedPaidSeat = totalOccupied + 1 > INCLUDED_SEATS
 
   const intensiveDiscount = couponResult?.valid ? (couponResult.discountAmount || 0) : 0

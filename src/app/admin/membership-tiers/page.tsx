@@ -73,7 +73,7 @@ function getExpirationLabel(billingInterval: string): string {
 function getBillingLabel(billingInterval: string): string {
   switch (billingInterval) {
     case 'one-time': return 'One-Time'
-    case 'month': return '28-Day'
+    case 'month': return 'Monthly'
     case 'year': return 'Annual'
     default: return billingInterval
   }
@@ -170,7 +170,7 @@ function TierCard({
             {displayPrice > 0 ? formatPrice(displayPrice) : 'Free'}
           </div>
           <div className="text-xs text-neutral-500">
-            {tier.billing_interval === 'year' ? '/year' : tier.billing_interval === 'month' ? '/28 days' : ''}
+            {tier.billing_interval === 'year' ? '/year' : tier.billing_interval === 'month' ? '/month' : ''}
           </div>
         </div>
       </div>
@@ -256,7 +256,7 @@ function TierCard({
             <div>
               <label className="text-xs text-neutral-400 block mb-1">
                 <DollarSign className="w-3 h-3 inline mr-0.5" />
-                Price (cents){tier.billing_interval === 'month' ? ' /28 days' : tier.billing_interval === 'year' ? ' /month display' : ''}
+                Price (cents){tier.billing_interval === 'month' ? ' /month' : tier.billing_interval === 'year' ? ' /month display' : ''}
               </label>
               <input
                 type="number"

@@ -175,7 +175,12 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Unable to determine billing interval' }, { status: 500 })
         }
 
-        const intervalKey = mainItem.price.recurring.interval === 'year' ? 'annual' as const : '28day' as const
+        // Seat price must match the base subscription's interval: legacy subs
+        // bill day/28, post-Jul-2026 subs bill month/1.
+        const intervalKey =
+          mainItem.price.recurring.interval === 'year' ? 'annual' as const
+          : mainItem.price.recurring.interval === 'day' ? '28day' as const
+          : 'month' as const
         const seatPriceId = await resolveStripePriceId('seats', intervalKey)
 
         if (!seatPriceId) {

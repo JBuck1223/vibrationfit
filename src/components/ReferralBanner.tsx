@@ -124,7 +124,7 @@ export function ReferralBanner() {
       >
         <Gift className="w-4 h-4 flex-shrink-0" />
         <span className="leading-snug">
-          {nameDisplay ? `${nameDisplay} unlocked` : 'A friend unlocked'} <strong>$498 off</strong> for you &mdash; start the Activation Intensive for just <strong>$1</strong>.{!isOfferPage && ' \u2192'}
+          {nameDisplay ? `${nameDisplay} unlocked` : 'A friend unlocked'} <strong>$96 off</strong> for you &mdash; start the Activation Intensive for just <strong>$1</strong>.{!isOfferPage && ' \u2192'}
         </span>
       </a>
     </div>

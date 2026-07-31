@@ -78,7 +78,6 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [planType, setPlanType] = useState<'solo' | 'household'>('solo')
   const [billingPeriod, setBillingPeriod] = useState<'annual' | '28day'>('28day')
-  const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay'>('full')
   const [isLoading, setIsLoading] = useState(false)
   const [isYesHeld, setIsYesHeld] = useState(false)
   const [holdProgress, setHoldProgress] = useState(0)
@@ -283,75 +282,55 @@ export default function HomePage() {
     setBurgerOrderCanceled(false)
   }
 
+  // Repriced Jul 2026: $97 solo / $147 household, single payment only.
   const getPaymentAmount = () => {
-    const prices = planType === 'solo'
-      ? { full: 499, twoPayment: 275 }
-      : { full: 699, twoPayment: 375 }
-
-    switch (paymentPlan) {
-      case 'full': return prices.full.toFixed(2).replace('.00', '')
-      case '2pay': return prices.twoPayment.toFixed(2).replace('.00', '')
-      default: return prices.full.toFixed(2).replace('.00', '')
-    }
+    return planType === 'solo' ? '97' : '147'
   }
   
   const getIntensiveTotal = () => {
-    return planType === 'solo' ? '499' : '699'
-  }
-
-  // Total across both installments when paying in 2 payments ($275x2 / $375x2).
-  const getTwoPayTotal = () => {
-    return planType === 'solo' ? '550' : '750'
+    return planType === 'solo' ? '97' : '147'
   }
   
   const getVisionProAnnualPrice = () => {
-    return planType === 'solo' ? '990' : '1,490'
+    return planType === 'solo' ? '370' : '570'
   }
   
   const getVisionProMonthlyPrice = () => {
-    return planType === 'solo' ? '99' : '149'
+    return planType === 'solo' ? '37' : '57'
   }
   
   const getVisionProAnnualSavings = () => {
-    return planType === 'solo' ? '23%' : '23%'
+    return planType === 'solo' ? '17%' : '17%'
   }
   
   const getPlanSeatsText = () => {
     return planType === 'solo' ? '1 seat' : '2 seats included'
   }
 
-  const getDay28RenewalText = () => {
+  const getDay30RenewalText = () => {
     if (billingPeriod === 'annual') {
       return `If you love it and do nothing, you'll renew at $${getVisionProAnnualPrice()}/year.`
     }
-    return `If you love it and do nothing, you'll renew at $${getVisionProMonthlyPrice()} every 28 days.`
+    return `If you love it and do nothing, you'll renew at $${getVisionProMonthlyPrice()}/month.`
   }
 
-  const getDay28SwitchText = () => {
+  const getDay30SwitchText = () => {
     if (billingPeriod === 'annual') {
-      return `You can switch to Every 28 Days ($${getVisionProMonthlyPrice()}/28 days) or cancel any time before Day 28 in your account settings.`
+      return `You can switch to Monthly ($${getVisionProMonthlyPrice()}/month) or cancel any time before Day 30 in your account settings.`
     }
-    return `You can switch to the Annual plan ($${getVisionProAnnualPrice()}/year) or cancel any time before Day 28 in your account settings.`
+    return `You can switch to the Annual plan ($${getVisionProAnnualPrice()}/year) or cancel any time before Day 30 in your account settings.`
   }
 
   const getYoullGetRenewalMicrocopy = () => {
     if (billingPeriod === 'annual') {
-      return `After your first 28 days included, Vision Pro continues at $${getVisionProAnnualPrice()}/year. Cancel anytime before Day 28 to avoid renewal, or switch to Every 28 Days ($${getVisionProMonthlyPrice()} every 28 days).`
+      return `After your first month included, Vision Pro continues at $${getVisionProAnnualPrice()}/year. Cancel anytime before Day 30 to avoid renewal, or switch to Monthly ($${getVisionProMonthlyPrice()}/month).`
     }
-    return `After your first 28 days included, Vision Pro continues at $${getVisionProMonthlyPrice()} every 28 days. Cancel anytime before Day 28 to avoid renewal, or switch to annual ($${getVisionProAnnualPrice()}/year) and save.`
+    return `After your first month included, Vision Pro continues at $${getVisionProMonthlyPrice()}/month. Cancel anytime before Day 30 to avoid renewal, or switch to annual ($${getVisionProAnnualPrice()}/year) and save.`
   }
 
   const getPromoDiscount = () => {
-    const total = planType === 'solo' ? 499 : 699
+    const total = planType === 'solo' ? 97 : 147
     return (total - 1).toString()
-  }
-
-  const getInstallmentScheduleNote = (): string | null => {
-    const amount = `$${getPaymentAmount()}`
-    if (paymentPlan === '2pay') {
-      return `Second payment of ${amount} charged automatically in 2 weeks (14 days after today).`
-    }
-    return null
   }
 
   const handleIntensivePurchase = async () => {
@@ -371,7 +350,7 @@ export default function HomePage() {
         body: JSON.stringify({
           items: [{
             product_key: 'intensive',
-            plan: paymentPlan,
+            plan: 'full',
             continuity: billingPeriod,
             plan_type: planType,
           }],
@@ -487,7 +466,7 @@ export default function HomePage() {
 
                       {/* Price detail — separated from decision block */}
                       <Text size="xs" className="text-neutral-400 text-center mt-4">
-                        ${getIntensiveTotal()} today. First 28 days of Vision Pro included. Day 28: auto‑continue at your selected plan.
+                        ${getIntensiveTotal()} today. First month of Vision Pro included. Day 30: auto‑continue at your selected plan.
                       </Text>
                     </div>
                   </div>
@@ -1418,10 +1397,10 @@ export default function HomePage() {
                   </Heading>
                   <div className="max-w-2xl mx-auto text-center">
                     <Text size="lg" className="text-neutral-400">
-                      72‑Hour Vision Activation Intensive + first 28 days of Vision Pro included
+                      72‑Hour Vision Activation Intensive + first month of Vision Pro included
                     </Text>
                     <Text size="sm" className="text-neutral-500 mt-1">
-                      (your plan auto‑starts Day 28)
+                      (your plan auto‑starts Day 30)
                     </Text>
                   </div>
                 </div>
@@ -1509,8 +1488,8 @@ export default function HomePage() {
                     },
                     {
                       id: '28-days-included',
-                      title: 'First 28 Days of Vision Pro Included',
-                      description: 'What it is: Full access to VIVA and the platform while you activate and beyond.\nOutcome: Keep compounding after your 72‑Hour Activation before your plan starts.\nDone when: Your access is live now, and your selected plan is scheduled to begin automatically on Day 28 (Annual or Every 28 Days).',
+                      title: 'First Month of Vision Pro Included',
+                      description: 'What it is: Full access to VIVA and the platform while you activate and beyond.\nOutcome: Keep compounding after your 72‑Hour Activation before your plan starts.\nDone when: Your access is live now, and your selected plan is scheduled to begin automatically on Day 30 (Annual or Monthly).',
                       icon: Crown,
                       included: true
                     }
@@ -1587,11 +1566,11 @@ export default function HomePage() {
                       </p>
                     </div>
                       <div className="text-sm md:text-base text-white text-center space-y-1">
-                        <p>You have a 16‑week satisfaction guarantee from your checkout date, no matter which plan you choose (Every 28 Days or Annual).</p>
+                        <p>You have a 16‑week satisfaction guarantee from your checkout date, no matter which plan you choose (Monthly or Annual).</p>
                       </div>
                       <div className="text-xs md:text-sm text-neutral-300 text-center space-y-2">
                         <p className="font-semibold">Not satisfied within your 16‑week window?</p>
-                        <p>If your plan <strong className="font-semibold">hasn't billed yet</strong> (first charge is Day 28), we cancel the upcoming charge and end your membership at the end of the current paid period.</p>
+                        <p>If your plan <strong className="font-semibold">hasn't billed yet</strong> (first charge is Day 30), we cancel the upcoming charge and end your membership at the end of the current paid period.</p>
                         <p>If it <strong className="font-semibold">has billed</strong> inside your 16-week window, we refund that charge and cancel all future renewals.</p>
                       </div>
                 </Stack>
@@ -1649,36 +1628,11 @@ export default function HomePage() {
                           <div className="text-4xl md:text-6xl lg:text-8xl font-bold text-[#39FF14]">
                             ${getPaymentAmount()}
                           </div>
-                          {paymentPlan === '2pay' && (
-                            <div className="text-xl text-white text-center">
-                              × 2 Payments = ${getTwoPayTotal()}
-                            </div>
-                          )}
+                          <div className="text-xl text-white text-center">
+                            One-time payment
+                          </div>
                         </div>
                       )}
-
-                      {/* PAYMENT OPTIONS */}
-                      <Stack align="center" gap="sm" className="mt-3 md:mt-4 mb-3 md:mb-4">
-                        <h3 className="text-lg font-bold text-white">Payment Options</h3>
-                        <div className="flex flex-row gap-2 justify-center flex-wrap">
-                          <Button
-                            variant={paymentPlan === 'full' ? 'primary' : 'outline'}
-                            size="md"
-                            className="px-2 py-2 text-xs flex-shrink-0"
-                            onClick={() => setPaymentPlan('full')}
-                          >
-                            Pay in Full
-                          </Button>
-                          <Button
-                            variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
-                            size="md"
-                            className="px-2 py-2 text-xs flex-shrink-0"
-                            onClick={() => setPaymentPlan('2pay')}
-                          >
-                            2 Payments
-                          </Button>
-                        </div>
-                      </Stack>
 
                       <Card className="bg-[#1F1F1F]/80 border-2 border-[#39FF14]/30 rounded-xl p-3 md:p-4 w-full max-w-2xl mx-auto">
                         <div>
@@ -1700,7 +1654,7 @@ export default function HomePage() {
                             <div className="flex items-start gap-3">
                               <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0 mt-0.5" />
                               <div>
-                                <p className="text-white font-medium text-sm">First 28 days of Vision Pro included</p>
+                                <p className="text-white font-medium text-sm">First month of Vision Pro included</p>
                                 <p className="text-neutral-400 text-xs mt-0.5">Full access to all practices, tools, and community.</p>
                               </div>
                             </div>
@@ -1716,7 +1670,7 @@ export default function HomePage() {
                     <div className="w-full h-px bg-neutral-600"></div>
 
                     <Text size="lg" className="text-neutral-300 text-center max-w-2xl">
-                      Choose how your Vision Pro membership continues after your first 28 days included.
+                      Choose how your Vision Pro membership continues after your first month included.
                     </Text>
 
                     {/* Billing Toggle */}
@@ -1729,7 +1683,7 @@ export default function HomePage() {
                             : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
                         }`}
                       >
-                        28-Day
+                        Monthly
                       </button>
                       <button
                         onClick={() => setBillingPeriod('annual')}
@@ -1780,7 +1734,7 @@ export default function HomePage() {
                               3 billing cycles free
                         </div>
                         <div className="text-neutral-500 text-sm">
-                              Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()} every 28 days
+                              Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()}/month
                         </div>
                       </div>
 
@@ -1800,7 +1754,7 @@ export default function HomePage() {
                     </Card>
                       )}
 
-                      {/* 28-Day Plan - Show first on mobile if selected */}
+                      {/* Monthly Plan - Show first on mobile if selected */}
                       {billingPeriod === '28day' && (
                     <Card
                           className={`transition-all cursor-pointer md:order-1 order-1 ${
@@ -1817,18 +1771,18 @@ export default function HomePage() {
                       </div>
                       <div className="text-center mb-8">
                         <Zap className="w-12 h-12 text-[#39FF14] mx-auto mb-4" />
-                        <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
+                        <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Monthly</h3>
                         <Text size="base" className="text-neutral-400 mb-6">Flexible billing cycle • {getPlanSeatsText()}</Text>
                         
                         <div className="inline-flex items-baseline gap-2 mb-2">
                           <span className="text-5xl font-bold text-white">${getVisionProMonthlyPrice()}</span>
-                          <span className="text-xl text-neutral-400">/28 days</span>
+                          <span className="text-xl text-neutral-400">/month</span>
                         </div>
                         <div className="text-neutral-500 text-sm mb-1">
                               Billed every 4 weeks
                         </div>
                         <div className="text-neutral-400 text-sm">
-                          ${planType === 'solo' ? '1,287' : '1,937'} per year (13 cycles)
+                          ${planType === 'solo' ? '444' : '684'} per year (12 months)
                         </div>
                       </div>
 
@@ -1837,7 +1791,7 @@ export default function HomePage() {
                               'Full platform access',
                               'Alignment Gym group coaching (1 hour / week)',
                               'Protected by our 16‑week satisfaction guarantee',
-                              'Flexible: cancel any 28‑day cycle',
+                              'Flexible: cancel any month',
                         ].map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
                             <Check className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
@@ -1875,7 +1829,7 @@ export default function HomePage() {
                               3 billing cycles free
                             </div>
                             <div className="text-neutral-500 text-sm">
-                              Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()} every 28 days
+                              Save {getVisionProAnnualSavings()} vs ${getVisionProMonthlyPrice()}/month
             </div>
           </div>
 
@@ -1909,18 +1863,18 @@ export default function HomePage() {
                           </div>
                           <div className="text-center mb-8">
                             <Zap className="w-12 h-12 text-[#39FF14] mx-auto mb-4" />
-                            <h3 className="text-3xl font-bold text-white mb-2">Vision Pro 28-Day</h3>
+                            <h3 className="text-3xl font-bold text-white mb-2">Vision Pro Monthly</h3>
                             <Text size="base" className="text-neutral-400 mb-6">Flexible billing cycle • {getPlanSeatsText()}</Text>
                             
                             <div className="inline-flex items-baseline gap-2 mb-2">
                               <span className="text-5xl font-bold text-white">${getVisionProMonthlyPrice()}</span>
-                              <span className="text-xl text-neutral-400">/28 days</span>
+                              <span className="text-xl text-neutral-400">/month</span>
                             </div>
                             <div className="text-neutral-500 text-sm mb-1">
                               Billed every 4 weeks
                             </div>
                             <div className="text-neutral-400 text-sm">
-                              ${planType === 'solo' ? '1,287' : '1,937'} per year (13 cycles)
+                              ${planType === 'solo' ? '444' : '684'} per year (12 months)
                             </div>
                           </div>
 
@@ -1929,7 +1883,7 @@ export default function HomePage() {
                               'Full platform access',
                               'Alignment Gym group coaching (1 hour / week)',
                               'Protected by our 16‑week satisfaction guarantee',
-                              'Flexible: cancel any 28‑day cycle',
+                              'Flexible: cancel any month',
                             ].map((feature, idx) => (
                               <div key={idx} className="flex items-start gap-3">
                                 <Check className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
@@ -1957,17 +1911,10 @@ export default function HomePage() {
                             <p>
                               <strong>Today:</strong>{' '}
                               {promoCode
-                                ? <><span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
-                                : paymentPlan === 'full'
-                                  ? <>${getIntensiveTotal()} for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
-                                  : <>${getPaymentAmount()} (first of 2 payments) for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
+                                ? <><span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Vision Activation Intensive + your first month of Vision Pro included.</>
+                                : <>${getIntensiveTotal()} for the 72‑Hour Vision Activation Intensive + your first month of Vision Pro included.</>
                               }
                             </p>
-                            {getInstallmentScheduleNote() && (
-                              <p className="text-neutral-400 text-sm">
-                                {getInstallmentScheduleNote()}
-                              </p>
-                            )}
                           </div>
                           <p className="text-neutral-400 text-xs text-center">
                             <Shield className="w-3 h-3 text-[#FFFF00] inline-block align-middle -mt-[2px] mr-1" aria-hidden />
@@ -1975,10 +1922,10 @@ export default function HomePage() {
                           </p>
                           <div className="text-white text-center text-sm md:text-base space-y-2">
                             <p>
-                              <strong>Day 28:</strong>{' '}{getDay28RenewalText()}
+                              <strong>Day 30:</strong>{' '}{getDay30RenewalText()}
                             </p>
                             <p className="text-neutral-400 text-sm">
-                              {getDay28SwitchText()}
+                              {getDay30SwitchText()}
                             </p>
                           </div>
                           <p className="text-neutral-400 text-xs text-center">
@@ -2042,16 +1989,16 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">When does billing start?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">${getIntensiveTotal()} today for the Intensive + first 28 days of Vision Pro included. Day 28 your selected plan begins automatically.</p>
+                              <p className="text-neutral-300 text-sm">${getIntensiveTotal()} today for the Intensive + first month of Vision Pro included. Day 30 your selected plan begins automatically.</p>
                             </div>
                           </div>
                           <div>
                             <div className="flex items-start gap-2 mb-2">
                               <span className="text-[#39FF14] text-sm mt-0.5">•</span>
-                              <h5 className="text-white font-semibold">Can I switch or cancel my membership before Day 28?</h5>
+                              <h5 className="text-white font-semibold">Can I switch or cancel my membership before Day 30?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">Yes—1‑click switch/cancel anytime before Day 28.</p>
+                              <p className="text-neutral-300 text-sm">Yes—1‑click switch/cancel anytime before Day 30.</p>
                             </div>
                           </div>
                           <div>
@@ -2078,7 +2025,7 @@ export default function HomePage() {
                               <h5 className="text-white font-semibold">What if I'm not satisfied with the membership?</h5>
                             </div>
                             <div className="ml-4 mb-0 text-justify">
-                              <p className="text-neutral-300 text-sm">You have a 16‑week satisfaction guarantee from your checkout date, no matter which plan you choose (Every 28 Days or Annual). If you're not satisfied within those 16 weeks, we'll refund your most recent membership charge (if it was billed inside the window) and cancel all future renewals.</p>
+                              <p className="text-neutral-300 text-sm">You have a 16‑week satisfaction guarantee from your checkout date, no matter which plan you choose (Monthly or Annual). If you're not satisfied within those 16 weeks, we'll refund your most recent membership charge (if it was billed inside the window) and cancel all future renewals.</p>
                             </div>
                           </div>
                           <div>
@@ -2288,12 +2235,12 @@ export default function HomePage() {
                 {
                   id: 'billing-start',
                   title: 'When does billing start?',
-                  description: `$${getIntensiveTotal()} today for the Intensive + first 28 days of Vision Pro included. Day 28 your selected plan begins automatically.`
+                  description: `$${getIntensiveTotal()} today for the Intensive + first month of Vision Pro included. Day 30 your selected plan begins automatically.`
                 },
                 {
                   id: 'switch-cancel',
                   title: 'Can I switch or cancel before billing starts?',
-                  description: 'Yes—1‑click switch/cancel anytime before Day 28.'
+                  description: 'Yes—1‑click switch/cancel anytime before Day 30.'
                 },
                 {
                   id: 'refunds',
@@ -2307,9 +2254,9 @@ export default function HomePage() {
                             72‑Hour Activation Guarantee: if you complete all 14 guided Activation Intensive steps in 72 hours and aren't satisfied, we refund the ${getIntensiveTotal()} Intensive fee.
                           </li>
                           <li>
-                            Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Every 28 Days or Annual).
+                            Membership Satisfaction Guarantee: From your checkout date, you have 16 weeks, no matter which plan you choose (Monthly or Annual).
                             <br /><br />
-                            If your next plan charge hasn't billed yet (first charge is Day 28), we cancel the upcoming charge and end your membership at the end of the current paid period.
+                            If your next plan charge hasn't billed yet (first charge is Day 30), we cancel the upcoming charge and end your membership at the end of the current paid period.
                             <br />
                             If a plan charge occurred within your 16‑week window, we refund that charge in full and cancel all future renewals.
                           </li>

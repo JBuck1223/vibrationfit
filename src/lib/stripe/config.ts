@@ -15,34 +15,34 @@ export const STRIPE_CONFIG = {
   publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
   
-  // HORMOZI PRICING MODEL
+  // PRICING MODEL (repriced Jul 2026)
   prices: {
-    // $499 Vision Activation Intensive (mandatory entry)
-    intensive_full: process.env.STRIPE_PRICE_INTENSIVE_FULL, // $499 one-time
-    intensive_2pay: process.env.STRIPE_PRICE_INTENSIVE_2PAY, // $249.50 × 2
-    intensive_3pay: process.env.STRIPE_PRICE_INTENSIVE_3PAY, // $166.33 × 3
+    // $97 Vision Activation Intensive (mandatory entry; installment plans retired)
+    intensive_full: process.env.STRIPE_PRICE_INTENSIVE_FULL, // $97 one-time
     
     // Premium Activation Intensive (full pay only)
     premium_intensive_full: process.env.STRIPE_PRICE_PREMIUM_INTENSIVE_FULL, // $3,000 one-time
     premium_household_intensive_full: process.env.STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL, // $4,200 one-time
     
     // Vision Pro Annual (default continuity)
-    annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL, // $999/year (5M tokens upfront)
+    annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL, // $370/year
     
-    // Vision Pro 28-Day (downsell continuity)
-    monthly_28day: process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY, // $99 every 28 days (375k tokens/cycle)
+    // Vision Pro Monthly
+    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY, // $37/month (375k tokens/cycle)
     
     // Token Packs (existing)
     token_power: process.env.STRIPE_PRICE_TOKEN_POWER, // 2M - $99
     token_mega: process.env.STRIPE_PRICE_TOKEN_MEGA, // 5M - $199
     token_ultra: process.env.STRIPE_PRICE_TOKEN_ULTRA, // 12M - $399
     
-    // Token Subscription Add-on ($29/1M per cycle)
+    // Token Subscription Add-on ($29/1M per cycle; 28day = legacy day/28 subs)
     token_addon_28day: process.env.STRIPE_PRICE_TOKEN_ADDON_28DAY,
+    token_addon_month: process.env.STRIPE_PRICE_TOKEN_ADDON_MONTH,
     token_addon_annual: process.env.STRIPE_PRICE_TOKEN_ADDON_ANNUAL,
     
-    // Storage Subscription Add-on ($9/100GB per cycle)
+    // Storage Subscription Add-on ($9/100GB per cycle; 28day = legacy day/28 subs)
     storage_addon_28day: process.env.STRIPE_PRICE_STORAGE_ADDON_28DAY,
+    storage_addon_month: process.env.STRIPE_PRICE_STORAGE_ADDON_MONTH,
     storage_addon_annual: process.env.STRIPE_PRICE_STORAGE_ADDON_ANNUAL,
   },
   

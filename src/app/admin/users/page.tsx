@@ -50,12 +50,12 @@ function UsersAdminContent() {
 
   // Available products for enrollment
   const availableProducts = [
-    { id: 'intensive', name: 'Activation Intensive', price: '$497' },
+    { id: 'intensive', name: 'Activation Intensive', price: '$97' },
     { id: 'token_pack_1000', name: '1000 Token Pack', price: '$29' },
     { id: 'token_pack_5000', name: '5000 Token Pack', price: '$99' },
     { id: 'token_pack_10000', name: '10000 Token Pack', price: '$179' },
-    { id: 'vision_pro_annual', name: 'Vision Pro Annual', price: '$997/year' },
-    { id: 'vision_pro_28day', name: 'Vision Pro 28-Day', price: '$97/month' }
+    { id: 'vision_pro_annual', name: 'Vision Pro Annual', price: '$370/year' },
+    { id: 'vision_pro_28day', name: 'Vision Pro Monthly', price: '$37/month' }
   ]
 
   useEffect(() => {

@@ -6,9 +6,9 @@ import { toTitleCase } from '@/lib/utils'
 
 const TIER_TYPE_TO_ENV_KEY: Record<string, string> = {
   vision_pro_annual: 'STRIPE_PRICE_ANNUAL',
-  vision_pro_28day: 'STRIPE_PRICE_28DAY',
+  vision_pro_28day: 'STRIPE_PRICE_MONTHLY',
   vision_pro_household_annual: 'STRIPE_PRICE_HOUSEHOLD_ANNUAL',
-  vision_pro_household_28day: 'STRIPE_PRICE_HOUSEHOLD_28DAY',
+  vision_pro_household_28day: 'STRIPE_PRICE_HOUSEHOLD_MONTHLY',
 }
 
 function resolveStripePriceId(tier: { stripe_price_id: string | null; tier_type: string }): string | null {

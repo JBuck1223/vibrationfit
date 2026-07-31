@@ -114,7 +114,7 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-xl font-bold text-white mb-4">6. Subscriptions, Payments & Automatic Renewal</h2>
               <p className="text-neutral-300 mb-4">
-                Some purchases include an initial fee for the Vision Activation Intensive plus an ongoing Vision Pro membership that renews every 28 days or annually until canceled.
+                Some purchases include an initial fee for the Vision Activation Intensive plus an ongoing Vision Pro membership that renews monthly or annually until canceled.
               </p>
               <p className="text-neutral-300 mb-4">
                 We will clearly display the initial charge, future renewal amount, and renewal date at checkout before you complete your purchase.

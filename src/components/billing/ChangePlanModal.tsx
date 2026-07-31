@@ -113,7 +113,7 @@ export default function ChangePlanModal({ isOpen, onClose, currentTierId, onPlan
               const price = tier.billing_interval === 'year'
                 ? (tier.price_yearly || tier.price_monthly)
                 : tier.price_monthly
-              const intervalLabel = tier.billing_interval === 'year' ? '/year' : '/28 days'
+              const intervalLabel = tier.billing_interval === 'year' ? '/year' : '/month'
 
               return (
                 <button

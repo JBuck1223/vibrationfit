@@ -20,19 +20,19 @@ function formatDollars(cents: number): string {
   return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`
 }
 
-function getDay28UpcomingLabel(
+function getDay30UpcomingLabel(
   continuity: 'annual' | '28day',
   planType: 'solo' | 'household',
 ): string {
   if (continuity === '28day') {
-    const price = planType === 'solo' ? 99 : 149
-    return `Vision Pro 28‑Day membership: $${price}, then $${price} every 28 days`
+    const price = planType === 'solo' ? 37 : 57
+    return `Vision Pro Monthly membership: $${price}, then $${price} per month`
   }
-  const price = planType === 'solo' ? 990 : 1490
+  const price = planType === 'solo' ? 370 : 570
   return `Vision Pro Annual membership: $${price}, then renews annually`
 }
 
-/** Short money story for mobile collapsed header: "Today: $499 • Day 28: $99 every 28 days" */
+/** Short money story for mobile collapsed header: "Today: $97 • Day 30: $37 per month" */
 function getMoneyStoryLine(
   todayCents: number,
   continuity: 'annual' | '28day',
@@ -40,21 +40,11 @@ function getMoneyStoryLine(
 ): string {
   const today = formatDollars(todayCents)
   if (continuity === '28day') {
-    const day28 = planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
-    return `Today: ${today} • Day 28: ${day28}`
+    const day30 = planType === 'solo' ? '$37 per month' : '$57 per month'
+    return `Today: ${today} • Day 30: ${day30}`
   }
-  const day28 = planType === 'solo' ? '$990 per year' : '$1,490 per year'
-  return `Today: ${today} • Day 28: ${day28}`
-}
-
-function getInstallmentScheduleNote(
-  paymentPlan: 'full' | '2pay',
-  installmentAmount: string,
-): string | null {
-  if (paymentPlan === '2pay') {
-    return `Second payment of ${installmentAmount} charged automatically in 2 weeks (14 days after today).`
-  }
-  return null
+  const day30 = planType === 'solo' ? '$370 per year' : '$570 per year'
+  return `Today: ${today} • Day 30: ${day30}`
 }
 
 export default function OrderSummary({
@@ -66,12 +56,8 @@ export default function OrderSummary({
   validatingPromo,
   hidePromoInput = false,
 }: OrderSummaryProps) {
-  const rawPaymentPlan = (product.metadata?.intensive_payment_plan as string) || 'full'
-  // 3-pay retired: treat anything that isn't 2-pay as full pay.
-  const paymentPlan: 'full' | '2pay' = rawPaymentPlan === '2pay' ? '2pay' : 'full'
-  // For 2-pay, product.amount is the per-installment amount; full total = amount * 2
-  const fullPrice = paymentPlan === '2pay' ? product.amount * 2 : product.amount
-  const subtotal = fullPrice
+  // Installment plans retired (Jul 2026): intensive is a single payment.
+  const subtotal = product.amount
   const discount = promoDiscount?.amountOff ?? 0
   const total = Math.max(0, subtotal - discount)
 
@@ -83,21 +69,15 @@ export default function OrderSummary({
   const continuity = (product.metadata?.continuity_plan as 'annual' | '28day') || '28day'
   const planType = (product.metadata?.plan_type as 'solo' | 'household') || 'solo'
 
-  const paymentPlanLabel =
-    paymentPlan === 'full' ? 'One-time payment' : '2 payments'
+  const paymentPlanLabel = 'One-time payment'
   const planTypeLabel = planType === 'solo' ? 'Solo' : 'Household'
 
-  const todayChargeAmount =
-    paymentPlan === '2pay' ? Math.round(total / 2) : total
+  const todayChargeAmount = total
   const intensiveTotalAmount = total
 
   const moneyStoryLine = isIntensive
     ? getMoneyStoryLine(todayChargeAmount, continuity, planType)
     : null
-  const installmentScheduleNote =
-    isIntensive && paymentPlan !== 'full'
-      ? getInstallmentScheduleNote(paymentPlan, formatDollars(todayChargeAmount))
-      : null
   const [mobileSummaryExpanded, setMobileSummaryExpanded] = useState(false)
 
   return (
@@ -148,7 +128,7 @@ export default function OrderSummary({
             <li className="flex items-start gap-2 text-sm">
               <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
               <span className="text-neutral-300">
-                First 28 days of Vision Pro included (no membership billing during this period)
+                First month of Vision Pro included (no membership billing during this period)
               </span>
             </li>
             <li className="flex items-start gap-2 text-sm">
@@ -172,29 +152,17 @@ export default function OrderSummary({
             <p className="text-sm text-neutral-300 mb-1 leading-snug">
               {isPremiumIntensive ? '72-Hour Vision Activation Intensive + Premium Coaching' : '72-Hour Vision Activation Intensive'} – {planTypeLabel}
             </p>
-            {paymentPlan === 'full' ? (
-              <p className="text-lg font-bold text-white leading-snug mb-2 py-0.5">{formatDollars(intensiveTotalAmount)}</p>
-            ) : (
-              <div className="space-y-0.5 mb-2">
-                <p className="text-lg font-bold text-white leading-snug py-0.5">
-                  1 of {paymentPlan === '2pay' ? '2' : '3'} payments: {formatDollars(todayChargeAmount)} today
-                </p>
-                <p className="text-sm text-neutral-500">Total Intensive investment: {formatDollars(intensiveTotalAmount)}</p>
-                {installmentScheduleNote && (
-                  <p className="text-sm text-neutral-500">{installmentScheduleNote}</p>
-                )}
-              </div>
-            )}
+            <p className="text-lg font-bold text-white leading-snug mb-2 py-0.5">{formatDollars(intensiveTotalAmount)}</p>
             <p className="text-xs text-neutral-500 mb-4">
-              Includes first 28 days of Vision Pro (no membership charges during this period)
+              Includes first month of Vision Pro (no membership charges during this period)
             </p>
 
             <p className="text-sm font-semibold text-white mb-2">Upcoming charges</p>
             <p className="text-sm text-neutral-300 mb-1">
-              <strong>Day 28:</strong> {getDay28UpcomingLabel(continuity, planType)}
+              <strong>Day 30:</strong> {getDay30UpcomingLabel(continuity, planType)}
             </p>
             <p className="text-xs text-neutral-500">
-              Change to Annual or cancel anytime before Day 28 in‑app. Covered by 16‑week Membership Guarantee.
+              Change to Annual or cancel anytime before Day 30 in‑app. Covered by 16‑week Membership Guarantee.
             </p>
           </div>
         </>

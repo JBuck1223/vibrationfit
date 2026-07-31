@@ -24,7 +24,7 @@ type Props = {
 
 function intervalLabel(interval: string | null): string {
   if (interval === 'year') return '/year'
-  return '/28 days'
+  return '/month'
 }
 
 export default function AddOnsList({ addons, onRemoved }: Props) {

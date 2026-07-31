@@ -844,14 +844,14 @@ export default function ConsciousCreationSystemPage() {
                 can switch plans.
               </p>
               <p>
-                <strong className="text-white">Before Day 28:</strong> Switch
-                from Annual to Every 28 Days or vice-versa in one click. The
-                first charge still occurs on Day 28 at the new plan.
+                <strong className="text-white">Before Day 30:</strong> Switch
+                from Annual to Monthly or vice-versa in one click. The
+                first charge still occurs on Day 30 at the new plan.
               </p>
               <p>
                 <strong className="text-white">After billing starts:</strong>{' '}
-                Every 28 Days &rarr; Annual: upgrade immediately with a credit
-                for unused time. Annual &rarr; Every 28 Days: switch takes
+                Monthly &rarr; Annual: upgrade immediately with a credit
+                for unused time. Annual &rarr; Monthly: switch takes
                 effect at renewal.
               </p>
               <p>

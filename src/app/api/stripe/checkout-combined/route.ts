@@ -152,10 +152,10 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // $149/28 days
-        continuityPriceId = process.env.STRIPE_PRICE_HOUSEHOLD_28DAY || ''
+        continuityPriceId = process.env.STRIPE_PRICE_HOUSEHOLD_MONTHLY || ''
         if (!continuityPriceId) {
           return NextResponse.json(
-            { error: 'STRIPE_PRICE_HOUSEHOLD_28DAY not configured' },
+            { error: 'STRIPE_PRICE_HOUSEHOLD_MONTHLY not configured' },
             { status: 500 }
           )
         }
@@ -173,10 +173,10 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // $99/28 days
-        continuityPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY || ''
+        continuityPriceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY || ''
         if (!continuityPriceId) {
           return NextResponse.json(
-            { error: 'NEXT_PUBLIC_STRIPE_PRICE_28DAY not configured' },
+            { error: 'NEXT_PUBLIC_STRIPE_PRICE_MONTHLY not configured' },
             { status: 500 }
           )
         }

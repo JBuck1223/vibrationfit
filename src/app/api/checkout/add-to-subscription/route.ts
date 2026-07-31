@@ -58,12 +58,15 @@ export async function POST(request: NextRequest) {
     const interval = mainItem.price.recurring.interval
     const intervalCount = mainItem.price.recurring.interval_count
 
-    // Map Stripe interval to our interval key
-    let intervalKey: '28day' | 'annual'
+    // Map Stripe interval to our interval key. Add-on prices must match the
+    // base subscription's interval: legacy subs bill day/28, new subs month/1.
+    let intervalKey: '28day' | 'month' | 'annual'
     if (interval === 'year') {
       intervalKey = 'annual'
-    } else {
+    } else if (interval === 'day') {
       intervalKey = '28day'
+    } else {
+      intervalKey = 'month'
     }
 
     const addonPriceId = await resolveStripePriceId(addonType, intervalKey)

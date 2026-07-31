@@ -10,7 +10,7 @@ const OFFER_COUPON_ID = 'vision_pro_reactivation_50off'
 type PlanKey = '28day' | 'annual'
 
 const PLANS: Record<PlanKey, { priceEnv: string; tierType: string }> = {
-  '28day': { priceEnv: 'NEXT_PUBLIC_STRIPE_PRICE_28DAY', tierType: 'vision_pro_28day' },
+  '28day': { priceEnv: 'NEXT_PUBLIC_STRIPE_PRICE_MONTHLY', tierType: 'vision_pro_28day' },
   annual: { priceEnv: 'NEXT_PUBLIC_STRIPE_PRICE_ANNUAL', tierType: 'vision_pro_annual' },
 }
 
@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
 
       const admin = createAdminClient()
       const priceId =
-        subscription.items.data[0]?.price?.id || process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY
+        subscription.items.data[0]?.price?.id || process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY
       const tierType = tierTypeForPrice(priceId)
 
       const { data: tier } = await supabase

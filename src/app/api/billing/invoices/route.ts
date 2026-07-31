@@ -38,7 +38,9 @@ function paymentLabel(charge: any, invoice: any): string {
   if (recurring) {
     return recurring.interval === 'year'
       ? `${MEMBERSHIP_NAME} (Annual)`
-      : `${MEMBERSHIP_NAME} (28-Day)`
+      : recurring.interval === 'day'
+        ? `${MEMBERSHIP_NAME} (28-Day)` // legacy pre-Jul-2026 cadence
+        : `${MEMBERSHIP_NAME} (Monthly)`
   }
 
   // One-time payment → name by product metadata.

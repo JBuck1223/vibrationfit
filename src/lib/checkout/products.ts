@@ -29,13 +29,11 @@ function getIntensiveProduct(
 ): CheckoutProduct {
   const isSolo = planType === 'solo'
 
-  // 2-pay is the per-installment amount ($275 solo / $375 household), charged
-  // twice with the second payment 2 weeks after the first. 3-pay was retired.
+  // Repriced Jul 2026: $97 solo / $147 household, single payment only
+  // (2-pay and 3-pay installment plans retired).
   const priceMap: Record<string, { amount: number; envKey: string }> = {
-    'solo-full': { amount: 49900, envKey: 'STRIPE_PRICE_INTENSIVE_FULL' },
-    'solo-2pay': { amount: 27500, envKey: 'STRIPE_PRICE_INTENSIVE_2PAY' },
-    'household-full': { amount: 69900, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
-    'household-2pay': { amount: 37500, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_2PAY' },
+    'solo-full': { amount: 9700, envKey: 'STRIPE_PRICE_INTENSIVE_FULL' },
+    'household-full': { amount: 14700, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
     'premium-solo-full': { amount: 300000, envKey: 'STRIPE_PRICE_PREMIUM_INTENSIVE_FULL' },
     'premium-household-full': { amount: 420000, envKey: 'STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL' },
   }
@@ -52,14 +50,12 @@ function getIntensiveProduct(
   const continuityTier = tierLookup(tiers, continuityTierType)
   const continuityFeatures = (continuityTier?.features as string[] | undefined) || []
 
-  const priceKey = isPremium ? `premium-${planType}-full` : `${planType}-${paymentPlan}`
-  // Fall back to full pay for any unrecognized plan (e.g. retired 3-pay links).
-  const { amount, envKey } = priceMap[priceKey] || priceMap[`${planType}-full`]
+  // All plans normalize to full pay (retired 2-pay/3-pay links included).
+  const priceKey = isPremium ? `premium-${planType}-full` : `${planType}-full`
+  const { amount, envKey } = priceMap[priceKey]
 
-  const effectivePaymentPlan = isPremium ? 'full' : paymentPlan
-  const planLabel = effectivePaymentPlan === 'full'
-    ? 'One-time payment'
-    : '2 payments'
+  const effectivePaymentPlan = 'full'
+  const planLabel = 'One-time payment'
 
   const productName = isPremium ? 'Premium Activation Intensive' : 'Vision Activation Intensive'
   const productKey = isPremium ? 'intensive_premium' : 'intensive'
@@ -79,7 +75,7 @@ function getIntensiveProduct(
           intensiveTokens > 0
             ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
             : 'VIVA tokens included',
-          `Vision Pro 28-Day starts billing Day 28`,
+          `First month included — Vision Pro Monthly billing starts Day 30`,
           ...continuityFeatures.slice(0, 3),
         ]
       : [
@@ -88,7 +84,7 @@ function getIntensiveProduct(
           intensiveTokens > 0
             ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
             : 'VIVA tokens included',
-          `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 28`,
+          `First month included — Vision Pro ${continuityPlan === 'annual' ? 'Annual' : 'Monthly'} billing starts Day 30`,
           ...continuityFeatures.slice(0, 5),
         ],
     redirectAfterSuccess: '/intensive/dashboard',
@@ -161,10 +157,9 @@ export function resolveCheckoutProduct(
   const { product, plan, continuity, planType, packKey } = params
 
   if (product === 'intensive' || product === 'intensive_premium') {
-    // 3-pay retired: normalize any stale plan value to a supported one.
-    const normalizedPlan = plan === '2pay' ? '2pay' : 'full'
+    // Installment plans retired: any stale 2-pay/3-pay link resolves to full pay.
     return getIntensiveProduct(
-      normalizedPlan,
+      'full',
       (continuity as 'annual' | '28day') || '28day',
       (planType as 'solo' | 'household') || 'solo',
       tiers,
@@ -179,14 +174,19 @@ export function resolveCheckoutProduct(
   return null
 }
 
+// '28day' = legacy day/28 subscriptions (pre-Jul-2026); 'month' = calendar-month subscriptions
+export type AddonInterval = '28day' | 'month' | 'annual'
+
 export function getAddonPriceEnvKey(
   addonType: 'tokens' | 'storage',
-  interval: '28day' | 'annual',
+  interval: AddonInterval,
 ): string {
   const map: Record<string, string> = {
     'tokens-28day': 'STRIPE_PRICE_TOKEN_ADDON_28DAY',
+    'tokens-month': 'STRIPE_PRICE_TOKEN_ADDON_MONTH',
     'tokens-annual': 'STRIPE_PRICE_TOKEN_ADDON_ANNUAL',
     'storage-28day': 'STRIPE_PRICE_STORAGE_ADDON_28DAY',
+    'storage-month': 'STRIPE_PRICE_STORAGE_ADDON_MONTH',
     'storage-annual': 'STRIPE_PRICE_STORAGE_ADDON_ANNUAL',
   }
   return map[`${addonType}-${interval}`]
@@ -194,7 +194,7 @@ export function getAddonPriceEnvKey(
 
 export function getAddonPriceId(
   addonType: 'tokens' | 'storage',
-  interval: '28day' | 'annual',
+  interval: AddonInterval,
 ): string | undefined {
   const envKey = getAddonPriceEnvKey(addonType, interval)
   return process.env[envKey]
@@ -202,22 +202,22 @@ export function getAddonPriceId(
 
 export function getAddonUnitPrice(
   addonType: 'tokens' | 'storage',
-  interval: '28day' | 'annual',
+  interval: AddonInterval,
 ): number {
   if (addonType === 'tokens') {
-    return interval === '28day' ? ADDON_PRICING.TOKEN_28DAY : ADDON_PRICING.TOKEN_ANNUAL
+    return interval === 'annual' ? ADDON_PRICING.TOKEN_ANNUAL : ADDON_PRICING.TOKEN_28DAY
   }
-  return interval === '28day' ? ADDON_PRICING.STORAGE_28DAY : ADDON_PRICING.STORAGE_ANNUAL
+  return interval === 'annual' ? ADDON_PRICING.STORAGE_ANNUAL : ADDON_PRICING.STORAGE_28DAY
 }
 
 export function getAddonDescription(
   addonType: 'tokens' | 'storage',
   quantity: number,
-  interval: '28day' | 'annual',
+  interval: AddonInterval,
 ): string {
   const unitPrice = getAddonUnitPrice(addonType, interval)
   const total = formatPrice(unitPrice * quantity)
-  const intervalLabel = interval === '28day' ? 'every 28 days' : 'per year'
+  const intervalLabel = interval === '28day' ? 'every 28 days' : interval === 'month' ? 'per month' : 'per year'
 
   if (addonType === 'tokens') {
     return `${formatTokensShort(ADDON_PRICING.TOKEN_GRANT_PER_UNIT * quantity)} tokens ${intervalLabel} for ${total}`

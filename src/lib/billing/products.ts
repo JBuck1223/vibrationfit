@@ -17,11 +17,14 @@ export type CheckoutProduct = {
   metadata: Record<string, string>
 }
 
+// '28day' = legacy day/28 subscriptions (pre-Jul-2026); 'month' = calendar-month subscriptions
+export type AddonBillingInterval = '28day' | 'month' | 'annual'
+
 export type AddonPrice = {
   priceId: string
   productId: string
   addonType: 'tokens' | 'storage'
-  billingInterval: '28day' | 'annual'
+  billingInterval: AddonBillingInterval
   unitAmount: number
   currency: string
   grantAmount: number
@@ -53,10 +56,9 @@ export async function resolveProduct(
   const { product, plan, continuity, planType, packKey } = params
 
   if (product === 'intensive' || product === 'intensive_premium') {
-    // 3-pay retired (Jun 2026): normalize stale plan values to a supported one.
-    const normalizedPlan: 'full' | '2pay' = plan === '2pay' ? '2pay' : 'full'
+    // Installment plans retired (2-pay Jul 2026, 3-pay Jun 2026): stale links resolve to full pay.
     return resolveIntensiveProduct(
-      normalizedPlan,
+      'full',
       (continuity as 'annual' | '28day') || '28day',
       (planType as 'solo' | 'household') || 'solo',
       supabase,
@@ -145,13 +147,13 @@ async function resolveIntensiveProduct(
           'Custom vibration / practice plan',
           'Priority or private support',
           `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
-          `Vision Pro 28-Day starts billing Day 28`,
+          `First month included — Vision Pro Monthly billing starts Day 30`,
           ...continuityFeatures.slice(0, 3),
         ]
       : [
           'Full Activation Intensive experience',
           `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
-          `Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} starts billing Day 28`,
+          `First month included — Vision Pro ${continuityPlan === 'annual' ? 'Annual' : 'Monthly'} billing starts Day 30`,
           ...continuityFeatures.slice(0, 5),
         ],
     redirectAfterSuccess: '/intensive/start',
@@ -233,7 +235,7 @@ async function resolveTokenPackProduct(
  */
 export async function getAddonPrice(
   addonType: 'tokens' | 'storage',
-  billingInterval: '28day' | 'annual',
+  billingInterval: AddonBillingInterval,
   supabase?: SupabaseClient,
 ): Promise<AddonPrice | null> {
   const sb = await getSupabase(supabase)
@@ -284,7 +286,7 @@ export async function getAddonPrice(
  */
 export async function getAddonUnitPrice(
   addonType: 'tokens' | 'storage',
-  billingInterval: '28day' | 'annual',
+  billingInterval: AddonBillingInterval,
   supabase?: SupabaseClient,
 ): Promise<number> {
   const addonPrice = await getAddonPrice(addonType, billingInterval, supabase)
@@ -297,14 +299,14 @@ export async function getAddonUnitPrice(
 export async function getAddonDescription(
   addonType: 'tokens' | 'storage',
   quantity: number,
-  billingInterval: '28day' | 'annual',
+  billingInterval: AddonBillingInterval,
   supabase?: SupabaseClient,
 ): Promise<string> {
   const addon = await getAddonPrice(addonType, billingInterval, supabase)
   if (!addon) return ''
 
   const total = formatPrice(addon.unitAmount * quantity)
-  const intervalLabel = billingInterval === '28day' ? 'every 28 days' : 'per year'
+  const intervalLabel = billingInterval === '28day' ? 'every 28 days' : billingInterval === 'month' ? 'per month' : 'per year'
 
   if (addonType === 'tokens') {
     return `${formatTokensShort(addon.grantAmount * quantity)} tokens ${intervalLabel} for ${total}`
@@ -317,7 +319,7 @@ export async function getAddonDescription(
  */
 export async function resolveStripePriceId(
   addonType: 'tokens' | 'storage' | 'seats',
-  billingInterval: '28day' | 'annual',
+  billingInterval: AddonBillingInterval,
   supabase?: SupabaseClient,
 ): Promise<string | undefined> {
   if (addonType === 'seats') {
@@ -329,10 +331,11 @@ export async function resolveStripePriceId(
 
 const SEAT_PRICE_KEYS: Record<string, string> = {
   '28day': 'STRIPE_PRICE_SEAT_ADDON_28DAY',
+  'month': 'STRIPE_PRICE_SEAT_ADDON_MONTH',
   'annual': 'STRIPE_PRICE_SEAT_ADDON_ANNUAL',
 }
 
-function resolveSeatPriceId(billingInterval: '28day' | 'annual'): string | undefined {
+function resolveSeatPriceId(billingInterval: AddonBillingInterval): string | undefined {
   const envKey = SEAT_PRICE_KEYS[billingInterval]
   if (!envKey) return undefined
   const isSandbox = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')

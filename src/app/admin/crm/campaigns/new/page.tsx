@@ -444,8 +444,8 @@ export default function NewCampaignPage() {
                 value={formData.continuity_plan}
                 onChange={(value) => handleChange('continuity_plan', value)}
                 options={[
-                  { value: 'annual', label: 'Annual - Solo: $990/year | Household: $1,490/year' },
-                  { value: '28day', label: '28-Day - Solo: $99/cycle | Household: $149/cycle' },
+                  { value: 'annual', label: 'Annual - Solo: $370/year | Household: $570/year' },
+                  { value: '28day', label: 'Monthly - Solo: $37/month | Household: $57/month' },
                 ]}
                 placeholder="Select continuity plan"
               />
@@ -494,8 +494,8 @@ export default function NewCampaignPage() {
                 <strong>Solo Intensive Pricing:</strong>
               </p>
               <ul className="text-xs text-neutral-400 space-y-1">
-                <li>• Intensive: {formData.promo_code ? <span className="text-primary-500">$1 (with {formData.promo_code})</span> : '$499'}</li>
-                <li>• Continuity: {formData.continuity_plan === 'annual' ? '$990/year' : '$99/28 days'}</li>
+                <li>• Intensive: {formData.promo_code ? <span className="text-primary-500">$1 (with {formData.promo_code})</span> : '$97'}</li>
+                <li>• Continuity: {formData.continuity_plan === 'annual' ? '$370/year' : '$37/month'}</li>
               </ul>
             </div>
           </Card>
@@ -536,8 +536,8 @@ export default function NewCampaignPage() {
                 <strong>Household Intensive Pricing:</strong>
               </p>
               <ul className="text-xs text-neutral-400 space-y-1">
-                <li>• Intensive: {formData.promo_code ? <span className="text-accent-500">$1 (with {formData.promo_code})</span> : '$699'}</li>
-                <li>• Continuity: {formData.continuity_plan === 'annual' ? '$1,399/year' : '$139/28 days'}</li>
+                <li>• Intensive: {formData.promo_code ? <span className="text-accent-500">$1 (with {formData.promo_code})</span> : '$147'}</li>
+                <li>• Continuity: {formData.continuity_plan === 'annual' ? '$570/year' : '$57/month'}</li>
               </ul>
             </div>
           </Card>

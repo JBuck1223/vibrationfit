@@ -286,7 +286,7 @@ export default function PlanOverview({
   const is28Day = tier.billingInterval !== 'year'
   const tokenGrant = tier.billingInterval === 'year' ? tier.annualTokenGrant : tier.monthlyTokenGrant
   const price = tier.billingInterval === 'year' ? (tier.priceYearly || tier.priceMonthly) : tier.priceMonthly
-  const intervalLabel = tier.billingInterval === 'year' ? '/year' : '/28 days'
+  const intervalLabel = tier.billingInterval === 'year' ? '/year' : '/month'
   const isSoloPlan = !tier.isHouseholdPlan
 
   const isEnded = ENDED_STATUSES.includes(subscription.status)
@@ -501,7 +501,7 @@ export default function PlanOverview({
           successMsg = 'Switched to Annual billing'
           break
         case '28day':
-          successMsg = 'Switched to 28-Day billing'
+          successMsg = 'Switched to monthly billing'
           break
         case 'household': {
           const parts: string[] = ['Upgraded to Household plan']
@@ -643,34 +643,34 @@ export default function PlanOverview({
             }
           case '28day':
             return {
-              name: tier.isHouseholdPlan ? 'Vision Pro Household 28-Day' : 'Vision Pro 28-Day',
-              billingLabel: '/28 days',
+              name: tier.isHouseholdPlan ? 'Vision Pro Household Monthly' : 'Vision Pro Monthly',
+              billingLabel: '/month',
               tokens: tier.isHouseholdPlan ? TOKEN_GRANTS.HOUSEHOLD_28DAY : TOKEN_GRANTS.MONTHLY_28DAY,
               storage: tier.isHouseholdPlan ? STORAGE_QUOTAS.HOUSEHOLD_28DAY : STORAGE_QUOTAS.MONTHLY_28DAY,
               seats: tier.isHouseholdPlan ? 2 : 1,
-              billingCycle: '28-Day',
+              billingCycle: 'Monthly',
               Icon: Calendar,
               accentColor: '#F59E0B',
             }
           case 'household':
             return {
-              name: is28Day ? 'Vision Pro Household 28-Day' : 'Vision Pro Household Annual',
-              billingLabel: is28Day ? '/28 days' : '/year',
+              name: is28Day ? 'Vision Pro Household Monthly' : 'Vision Pro Household Annual',
+              billingLabel: is28Day ? '/month' : '/year',
               tokens: is28Day ? TOKEN_GRANTS.HOUSEHOLD_28DAY : TOKEN_GRANTS.HOUSEHOLD_ANNUAL,
               storage: is28Day ? STORAGE_QUOTAS.HOUSEHOLD_28DAY : STORAGE_QUOTAS.HOUSEHOLD_ANNUAL,
               seats: 2,
-              billingCycle: is28Day ? '28-Day' : 'Annual',
+              billingCycle: is28Day ? 'Monthly' : 'Annual',
               Icon: Home,
               accentColor: '#BF00FF',
             }
           case 'individual':
             return {
-              name: is28Day ? 'Vision Pro 28-Day' : 'Vision Pro Annual',
-              billingLabel: is28Day ? '/28 days' : '/year',
+              name: is28Day ? 'Vision Pro Monthly' : 'Vision Pro Annual',
+              billingLabel: is28Day ? '/month' : '/year',
               tokens: is28Day ? TOKEN_GRANTS.MONTHLY_28DAY : TOKEN_GRANTS.ANNUAL,
               storage: is28Day ? STORAGE_QUOTAS.MONTHLY_28DAY : STORAGE_QUOTAS.ANNUAL,
               seats: 1,
-              billingCycle: is28Day ? '28-Day' : 'Annual',
+              billingCycle: is28Day ? 'Monthly' : 'Annual',
               Icon: User,
               accentColor: '#F59E0B',
             }
@@ -679,7 +679,7 @@ export default function PlanOverview({
 
       const { Icon: PlanIcon, accentColor } = targetPlan
       const currentSeats = tier.isHouseholdPlan ? 2 : 1
-      const currentBilling = is28Day ? `${formatPrice(price)}/28 days` : `${formatPrice(price)}/year`
+      const currentBilling = is28Day ? `${formatPrice(price)}/month` : `${formatPrice(price)}/year`
       const newBilling = `${formatPrice(forwardPrice)}${targetPlan.billingLabel}`
 
       type CompRow = { label: string; current: string; next: string; improved: boolean }
@@ -688,7 +688,7 @@ export default function PlanOverview({
         { label: 'VIVA Tokens', current: formatTokensShort(tokenGrant), next: formatTokensShort(targetPlan.tokens), improved: targetPlan.tokens > tokenGrant },
         { label: 'Storage', current: formatStorage(tier.storageQuotaGb), next: formatStorage(targetPlan.storage), improved: targetPlan.storage > tier.storageQuotaGb },
         { label: 'Seats', current: `${currentSeats}`, next: `${targetPlan.seats}`, improved: targetPlan.seats > currentSeats },
-        { label: 'Billing Cycle', current: is28Day ? '28-Day' : 'Annual', next: targetPlan.billingCycle, improved: false },
+        { label: 'Billing Cycle', current: is28Day ? 'Monthly' : 'Annual', next: targetPlan.billingCycle, improved: false },
       ]
       if (flow === 'annual') {
         comparison.push(
@@ -1159,9 +1159,9 @@ export default function PlanOverview({
             'bg-[#00FFFF]/5',
           ) : renderPlanChangeBlock(
             '28day',
-            'Switch to 28-Day Billing',
-            `${formatPrice(tier.isHouseholdPlan ? PRICING.HOUSEHOLD_28DAY : PRICING.SOLO_28DAY)}/28 days`,
-            'Switch to 28-Day',
+            'Switch to Monthly Billing',
+            `${formatPrice(tier.isHouseholdPlan ? PRICING.HOUSEHOLD_28DAY : PRICING.SOLO_28DAY)}/month`,
+            'Switch to Monthly',
             <ArrowDownRight className="w-4 h-4 shrink-0" />,
             'border-amber-500/20',
             'bg-amber-500/5',

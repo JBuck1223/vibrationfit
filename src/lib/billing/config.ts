@@ -53,18 +53,16 @@ export const ROLLOVER_LIMITS = {
 // ============================================================================
 
 export const PRICING = {
-  INTENSIVE: 49900,
-  INTENSIVE_2PAY: 24950,
-  INTENSIVE_3PAY: 16633,
+  INTENSIVE: 9700,
   PREMIUM_INTENSIVE: 300000,
   PREMIUM_HOUSEHOLD_INTENSIVE: 420000,
-  SOLO_ANNUAL: 99000,
-  SOLO_28DAY: 9900,
-  HOUSEHOLD_INTENSIVE: 69900,
-  HOUSEHOLD_ANNUAL: 149000,
-  HOUSEHOLD_28DAY: 14900,
+  SOLO_ANNUAL: 37000,
+  SOLO_28DAY: 3700, // $37/calendar month (key name kept for code compat)
+  HOUSEHOLD_INTENSIVE: 14700,
+  HOUSEHOLD_ANNUAL: 57000,
+  HOUSEHOLD_28DAY: 5700, // $57/calendar month
   ADDON_28DAY: 1900,
-  ADDON_ANNUAL: 19200,
+  ADDON_ANNUAL: 19000,
 } as const
 
 // ============================================================================
