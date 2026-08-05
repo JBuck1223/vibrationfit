@@ -485,11 +485,11 @@ npm run docs:schema
 ---
 
 ### 🚧 Project Hub (Projects)
-**Version:** `v2.0.0`  
+**Version:** `v2.1.0`  
 **Status:** 🚧 IN PROGRESS  
-**Last Modified:** June 21, 2026  
+**Last Modified:** August 5, 2026  
 **Doc:** `.cursor/rules/idea-hub-agent-workflow.mdc`  
-**Schema:** `projects`, `project_tasks`, `project_categories`, `project_tags`, `project_tag_links`, `project_comments`, `project_attachments`, `project_custom_field_defs`, `project_custom_field_values`, `project_links`  
+**Schema:** `projects`, `project_tasks`, `project_categories`, `project_tags`, `project_tag_links`, `project_comments`, `project_attachments`, `project_custom_field_defs`, `project_custom_field_values`, `project_links`, `project_notes`, `project_reference_links`  
 **API:** `/api/admin/projects/*` (admin), `/api/projects/*` (member)  
 **UI:** `/admin/projects` (admin), `/projects` + `/projects/[id]` (member)
 
@@ -497,10 +497,14 @@ npm run docs:schema
 - Real project management system (rebased from the former `idea_*` tables).
 - Admins manage all projects; members manage their own (RLS via `created_by`).
 - Projects/lists with nested tasks (1 level), life-category tagging.
+- Dated notes (project- or task-scoped) with inline photo/video attachments (`project_notes`).
+- External reference links / bookmarks (`project_reference_links`; NOT `project_links`, which is inter-project relations).
+- Media attachments on projects, tasks, and notes (`project_attachments.task_id` / `.note_id`, nullable); S3 uploads via `USER_FOLDERS.projects`.
 
 **Critical Rules:**
 - ❌ Underlying tables are now `project_*` (NOT `idea_*`).
-- ✅ Member access is ownership-scoped (`created_by = auth.uid()`).
+- ✅ Member access is ownership-scoped (`created_by = auth.uid()`) + household collaboration via `can_collaborate_on_project()`.
+- ✅ Deleting a note cascades its attachments (`note_id` FK); deleting a task cascades its notes/links/media.
 
 ---
 

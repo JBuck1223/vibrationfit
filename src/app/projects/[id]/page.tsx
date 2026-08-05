@@ -7,11 +7,15 @@ import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { scrollSafeAutoResize } from '@/lib/design-system/components/forms/auto-resize-utils'
 import {
   Plus, Trash2, ChevronRight, CheckCircle2, Calendar,
-  Check, Archive, RotateCcw, Home, FolderInput, FolderKanban,
+  Check, Archive, RotateCcw, Home, FolderInput, FolderKanban, StickyNote,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { IdeaTask, IdeaStatus } from '@/lib/projects/types'
+import type { IdeaTask, IdeaStatus, IdeaAttachment, ProjectNote, ProjectReferenceLink } from '@/lib/projects/types'
 import { getLifeCategoryInfo } from '@/lib/projects/types'
+import { ProjectNotesSection } from '@/components/projects/ProjectNotesSection'
+import { ProjectLinksSection } from '@/components/projects/ProjectLinksSection'
+import { ProjectMediaSection } from '@/components/projects/ProjectMediaSection'
+import { TaskDetailModal } from '@/components/projects/TaskDetailModal'
 
 // Single-line-style text field that wraps and grows with its content so long
 // titles are never clipped. Enter commits (blurs) instead of inserting a newline.
@@ -62,6 +66,9 @@ interface ProjectDetail {
   task_done_count: number
   household_id?: string | null
   isMine?: boolean
+  notes: ProjectNote[]
+  reference_links: ProjectReferenceLink[]
+  attachments: IdeaAttachment[]
 }
 
 export default function ProjectDetailPage() {
@@ -81,6 +88,7 @@ export default function ProjectDetailPage() {
   const [movingTask, setMovingTask] = useState<IdeaTask | null>(null)
   const [moveTargets, setMoveTargets] = useState<{ id: string; title: string }[] | null>(null)
   const [movingTo, setMovingTo] = useState<string | null>(null)
+  const [detailTask, setDetailTask] = useState<IdeaTask | null>(null)
 
   // Latest description text, so we can persist right after a voice transcript
   // lands (state updates haven't flushed yet at that point)
@@ -305,6 +313,24 @@ export default function ProjectDetailPage() {
     ? Math.round((project.task_done_count / project.task_count) * 100)
     : 0
 
+  const notes = project.notes || []
+  const referenceLinks = project.reference_links || []
+  const attachments = project.attachments || []
+  // Project-level views: notes and links not tied to a task; media aggregates
+  // everything (direct uploads, task media, and note media)
+  const projectNotes = notes.filter(n => !n.task_id)
+  const projectLinks = referenceLinks.filter(l => !l.task_id)
+
+  const taskExtrasCount = (taskId: string) => {
+    const taskNotes = notes.filter(n => n.task_id === taskId)
+    const noteIds = new Set(taskNotes.map(n => n.id))
+    const mediaCount = attachments.filter(
+      a => a.task_id === taskId || (a.note_id !== null && noteIds.has(a.note_id))
+    ).length
+    const linkCount = referenceLinks.filter(l => l.task_id === taskId).length
+    return taskNotes.length + linkCount + mediaCount
+  }
+
   const hasMetaRow =
     project.status === 'done' ||
     project.status === 'archived' ||
@@ -486,6 +512,21 @@ export default function ProjectDetailPage() {
                     />
                     <button
                       type="button"
+                      onClick={() => setDetailTask(task)}
+                      className={`flex items-center gap-1 rounded-lg p-1.5 transition-colors hover:bg-white/[0.06] hover:text-[#39FF14] ${
+                        taskExtrasCount(task.id) > 0
+                          ? 'text-neutral-400 opacity-100'
+                          : 'text-neutral-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
+                      }`}
+                      title="Notes, links & media"
+                    >
+                      <StickyNote className="h-4 w-4" />
+                      {taskExtrasCount(task.id) > 0 && (
+                        <span className="text-xs">{taskExtrasCount(task.id)}</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setAddingSubtaskTo(addingSubtaskTo === task.id ? null : task.id)}
                       className="rounded-lg p-1.5 text-neutral-600 opacity-100 transition-colors hover:bg-white/[0.06] hover:text-[#39FF14] sm:opacity-0 sm:group-hover:opacity-100"
                       title="Add subtask"
@@ -546,6 +587,21 @@ export default function ProjectDetailPage() {
                       />
                       <button
                         type="button"
+                        onClick={() => setDetailTask(sub)}
+                        className={`flex items-center gap-1 rounded-lg p-1.5 transition-colors hover:bg-white/[0.06] hover:text-[#39FF14] ${
+                          taskExtrasCount(sub.id) > 0
+                            ? 'text-neutral-400 opacity-100'
+                            : 'text-neutral-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
+                        }`}
+                        title="Notes, links & media"
+                      >
+                        <StickyNote className="h-4 w-4" />
+                        {taskExtrasCount(sub.id) > 0 && (
+                          <span className="text-xs">{taskExtrasCount(sub.id)}</span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => openMoveTask(sub)}
                         className="rounded-lg p-1.5 text-neutral-600 opacity-100 transition-colors hover:bg-white/[0.06] hover:text-[#00FFFF] sm:opacity-0 sm:group-hover:opacity-100"
                         title="Move to another project"
@@ -595,6 +651,37 @@ export default function ProjectDetailPage() {
               Add
             </Button>
           </div>
+        </Card>
+
+        {/* Notes */}
+        <Card variant="glass" className="border border-white/[0.06] p-3 shadow-none sm:p-4">
+          <h2 className="mb-2 px-1 text-sm font-semibold text-white sm:mb-3">Notes</h2>
+          <ProjectNotesSection
+            projectId={id}
+            notes={projectNotes}
+            attachments={attachments}
+            onChanged={fetchProject}
+          />
+        </Card>
+
+        {/* Links */}
+        <Card variant="glass" className="border border-white/[0.06] p-3 shadow-none sm:p-4">
+          <h2 className="mb-2 px-1 text-sm font-semibold text-white sm:mb-3">Links</h2>
+          <ProjectLinksSection
+            projectId={id}
+            links={projectLinks}
+            onChanged={fetchProject}
+          />
+        </Card>
+
+        {/* Media (aggregates project, task, and note media) */}
+        <Card variant="glass" className="border border-white/[0.06] p-3 shadow-none sm:p-4">
+          <h2 className="mb-2 px-1 text-sm font-semibold text-white sm:mb-3">Media</h2>
+          <ProjectMediaSection
+            projectId={id}
+            attachments={attachments}
+            onChanged={fetchProject}
+          />
         </Card>
 
         <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
@@ -672,6 +759,17 @@ export default function ProjectDetailPage() {
           </div>
         )}
       </Modal>
+
+      {/* Task notes, links & media */}
+      <TaskDetailModal
+        projectId={id}
+        task={detailTask}
+        notes={notes}
+        links={referenceLinks}
+        attachments={attachments}
+        onClose={() => setDetailTask(null)}
+        onChanged={fetchProject}
+      />
 
       {/* Delete project confirmation */}
       <DeleteConfirmationDialog

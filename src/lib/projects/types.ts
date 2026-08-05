@@ -155,11 +155,36 @@ export interface IdeaComment {
 export interface IdeaAttachment {
   id: string
   project_id: string
+  task_id: string | null
+  note_id: string | null
   file_name: string
   file_url: string
   file_type: string | null
   file_size: number | null
   uploaded_by: string | null
+  created_at: string
+}
+
+export interface ProjectNote {
+  id: string
+  project_id: string
+  task_id: string | null
+  created_by: string | null
+  body: string
+  note_date: string
+  created_at: string
+  updated_at: string
+  author_name?: string | null
+  is_mine?: boolean
+}
+
+export interface ProjectReferenceLink {
+  id: string
+  project_id: string
+  task_id: string | null
+  created_by: string | null
+  url: string
+  title: string | null
   created_at: string
 }
 

@@ -44,6 +44,8 @@ export const USER_FOLDERS = {
   // Alignment Gym session notes & comments
   sessionNotes: 'sessions/notes',
   sessionComments: 'sessions/comments',
+  // Project Hub media (project/task/note attachments)
+  projects: 'projects/uploads',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS

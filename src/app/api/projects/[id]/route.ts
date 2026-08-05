@@ -58,6 +58,46 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch project' }, { status: 500 })
     }
 
+    // Notes, reference links, and media in parallel (RLS scopes all of them)
+    const [notesRes, linksRes, attachmentsRes] = await Promise.all([
+      supabase
+        .from('project_notes')
+        .select('*')
+        .eq('project_id', id)
+        .order('note_date', { ascending: false })
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('project_reference_links')
+        .select('*')
+        .eq('project_id', id)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('project_attachments')
+        .select('*')
+        .eq('project_id', id)
+        .order('created_at', { ascending: false }),
+    ])
+
+    const rawNotes = notesRes.data || []
+
+    // Attribute notes written by other household members with display names
+    const hasForeignAuthors = rawNotes.some(
+      (n: any) => n.created_by && n.created_by !== user.id
+    )
+    let memberMap: Record<string, { displayName: string }> = {}
+    if (hasForeignAuthors) {
+      const household = await getHouseholdContext(user.id)
+      memberMap = household?.memberMap || {}
+    }
+    const notes = rawNotes.map((n: any) => ({
+      ...n,
+      is_mine: n.created_by === user.id,
+      author_name:
+        n.created_by === user.id
+          ? null
+          : memberMap[n.created_by]?.displayName || 'Household member',
+    }))
+
     const result = {
       ...project,
       tasks: buildTaskTree(project.project_tasks || []),
@@ -65,6 +105,9 @@ export async function GET(
       task_done_count: (project.project_tasks || []).filter((t: any) => t.is_complete).length,
       project_tasks: undefined,
       isMine: project.created_by === user.id,
+      notes,
+      reference_links: linksRes.data || [],
+      attachments: attachmentsRes.data || [],
     }
 
     return NextResponse.json({ project: result })
