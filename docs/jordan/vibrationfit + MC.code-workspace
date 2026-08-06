@@ -1,15 +1,19 @@
 {
 	"folders": [
 		{
+			"name": "VibrationFit",
 			"path": "../.."
 		},
 		{
+			"name": "Mosquito Curtains",
 			"path": "../../../Mosquito Curtains"
 		},
 		{
+			"name": "Untamed",
 			"path": "../../../Untamed"
 		},
 		{
+			"name": "Create",
 			"path": "../../../create"
 		}
 	],
