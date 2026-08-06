@@ -3,7 +3,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { verifyAdminAccess, createAdminClient } from '@/lib/supabase/admin'
 import { sendAndLogEmail } from '@/lib/email/send'
@@ -110,35 +110,49 @@ export async function POST(request: NextRequest) {
       userId: ticketUserId || undefined,
     }).catch((err) => console.error('triggerEvent error:', err))
 
-    // Skip admin self-notification when admin creates the ticket
+    // Skip admin self-notification when admin creates the ticket.
+    // Use after() so Vercel keeps the isolate alive until SMS finishes.
     if (!isOnBehalf) {
       const isCoaching = body.category === 'coaching'
+      const ticketSubject = body.subject as string
+      const ticketPriority = (body.priority as string) || 'normal'
+      const ticketCategory = body.category as string | undefined
+      const ticketId = ticket.id as string
+      const notifyEmail = email || undefined
 
-      createAdminNotification({
-        type: 'support_ticket',
-        title: isCoaching
-          ? `Coaching Request: ${body.subject}`
-          : `New Support Ticket: ${body.subject}`,
-        body: email || undefined,
-        metadata: { ticketId: ticket.id, subject: body.subject, priority: body.priority || 'normal', category: body.category },
-        link: '/admin/crm/support/board',
-      }).catch(err => console.error('Admin notification DB error:', err))
-
-      if (isCoaching) {
-        notifyAdminSMS(
-          `Coaching Request from ${email || 'Unknown'}: "${body.subject}"`
-        ).catch(err => console.error('Coaching admin SMS error:', err))
-      } else {
-        sendNotification({
-          slug: 'support_ticket_created',
-          variables: {
-            subject: body.subject,
-            email: email || 'Unknown',
-            priority: body.priority || 'normal',
-            ticketId: ticket.id,
-          },
-        }).catch(err => console.error('Notification error:', err))
-      }
+      after(() =>
+        Promise.all([
+          createAdminNotification({
+            type: 'support_ticket',
+            title: isCoaching
+              ? `Coaching Request: ${ticketSubject}`
+              : `New Support Ticket: ${ticketSubject}`,
+            body: notifyEmail,
+            metadata: {
+              ticketId,
+              subject: ticketSubject,
+              priority: ticketPriority,
+              category: ticketCategory,
+            },
+            link: '/admin/crm/support/board',
+          }),
+          isCoaching
+            ? notifyAdminSMS(
+                `Coaching Request from ${notifyEmail || 'Unknown'}: "${ticketSubject}"`
+              )
+            : sendNotification({
+                slug: 'support_ticket_created',
+                variables: {
+                  subject: ticketSubject,
+                  email: notifyEmail || 'Unknown',
+                  priority: ticketPriority,
+                  ticketId,
+                },
+              }),
+        ]).catch((err) => {
+          console.error('[support/tickets] admin notification / SMS:', err)
+        })
+      )
     }
 
     return NextResponse.json({ ticket }, { status: 201 })

@@ -9,6 +9,7 @@ import {
   estimateTokensForText,
 } from '@/lib/tokens/tracking'
 import { FOCUS_STORY_SYSTEM_PROMPT } from '@/lib/viva/prompts/focus-story-prompt'
+import { ESSENCE_STORY_SYSTEM_PROMPT } from '@/lib/viva/prompts/essence-story-prompt'
 
 export const runtime = 'edge'
 
@@ -67,10 +68,17 @@ export async function POST(req: NextRequest) {
           return
         }
 
+        const isEssence = (story.metadata as Record<string, unknown> | null)?.story_format === 'essence'
+
         const wordCount = currentContent.trim().split(/\s+/).filter(Boolean).length
         const lengthTarget = wordCount > 0
           ? `~${wordCount} words (similar length to the current story)`
-          : '400-700 words'
+          : isEssence ? '150-350 words' : '400-700 words'
+
+        const rewriteTask = isEssence
+          ? `Write a completely new essence story from scratch — short, feeling-first,
+no day structure, no scene logistics. Feelings over facts.`
+          : `Write a completely new day-in-the-life narrative from scratch.`
 
         const prompt = mode === 'rewrite'
           ? `STORY TITLE: ${story.title || 'Untitled'}
@@ -82,7 +90,7 @@ EXISTING STORY (for thematic context only — feel free to depart significantly)
 ${currentContent}
 
 TASK:
-Write a completely new day-in-the-life narrative from scratch.
+${rewriteTask}
 Treat the user's instructions as the primary creative direction. The existing
 story is reference only — use it for theme, tone, real names, and places, but
 build something fresh that fully embraces what the user asked for.
@@ -142,7 +150,7 @@ Return ONLY the revised narrative text. No explanations, no headings, no comment
         }
 
         const messages = [
-          { role: 'system' as const, content: FOCUS_STORY_SYSTEM_PROMPT },
+          { role: 'system' as const, content: isEssence ? ESSENCE_STORY_SYSTEM_PROMPT : FOCUS_STORY_SYSTEM_PROMPT },
           { role: 'user' as const, content: prompt },
         ]
         const openaiParams = buildOpenAIParams(toolConfig, messages, {

@@ -30,6 +30,7 @@ import {
 } from '@/lib/design-system/components'
 import { useStoryStudio } from '@/components/story-studio'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { getStoryKind, getStoryKindLabel, type StoryKind, type StoryMetadata } from '@/lib/stories/types'
 
 const ENTITY_TYPE_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
   life_vision: { label: 'Life Vision', badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30', icon: Target },
@@ -48,6 +49,27 @@ const FILTER_OPTIONS = [
   { label: 'Custom', value: 'custom' },
 ]
 
+const KIND_FILTER_OPTIONS: { label: string; value: 'all' | StoryKind }[] = [
+  { label: 'All Formats', value: 'all' },
+  { label: 'A Day in the Life', value: 'day_in_the_life' },
+  { label: 'Essence', value: 'essence' },
+  { label: 'SparkQuery™', value: 'spark_query' },
+  { label: 'Incantation', value: 'incantation' },
+]
+
+function storyKindBadgeClass(metadata?: StoryMetadata | null): string {
+  switch (getStoryKind(metadata)) {
+    case 'spark_query':
+      return 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30'
+    case 'incantation':
+      return 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30'
+    case 'essence':
+      return 'text-pink-300 bg-pink-500/10 border-pink-500/30'
+    default:
+      return 'text-primary-400 bg-primary-500/10 border-primary-500/30'
+  }
+}
+
 export default function StoryHubPage() {
   const router = useRouter()
   const { stories, loading, activePill, setActivePill, currentUserId, household } = useStoryStudio()
@@ -55,6 +77,7 @@ export default function StoryHubPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [kindFilter, setKindFilter] = useState<'all' | StoryKind>('all')
   const [scope, setScope] = useState<HouseholdScope>('me')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -68,6 +91,10 @@ export default function StoryHubPage() {
 
   const filtered = useMemo(() => {
     let result = activePill === 'all' ? stories : stories.filter(s => s.entity_type === activePill)
+
+    if (kindFilter !== 'all') {
+      result = result.filter(s => getStoryKind(s.metadata) === kindFilter)
+    }
 
     // Household lens
     if (scope === 'me') {
@@ -84,7 +111,7 @@ export default function StoryHubPage() {
     }
 
     return result
-  }, [stories, activePill, searchQuery, scope, currentUserId])
+  }, [stories, activePill, kindFilter, searchQuery, scope, currentUserId])
 
   if (loading) {
     return (
@@ -113,7 +140,9 @@ export default function StoryHubPage() {
               variant="primary"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2"
+              className={`flex items-center gap-2 ${
+                activePill !== 'all' || kindFilter !== 'all' ? 'ring-2 ring-[#39FF14]/40' : ''
+              }`}
             >
               <Filter className="w-4 h-4" />
               <span>Filter</span>
@@ -180,34 +209,67 @@ export default function StoryHubPage() {
         {/* Filter Panel */}
         {showFilters && (
           <div className="animate-in slide-in-from-top duration-300">
-            <Card variant="elevated" className="p-4">
-              <div className="flex items-center justify-center mb-4 gap-3">
-                <h3 className="text-lg font-semibold text-white">Source Type</h3>
-                {activePill !== 'all' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setActivePill('all')}
-                  >
-                    Clear Filter
-                  </Button>
-                )}
+            <Card variant="elevated" className="p-4 space-y-5">
+              <div>
+                <div className="flex items-center justify-center mb-4 gap-3">
+                  <h3 className="text-lg font-semibold text-white">Format</h3>
+                  {kindFilter !== 'all' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setKindFilter('all')}
+                    >
+                      Clear Filter
+                    </Button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {KIND_FILTER_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setKindFilter(opt.value)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        kindFilter === opt.value
+                          ? 'bg-[#39FF14]/20 text-white border border-[#39FF14]/30'
+                          : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:text-white hover:border-neutral-500'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {FILTER_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setActivePill(opt.value)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      activePill === opt.value
-                        ? 'bg-[#39FF14]/20 text-white border border-[#39FF14]/30'
-                        : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:text-white hover:border-neutral-500'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+
+              <div>
+                <div className="flex items-center justify-center mb-4 gap-3">
+                  <h3 className="text-lg font-semibold text-white">Source Type</h3>
+                  {activePill !== 'all' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActivePill('all')}
+                    >
+                      Clear Filter
+                    </Button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {FILTER_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setActivePill(opt.value)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        activePill === opt.value
+                          ? 'bg-[#39FF14]/20 text-white border border-[#39FF14]/30'
+                          : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:text-white hover:border-neutral-500'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </Card>
           </div>
@@ -222,9 +284,12 @@ export default function StoryHubPage() {
             <Text className="text-neutral-400 mb-6">
               {searchQuery.trim()
                 ? 'No stories match your search.'
-                : activePill === 'all'
-                  ? 'No stories yet. Create your first immersive narrative.'
-                  : `No ${FILTER_OPTIONS.find(o => o.value === activePill)?.label || ''} stories yet.`}
+                : kindFilter !== 'all' || activePill !== 'all'
+                  ? `No ${[
+                      kindFilter !== 'all' ? KIND_FILTER_OPTIONS.find(o => o.value === kindFilter)?.label : null,
+                      activePill !== 'all' ? FILTER_OPTIONS.find(o => o.value === activePill)?.label : null,
+                    ].filter(Boolean).join(' · ')} stories yet.`
+                  : 'No stories yet. Create your first immersive narrative.'}
             </Text>
             {searchQuery.trim() ? (
               <Button
@@ -280,6 +345,9 @@ export default function StoryHubPage() {
                           <p className="text-sm font-medium text-white truncate">
                             {story.title || 'Untitled Story'}
                           </p>
+                          <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border font-semibold flex-shrink-0 ${storyKindBadgeClass(story.metadata)}`}>
+                            {getStoryKindLabel(story.metadata)}
+                          </span>
                           <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border font-semibold flex-shrink-0 ${meta.badgeColor}`}>
                             <meta.icon className="w-3 h-3" />
                             {meta.label}

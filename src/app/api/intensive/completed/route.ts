@@ -13,11 +13,13 @@ export async function POST() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
+    // limit(1): users can complete multiple intensives; maybeSingle() errors on >1 row
     const { data: checklist } = await supabase
       .from('intensive_checklist')
       .select('status')
       .eq('user_id', user.id)
       .eq('status', 'completed')
+      .limit(1)
       .maybeSingle()
 
     if (!checklist) {

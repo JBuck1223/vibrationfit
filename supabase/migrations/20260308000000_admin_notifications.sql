@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS admin_notifications (
   read_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_admin_notifications_unread ON admin_notifications (is_read, created_at DESC)
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_unread ON admin_notifications (is_read, created_at DESC)
   WHERE is_read = false;
-CREATE INDEX idx_admin_notifications_type ON admin_notifications (type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_type ON admin_notifications (type, created_at DESC);
 
 ALTER TABLE admin_notifications ENABLE ROW LEVEL SECURITY;
 
@@ -25,7 +25,7 @@ CREATE POLICY "Admin read admin_notifications"
     EXISTS (
       SELECT 1 FROM user_accounts
       WHERE user_accounts.id = auth.uid()
-        AND user_accounts.is_super_admin = true
+        AND user_accounts.role = 'super_admin'
     )
   );
 
@@ -35,7 +35,7 @@ CREATE POLICY "Admin update admin_notifications"
     EXISTS (
       SELECT 1 FROM user_accounts
       WHERE user_accounts.id = auth.uid()
-        AND user_accounts.is_super_admin = true
+        AND user_accounts.role = 'super_admin'
     )
   );
 

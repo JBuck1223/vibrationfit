@@ -16,6 +16,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'focus_story_generation': 'Focus Story Generation',
   'story_refinement': 'Story Refinement',
   'incantation_generation': 'Incantation Generation',
+  'spark_query_generation': 'SparkQuery™ Generation',
   'song_lyrics_generation': 'Song Lyrics Generation',
   
   // VIVA Chat & Prompts
@@ -61,6 +62,7 @@ export const ACTION_ICONS: Record<string, string> = {
   'focus_story_generation': 'Focus',
   'story_refinement': 'Sparkles',
   'incantation_generation': 'Megaphone',
+  'spark_query_generation': 'Search',
   
   // VIVA Chat & Prompts
   'chat_conversation': 'MessageSquare',
@@ -104,6 +106,7 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
     'focus_story_generation',
     'story_refinement',
     'incantation_generation',
+    'spark_query_generation',
   ],
   'VIVA Assistant': [
     'chat_conversation',
