@@ -349,6 +349,53 @@ export default function StoryDetailPage({
   const focusAreas = (story.metadata?.selected_categories as string[] | undefined) || []
   const selectedOption = audioOptions.find(o => o.id === selectedAudioId)
   const SelectedAudioIcon = selectedOption?.icon || Headphones
+  const isSparkQuery = story.metadata?.is_spark_query === true
+  const isIncantation = story.metadata?.is_incantation === true
+  const isEssence = story.metadata?.story_format === 'essence'
+  const outputTypeLabel = isSparkQuery
+    ? 'SparkQuery™'
+    : isIncantation
+      ? 'Incantation'
+      : isEssence
+        ? 'Essence'
+        : 'A Day in the Life'
+  const sourceLabel = typeof story.metadata?.source_label === 'string' ? story.metadata.source_label : null
+  const intentLabel = typeof story.metadata?.intent === 'string' ? story.metadata.intent : null
+  const sparkQuestions = Array.isArray(story.metadata?.questions)
+    ? (story.metadata.questions as unknown[]).filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
+    : []
+  const sourceEntityType =
+    (typeof story.metadata?.source_entity_type === 'string' && story.metadata.source_entity_type) ||
+    story.entity_type ||
+    null
+  const sourceEntityId =
+    (typeof story.metadata?.source_entity_id === 'string' && story.metadata.source_entity_id) ||
+    (sourceEntityType && sourceEntityType !== 'custom' ? story.entity_id : null) ||
+    null
+  const sourceHref =
+    sourceEntityType === 'journal_entry' && sourceEntityId
+      ? `/journal?expand=${encodeURIComponent(sourceEntityId)}`
+      : sourceEntityType === 'life_vision' && sourceEntityId
+        ? `/life-vision/${sourceEntityId}`
+        : sourceEntityType === 'vision_board_item'
+          ? '/vision-board'
+          : null
+  const hasGenerationDetails = !!(
+    story.metadata?.source_input ||
+    sourceLabel ||
+    intentLabel ||
+    isSparkQuery ||
+    isIncantation ||
+    story.source === 'ai_generated' ||
+    story.source === 'ai_assisted'
+  )
+  const sourceDisplay =
+    isSparkQuery ? 'SparkQuery™ via VIVA'
+    : isIncantation ? 'Incantation via VIVA'
+    : story.source === 'ai_generated' ? 'VIVA Generated'
+    : story.source === 'ai_assisted' ? 'VIVA Assisted'
+    : story.source === 'user_written' ? 'User Written'
+    : story.source || '—'
 
   return (
     <Container size="xl">
@@ -386,6 +433,17 @@ export default function StoryDetailPage({
                 <section className="space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Details</p>
                   <div className="flex flex-wrap justify-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs font-semibold border ${
+                      isSparkQuery
+                        ? 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30'
+                        : isIncantation
+                          ? 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30'
+                          : isEssence
+                            ? 'text-pink-300 bg-pink-500/10 border-pink-500/30'
+                            : 'text-primary-400 bg-primary-500/10 border-primary-500/30'
+                    }`}>
+                      {outputTypeLabel}
+                    </span>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs font-semibold border ${meta.badgeColor}`}>
                       <EntityIcon className="w-3 h-3 shrink-0" />
                       {meta.label}
@@ -658,7 +716,7 @@ export default function StoryDetailPage({
               </>
             )}
 
-            {!isEditing && (!!story.metadata?.source_input || story.source === 'ai_generated') && (
+            {!isEditing && hasGenerationDetails && (
               <section className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-[#2A2A2A]" />
@@ -682,9 +740,33 @@ export default function StoryDetailPage({
                 {/* Quick facts row */}
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                   <div>
-                    <span className="text-neutral-500">Source: </span>
-                    <span className="text-neutral-300">{story.source === 'ai_generated' ? 'VIVA Generated' : story.source === 'user_written' ? 'User Written' : story.source || '—'}</span>
+                    <span className="text-neutral-500">Type: </span>
+                    <span className="text-neutral-300">{outputTypeLabel}</span>
                   </div>
+                  <div>
+                    <span className="text-neutral-500">Source: </span>
+                    <span className="text-neutral-300">{sourceDisplay}</span>
+                  </div>
+                  {(sourceLabel || sourceHref) && (
+                    <div>
+                      <span className="text-neutral-500">From: </span>
+                      {sourceHref ? (
+                        <Link
+                          href={sourceHref}
+                          className="text-primary-400 hover:text-primary-300 underline underline-offset-2 transition-colors"
+                        >
+                          {sourceLabel || (
+                            sourceEntityType === 'journal_entry' ? 'Journal Entry'
+                            : sourceEntityType === 'life_vision' ? 'Life Vision'
+                            : sourceEntityType === 'vision_board_item' ? 'Vision Board'
+                            : 'Source'
+                          )}
+                        </Link>
+                      ) : (
+                        <span className="text-neutral-300">{sourceLabel}</span>
+                      )}
+                    </div>
+                  )}
                   {story.generation_count > 1 && (
                     <div>
                       <span className="text-neutral-500">Generations: </span>
@@ -695,6 +777,24 @@ export default function StoryDetailPage({
                     <div>
                       <span className="text-neutral-500">Mode: </span>
                       <span className="text-neutral-300">{story.metadata.custom_mode === 'flip' ? 'Flip a Story' : 'Tell a Story'}</span>
+                    </div>
+                  )}
+                  {isIncantation && !!story.metadata?.framework && (
+                    <div>
+                      <span className="text-neutral-500">Framework: </span>
+                      <span className="text-neutral-300">
+                        {story.metadata.framework === 'spiritual'
+                          ? `Spiritual${story.metadata.divine_name ? ` · ${String(story.metadata.divine_name)}` : ''}`
+                          : story.metadata.framework === 'custom'
+                            ? `Custom${story.metadata.divine_name ? ` · ${String(story.metadata.divine_name)}` : ''}`
+                            : 'Self / Identity'}
+                      </span>
+                    </div>
+                  )}
+                  {isIncantation && !!story.metadata?.mode && (
+                    <div>
+                      <span className="text-neutral-500">Mode: </span>
+                      <span className="text-neutral-300">{String(story.metadata.mode)}</span>
                     </div>
                   )}
                 </div>
@@ -732,6 +832,24 @@ export default function StoryDetailPage({
                   <div>
                     <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Focus Notes</p>
                     <p className="text-sm text-neutral-300 leading-relaxed">{String(story.metadata.focus_notes)}</p>
+                  </div>
+                )}
+
+                {intentLabel && (
+                  <div>
+                    <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Sharpened Focus</p>
+                    <p className="text-sm text-neutral-300 leading-relaxed">{intentLabel}</p>
+                  </div>
+                )}
+
+                {isSparkQuery && sparkQuestions.length > 0 && (
+                  <div>
+                    <p className="text-xs text-neutral-500 uppercase tracking-widest mb-2">SparkQueries™</p>
+                    <ol className="space-y-2 list-decimal list-inside text-sm text-neutral-300 leading-relaxed">
+                      {sparkQuestions.map((q, i) => (
+                        <li key={i}>{q}</li>
+                      ))}
+                    </ol>
                   </div>
                 )}
 

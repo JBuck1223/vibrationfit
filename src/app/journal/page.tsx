@@ -269,7 +269,7 @@ export default function JournalPage() {
       setExpandedId(expandParam)
       router.replace('/journal', { scroll: false })
       setTimeout(() => {
-        document.getElementById(`entry-${expandParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        document.getElementById(`entry-${expandParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 100)
     }
   }, [searchParams, entries.length, router])
@@ -538,7 +538,7 @@ export default function JournalPage() {
                 <div
                   key={entry.id}
                   id={`entry-${entry.id}`}
-                  className="scroll-mt-8 cursor-pointer hover:bg-white/[0.03] transition-colors group"
+                  className="scroll-mt-28 cursor-pointer hover:bg-white/[0.03] transition-colors group"
                   onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                 >
                   <div className="px-4 py-3.5 md:px-5 md:py-4">

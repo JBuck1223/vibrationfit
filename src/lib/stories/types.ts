@@ -24,6 +24,8 @@ export type StoryStatus =
   | 'completed'
   | 'failed'
 
+export type StoryFormat = 'day_in_the_life' | 'essence'
+
 export interface StoryMetadata {
   // Focus story specific
   selected_categories?: string[]
@@ -32,11 +34,43 @@ export interface StoryMetadata {
     category: string
     text: string
   }>
+  // Narrative format (Story output — not Incantation / SparkQuery)
+  story_format?: StoryFormat
+  is_incantation?: boolean
+  is_spark_query?: boolean
   // Generation context
   prompt_version?: string
   model_used?: string
   // Custom metadata
   [key: string]: unknown
+}
+
+export type StoryKind =
+  | 'day_in_the_life'
+  | 'essence'
+  | 'incantation'
+  | 'spark_query'
+
+/** Stable kind key for filters / badges. */
+export function getStoryKind(metadata?: StoryMetadata | null): StoryKind {
+  if (metadata?.is_spark_query === true) return 'spark_query'
+  if (metadata?.is_incantation === true) return 'incantation'
+  if (metadata?.story_format === 'essence') return 'essence'
+  return 'day_in_the_life'
+}
+
+/** Human-readable output kind for list/detail badges. */
+export function getStoryKindLabel(metadata?: StoryMetadata | null): string {
+  switch (getStoryKind(metadata)) {
+    case 'spark_query':
+      return 'SparkQuery™'
+    case 'incantation':
+      return 'Incantation'
+    case 'essence':
+      return 'Essence'
+    default:
+      return 'A Day in the Life'
+  }
 }
 
 export interface Story {

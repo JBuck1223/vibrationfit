@@ -29,6 +29,13 @@ import {
   buildCustomIdentityPrompt,
   buildFlipIdentityPrompt,
 } from '@/lib/viva/prompts/identity-statement-prompt'
+import {
+  ESSENCE_STORY_SYSTEM_PROMPT,
+  buildEssenceFromCategoriesPrompt,
+  buildVisionBoardEssencePrompt,
+  buildJournalEssencePrompt,
+  buildCustomEssencePrompt,
+} from '@/lib/viva/prompts/essence-story-prompt'
 import type { StoryEntityType } from '@/lib/stories/types'
 import { createFreshStoryRecord } from '@/lib/stories/create-story-record'
 
@@ -44,6 +51,7 @@ interface GenerateBody {
   selectedCategories?: string[]
   categoryData?: Record<string, CategoryContent>
   customMode?: 'tell' | 'flip' | 'identity' | 'identity_flip'
+  storyFormat?: 'day_in_the_life' | 'essence'
 }
 
 async function buildPromptForEntity(
@@ -53,21 +61,28 @@ async function buildPromptForEntity(
   perspective: 'singular' | 'plural'
 ): Promise<{ prompt: string; systemPrompt: string; entityId: string; title: string | null; sourceInput: string }> {
   const { entityType, entityId, focusNotes } = body
-  const isIdentityMode = body.customMode === 'identity' || body.customMode === 'identity_flip'
+  const isEssenceFormat = body.storyFormat === 'essence'
+  const isIdentityMode = !isEssenceFormat && (body.customMode === 'identity' || body.customMode === 'identity_flip')
 
   switch (entityType) {
     case 'life_vision': {
       if (!entityId || !body.selectedCategories?.length || !body.categoryData) {
         throw new Error('life_vision requires entityId, selectedCategories, and categoryData')
       }
-      const prompt = isIdentityMode
-        ? buildIdentityFromCategoriesPrompt(body.categoryData, perspective)
-        : buildFocusStoryFromCategoriesPrompt(body.categoryData, perspective)
-      const systemPrompt = isIdentityMode ? IDENTITY_STATEMENT_SYSTEM_PROMPT : FOCUS_STORY_SYSTEM_PROMPT
+      const prompt = isEssenceFormat
+        ? buildEssenceFromCategoriesPrompt(body.categoryData, perspective)
+        : isIdentityMode
+          ? buildIdentityFromCategoriesPrompt(body.categoryData, perspective)
+          : buildFocusStoryFromCategoriesPrompt(body.categoryData, perspective)
+      const systemPrompt = isEssenceFormat
+        ? ESSENCE_STORY_SYSTEM_PROMPT
+        : isIdentityMode
+          ? IDENTITY_STATEMENT_SYSTEM_PROMPT
+          : FOCUS_STORY_SYSTEM_PROMPT
       const categoryLabels = body.selectedCategories.map(
         c => c.charAt(0).toUpperCase() + c.slice(1)
       )
-      const prefix = isIdentityMode ? 'Identity Statement' : 'Life Vision Focus'
+      const prefix = isEssenceFormat ? 'Essence' : isIdentityMode ? 'Identity Statement' : 'Life Vision Focus'
       const generatedTitle = `${prefix} – ${categoryLabels.join(' | ')}`
       const sourceInput = Object.entries(body.categoryData)
         .filter(([_, v]) => v.visionText.trim())
@@ -86,13 +101,25 @@ async function buildPromptForEntity(
         .single()
       if (error || !item) throw new Error('Vision board item not found')
 
-      const prompt = buildVisionBoardStoryPrompt(
-        { name: item.name, description: item.description, categories: item.categories },
-        focusNotes,
-        perspective
-      )
+      const prompt = isEssenceFormat
+        ? buildVisionBoardEssencePrompt(
+            { name: item.name, description: item.description, categories: item.categories },
+            focusNotes,
+            perspective
+          )
+        : buildVisionBoardStoryPrompt(
+            { name: item.name, description: item.description, categories: item.categories },
+            focusNotes,
+            perspective
+          )
       const sourceInput = [item.name, item.description, focusNotes].filter(Boolean).join('\n\n')
-      return { prompt, systemPrompt: FOCUS_STORY_SYSTEM_PROMPT, entityId, title: item.name, sourceInput }
+      return {
+        prompt,
+        systemPrompt: isEssenceFormat ? ESSENCE_STORY_SYSTEM_PROMPT : FOCUS_STORY_SYSTEM_PROMPT,
+        entityId,
+        title: item.name,
+        sourceInput,
+      }
     }
 
     case 'journal_entry': {
@@ -105,18 +132,23 @@ async function buildPromptForEntity(
         .single()
       if (error || !entry) throw new Error('Journal entry not found')
 
-      const prompt = buildJournalStoryPrompt(
-        {
-          title: entry.title,
-          content: entry.content,
-          date: new Date(entry.created_at).toLocaleDateString(),
-          categories: entry.categories,
-        },
-        focusNotes,
-        perspective
-      )
+      const journalInput = {
+        title: entry.title,
+        content: entry.content,
+        date: new Date(entry.created_at).toLocaleDateString(),
+        categories: entry.categories,
+      }
+      const prompt = isEssenceFormat
+        ? buildJournalEssencePrompt(journalInput, focusNotes, perspective)
+        : buildJournalStoryPrompt(journalInput, focusNotes, perspective)
       const sourceInput = [entry.title, entry.content, focusNotes].filter(Boolean).join('\n\n')
-      return { prompt, systemPrompt: FOCUS_STORY_SYSTEM_PROMPT, entityId, title: entry.title || 'Journal Story', sourceInput }
+      return {
+        prompt,
+        systemPrompt: isEssenceFormat ? ESSENCE_STORY_SYSTEM_PROMPT : FOCUS_STORY_SYSTEM_PROMPT,
+        entityId,
+        title: entry.title || 'Journal Story',
+        sourceInput,
+      }
     }
 
     case 'custom': {
@@ -126,6 +158,13 @@ async function buildPromptForEntity(
       let prompt: string
       let systemPrompt: string = FOCUS_STORY_SYSTEM_PROMPT
       let defaultTitle: string = 'Custom Story'
+
+      if (isEssenceFormat) {
+        prompt = buildCustomEssencePrompt(body.content, body.title, perspective, body.categoryData)
+        systemPrompt = ESSENCE_STORY_SYSTEM_PROMPT
+        defaultTitle = 'Essence Story'
+        return { prompt, systemPrompt, entityId: customId, title: body.title || defaultTitle, sourceInput: body.content }
+      }
 
       switch (body.customMode) {
         case 'flip':
@@ -217,6 +256,7 @@ export async function POST(request: NextRequest) {
       ...(body.categoryData ? { category_data: body.categoryData } : {}),
       ...(body.focusNotes ? { focus_notes: body.focusNotes } : {}),
       ...(body.customMode ? { custom_mode: body.customMode } : {}),
+      story_format: body.storyFormat === 'essence' ? 'essence' : 'day_in_the_life',
       ...(sourceInput ? { source_input: sourceInput } : {}),
     }
 

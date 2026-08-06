@@ -467,9 +467,13 @@ export default function IntensiveUnlockPage() {
         throw new Error('Failed to complete unlock')
       }
 
-      // Fire intensive.completed event to cancel onboarding sequence
-      fetch('/api/intensive/completed', { method: 'POST' })
-        .catch(err => console.error('intensive.completed event error:', err))
+      // Fire intensive.completed event (admin notifications + onboarding cancel).
+      // Must complete before the hard navigation below, which aborts in-flight requests.
+      try {
+        await fetch('/api/intensive/completed', { method: 'POST', keepalive: true })
+      } catch (err) {
+        console.error('intensive.completed event error:', err)
+      }
 
       window.location.href = '/dashboard?unlocked=true'
 

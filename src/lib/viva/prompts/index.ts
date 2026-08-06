@@ -91,6 +91,15 @@ export {
   type JournalStoryInput,
 } from './focus-story-prompt'
 
+// Essence Stories (short feeling-first stories — emotional definition of the vision)
+export {
+  ESSENCE_STORY_SYSTEM_PROMPT,
+  buildEssenceFromCategoriesPrompt,
+  buildVisionBoardEssencePrompt,
+  buildJournalEssencePrompt,
+  buildCustomEssencePrompt,
+} from './essence-story-prompt'
+
 // Identity Statements (nervous system encoding — "I am" declarations)
 export {
   IDENTITY_STATEMENT_SYSTEM_PROMPT,

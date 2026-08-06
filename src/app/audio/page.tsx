@@ -15,7 +15,13 @@ import {
 } from 'lucide-react'
 import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
-import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+import {
+  VISION_CATEGORIES,
+  LIFE_CATEGORY_KEYS,
+  getVisionCategoryKeys,
+  getVisionCategoryLabel,
+  type VisionCategoryKey,
+} from '@/lib/design-system/vision-categories'
 import { EmbeddedPlayer, type MixDetails } from '@/lib/design-system/components'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { SyncedLyricsDisplay, PlainLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
@@ -75,6 +81,12 @@ function formatAccountDisplayName(account: {
   if (first && last) return `${first} ${last}`
   if (first) return first
   return 'You'
+}
+
+function storyKindLabel(story: Story): string {
+  if (story.metadata?.is_spark_query === true) return 'SparkQuery™'
+  if (story.metadata?.is_incantation === true) return 'Incantation'
+  return story.metadata?.story_format === 'essence' ? 'Essence' : 'A Day in the Life'
 }
 
 const ENTITY_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
@@ -299,7 +311,7 @@ function ListenPracticeStatsRow({
 
 export default function AudioListenPage() {
   const {
-    visionId, visionLoading,
+    visionId, vision, visionLoading,
     audioSets, audioSetsLoading, refreshAudioSets,
     switchVision, allVisions,
     listenContentType: contentType,
@@ -457,7 +469,8 @@ export default function AudioListenPage() {
       const tracks: AudioTrack[] = []
       const storyTitle = story.title || 'Untitled Story'
       const meta = ENTITY_META[story.entity_type] || ENTITY_META.custom!
-      const entityLabel = meta.label
+      const kindLabel = storyKindLabel(story)
+      const entityLabel = `${kindLabel} · ${meta.label}`
       const sectionKey = story.entity_type || 'custom'
 
       let audioSetId = story.audio_set_id
@@ -505,7 +518,7 @@ export default function AudioListenPage() {
         tracks.push({
           id: `${story.id}:user-recording`,
           title: `${storyTitle} · Personal Recording`,
-          artist: 'Your voice',
+          artist: `${kindLabel} · Your voice`,
           duration: 0,
           url: story.user_audio_url,
           thumbnail: '',
@@ -1007,6 +1020,29 @@ export default function AudioListenPage() {
   const totalTracks = audioSets.reduce((sum, s) => sum + s.track_count, 0)
   const selectedSet = audioSets.find(s => s.id === selectedAudioSetId)
 
+  const expectedVisionSections = useMemo(() => {
+    if (!vision) return [] as VisionCategoryKey[]
+    return getVisionCategoryKeys().filter(key => String(vision[key] || '').trim().length > 0)
+  }, [vision])
+
+  const incompleteAudioInfo = useMemo(() => {
+    if (!selectedSet || expectedVisionSections.length === 0 || audioTracks.length === 0) return null
+    const isCombinedOnly = (selectedSet.metadata as { output_format?: string } | undefined)?.output_format === 'combined'
+    if (isCombinedOnly && audioTracks.some(t => t.sectionKey === 'full')) return null
+    if (audioTracks.some(t => t.sectionKey === 'full') && audioTracks.length === 1) return null
+
+    const present = new Set(
+      audioTracks.map(t => t.sectionKey).filter((key): key is string => !!key && key !== 'full'),
+    )
+    const missing = expectedVisionSections.filter(key => !present.has(key))
+    if (missing.length === 0) return null
+    return {
+      expected: expectedVisionSections.length,
+      present: present.size,
+      missing,
+    }
+  }, [selectedSet, audioTracks, expectedVisionSections])
+
   const { musicTagCategories, musicPlayerTracks } = useMemo(() => {
     if (contentType !== 'music') {
       return {
@@ -1197,6 +1233,31 @@ export default function AudioListenPage() {
           <>
             {selectedAudioSetId && selectedSet ? (
               <div className="max-w-2xl mx-auto w-full">
+                {incompleteAudioInfo && !loadingTracks && (
+                  <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                    <div className="flex gap-3">
+                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-amber-100">
+                          This audio set is incomplete
+                        </p>
+                        <p className="mt-1 text-sm text-amber-100/80">
+                          Your vision has {incompleteAudioInfo.expected} categories, but this set only has {incompleteAudioInfo.present}
+                          {incompleteAudioInfo.missing.length <= 6
+                            ? ` (missing ${incompleteAudioInfo.missing.map(getVisionCategoryLabel).join(', ')})`
+                            : ''}.
+                          After refining categories, regenerate audio to play your full vision.
+                        </p>
+                        <Button variant="secondary" size="sm" className="mt-3" asChild>
+                          <Link href="/audio/generate">
+                            <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                            Regenerate Vision Audio
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {loadingTracks ? (
                   <div className="rounded-2xl bg-embedded-panel border border-neutral-800 flex items-center justify-center py-12"><Spinner size="lg" /></div>
                 ) : audioTracks.length > 0 ? (
@@ -1313,7 +1374,9 @@ export default function AudioListenPage() {
                                         <div className="min-w-0 flex-1">
                                           <p className="truncate text-sm text-white">{getSetDisplayName(set)}</p>
                                           <p className="text-xs text-neutral-500 leading-tight">
-                                            {set.track_count} {set.track_count === 1 ? 'track' : 'tracks'}
+                                            {expectedVisionSections.length > 0 && set.track_count < expectedVisionSections.length
+                                              ? `${set.track_count} of ${expectedVisionSections.length} tracks · Needs update`
+                                              : `${set.track_count} ${set.track_count === 1 ? 'track' : 'tracks'}`}
                                             {' · '}{new Date(set.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                           </p>
                                         </div>
@@ -1447,36 +1510,35 @@ export default function AudioListenPage() {
                           </div>
 
                           {selectedStory && (
-                          <div className="bg-embedded-panel px-3 py-2.5 md:px-4">
+                          <div className="bg-embedded-panel px-1 py-1 md:px-2">
                             <div className="relative w-full" ref={storyDropdownRef}>
                               <button
                                 type="button"
                                 onClick={() => setStoryDropdownOpen(prev => !prev)}
-                                className="flex w-full min-h-11 items-center justify-between gap-2 rounded-[10px] border border-white/10 bg-white/[0.04] px-2.5 py-2 text-left text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] transition-[background-color,border-color] active:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-primary-500/25 sm:px-3"
+                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-neutral-300 transition-colors hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary-500/25"
                               >
-                                <div className="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
+                                {(() => {
+                                  const meta = ENTITY_META[selectedStory.entity_type] || ENTITY_META.custom!
+                                  return (
+                                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md overflow-hidden ${meta.badgeColor.split(' ').slice(0, 2).join(' ')}`}>
+                                      <meta.icon className="w-4 h-4" />
+                                    </div>
+                                  )
+                                })()}
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium text-white">
+                                    {selectedStory.title || 'Untitled Story'}
+                                  </p>
                                   {(() => {
                                     const meta = ENTITY_META[selectedStory.entity_type] || ENTITY_META.custom!
                                     return (
-                                      <div className={`flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg ${meta.badgeColor.split(' ').slice(0, 2).join(' ')}`}>
-                                        <meta.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                                      </div>
+                                      <p className="truncate text-xs text-neutral-500">
+                                        {storyKindLabel(selectedStory)} · {meta.label}
+                                      </p>
                                     )
                                   })()}
-                                  <div className="min-w-0 flex-1 text-left">
-                                    <p className="line-clamp-2 text-[13px] font-medium leading-snug text-white/95 sm:text-sm">{selectedStory.title || 'Untitled Story'}</p>
-                                    {(() => {
-                                      const meta = ENTITY_META[selectedStory.entity_type] || ENTITY_META.custom!
-                                      return (
-                                        <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-neutral-500 sm:text-xs">
-                                          <meta.icon className="w-3 h-3" />
-                                          {meta.label}
-                                        </span>
-                                      )
-                                    })()}
-                                  </div>
                                 </div>
-                                <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-neutral-500 sm:h-4 sm:w-4 ${storyDropdownOpen ? 'rotate-180' : ''} transition-transform duration-200`} />
+                                <ChevronDown className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-200 ${storyDropdownOpen ? 'rotate-180' : ''}`} />
                               </button>
                               {storyDropdownOpen && (
                                 <>
@@ -1497,8 +1559,8 @@ export default function AudioListenPage() {
                                             storyTrackCount > 0 ? 'cursor-pointer' : '',
                                           ].join(' ')}
                                         >
-                                          <div className="flex items-center gap-2.5">
-                                            <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded ${meta.badgeColor.split(' ').slice(0, 2).join(' ')}`}>
+                                          <div className="flex items-start gap-2.5">
+                                            <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded ${meta.badgeColor.split(' ').slice(0, 2).join(' ')}`}>
                                               <meta.icon className="w-3.5 h-3.5" />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -1522,11 +1584,10 @@ export default function AudioListenPage() {
                                                   </Link>
                                                 )}
                                               </div>
-                                              {storyTrackCount > 0 ? (
-                                                <p className="text-[11px] text-neutral-500 mt-0.5">
-                                                  {storyTrackCount} {storyTrackCount === 1 ? 'track' : 'tracks'} in playlist
-                                                </p>
-                                              ) : (
+                                              <span className="mt-0.5 text-[11px] text-neutral-500">
+                                                {storyKindLabel(story)} · {meta.label}
+                                              </span>
+                                              {storyTrackCount === 0 && (
                                                 <Link
                                                   href={`/audio/generate?source=story&sourceId=${story.id}`}
                                                   onClick={e => {
@@ -1559,7 +1620,7 @@ export default function AudioListenPage() {
                                               </p>
                                             </div>
                                             {storyTrackCount > 0 && isSelected && (
-                                              <CheckCircle className="h-4 w-4 shrink-0 text-primary-500" />
+                                              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
                                             )}
                                           </div>
                                         </div>

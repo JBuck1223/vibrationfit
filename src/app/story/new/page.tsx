@@ -21,6 +21,8 @@ import {
   Search,
   Shield,
   Quote,
+  Plus,
+  X,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -50,10 +52,10 @@ import {
   type IncantationFramework,
   type IncantationExample,
 } from '@/lib/viva/prompts/incantation-prompt'
-
 type WizardStep = 'source' | 'entity' | 'create'
 type CreateMode = 'viva' | 'manual'
-type OutputType = 'story' | 'incantation'
+type OutputType = 'story' | 'incantation' | 'spark_query'
+type StoryFormat = 'day_in_the_life' | 'essence'
 
 interface SourceType {
   kind: 'story'
@@ -143,6 +145,7 @@ export default function NewStoryWizardPage() {
   const storyRef = useRef<HTMLDivElement>(null)
 
   const [outputType, setOutputType] = useState<OutputType>('story')
+  const [storyFormat, setStoryFormat] = useState<StoryFormat>('day_in_the_life')
   const [step, setStep] = useState<WizardStep>('source')
   const [selectedSource, setSelectedSource] = useState<SourceType | null>(null)
   const [createMode, setCreateMode] = useState<CreateMode>('viva')
@@ -195,6 +198,14 @@ export default function NewStoryWizardPage() {
   const [incSaving, setIncSaving] = useState(false)
   const [incExamplesOpen, setIncExamplesOpen] = useState(false)
   const [incExampleIdx, setIncExampleIdx] = useState(0)
+
+  // ── SparkQuery™ state ──
+  const [sqIntent, setSqIntent] = useState('')
+  const [sqLoading, setSqLoading] = useState(false)
+  const [sqTitle, setSqTitle] = useState('')
+  const [sqQuestions, setSqQuestions] = useState<string[]>([])
+  const [sqOriginalQuestions, setSqOriginalQuestions] = useState<string[]>([])
+  const [sqSaving, setSqSaving] = useState(false)
 
   // Redirect story ID (set after generation)
   const [createdStoryId, setCreatedStoryId] = useState<string | null>(null)
@@ -419,7 +430,10 @@ export default function NewStoryWizardPage() {
     setCreatedStoryId(null)
 
     try {
-      const body: Record<string, unknown> = { entityType: selectedSource.entityType }
+      const body: Record<string, unknown> = {
+        entityType: selectedSource.entityType,
+        storyFormat,
+      }
 
       if (selectedSource.entityType === 'life_vision') {
         if (selectedCategories.length === 0) throw new Error('Select at least one category')
@@ -502,7 +516,9 @@ export default function NewStoryWizardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: `You are enhancing a user's raw notes/thoughts into a polished, immersive story.\n\nTheir raw input:\n"""\n${storyContent}\n"""\n\nTransform this into an immersive, first-person story that:\n- Keeps the essence of what they wrote\n- Is written in first person, present tense\n- Adds sensory details\n- Conveys emotions and gratitude\n- Flows naturally as a narrative\n- Is 300-500 words\n\nWrite the enhanced story directly without any preamble.` }],
+          messages: [{ role: 'user', content: storyFormat === 'essence'
+            ? `You are enhancing a user's raw notes/thoughts into a short, feeling-first essence story.\n\nTheir raw input:\n"""\n${storyContent}\n"""\n\nTransform this into a short, feeling-first story that:\n- Keeps the essence of what they wrote\n- Is written in first person, present tense\n- Focuses on feelings over facts — what this life feels like from the inside\n- Skips day structure, scene logistics, and factual inventories\n- Closes on ease and appreciation\n- Is 150-350 words\n\nWrite the enhanced story directly without any preamble.`
+            : `You are enhancing a user's raw notes/thoughts into a polished, immersive story.\n\nTheir raw input:\n"""\n${storyContent}\n"""\n\nTransform this into an immersive, first-person story that:\n- Keeps the essence of what they wrote\n- Is written in first person, present tense\n- Adds sensory details\n- Conveys emotions and gratitude\n- Flows naturally as a narrative\n- Is 300-500 words\n\nWrite the enhanced story directly without any preamble.` }],
           stream: false,
         }),
       })
@@ -540,6 +556,9 @@ export default function NewStoryWizardPage() {
           source: 'user_written',
           status: hasContent ? 'completed' : 'draft',
           word_count: storyContent.trim().split(/\s+/).filter(Boolean).length,
+          metadata: {
+            story_format: storyFormat,
+          },
         })
         .select()
         .single()
@@ -551,7 +570,7 @@ export default function NewStoryWizardPage() {
     }
   }
 
-  // ── Incantation handlers ──
+  // ── Shared source builder (Incantation + SparkQuery™) ──
 
   function buildIncantationSource(): { content: string; label: string } {
     const sourceType = selectedSource?.entityType
@@ -687,7 +706,7 @@ export default function NewStoryWizardPage() {
       const user = session?.user
       if (!user) throw new Error('Not authenticated')
 
-      const { label: sourceLabel } = buildIncantationSource()
+      const { content: sourceInput, label: sourceLabel } = buildIncantationSource()
       const title = incResult?.title?.trim() || `Incantation — ${sourceLabel || 'Custom'}`
 
       const wordCount = incEditedText.trim().split(/\s+/).filter(Boolean).length
@@ -715,6 +734,7 @@ export default function NewStoryWizardPage() {
             source_label: sourceLabel,
             source_entity_type: sourceType,
             source_entity_id: selectedEntityId || null,
+            source_input: sourceInput || null,
             framework: incFramework,
             divine_name: incFramework === 'self' ? null : incDivineName.trim(),
             intent: incIntent.trim() || null,
@@ -731,6 +751,148 @@ export default function NewStoryWizardPage() {
       setError(err instanceof Error ? err.message : 'Failed to save incantation')
     } finally {
       setIncSaving(false)
+    }
+  }
+
+  // ── SparkQuery™ handlers ──
+
+  async function handleGenerateSparkQuery() {
+    if (!selectedSource) {
+      setError('Pick a source for your SparkQuery™')
+      return
+    }
+    const { content: sourceContent, label: sourceLabel } = buildIncantationSource()
+    if (!sourceContent || sourceContent.length < 10) {
+      setError('Add some source material first — pick categories, an entity, or write a few sentences.')
+      return
+    }
+
+    setSqLoading(true)
+    setError(null)
+    setSqQuestions([])
+    setSqOriginalQuestions([])
+    setSqTitle('')
+
+    try {
+      const response = await fetch('/api/stories/spark-query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceContent,
+          sourceLabel,
+          intent: sqIntent.trim() || undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (data?.insufficientTokens) {
+          setError(`Insufficient tokens. ${data?.tokensRemaining ?? 0} remaining.`)
+        } else {
+          setError(data?.error || 'Failed to generate SparkQuery™')
+        }
+        return
+      }
+
+      if (!Array.isArray(data.questions) || data.questions.length !== 3) {
+        setError('VIVA returned no result. Please try again.')
+        return
+      }
+
+      const questions = data.questions.map((q: string) => String(q).trim()).filter(Boolean).slice(0, 3)
+      setSqQuestions(questions)
+      setSqOriginalQuestions(questions)
+      setSqTitle(typeof data.title === 'string' ? data.title.trim() : '')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate SparkQuery™')
+    } finally {
+      setSqLoading(false)
+    }
+  }
+
+  function updateSparkQuestion(index: number, value: string) {
+    setSqQuestions(prev => prev.map((q, i) => (i === index ? value : q)))
+  }
+
+  function removeSparkQuestion(index: number) {
+    setSqQuestions(prev => {
+      if (prev.length <= 1) return prev
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  function addSparkQuestion() {
+    setSqQuestions(prev => {
+      if (prev.length >= 3) return prev
+      return [...prev, '']
+    })
+  }
+
+  async function handleSaveSparkQuery() {
+    const cleaned = sqQuestions.map(q => q.trim()).filter(Boolean)
+    if (cleaned.length < 1) {
+      setError('Keep at least one SparkQuery™ that lands for you')
+      return
+    }
+    if (cleaned.length > 3) {
+      setError('Keep at most 3 SparkQueries™')
+      return
+    }
+
+    setSqSaving(true)
+    setError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
+      if (!user) throw new Error('Not authenticated')
+
+      const { content: sourceInput, label: sourceLabel } = buildIncantationSource()
+      const title = sqTitle.trim() || `SparkQuery™ — ${sourceLabel || 'Custom'}`
+      const content = cleaned.map((q, i) => `${i + 1}. ${q.endsWith('?') ? q : `${q}?`}`).join('\n')
+      const wordCount = content.split(/\s+/).filter(Boolean).length
+
+      const originalJoined = sqOriginalQuestions.map(q => q.trim()).join('\n')
+      const editedJoined = cleaned.join('\n')
+      const wasEdited = originalJoined !== editedJoined
+
+      const sourceType = selectedSource?.entityType || 'custom'
+      const sourceEntityId =
+        sourceType === 'custom' || !selectedEntityId
+          ? crypto.randomUUID()
+          : selectedEntityId
+
+      const { data: storyData, error: insertError } = await supabase
+        .from('stories')
+        .insert({
+          user_id: user.id,
+          entity_type: sourceType,
+          entity_id: sourceEntityId,
+          title,
+          content,
+          source: wasEdited || sqOriginalQuestions.length === 0 ? 'ai_assisted' : 'ai_generated',
+          status: 'completed',
+          word_count: wordCount,
+          metadata: {
+            is_spark_query: true,
+            source_label: sourceLabel,
+            source_entity_type: sourceType,
+            source_entity_id: selectedEntityId || null,
+            source_input: sourceInput || null,
+            intent: sqIntent.trim() || null,
+            questions: cleaned,
+            title,
+          },
+        })
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+      router.push(`/story/${storyData.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save SparkQuery™')
+    } finally {
+      setSqSaving(false)
     }
   }
 
@@ -914,7 +1076,13 @@ export default function NewStoryWizardPage() {
             <VIVALoadingOverlay
               isVisible={generating}
               className="!fixed !inset-0 !rounded-none"
-              messages={[
+              messages={outputType === 'story' && storyFormat === 'essence' ? [
+                'VIVA is distilling the feeling of your vision...',
+                'Tuning into the emotional core...',
+                'Trading facts for feelings...',
+                'Settling into ease and appreciation...',
+                'Putting the finishing touches on your essence story...',
+              ] : [
                 'VIVA is crafting your day-in-the-life story...',
                 'Weaving together your selected life areas...',
                 'Creating an immersive morning-to-evening narrative...',
@@ -922,8 +1090,8 @@ export default function NewStoryWizardPage() {
                 'Putting the finishing touches on your story...',
               ]}
               cycleDuration={8000}
-              estimatedTime="This usually takes 30-60 seconds"
-              estimatedDuration={45000}
+              estimatedTime={outputType === 'story' && storyFormat === 'essence' ? 'This usually takes 20-30 seconds' : 'This usually takes 30-60 seconds'}
+              estimatedDuration={outputType === 'story' && storyFormat === 'essence' ? 25000 : 45000}
               progress={vivaProgress}
             />
             <div className="space-y-6">
@@ -939,12 +1107,33 @@ export default function NewStoryWizardPage() {
                   options={[
                     { value: 'story', label: 'Story' },
                     { value: 'incantation', label: 'Incantation' },
+                    { value: 'spark_query', label: 'SparkQuery™' },
                   ]}
                 />
+                {outputType === 'story' && (
+                  <div className="mt-3">
+                    <Toggle
+                      variant="segmented"
+                      value={storyFormat}
+                      onChange={value => {
+                        setStoryFormat(value as StoryFormat)
+                        setError(null)
+                      }}
+                      options={[
+                        { value: 'day_in_the_life', label: 'A Day in the Life' },
+                        { value: 'essence', label: 'Essence' },
+                      ]}
+                    />
+                  </div>
+                )}
                 <p className="text-xs text-neutral-500 mt-3 max-w-xl text-center">
                   {outputType === 'story'
-                    ? 'An immersive day-in-the-life narrative crafted from your vision.'
-                    : 'A short, rhythmic declaration you repeat aloud until belief takes root.'}
+                    ? storyFormat === 'essence'
+                      ? 'A short feeling-first story — less detail, pure emotion. How your vision feels from the inside.'
+                      : 'An immersive day-in-the-life narrative crafted from your vision.'
+                    : outputType === 'incantation'
+                      ? 'A short, rhythmic declaration you repeat aloud until belief takes root.'
+                      : 'Empowering questions that work with your brain\'s bullshit detector — not against it.'}
                 </p>
               </div>
 
@@ -1086,7 +1275,9 @@ export default function NewStoryWizardPage() {
                     </div>
                     <div className="text-center mb-6">
                       <p className="text-xs text-neutral-500">
-                        An immersive day-in-the-life narrative for audio listening.
+                        {storyFormat === 'essence'
+                          ? 'A short feeling-first story for audio listening.'
+                          : 'An immersive day-in-the-life narrative for audio listening.'}
                       </p>
                     </div>
 
@@ -1923,6 +2114,277 @@ export default function NewStoryWizardPage() {
                                 )}
                               </Button>
                             </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Step 3: Create — SPARKQUERY™ path */}
+              {outputType === 'spark_query' && step === 'create' && (
+                <>
+                  <div className="border-t border-[#333]" />
+                  <div className="pt-6 relative">
+                    <VIVALoadingOverlay
+                      isVisible={sqLoading}
+                      className="!absolute !inset-0 !rounded-2xl"
+                      messages={[
+                        'VIVA is crafting SPARK-validated questions...',
+                        'Embedding assumptions your brain will accept...',
+                        'Tuning emotional resonance and identity language...',
+                        'Building a believable-to-expansive ladder...',
+                      ]}
+                      cycleDuration={4000}
+                      estimatedTime="This usually takes 15-25 seconds"
+                      estimatedDuration={20000}
+                    />
+
+                    <div className="flex flex-col items-center mb-4">
+                      {stepNumber(isCustom ? 2 : 3)}
+                      <h3 className="text-lg md:text-xl font-semibold text-white">
+                        Create SparkQuery™
+                      </h3>
+                    </div>
+                    <div className="text-center mb-6 max-w-xl mx-auto">
+                      <p className="text-xs text-neutral-500">
+                        Affirmations get rejected by your brain&apos;s bullshit detector. SparkQueries™ ask
+                        empowering questions with embedded assumptions — so your mind hunts for evidence instead of fighting the claim.
+                      </p>
+                    </div>
+
+                    <div className="space-y-6">
+                      {isLifeVision && (
+                        <>
+                          <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                            <div className="flex flex-col items-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="text-center sm:text-left">
+                                <h4 className="text-white font-semibold">Choose Source Areas</h4>
+                                <p className="text-sm text-neutral-400">
+                                  Pick the life areas VIVA will turn into SparkQueries™
+                                </p>
+                              </div>
+                              <Badge variant="info">{selectedCategories.length} selected</Badge>
+                            </div>
+                            <CategoryGrid
+                              categories={LIFE_CATEGORIES}
+                              selectedCategories={selectedCategories}
+                              onCategoryClick={handleCategoryToggle}
+                              mode="selection"
+                              lifeVisionCategoryStrip
+                              desktopColumnCount={6}
+                            />
+                          </div>
+
+                          {selectedCategories.length > 0 && (
+                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6 space-y-3">
+                              <div>
+                                <h4 className="text-white font-semibold">Review Source Material</h4>
+                                <p className="text-sm text-neutral-400">
+                                  Vision text from these categories becomes the raw material for your SparkQueries™.
+                                </p>
+                              </div>
+                              {categoryData.map(cat => {
+                                const category = LIFE_CATEGORIES.find(c => c.key === cat.key)
+                                if (!category) return null
+                                const CatIcon = category.icon
+                                return (
+                                  <div key={cat.key} className="border border-neutral-700 rounded-xl overflow-hidden">
+                                    <button
+                                      onClick={() => toggleExpanded(cat.key)}
+                                      className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center">
+                                          <CatIcon className="w-5 h-5 text-primary-500" />
+                                        </div>
+                                        <div className="text-left">
+                                          <span className="text-primary-500 font-medium">{category.label}</span>
+                                        </div>
+                                      </div>
+                                      {cat.isExpanded ? <ChevronUp className="w-5 h-5 text-neutral-400" /> : <ChevronDown className="w-5 h-5 text-neutral-400" />}
+                                    </button>
+                                    {cat.isExpanded && (
+                                      <div className="p-4 space-y-4 bg-neutral-900/50">
+                                        <div>
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-sm text-neutral-400 font-medium">Vision Text</span>
+                                            <Edit3 className="w-3 h-3 text-neutral-500" />
+                                          </div>
+                                          <AutoResizeTextarea
+                                            value={cat.visionText}
+                                            onChange={value => updateVisionText(cat.key, value)}
+                                            className="w-full min-h-[100px] text-sm"
+                                            placeholder={`Your ${category.label.toLowerCase()} vision...`}
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {!isLifeVision && !isCustom && selectedEntity && (
+                        <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                          <h4 className="text-white font-semibold mb-3">Source Preview</h4>
+                          <div className="text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
+                            {selectedSource?.entityType === 'vision_board_item' ? (
+                              <>
+                                <p className="font-medium text-white">{selectedEntity.name}</p>
+                                {selectedEntity.description && (
+                                  <p className="mt-2 text-neutral-300">{selectedEntity.description}</p>
+                                )}
+                              </>
+                            ) : selectedSource?.entityType === 'journal_entry' ? (
+                              <>
+                                <p className="font-medium text-white">{selectedEntity.title}</p>
+                                {selectedEntity.content && (
+                                  <p className="mt-2 text-neutral-300">{selectedEntity.content}</p>
+                                )}
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                      )}
+
+                      {isCustom && (
+                        <div className="space-y-4">
+                          <div className="text-center max-w-2xl mx-auto space-y-2">
+                            <p className="text-sm text-neutral-300">
+                              Write the raw material. VIVA will turn it into 3 SPARK-validated questions.
+                            </p>
+                            <p className="text-xs text-neutral-500 leading-relaxed">
+                              Describe what you want to become true — qualities, outcomes, the identity you&apos;re stepping into.
+                            </p>
+                          </div>
+                          <Input
+                            value={storyTitle}
+                            onChange={e => setStoryTitle(e.target.value)}
+                            placeholder="Title (optional)"
+                          />
+                          <RecordingTextarea
+                            value={storyContent}
+                            onChange={setStoryContent}
+                            placeholder="What outcome or identity should these SparkQueries™ presuppose?"
+                            rows={6}
+                            recordingPurpose="quick"
+                            storageFolder="lifeVision"
+                            category="story"
+                          />
+                        </div>
+                      )}
+
+                      {/* Optional intent */}
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-white font-semibold">
+                            Sharpen the Focus <span className="text-xs text-neutral-500 font-normal">(optional)</span>
+                          </h4>
+                          <p className="text-sm text-neutral-400">
+                            Anything from your source you specifically want the questions to presuppose.
+                          </p>
+                        </div>
+                        <AutoResizeTextarea
+                          value={sqIntent}
+                          onChange={setSqIntent}
+                          className="w-full min-h-[80px] text-sm border-cyan-500/30 focus:border-cyan-500"
+                          placeholder="E.g. 'Focus on money flowing from multiple sources — not budgeting anxiety.'"
+                        />
+                      </div>
+
+                      {/* Generate button */}
+                      <div className="flex justify-center pt-2">
+                        <Button
+                          onClick={handleGenerateSparkQuery}
+                          variant="primary"
+                          disabled={sqLoading}
+                        >
+                          {sqLoading ? (
+                            <>
+                              <Spinner size="sm" className="mr-2" />
+                              Crafting...
+                            </>
+                          ) : (
+                            <>
+                              <Search className="w-5 h-5 mr-2" />
+                              {sqQuestions.length > 0 ? 'Regenerate' : 'Generate SparkQueries™'}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Result */}
+                      {sqQuestions.length > 0 && (
+                        <div className="space-y-4 pt-4 border-t border-[#333]">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              {sqTitle && (
+                                <p className="text-sm font-semibold text-white">{sqTitle}</p>
+                              )}
+                              <p className="text-xs text-neutral-400 mt-1">
+                                Edit freely. Keep what lands for you. Ask them daily and notice the evidence pile up.
+                              </p>
+                            </div>
+                            <Badge variant="success">{sqQuestions.length} questions</Badge>
+                          </div>
+
+                          <div className="space-y-3">
+                            {sqQuestions.map((question, index) => (
+                              <div key={index} className="flex items-start gap-2">
+                                <span className="text-xs text-cyan-400 font-semibold mt-3 w-5 flex-shrink-0">
+                                  {index + 1}.
+                                </span>
+                                <AutoResizeTextarea
+                                  value={question}
+                                  onChange={value => updateSparkQuestion(index, value)}
+                                  className="w-full min-h-[64px] text-base leading-relaxed"
+                                  placeholder="Why am I…?"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeSparkQuestion(index)}
+                                  disabled={sqQuestions.length <= 1}
+                                  className="mt-2 p-2 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                  aria-label="Remove question"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={addSparkQuestion}
+                              disabled={sqQuestions.length >= 3}
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add question
+                            </Button>
+                            <Button
+                              onClick={handleSaveSparkQuery}
+                              variant="primary"
+                              disabled={sqSaving || sqQuestions.map(q => q.trim()).filter(Boolean).length < 1}
+                            >
+                              {sqSaving ? (
+                                <>
+                                  <Spinner size="sm" className="mr-2" />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="w-5 h-5 mr-2" />
+                                  Save SparkQuery™
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </div>
                       )}
