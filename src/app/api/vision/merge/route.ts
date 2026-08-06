@@ -3,6 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { mergeVisionSections } from '@/lib/viva/merge-vision'
+
+// Synthesizing all 14 categories runs parallel AI calls; allow time for long visions
+export const maxDuration = 300
 
 export async function POST(request: NextRequest) {
   try {
@@ -103,23 +107,49 @@ export async function POST(request: NextRequest) {
 
     const shouldBeActive = !existingActive  // If no active, make this active
 
-    // 7. Create merged household vision (with placeholder content)
-    // TODO: In Phase 2, we'll add VIVA synthesis here
-    // For now, we'll take the longer content from each category
-    const mergedContent: Record<string, string> = {}
+    // 7. Synthesize both visions per category into shared "we/our" text.
+    // Falls back to the longer source text per category if the AI step fails.
     const categories = [
       'forward', 'fun', 'travel', 'home', 'family', 'love',
       'health', 'money', 'work', 'social', 'stuff', 'giving',
       'spirituality', 'conclusion'
     ]
 
+    const nameByUserId = new Map(
+      (owners || []).map(o => [o.user_id, o.first_name || 'Partner'])
+    )
+    const name1 = nameByUserId.get(vision1.user_id) || 'Partner 1'
+    const name2 = nameByUserId.get(vision2.user_id) || 'Partner 2'
+
+    const sectionPairs: Record<string, [string, string]> = {}
     for (const category of categories) {
-      const content1 = (vision1[category as keyof typeof vision1] as string) || ''
-      const content2 = (vision2[category as keyof typeof vision2] as string) || ''
-      
-      // Simple strategy: take the longer one for now
-      // TODO: Replace with VIVA synthesis
-      mergedContent[category] = content1.length > content2.length ? content1 : content2
+      sectionPairs[category] = [
+        (vision1[category as keyof typeof vision1] as string) || '',
+        (vision2[category as keyof typeof vision2] as string) || '',
+      ]
+    }
+
+    let mergedContent: Record<string, string> = {}
+    let failedSections: string[] = []
+    try {
+      const synthesis = await mergeVisionSections({
+        sections: sectionPairs,
+        memberName1: name1,
+        memberName2: name2,
+        userId: user.id,
+      })
+      mergedContent = synthesis.sections
+      failedSections = synthesis.failedSections
+      console.log(`[Merge] Synthesized ${synthesis.mergedSections.length} categories` +
+        (failedSections.length ? `, ${failedSections.length} fell back to longer text: ${failedSections.join(', ')}` : ''))
+    } catch (err) {
+      // AI unavailable entirely: fall back to the longer text per category
+      console.error('[Merge] Synthesis unavailable, falling back to longer text per category:', err)
+      for (const category of categories) {
+        const [content1, content2] = sectionPairs[category]
+        mergedContent[category] = content1.length > content2.length ? content1 : content2
+      }
+      failedSections = categories.filter(c => sectionPairs[c][0] || sectionPairs[c][1])
     }
 
     const { data: householdVision, error: createError } = await supabase
@@ -180,7 +210,8 @@ export async function POST(request: NextRequest) {
       visionId2,
       householdVisionId: householdVision.id,
       householdId,
-      isActive: shouldBeActive
+      isActive: shouldBeActive,
+      synthesisFailedSections: failedSections
     })
 
     return NextResponse.json({
@@ -188,6 +219,7 @@ export async function POST(request: NextRequest) {
       visionId: householdVision.id,
       isActive: shouldBeActive,
       isDraft: !shouldBeActive,
+      synthesisFailedSections: failedSections,
       message: shouldBeActive
         ? `Merged visions from ${ownerNames} - now your active household vision!`
         : `Merged visions from ${ownerNames}`,

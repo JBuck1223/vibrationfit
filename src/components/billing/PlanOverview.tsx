@@ -7,7 +7,7 @@ import { formatPrice, formatTokensShort, formatStorage, PRICING, TOKEN_GRANTS, S
 
 import { toast } from 'sonner'
 
-const PARTNER_INTENSIVE_PRICE = 20000
+const PARTNER_INTENSIVE_PRICE = 19900
 
 type CouponValidation = {
   valid: boolean
@@ -89,6 +89,8 @@ type Props = {
   onRefresh: () => void
   isCanceling: boolean
   isResuming: boolean
+  /** Auto-open the annual upgrade confirm flow (e.g. ?upgrade=annual deep link from campaign emails) */
+  autoUpgradeAnnual?: boolean
 }
 
 function formatDate(iso: string | null): string {
@@ -227,10 +229,12 @@ export default function PlanOverview({
   onRefresh,
   isCanceling,
   isResuming,
+  autoUpgradeAnnual = false,
 }: Props) {
   const [upgradeState, setUpgradeState] = useState<'idle' | 'previewing' | 'confirming' | 'partner-details' | 'upgrading'>('idle')
   const [activeFlow, setActiveFlow] = useState<PlanChangeFlow | null>(null)
   const planChangeRef = useRef<HTMLDivElement>(null)
+  const autoStartedRef = useRef(false)
 
   useEffect(() => {
     if (upgradeState !== 'idle' && planChangeRef.current) {
@@ -239,6 +243,23 @@ export default function PlanOverview({
       }, 100)
     }
   }, [upgradeState])
+
+  // Deep link (?upgrade=annual) from the annual upgrade campaign emails:
+  // auto-open the annual confirm flow for members on 28-day billing.
+  useEffect(() => {
+    if (
+      autoUpgradeAnnual &&
+      !autoStartedRef.current &&
+      subscription?.tier &&
+      subscription.tier.billingInterval !== 'year' &&
+      !subscription.cancelAtPeriodEnd &&
+      !ENDED_STATUSES.includes(subscription.status)
+    ) {
+      autoStartedRef.current = true
+      handlePlanChangeClick('annual')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoUpgradeAnnual, subscription])
   const [tiersCache, setTiersCache] = useState<any[] | null>(null)
   const [prorationPreview, setProrationPreview] = useState<ProrationPreview | null>(null)
   const [targetTier, setTargetTier] = useState<TierInfo | null>(null)
@@ -1171,7 +1192,7 @@ export default function PlanOverview({
           {isSoloPlan ? renderPlanChangeBlock(
             'household',
             'Switch to Household',
-            'Proration + $200 partner intensive \u00b7 2 members',
+            'Proration + $199 partner intensive \u00b7 2 members',
             'Upgrade to Household',
             <Home className="w-4 h-4 shrink-0" />,
             'border-[#BF00FF]/20',

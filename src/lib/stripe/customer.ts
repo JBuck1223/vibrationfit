@@ -327,7 +327,7 @@ export async function createFlexiblePackCheckoutSession({
 }
 
 /**
- * Create a checkout session for the $97 Vision Activation Intensive
+ * Create a checkout session for the $499 Vision Activation Intensive
  */
 export async function createIntensiveCheckoutSession({
   userId,

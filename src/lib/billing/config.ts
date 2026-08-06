@@ -53,16 +53,21 @@ export const ROLLOVER_LIMITS = {
 // ============================================================================
 
 export const PRICING = {
-  INTENSIVE: 9700,
+  INTENSIVE: 49900,
+  INTENSIVE_2PAY: 27500, // per installment, x2 charged 14 days apart ($550 total)
   PREMIUM_INTENSIVE: 300000,
   PREMIUM_HOUSEHOLD_INTENSIVE: 420000,
-  SOLO_ANNUAL: 37000,
-  SOLO_28DAY: 3700, // $37/calendar month (key name kept for code compat)
-  HOUSEHOLD_INTENSIVE: 14700,
-  HOUSEHOLD_ANNUAL: 57000,
-  HOUSEHOLD_28DAY: 5700, // $57/calendar month
-  ADDON_28DAY: 1900,
-  ADDON_ANNUAL: 19000,
+  SOLO_ANNUAL: 99900,
+  SOLO_28DAY: 9900, // $99 every 28 days
+  HOUSEHOLD_INTENSIVE: 69900,
+  HOUSEHOLD_2PAY: 39900, // per installment, x2 charged 14 days apart ($798 total)
+  HOUSEHOLD_ANNUAL: 149000,
+  HOUSEHOLD_28DAY: 14900, // $149 every 28 days
+  // Family Activation + Seat: extra household member = their own intensive
+  // one-time + a recurring seat on the household subscription
+  FAMILY_ACTIVATION: 19900,
+  ADDON_28DAY: 2900, // seat: $29 every 28 days
+  ADDON_ANNUAL: 29000, // seat: $290 per year
 } as const
 
 // ============================================================================

@@ -114,10 +114,17 @@ export default function TermsOfServicePage() {
             <section className="mb-8">
               <h2 className="text-xl font-bold text-white mb-4">6. Subscriptions, Payments & Automatic Renewal</h2>
               <p className="text-neutral-300 mb-4">
-                Some purchases include an initial fee for the Vision Activation Intensive plus an ongoing Vision Pro membership that renews monthly or annually until canceled.
+                Some purchases include an initial fee for the Vision Activation Intensive plus an ongoing Vision Pro membership that renews every 28 days or annually until canceled.
               </p>
               <p className="text-neutral-300 mb-4">
                 We will clearly display the initial charge, future renewal amount, and renewal date at checkout before you complete your purchase.
+              </p>
+              <p className="text-neutral-300 mb-4">
+                Household plans include two Activation Intensives and two member seats. Each active member of a
+                Household plan must complete their own Activation Intensive. Additional household members beyond the
+                two included seats require a Family Activation: a one-time $199 Activation Intensive fee (which
+                includes their first 28 days of access) plus a recurring seat fee of $29 every 28 days added to the
+                household subscription. Additional member seats can be canceled at any time from your account.
               </p>
               <p className="text-neutral-300 mb-4">
                 By completing checkout, you authorize us to charge your payment method for the initial fee and for recurring membership charges until you cancel.

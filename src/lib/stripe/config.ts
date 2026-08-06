@@ -15,20 +15,21 @@ export const STRIPE_CONFIG = {
   publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
   
-  // PRICING MODEL (repriced Jul 2026)
+  // PRICING MODEL (restored Aug 2026: $499 intensive + $99/28-day continuity)
   prices: {
-    // $97 Vision Activation Intensive (mandatory entry; installment plans retired)
-    intensive_full: process.env.STRIPE_PRICE_INTENSIVE_FULL, // $97 one-time
+    // $499 Vision Activation Intensive (mandatory entry)
+    intensive_full: process.env.STRIPE_PRICE_INTENSIVE_FULL, // $499 one-time
+    intensive_2pay: process.env.STRIPE_PRICE_INTENSIVE_2PAY, // $275 x 2, 14 days apart
     
     // Premium Activation Intensive (full pay only)
     premium_intensive_full: process.env.STRIPE_PRICE_PREMIUM_INTENSIVE_FULL, // $3,000 one-time
     premium_household_intensive_full: process.env.STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL, // $4,200 one-time
     
-    // Vision Pro Annual (default continuity)
-    annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL, // $370/year
+    // Vision Pro Annual (post-purchase upgrade only, not sold at checkout)
+    annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL, // $999/year
     
-    // Vision Pro Monthly
-    monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY, // $37/month (375k tokens/cycle)
+    // Vision Pro 28-Day (default continuity)
+    monthly_28day: process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY, // $99 every 28 days
     
     // Token Packs (existing)
     token_power: process.env.STRIPE_PRICE_TOKEN_POWER, // 2M - $99

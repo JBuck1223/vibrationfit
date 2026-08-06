@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateAudioTracks, hashContent } from '@/lib/services/audioService'
+import { parseVoiceId, getVoiceVibe } from '@/lib/audio/voice-vibes'
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
 import { CopyObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { ORDERED_VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -199,7 +200,13 @@ export async function POST(request: NextRequest) {
       'user_voice': 'Personal Recording'
     }
     
-    let audioSetName = voiceNames[voice] || voice
+    // voice may be a composite "<voice>__<vibe>" (e.g. "shimmer__gentle_guide")
+    const parsedVoice = parseVoiceId(voice)
+    const vibeLabel = parsedVoice.vibe ? getVoiceVibe(parsedVoice.vibe)?.label : undefined
+    let audioSetName = voiceNames[parsedVoice.voice] || parsedVoice.voice
+    if (vibeLabel && vibeLabel !== 'Natural') {
+      audioSetName += ` (${vibeLabel})`
+    }
     if (bgTrack?.display_name) {
       audioSetName += ` + ${bgTrack.display_name}`
     }

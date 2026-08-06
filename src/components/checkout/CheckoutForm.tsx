@@ -16,6 +16,8 @@ interface CheckoutFormProps {
   continuity?: 'annual' | '28day' | null
   /** For intensive checkout: 'solo' | 'household' - used to show membership billing in agreement text */
   planType?: 'solo' | 'household' | null
+  /** For intensive checkout: 'full' | '2pay' - shows the 2-payment schedule note */
+  paymentPlan?: 'full' | '2pay' | null
 }
 
 export interface AccountDetails {
@@ -30,21 +32,23 @@ export interface AccountDetails {
 }
 
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
-  if (continuity === '28day') return planType === 'solo' ? '$37 per month' : '$57 per month'
-  return planType === 'solo' ? '$370 per year' : '$570 per year'
+  if (continuity === '28day') return planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
+  return planType === 'solo' ? '$999 per year' : '$1,490 per year'
 }
 
-export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, submitLabelShort, continuity, planType }: CheckoutFormProps) {
+export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, submitLabelShort, continuity, planType, paymentPlan }: CheckoutFormProps) {
   const stripe = useStripe()
   const elements = useElements()
 
   const membershipBillingPhrase =
     continuity && planType ? getMembershipBillingPhrase(continuity, planType) : null
   const agreementLabel = membershipBillingPhrase
-    ? `I understand and agree to the charges shown, including that my Vision Pro membership will begin billing on Day 30 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
-    : "I agree to the charges shown, including Vision Pro billing starting on Day 30 at my selected plan, covered by the 16‑week guarantee."
+    ? `I understand and agree to the charges shown, including that my Vision Pro membership will continue billing on Day 28 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
+    : "I agree to the charges shown, including Vision Pro billing starting on Day 28 at my selected plan, covered by the 16‑week guarantee."
 
   const isHousehold = planType === 'household'
+  const isTwoPay = paymentPlan === '2pay'
+  const isIntensiveCheckout = Boolean(continuity && planType)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -244,6 +248,41 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
           onChange={(e) => setAgreedToTerms(e.target.checked)}
         />
       </div>
+
+      {/* Enrollment & renewal disclosure */}
+      {isIntensiveCheckout && (
+        <div className="text-xs text-neutral-400 border border-neutral-700 rounded-lg bg-neutral-900/50 p-4 space-y-2 leading-relaxed">
+          <p>
+            By completing this purchase, you are enrolling in the 28‑day Vision Activation Intensive and your
+            included 28 days of Vision Pro Vibration Fit Membership.
+          </p>
+          {continuity === '28day' ? (
+            <p>
+              After your first 28 days, your membership will automatically continue at{' '}
+              <strong className="text-neutral-200">
+                {isHousehold ? '$149 every 28 days' : '$99 every 28 days'}
+              </strong>
+              , billed to the same payment method, until you choose to cancel. You can cancel any time with
+              one click in your account before your next renewal.
+            </p>
+          ) : (
+            <p>
+              After your first 28 days, your membership will automatically continue at{' '}
+              <strong className="text-neutral-200">{isHousehold ? '$1,490 per year' : '$999 per year'}</strong>
+              , billed to the same payment method, until you choose to cancel. You can cancel any time with
+              one click in your account before your next renewal.
+            </p>
+          )}
+          {isTwoPay && (
+            <p>
+              2‑pay option: You will be charged {isHousehold ? '$399' : '$275'} today and{' '}
+              {isHousehold ? '$399' : '$275'} in 14 days. Your membership renewals at{' '}
+              {isHousehold ? '$149' : '$99'} every 28 days begin after your included 28 days and are separate
+              from these two activation payments.
+            </p>
+          )}
+        </div>
+      )}
 
       <Button
         type="submit"
