@@ -12,6 +12,7 @@ import AssessmentBarChart from '@/app/assessment/components/AssessmentBarChart'
 import { RetentionDashboard } from '@/components/retention'
 import { GraduateChecklistCard } from '@/components/GraduateChecklistCard'
 import { UnlockCelebrationModal } from '@/components/UnlockCelebrationModal'
+import AnnualUpgradeBanner from '@/components/billing/AnnualUpgradeBanner'
 import type { GraduateChecklistResult } from '@/lib/graduate-checklist'
 import { 
   Sparkles, 
@@ -69,9 +70,10 @@ interface DashboardContentProps {
   initialCalibrationCall?: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string | null; join_link: string } } | null
   graduateChecklist?: GraduateChecklistResult | null
   userTimezone?: string | null
+  annualUpgradeOffer?: { planType: 'solo' | 'household'; trialEnd: string | null } | null
 }
 
-export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB, initialCalibrationCall = null, graduateChecklist = null, userTimezone = null }: DashboardContentProps) {
+export default function DashboardContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB, initialCalibrationCall = null, graduateChecklist = null, userTimezone = null, annualUpgradeOffer = null }: DashboardContentProps) {
   const [storageUsed, setStorageUsed] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
@@ -354,6 +356,14 @@ export default function DashboardContent({ user, profileData, visionData, vision
               />
             </div>
           </PageHero>
+
+        {/* Annual upgrade offer (days 21-25 of first 28-day cycle) */}
+        {annualUpgradeOffer && (
+          <AnnualUpgradeBanner
+            planType={annualUpgradeOffer.planType}
+            trialEnd={annualUpgradeOffer.trialEnd}
+          />
+        )}
 
         {/* Getting Started as a Graduate checklist (only for users who completed the intensive) */}
         {graduateChecklist?.isGraduate && graduateChecklist.progress && (

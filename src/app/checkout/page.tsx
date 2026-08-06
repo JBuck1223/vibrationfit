@@ -305,6 +305,7 @@ function CheckoutContent() {
                 submitLabelShort={submitLabelShort}
                 continuity={(searchParams.get('continuity') as 'annual' | '28day') || undefined}
                 planType={(searchParams.get('planType') as 'solo' | 'household') || undefined}
+                paymentPlan={(searchParams.get('plan') as 'full' | '2pay') || undefined}
               />
             </Card>
           </div>

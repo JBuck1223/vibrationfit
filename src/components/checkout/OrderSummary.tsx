@@ -20,31 +20,33 @@ function formatDollars(cents: number): string {
   return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`
 }
 
-function getDay30UpcomingLabel(
+function getDay28UpcomingLabel(
   continuity: 'annual' | '28day',
   planType: 'solo' | 'household',
 ): string {
   if (continuity === '28day') {
-    const price = planType === 'solo' ? 37 : 57
-    return `Vision Pro Monthly membership: $${price}, then $${price} per month`
+    const price = planType === 'solo' ? 99 : 149
+    return `Vision Pro membership: $${price}, then $${price} every 28 days`
   }
-  const price = planType === 'solo' ? 370 : 570
-  return `Vision Pro Annual membership: $${price}, then renews annually`
+  const price = planType === 'solo' ? 999 : 1490
+  return `Vision Pro Annual membership: $${price.toLocaleString()}, then renews annually`
 }
 
-/** Short money story for mobile collapsed header: "Today: $97 • Day 30: $37 per month" */
+/** Short money story for mobile collapsed header: "Today: $499 • Day 28: $99 every 28 days" */
 function getMoneyStoryLine(
   todayCents: number,
   continuity: 'annual' | '28day',
   planType: 'solo' | 'household',
+  isTwoPay: boolean,
 ): string {
   const today = formatDollars(todayCents)
+  const secondPayment = isTwoPay ? ` • In 14 days: ${today}` : ''
   if (continuity === '28day') {
-    const day30 = planType === 'solo' ? '$37 per month' : '$57 per month'
-    return `Today: ${today} • Day 30: ${day30}`
+    const day28 = planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
+    return `Today: ${today}${secondPayment} • Day 28: ${day28}`
   }
-  const day30 = planType === 'solo' ? '$370 per year' : '$570 per year'
-  return `Today: ${today} • Day 30: ${day30}`
+  const day28 = planType === 'solo' ? '$999 per year' : '$1,490 per year'
+  return `Today: ${today}${secondPayment} • Day 28: ${day28}`
 }
 
 export default function OrderSummary({
@@ -56,7 +58,8 @@ export default function OrderSummary({
   validatingPromo,
   hidePromoInput = false,
 }: OrderSummaryProps) {
-  // Installment plans retired (Jul 2026): intensive is a single payment.
+  // For 2-pay, product.amount is the per-installment amount ($275/$399),
+  // charged today and again 14 days later.
   const subtotal = product.amount
   const discount = promoDiscount?.amountOff ?? 0
   const total = Math.max(0, subtotal - discount)
@@ -68,15 +71,16 @@ export default function OrderSummary({
   const isPremiumIntensive = product.metadata?.intensive_level === 'premium'
   const continuity = (product.metadata?.continuity_plan as 'annual' | '28day') || '28day'
   const planType = (product.metadata?.plan_type as 'solo' | 'household') || 'solo'
+  const isTwoPay = product.metadata?.intensive_payment_plan === '2pay'
 
-  const paymentPlanLabel = 'One-time payment'
+  const paymentPlanLabel = isTwoPay ? '2 payments, 14 days apart' : 'One-time payment'
   const planTypeLabel = planType === 'solo' ? 'Solo' : 'Household'
 
   const todayChargeAmount = total
   const intensiveTotalAmount = total
 
   const moneyStoryLine = isIntensive
-    ? getMoneyStoryLine(todayChargeAmount, continuity, planType)
+    ? getMoneyStoryLine(todayChargeAmount, continuity, planType, isTwoPay)
     : null
   const [mobileSummaryExpanded, setMobileSummaryExpanded] = useState(false)
 
@@ -128,7 +132,7 @@ export default function OrderSummary({
             <li className="flex items-start gap-2 text-sm">
               <Check className="w-4 h-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
               <span className="text-neutral-300">
-                First month of Vision Pro included (no membership billing during this period)
+                First 28 days of Vision Pro included (no membership billing during this period)
               </span>
             </li>
             <li className="flex items-start gap-2 text-sm">
@@ -154,15 +158,20 @@ export default function OrderSummary({
             </p>
             <p className="text-lg font-bold text-white leading-snug mb-2 py-0.5">{formatDollars(intensiveTotalAmount)}</p>
             <p className="text-xs text-neutral-500 mb-4">
-              Includes first month of Vision Pro (no membership charges during this period)
+              Includes first 28 days of Vision Pro (no membership charges during this period)
             </p>
 
             <p className="text-sm font-semibold text-white mb-2">Upcoming charges</p>
+            {isTwoPay && (
+              <p className="text-sm text-neutral-300 mb-1">
+                <strong>In 14 days:</strong> {formatDollars(subtotal)} (second of 2 activation payments)
+              </p>
+            )}
             <p className="text-sm text-neutral-300 mb-1">
-              <strong>Day 30:</strong> {getDay30UpcomingLabel(continuity, planType)}
+              <strong>Day 28:</strong> {getDay28UpcomingLabel(continuity, planType)}
             </p>
             <p className="text-xs text-neutral-500">
-              Change to Annual or cancel anytime before Day 30 in‑app. Covered by 16‑week Membership Guarantee.
+              Cancel anytime before Day 28 in‑app. Covered by 16‑week Membership Guarantee.
             </p>
           </div>
         </>

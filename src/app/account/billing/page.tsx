@@ -151,6 +151,7 @@ function BillingContent() {
           onRefresh={fetchAll}
           isCanceling={isCanceling}
           isResuming={isResuming}
+          autoUpgradeAnnual={searchParams.get('upgrade') === 'annual'}
         />
 
         {shouldShowIntensiveBilling(intensive) && (

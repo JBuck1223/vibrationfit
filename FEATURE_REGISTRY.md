@@ -591,6 +591,7 @@ Verification:
 
 | Feature | Version | Date | Change |
 |---------|---------|------|--------|
+| Database Schema | v4.13.0 → v4.14.0 | Aug 5 2026 | Pricing revert & restructure (user-authorized): intensive back to $499/$699 w/ 2-pay, continuity $99/$149 per 28 days (Day 28 trial), annual $999/$1,490 upsell-only, Family Activation + Seat ($199 + $29/28d), Annual Upgrade email sequence seeded (migrations 20260805180000, 20260805190000) |
 | Household Sharing | - → v1.0.0 | Jul 9 2026 | Per-feature sharing modes, RLS policies, scope toggles, hub |
 | Database Schema | v4.12.0 → v4.13.0 | Jul 8 2026 | Added get_user_id_by_email() function (additive, service_role only) |
 | Design System | v1.8.0 → v1.8.1 | Jul 8 2026 | Attribute-only: lazy-load below-fold imgs in SocialProofSection/SwipeableCards/ProofWall; Poppins now via next/font |

@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       partnerLastName,
       partnerEmail,
       targetUserId,
+      includedInPlan,
     } = body as {
       overrideAmount?: number
       promoCode?: string
@@ -31,6 +32,8 @@ export async function POST(request: NextRequest) {
       partnerLastName?: string
       partnerEmail?: string
       targetUserId?: string
+      /** Seat covered by a Household plan (2 intensives included): provision at $0, no charge */
+      includedInPlan?: boolean
     }
 
     const { data: subscription } = await supabase
@@ -46,11 +49,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No active membership found' }, { status: 400 })
     }
 
-    const baseAmount = overrideAmount || 20000
+    // Family Activation Intensive: $199 one-time per additional member
+    const baseAmount = includedInPlan ? 0 : (overrideAmount || 19900)
 
     let discountAmount = 0
     let couponResult: any = null
-    if (promoCode) {
+    if (promoCode && !includedInPlan) {
       const { validateCouponCode, calculateDiscount } = await import('@/lib/billing/coupons')
       couponResult = await validateCouponCode(promoCode, {
         userId: user.id,
@@ -70,6 +74,7 @@ export async function POST(request: NextRequest) {
       product_type: 'standalone_intensive',
       source: 'billing_upgrade',
       promo_code: promoCode || '',
+      ...(includedInPlan ? { included_in_household_plan: 'true' } : {}),
       ...(partnerFirstName ? { partner_first_name: partnerFirstName } : {}),
       ...(partnerLastName ? { partner_last_name: partnerLastName } : {}),
       ...(partnerEmail ? { partner_email: partnerEmail } : {}),
@@ -129,7 +134,7 @@ export async function POST(request: NextRequest) {
       customer: subscription.stripe_customer_id,
       amount: finalAmount,
       currency: 'usd',
-      description: 'Activation Intensive',
+      description: 'Family Activation Intensive (includes first 28 days of access)',
       metadata,
     })
 
