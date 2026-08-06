@@ -29,11 +29,14 @@ function getIntensiveProduct(
 ): CheckoutProduct {
   const isSolo = planType === 'solo'
 
-  // Repriced Jul 2026: $97 solo / $147 household, single payment only
-  // (2-pay and 3-pay installment plans retired).
+  // Restored Aug 2026: $499 solo / $699 household PIF. 2-pay is the
+  // per-installment amount ($275 solo / $399 household), charged twice with
+  // the second payment 14 days after the first. 3-pay remains retired.
   const priceMap: Record<string, { amount: number; envKey: string }> = {
-    'solo-full': { amount: 9700, envKey: 'STRIPE_PRICE_INTENSIVE_FULL' },
-    'household-full': { amount: 14700, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
+    'solo-full': { amount: 49900, envKey: 'STRIPE_PRICE_INTENSIVE_FULL' },
+    'solo-2pay': { amount: 27500, envKey: 'STRIPE_PRICE_INTENSIVE_2PAY' },
+    'household-full': { amount: 69900, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_FULL' },
+    'household-2pay': { amount: 39900, envKey: 'STRIPE_PRICE_HOUSEHOLD_INTENSIVE_2PAY' },
     'premium-solo-full': { amount: 300000, envKey: 'STRIPE_PRICE_PREMIUM_INTENSIVE_FULL' },
     'premium-household-full': { amount: 420000, envKey: 'STRIPE_PRICE_PREMIUM_HOUSEHOLD_INTENSIVE_FULL' },
   }
@@ -50,12 +53,12 @@ function getIntensiveProduct(
   const continuityTier = tierLookup(tiers, continuityTierType)
   const continuityFeatures = (continuityTier?.features as string[] | undefined) || []
 
-  // All plans normalize to full pay (retired 2-pay/3-pay links included).
-  const priceKey = isPremium ? `premium-${planType}-full` : `${planType}-full`
-  const { amount, envKey } = priceMap[priceKey]
+  const priceKey = isPremium ? `premium-${planType}-full` : `${planType}-${paymentPlan}`
+  // Fall back to full pay for any unrecognized plan (e.g. retired 3-pay links).
+  const { amount, envKey } = priceMap[priceKey] || priceMap[`${planType}-full`]
 
-  const effectivePaymentPlan = 'full'
-  const planLabel = 'One-time payment'
+  const effectivePaymentPlan = isPremium ? 'full' : paymentPlan
+  const planLabel = effectivePaymentPlan === 'full' ? 'One-time payment' : '2 payments, 14 days apart'
 
   const productName = isPremium ? 'Premium Activation Intensive' : 'Vision Activation Intensive'
   const productKey = isPremium ? 'intensive_premium' : 'intensive'
@@ -75,7 +78,7 @@ function getIntensiveProduct(
           intensiveTokens > 0
             ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
             : 'VIVA tokens included',
-          `First month included — Vision Pro Monthly billing starts Day 30`,
+          `First 28 days included — Vision Pro 28-Day billing starts Day 28`,
           ...continuityFeatures.slice(0, 3),
         ]
       : [
@@ -84,7 +87,7 @@ function getIntensiveProduct(
           intensiveTokens > 0
             ? `${formatTokensShort(intensiveTokens)} VIVA tokens included`
             : 'VIVA tokens included',
-          `First month included — Vision Pro ${continuityPlan === 'annual' ? 'Annual' : 'Monthly'} billing starts Day 30`,
+          `First 28 days included — Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} billing starts Day 28`,
           ...continuityFeatures.slice(0, 5),
         ],
     redirectAfterSuccess: '/intensive/dashboard',
@@ -157,9 +160,10 @@ export function resolveCheckoutProduct(
   const { product, plan, continuity, planType, packKey } = params
 
   if (product === 'intensive' || product === 'intensive_premium') {
-    // Installment plans retired: any stale 2-pay/3-pay link resolves to full pay.
+    // 3-pay retired: normalize any stale plan value to a supported one.
+    const normalizedPlan: 'full' | '2pay' = plan === '2pay' ? '2pay' : 'full'
     return getIntensiveProduct(
-      'full',
+      normalizedPlan,
       (continuity as 'annual' | '28day') || '28day',
       (planType as 'solo' | 'household') || 'solo',
       tiers,

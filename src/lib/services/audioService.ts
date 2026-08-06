@@ -522,7 +522,7 @@ export async function generateAudioTracks(params: {
         name: `${variant || 'Standard'} Version`,
         description: audioSetDescription || getDescription(variant),
         variant: variant || 'standard',
-        voice_id: voice,
+        voice_id: storedVoiceId,
         metadata: audioSetMetadata || null,
         content_type: contentType,
         household_id: sourceHouseholdId,

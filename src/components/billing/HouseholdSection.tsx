@@ -6,7 +6,7 @@ import { Home, User, UserPlus, Mail, X, Zap, Tag, Check, Loader2, Sparkles } fro
 import { formatPrice, PRICING } from '@/lib/billing/config'
 import { toast } from 'sonner'
 
-const INTENSIVE_PRICE = 20000
+const INTENSIVE_PRICE = 19900 // Family Activation Intensive (one-time per additional member)
 
 type CouponValidation = {
   valid: boolean
@@ -107,11 +107,15 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
   const paidSeats = Math.max(0, totalOccupied - INCLUDED_SEATS)
 
   const seatPrice = billingInterval === 'year' ? PRICING.ADDON_ANNUAL : PRICING.ADDON_28DAY
-  const seatIntervalLabel = billingInterval === 'year' ? '/year' : '/month'
+  const seatIntervalLabel = billingInterval === 'year' ? ' per year' : ' every 28 days'
   const willNeedPaidSeat = totalOccupied + 1 > INCLUDED_SEATS
+  // Household plans include 2 Activation Intensives + 2 seats: an included
+  // seat gets its intensive at no charge. Additional members are a Family
+  // Activation: $199 one-time + a recurring seat.
+  const isIncludedSeat = !willNeedPaidSeat
 
   const intensiveDiscount = couponResult?.valid ? (couponResult.discountAmount || 0) : 0
-  const intensiveFinal = Math.max(0, INTENSIVE_PRICE - intensiveDiscount)
+  const intensiveFinal = isIncludedSeat ? 0 : Math.max(0, INTENSIVE_PRICE - intensiveDiscount)
 
   const resetForm = () => {
     setShowAddForm(false)
@@ -336,10 +340,22 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
           <div className="p-4 md:p-5">
             <div className="text-center mb-4">
               <UserPlus className="w-8 h-8 text-[#00FFFF] mx-auto mb-2" />
-              <h4 className="text-lg font-bold text-white">Add Household Member</h4>
+              <h4 className="text-lg font-bold text-white">Add Family Member</h4>
               <p className="text-xs text-neutral-400 mt-1">
+                Every person needs their own Vision Activation Intensive before using Vision Pro.
                 They&apos;ll receive an email to create their account and join your household.
               </p>
+              {isIncludedSeat ? (
+                <p className="text-xs text-[#39FF14] mt-2">
+                  This seat is included with your Household plan — their Activation Intensive is covered at no extra charge.
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-300 mt-2">
+                  Add them with their own Activation Intensive + membership for a one-time {formatPrice(INTENSIVE_PRICE)},
+                  then just {formatPrice(seatPrice)}{seatIntervalLabel} added to your Household plan.
+                  All billed together. Cancel their seat any time.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2.5 mb-4">
@@ -378,10 +394,13 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
               </div>
 
               <div className="flex items-center justify-between text-xs text-neutral-300 bg-neutral-900/60 rounded-lg px-3 py-2 mb-3">
-                <span>Partner Intensive (one-time)</span>
-                <span className="font-medium text-white">{formatPrice(INTENSIVE_PRICE)}</span>
+                <span>Family Activation Intensive (one-time)</span>
+                <span className="font-medium text-white">
+                  {isIncludedSeat ? 'Included with plan' : formatPrice(INTENSIVE_PRICE)}
+                </span>
               </div>
 
+              {!isIncludedSeat && (
               <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                 <div className="relative flex-1 min-w-0">
                   <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
@@ -418,10 +437,11 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                   </Button>
                 )}
               </div>
-              {couponResult && !couponResult.valid && (
+              )}
+              {!isIncludedSeat && couponResult && !couponResult.valid && (
                 <p className="text-xs text-[#FF0040]">{couponResult.error}</p>
               )}
-              {couponResult?.valid && (
+              {!isIncludedSeat && couponResult?.valid && (
                 <div className="flex items-center gap-1.5 text-xs text-green-400 mb-2">
                   <Check className="w-3 h-3" />
                   <span>{couponResult.name || 'Coupon applied'}</span>
@@ -436,7 +456,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
               <div className="text-xs font-semibold text-neutral-300 uppercase tracking-wide mb-2">Order Summary</div>
               <div className="flex justify-between text-xs text-neutral-400 mb-1">
                 <span>Activation Intensive (one-time)</span>
-                <span>{intensiveFinal === 0 ? 'Free' : formatPrice(intensiveFinal)}</span>
+                <span>{isIncludedSeat ? 'Included' : intensiveFinal === 0 ? 'Free' : formatPrice(intensiveFinal)}</span>
               </div>
               {willNeedPaidSeat && (
                 <div className="flex justify-between text-xs text-neutral-400 mb-1">
@@ -459,11 +479,15 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
 
             <div className="rounded-xl p-3 mb-4 border border-neutral-700/40 bg-neutral-800/30">
               <p className="text-xs text-neutral-300 leading-relaxed">
-                A one-time charge of <span className="text-white font-medium">{formatPrice(intensiveFinal)}</span> for
-                the Activation Intensive will be charged to your payment method on file today.
-                {willNeedPaidSeat && (
-                  <> An additional <span className="text-white font-medium">{formatPrice(seatPrice)}{seatIntervalLabel}</span> recurring
-                  seat add-on will be added to your subscription.</>
+                {isIncludedSeat ? (
+                  <>This member&apos;s Activation Intensive and seat are included with your Household plan.
+                  Nothing will be charged today.</>
+                ) : (
+                  <>A one-time charge of <span className="text-white font-medium">{formatPrice(intensiveFinal)}</span> for
+                  their Activation Intensive (includes their first 28 days of access) will be charged to your
+                  payment method on file today. An additional{' '}
+                  <span className="text-white font-medium">{formatPrice(seatPrice)}{seatIntervalLabel}</span> recurring
+                  seat will be added to your Household subscription. Cancel their seat any time.</>
                 )}
               </p>
               <label className="flex items-start gap-2.5 mt-3 cursor-pointer group">
@@ -493,7 +517,7 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
                 {adding ? <Spinner size="sm" /> : (
                   <>
                     <UserPlus className="w-4 h-4 mr-1.5" />
-                    Add Member & Purchase Intensive
+                    {isIncludedSeat ? 'Add This Family Member' : 'Add Member & Purchase Intensive'}
                   </>
                 )}
               </Button>

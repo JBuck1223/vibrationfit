@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, Waves, Search, Home } from 'lucide-react'
 import Link from 'next/link'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
+import { parseVoiceId, getVoiceVibe } from '@/lib/audio/voice-vibes'
 import { SectionSelector } from '@/components/SectionSelector'
 import { FormatSelector, OutputFormat } from '@/components/FormatSelector'
 import { CompletedStepRow } from '@/components/CompletedStepRow'
@@ -427,12 +428,19 @@ export default function AudioMixPage() {
 
       const isPersonal = set.variant === 'personal'
 
+      // voice_id may be a composite "<voice>__<vibe>" (e.g. "shimmer__gentle_guide")
+      const parsed = parseVoiceId(set.voice_id)
+      const vibeLabel = parsed.vibe ? getVoiceVibe(parsed.vibe)?.label : undefined
+      const baseVoiceName = voiceList.find((v: Voice) => v.id === parsed.voice)?.name || parsed.voice
+
       return {
         id: set.id,
         voice_id: set.voice_id,
         voice_name: isPersonal
           ? 'Your Voice (Personal Recording)'
-          : voiceList.find((v: Voice) => v.id === set.voice_id)?.name || set.voice_id,
+          : vibeLabel && vibeLabel !== 'Natural'
+            ? `${baseVoiceName} (${vibeLabel})`
+            : baseVoiceName,
         variant: set.variant,
         created_at: set.created_at,
         track_count: completedTracks.length,

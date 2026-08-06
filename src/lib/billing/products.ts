@@ -56,9 +56,10 @@ export async function resolveProduct(
   const { product, plan, continuity, planType, packKey } = params
 
   if (product === 'intensive' || product === 'intensive_premium') {
-    // Installment plans retired (2-pay Jul 2026, 3-pay Jun 2026): stale links resolve to full pay.
+    // 3-pay retired (Jun 2026): normalize stale plan values to a supported one.
+    const normalizedPlan: 'full' | '2pay' = plan === '2pay' ? '2pay' : 'full'
     return resolveIntensiveProduct(
-      'full',
+      normalizedPlan,
       (continuity as 'annual' | '28day') || '28day',
       (planType as 'solo' | 'household') || 'solo',
       supabase,
@@ -107,7 +108,7 @@ async function resolveIntensiveProduct(
 
   const planLabel =
     paymentPlan === 'full' ? 'One-time payment'
-    : paymentPlan === '2pay' ? '2 payments'
+    : paymentPlan === '2pay' ? '2 payments, 14 days apart'
     : '3 payments'
 
   const intensiveTierType = isPremium ? 'intensive_premium' : 'intensive'
@@ -147,13 +148,13 @@ async function resolveIntensiveProduct(
           'Custom vibration / practice plan',
           'Priority or private support',
           `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
-          `First month included — Vision Pro Monthly billing starts Day 30`,
+          `First 28 days included — Vision Pro 28-Day billing starts Day 28`,
           ...continuityFeatures.slice(0, 3),
         ]
       : [
           'Full Activation Intensive experience',
           `${formatTokensShort(intensiveTokens)} VIVA tokens included`,
-          `First month included — Vision Pro ${continuityPlan === 'annual' ? 'Annual' : 'Monthly'} billing starts Day 30`,
+          `First 28 days included — Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} billing starts Day 28`,
           ...continuityFeatures.slice(0, 5),
         ],
     redirectAfterSuccess: '/intensive/start',

@@ -82,6 +82,37 @@ export default async function DashboardPage() {
   const refinementsCount = refinementsData?.[0]?.total_refinement_count || 0
   const storageQuotaGB = storageQuotaData?.[0]?.total_quota_gb || 5
 
+  // Annual upgrade offer (days 21-25 of the first 28-day Vision Pro cycle):
+  // shown to members on a 28-day tier whose subscription is in its first cycle.
+  let annualUpgradeOffer: { planType: 'solo' | 'household'; trialEnd: string | null } | null = null
+  try {
+    const { data: sub } = await supabase
+      .from('customer_subscriptions')
+      .select('status, trial_start, trial_end, created_at, cancel_at_period_end, membership_tiers!inner(tier_type, is_household_plan)')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (sub && !sub.cancel_at_period_end) {
+      const tier = sub.membership_tiers as unknown as { tier_type: string; is_household_plan: boolean }
+      const is28DayTier = tier?.tier_type === 'vision_pro_28day' || tier?.tier_type === 'vision_pro_household_28day'
+      if (is28DayTier) {
+        const anchor = sub.trial_start || sub.created_at
+        const dayNumber = Math.floor((Date.now() - new Date(anchor).getTime()) / 86400000) + 1
+        if (dayNumber >= 21 && dayNumber <= 25) {
+          annualUpgradeOffer = {
+            planType: tier.is_household_plan ? 'household' : 'solo',
+            trialEnd: sub.trial_end,
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error computing annual upgrade offer:', e)
+  }
+
   // Calibration call data
   let calibrationCall: { show: boolean; session?: { id: string | null; title: string; scheduled_at: string | null; join_link: string } } | null = null
   try {
@@ -167,6 +198,7 @@ export default async function DashboardPage() {
       initialCalibrationCall={calibrationCall}
       graduateChecklist={graduateChecklist}
       userTimezone={accountTz?.timezone || null}
+      annualUpgradeOffer={annualUpgradeOffer}
     />
   )
 }

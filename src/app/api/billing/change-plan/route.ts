@@ -3,12 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe/config'
 import { toTitleCase } from '@/lib/utils'
+import { triggerEvent } from '@/lib/messaging/events'
 
 const TIER_TYPE_TO_ENV_KEY: Record<string, string> = {
   vision_pro_annual: 'STRIPE_PRICE_ANNUAL',
-  vision_pro_28day: 'STRIPE_PRICE_MONTHLY',
+  vision_pro_28day: 'STRIPE_PRICE_28DAY',
   vision_pro_household_annual: 'STRIPE_PRICE_HOUSEHOLD_ANNUAL',
-  vision_pro_household_28day: 'STRIPE_PRICE_HOUSEHOLD_MONTHLY',
+  vision_pro_household_28day: 'STRIPE_PRICE_HOUSEHOLD_28DAY',
 }
 
 function resolveStripePriceId(tier: { stripe_price_id: string | null; tier_type: string }): string | null {
@@ -239,7 +240,7 @@ export async function POST(request: NextRequest) {
         const serviceClient = createServiceClient()
 
         // Handle Stripe charge if amount > 0
-        let finalAmount = intensiveAmount ?? 20000
+        let finalAmount = intensiveAmount ?? 19900
         if (promoCode) {
           const { validateCouponCode, calculateDiscount } = await import('@/lib/billing/coupons')
           const couponResult = await validateCouponCode(promoCode, {
@@ -338,6 +339,16 @@ export async function POST(request: NextRequest) {
       } catch (intensiveErr) {
         console.error('Intensive grant error (non-blocking):', intensiveErr)
       }
+    }
+
+    // Exit event for the Day 21-25 annual upgrade campaign: unenrolls the user
+    // from the "Annual Upgrade" sequence so they never receive the reminder email.
+    if (targetTier.billing_interval === 'year' || targetTier.tier_type.includes('annual')) {
+      triggerEvent('membership.upgraded_annual', {
+        email: user.email || '',
+        userId: user.id,
+        newTierType: targetTier.tier_type,
+      }).catch(err => console.error('triggerEvent membership.upgraded_annual error:', err))
     }
 
     return NextResponse.json({

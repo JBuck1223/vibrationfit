@@ -62,6 +62,28 @@ export async function POST(request: NextRequest) {
       .eq('household_id', household.id)
       .eq('status', 'active')
 
+    // Household plans include 2 seats. Additional members are a paid Family
+    // Activation ($199 one-time + recurring seat) and must go through the
+    // billed add-household-member flow -- this free path only covers the
+    // included seats.
+    const { count: pendingCount } = await serviceClient
+      .from('household_invitations')
+      .select('id', { count: 'exact', head: true })
+      .eq('household_id', household.id)
+      .eq('status', 'pending')
+
+    const INCLUDED_SEATS = 2
+    const totalOccupied = (members?.length || 0) + (pendingCount || 0)
+    if (totalOccupied + 1 > INCLUDED_SEATS) {
+      return NextResponse.json(
+        {
+          error: 'Your included seats are full. Additional family members require a Family Activation ($199 one-time + $29 every 28 days). Use "Add Family Member" in Billing to add them.',
+          requiresPaidSeat: true,
+        },
+        { status: 402 },
+      )
+    }
+
     const { data: existingInvite } = await serviceClient
       .from('household_invitations')
       .select('id')

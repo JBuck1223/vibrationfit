@@ -103,6 +103,24 @@ export async function POST(request: NextRequest) {
 
     const INCLUDED_SEATS = 2
     const paidSeatsNeeded = Math.max(0, totalOccupied + 1 - INCLUDED_SEATS)
+    const isIncludedSeat = totalOccupied + 1 <= INCLUDED_SEATS
+
+    // Household plans include 2 Activation Intensives + 2 seats. An included
+    // seat on a household plan gets its intensive provisioned at no charge;
+    // every additional member is a Family Activation ($199 one-time + seat).
+    let intensiveCoveredByPlan = false
+    if (isIncludedSeat) {
+      const { data: tierRow } = await serviceClient
+        .from('customer_subscriptions')
+        .select('membership_tiers ( tier_type )')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .not('stripe_subscription_id', 'is', null)
+        .limit(1)
+        .maybeSingle()
+      const tierType = (tierRow?.membership_tiers as any)?.tier_type as string | undefined
+      intensiveCoveredByPlan = Boolean(tierType?.startsWith('vision_pro_household'))
+    }
 
     // ── Step 1: Provision partner account + household membership FIRST ──
     const { data: adminAccount } = await serviceClient
@@ -147,7 +165,8 @@ export async function POST(request: NextRequest) {
           cookie: request.headers.get('cookie') || '',
         },
         body: JSON.stringify({
-          overrideAmount: 20000,
+          overrideAmount: 19900,
+          includedInPlan: intensiveCoveredByPlan,
           promoCode: promoCode || undefined,
           partnerFirstName: firstName.trim(),
           partnerLastName: lastName.trim(),
@@ -216,6 +235,7 @@ export async function POST(request: NextRequest) {
       partnerInvited: true,
       partnerId,
       intensiveWaived: intensiveResult.waived || false,
+      intensiveIncludedInPlan: intensiveCoveredByPlan,
       paidSeats: paidSeatsNeeded,
       totalMembers: totalOccupied + 1,
     })

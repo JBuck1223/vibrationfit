@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
         metadata: paymentMetadata,
         automatic_payment_methods: { enabled: true },
         // Save the card to the customer so the Vision Pro subscription created
-        // after the intensive can bill it off-session when the 30-day trial ends.
+        // after the intensive can bill it off-session when the 28-day trial ends.
         setup_future_usage: 'off_session',
       })
       return NextResponse.json({
@@ -432,8 +432,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ------------------------------------------------------------------
-    // 7b. For intensive subscriptions (legacy installment plans): create Vision
-    //     Pro subscription with 30-day trial + grant trial tokens
+    // 7b. For intensive subscriptions (2pay installment plans): create Vision
+    //     Pro subscription with 28-day trial + grant trial tokens
     //     (mirrors what the webhook does for payment-mode intensives)
     // ------------------------------------------------------------------
     const isIntensiveProduct = product === 'intensive' || product === 'intensive_premium' || fullMetadata?.product_type === 'combined_intensive_continuity'
@@ -444,7 +444,7 @@ export async function POST(request: NextRequest) {
       // (2 seats, higher token/storage grant), not the solo defaults.
       const continuityPriceId = continuityPlan === 'annual'
         ? (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_ANNUAL : process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL)
-        : (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_MONTHLY : process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY)
+        : (isHousehold ? process.env.STRIPE_PRICE_HOUSEHOLD_28DAY : process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY)
 
       if (continuityPriceId && stripe) {
         try {
@@ -460,7 +460,7 @@ export async function POST(request: NextRequest) {
 
           if (tier) {
             // Try to use an existing payment method so the subscription can
-            // charge when the 30-day trial ends. For brand-new customers
+            // charge when the 28-day trial ends. For brand-new customers
             // the payment_intent.succeeded webhook will set the customer-level
             // default as a fallback.
             const existingPMs = await stripe.paymentMethods.list({
@@ -473,14 +473,14 @@ export async function POST(request: NextRequest) {
             const visionProSubscription = await stripe.subscriptions.create({
               customer: stripeCustomerId,
               items: [{ price: continuityPriceId, quantity: 1 }],
-              trial_period_days: 30,
+              trial_period_days: 28,
               ...(existingPM && { default_payment_method: existingPM }),
               metadata: {
                 product_type: 'vision_pro_continuity',
                 tier_type: tierType,
                 intensive_payment_plan: plan || 'full',
                 continuity_plan: continuityPlan,
-                billing_starts_day: '30',
+                billing_starts_day: '28',
               },
             })
 
@@ -494,7 +494,7 @@ export async function POST(request: NextRequest) {
               current_period_start: new Date((visionProSubscription as any).current_period_start * 1000).toISOString(),
               current_period_end: new Date((visionProSubscription as any).current_period_end * 1000).toISOString(),
               trial_start: new Date().toISOString(),
-              trial_end: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString(),
+              trial_end: new Date(Date.now() + (28 * 24 * 60 * 60 * 1000)).toISOString(),
               order_id: order.id,
             }).select('id').single()
 

@@ -23,21 +23,21 @@ const PLAN_INFO: Record<PlanKey, {
 }> = {
   annual: {
     name: 'Annual',
-    original: '$370',
-    price: '$185',
+    original: '$999',
+    price: '$499.50',
     cadence: '/year',
     tagline: 'Billed once a year',
     tag: '2 months free',
-    chargeText: "You'll be charged $185 today, then $185 every year. Cancel anytime.",
+    chargeText: "You'll be charged $499.50 today, then $499.50 every year. Cancel anytime.",
   },
   '28day': {
     name: 'Monthly',
-    original: '$37',
-    price: '$18.50',
+    original: '$99',
+    price: '$49.50',
     cadence: '/month',
     tagline: 'Billed monthly',
     tag: null,
-    chargeText: "You'll be charged $18.50 today, then $18.50 every month. Cancel anytime.",
+    chargeText: "You'll be charged $49.50 today, then $49.50 every 28 days. Cancel anytime.",
   },
 }
 
