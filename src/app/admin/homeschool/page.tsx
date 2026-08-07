@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Container, Stack, PageHero, Card, Badge, Button } from '@/lib/design-system/components'
 import {
   GraduationCap,
@@ -388,6 +389,22 @@ export default function AdminHomeschoolPage() {
             <Badge variant="neutral" className="text-xs">36-Week Program</Badge>
           </div>
         </PageHero>
+
+        <Card className="p-4 md:p-5 border-[#39FF14]/25">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Life Explorer is the daily operating system</p>
+              <p className="text-xs text-neutral-400 mt-1">
+                Parent Today screen, Wonder Wall, AI lessons, and check-ins. Ocean Adventures remains a finished static unit.
+              </p>
+            </div>
+            <Link href="/homeschool/life-explorer">
+              <Button variant="primary" size="sm">
+                Open Life Explorer
+              </Button>
+            </Link>
+          </div>
+        </Card>
 
         {/* Philosophy Overview */}
         <Card className="p-4 md:p-6 lg:p-8">

@@ -134,6 +134,7 @@ export default function CartCheckoutPage() {
         code: promoCode,
         productKey: item.product_key,
         purchaseAmount: product.amount,
+        planType: item.plan_type,
       }),
     })
       .then(res => res.json())
@@ -141,6 +142,9 @@ export default function CartCheckoutPage() {
         if (!data.valid) {
           setPromoDiscount(null)
           return
+        }
+        if (data.code && data.code !== promoCode) {
+          setPromoCode(data.code)
         }
         const amountOff = data.discountAmount
           ?? (data.percent_off
@@ -175,6 +179,7 @@ export default function CartCheckoutPage() {
           code: promoCode,
           productKey: item.product_key,
           purchaseAmount: product.amount,
+          planType: item.plan_type,
         }),
       })
       const data = await res.json()
@@ -182,6 +187,9 @@ export default function CartCheckoutPage() {
         toast.error(data.error || 'Invalid promo code')
         setPromoDiscount(null)
         return
+      }
+      if (data.code && data.code !== promoCode) {
+        setPromoCode(data.code)
       }
       const amountOff = data.discountAmount
         ?? (data.percent_off
