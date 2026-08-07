@@ -1,6 +1,6 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** July 9, 2026  
+**Last Updated:** August 6, 2026  
 **Purpose:** Single source of truth for all features, their versions, and status
 
 > ⚠️ **FOR AI AGENTS:** Before modifying ANY feature, check this registry first. Features marked 🔒 LOCKED should NOT be modified without explicit user permission.
@@ -613,6 +613,30 @@ Verification:
 | Token System | v2.3.1 → v2.4.0 | Feb 9 2026 | Flexible pack checkout + grants |
 | AI Model Pricing | v0.0.0 → v1.0.0 | Nov 15 | Initial release |
 | Database Schema | v4.11.0 → v4.12.0 | Nov 17 | Added ideal_state_prompts column |
+
+---
+
+### 🚧 Life Explorer (Vibration Fit Homeschool)
+**Version:** `v0.1.0`  
+**Status:** 🚧 IN PROGRESS  
+**Last Modified:** August 6, 2026  
+**Doc:** `docs/features/life-explorer/`  
+**Schema:** `le_students`, `le_expeditions`, `le_wonder_items`, `le_lessons`, `le_lesson_records`, `le_learning_evidence`, `le_skill_progress`  
+**API:** `/api/life-explorer/*`  
+**UI:** `/homeschool/life-explorer`  
+**Cursor rule:** `.cursor/rules/life-explorer.mdc`
+
+**What It Does:**
+- Curiosity-driven homeschool system organized by the 12 Life Categories
+- Expeditions (e.g. Travel → Antarctica) with Wonder Wall, daily lesson generation, parent check-in, portfolio, and calm progress
+- Household/parent tooling for Oliver (v1); Ocean Adventures remains a finished static unit
+
+**Critical Rules:**
+- ❌ DO NOT invent resource titles, URLs, page numbers, or runtimes
+- ❌ DO NOT regenerate or replace `homeschool/oliver-ocean-adventures/`
+- ❌ DO NOT tell parents they are “behind” for deep exploration
+- ✅ Smallest complete lesson wins — more content ≠ better lesson
+- ✅ Preserve child’s original language on Wonder Wall “Know” items
 
 ---
 

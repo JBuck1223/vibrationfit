@@ -49,6 +49,7 @@ import {
   SocialProofSection,
 } from '@/lib/design-system/components'
 import { trackConversion } from '@/lib/tracking/pixels'
+import { LAUNCH_SOLO_PROMO_CODE, resolveIntensiveLaunchPromoCode } from '@/lib/billing/launch-promo'
 
 // Vision Categories
 const VISION_CATEGORIES = [
@@ -70,8 +71,8 @@ const VISION_CATEGORIES = [
 
 // The $1 Activation Intensive offer is live for EVERYONE (no code/link required)
 // through October 1, 2026. After the cutoff the homepage automatically reverts to
-// full pricing. Solo-only for now; household is handled separately on the backend.
-const DOLLAR_OFFER_CODE = 'LAUNCH2026'
+// full pricing. Solo uses LAUNCH2026; household remaps to HOUSEHOLD2026 at checkout.
+const DOLLAR_OFFER_CODE = LAUNCH_SOLO_PROMO_CODE
 const DOLLAR_OFFER_ENDS_AT = Date.parse('2026-10-02T04:00:00Z') // midnight Oct 2 ET (UTC-4)
 
 export default function HomePage() {
@@ -119,6 +120,11 @@ export default function HomePage() {
       if (!promoApplied && Date.now() < DOLLAR_OFFER_ENDS_AT) {
         setPromoCode(DOLLAR_OFFER_CODE)
         promoApplied = true
+      }
+
+      // $1 launch offer only applies to pay-in-full.
+      if (promoApplied) {
+        setPaymentPlan('full')
       }
       
       // Campaign name
@@ -350,7 +356,10 @@ export default function HomePage() {
           }],
           // The $1 launch offer only applies to pay-in-full (a fixed discount
           // larger than a single installment would zero out 2-pay charges).
-          promoCode: effectivePaymentPlan === 'full' ? (promoCode || undefined) : undefined,
+          // Remap LAUNCH2026 ↔ HOUSEHOLD2026 so household stays $1, not $201.
+          promoCode: effectivePaymentPlan === 'full'
+            ? resolveIntensiveLaunchPromoCode(promoCode, effectivePlanType)
+            : undefined,
           referralSource: referralSource || undefined,
           campaignName: campaignName || undefined,
           visitorId,
@@ -1593,10 +1602,6 @@ export default function HomePage() {
                   <Heading level={3} className="mb-3 bg-gradient-to-r from-[#39FF14] via-[#14B8A6] to-[#8B5CF6] bg-clip-text text-transparent">
                       72-Hour Vision Activation Intensive
                   </Heading>
-                  <span className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs md:text-sm font-semibold border bg-gradient-to-r from-[#BF00FF]/20 to-[#8B5CF6]/20 text-[#BF00FF] border-[#BF00FF]/30 mb-4">
-                      <Clock className="w-4 h-4 inline mr-2" />
-                      Complete in 72 hours
-                  </span>
                   <Text size="xl" className="text-neutral-300 max-w-3xl mx-auto">
                     Go from blank slate to fully activated in 72 hours. Vision drafted, board built, audios recorded, conscious creation system live.
                   </Text>
@@ -1605,150 +1610,160 @@ export default function HomePage() {
                 {/* MAIN PRICING CONTENT */}
                 <Stack align="center" gap="md">
 
-                    {/* CHOOSE YOUR PATH */}
+                    {/* SOLO / HOUSEHOLD TOGGLE */}
+                    <div className="flex justify-center">
+                      <div className="inline-flex w-auto items-center gap-1.5 p-1.5 bg-neutral-800/80 backdrop-blur-sm rounded-full border border-neutral-700">
+                        <button
+                          type="button"
+                          onClick={() => setPlanType('solo')}
+                          className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                            planType === 'solo'
+                              ? 'bg-[#39FF14] text-black shadow-lg shadow-[#39FF14]/30'
+                              : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+                          }`}
+                        >
+                          <span className="flex flex-col items-center gap-0">
+                            <span className="flex items-center gap-1.5 md:gap-2">
+                              <User className="w-4 h-4" />
+                              <span>Solo</span>
+                              <span className="hidden md:inline">·</span>
+                              <span className="hidden md:inline">1 Login</span>
+                            </span>
+                            <span className="text-xs md:hidden">1 Login</span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPlanType('household')}
+                          className={`px-5 md:px-6 py-3 md:py-3.5 rounded-full font-semibold transition-all duration-300 ${
+                            planType === 'household'
+                              ? 'bg-[#00FFFF] text-black shadow-lg shadow-[#00FFFF]/30'
+                              : 'text-neutral-400 hover:text-white hover:bg-neutral-700/50'
+                          }`}
+                        >
+                          <span className="flex flex-col items-center gap-0">
+                            <span className="flex items-center gap-1.5 md:gap-2">
+                              <Users className="w-4 h-4" />
+                              <span>Household</span>
+                              <span className="hidden md:inline">·</span>
+                              <span className="hidden md:inline">2 Logins</span>
+                            </span>
+                            <span className="text-xs md:hidden">2 Logins</span>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="text-center">
-                      <Heading level={3} className="text-white !mb-3">Choose Your Vision Activation Path</Heading>
+                      <Heading level={3} className="text-white !mb-3">
+                        {planType === 'solo'
+                          ? 'Solo Activation Intensive + Vision Pro Membership'
+                          : 'Household Activation Intensive + Vision Pro Membership'}
+                      </Heading>
                       <Text size="base" className="text-neutral-300 max-w-3xl mx-auto">
-                        Your 28‑day Vision Activation Intensive includes your first 28 days of Vision Pro Vibration Fit Membership. After that, your membership continues automatically so your new vision stays activated, not forgotten.
+                        {planType === 'solo'
+                          ? 'Perfect if you are activating your own vision. Includes your first 28 days of Vision Pro Membership — then continues so your vision stays activated.'
+                          : 'Best if you are activating with a partner or family. Includes your first 28 days of Household Vision Pro Membership — then continues so your vision stays activated.'}
                       </Text>
                     </div>
 
                     {promoCode && (
-                      <Badge variant="premium">
-                        {promoCode.toUpperCase()} Applied - Pay $1 Today to Verify Payment Method
-                      </Badge>
+                      <div className="flex justify-center w-full px-2">
+                        <Badge variant="premium" className="text-center whitespace-normal max-w-full">
+                          {promoCode.toUpperCase()} Applied - Pay $1 Today to Verify Payment Method
+                        </Badge>
+                      </div>
                     )}
 
-                    {/* OPTION CARDS: Solo PIF/2-pay, Household PIF/2-pay */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-10 max-w-5xl mx-auto w-full items-stretch mt-4">
-
-                      {/* Option 1: Solo */}
-                      <Card className="relative border-2 border-[#39FF14] bg-gradient-to-br from-[#39FF14]/10 to-[#14B8A6]/5 flex flex-col">
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                          <div className="bg-[#39FF14] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg whitespace-nowrap">
-                            Most Popular
+                    {/* DYNAMIC PRICE + PAYMENT OPTIONS */}
+                    <div className="text-center w-full max-w-2xl mx-auto">
+                      {promoCode ? (
+                        <div className="flex flex-col items-center gap-2 mb-2">
+                          <div className="text-4xl md:text-6xl font-bold text-neutral-500 line-through opacity-50">
+                            ${getIntensiveTotal()}
+                          </div>
+                          <div className="text-5xl md:text-7xl font-bold text-[#39FF14]">
+                            $1
+                          </div>
+                          <div className="text-base md:text-xl text-white text-center">
+                            ${getPromoDiscount()} Off - Pay $1 to Verify Payment Method
                           </div>
                         </div>
-                        <div className="text-center mb-6 mt-2">
-                          <Zap className="w-12 h-12 text-[#39FF14] mx-auto mb-4" />
-                          <h3 className="text-2xl font-bold text-white mb-2">Solo Vision Activation Intensive + Vision Pro Membership</h3>
-                          <Text size="base" className="text-neutral-400">Perfect if you are activating your own vision.</Text>
-                        </div>
-                        <div className="space-y-3 mb-6">
-                          {[
-                            '28‑day Vision Activation Intensive',
-                            'Complete Conscious Creation System: vision, audio, board, MAP',
-                            'Private community and live activations for 28 days',
-                            'Includes your first 28 days of Vision Pro Vibration Fit Membership',
-                            'Then continues at $99 every 28 days, cancel any time',
-                          ].map((feature, idx) => (
-                            <div key={idx} className="flex items-start gap-3">
-                              <Check className="w-5 h-5 text-[#39FF14] flex-shrink-0 mt-0.5" />
-                              <span className="text-neutral-200 text-sm">{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="text-center mt-auto">
-                          {promoCode ? (
-                            <div className="mb-4">
-                              <div className="text-3xl font-bold text-neutral-500 line-through opacity-50">$499</div>
-                              <div className="text-5xl font-bold text-[#39FF14]">$1</div>
-                              <div className="text-sm text-white mt-1">$498 Off - Pay $1 to Verify Payment Method</div>
-                            </div>
-                          ) : (
-                            <div className="mb-4">
-                              <div className="inline-flex items-baseline gap-2">
-                                <span className="text-5xl font-bold text-white">$499</span>
-                                <span className="text-xl text-neutral-400">today</span>
-                              </div>
-                              <div className="text-[#39FF14] text-sm font-semibold mt-1">Best value</div>
-                              <div className="text-neutral-400 text-sm mt-1">or 2 payments of $275, 14 days apart (total $550)</div>
-                            </div>
-                          )}
-                          <Button
-                            variant="primary"
-                            size="lg"
-                            className="w-full"
-                            onClick={() => { setPlanType('solo'); setPaymentPlan('full'); handleIntensivePurchase('solo', 'full') }}
-                            disabled={isLoading}
-                          >
-                            {isLoading ? 'Processing...' : 'Get Started - Solo Vision Activation'}
-                          </Button>
-                          {!promoCode && (
-                            <button
-                              type="button"
-                              className="mt-3 text-sm text-neutral-300 underline underline-offset-4 hover:text-white transition-colors disabled:opacity-50"
-                              onClick={() => { setPlanType('solo'); setPaymentPlan('2pay'); handleIntensivePurchase('solo', '2pay') }}
-                              disabled={isLoading}
-                            >
-                              or 2 payments of $275
-                            </button>
-                          )}
-                        </div>
-                      </Card>
-
-                      {/* Option 2: Household */}
-                      <Card className="relative border-2 border-[#00FFFF]/60 bg-gradient-to-br from-[#00FFFF]/10 to-[#00FFFF]/5 flex flex-col">
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                          <div className="bg-[#00FFFF] text-black px-4 py-1 text-sm font-bold rounded-full shadow-lg whitespace-nowrap">
-                            For Partners &amp; Families
+                      ) : (
+                        <div className="flex flex-col items-center gap-1 mb-2">
+                          <div className="text-4xl md:text-6xl font-bold text-[#39FF14]">
+                            ${getPaymentAmount()}
                           </div>
-                        </div>
-                        <div className="text-center mb-6 mt-2">
-                          <Crown className="w-12 h-12 text-[#00FFFF] mx-auto mb-4" />
-                          <h3 className="text-2xl font-bold text-white mb-2">Household Vision Activation Intensive + Vision Pro Membership</h3>
-                          <Text size="base" className="text-neutral-400">Best if you are activating with a partner or family.</Text>
-                        </div>
-                        <div className="space-y-3 mb-6">
-                          {[
-                            'Everything in Solo, for your household',
-                            'Vision tools for multiple members under one roof',
-                            'Shared practices and accountability',
-                            'Includes your first 28 days of Household Vision Pro Membership',
-                            'Then continues at $149 every 28 days, cancel any time',
-                          ].map((feature, idx) => (
-                            <div key={idx} className="flex items-start gap-3">
-                              <Check className="w-5 h-5 text-[#00FFFF] flex-shrink-0 mt-0.5" />
-                              <span className="text-neutral-200 text-sm">{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="text-center mt-auto">
-                          {promoCode ? (
-                            <div className="mb-4">
-                              <div className="text-3xl font-bold text-neutral-500 line-through opacity-50">$699</div>
-                              <div className="text-5xl font-bold text-[#00FFFF]">$1</div>
-                              <div className="text-sm text-white mt-1">$698 Off - Pay $1 to Verify Payment Method</div>
+                          {paymentPlan === '2pay' ? (
+                            <div className="text-lg md:text-xl text-white text-center">
+                              × 2 Payments = ${getTwoPayTotal()}
+                              <span className="block text-sm text-neutral-400 mt-1">14 days apart</span>
                             </div>
                           ) : (
-                            <div className="mb-4">
-                              <div className="inline-flex items-baseline gap-2">
-                                <span className="text-5xl font-bold text-white">$699</span>
-                                <span className="text-xl text-neutral-400">today</span>
-                              </div>
-                              <div className="text-[#00FFFF] text-sm font-semibold mt-1">Best value</div>
-                              <div className="text-neutral-400 text-sm mt-1">or 2 payments of $399, 14 days apart (total $798)</div>
-                            </div>
+                            <div className="text-sm text-neutral-400">today · best value</div>
                           )}
-                          <Button
-                            variant="secondary"
-                            size="lg"
-                            className="w-full"
-                            onClick={() => { setPlanType('household'); setPaymentPlan('full'); handleIntensivePurchase('household', 'full') }}
-                            disabled={isLoading}
-                          >
-                            {isLoading ? 'Processing...' : 'Get Started - Household Vision Activation'}
-                          </Button>
-                          {!promoCode && (
-                            <button
-                              type="button"
-                              className="mt-3 text-sm text-neutral-300 underline underline-offset-4 hover:text-white transition-colors disabled:opacity-50"
-                              onClick={() => { setPlanType('household'); setPaymentPlan('2pay'); handleIntensivePurchase('household', '2pay') }}
-                              disabled={isLoading}
+                        </div>
+                      )}
+
+                      {!promoCode && (
+                        <Stack align="center" gap="sm" className="mt-3 md:mt-4 mb-3 md:mb-4">
+                          <h3 className="text-lg font-bold text-white">Payment Options</h3>
+                          <div className="flex flex-row gap-2 justify-center flex-wrap">
+                            <Button
+                              variant={paymentPlan === 'full' ? 'primary' : 'outline'}
+                              size="md"
+                              className="px-4 py-2 text-sm flex-shrink-0"
+                              onClick={() => setPaymentPlan('full')}
                             >
-                              or 2 payments of $399
-                            </button>
-                          )}
+                              Pay in Full
+                            </Button>
+                            <Button
+                              variant={paymentPlan === '2pay' ? 'primary' : 'outline'}
+                              size="md"
+                              className="px-4 py-2 text-sm flex-shrink-0"
+                              onClick={() => setPaymentPlan('2pay')}
+                            >
+                              2 Payments
+                            </Button>
+                          </div>
+                        </Stack>
+                      )}
+
+                      <Card className="bg-[#1F1F1F]/80 border-2 border-[#39FF14]/30 rounded-xl p-3 md:p-4 w-full mt-4">
+                        <div>
+                          <div className="flex items-center justify-center gap-2 md:gap-3 mb-3">
+                            <div className="h-px flex-1 max-w-12 md:max-w-16 bg-gradient-to-r from-transparent to-[#39FF14]/50" />
+                            <p className="text-sm md:text-base font-bold uppercase tracking-[0.18em] bg-gradient-to-r from-[#39FF14] via-[#00FFFF] to-[#39FF14] bg-clip-text text-transparent">
+                              You&apos;ll Get
+                            </p>
+                            <div className="h-px flex-1 max-w-12 md:max-w-16 bg-gradient-to-l from-transparent to-[#39FF14]/50" />
+                          </div>
+                          <div className="flex flex-col gap-2.5 text-left">
+                            {(planType === 'solo'
+                              ? [
+                                  '72‑Hour Activation Intensive',
+                                  'Complete Conscious Creation System: vision, audio, board, MAP',
+                                  'Private community + weekly live group coaching',
+                                  'Includes your first 28 days of Vision Pro Vibration Fit Membership',
+                                  `Then continues at $${getVisionProPrice()} every 28 days, cancel any time`,
+                                ]
+                              : [
+                                  'Everything in Solo, for your household',
+                                  'Vision tools for multiple members under one roof',
+                                  'Shared practices and accountability',
+                                  'Includes your first 28 days of Household Vision Pro Membership',
+                                  `Then continues at $${getVisionProPrice()} every 28 days, cancel any time`,
+                                ]
+                            ).map((feature, idx) => (
+                              <div key={idx} className="flex items-start gap-3">
+                                <Check className="w-4 h-4 text-[#39FF14] flex-shrink-0 mt-0.5" />
+                                <p className="text-white font-medium text-sm">{feature}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="mt-3 pt-3 border-t border-[#39FF14]/20 text-xs text-neutral-500 text-center leading-relaxed">
+                            {getYoullGetRenewalMicrocopy()}
+                          </p>
                         </div>
                       </Card>
                     </div>
@@ -1767,7 +1782,7 @@ export default function HomePage() {
                           {[
                             ['Ideal for', 'One individual', 'Couple or family in one home'],
                             ['People included', '1', '2'],
-                            ['28‑day Intensive', 'Yes', 'Yes'],
+                            ['72‑Hour Intensive', 'Yes', 'Yes'],
                             ['Membership included', '28 days of Vision Pro', '28 days of Household Vision Pro'],
                             ['After 28 days', '$99 every 28 days', '$149 every 28 days'],
                             ['Pay in full', '$499 today', '$699 today'],
@@ -1800,8 +1815,10 @@ export default function HomePage() {
                             <p>
                               <strong>Today:</strong>{' '}
                               {promoCode
-                                ? <><span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
-                                : <>${getIntensiveTotal()} (or 2 payments of ${getTwoPayInstallment()}, 14 days apart) for the 72‑Hour Vision Activation Intensive + your first 28 days of Vision Pro included.</>
+                                ? <><span className="text-[#39FF14] font-bold">$1</span> payment verification + FREE 72‑Hour Activation Intensive ({planType === 'solo' ? 'Solo' : 'Household'}) + your first 28 days of Vision Pro included.</>
+                                : paymentPlan === '2pay'
+                                  ? <>${getTwoPayInstallment()} today, then ${getTwoPayInstallment()} in 14 days (total ${getTwoPayTotal()}) for the 72‑Hour Activation Intensive ({planType === 'solo' ? 'Solo' : 'Household'}) + your first 28 days of Vision Pro included.</>
+                                  : <>${getIntensiveTotal()} for the 72‑Hour Activation Intensive ({planType === 'solo' ? 'Solo' : 'Household'}) + your first 28 days of Vision Pro included.</>
                               }
                             </p>
                           </div>
@@ -1831,7 +1848,13 @@ export default function HomePage() {
                         onClick={() => handleIntensivePurchase()}
                         disabled={isLoading}
                       >
-                        {isLoading ? 'Processing...' : promoCode ? 'Pay $1 & Start 72-Hour Activation Intensive' : 'Start the 72-Hour Activation Intensive'}
+                        {isLoading
+                          ? 'Processing...'
+                          : promoCode
+                            ? `Pay $1 & Start ${planType === 'solo' ? 'Solo' : 'Household'} Activation Intensive`
+                            : paymentPlan === '2pay'
+                              ? `Start with $${getTwoPayInstallment()} Today`
+                              : `Start the ${planType === 'solo' ? 'Solo' : 'Household'} Activation Intensive`}
                       </Button>
                       <p className="flex items-center justify-center gap-2 text-xs text-[#39FF14] text-center mt-2">
                         <ShoppingCart className="w-3.5 h-3.5" />

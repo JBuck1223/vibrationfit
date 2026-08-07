@@ -72,6 +72,7 @@ import {
   Bell,
   Fingerprint,
   GraduationCap,
+  Waves,
   Share2,
   Library,
   Film,
@@ -485,14 +486,35 @@ export const adminNavigation: NavItem[] = [
   },
 
   // ============================================================================
-  // HOMESCHOOL CURRICULUM
+  // HOMESCHOOL / LIFE EXPLORER
   // ============================================================================
   {
     name: 'Homeschool',
-    href: '/admin/homeschool',
+    href: '/homeschool/life-explorer',
     icon: GraduationCap,
     requiresAdmin: true,
-    description: 'Vibration Fit homeschool curriculum overview',
+    hasDropdown: true,
+    description: 'Vibration Fit Homeschool — Life Explorer',
+    children: [
+      {
+        name: 'Life Explorer',
+        href: '/homeschool/life-explorer',
+        icon: GraduationCap,
+        description: 'Today’s lesson, Wonder Wall, check-in',
+      },
+      {
+        name: 'Curriculum Overview',
+        href: '/admin/homeschool',
+        icon: BookOpen,
+        description: 'Yearly life-category curriculum overview',
+      },
+      {
+        name: 'Ocean Adventures (static)',
+        href: '/homeschool/oliver-ocean-adventures',
+        icon: Waves,
+        description: 'Finished Month 1 unit — archived static content',
+      },
+    ],
   },
 
   // ============================================================================

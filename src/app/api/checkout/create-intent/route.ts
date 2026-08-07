@@ -99,11 +99,12 @@ export async function POST(request: NextRequest) {
     // ------------------------------------------------------------------
     // Validate coupon (no userId for payment mode - redemption in webhook)
     // ------------------------------------------------------------------
-    const { validateCouponCode, calculateDiscount, recordRedemption } = await import('@/lib/billing/coupons')
+    const { validateCouponCode, calculateDiscount, recordRedemption, resolveIntensiveLaunchPromoCode } = await import('@/lib/billing/coupons')
     let couponResult: Awaited<ReturnType<typeof validateCouponCode>> | null = null
     let discountAmount = 0
-    if (promoCode) {
-      couponResult = await validateCouponCode(promoCode, {
+    const resolvedPromoCode = resolveIntensiveLaunchPromoCode(promoCode, planType)
+    if (resolvedPromoCode) {
+      couponResult = await validateCouponCode(resolvedPromoCode, {
         productKey: product,
         purchaseAmount: checkoutProduct.amount,
       })
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
         plan: plan || 'full',
         plan_type: planType || 'solo',
         continuity: continuity || '28day',
-        promo_code: promoCode || '',
+        promo_code: resolvedPromoCode || '',
         referral_source: referralSource || '',
         campaign_name: campaignName || '',
         cart_session_id: cartSessionId || '',
@@ -259,8 +260,8 @@ export async function POST(request: NextRequest) {
       isPurchase: true,
     })
 
-    if (promoCode) {
-      couponResult = await validateCouponCode(promoCode, {
+    if (resolvedPromoCode) {
+      couponResult = await validateCouponCode(resolvedPromoCode, {
         userId,
         productKey: product,
         purchaseAmount: checkoutProduct.amount,
@@ -273,7 +274,7 @@ export async function POST(request: NextRequest) {
     const fullMetadata: Record<string, string> = {
       ...checkoutProduct.metadata,
       user_id: userId,
-      promo_code: promoCode || '',
+      promo_code: resolvedPromoCode || '',
       referral_source: referralSource || '',
       campaign_name: campaignName || '',
       cart_session_id: cartSessionId || '',
@@ -378,7 +379,7 @@ export async function POST(request: NextRequest) {
         total_amount: checkoutProduct.amount - discountAmount,
         currency: checkoutProduct.currency,
         status: 'pending',
-        promo_code: promoCode || null,
+        promo_code: resolvedPromoCode || null,
         referral_source: referralSource || null,
         campaign_name: campaignName || null,
         metadata: {
@@ -415,7 +416,7 @@ export async function POST(request: NextRequest) {
           currency: checkoutProduct.currency,
           payment_plan: plan || 'full',
           is_subscription: checkoutProduct.mode === 'subscription',
-          promo_code: promoCode || null,
+          promo_code: resolvedPromoCode || null,
           referral_source: referralSource || null,
           campaign_name: campaignName || null,
           metadata: fullMetadata,
@@ -613,7 +614,7 @@ export async function POST(request: NextRequest) {
         order_id: order?.id || null,
         product_key: product,
         amount: checkoutProduct.amount - discountAmount,
-        promo_code: promoCode || null,
+        promo_code: resolvedPromoCode || null,
       },
     })
 
