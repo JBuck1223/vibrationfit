@@ -11,12 +11,69 @@ import { createAdminNotification } from '@/lib/admin/notifications'
 import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
 import { rateLimit } from '@/lib/rate-limit'
 
+/** Silent fake success so bots don't adapt when blocked. */
+function fakeLeadSuccess(email: string) {
+  return NextResponse.json(
+    {
+      lead: {
+        id: crypto.randomUUID(),
+        email,
+        status: 'new',
+      },
+    },
+    { status: 201 },
+  )
+}
+
+/**
+ * Detect contact-form bot signatures seen in CRM spam:
+ * digit-only messages and long random alphabetic "names".
+ */
+function isContactFormSpam(body: {
+  type?: string
+  source?: string
+  first_name?: string
+  last_name?: string
+  message?: string
+}): boolean {
+  const type = body.type || ''
+  const source = body.source || ''
+  const isContact =
+    type === 'contact' || source === 'website_contact' || source === 'website'
+
+  if (!isContact) return false
+
+  const message = String(body.message || '').trim()
+  if (/^\d{8,}$/.test(message)) return true
+
+  const looksLikeGibberishName = (name: string) => {
+    const n = name.trim()
+    // Long letter-only strings with no spaces (bots use 14–30 random chars)
+    if (n.length >= 14 && /^[A-Za-z]+$/.test(n)) return true
+    return false
+  }
+
+  if (
+    looksLikeGibberishName(String(body.first_name || '')) ||
+    looksLikeGibberishName(String(body.last_name || ''))
+  ) {
+    return true
+  }
+
+  return false
+}
+
 export async function POST(request: NextRequest) {
   const limited = await rateLimit(request, 'leads', 5)
   if (limited) return limited
 
   try {
     const body = await request.json()
+
+    // Honeypot: bots fill hidden "website" field
+    if (typeof body.website === 'string' && body.website.trim()) {
+      return fakeLeadSuccess(typeof body.email === 'string' ? body.email : 'blocked@invalid')
+    }
 
     // Validate required fields
     if (!body.email) {
@@ -25,6 +82,14 @@ export async function POST(request: NextRequest) {
 
     if (!body.type) {
       return NextResponse.json({ error: 'Lead type is required' }, { status: 400 })
+    }
+
+    if (isContactFormSpam(body)) {
+      console.warn('[leads] Blocked contact-form spam', {
+        email: body.email,
+        source: body.source,
+      })
+      return fakeLeadSuccess(body.email)
     }
 
     // Use admin client to bypass RLS for public lead capture

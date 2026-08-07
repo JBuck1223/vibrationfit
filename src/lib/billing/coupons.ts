@@ -2,6 +2,12 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 
+export {
+  LAUNCH_SOLO_PROMO_CODE,
+  LAUNCH_HOUSEHOLD_PROMO_CODE,
+  resolveIntensiveLaunchPromoCode,
+} from '@/lib/billing/launch-promo'
+
 type SupabaseClient = Awaited<ReturnType<typeof createServerClient>>
 
 function getServiceClient() {

@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateCouponCode } from '@/lib/billing/coupons'
+import { resolveIntensiveLaunchPromoCode, validateCouponCode } from '@/lib/billing/coupons'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code, productKey, purchaseAmount } = body as {
+    const { code, productKey, purchaseAmount, planType } = body as {
       code: string
       productKey?: string
       purchaseAmount?: number
+      planType?: string
     }
 
     if (!code || !code.trim()) {
       return NextResponse.json({ valid: false, error: 'Coupon code is required' }, { status: 400 })
     }
 
-    const result = await validateCouponCode(code, { productKey, purchaseAmount })
+    const resolvedCode = resolveIntensiveLaunchPromoCode(code, planType) || code
+    const result = await validateCouponCode(resolvedCode, { productKey, purchaseAmount })
 
     if (!result.valid) {
       return NextResponse.json({
@@ -26,6 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       valid: true,
       name: result.name,
+      code: resolvedCode,
       discountType: result.discountType,
       discountValue: result.discountValue,
       discountAmount: result.discountAmount,
