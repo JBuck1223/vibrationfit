@@ -1,0 +1,39 @@
+---
+description: Documentation placement, headers, and what docs not to create
+globs: docs/**,*.md
+alwaysApply: false
+---
+
+# Documentation Guidelines
+
+Only create docs with lasting value — avoid doc debt. Full reference: `docs/agent-guides/DOCUMENTATION_GUIDELINES.md`.
+
+## Never create
+
+- Docs in the project root — use the appropriate `docs/` subfolder
+- Status docs ("COMPLETE", "SUCCESS", "FIXED") — use git commits instead
+- Dated filenames — use descriptive names
+
+## Placement
+
+| Topic | Location |
+|-------|----------|
+| Architecture | `docs/architecture/` |
+| Features | `docs/features/[feature-name]/` |
+| Database | `docs/database/` or `supabase/` |
+| VIVA | `docs/viva/` |
+| Design system | `docs/design-system/` |
+| Technical decisions | `docs/technical/` |
+
+## Required header
+
+```markdown
+# Document Title
+
+**Last Updated:** Month Day, Year
+**Status:** Active | Archived | Deprecated
+```
+
+## Auto-generated docs
+
+`docs/generated/` is produced by `npm run docs:schema`, `docs:api`, `docs:constants` — never edit manually.

@@ -260,6 +260,18 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
       return <>{children}</>
     }
     
+    // VIVA: full-height conversational layout with internal scroll
+    if (pathname === '/viva' || pathname?.startsWith('/viva/')) {
+      return (
+        <div className="flex h-screen bg-black">
+          <UserSidebar />
+          <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {children}
+          </main>
+        </div>
+      )
+    }
+
     // Vibe Tribe pages: Full-screen layout with own sticky header
     // Uses custom flex layout to allow sidebar + full-height content
     if (pathname?.startsWith('/vibe-tribe')) {

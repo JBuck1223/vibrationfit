@@ -14,12 +14,18 @@
  *   3. Create SES Receipt Rule: match inbound.vibrationfit.com, action = SNS publish
  *   4. Create SNS subscription (HTTPS) pointing to this endpoint
  *   5. In Gmail, add auto-forwarding to team@inbound.vibrationfit.com
+ *
+ * Travel Tracker import: emails addressed to the trips address
+ * (see TRAVEL_INBOUND_ADDRESSES) are routed to the VIVA travel parser,
+ * which creates a draft trip for the matching member instead of a CRM
+ * message. Requires the trips recipient in the SES Receipt Rule.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { simpleParser } from 'mailparser'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { matchInboundEmail } from '@/lib/messaging/match-email'
+import { isTravelInboundRecipient, handleTravelImportEmail } from '@/lib/travel/inbound-import'
 
 const OWN_ADDRESSES = [
   'team@vibrationfit.com',
@@ -66,6 +72,29 @@ export async function POST(request: NextRequest) {
     // Skip emails from our own addresses to avoid loops
     if (OWN_ADDRESSES.includes(fromEmail.toLowerCase())) {
       return NextResponse.json({ skipped: 'own address' })
+    }
+
+    // Travel Tracker import: forwarded itineraries go to the VIVA travel
+    // parser instead of the CRM inbox. Check every recipient (parsed To
+    // plus the SES envelope destination).
+    const envelopeRecipients: string[] = Array.isArray(message.mail?.destination)
+      ? message.mail.destination
+      : []
+    const parsedRecipients = (toValue?.value || [])
+      .map((v: { address?: string }) => v.address || '')
+      .filter(Boolean)
+    const allRecipients = [...new Set([...envelopeRecipients, ...parsedRecipients])]
+
+    if (isTravelInboundRecipient(allRecipients)) {
+      const result = await handleTravelImportEmail({
+        fromEmail,
+        subject,
+        bodyText,
+        messageId: messageId || null,
+        receivedAt: parsed.date?.toISOString() || new Date().toISOString(),
+      })
+      console.log(`[SES Inbound] Travel import from ${fromEmail}: ${result.status}`)
+      return NextResponse.json({ travelImport: result.status })
     }
 
     const supabase = createAdminClient()

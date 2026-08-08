@@ -1,637 +1,117 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** July 9, 2026  
-**Purpose:** Single source of truth for all features, their versions, and status
+**Last Updated:** August 8, 2026
+**Purpose:** What's locked, what's fragile, and the constraints agents must respect. Feature details live in `docs/features/`; history lives in git.
 
-> ⚠️ **FOR AI AGENTS:** Before modifying ANY feature, check this registry first. Features marked 🔒 LOCKED should NOT be modified without explicit user permission.
+| Status | Agent action |
+|--------|--------------|
+| 🔒 LOCKED | Do not modify without explicit user permission |
+| ✅ STABLE | Modify with caution; test the whole feature after changes |
+| 🚧 IN PROGRESS | Safe to modify |
+| ⚠️ NEEDS REVIEW | Verify it works before relying on it |
 
----
-
-## How to Use This Registry
-
-### Status Definitions
-
-| Status | Meaning | Agent Action |
-|--------|---------|--------------|
-| 🔒 **LOCKED** | Working in production, DO NOT touch | Read-only unless explicitly asked |
-| ✅ **STABLE** | Working well, modify with caution | Test thoroughly after changes |
-| 🚧 **IN PROGRESS** | Currently being built | Safe to modify |
-| ⚠️ **NEEDS REVIEW** | May have issues, verify before using | Check functionality first |
-| 🗄️ **ARCHIVED** | No longer used | Don't reference |
-
-### Version Format
-
-- **Major.Minor.Patch** (e.g., `v2.1.0`)
-- Major = Breaking changes
-- Minor = New features
-- Patch = Bug fixes
+**Modifying a LOCKED feature:** ask permission first, make changes incrementally, test the ENTIRE feature (not just your change).
 
 ---
 
-## Core Infrastructure
+## Locked
 
-### 🔒 Media Recorder Component
-**Version:** `v3.5.0`  
-**Status:** 🔒 LOCKED (Used across multiple features)  
-**Last Modified:** November 18, 2024  
-**Doc:** `src/components/MediaRecorder.tsx` (self-documented)  
-**File:** `src/components/MediaRecorder.tsx` (1,350 lines)  
-**Used By:** Journal entries, VIVA chat, Life Vision audio, Video recordings
+### 🔒 Media Recorder — `src/components/MediaRecorder.tsx`
+Audio/video recording used by Journal, VIVA chat, Life Vision audio, and video recordings. Four purposes with different cleanup logic: `quick`, `transcriptOnly`, `withFile`, `audioOnly`. IndexedDB persistence, S3 upload, Whisper transcription, waveform editing.
 
-**What It Does:**
-- Audio/video recording with browser MediaRecorder API
-- Multiple recording purposes:
-  - `quick`: Small snippets (VIVA chat) - no S3, instant transcript
-  - `transcriptOnly`: Long audio (life vision) - S3 backup, delete if discarded
-  - `withFile`: Full recordings (journal) - always keep file
-  - `audioOnly`: Audio with editing, no transcription
-- IndexedDB persistence (survives page refresh)
-- S3 upload integration for cloud storage
-- Audio editing with waveform (trim, cut)
-- OpenAI Whisper transcription integration
-- Microphone selection (multi-device support)
-- Pause/resume functionality
-- Countdown timer before recording
-- Real-time level meter visualization
-- Auto-save every 20-30 seconds during recording
-- Recovery system for interrupted recordings
-- Blob URL management and memory cleanup
+- Do NOT change recording purposes, IndexedDB schema, blob creation logic, or the transcription flow without testing every consumer
+- Blob URLs must be revoked (memory leaks); recordings auto-clear from IndexedDB after 24h
 
-**Verification:**
-```bash
-# Test in journal entry
-1. Go to /journal/new
-2. Record audio
-3. Verify transcription works
-4. Verify audio playback works
-5. Verify S3 upload successful
-
-# Test recovery
-1. Start recording
-2. Refresh page
-3. Verify "Found saved recording" message
-4. Can continue or transcribe saved recording
-
-# Test editing
-1. Record audio
-2. Click "Edit Recording"
-3. Trim/cut audio
-4. Verify edited audio plays correctly
-```
-
-**Critical Rules:**
-- ❌ DO NOT change recording purposes without testing all use cases
-- ❌ DO NOT modify IndexedDB schema (breaks recovery)
-- ❌ DO NOT change blob creation logic (breaks playback)
-- ❌ DO NOT alter transcription flow (used by 4+ features)
-- ✅ DO test with real microphone/camera hardware
-- ✅ DO test page refresh recovery
-- ✅ DO verify S3 uploads work
-- ✅ DO check memory cleanup (blob URL revocation)
-
-**Known Gotchas:**
-- Blob URLs must be revoked to prevent memory leaks
-- MediaRecorder mimeType support varies by browser
-- IndexedDB has size limits (recordings auto-cleared after 24h)
-- S3 upload runs in parallel with transcription for speed
-- Different recording purposes have different cleanup logic
-
----
-
-### Global playlist audio (design system UI)
-**Version:** `v1.0.0`  
-**Status:** STABLE  
-**Last Modified:** April 23, 2026  
-**Doc:** `docs/design-system/global-playlist-audio.md`  
-**Code:** `src/lib/design-system/components/media/global-audio/*`, shell in root `layout`  
-**State:** `src/lib/stores/global-audio-store`  
-**Used By:** `/audio`, any route that dispatches to the global player  
-
-**What it does:** Embedded player, inline list, bottom mini bar, and drawer; styling uses design tokens and `@/lib/design-system/components` exports.
-
-**Note:** The legacy in-place `AudioPlayer` in the design system media folder is a different model (single track). See the doc above.
-
----
-
-### ✅ Audio Editor Component
-**Version:** `v1.2.0`  
-**Status:** ✅ STABLE  
-**Last Modified:** October 28, 2024  
-**File:** `src/components/AudioEditor.tsx`  
-**Used By:** MediaRecorder (edit mode), Journal audio editing
-
-**What It Does:**
-- Waveform visualization with peaks
-- Trim audio (set start/end points)
-- Real-time preview of edits
-- Export edited audio as new blob
-- Undo/reset functionality
-
-**Verification:**
-```bash
-1. Record audio in journal
-2. Click "Edit Recording"
-3. Drag trim handles
-4. Click "Preview Edited"
-5. Verify trimmed audio plays correctly
-6. Click "Save Changes"
-7. Verify edited audio replaces original
-```
-
----
-
-### ✅ Recording Textarea Component
-**Version:** `v2.1.0`  
-**Status:** ✅ STABLE  
-**Last Modified:** November 17, 2024  
-**File:** `src/components/RecordingTextarea.tsx`  
-**Used By:** Life Vision imagination, Journal entries, VIVA chat
-
-**What It Does:**
-- Textarea with integrated voice recording button
-- Automatic transcription insertion
-- Different recording purposes per use case
-- Keyboard shortcuts (Cmd/Ctrl + Shift + R to record)
-- Character count display
-
-**Integration Points:**
-- Uses MediaRecorder component
-- Configurable `recordingPurpose` and `storageFolder`
-- Automatically inserts transcript at cursor position
-
----
-
-### 🔒 Simple Level Meter Component
-**Version:** `v1.0.0`  
-**Status:** 🔒 LOCKED (Visual feedback component)  
-**Last Modified:** September 15, 2024  
-**File:** `src/components/SimpleLevelMeter.tsx`  
-**Used By:** MediaRecorder (audio visualization during recording)
-
-**What It Does:**
-- Real-time audio level visualization
-- Two modes: linear bars or circular meter
-- Canvas-based rendering for performance
-- Audio context integration
-- Smooth animations
-
-**Critical Rules:**
-- ❌ DO NOT change canvas rendering logic (performance-sensitive)
-- ❌ DO NOT modify audio context handling (causes memory leaks if wrong)
-- ✅ DO cleanup audio nodes on unmount
-
----
-
-## Core Features
+### 🔒 Simple Level Meter — `src/components/SimpleLevelMeter.tsx`
+Canvas-based audio level visualization used by MediaRecorder. Do NOT change canvas rendering or audio-context handling; always clean up audio nodes on unmount.
 
 ### 🔒 Life Vision Generation System
-**Version:** `v3.2.0`  
-**Status:** 🔒 LOCKED (Working in production)  
-**Last Modified:** November 17, 2024  
-**Doc:** `docs/features/life-vision/README.md`  
-**Schema:** `vision_versions`, `life_vision_category_state`, `frequency_flip`  
-**API:** `/api/viva/ideal-state`, `/api/viva/flip-frequency`, `/api/viva/merge-clarity`
+6-step vision creation across 12 life categories. Schema: `vision_versions`, `life_vision_category_state`, `frequency_flip`. API: `/api/viva/ideal-state`, `/api/viva/flip-frequency`, `/api/viva/merge-clarity`. Doc: `docs/features/life-vision/README.md`.
 
-**What It Does:**
-- 6-step vision creation flow across 12 life categories
-- AI-generated imagination prompts (profile-aware)
-- Frequency flip (contrast → clarity)
-- Category-specific ideal state generation
-- Vision assembly with bookends (forward/conclusion)
+- Do NOT modify without testing the full 6-step flow end-to-end
+- Do NOT change category keys (use `CATEGORY_KEYS` constants)
 
-**Verification:**
-```bash
-# Test the flow works end-to-end
-1. Go to /life-vision/new
-2. Complete all 6 steps for one category
-3. Verify vision_versions.is_draft = true created
-4. Verify ideal_state_prompts saved to life_vision_category_state
-```
+### 🔒 Design System — `src/lib/design-system/`
+See `.cursor/rules/design-system.mdc` for components, colors, and patterns.
 
-**Critical Rules:**
-- ❌ DO NOT modify without testing full flow
-- ❌ DO NOT change category keys (use CATEGORY_KEYS constants)
-- ❌ DO NOT alter database schema without migration
-- ✅ DO regenerate docs after schema changes
-
----
-
-### 🔒 Design System
-**Version:** `v1.8.1`  
-**Status:** 🔒 LOCKED (Core UI system)  
-**Last Modified:** November 10, 2024  
-**Doc:** `docs/design-system/README.md`  
-**Source:** `src/lib/design-system/`  
-**Reference:** `vibrationfit-brand-kit.html`
-
-**What It Does:**
-- Centralized UI components (Button, Card, Input, etc.)
-- Brand colors and gradients
-- Consistent spacing and typography
-- Mobile-responsive patterns
-
-**Components:**
-- `Button` (6 variants: primary, secondary, accent, ghost, outline, danger)
-- `GradientButton` (5 gradients: brand, green, teal, purple, cosmic)
-- `AIButton` (special styling for AI features)
-- `Card` (3 variants: default, elevated, outlined)
-- `Input`, `Textarea`, `Badge`, `ProgressBar`, `Spinner`
-- `Container`, `PageLayout`, `Footer`
-- 🔒 `PageHero` (Hero component for page headers with gradient styling)
-
-**Verification:**
-```bash
-# Visual check
-Visit any page and verify:
-- Buttons are pill-shaped (rounded-full)
-- Cards have 2px borders (#333)
-- Colors match brand palette
-- Hover states work
-- All components import from @/lib/design-system/components
-```
-
-**Critical Rules:**
-- ❌ DO NOT change button shapes (always rounded-full)
-- ❌ DO NOT use colors outside palette (see tokens.ts)
-- ❌ DO NOT modify component APIs without checking all usages
-- ❌ DO NOT add inline styles (use Tailwind classes)
-- ✅ DO import from @/lib/design-system/components
-- ✅ DO reference vibrationfit-brand-kit.html for visual style
-- ✅ DO test mobile responsive behavior
-
-#### 🔒 PageHero Component - SPECIAL RULES
-**Location:** `src/lib/design-system/components.tsx` (lines 6187-6249)  
-**Current Padding:** 24px mobile/tablet (`p-6`), 32px desktop (`lg:p-8`)
-
-**Critical Rules:**
-- ❌ DO NOT modify internal padding without explicit permission
-- ❌ DO NOT add default margins to the component
-- ✅ DO manage spacing at the page level using `className` prop
-- ✅ DO keep top and bottom padding equal (e.g., `p-6` not `pt-6 pb-3`)
-
-**Correct Usage:**
-```tsx
-// ✅ Good - spacing managed at page level
-<PageHero title="Title" subtitle="Subtitle" className="mb-8" />
-
-// ❌ Bad - modifying component's internal padding
-// Don't change p-6 lg:p-8 in the component itself
-```
-
----
+- Buttons always `rounded-full`; colors only from `tokens.ts`; no inline styles
+- Do NOT modify component APIs without checking all usages
+- **PageHero:** do NOT modify its internal padding or add default margins — manage spacing at the page level via `className` (e.g. `<PageHero className="mb-8" />`); keep top/bottom padding equal
 
 ### 🔒 Token System (Creation Credits)
-**Version:** `v2.5.0`  
-**Status:** 🔒 LOCKED (Financial system)  
-**Last Modified:** February 11, 2026  
-**Doc:** `docs/architecture/TOKEN_SYSTEM_SIMPLIFIED.md`  
-**Schema:** `token_transactions`, `token_usage`, `ai_model_pricing`  
-**API:** `/api/tokens/balance`, `/api/tokens/grant`, `/api/admin/ai-pricing`
+Financial system. Schema: `token_transactions`, `token_usage`, `ai_model_pricing`. Doc: `docs/architecture/TOKEN_SYSTEM_SIMPLIFIED.md`.
 
-**What It Does:**
-- Track user token balances (Creation Credits)
-- Log AI usage and costs
-- Admin can adjust balances
-- Configurable AI model pricing
-- Supports flexible token pack purchases from database pricing
-
-**Verification:**
-```bash
-# Test token flow
-1. Check balance: GET /api/tokens/balance
-2. Use AI feature (e.g., generate vision)
-3. Verify token_usage row created
-4. Verify balance decreased
-```
-
-**Critical Rules:**
-- ❌ DO NOT modify token calculations without approval
-- ❌ DO NOT change pricing without testing
-- ❌ DO NOT allow negative balances
-- ✅ DO use trackTokenUsage() for all AI calls
-
----
+- Do NOT modify token calculations or pricing without approval; never allow negative balances
+- Every AI call must go through `trackTokenUsage()`
 
 ### 🔒 Database Schema
-**Version:** `v4.13.0`  
-**Status:** 🔒 LOCKED (Production database)  
-**Last Modified:** November 17, 2024  
-**Doc:** `docs/generated/SCHEMA.md` (auto-generated)  
-**Source:** `supabase/COMPLETE_SCHEMA_DUMP.sql`  
-**Migrations:** `supabase/migrations/`
+Source of truth: `supabase/COMPLETE_SCHEMA_DUMP.sql`. Auto-generated doc: `docs/generated/SCHEMA.md` (`npm run docs:schema`).
 
-**What It Does:**
-- Tables for all features
-- RLS policies for security
-- Stored functions and triggers
-
-**Recent Changes (July 8, 2026):**
-- Added `get_user_id_by_email(text)` SECURITY DEFINER function (service_role only)
-  for targeted auth user lookup in checkout/webhook hot paths. Additive only —
-  no table or RLS changes. Migration: `20260708000001_get_user_id_by_email.sql`.
-
-**Recent Changes (June 21, 2026):**
-- Renamed all `idea_*` tables to `project_*` (`idea_projects` → `projects`, etc.) and
-  added member-ownership RLS (`created_by = auth.uid()`) alongside admin access.
-- Added `resets` and `reset_items` tables for the Reset ("Phoenix") feature (owner + admin RLS).
-- Schema docs (`COMPLETE_SCHEMA_DUMP.sql`, `CURRENT_SCHEMA.md`) should be regenerated.
-
-**Verification:**
-```bash
-# Schema is current
-npm run docs:schema
-# Check output matches production
-```
-
-**Critical Rules:**
-- ❌ DO NOT edit tables directly (use migrations)
-- ❌ DO NOT run migrations without testing locally first
-- ❌ DO NOT modify RLS policies without security review
-- ✅ DO create timestamped migrations (YYYYMMDDHHMMSS_description.sql)
-- ✅ DO regenerate schema docs after migrations
+- Changes only via timestamped migrations in `supabase/migrations/`
+- Do NOT modify RLS policies without a security review
 
 ---
 
-### ✅ AI Model Pricing Management
-**Version:** `v1.0.0`  
-**Status:** ✅ STABLE  
-**Last Modified:** November 15, 2024  
-**Doc:** N/A (simple CRUD)  
-**Schema:** `ai_model_pricing`  
-**API:** `/api/admin/ai-pricing`  
-**UI:** `/admin/ai-models` (Model Pricing tab)
+## Stable
 
-**What It Does:**
-- Admin configures AI model costs
-- Used for token usage cost calculation
-- Supports input/output token pricing
-
-**Verification:**
-```bash
-1. Go to /admin/ai-models
-2. Click "Model Pricing" tab
-3. Edit a model's pricing
-4. Verify cost calculated correctly in token_usage
-```
+- ✅ **Audio Editor** — `src/components/AudioEditor.tsx`. Waveform trim/cut editing used by MediaRecorder and Journal.
+- ✅ **Recording Textarea** — `src/components/RecordingTextarea.tsx`. Textarea + voice recording with transcript insertion; configurable `recordingPurpose`/`storageFolder`.
+- ✅ **Global Playlist Audio** — `src/lib/design-system/components/media/global-audio/*`, state in `src/lib/stores/global-audio-store`. Doc: `docs/design-system/global-playlist-audio.md`. (Legacy single-track `AudioPlayer` is a different model.)
+- ✅ **AI Model Pricing** — `ai_model_pricing` table, `/admin/ai-models`. Used for token cost calculation.
+- ✅ **Household Accounts** — `households`, `household_members`, `household_invitations`. Doc: `docs/architecture/HOUSEHOLD_ACCOUNTS_ARCHITECTURE.md`.
 
 ---
 
-### ✅ Household Accounts
-**Version:** `v2.0.0`  
-**Status:** ✅ STABLE  
-**Last Modified:** November 8, 2024  
-**Doc:** `docs/architecture/HOUSEHOLD_ACCOUNTS_ARCHITECTURE.md`  
-**Schema:** `households`, `household_members`, `household_invitations`  
-**API:** `/api/household/*`
+## In Progress
 
-**What It Does:**
-- Multiple users share one account
-- Shared vision, tokens, storage
-- Invitation system
+### 🚧 VIVA Conversational Coach
+Conversational brain: retrieve → Luna interpreter (theory of the moment + context selections) → Terra response → background memory/constraint extraction + embedding sync. Threads, compounding memory (`viva_memory_items`), semantic recall (pgvector `member_embeddings`), constraint ledger, in-app tool actions, opt-in household lens.
+Schema: `conversation_sessions`, `ai_conversations`, `viva_memory_items`, `vibrational_constraints`, `member_embeddings`. API: `/api/viva/coach`, `/api/viva/conversations`, `/api/viva/constraints`, `/api/viva/memory-extract`. Lib: `src/lib/viva/coach-*.ts`, `memory-extractor.ts`, `embeddings.ts`, `household-lens.ts`. UI: `/viva`.
 
----
+- Memory extraction runs in-process via `after()` — do NOT reintroduce HTTP self-calls (the old empty-Cookie fetch silently failed every session)
+- Do NOT reintroduce the five-mode detector or mandatory A.U.R.A. sequencing
+- Do NOT inject `vibrational_events` / `emotional_snapshots` into coach context (deprecated lens)
+- Preserve crisis safety behavior and no-medical/legal/financial-advice guardrails
 
 ### 🚧 Household Sharing System
-**Version:** `v1.0.0`  
-**Status:** 🚧 IN PROGRESS  
-**Last Modified:** July 9, 2026  
-**Doc:** `docs/features/household-sharing/README.md`  
-**Schema:** `household_sharing_settings`, `household_id` columns on `vision_versions`, `vision_board_items`, `abundance_events`, `abundance_goals`, `audio_sets`, `projects`, `stories`  
-**Helpers (SECURITY DEFINER):** `household_shares_all()`, `is_household_admin()`, `can_listen_audio_set()`, `can_collaborate_on_project()`  
-**API:** `/api/household/sharing-settings`, `/api/household/context`, `/api/household/hub`, scope params on feature APIs  
-**UI:** `/household` (hub), `/household/welcome` (one-time builder), `/account/household` (settings card), `HouseholdScopeToggle` in the design system
+Per-member, per-feature sharing (share all vs select items) across Life Visions, Vision Board, Abundance, Audios, Projects, Stories, Travel. RLS: owner + explicitly shared (`household_id` set) + share-all members. Doc: `docs/features/household-sharing/README.md`.
 
-**What It Does:**
-- Per-member, per-feature sharing modes ("share all" vs "select items") across
-  Life Visions, Vision Board, Abundance, Audios, Projects, and Stories.
-- Uniform visibility model in RLS: owner + explicitly shared (`household_id` set)
-  + share-all members. Shared content is fully editable; delete stays with the
-  creator (or household admin for explicitly shared items).
-- Household lens (`HouseholdScopeToggle`: Me / member / Both-Everyone) on all
-  shared feature pages, with creator attribution badges.
-- Two-document Life Vision model: "Life I Choose" (personal) and "Life We Choose"
-  (household), each numbered from 1, grouped in area-bar/document selectors.
-- Audio generated from household visions or shared stories is household-listenable
-  (new audio sets inherit the source's `household_id`).
-- One-time sharing setup builder (MapSystemBuilder-style) after upgrade/invite.
+- Do NOT expose drafts through share-all (RLS excludes `is_draft = true`)
+- Share-all must NOT grant delete on someone else's personal content
+- New feature APIs: drop owner filters on reads/updates, rely on RLS, return `isMine` + attribution
 
-**Critical Rules:**
-- ❌ DO NOT expose drafts through share-all (RLS excludes `is_draft = true`).
-- ❌ DO NOT let share-all mode grant delete on someone else's personal content.
-- ✅ New feature APIs should drop owner filters on reads/updates and rely on RLS,
-  returning `isMine` + member attribution instead.
+### 🚧 Project Hub
+Project management on `project_*` tables (renamed from `idea_*`). Admin at `/admin/projects`, members at `/projects`. Agent workflow: `.cursor/rules/idea-hub-agent-workflow.mdc`.
 
----
+- Member access is ownership-scoped (`created_by = auth.uid()`) + household collaboration via `can_collaborate_on_project()`
+- `project_reference_links` = external bookmarks; `project_links` = inter-project relations — don't confuse them
 
-### 🚧 Actualization Blueprints
-**Version:** `v1.5.0`  
-**Status:** 🚧 IN PROGRESS  
-**Last Modified:** November 12, 2024  
-**Doc:** `docs/features/blueprints/README.md`  
-**Schema:** `actualization_blueprints`, `blueprint_phases`, `blueprint_tasks`
+### 🚧 Travel Tracker
+Trip records with flights, media, links, world map, insights, and a Dream List, plus VIVA email import (paste-in at `/api/travel/parse` and forward-to-address via the SES inbound webhook creating `draft_import` trips). Schema: `trips`, `trip_flights`, `dream_destinations`, `travel_attachments`, `travel_reference_links`. API: `/api/travel/*`. Lib: `src/lib/travel/*` (bundled IATA airport dataset for miles flown). UI: `/travel-tracker` (Trips, Map, Insights, Dream List).
 
-**What It Does:**
-- Turn vision into actionable steps
-- 5-phase conscious creation framework
-- Task tracking and insights
-
-**Known Issues:**
-- Phase completion logic needs review
-- Task dependency system not implemented
-
----
-
-### 🚧 Cinematic Universe (Keyframe Execution Engine)
-**Version:** `v1.0.0`  
-**Status:** 🚧 IN PROGRESS  
-**Last Modified:** April 10, 2026  
-**Schema:** `cu_series`, `cu_characters`, `cu_episodes`, `cu_keyframes`, `cu_clips`, `cu_media`, `cu_scheduled_posts`  
-**API:** `/api/cinematic/*`  
-**UI:** `/admin/cinematic/*`
-
-**What It Does:**
-- Takes a story prompt and generates a keyframe execution plan via VIVA
-- Two-phase generation: keyframe images first, then video clips between keyframe pairs
-- Character system with reference photos for face/body consistency
-- Veo 3.1 first-last-frame-to-video for seamless clip chaining
-- Series > Episodes hierarchy with social media scheduling
-- Queue runner with dependency-aware sequential execution
-
-**Key Files:**
-- `src/lib/cinematic/` -- Core library (types, generation, queue, prompts)
-- `src/app/admin/cinematic/` -- Admin UI (series, characters, studio, episodes, schedule)
-- `src/app/api/cinematic/` -- API routes
-- `supabase/migrations/20260410000001_cinematic_universe_tables.sql`
-
----
-
-### ⚠️ Vision Refinement Flow
-**Version:** `v2.0.0`  
-**Status:** ⚠️ NEEDS REVIEW (Recently restored)  
-**Last Modified:** November 17, 2024  
-**Doc:** `docs/features/life-vision/refinement.md`  
-**API:** `/api/viva/refine`  
-**UI:** `/life-vision/[id]/refine`
-
-**What It Does:**
-- Edit and improve existing visions
-- Conversational refinement with VIVA
-- Version tracking
-
-**Known Issues:**
-- Need to verify integration with new vision_versions structure
-- Check if refinements table is still used
-
----
-
-### 🚧 Project Hub (Projects)
-**Version:** `v2.1.0`  
-**Status:** 🚧 IN PROGRESS  
-**Last Modified:** August 5, 2026  
-**Doc:** `.cursor/rules/idea-hub-agent-workflow.mdc`  
-**Schema:** `projects`, `project_tasks`, `project_categories`, `project_tags`, `project_tag_links`, `project_comments`, `project_attachments`, `project_custom_field_defs`, `project_custom_field_values`, `project_links`, `project_notes`, `project_reference_links`  
-**API:** `/api/admin/projects/*` (admin), `/api/projects/*` (member)  
-**UI:** `/admin/projects` (admin), `/projects` + `/projects/[id]` (member)
-
-**What It Does:**
-- Real project management system (rebased from the former `idea_*` tables).
-- Admins manage all projects; members manage their own (RLS via `created_by`).
-- Projects/lists with nested tasks (1 level), life-category tagging.
-- Dated notes (project- or task-scoped) with inline photo/video attachments (`project_notes`).
-- External reference links / bookmarks (`project_reference_links`; NOT `project_links`, which is inter-project relations).
-- Media attachments on projects, tasks, and notes (`project_attachments.task_id` / `.note_id`, nullable); S3 uploads via `USER_FOLDERS.projects`.
-
-**Critical Rules:**
-- ❌ Underlying tables are now `project_*` (NOT `idea_*`).
-- ✅ Member access is ownership-scoped (`created_by = auth.uid()`) + household collaboration via `can_collaborate_on_project()`.
-- ✅ Deleting a note cascades its attachments (`note_id` FK); deleting a task cascades its notes/links/media.
-
----
+- Household sharing follows the standard pattern (`travel_mode`, `household_shares_all(..., 'travel', ...)`, `can_access_trip()` / `can_access_dream_destination()`)
+- `user_profiles.trips` entries were migrated in (`source = 'migrated'`); the profile section now links out to the tracker
+- Every VIVA parse must go through `trackTokenUsage()` (`action_type = 'travel_parse'`, tool config `travel_parse` in `ai_tools`)
 
 ### 🚧 Reset ("Phoenix")
-**Version:** `v1.0.0`  
-**Status:** 🚧 IN PROGRESS  
-**Last Modified:** June 21, 2026  
-**Doc:** `docs/features/reset/README.md`  
-**Schema:** `resets`, `reset_items`  
-**API:** `/api/reset/*`  
-**UI:** `/reset` (View), `/reset/update` (Update)
+Repeatable recommitment program. Schema: `resets`, `reset_items`. Doc: `docs/features/reset/README.md`. Detection is anchor-based (snapshot at start) to avoid false positives from in-place edits; every selected item must complete to reach Phoenix.
 
-**What It Does:**
-- Free, repeatable program for active members to recommit to the life they choose.
-- Captures per-pillar "anchors" at start and detects recommitment (new profile,
-  life vision, vision board, audio, projects, MAP habits) via comparison to anchors.
-- Category-aware: focus areas filter the dashboard by life category.
-- Completing every selected item triggers the Phoenix moment.
+### 🚧 Actualization Blueprints
+Vision-to-action steps, 5-phase framework. Schema: `actualization_blueprints`, `blueprint_phases`, `blueprint_tasks`. Known issues: phase completion logic needs review; task dependencies not implemented.
 
-**Critical Rules:**
-- ✅ Detection is anchor-based (snapshot of active ids/counts at start) to avoid
-  false positives from in-place edits.
-- ✅ Selection IS the contract: every selected item must complete to reach Phoenix.
+### 🚧 Cinematic Universe
+Keyframe execution engine: story prompt → keyframe images → video clips (Veo first-last-frame chaining). Lib: `src/lib/cinematic/`, UI: `/admin/cinematic/*`, schema: `cu_*` tables.
 
 ---
 
-## Feature Dependencies
+## Needs Review
 
-```mermaid
-graph TD
-    A[Design System] --> B[All UI Features]
-    C[Token System] --> D[AI Features]
-    C --> E[Life Vision]
-    C --> F[Blueprints]
-    E --> F
-    G[Database Schema] --> H[All Features]
-    I[Household Accounts] --> C
-    I --> E
-```
+- ⚠️ **Vision Refinement Flow** — `/life-vision/[id]/refine`, `/api/viva/refine`. Verify integration with the current `vision_versions` structure before relying on it.
 
 ---
 
-## Adding a New Feature
+## Maintaining This Registry
 
-1. **Create feature doc:** `docs/features/[feature-name]/README.md`
-2. **Add to this registry** with status 🚧 IN PROGRESS
-3. **Build feature** with version tracking
-4. **Test thoroughly**
-5. **Update status** to ✅ STABLE
-6. **Lock when production-critical** 🔒 LOCKED
-
----
-
-## Modifying a Locked Feature
-
-**STOP!** Before touching a 🔒 LOCKED feature:
-
-1. ❓ **Ask user for permission**
-2. 📸 **Document current behavior** (screenshots, tests)
-3. 🧪 **Create test plan** to verify nothing breaks
-4. 🔄 **Make changes incrementally**
-5. ✅ **Test the ENTIRE feature** (not just your change)
-6. 📝 **Update version number** and this registry
-7. 💾 **Commit with clear message** about what changed
-
-**Example commit:**
-```
-feat(life-vision): add profile context to imagination prompts
-
-FEATURE: Life Vision Generation System
-VERSION: v3.2.0 → v3.3.0 (minor - new feature)
-STATUS: Still LOCKED (tested, working)
-
-Changes:
-- Added profile-aware prompt generation
-- Created profile-context.ts utility
-- Updated ideal-state API to pass profile data
-
-Verification:
-✅ Full 6-step flow tested
-✅ Prompts now include user hobbies
-✅ No existing functionality broken
-```
-
----
-
-## Version History
-
-| Feature | Version | Date | Change |
-|---------|---------|------|--------|
-| Database Schema | v4.13.0 → v4.14.0 | Aug 5 2026 | Pricing revert & restructure (user-authorized): intensive back to $499/$699 w/ 2-pay, continuity $99/$149 per 28 days (Day 28 trial), annual $999/$1,490 upsell-only, Family Activation + Seat ($199 + $29/28d), Annual Upgrade email sequence seeded (migrations 20260805180000, 20260805190000) |
-| Household Sharing | - → v1.0.0 | Jul 9 2026 | Per-feature sharing modes, RLS policies, scope toggles, hub |
-| Database Schema | v4.12.0 → v4.13.0 | Jul 8 2026 | Added get_user_id_by_email() function (additive, service_role only) |
-| Design System | v1.8.0 → v1.8.1 | Jul 8 2026 | Attribute-only: lazy-load below-fold imgs in SocialProofSection/SwipeableCards/ProofWall; Poppins now via next/font |
-| FEATURE_REGISTRY | v1.0.0 → v1.1.0 | Dec 10 | Added PageHero component with lock rules |
-| FEATURE_REGISTRY | - → v1.0.0 | Nov 18 | Added UI components tracking |
-| Media Recorder | - → v3.5.0 | Nov 18 | Documented current state (locked) |
-| Audio Editor | - → v1.2.0 | Nov 18 | Documented current state (stable) |
-| Recording Textarea | - → v2.1.0 | Nov 18 | Documented current state (stable) |
-| Simple Level Meter | - → v1.0.0 | Nov 18 | Documented current state (locked) |
-| Design System | - → v1.8.0 | Nov 18 | Enhanced documentation with component list |
-| Life Vision | v3.2.0 → v3.2.1 | Nov 17 | Added ideal_state_prompts to category_state |
-| Life Vision | v3.1.0 → v3.2.0 | Nov 17 | Profile-aware imagination prompts |
-| Token System | v2.3.0 → v2.3.1 | Nov 15 | Added audio_seconds tracking |
-| Token System | v2.4.0 → v2.5.0 | Feb 11 2026 | Updated token grants, storage quotas, and expiration logic |
-| Token System | v2.3.1 → v2.4.0 | Feb 9 2026 | Flexible pack checkout + grants |
-| AI Model Pricing | v0.0.0 → v1.0.0 | Nov 15 | Initial release |
-| Database Schema | v4.11.0 → v4.12.0 | Nov 17 | Added ideal_state_prompts column |
-
----
-
-## Emergency Rollback
-
-If an agent breaks a locked feature:
-
-```bash
-# 1. Find last working commit
-git log --oneline --all --grep="FEATURE: [Feature Name]"
-
-# 2. Revert the change
-git revert [commit-hash]
-
-# 3. Update registry with incident
-# 4. Fix properly with full testing
-```
-
----
-
-**Remember:** This registry is the CONTRACT between features and agents. Respect the locks! 🔒
-
+- New feature → add a short entry (status, pointers, critical rules only). Details go in `docs/features/[name]/README.md`.
+- Status changes and lock/unlock decisions belong here; everything else (versions, dates, change history) belongs in git.
+- Keep entries under ~10 lines. If an entry needs more, it needs a doc, not a longer entry.

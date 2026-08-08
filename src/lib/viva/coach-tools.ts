@@ -1,0 +1,325 @@
+/**
+ * VIVA Actions — in-app tools for the unified coach.
+ *
+ * These let VIVA *do things*, not just talk: queue songs, capture journal
+ * entries, add vision board items, log abundance, set Daily Paper tasks,
+ * and actualize breakthroughs into activation stories.
+ *
+ * Ground rules:
+ * - Every tool acts as the authenticated member (RLS enforced).
+ * - Nothing destructive: tools only create or append.
+ * - AI generation inside tools is cost-tracked via trackTokenUsage.
+ */
+
+import { tool, generateText } from 'ai'
+import { z } from 'zod'
+import { SupabaseClient } from '@supabase/supabase-js'
+import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
+import { trackTokenUsage } from '@/lib/tokens/tracking'
+
+const CATEGORY_ENUM = z.enum([
+  'fun', 'health', 'travel', 'love', 'family', 'social',
+  'home', 'work', 'money', 'stuff', 'giving', 'spirituality',
+])
+
+const VIVA_QUEUE_PLAYLIST = 'VIVA Queue'
+
+export interface CoachToolsContext {
+  supabase: SupabaseClient
+  userId: string
+  conversationId: string | null
+  /** Recent conversation text, newest last — used by generation tools. */
+  getConversationText: () => string
+}
+
+export function buildCoachTools(ctx: CoachToolsContext) {
+  const { supabase, userId, conversationId, getConversationText } = ctx
+
+  return {
+    queue_song: tool({
+      description:
+        "Queue one of the member's own songs into their VIVA Queue playlist so it's ready to play. Use when a song of theirs fits the moment (matching emotional arc or life area) and they say yes to hearing it.",
+      inputSchema: z.object({
+        song_title: z.string().describe('Title (or distinctive part of the title) of the member song to queue'),
+      }),
+      execute: async ({ song_title }) => {
+        // Find the member's track by title
+        const { data: songs } = await supabase
+          .from('songs')
+          .select('id, title, lyrics, song_tracks(id, mp3_url, duration_ms, cover_url)')
+          .eq('user_id', userId)
+          .ilike('title', `%${song_title}%`)
+          .limit(1)
+
+        interface SongTrackRow { id: string; mp3_url: string | null; duration_ms: number | null; cover_url: string | null }
+        const song = songs?.[0]
+        const track = (song?.song_tracks as SongTrackRow[] | undefined)?.find(t => t.mp3_url)
+        if (!song || !track) {
+          return { success: false, message: `No playable song found matching "${song_title}".` }
+        }
+
+        // Find or create the VIVA Queue playlist
+        let { data: playlist } = await supabase
+          .from('user_playlists')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('name', VIVA_QUEUE_PLAYLIST)
+          .maybeSingle()
+
+        if (!playlist) {
+          const { data: created, error: createError } = await supabase
+            .from('user_playlists')
+            .insert({ user_id: userId, name: VIVA_QUEUE_PLAYLIST, description: 'Songs VIVA queued for you', sort_order: 0 })
+            .select('id')
+            .single()
+          if (createError || !created) {
+            return { success: false, message: 'Could not create the VIVA Queue playlist.' }
+          }
+          playlist = created
+        }
+
+        // Skip if already queued
+        const { data: existingTrack } = await supabase
+          .from('user_playlist_tracks')
+          .select('id')
+          .eq('playlist_id', playlist.id)
+          .eq('source_id', track.id)
+          .maybeSingle()
+
+        if (existingTrack) {
+          return { success: true, message: `"${song.title}" is already in the VIVA Queue.`, link: '/audio' }
+        }
+
+        const { data: lastTrack } = await supabase
+          .from('user_playlist_tracks')
+          .select('position')
+          .eq('playlist_id', playlist.id)
+          .order('position', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const { error } = await supabase.from('user_playlist_tracks').insert({
+          playlist_id: playlist.id,
+          source_type: 'music',
+          source_id: track.id,
+          position: (lastTrack?.position ?? -1) + 1,
+          track_data: {
+            id: track.id,
+            title: song.title,
+            artist: 'You',
+            duration: Math.round((track.duration_ms || 0) / 1000),
+            url: track.mp3_url,
+            thumbnail: track.cover_url || undefined,
+            plainLyrics: song.lyrics || undefined,
+          },
+        })
+
+        if (error) return { success: false, message: 'Could not queue the song.' }
+        return {
+          success: true,
+          message: `Queued "${song.title}" in your VIVA Queue playlist.`,
+          link: '/audio',
+        }
+      },
+    }),
+
+    save_journal_entry: tool({
+      description:
+        'Save a journal entry for the member, capturing something meaningful they just expressed or realized. Always confirm with the member before saving, and write it in their voice (first person).',
+      inputSchema: z.object({
+        title: z.string().describe('Short evocative title'),
+        content: z.string().describe("The entry, in the member's first-person voice, drawn from what they actually said"),
+        category: CATEGORY_ENUM.nullable().describe('Life category if clearly relevant'),
+      }),
+      execute: async ({ title, content, category }) => {
+        const { data, error } = await supabase
+          .from('journal_entries')
+          .insert({
+            user_id: userId,
+            date: new Date().toISOString().slice(0, 10),
+            title,
+            content,
+            categories: category ? [category] : null,
+          })
+          .select('id')
+          .single()
+
+        if (error || !data) return { success: false, message: 'Could not save the journal entry.' }
+        return { success: true, message: `Saved "${title}" to your journal.`, link: `/journal/${data.id}` }
+      },
+    }),
+
+    add_vision_board_item: tool({
+      description:
+        'Add a desire to the member\'s vision board. Use when they express a clear specific want ("I want to take the kids to Japan"). Confirm before adding.',
+      inputSchema: z.object({
+        name: z.string().describe('The desire, short and specific'),
+        description: z.string().nullable().describe('One or two sentences of detail, in their words'),
+        category: CATEGORY_ENUM.nullable(),
+      }),
+      execute: async ({ name, description, category }) => {
+        const { error } = await supabase.from('vision_board_items').insert({
+          user_id: userId,
+          name,
+          description: description || null,
+          categories: category ? [category] : null,
+          status: 'active',
+        })
+
+        if (error) return { success: false, message: 'Could not add the vision board item.' }
+        return { success: true, message: `Added "${name}" to your vision board.`, link: '/vision-board' }
+      },
+    }),
+
+    log_abundance_event: tool({
+      description:
+        'Log an abundance event (money or value received) the member just mentioned. Use when they share income, a gift, savings, or value they received. Confirm amount before logging.',
+      inputSchema: z.object({
+        amount: z.number().describe('Dollar amount'),
+        value_type: z.enum(['money', 'value']).describe('money = actual dollars received; value = non-cash value received'),
+        note: z.string().describe('Short note about what it was'),
+        category: CATEGORY_ENUM.nullable(),
+      }),
+      execute: async ({ amount, value_type, note, category }) => {
+        const { error } = await supabase.from('abundance_events').insert({
+          user_id: userId,
+          date: new Date().toISOString().slice(0, 10),
+          amount,
+          value_type,
+          note,
+          vision_category: category,
+        })
+
+        if (error) return { success: false, message: 'Could not log the abundance event.' }
+        return {
+          success: true,
+          message: `Logged $${amount.toLocaleString()} (${value_type}) — "${note}".`,
+          link: '/abundance-tracker',
+        }
+      },
+    }),
+
+    add_daily_paper_task: tool({
+      description:
+        "Add a task to the member's Daily Paper for today (three slots). Use when a concrete next step emerges from the conversation and they want to commit to it.",
+      inputSchema: z.object({
+        task: z.string().describe('The task, short and actionable'),
+      }),
+      execute: async ({ task }) => {
+        const today = new Date().toISOString().slice(0, 10)
+        const { data: paper } = await supabase
+          .from('daily_papers')
+          .select('id, task_one, task_two, task_three')
+          .eq('user_id', userId)
+          .eq('entry_date', today)
+          .maybeSingle()
+
+        if (!paper) {
+          const { error } = await supabase.from('daily_papers').insert({
+            user_id: userId,
+            entry_date: today,
+            task_one: task,
+          })
+          if (error) return { success: false, message: 'Could not create today\'s Daily Paper.' }
+          return { success: true, message: `Added to today's Daily Paper: "${task}".`, link: '/daily-paper' }
+        }
+
+        const slot = !paper.task_one ? 'task_one' : !paper.task_two ? 'task_two' : !paper.task_three ? 'task_three' : null
+        if (!slot) {
+          return { success: false, message: "Today's Daily Paper already has three tasks." }
+        }
+
+        const { error } = await supabase
+          .from('daily_papers')
+          .update({ [slot]: task, updated_at: new Date().toISOString() })
+          .eq('id', paper.id)
+
+        if (error) return { success: false, message: 'Could not add the task.' }
+        return { success: true, message: `Added to today's Daily Paper: "${task}".`, link: '/daily-paper' }
+      },
+    }),
+
+    create_activation_story: tool({
+      description:
+        'Actualize a breakthrough from this conversation into an activation story — a short first-person, present-tense story of the member living the new belief. Offer this at the end of a session where a real shift landed. Confirm before creating.',
+      inputSchema: z.object({
+        title: z.string().describe('Story title'),
+        focus: z.string().describe('The shift or new belief the story should embody, in one sentence'),
+      }),
+      execute: async ({ title, focus }) => {
+        const conversationText = getConversationText()
+
+        const result = await generateText({
+          model: gateway('openai/gpt-4o'),
+          system: `You write activation stories for VibrationFit members — short first-person, present-tense stories (250-400 words) of the member already living a new belief. Grounded in their real life and words, vivid and sensory, emotionally believable (no fantasy leaps). Use their own phrases from the conversation where possible. No headings, no bullet points — one flowing story.`,
+          prompt: `The shift to embody: ${focus}\n\nThe conversation it emerged from:\n\n${conversationText.slice(0, 8000)}\n\nWrite the activation story.`,
+          temperature: 0.8,
+        })
+
+        if (result.usage?.totalTokens) {
+          trackTokenUsage({
+            user_id: userId,
+            action_type: 'chat_conversation',
+            model_used: 'gpt-4o',
+            tokens_used: result.usage.totalTokens,
+            input_tokens: result.usage.inputTokens || 0,
+            output_tokens: result.usage.outputTokens || 0,
+            provider: 'vercel_gateway',
+            provider_request_id: gatewayGenerationId(result),
+            success: true,
+            metadata: { helper: 'viva_activation_story' },
+          }).catch(() => {})
+        }
+
+        const content = result.text.trim()
+        if (!content) return { success: false, message: 'Story generation came back empty.' }
+
+        const { data, error } = await supabase
+          .from('stories')
+          .insert({
+            user_id: userId,
+            entity_type: 'custom',
+            entity_id: conversationId,
+            title,
+            content,
+            word_count: content.split(/\s+/).length,
+            source: 'ai_generated',
+            status: 'completed',
+            metadata: { created_by: 'viva_coach', focus },
+          })
+          .select('id')
+          .single()
+
+        if (error || !data) return { success: false, message: 'Could not save the story.' }
+        return {
+          success: true,
+          message: `Created your activation story "${title}".`,
+          link: `/story/${data.id}`,
+          preview: content.slice(0, 200),
+        }
+      },
+    }),
+  }
+}
+
+/**
+ * System-prompt section describing VIVA's in-app abilities.
+ */
+export const COACH_TOOLS_PROMPT = `## WHAT YOU CAN DO IN THE APP (actions)
+
+You can take real actions in the member's VibrationFit account, right from this conversation:
+
+- **Queue a song** (queue_song): when one of THEIR songs fits this moment, offer to queue it
+- **Save a journal entry** (save_journal_entry): when they express something worth keeping, offer to capture it
+- **Add a vision board item** (add_vision_board_item): when a clear desire surfaces
+- **Log abundance** (log_abundance_event): when they mention money or value received
+- **Add a Daily Paper task** (add_daily_paper_task): when a concrete next step emerges
+- **Create an activation story** (create_activation_story): when a real shift lands, offer to actualize it into a story they can rehearse
+
+Rules for actions:
+- OFFER, then act on their yes. Never act on ambiguous consent.
+- After a tool runs, confirm in one short natural sentence and include the returned link as a markdown link. Don't narrate the mechanics.
+- If a tool fails, say so simply and move on — never fake success.
+- Actions serve the conversation, not the other way around. Most conversations need zero actions.
+- For anything you can't do directly, point them to the right page as a markdown link (e.g. [your Life Vision](/life-vision)).
+- To turn this conversation's shift into a NEW song, send them to the [Songwriter](/audio/songwriter) — you can suggest the emotional arc and core message to use.`

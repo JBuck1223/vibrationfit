@@ -1,0 +1,34 @@
+---
+description: VibrationFit design system - components, colors, and UI patterns
+globs: src/**/*.tsx
+alwaysApply: false
+---
+
+# Design System
+
+Single source of truth for colors and design values: `src/lib/design-system/tokens.ts`.
+Full reference: `docs/agent-guides/DESIGN_SYSTEM_REFERENCE.md`.
+
+## Components
+
+Import from `@/lib/design-system/components`:
+
+- `Button` variants: `primary`, `secondary`, `accent`, `ghost`, `outline`, `danger`
+- `GradientButton` for hero sections (gradients: `brand`, `green`, `teal`, `purple`, `cosmic`)
+- `AIButton` for VIVA features
+- `Card` variants: `default`, `elevated`, `outlined`
+- Also: `Input`, `Textarea`, `Badge`, `ProgressBar`, `Spinner`, `Container`, `PageLayout`, `Footer`, `Video`
+
+## Brand Colors
+
+- Primary Electric Lime `#39FF14` (growth, alignment, "above the Green Line")
+- Secondary Neon Cyan `#00FFFF` (clarity, flow)
+- Accent Neon Purple `#BF00FF` (premium, VIVA)
+- Energy Neon Yellow `#FFFF00` (celebration, wins)
+- Contrast Neon Red `#FF0040` (alerts, "below Green Line")
+
+## Principles
+
+- Buttons: pill-shaped (`rounded-full`), hover lift 2px, 300ms transitions
+- Cards: `rounded-2xl`, 2px borders (`#333`), hover lift 4px, `p-8` padding
+- Spacing: container `px-6`, sections `mb-12` to `mb-16`, card grids `gap-6` to `gap-8`

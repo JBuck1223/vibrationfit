@@ -54,36 +54,15 @@ export async function POST(req: Request) {
       )
     }
 
-    // If a coaching card should be generated, trigger it
-    let coachingCardGenerated = false
-    if (shouldGenerateCoachingCard && conversationId) {
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000'
-
-        // Fire-and-forget the synopsis generation
-        fetch(`${baseUrl}/api/viva/coach/synopsis`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cookie': req.headers.get('Cookie') || '',
-          },
-          body: JSON.stringify({ conversationId }),
-        }).catch(err => console.error('[Memory Extract] Synopsis trigger failed:', err))
-
-        coachingCardGenerated = true
-      } catch {
-        // Non-critical — synopsis can be generated later
-      }
-    }
+    // Synopsis ("coaching card") generation is intentionally disabled:
+    // memory items + transcripts are the compounding record.
+    void shouldGenerateCoachingCard
 
     return new Response(
       JSON.stringify({
         extracted: memories.length,
         saved: saveResult.saved,
         skipped: saveResult.skipped,
-        coachingCardTriggered: coachingCardGenerated,
       }),
       { headers: { 'Content-Type': 'application/json' } }
     )

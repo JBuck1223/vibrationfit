@@ -80,6 +80,47 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH - Rename or pin/unpin a conversation session
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { id, title, pinned } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'Conversation ID required' }, { status: 400 })
+    }
+
+    const updates: Record<string, any> = { updated_at: new Date().toISOString() }
+    if (typeof title === 'string' && title.trim()) updates.title = title.trim().slice(0, 120)
+    if (typeof pinned === 'boolean') updates.pinned = pinned
+
+    const { data: session, error } = await supabase
+      .from('conversation_sessions')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating conversation:', error)
+      return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 })
+    }
+
+    return NextResponse.json({ session })
+  } catch (error: any) {
+    console.error('Error in PATCH /api/viva/conversations:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 // DELETE - Delete a conversation session and all its messages
 export async function DELETE(request: NextRequest) {
   try {

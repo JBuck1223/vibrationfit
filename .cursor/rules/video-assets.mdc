@@ -1,0 +1,28 @@
+---
+description: Video asset URLs, MediaConvert outputs, and thumbnail derivation for S3/CDN video
+globs:
+alwaysApply: false
+---
+
+# Video Asset URLs
+
+MediaConvert Lambda generates these outputs for every uploaded video:
+
+| Output | Suffix |
+|--------|--------|
+| 1080p video | `-1080p.mp4` |
+| 720p video | `-720p.mp4` |
+| Original | `-original.mp4` |
+| Thumbnail | `-thumb.0000000.jpg` |
+
+To derive a thumbnail URL, replace the quality suffix: `{base}-1080p.mp4` → `{base}-thumb.0000000.jpg`.
+NEVER guess patterns like `-poster.jpg` or `-thumbnail.jpg`.
+
+CDN base URLs:
+
+- Preferred: `https://media.vibrationfit.com/site-assets/video/...`
+- S3 direct: `https://vibration-fit-client-storage.s3.amazonaws.com/site-assets/video/...`
+
+## Video component
+
+The `<Video>` component from `@/lib/design-system/components` auto-derives the thumbnail from `src` when no `poster` prop is given — do not manually specify posters for MediaConvert-processed videos. Use `getVideoThumbnailUrl(videoUrl)` (same import) outside the component.

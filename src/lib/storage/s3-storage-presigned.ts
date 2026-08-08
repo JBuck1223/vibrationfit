@@ -46,6 +46,8 @@ export const USER_FOLDERS = {
   sessionComments: 'sessions/comments',
   // Project Hub media (project/task/note attachments)
   projects: 'projects/uploads',
+  // Travel Tracker media (trip/dream destination attachments)
+  travel: 'travel/uploads',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS

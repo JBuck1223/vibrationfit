@@ -29,9 +29,43 @@ export interface MemoryItem {
   confidence: number
 }
 
+export interface ConstraintItem {
+  statement: string
+  origin: string | null
+  evidence_against: string | null
+  flipped_statement: string | null
+  category: string | null
+  status: 'uncovered' | 'witnessed' | 'flipped' | 'integrated'
+  confidence: number
+}
+
 export interface MemoryExtractionResult {
   memories: MemoryItem[]
+  constraints: ConstraintItem[]
   shouldGenerateCoachingCard: boolean
+}
+
+/** A viva_memory_items row (loose — selected with `*`). */
+export interface StoredMemoryRow {
+  [key: string]: unknown
+  id: string
+  user_id: string
+  type: string
+  category: string | null
+  content: string
+  confidence: number
+}
+
+/** A vibrational_constraints row (loose — selected with `*`). */
+export interface StoredConstraintRow {
+  [key: string]: unknown
+  id: string
+  user_id: string
+  statement: string
+  status: string
+  category: string | null
+  flipped_statement: string | null
+  evidence_against: string | null
 }
 
 const MEMORY_EXTRACTION_PROMPT = `You are VIVA's memory system. After a coaching interaction, you extract DURABLE insights worth remembering for future conversations.
@@ -56,6 +90,20 @@ Types:
 Categories (only if clearly relevant, otherwise null):
 fun, health, travel, love, family, social, home, work, money, stuff, giving, spirituality
 
+Also extract VIBRATIONAL CONSTRAINTS: limiting beliefs the member expressed or uncovered.
+A constraint is a belief that constrains their vibration, stated or implied, e.g.:
+- "money that leaves must be replaced by money from somewhere else" (ledger belief)
+- "I have to try much harder than others to be liked"
+- "other people's effort has a higher return than mine"
+
+Only extract a constraint when the belief is clearly present in the conversation — not for ordinary bad moods.
+For each constraint capture:
+- statement: the belief in the member's own words (first person)
+- origin: where it seems to come from, if the conversation reveals it (else null)
+- evidence_against: evidence from THEIR life that contradicts it, if discussed (else null)
+- flipped_statement: the replacement belief, only if one landed in the conversation (else null)
+- status: "uncovered" (named for the first time), "witnessed" (they observed it operating), "flipped" (a believable replacement landed)
+
 Also determine: should VIVA generate a Coaching Card for this session?
 Only yes if: a meaningful shift happened, or a bridge-back statement was offered and landed.
 Most conversations = NO coaching card (just connection).
@@ -65,10 +113,13 @@ Return JSON:
   "memories": [
     {"type": "...", "category": "..." or null, "content": "...", "confidence": 0.0-1.0}
   ],
+  "constraints": [
+    {"statement": "...", "origin": "..." or null, "evidence_against": "..." or null, "flipped_statement": "..." or null, "category": "..." or null, "status": "uncovered|witnessed|flipped", "confidence": 0.0-1.0}
+  ],
   "should_generate_coaching_card": true/false
 }
 
-If nothing worth remembering, return: {"memories": [], "should_generate_coaching_card": false}
+If nothing worth remembering, return: {"memories": [], "constraints": [], "should_generate_coaching_card": false}
 No markdown fences. JSON only.`
 
 /**
@@ -123,22 +174,37 @@ export async function extractMemories(
     const validTypes = ['preference', 'pattern', 'trigger', 'desire', 'voice_style', 'life_context', 'coaching_note']
     const validCategories = ['fun', 'health', 'travel', 'love', 'family', 'social', 'home', 'work', 'money', 'stuff', 'giving', 'spirituality']
 
+    type RawExtracted = Record<string, string | number | null | undefined>
     const memories: MemoryItem[] = (parsed.memories || [])
-      .filter((m: any) => m.content && validTypes.includes(m.type))
-      .map((m: any) => ({
+      .filter((m: RawExtracted) => m.content && validTypes.includes(String(m.type)))
+      .map((m: RawExtracted) => ({
         type: m.type,
-        category: validCategories.includes(m.category) ? m.category : null,
-        content: m.content.slice(0, 500),
-        confidence: Math.min(1, Math.max(0, m.confidence || 0.5)),
+        category: validCategories.includes(String(m.category)) ? m.category : null,
+        content: String(m.content).slice(0, 500),
+        confidence: Math.min(1, Math.max(0, Number(m.confidence) || 0.5)),
+      }))
+
+    const validStatuses = ['uncovered', 'witnessed', 'flipped', 'integrated']
+    const constraints: ConstraintItem[] = (parsed.constraints || [])
+      .filter((c: RawExtracted) => c.statement)
+      .map((c: RawExtracted) => ({
+        statement: String(c.statement).slice(0, 500),
+        origin: c.origin ? String(c.origin).slice(0, 500) : null,
+        evidence_against: c.evidence_against ? String(c.evidence_against).slice(0, 1000) : null,
+        flipped_statement: c.flipped_statement ? String(c.flipped_statement).slice(0, 500) : null,
+        category: validCategories.includes(String(c.category)) ? c.category : null,
+        status: validStatuses.includes(String(c.status)) ? c.status : 'uncovered',
+        confidence: Math.min(1, Math.max(0, Number(c.confidence) || 0.5)),
       }))
 
     return {
       memories,
+      constraints,
       shouldGenerateCoachingCard: parsed.should_generate_coaching_card === true,
     }
   } catch (error) {
     console.error('[VIVA Memory Extractor] Error:', error)
-    return { memories: [], shouldGenerateCoachingCard: false }
+    return { memories: [], constraints: [], shouldGenerateCoachingCard: false }
   }
 }
 
@@ -151,7 +217,8 @@ export async function saveMemories(
   userId: string,
   memories: MemoryItem[],
   sourceMessageId?: string,
-  sourceConversationId?: string
+  sourceConversationId?: string,
+  householdId?: string | null
 ): Promise<{ saved: number; skipped: number }> {
   if (memories.length === 0) return { saved: 0, skipped: 0 }
 
@@ -196,6 +263,7 @@ export async function saveMemories(
         // Insert new memory
         await supabase.from('viva_memory_items').insert({
           user_id: userId,
+          household_id: householdId || null,
           type: memory.type,
           category: memory.category,
           content: memory.content,
@@ -226,16 +294,23 @@ export async function loadMemories(
     types?: string[]
     limit?: number
     minConfidence?: number
+    /** Include household-shared memories from other members (mutual opt-in, RLS-gated). */
+    householdId?: string | null
   }
-): Promise<any[]> {
+): Promise<StoredMemoryRow[]> {
   try {
     let query = supabase
       .from('viva_memory_items')
       .select('*')
-      .eq('user_id', userId)
       .order('confidence', { ascending: false })
       .order('last_used_at', { ascending: false })
       .limit(options?.limit || 20)
+
+    if (options?.householdId) {
+      query = query.or(`user_id.eq.${userId},household_id.eq.${options.householdId}`)
+    } else {
+      query = query.eq('user_id', userId)
+    }
 
     if (options?.category) {
       query = query.or(`category.eq.${options.category},category.is.null`)
@@ -257,6 +332,112 @@ export async function loadMemories(
       return []
     }
 
+    return data || []
+  } catch {
+    return []
+  }
+}
+
+const STATUS_ORDER = ['uncovered', 'witnessed', 'flipped', 'integrated'] as const
+
+/**
+ * Saves extracted vibrational constraints.
+ * Matches against existing constraints by statement similarity; a match
+ * advances the status arc (never regresses it) and enriches empty fields.
+ */
+export async function saveConstraints(
+  supabase: SupabaseClient,
+  userId: string,
+  constraints: ConstraintItem[],
+  sourceConversationId?: string,
+  householdId?: string | null
+): Promise<{ saved: number; updated: number }> {
+  if (constraints.length === 0) return { saved: 0, updated: 0 }
+
+  let saved = 0
+  let updated = 0
+
+  const { data: existing } = await supabase
+    .from('vibrational_constraints')
+    .select('id, statement, status, origin, evidence_against, flipped_statement, confidence')
+    .eq('user_id', userId)
+
+  for (const constraint of constraints) {
+    try {
+      const match = existing?.find(e => contentSimilarity(e.statement, constraint.statement) > 0.6)
+
+      if (match) {
+        // Never regress the status arc
+        const newStatusIdx = STATUS_ORDER.indexOf(constraint.status)
+        const oldStatusIdx = STATUS_ORDER.indexOf(match.status as typeof STATUS_ORDER[number])
+        const status = newStatusIdx > oldStatusIdx ? constraint.status : match.status
+
+        await supabase
+          .from('vibrational_constraints')
+          .update({
+            status,
+            origin: match.origin || constraint.origin,
+            evidence_against: match.evidence_against || constraint.evidence_against,
+            flipped_statement: match.flipped_statement || constraint.flipped_statement,
+            confidence: Math.max(match.confidence || 0, constraint.confidence),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', match.id)
+        updated++
+      } else {
+        await supabase.from('vibrational_constraints').insert({
+          user_id: userId,
+          household_id: householdId || null,
+          statement: constraint.statement,
+          origin: constraint.origin,
+          evidence_against: constraint.evidence_against,
+          flipped_statement: constraint.flipped_statement,
+          category: constraint.category,
+          status: constraint.status,
+          confidence: constraint.confidence,
+          source_conversation_id: sourceConversationId || null,
+        })
+        saved++
+      }
+    } catch (error) {
+      console.error('[VIVA Constraints] Error saving constraint:', error)
+    }
+  }
+
+  return { saved, updated }
+}
+
+/**
+ * Loads the member's constraint ledger for coach context.
+ */
+export async function loadConstraints(
+  supabase: SupabaseClient,
+  userId: string,
+  options?: { category?: string; limit?: number; householdId?: string | null }
+): Promise<StoredConstraintRow[]> {
+  try {
+    let query = supabase
+      .from('vibrational_constraints')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(options?.limit || 10)
+
+    if (options?.householdId) {
+      query = query.or(`user_id.eq.${userId},household_id.eq.${options.householdId}`)
+    } else {
+      query = query.eq('user_id', userId)
+    }
+
+    if (options?.category) {
+      query = query.or(`category.eq.${options.category},category.is.null`)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      if (error.code === '42P01' || error.message?.includes('does not exist')) return []
+      console.error('[VIVA Constraints] Load error:', error)
+      return []
+    }
     return data || []
   } catch {
     return []
