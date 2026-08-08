@@ -102,6 +102,9 @@ Vision-to-action steps, 5-phase framework. Schema: `actualization_blueprints`, `
 ### 🚧 Cinematic Universe
 Keyframe execution engine: story prompt → keyframe images → video clips (Veo first-last-frame chaining). Lib: `src/lib/cinematic/`, UI: `/admin/cinematic/*`, schema: `cu_*` tables.
 
+### 🚧 Life Explorer (Vibration Fit Homeschool)
+Curiosity-driven homeschool organized by the 12 Life Categories: expeditions with Wonder Wall, daily lesson generation, parent check-in, and portfolio. Schema: `le_*` tables. API: `/api/life-explorer/*`. UI: `/homeschool/life-explorer`. Rule: `.cursor/rules/life-explorer.mdc`. Critical: never invent resource titles/URLs/runtimes; never regenerate `homeschool/oliver-ocean-adventures/`; smallest complete lesson wins.
+
 ---
 
 ## Needs Review

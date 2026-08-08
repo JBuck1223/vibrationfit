@@ -23,6 +23,7 @@ export default function ContactPage() {
     phone: '',
     message: '',
   })
+  const [honeypot, setHoneypot] = useState('')
 
   // Prefill name, email, phone for logged-in users
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function ContactPage() {
           type: 'contact',
           source: 'website_contact',
           ...formData,
+          website: honeypot,
           visitor_id: visitorId,
           session_id: sessionId,
         }),
@@ -129,6 +131,20 @@ export default function ContactPage() {
         <div className="max-w-2xl mx-auto w-full">
           <Card className="p-4 md:p-6 lg:p-8">
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+              <div className="hidden" aria-hidden>
+                <label htmlFor="contact-website">Website</label>
+                <input
+                  id="contact-website"
+                  name="website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  className="sr-only"
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">First Name *</label>
