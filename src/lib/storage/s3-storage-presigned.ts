@@ -46,6 +46,8 @@ export const USER_FOLDERS = {
   sessionComments: 'sessions/comments',
   // Project Hub media (project/task/note attachments)
   projects: 'projects/uploads',
+  // Life Explorer homeschool portfolio (activity log photos/videos)
+  lifeExplorer: 'homeschool/life-explorer',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS
@@ -858,6 +860,17 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
         'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
+      ],
+    },
+    lifeExplorer: {
+      maxSize: 5 * 1024 * 1024 * 1024, // 5GB (supports multipart upload for videos)
+      types: [
+        // Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        // Videos - standard
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
+        // Videos - iPhone/mobile specific
         'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
       ],
     },

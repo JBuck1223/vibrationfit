@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 
 const NAV = [
   { href: '/homeschool/life-explorer', label: 'Today' },
+  { href: '/homeschool/life-explorer/calendar', label: 'Calendar' },
   { href: '/homeschool/life-explorer/resources', label: 'Resources' },
   { href: '/homeschool/life-explorer/wonder', label: 'Wonder Wall' },
   { href: '/homeschool/life-explorer/portfolio', label: 'Portfolio' },
