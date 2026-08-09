@@ -127,3 +127,9 @@ export {
   PROJECT_ORGANIZE_SYSTEM_PROMPT,
   buildProjectOrganizePrompt,
 } from './project-organize-prompt'
+
+// Travel Parser (Travel Tracker email/itinerary import)
+export {
+  TRAVEL_PARSER_SYSTEM_PROMPT,
+  buildTravelParserPrompt,
+} from './travel-parser-prompt'

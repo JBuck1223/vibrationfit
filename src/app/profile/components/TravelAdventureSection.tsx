@@ -244,7 +244,15 @@ export function TravelAdventureSection({ profile, onProfileChange, onProfileRelo
 
         {/* Trips I've Taken Table */}
         <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
-          <h4 className="text-sm font-semibold text-white mb-4">Trips I've Taken</h4>
+          <h4 className="text-sm font-semibold text-white mb-1">Trips I've Taken</h4>
+          <p className="text-xs text-neutral-500 mb-4">
+            Your trips now live in the{' '}
+            <a href="/travel-tracker" className="text-[#00FFFF] hover:underline">
+              Travel Tracker
+            </a>
+            {' '}— flights, photos, a world map, and your Dream List. Existing
+            entries here have already been copied over.
+          </p>
 
           {trips.length === 0 ? (
             <>

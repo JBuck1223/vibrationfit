@@ -209,6 +209,37 @@ export interface LeLearningEvidence {
   updated_at: string
 }
 
+export type ActivityMediaType = 'photo' | 'video' | 'file'
+
+export interface LeActivityMedia {
+  id: string
+  activity_log_id: string
+  student_id: string
+  created_by: string
+  household_id: string | null
+  media_type: ActivityMediaType
+  url: string
+  caption: string | null
+  created_at: string
+}
+
+export interface LeActivityLog {
+  id: string
+  student_id: string
+  expedition_id: string | null
+  created_by: string
+  household_id: string | null
+  entry_date: string
+  title: string
+  description: string | null
+  duration_minutes: number
+  reading_materials: string[]
+  subjects: string[]
+  created_at: string
+  updated_at: string
+  media?: LeActivityMedia[]
+}
+
 export interface LeSkillProgress {
   id: string
   student_id: string

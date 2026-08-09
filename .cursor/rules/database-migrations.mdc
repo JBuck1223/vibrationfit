@@ -1,0 +1,26 @@
+---
+description: Database schema changes, migrations, and Supabase workflow
+globs: supabase/**,src/lib/supabase/**
+alwaysApply: false
+---
+
+# Database & Migrations
+
+## Schema reference
+
+- Source of truth: `supabase/COMPLETE_SCHEMA_DUMP.sql` (production schema dump)
+- Migration workflow: `supabase/MIGRATION_STRATEGY.md`
+- Do NOT reference `supabase/archive/` (outdated)
+
+## Creating migrations
+
+1. Create the file in `supabase/migrations/` with timestamp format `YYYYMMDDHHMMSS_description.sql`
+2. Apply it via Supabase MCP (`execute_sql` / `apply_migration`)
+3. NEVER auto-update `supabase/COMPLETE_SCHEMA_DUMP.sql` — the user regenerates schema docs after the migration is applied
+
+## New core tables
+
+If client queries will depend on the table:
+
+1. Map it in `TABLE_TO_KEYS` in `src/lib/query/keys.ts`
+2. Add it to realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE public.<table>;`

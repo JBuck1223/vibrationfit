@@ -1,877 +1,499 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, Send, Sparkles, Loader2, Mic, Square, Check, RotateCcw, History, Plus, Trash2, X } from 'lucide-react'
-import { Button, Card, Text } from '@/lib/design-system/components'
+/**
+ * VIVA — the unified conversational home.
+ *
+ * One clean thread-based chat. The mode detector routes everything
+ * (connection / coaching / momentum / guide / crisis) behind the scenes —
+ * no pickers, no dashboards. Threads are saved, renameable, and pinnable.
+ */
+
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import ReactMarkdown from 'react-markdown'
+import {
+  PanelLeft,
+  Plus,
+  Pin,
+  PinOff,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  Waypoints,
+} from 'lucide-react'
+import { keys } from '@/lib/query/keys'
+import { VivaChatInput } from '@/components/viva/VivaChatInput'
+import { ConstraintsPanel } from '@/components/viva/ConstraintsPanel'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
-  timestamp: Date
 }
 
-export default function VivaMasterPage() {
+interface Thread {
+  id: string
+  title: string | null
+  preview_message: string | null
+  message_count: number
+  pinned: boolean
+  last_message_at: string | null
+  updated_at: string
+}
+
+interface RetrievalIndicator {
+  source: string
+  detail: string
+}
+
+async function fetchThreads(): Promise<Thread[]> {
+  const res = await fetch('/api/viva/conversations?mode=coach')
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.sessions || []
+}
+
+export default function VivaPage() {
+  const queryClient = useQueryClient()
+
+  // --- Thread state ---
+  const [threadId, setThreadId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [currentMessage, setCurrentMessage] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [hasStarted, setHasStarted] = useState(false)
-  const [hasUserInteracted, setHasUserInteracted] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
-  const [isTranscribing, setIsTranscribing] = useState(false)
-  const [transcript, setTranscript] = useState<string | null>(null)
-  const [recordingDuration, setRecordingDuration] = useState(0)
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
-  const [conversations, setConversations] = useState<any[]>([])
-  const [showConversations, setShowConversations] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const lastContentLengthRef = useRef<number>(0)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const chunksRef = useRef<Blob[]>([])
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [indicators, setIndicators] = useState<RetrievalIndicator[]>([])
+  const [isThinking, setIsThinking] = useState(false)
 
-  // Auto-scroll to bottom when messages change or content length changes (streaming)
+  // --- UI state ---
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [constraintsOpen, setConstraintsOpen] = useState(false)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+
+  // Admin model testing: /viva?model=anthropic/claude-sonnet-4-5
+  // The API only honors this override for admin accounts.
+  const [modelOverride, setModelOverride] = useState<string | null>(null)
   useEffect(() => {
-    const totalContentLength = messages.reduce((sum, msg) => sum + msg.content.length, 0)
-    
-    // Scroll if messages array changed OR if content length increased (streaming)
-    if (totalContentLength !== lastContentLengthRef.current || messages.length > 0) {
-      lastContentLengthRef.current = totalContentLength
-      
-      // Use requestAnimationFrame for smoother scrolling during streaming
+    const m = new URLSearchParams(window.location.search).get('model')
+    if (m) setModelOverride(m)
+  }, [])
+
+  const { data: threads = [] } = useQuery({
+    queryKey: keys.vivaConversations,
+    queryFn: fetchThreads,
+  })
+
+  const refreshThreads = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: keys.vivaConversations })
+  }, [queryClient])
+
+  // --- Scrolling ---
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messageCountRef = useRef(0)
+  useEffect(() => {
+    const count = messages.length + (isThinking ? 1 : 0)
+    if (count > messageCountRef.current) {
+      messageCountRef.current = count
       requestAnimationFrame(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       })
     }
-  }, [messages, isTyping])
+  }, [messages.length, isThinking])
 
-  // Load conversation list on mount
-  useEffect(() => {
-    loadConversations()
-  }, [])
-
-  // Removed auto-start conversation on mount - VIVA now only responds to user actions
-
-  const loadConversations = async () => {
-    try {
-      const response = await fetch('/api/viva/conversations')
-      if (response.ok) {
-        const data = await response.json()
-        setConversations(data.sessions || [])
-      }
-    } catch (error) {
-      console.error('Error loading conversations:', error)
-    }
-  }
-
-  const loadConversation = async (conversationId: string) => {
-    try {
-      setMessages([])
-      setCurrentConversationId(conversationId)
-      setHasUserInteracted(true) // Hide welcome message
-      
-      // Fetch messages for this conversation
-      const response = await fetch(`/api/viva/conversations/${conversationId}/messages`)
-      if (response.ok) {
-        const data = await response.json()
-        const loadedMessages: Message[] = (data.messages || []).map((msg: any) => ({
-          id: msg.id,
-          role: msg.role as 'user' | 'assistant',
-          content: msg.message,
-          timestamp: new Date(msg.created_at)
-        }))
-        setMessages(loadedMessages)
-        
-        // Update conversation list
-        await loadConversations()
-      }
-    } catch (error) {
-      console.error('Error loading conversation:', error)
-    }
-  }
-
-  const startNewConversation = () => {
+  // --- Thread management ---
+  const startNewThread = () => {
+    setThreadId(null)
     setMessages([])
-    setCurrentConversationId(null)
-    setHasUserInteracted(false)
-    setHasStarted(false)
-    startConversation()
+    setIndicators([])
+    messageCountRef.current = 0
   }
 
-  const deleteConversation = async (conversationId: string) => {
-    if (!confirm('Are you sure you want to delete this conversation?')) return
-    
+  const openThread = async (id: string) => {
+    setThreadId(id)
+    setMessages([])
+    setIndicators([])
+    setSidebarOpen(false)
     try {
-      const response = await fetch(`/api/viva/conversations?id=${conversationId}`, {
-        method: 'DELETE'
-      })
-      
-      if (response.ok) {
-        await loadConversations()
-        // If deleted conversation was current, start new one
-        if (conversationId === currentConversationId) {
-          startNewConversation()
-        }
+      const res = await fetch(`/api/viva/conversations/${id}/messages`)
+      if (res.ok) {
+        const data = await res.json()
+        setMessages(
+          (data.messages || []).map((m: { id: string; role: 'user' | 'assistant'; message: string }) => ({
+            id: m.id,
+            role: m.role,
+            content: m.message,
+          }))
+        )
       }
-    } catch (error) {
-      console.error('Error deleting conversation:', error)
-      toast.error('Failed to delete conversation')
+    } catch (err) {
+      console.error('Error loading thread:', err)
     }
   }
 
-  const startConversation = async () => {
-    setIsTyping(true)
-    
-    try {
-      const response = await fetch('/api/viva/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: 'START_SESSION' }],
-          conversationId: currentConversationId,
-          context: {
-            masterAssistant: true,
-            mode: 'master',
-            isInitialGreeting: true
-          },
-          visionBuildPhase: 'master_assistant'
-        })
-      })
-      
-      // Extract conversation ID from response headers
-      const conversationIdHeader = response.headers.get('X-Conversation-Id')
-      if (conversationIdHeader && conversationIdHeader !== currentConversationId) {
-        setCurrentConversationId(conversationIdHeader)
-        // Refresh conversation list
-        await loadConversations()
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to start conversation')
-      }
-
-      // Handle streaming response
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let assistantMessageContent = ''
-      const assistantMessageId = Date.now().toString()
-
-      // Only add placeholder if we have content or are about to receive it
-      if (reader) {
-        const placeholderMessage: Message = {
-          id: assistantMessageId,
-          role: 'assistant',
-          content: '',
-          timestamp: new Date()
-        }
-        setMessages([placeholderMessage])
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const chunk = decoder.decode(value, { stream: true })
-          assistantMessageContent += chunk
-          
-          // Only update if we have content
-          if (assistantMessageContent.trim()) {
-            // Update the message in real-time
-            setMessages(prev => 
-              prev.map(msg => 
-                msg.id === assistantMessageId 
-                  ? { ...msg, content: assistantMessageContent }
-                  : msg
-              )
-            )
-            
-            // Auto-scroll during streaming
-            setTimeout(() => {
-              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-            }, 50)
-          }
-        }
-
-        // Final update - ensure we have the complete message
-        if (assistantMessageContent.trim()) {
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === assistantMessageId 
-                ? { ...msg, content: assistantMessageContent }
-                : msg
-            )
-          )
-        } else {
-          // If no content received, show error message instead of empty bubble
-          setMessages([{
-            id: assistantMessageId,
-            role: 'assistant',
-            content: 'Hello! I\'m VIVA, your master guide for Vibration Fit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
-            timestamp: new Date()
-          }])
-        }
-      } else {
-        // If no reader, set fallback message immediately
-        setMessages([{
-          id: assistantMessageId,
-          role: 'assistant',
-          content: 'Hello! I\'m VIVA, your master guide for Vibration Fit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
-          timestamp: new Date()
-        }])
-      }
-    } catch (error) {
-      console.error('Error starting conversation:', error)
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'Hello! I\'m VIVA, your master guide for Vibration Fit. I\'m here to help you become a master of the platform and live a powerful, vibrationally aligned life. How can I help you today?',
-        timestamp: new Date()
-      }
-      setMessages([errorMessage])
-    } finally {
-      setIsTyping(false)
-    }
+  const deleteThread = async (id: string) => {
+    if (!confirm('Delete this thread?')) return
+    await fetch(`/api/viva/conversations?id=${id}`, { method: 'DELETE' })
+    refreshThreads()
+    if (id === threadId) startNewThread()
   }
 
-  const sendMessage = async () => {
-    if (!currentMessage.trim()) return
+  const togglePin = async (thread: Thread) => {
+    await fetch('/api/viva/conversations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: thread.id, pinned: !thread.pinned }),
+    })
+    refreshThreads()
+  }
 
-    // Hide welcome message once user sends their first message
-    if (!hasUserInteracted) {
-      setHasUserInteracted(true)
-    }
+  const commitRename = async (id: string) => {
+    const title = renameValue.trim()
+    setRenamingId(null)
+    if (!title) return
+    await fetch('/api/viva/conversations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, title }),
+    })
+    refreshThreads()
+  }
+
+  // --- Chat ---
+  const sendMessage = async (overrideContent?: string) => {
+    const content = (overrideContent || currentMessage).trim()
+    if (!content || isStreaming) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: currentMessage.trim(),
-      timestamp: new Date()
+      content,
     }
-
     setMessages(prev => [...prev, userMessage])
     setCurrentMessage('')
-    setIsTyping(true)
+    setIsStreaming(true)
+    setIsThinking(true)
+    setIndicators([])
 
     try {
-      // Prepare conversation history for API
-      const messagesForAPI = [...messages, userMessage].map(msg => ({
-        role: msg.role,
-        content: msg.content
+      const messagesForAPI = [...messages, userMessage].map(m => ({
+        role: m.role,
+        content: m.content,
       }))
 
-      // Check if this is the first message (no messages before this one)
-      const isFirstMessage = messages.length === 0
-      
-      // Call real VIVA chat API with master assistant mode
-      const response = await fetch('/api/viva/chat', {
+      const response = await fetch('/api/viva/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: messagesForAPI,
-          conversationId: currentConversationId,
-          context: {
-            masterAssistant: true,
-            mode: 'master',
-            isInitialGreeting: isFirstMessage // Mark first message as initial greeting
-          },
-          visionBuildPhase: 'master_assistant'
-        })
+          conversationId: threadId,
+          isNewSession: !threadId,
+          ...(modelOverride ? { modelOverride } : {}),
+        }),
       })
-      
-      // Extract conversation ID from response headers
-      const conversationIdHeader = response.headers.get('X-Conversation-Id')
-      if (conversationIdHeader && conversationIdHeader !== currentConversationId) {
-        setCurrentConversationId(conversationIdHeader)
-        // Refresh conversation list
-        await loadConversations()
+
+      const newThreadId = response.headers.get('X-Conversation-Id')
+      if (newThreadId) setThreadId(newThreadId)
+
+      const retrievalHeader = response.headers.get('X-Retrieval-Indicators')
+      if (retrievalHeader) {
+        try {
+          setIndicators(JSON.parse(retrievalHeader))
+        } catch { /* ignore malformed header */ }
       }
 
       if (!response.ok) {
-        throw new Error('Failed to send message')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || 'Request failed')
       }
 
-      // Handle streaming response
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
-      let assistantMessageContent = ''
-      const assistantMessageId = (Date.now() + 1).toString()
+      let assistantContent = ''
+      const assistantId = (Date.now() + 1).toString()
 
-      // Add placeholder message for streaming
-      const placeholderMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, placeholderMessage])
+      setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }])
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-
-          const chunk = decoder.decode(value, { stream: true })
-          assistantMessageContent += chunk
-          
-          // Update the message in real-time
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === assistantMessageId 
-                ? { ...msg, content: assistantMessageContent }
-                : msg
+          assistantContent += decoder.decode(value, { stream: true })
+          if (assistantContent.trim()) {
+            setIsThinking(false)
+            setMessages(prev =>
+              prev.map(m => (m.id === assistantId ? { ...m, content: assistantContent } : m))
             )
-          )
-          
-          // Auto-scroll during streaming
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-          }, 50)
+          }
         }
       }
 
-      // Final update with complete message
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, content: assistantMessageContent }
-            : msg
-        )
-      )
-    } catch (error) {
-      console.error('Error sending message:', error)
-      const errorMessage: Message = {
-        id: (Date.now() + 2).toString(),
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsTyping(false)
-    }
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
-  }
-
-  const startRecording = async () => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error('Your browser does not support audio recording')
-        return
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      streamRef.current = stream
-
-      setIsRecording(true)
-      setRecordingDuration(0)
-      setTranscript(null)
-
-      // Determine best supported mime type
-      let mimeType = ''
-      const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus']
-      for (const option of options) {
-        if (MediaRecorder.isTypeSupported(option)) {
-          mimeType = option
-          break
-        }
-      }
-      if (!mimeType) mimeType = 'audio/webm'
-
-      const mediaRecorder = new MediaRecorder(stream, { mimeType })
-      mediaRecorderRef.current = mediaRecorder
-      chunksRef.current = []
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data)
-        }
-      }
-
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType })
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop())
-        }
-        await transcribeAudio(blob)
-      }
-
-      mediaRecorder.start(1000)
-      
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1)
-      }, 1000)
-    } catch (err: any) {
-      console.error('Error starting recording:', err)
-      toast.error('Failed to access microphone. Please check permissions.')
-      setIsRecording(false)
-    }
-  }
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      if (mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.requestData()
-      }
-      setTimeout(() => {
-        if (mediaRecorderRef.current) {
-          mediaRecorderRef.current.stop()
-        }
-      }, 100)
-      setIsRecording(false)
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-      }
-    }
-  }
-
-  const transcribeAudio = async (blob: Blob) => {
-    setIsTranscribing(true)
-    try {
-      if (blob.size === 0) {
-        throw new Error('Recorded audio is empty')
-      }
-
-      const formData = new FormData()
-      formData.append('audio', blob, 'recording.webm')
-
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || 'Transcription failed')
-      }
-
-      const data = await response.json()
-      if (!data.transcript) {
-        throw new Error('No transcript received')
-      }
-
-      setTranscript(data.transcript)
+      refreshThreads()
     } catch (err) {
-      console.error('Transcription error:', err)
-      toast.error(err instanceof Error ? err.message : 'Failed to transcribe audio')
+      console.error('VIVA chat error:', err)
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 2).toString(),
+          role: 'assistant',
+          content: "I'm having trouble connecting right now. Let's try again in a moment.",
+        },
+      ])
     } finally {
-      setIsTranscribing(false)
+      setIsStreaming(false)
+      setIsThinking(false)
     }
   }
 
-  const handleUseTranscript = () => {
-    if (transcript) {
-      setCurrentMessage(transcript)
-      setTranscript(null)
-      setRecordingDuration(0)
-    }
-  }
+  const activeThread = threads.find(t => t.id === threadId)
+  const pinnedThreads = threads.filter(t => t.pinned)
+  const recentThreads = threads.filter(t => !t.pinned)
 
-  const handleDiscardTranscript = () => {
-    setTranscript(null)
-    setRecordingDuration(0)
-  }
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-      }
-    }
-  }, [])
+  const renderThreadRow = (thread: Thread) => (
+    <div
+      key={thread.id}
+      onClick={() => openThread(thread.id)}
+      className={cn(
+        'group flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors duration-200',
+        thread.id === threadId ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200'
+      )}
+    >
+      {renamingId === thread.id ? (
+        <div className="flex items-center gap-1 flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+          <input
+            autoFocus
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') commitRename(thread.id)
+              if (e.key === 'Escape') setRenamingId(null)
+            }}
+            className="flex-1 min-w-0 bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white outline-none focus:border-neutral-500"
+          />
+          <button onClick={() => commitRename(thread.id)} className="text-neutral-400 hover:text-white shrink-0">
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => setRenamingId(null)} className="text-neutral-400 hover:text-white shrink-0">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : (
+        <>
+          <span className="flex-1 min-w-0 truncate text-sm">
+            {thread.title || thread.preview_message || 'New thread'}
+          </span>
+          <div className="hidden group-hover:flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => { setRenamingId(thread.id); setRenameValue(thread.title || '') }}
+              className="text-neutral-500 hover:text-white transition-colors"
+              title="Rename"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => togglePin(thread)}
+              className="text-neutral-500 hover:text-white transition-colors"
+              title={thread.pinned ? 'Unpin' : 'Pin'}
+            >
+              {thread.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={() => deleteThread(thread.id)}
+              className="text-neutral-500 hover:text-red-400 transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {thread.pinned && (
+            <Pin className="w-3 h-3 text-neutral-600 group-hover:hidden shrink-0" />
+          )}
+        </>
+      )}
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      {/* Header */}
-      <div className="border-b border-neutral-800 bg-black/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#B629D4] flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">
-                VIVA Master Assistant
-              </h1>
-              <Text size="sm" className="text-neutral-400">
-                Your comprehensive guide to mastering Vibration Fit and living a vibrationally aligned life
-              </Text>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setShowConversations(!showConversations)}
-                variant="ghost"
-                size="lg"
-                title="View conversation history"
-              >
-                <History className="w-5 h-5" />
-              </Button>
-              <Button
-                onClick={startNewConversation}
-                variant="secondary"
-                size="lg"
-                title="Start new conversation"
-              >
-                <Plus className="w-5 h-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Conversations Sidebar */}
-      {showConversations && (
-        <div className="fixed inset-y-0 left-0 w-80 bg-[#1F1F1F] border-r border-neutral-800 z-20 flex flex-col pt-24">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
-            <h2 className="text-lg font-bold text-white">Conversations</h2>
-            <Button
-              onClick={() => setShowConversations(false)}
-              variant="ghost"
-              size="sm"
+    <div className="flex-1 min-h-0 bg-black flex overflow-hidden">
+      {/* ---- Thread sidebar ---- */}
+      <aside
+        className={cn(
+          'w-72 shrink-0 border-r border-neutral-900 bg-black flex-col transition-all duration-300',
+          sidebarOpen ? 'flex fixed inset-y-0 left-0 z-40 md:static' : 'hidden md:flex'
+        )}
+      >
+        <div className="flex items-center justify-between px-4 py-4">
+          <span className="text-sm font-medium text-neutral-500">Threads</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={startNewThread}
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+              title="New thread"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
             >
               <X className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
-          
-          <div className="flex-1 overflow-y-auto">
-            {conversations.length === 0 ? (
-              <div className="p-4 text-center text-neutral-400">
-                <Text size="sm">No conversations yet</Text>
-              </div>
-            ) : (
-              <div className="space-y-1 p-2">
-                {conversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
-                      conv.id === currentConversationId
-                        ? 'bg-[#8B5CF6]/20 border border-[#8B5CF6]/30'
-                        : 'bg-neutral-800/50 hover:bg-neutral-800 border border-transparent'
-                    }`}
-                    onClick={() => {
-                      loadConversation(conv.id)
-                      setShowConversations(false)
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-white truncate">
-                          {conv.title || 'Untitled Conversation'}
-                        </h3>
-                        {conv.preview_message && (
-                          <Text size="xs" className="text-neutral-400 mt-1 line-clamp-2">
-                            {conv.preview_message}
-                          </Text>
-                        )}
-                        <div className="flex items-center gap-2 mt-2 text-xs text-neutral-500">
-                          <span>{conv.message_count || 0} messages</span>
-                          <span>•</span>
-                          <span>{new Date(conv.last_message_at || conv.updated_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deleteConversation(conv.id)
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-400" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-4">
+          {pinnedThreads.length > 0 && (
+            <div>
+              <p className="px-3 pb-1 text-[11px] uppercase tracking-wide text-neutral-600">Pinned</p>
+              <div className="space-y-0.5">{pinnedThreads.map(renderThreadRow)}</div>
+            </div>
+          )}
+          {recentThreads.length > 0 && (
+            <div>
+              {pinnedThreads.length > 0 && (
+                <p className="px-3 pb-1 text-[11px] uppercase tracking-wide text-neutral-600">Recent</p>
+              )}
+              <div className="space-y-0.5">{recentThreads.map(renderThreadRow)}</div>
+            </div>
+          )}
+          {threads.length === 0 && (
+            <p className="px-3 text-sm text-neutral-600">No threads yet</p>
+          )}
+        </div>
+      </aside>
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* ---- Main column ---- */}
+      <main className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-neutral-900">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            <h1 className="text-sm font-medium text-white truncate">
+              {activeThread?.title || 'VIVA'}
+            </h1>
+            {modelOverride && (
+              <span className="shrink-0 px-2 py-0.5 rounded-full border border-neutral-800 text-[11px] text-neutral-500">
+                {modelOverride}
+              </span>
             )}
           </div>
-        </div>
-      )}
+          <button
+            onClick={() => setConstraintsOpen(true)}
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+            title="My constraints"
+          >
+            <Waypoints className="w-4 h-4" />
+          </button>
+          <button
+            onClick={startNewThread}
+            className="hidden md:block p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+            title="New thread"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </header>
 
-      {/* Overlay when sidebar is open */}
-      {showConversations && (
-        <div
-          className="fixed inset-0 bg-black/50 z-10 md:hidden"
-          onClick={() => setShowConversations(false)}
-        />
-      )}
-
-      {/* Chat Area */}
-      <div className={`flex-1 flex flex-col mx-auto w-full px-6 py-6 transition-all duration-300 ${
-        showConversations ? 'md:ml-80 max-w-4xl' : 'max-w-4xl'
-      }`}>
-      {/* Welcome Intro Message - Show until user sends their first message */}
-      {!hasUserInteracted && (
-          <div className="mb-6 animate-in fade-in slide-in-from-top duration-500">
-            <Card className="bg-gradient-to-br from-[#8B5CF6]/20 to-[#B629D4]/20 border-2 border-[#8B5CF6]/30">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#B629D4] flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
-                      Welcome to VIVA Master Assistant
-                    </h2>
-                    <Text size="sm" className="text-neutral-300">
-                      Your comprehensive guide to mastering Vibration Fit
-                    </Text>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#8B5CF6]/20">
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-[#8B5CF6] uppercase tracking-wide">What I Can Do</h3>
-                    <ul className="space-y-1.5 text-sm text-neutral-300">
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#8B5CF6] mt-0.5">•</span>
-                        <span>Answer questions about all Vibration Fit tools</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#8B5CF6] mt-0.5">•</span>
-                        <span>Show sections from your Life Vision</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#8B5CF6] mt-0.5">•</span>
-                        <span>Guide you through your journey</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#8B5CF6] mt-0.5">•</span>
-                        <span>Explain concepts and processes</span>
-                      </li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-[#B629D4] uppercase tracking-wide">Try Asking</h3>
-                    <ul className="space-y-1.5 text-sm text-neutral-300">
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#B629D4] mt-0.5">•</span>
-                        <span>"Show me the money section of my vision"</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#B629D4] mt-0.5">•</span>
-                        <span>"How do I create a Life Vision?"</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#B629D4] mt-0.5">•</span>
-                        <span>"What is the Green Line?"</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-[#B629D4] mt-0.5">•</span>
-                        <span>"Help me understand my assessment"</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+        {/* Thread */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-8">
+            {messages.length === 0 && !isThinking && (
+              <div className="pt-24 text-center space-y-2">
+                <p className="text-xl text-white">What&apos;s on your mind?</p>
+                <p className="text-sm text-neutral-500">
+                  I know your vision, your patterns, your journey.
+                </p>
               </div>
-            </Card>
-          </div>
-        )}
+            )}
 
-        {/* Messages Container */}
-        <div 
-          ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto space-y-6 mb-6"
-        >
-          {messages.length === 0 && !isTyping && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-4">
-                <Sparkles className="w-16 h-16 text-[#8B5CF6] mx-auto" />
-                <Text size="lg" className="text-white font-semibold">
-                  Ready to chat with VIVA?
-                </Text>
-                <Text size="base" className="text-neutral-400 max-w-md">
-                  Ask me anything about Vibration Fit, show you sections of your vision, or guide you through your journey.
-                </Text>
-              </div>
-            </div>
-          )}
-
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                'flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300',
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              )}
-            >
-              <Card
-                className={cn(
-                  'max-w-[85%] md:max-w-[75%]',
-                  message.role === 'user'
-                    ? 'bg-[#601B9F] text-white border-[#601B9F]'
-                    : 'bg-neutral-900 border-neutral-800'
-                )}
-              >
-                <div className="prose prose-invert prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap text-white leading-relaxed">
-                    {message.content 
-                      ? (message.role === 'assistant'
-                          ? message.content.replace(/\*\*\*/g, '').replace(/\*\*/g, '').replace(/#{1,6}\s/g, '')
-                          : message.content)
-                      : <span className="text-transparent">...</span>
-                    }
-                  </div>
+            {messages.map(message => {
+              return (
+                <div key={message.id}>
+                  {message.role === 'user' ? (
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl bg-neutral-900 border border-neutral-800 px-4 py-2.5 text-[15px] text-neutral-100 whitespace-pre-wrap leading-relaxed">
+                        {message.content}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="prose prose-invert prose-neutral max-w-none text-[15px] leading-relaxed prose-p:my-3 prose-headings:text-white prose-strong:text-white">
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </Card>
-            </div>
-          ))}
+              )
+            })}
 
-          {isTyping && messages.length > 0 && (
-            <div className="flex gap-4 justify-start">
-              <Card className="bg-neutral-900 border-neutral-800">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 text-[#8B5CF6] animate-spin" />
-                  <Text size="sm" className="text-neutral-400">
-                    VIVA is thinking...
-                  </Text>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Transcript Preview */}
-        {transcript && (
-          <div className="mb-4 animate-in fade-in slide-in-from-bottom duration-300">
-            <Card className="bg-gradient-to-br from-[#14B8A6]/10 to-[#8B5CF6]/10 border-2 border-[#14B8A6]/30">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Mic className="w-4 h-4 text-[#14B8A6]" />
-                  <Text size="sm" className="text-[#14B8A6] font-semibold">Transcription Ready</Text>
-                </div>
-                <div className="bg-black/30 rounded-lg p-3 border border-[#14B8A6]/20">
-                  <p className="text-sm text-neutral-200 whitespace-pre-wrap">{transcript}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleUseTranscript}
-                    variant="primary"
-                    size="sm"
-                    className="flex-1 gap-2"
-                  >
-                    <Check className="w-4 h-4" />
-                    Use This
-                  </Button>
-                  <Button
-                    onClick={handleDiscardTranscript}
-                    variant="ghost"
-                    size="sm"
-                    className="flex-1 gap-2"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Discard
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Input Area */}
-        <div className="border-t border-neutral-800 pt-6">
-          {/* Recording Indicator */}
-          {(isRecording || isTranscribing) && (
-            <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-[#1F1F1F] border-2 border-[#D03739] rounded-2xl">
-              {isRecording ? (
-                <>
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                  <span className="text-white font-mono text-sm">{formatDuration(recordingDuration)}</span>
-                  <Button
-                    onClick={stopRecording}
-                    variant="danger"
-                    size="sm"
-                    className="ml-auto gap-2"
-                  >
-                    <Square className="w-4 h-4" />
-                    Stop
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-[#14B8A6]" />
-                  <span className="text-neutral-300 text-sm">Transcribing...</span>
-                </>
-              )}
-            </div>
-          )}
-
-          <Card className="bg-neutral-900 border-neutral-800">
-            <div className="flex gap-4 items-end">
-              <textarea
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Ask VIVA anything about Vibration Fit..."
-                className="flex-1 bg-transparent border-none text-white placeholder-neutral-500 resize-none focus:outline-none focus:ring-0 min-h-[60px] max-h-[200px] py-3"
-                rows={1}
-                style={{
-                  height: 'auto',
-                  minHeight: '60px'
-                }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement
-                  target.style.height = 'auto'
-                  target.style.height = `${Math.min(target.scrollHeight, 200)}px`
-                }}
-                disabled={isTyping || isRecording || isTranscribing}
-              />
-              {!isRecording && !isTranscribing && (
-                <Button
-                  onClick={startRecording}
-                  variant={transcript ? "secondary" : "ghost"}
-                  size="lg"
-                  className="flex-shrink-0"
-                  disabled={isTyping}
-                  title="Record voice message"
-                >
-                  <Mic className="w-5 h-5" />
-                </Button>
-              )}
-              <Button
-                onClick={sendMessage}
-                disabled={!currentMessage.trim() || isTyping || isRecording || isTranscribing}
-                variant="primary"
-                size="lg"
-                className="flex-shrink-0"
-              >
-                {isTyping ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+            {isThinking && (
+              <div className="space-y-2">
+                {indicators.length > 0 ? (
+                  <p className="text-xs text-neutral-500 animate-pulse">
+                    {indicators.map(i => i.detail).join('... ')}
+                  </p>
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <p className="text-xs text-neutral-500 animate-pulse">Here with you...</p>
                 )}
-              </Button>
-            </div>
-          </Card>
-          
-          <Text size="xs" className="text-neutral-500 mt-3 text-center">
-            VIVA has complete knowledge of all Vibration Fit tools, processes, and the vibrational alignment philosophy
-          </Text>
+                <div className="flex gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-600 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-600 animate-pulse [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-600 animate-pulse [animation-delay:300ms]" />
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
+
+        {/* Input */}
+        <div className="border-t border-neutral-900">
+          <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
+            <VivaChatInput
+              value={currentMessage}
+              onChange={setCurrentMessage}
+              onSend={() => sendMessage()}
+              disabled={isStreaming}
+              placeholder="Talk to VIVA..."
+              canSend={!!currentMessage.trim() && !isStreaming}
+            />
+          </div>
+        </div>
+      </main>
+
+      {/* ---- Constraints drawer ---- */}
+      {constraintsOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setConstraintsOpen(false)} />
+          <aside className="fixed inset-y-0 right-0 w-full sm:w-96 bg-neutral-950 border-l border-neutral-900 z-50 flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-900">
+              <div>
+                <h2 className="text-sm font-medium text-white">My Constraints</h2>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Beliefs uncovered in coaching, and their journey to dissolved
+                </p>
+              </div>
+              <button
+                onClick={() => setConstraintsOpen(false)}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <ConstraintsPanel />
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   )
 }

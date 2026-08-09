@@ -84,6 +84,12 @@ export const PAGE_CLASSIFICATIONS = {
     '/abundance-tracker',
     '/abundance-tracker/new',
     '/abundance-tracker/[id]',
+    '/travel-tracker',
+    '/travel-tracker/new',
+    '/travel-tracker/[id]',
+    '/travel-tracker/map',
+    '/travel-tracker/reports',
+    '/travel-tracker/dream',
     
     // Profile & Account
     '/profile',
@@ -373,6 +379,7 @@ export function getPagesByType(type: PageType): readonly string[] {
 export const STUDIO_ROUTE_PREFIXES = [
   '/account',
   '/abundance-tracker',
+  '/travel-tracker',
   '/audio',
   '/daily-paper',
   '/intensive/life-vision',

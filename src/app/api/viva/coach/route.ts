@@ -1,27 +1,56 @@
 /**
- * VIVA Coach API Route — 4-Layer Architecture
+ * VIVA Coach API Route — Conversational Brain Architecture
  *
  * The complete coaching flow:
- *   1. SAVE the user's message
- *   2. CLASSIFY mode + emotional state (Layer 1 — fast, cheap)
- *   3. RETRIEVE relevant personal context (Layer 2 — parallel queries)
- *   4. RESPOND with streaming (Layer 3 — main model)
- *   5. EXTRACT memories in background (Layer 4 — fire-and-forget)
+ *   1. SAVE the member's message
+ *   2. RETRIEVE personal context in parallel
+ *   3. INTERPRET the moment and select only relevant context
+ *   4. RESPOND conversationally with the main model
+ *   5. EXTRACT memories and sync embeddings in the background
  */
 
-import { streamText } from 'ai'
+import { streamText, generateText, stepCountIs } from 'ai'
+import { after } from 'next/server'
 import { gateway } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildCoachSystemPrompt, buildRetrievalIndicators } from '@/lib/viva/prompts/coach-system-prompt'
 import { loadCoachContext } from '@/lib/viva/coach-context-loader'
-import { detectMode, type VivaMode } from '@/lib/viva/mode-detector'
-import { loadMemories } from '@/lib/viva/memory-extractor'
+import {
+  interpretCoachTurn,
+  buildInterpretationSection,
+  buildOverlaySection,
+} from '@/lib/viva/coach-interpreter'
+import { loadMemories, extractMemories, saveMemories, saveConstraints, loadConstraints } from '@/lib/viva/memory-extractor'
+import { searchMemberContext, syncMemberEmbeddings } from '@/lib/viva/embeddings'
+import { buildCoachTools, COACH_TOOLS_PROMPT } from '@/lib/viva/coach-tools'
+import { getVivaHouseholdLens } from '@/lib/viva/household-lens'
+import { checkIsAdmin } from '@/middleware/admin'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const MODEL = process.env.VIVA_COACH_MODEL || process.env.VIVA_MODEL || 'gpt-4o'
+const RESPONDER_MODEL = 'openai/gpt-5.6-terra'
+
+/**
+ * Resolves which model powers this coaching turn.
+ * gpt-5.6-terra is the production conversational responder. Admins may use a
+ * per-request override only for explicit model diagnostics.
+ */
+async function resolveCoachModel(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  user: { id: string; email?: string },
+  modelOverride?: unknown
+): Promise<string> {
+  if (typeof modelOverride === 'string' && /^[\w.\-/:]{1,80}$/.test(modelOverride)) {
+    const isAdmin = await checkIsAdmin(supabase, { id: user.id, email: user.email })
+    if (isAdmin) {
+      return modelOverride.includes('/') ? modelOverride : `openai/${modelOverride}`
+    }
+  }
+
+  return RESPONDER_MODEL
+}
 
 export async function POST(req: Request) {
   try {
@@ -39,6 +68,7 @@ export async function POST(req: Request) {
       userIntent,
       modeHint,
       isNewSession,
+      modelOverride,
     } = await req.json()
 
     // =========================================================================
@@ -68,7 +98,7 @@ export async function POST(req: Request) {
 
     // Save user message
     const lastUserMessage = messages && messages.length > 0
-      ? [...messages].reverse().find((m: any) => m.role === 'user')
+      ? [...messages].reverse().find((m: { role: string }) => m.role === 'user')
       : null
 
     if (lastUserMessage) {
@@ -85,23 +115,26 @@ export async function POST(req: Request) {
     }
 
     // =========================================================================
-    // LAYER 1: CLASSIFY — Detect mode + emotional state (runs in parallel with Layer 2)
+    // LAYER 1: RETRIEVE — Load everything in parallel (interpretation follows)
     // =========================================================================
 
     const userName = user.user_metadata?.full_name?.split(' ')[0] || 'friend'
     const latestContent = lastUserMessage?.content || ''
 
-    // Run classification AND context loading in parallel
-    const validModes: VivaMode[] = ['connection', 'coaching', 'momentum', 'crisis', 'guide']
-    const hasModeHint = modeHint && validModes.includes(modeHint) && isNewSession
+    const normalizeIntentHint = (hint: unknown): string | undefined => {
+      if (typeof hint !== 'string') return undefined
+      const normalized = hint.trim().toLowerCase()
+      return ['connection', 'coaching', 'conversation', 'momentum', 'guide', 'crisis'].includes(normalized)
+        ? normalized
+        : undefined
+    }
+    const intentHint = isNewSession ? normalizeIntentHint(modeHint) : undefined
 
-    const [modeResult, contextResult, memoriesResult] = await Promise.all([
-      // Layer 1: Skip AI classification when user explicitly chose intent
-      hasModeHint
-        ? Promise.resolve({ mode: modeHint as VivaMode, emotional_state: 'unclear' as const, confidence: 1, reasoning: 'User selected intent' })
-        : detectMode(latestContent, messages?.slice(-4), user.id),
+    // Household lens first (fast) — it scopes memory/constraint/recall loads
+    const householdLens = await getVivaHouseholdLens(supabase, user.id)
 
-      // Layer 2: Context loading (parallel Supabase queries)
+    const [contextResult, memoriesResult, constraintsResult, semanticRecallResult, gatewayModelId] = await Promise.all([
+      // Context loading (parallel Supabase queries)
       loadCoachContext({
         supabase,
         userId: user.id,
@@ -115,59 +148,138 @@ export async function POST(req: Request) {
         category: selectedCategories?.[0] || undefined,
         limit: 15,
         minConfidence: 0.3,
+        householdId: householdLens?.householdId,
       }),
+
+      // Constraint ledger (limiting beliefs and their status arc)
+      loadConstraints(supabase, user.id, {
+        category: selectedCategories?.[0] || undefined,
+        limit: 8,
+        householdId: householdLens?.householdId,
+      }),
+
+      // Semantic recall across their whole footprint (journals, past coaching,
+      // stories, songs, vision) — most relevant to what they just said
+      latestContent.length > 20
+        ? searchMemberContext(supabase, user.id, latestContent, 6, householdLens?.householdId)
+        : Promise.resolve([]),
+
+      // Terra in production; an authenticated admin can explicitly override it.
+      resolveCoachModel(supabase, user, modelOverride),
     ])
 
-    const { mode, emotional_state } = modeResult
     const { context: coachContext, loadTimeMs } = contextResult
 
-    console.log(`[VIVA COACH] Mode: ${mode} | Emotion: ${emotional_state} | Context: ${loadTimeMs}ms | Memories: ${memoriesResult.length}`)
+    // =========================================================================
+    // LAYER 2: INTERPRET — Read the moment, select the context that matters
+    // =========================================================================
 
-    // Inject memories into context
-    coachContext.caseNotes = memoriesResult.map(m => ({
-      content: `[${m.type}${m.category ? ` / ${m.category}` : ''}] ${m.content}`,
+    // Compact candidate lines (indices are what the interpreter selects by)
+    const memoryLines = memoriesResult.map(m => {
+      const owner = m.user_id !== user.id && householdLens
+        ? ` / about ${householdLens.nameByUserId[m.user_id] || 'household member'}`
+        : ''
+      return `[${m.type}${m.category ? ` / ${m.category}` : ''}${owner}] ${m.content}`
+    })
+    const constraintLines = constraintsResult.map(c => {
+      const owner = c.user_id !== user.id && householdLens
+        ? `${householdLens.nameByUserId[c.user_id] || 'household member'}'s `
+        : ''
+      return `${owner}[${c.status}] "${c.statement}"${c.category ? ` (${c.category})` : ''}`
+    })
+    const recallLines = semanticRecallResult.map(r =>
+      `(${r.entity_type}${r.source_date ? `, ${r.source_date.slice(0, 10)}` : ''}) ${r.content.slice(0, 280)}`
+    )
+
+    const lensParts: string[] = []
+    if (coachContext.visionData) lensParts.push('their Life Vision')
+    if (coachContext.journalEntries?.length) lensParts.push(`${coachContext.journalEntries.length} recent journal entries`)
+    if (coachContext.dailyPapers?.length) lensParts.push('recent Daily Papers')
+    if (coachContext.songs?.length) lensParts.push('their songs')
+    if (coachContext.visionBoard?.active?.length) lensParts.push('active vision board desires')
+    if (coachContext.abundance?.events?.length) lensParts.push('abundance events')
+    if (coachContext.mapItems?.length) lensParts.push('MAP practices')
+
+    const interpretation = await interpretCoachTurn({
+      latestMessage: latestContent,
+      recentMessages: messages?.slice(-8),
+      memoryCandidates: memoryLines,
+      constraintCandidates: constraintLines,
+      recallCandidates: recallLines,
+      lensSummary: lensParts.length > 0 ? lensParts.join(', ') : undefined,
+      modeHint: intentHint,
+      userId: user.id,
+    })
+
+    const responseDesign = interpretation.response_design
+    const overlay = interpretation.overlay
+    const mode = overlay === 'none' ? responseDesign.stance : overlay
+    const emotional_state = interpretation.emotional_state
+
+    console.log(
+      `[VIVA COACH] Design: ${responseDesign.stance}/${responseDesign.approach}/${responseDesign.response_length} | ` +
+      `Overlay: ${overlay} | Emotion: ${emotional_state} | Context: ${loadTimeMs}ms | ` +
+      `Selected: ${interpretation.selected_memories.length}/${memoriesResult.length} memories, ` +
+      `${interpretation.selected_constraints.length}/${constraintsResult.length} constraints, ` +
+      `${interpretation.selected_recall.length}/${semanticRecallResult.length} recall${interpretation.fallback ? ' (fallback)' : ''}`
+    )
+
+    // Inject ONLY the selected context — the interpreter's job is to hand the
+    // coach the 3 things that matter, not 57 things we know
+    const selectedMemories = interpretation.selected_memories.map(i => memoriesResult[i])
+    const selectedConstraints = interpretation.selected_constraints.map(i => constraintsResult[i])
+    const selectedRecall = interpretation.selected_recall.map(i => semanticRecallResult[i])
+
+    coachContext.caseNotes = selectedMemories.map(m => {
+      const owner = m.user_id !== user.id && householdLens
+        ? ` / about ${householdLens.nameByUserId[m.user_id] || 'household member'}`
+        : ''
+      return {
+        content: `[${m.type}${m.category ? ` / ${m.category}` : ''}${owner}] ${m.content}`,
+      }
+    })
+
+    coachContext.constraints = selectedConstraints.map(c => ({
+      ...c,
+      owner_name: c.user_id !== user.id && householdLens
+        ? householdLens.nameByUserId[c.user_id] || 'household member'
+        : null,
     }))
 
-    // =========================================================================
-    // LAYER 2: RETRIEVE — Build retrieval indicators for the UI
-    // =========================================================================
+    coachContext.semanticRecall = selectedRecall.map(r => ({
+      ...r,
+      owner_name: r.user_id !== user.id && householdLens
+        ? householdLens.nameByUserId[r.user_id] || 'household member'
+        : null,
+    }))
 
-    const retrievalIndicators = buildRetrievalIndicators(coachContext)
-
-    // Add mode indicator
-    const modeLabels: Record<VivaMode, string> = {
-      connection: 'Listening',
-      coaching: 'Coaching',
-      momentum: 'Celebrating with you',
-      guide: 'Finding the way',
-      crisis: 'Safe support',
-    }
-    retrievalIndicators.unshift({ source: 'Mode', detail: modeLabels[mode] })
-
-    if (memoriesResult.length > 0) {
-      // Replace the generic notes indicator with a memory-specific one
-      const memIdx = retrievalIndicators.findIndex(i => i.source === 'notes')
-      if (memIdx >= 0) {
-        retrievalIndicators[memIdx] = {
-          source: 'memory',
-          detail: `Recalling ${memoriesResult.length} things I know about you...`,
-        }
-      } else {
-        retrievalIndicators.push({
-          source: 'memory',
-          detail: `Recalling ${memoriesResult.length} things I know about you...`,
-        })
+    // Household lens: shared family story
+    if (householdLens) {
+      coachContext.householdLens = {
+        householdName: householdLens.householdName,
+        sharedMemberNames: householdLens.sharedMembers.map(m => m.name),
       }
     }
 
+    // Build a tiny friend-facing continuity cue for the UI. This never includes
+    // VIVA's internal stance, classification, or coaching machinery.
+    const retrievalIndicators = buildRetrievalIndicators(coachContext)
+
     // =========================================================================
-    // LAYER 3: RESPOND — Build prompt with mode instructions, stream response
+    // LAYER 3: RESPOND — Build prompt with the interpretation, stream response
     // =========================================================================
 
-    // Build system prompt (with mode-specific behavior injected)
     const basePrompt = buildCoachSystemPrompt(coachContext)
-    const modeInstruction = getModeInstruction(mode, emotional_state)
-    const systemPrompt = `${basePrompt}\n\n---\n\n## CURRENT MODE: ${mode.toUpperCase()}\n\n${modeInstruction}`
+    const interpretationSection = buildInterpretationSection(interpretation)
+    const overlaySection = buildOverlaySection(overlay)
+    const systemPrompt = [
+      basePrompt,
+      COACH_TOOLS_PROMPT,
+      overlaySection,
+      interpretationSection,
+    ]
+      .filter(Boolean)
+      .join('\n\n---\n\n')
 
     // Cache prompt for session continuity
     if (currentConversationId) {
@@ -179,7 +291,7 @@ export async function POST(req: Request) {
     }
 
     // Load conversation history
-    let conversationHistory: any[] = []
+    let conversationHistory: Array<{ role: string; content: string }> = []
     if (currentConversationId) {
       const { data: historyMessages } = await supabase
         .from('ai_conversations')
@@ -199,7 +311,7 @@ export async function POST(req: Request) {
 
     // Token validation
     const messagesText = messages ? messages.map((m: { content: string }) => m.content).join('\n') : ''
-    const estimatedTokens = estimateTokensForText(systemPrompt + messagesText, MODEL)
+    const estimatedTokens = estimateTokensForText(systemPrompt + messagesText, gatewayModelId.split('/').pop() || 'gpt-5.6-terra')
     const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
 
     if (tokenValidation) {
@@ -221,22 +333,47 @@ export async function POST(req: Request) {
       })
     }
 
+    // In-app actions (queue songs, capture entries, create stories, ...)
+    const tools = buildCoachTools({
+      supabase,
+      userId: user.id,
+      conversationId: currentConversationId || null,
+      getConversationText: () =>
+        chatMessages
+          .slice(-12)
+          .map((m: { role: string; content: string }) => `${m.role === 'user' ? 'MEMBER' : 'VIVA'}: ${m.content}`)
+          .join('\n\n'),
+    })
+
+    // Reasoning models (gpt-5 family, o-series) reject custom temperature
+    const supportsTemperature = !/(^|\/)(gpt-5|o\d)/.test(gatewayModelId)
+
     // Stream the response
     const result = streamText({
       // Routed through the Vercel AI Gateway for exact per-request billing
-      model: gateway(`openai/${MODEL}`),
+      model: gateway(gatewayModelId),
       system: systemPrompt,
       messages: chatMessages,
-      temperature: mode === 'crisis' ? 0.4 : 0.8,
-      async onFinish({ text, usage, response: aiResponse }: { text: string; usage?: any; response?: any }) {
+      ...(supportsTemperature ? { temperature: overlay === 'crisis' ? 0.4 : 0.8 } : {}),
+      tools,
+      // Allow tool call -> result -> narration (and one follow-up action)
+      stopWhen: stepCountIs(4),
+      async onFinish({ text, usage: stepUsage, totalUsage, response: aiResponse }: {
+        text: string
+        usage?: { totalTokens?: number; inputTokens?: number; outputTokens?: number }
+        totalUsage?: { totalTokens?: number; inputTokens?: number; outputTokens?: number }
+        response?: { id?: string; modelId?: string }
+      }) {
         try {
+          // With tool calling the response spans multiple steps; bill for all of them
+          const usage = totalUsage?.totalTokens ? totalUsage : stepUsage
           // Save assistant message
           await supabase.from('ai_conversations').insert({
             user_id: user.id,
             conversation_id: currentConversationId || null,
             message: text,
             role: 'assistant',
-            context: { mode: 'coach', vivaMode: mode, emotional_state, selectedCategories, userIntent },
+            context: { mode: 'coach', vivaMode: mode, responseDesign, overlay, emotional_state, selectedCategories, userIntent },
             created_at: new Date().toISOString(),
           })
 
@@ -253,11 +390,11 @@ export async function POST(req: Request) {
           }
 
           // Track token usage
-          if (usage && usage.totalTokens > 0) {
+          if (usage?.totalTokens && usage.totalTokens > 0) {
             await trackTokenUsage({
               user_id: user.id,
               action_type: 'chat_conversation',
-              model_used: aiResponse?.modelId || MODEL,
+              model_used: aiResponse?.modelId || gatewayModelId,
               tokens_used: usage.totalTokens,
               input_tokens: usage.inputTokens || 0,
               output_tokens: usage.outputTokens || 0,
@@ -269,6 +406,8 @@ export async function POST(req: Request) {
               metadata: {
                 mode: 'coach',
                 vivaMode: mode,
+                responseDesign,
+                overlay,
                 emotional_state,
                 selectedCategories,
                 message_length: text.length,
@@ -279,26 +418,83 @@ export async function POST(req: Request) {
           }
 
           // =================================================================
-          // LAYER 4: EXTRACT — Background memory extraction
+          // LAYER 4: EXTRACT — Background memory extraction (in-process)
           // =================================================================
-          // Fire-and-forget: extract durable memories from this interaction
+          // Runs in-process via after() instead of an HTTP self-call: the old
+          // fetch sent an empty Cookie header, so the extract endpoint rejected
+          // every request as unauthenticated and no memories were ever saved.
           const recentExchange = [
             ...chatMessages.slice(-4),
             { role: 'assistant', content: text },
           ]
 
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL
-            ? `https://${process.env.VERCEL_URL}`
-            : 'http://localhost:3000')
+          after(async () => {
+            try {
+              // Auto-title new threads after the first exchange
+              if (currentConversationId) {
+                const { data: session } = await supabase
+                  .from('conversation_sessions')
+                  .select('title')
+                  .eq('id', currentConversationId)
+                  .single()
 
-          fetch(`${baseUrl}/api/viva/memory-extract`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Cookie': '' },
-            body: JSON.stringify({
-              conversationId: currentConversationId,
-              messages: recentExchange,
-            }),
-          }).catch(err => console.error('[VIVA COACH] Memory extraction trigger failed:', err))
+                if (session && !session.title) {
+                  try {
+                    const titleResult = await generateText({
+                      model: gateway('openai/gpt-4o-mini'),
+                      prompt: `Write a short title (3-6 words, no quotes, no punctuation at the end) for this conversation. Capture the emotional topic, not generic words like "chat" or "conversation".\n\nMEMBER: ${lastUserMessage?.content?.slice(0, 500) || ''}\n\nVIVA: ${text.slice(0, 300)}`,
+                      temperature: 0.3,
+                    })
+                    const title = titleResult.text.trim().replace(/^["']|["']$/g, '').slice(0, 80)
+                    if (title) {
+                      await supabase
+                        .from('conversation_sessions')
+                        .update({ title })
+                        .eq('id', currentConversationId)
+                    }
+                  } catch (titleErr) {
+                    console.error('[VIVA COACH] Auto-title failed:', titleErr)
+                  }
+                }
+              }
+
+              const existingMemories = await loadMemories(supabase, user.id, { limit: 30 })
+              const { memories, constraints } = await extractMemories(
+                recentExchange,
+                existingMemories.map(m => m.content),
+                user.id
+              )
+              if (memories.length > 0) {
+                const saveResult = await saveMemories(
+                  supabase,
+                  user.id,
+                  memories,
+                  undefined,
+                  currentConversationId || undefined,
+                  householdLens?.householdId
+                )
+                console.log(`[VIVA COACH] Memories: saved ${saveResult.saved}, skipped ${saveResult.skipped}`)
+              }
+              if (constraints.length > 0) {
+                const constraintResult = await saveConstraints(
+                  supabase,
+                  user.id,
+                  constraints,
+                  currentConversationId || undefined,
+                  householdLens?.householdId
+                )
+                console.log(`[VIVA COACH] Constraints: saved ${constraintResult.saved}, updated ${constraintResult.updated}`)
+              }
+
+              // Keep the semantic index converged with new member content
+              const syncResult = await syncMemberEmbeddings(supabase, user.id, householdLens?.householdId)
+              if (syncResult.embedded > 0) {
+                console.log(`[VIVA COACH] Embedded ${syncResult.embedded} new items`)
+              }
+            } catch (err) {
+              console.error('[VIVA COACH] Memory extraction failed:', err)
+            }
+          })
 
         } catch (error) {
           console.error('[VIVA COACH] Error in onFinish:', error)
@@ -323,110 +519,5 @@ export async function POST(req: Request) {
       JSON.stringify({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
-  }
-}
-
-/**
- * Returns mode-specific behavioral instructions for the system prompt.
- */
-function getModeInstruction(mode: VivaMode, emotionalState: string): string {
-  switch (mode) {
-    case 'connection':
-      return `You are in CONNECTION mode. The member is processing, venting, or just wants to talk.
-
-DO:
-- Reflect what they said in your own words
-- Ask one natural follow-up question
-- Make them feel deeply seen and heard
-- Use their language back to them
-
-DO NOT:
-- Give an action step
-- Create a reframe unless they ask
-- Push toward a solution
-- Generate a coaching card
-- Say "have you tried..." or "what if you..."
-
-Your only job: be present. That IS the shift.`
-
-    case 'coaching':
-      return `You are in COACHING mode. The member has signaled readiness to shift.
-
-Use the A.U.R.A. framework:
-- Awareness: Help them name what they're feeling (their words)
-- Unplug: Create separation between them and the emotion
-- Replace: Find a better-feeling thought (Vibrational Ladder, one rung at a time)
-- Activate: OFFER one practice if a shift landed
-
-Remember: coaching was INVITED. Stay direct, warm, specific.
-Use their Life Vision text when finding replacements.
-Offer a bridge-back statement if a shift lands.
-
-Emotional state detected: ${emotionalState}`
-
-    case 'momentum':
-      return `You are in MOMENTUM mode. The member is celebrating, feeling good, or sharing progress.
-
-DO:
-- Celebrate with genuine energy
-- Connect their win to their vision ("This is exactly what you wrote about in your ${emotionalState} vision...")
-- Reinforce the pattern ("Notice how this happened when you...")
-- Anchor the feeling ("Remember this moment next time X comes up")
-
-DO NOT:
-- Coach them
-- Point out potential pitfalls
-- Suggest improvements
-- Be cautious or hedging
-
-They're above the line. Ride the wave with them.`
-
-    case 'guide':
-      return `You are in GUIDE mode. The member wants help doing something on the Vibration Fit platform.
-
-You know the platform deeply. Here's what's available:
-
-FEATURES & WHERE TO FIND THEM:
-- Life Vision: /life-vision — Create and refine vision statements for each life category
-- Journal: /journal — Write journal entries with voice recording, file uploads, and AI reflection
-- Vision Board: /vision-board — Upload or generate images that represent their ideal life
-- Assessment: /assessment — Take a vibration check-in to see which areas are above/below the Green Line
-- Audio Studio: /audio — Create custom affirmation tracks with music and voice
-- Profile: /profile — Build their personal story in each life category
-- VIVA Coach: /viva/coach — This conversation (coaching, venting, momentum, guide)
-- Map: /map — See their whole life at a glance
-
-WORKFLOWS YOU CAN GUIDE:
-- "Start a new journal entry" → /journal (tap + button, choose category, write or record)
-- "Create a Life Vision" → /life-vision/new (pick category, write or record your vision)
-- "Take an assessment" → /assessment (answer honestly for each category)
-- "Make a vision board" → /vision-board (upload images or generate with AI)
-- "Record an affirmation" → /audio (create custom audio tracks)
-- "Update my profile" → /profile (edit your story for any category)
-
-GUIDE BEHAVIOR:
-- Give clear, step-by-step directions
-- Reference specific pages and buttons by name
-- If they're unsure what they need, ask clarifying questions
-- Keep it warm and encouraging — never clinical or robotic
-- If the question is actually about their feelings (not the platform), switch to connection mode naturally`
-
-    case 'crisis':
-      return `You are in CRISIS mode. The member may be in acute distress.
-
-CRITICAL RULES:
-- Be calm, grounded, direct
-- Acknowledge the severity of what they're sharing
-- Do NOT minimize or redirect to positive thinking
-- Do NOT use coaching frameworks
-- If they mention self-harm or suicidal thoughts: express care, ask if they're safe, provide 988 Suicide & Crisis Lifeline
-- If they mention abuse: believe them, don't push for details, provide National DV Hotline (1-800-799-7233)
-- Keep responses short and steady
-- Ask: "Are you safe right now?"
-
-You are not a therapist. You are a caring presence who can hold space and point to professional help.`
-
-    default:
-      return ''
   }
 }

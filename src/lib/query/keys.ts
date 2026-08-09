@@ -47,6 +47,16 @@ export const keys = {
 
   // Reset Studio
   resets: ['resets'] as const,
+
+  // VIVA
+  vivaConversations: ['viva-conversations'] as const,
+  vivaConstraints: ['viva-constraints'] as const,
+
+  // Travel Tracker
+  trips: ['trips'] as const,
+  tripDetail: (tripId: string) => ['trips', 'detail', tripId] as const,
+  travelStats: ['travel-stats'] as const,
+  dreamDestinations: ['dream-destinations'] as const,
 } as const
 
 type QueryKeyPrefix = readonly string[]
@@ -73,4 +83,11 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   commitment_occurrences: [keys.commitmentOccurrences, keys.commitments],
   resets: [keys.resets],
   reset_items: [keys.resets],
+  vibrational_constraints: [keys.vivaConstraints],
+  conversation_sessions: [keys.vivaConversations],
+  trips: [keys.trips, keys.travelStats],
+  trip_flights: [keys.trips, keys.travelStats],
+  dream_destinations: [keys.dreamDestinations],
+  travel_attachments: [keys.trips, keys.dreamDestinations],
+  travel_reference_links: [keys.trips, keys.dreamDestinations],
 }

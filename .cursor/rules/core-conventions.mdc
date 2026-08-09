@@ -1,0 +1,36 @@
+---
+description: Core VibrationFit conventions - feature registry, file placement, brand voice
+alwaysApply: true
+---
+
+# VibrationFit Core Conventions
+
+## Feature Registry
+
+Before modifying Life Vision, Token System, Design System, or Database Schema, check `FEATURE_REGISTRY.md` in the project root:
+
+- LOCKED = do not modify without explicit user permission
+- STABLE = modify with caution, test the entire feature afterward
+- IN PROGRESS = safe to modify
+
+## File Placement
+
+| What | Where |
+|------|-------|
+| Documentation | `docs/[category]/` — NEVER in project root |
+| Database files, schema docs | `supabase/` |
+| Migrations | `supabase/migrations/YYYYMMDDHHMMSS_description.sql`, apply via Supabase MCP `execute_sql` |
+| Components | `src/components/` (PascalCase) |
+| Utilities | `src/lib/` (kebab-case) |
+| AI prompts | `src/lib/viva/prompts/` only — never inline in API routes |
+| Temp/debug files | `temp/` (gitignored) |
+| One-off scripts | `scripts/[category]/`, move to `scripts/archive/` after a successful run |
+
+Schema source of truth: `supabase/COMPLETE_SCHEMA_DUMP.sql`. Never auto-update it after a migration; the user regenerates it. Never reference `supabase/archive/`.
+
+## Brand Voice & Terminology
+
+- NEVER use "AI" in user-facing text — always "VIVA" (e.g. "VIVA Coach", "Powered by VIVA"). Technical names like `AIButton` may keep "AI".
+- Say "Actualize" not "Complete", "Vision" not "Goal", "Alignment" not "Progress"
+- "Above the Green Line" = aligned/success states; "Below the Green Line" = contrast/awareness
+- NO emojis in code or UI text — use Lucide React icons (`lucide-react`)

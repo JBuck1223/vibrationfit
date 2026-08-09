@@ -17,12 +17,14 @@ const SHARE_MODE_FEATURES = [
   'audio_mode',
   'projects_mode',
   'stories_mode',
+  'travel_mode',
 ] as const
 
 type ShareModeFeature = (typeof SHARE_MODE_FEATURES)[number]
 
 const DEFAULT_SETTINGS: Record<ShareModeFeature, 'all' | 'select'> & {
   default_view: 'me' | 'both'
+  viva_mode: 'off' | 'all'
 } = {
   life_visions_mode: 'select',
   vision_board_mode: 'select',
@@ -30,7 +32,9 @@ const DEFAULT_SETTINGS: Record<ShareModeFeature, 'all' | 'select'> & {
   audio_mode: 'select',
   projects_mode: 'select',
   stories_mode: 'select',
+  travel_mode: 'select',
   default_view: 'me',
+  viva_mode: 'off',
 }
 
 export async function GET() {
@@ -101,6 +105,17 @@ export async function PATCH(request: NextRequest) {
         )
       }
       updates[feature] = value
+    }
+
+    // VIVA sharing is a mutual opt-in flag ('off' | 'all'), not a select mode
+    if (body.viva_mode !== undefined) {
+      if (body.viva_mode !== 'all' && body.viva_mode !== 'off') {
+        return NextResponse.json(
+          { error: "Invalid value for viva_mode: expected 'all' or 'off'" },
+          { status: 400 }
+        )
+      }
+      updates.viva_mode = body.viva_mode
     }
 
     if (body.default_view !== undefined) {

@@ -13,6 +13,7 @@ export type SharingFeature =
   | 'audio'
   | 'projects'
   | 'stories'
+  | 'travel'
 
 const FEATURE_COLUMN: Record<SharingFeature, string> = {
   life_visions: 'life_visions_mode',
@@ -21,6 +22,7 @@ const FEATURE_COLUMN: Record<SharingFeature, string> = {
   audio: 'audio_mode',
   projects: 'projects_mode',
   stories: 'stories_mode',
+  travel: 'travel_mode',
 }
 
 /**

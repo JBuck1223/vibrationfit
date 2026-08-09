@@ -16,6 +16,8 @@ import {
   FolderKanban,
   BookOpen,
   Users,
+  MessageCircleHeart,
+  Plane,
 } from 'lucide-react'
 import { Card, Spinner, Toggle } from '@/lib/design-system/components'
 
@@ -30,7 +32,9 @@ interface SharingSettings {
   audio_mode: ShareMode
   projects_mode: ShareMode
   stories_mode: ShareMode
+  travel_mode: ShareMode
   default_view: 'me' | 'both'
+  viva_mode: 'off' | 'all'
 }
 
 const FEATURES: {
@@ -74,6 +78,12 @@ const FEATURES: {
     label: 'Stories',
     description: 'Written and recorded stories',
     icon: BookOpen,
+  },
+  {
+    key: 'travel_mode',
+    label: 'Travel Tracker',
+    description: 'Trips, flights, and dream destinations',
+    icon: Plane,
   },
 ]
 
@@ -188,6 +198,32 @@ export function HouseholdSharingSettingsCard() {
             </div>
           )
         })}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <MessageCircleHeart className="h-4 w-4 shrink-0 text-neutral-400" />
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-white">VIVA shared memory</div>
+            <div className="text-[11px] text-neutral-500">
+              When you both turn this on, VIVA holds your shared story — what it learns
+              coaching each of you informs how it coaches you both
+            </div>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {savingKey === 'viva_mode' && <Spinner size="sm" />}
+          <Toggle
+            variant="segmented"
+            size="sm"
+            options={[
+              { value: 'off', label: 'Just me' },
+              { value: 'all', label: 'Share' },
+            ]}
+            value={settings.viva_mode || 'off'}
+            onChange={(value) => void updateSetting('viva_mode', value)}
+          />
+        </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
