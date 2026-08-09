@@ -116,6 +116,9 @@ const SPIRITUAL_NAMES = [
   'Divine',
 ]
 
+/** Misty Barron — SparkQuery™ creator (platform member snapshot) */
+const MISTY_BARRON_SNAPSHOT_HREF = '/snapshot/5c49b204-0c1b-4c5e-bb33-118f9d251259'
+
 function frameworkLabelForExample(ex: IncantationExample): string {
   if (ex.framework === 'spiritual') return `Spiritual · ${ex.divineName}`
   if (ex.framework === 'custom') return 'Custom'
@@ -1133,8 +1136,20 @@ export default function NewStoryWizardPage() {
                       : 'An immersive day-in-the-life narrative crafted from your vision.'
                     : outputType === 'incantation'
                       ? 'A short, rhythmic declaration you repeat aloud until belief takes root.'
-                      : 'Empowering questions that work with your brain\'s bullshit detector — not against it.'}
+                      : 'Empowering questions that work with your brain — not against it.'}
                 </p>
+                {outputType === 'spark_query' && (
+                  <p className="text-xs text-neutral-500 mt-2 max-w-xl text-center">
+                    Created by{' '}
+                    <Link
+                      href={MISTY_BARRON_SNAPSHOT_HREF}
+                      className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors"
+                    >
+                      Misty Barron
+                    </Link>
+                    , author of <span className="text-neutral-400 italic">Your Brain&apos;s Bullshit Detector</span>.
+                  </p>
+                )}
               </div>
 
               {/* Step 1: Select Source (shared for story and incantation) */}
