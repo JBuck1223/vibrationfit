@@ -104,9 +104,14 @@ export async function POST(req: NextRequest) {
     const promptForEstimate = `${SPARK_QUERY_SYSTEM_PROMPT}\n\n${userPrompt}`
     let toolConfig
     try {
-      toolConfig = await getAIToolConfig('vision_refinement')
+      toolConfig = await getAIToolConfig('spark_query_generation')
     } catch {
-      toolConfig = await getAIToolConfig('master_vision_assembly')
+      console.log('[SparkQuery API] Tool not configured, falling back to vision_refinement')
+      try {
+        toolConfig = await getAIToolConfig('vision_refinement')
+      } catch {
+        toolConfig = await getAIToolConfig('master_vision_assembly')
+      }
     }
 
     const tokenEstimate = estimateTokensForText(promptForEstimate, toolConfig.model_name)

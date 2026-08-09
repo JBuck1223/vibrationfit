@@ -241,6 +241,10 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
         (pathname?.startsWith('/audio') || pathname?.startsWith('/account')) && 'max-md:!pb-6',
       )
     : undefined
+
+  // Life Explorer brings its own full-bleed chrome (dark background + sticky
+  // section nav), so strip PageLayout's padding to avoid a gap around it.
+  const fullBleedClass = pathname?.startsWith('/homeschool/life-explorer') ? '!p-0' : undefined
   
   // Authenticated users on public pages (except /auth/*) see the sidebar layout
   const effectivePageType = (pageType === 'PUBLIC' && isAuthenticated && !pathname?.startsWith('/auth'))
@@ -302,7 +306,7 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
             <div className="min-h-screen bg-black text-white">
               <IntensiveSidebar />
               <div className="min-w-0 md:ml-[280px]">
-                <PageLayout className={audioPageLayoutClass}>
+                <PageLayout className={cn(audioPageLayoutClass, fullBleedClass)}>
                   {children}
                   <PlayerSpacer />
                 </PageLayout>
@@ -315,7 +319,7 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
 
       return (
         <SidebarLayout isAdmin={false}>
-          <PageLayout className={audioPageLayoutClass}>
+          <PageLayout className={cn(audioPageLayoutClass, fullBleedClass)}>
             {children}
             <PlayerSpacer />
           </PageLayout>
@@ -327,7 +331,7 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
     if (effectivePageType === 'ADMIN') {
       return (
         <SidebarLayout isAdmin={true}>
-          <PageLayout className={audioPageLayoutClass}>
+          <PageLayout className={cn(audioPageLayoutClass, fullBleedClass)}>
             {children}
             <PlayerSpacer />
           </PageLayout>
@@ -350,7 +354,7 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
   return (
     <div className="min-h-screen bg-black text-white">
       {!hideHeaderFooter && <Header />}
-      <PageLayout className={cn(pageLayoutClass, audioPageLayoutClass)}>
+      <PageLayout className={cn(pageLayoutClass, audioPageLayoutClass, fullBleedClass)}>
         {children}
         <PlayerSpacer />
       </PageLayout>

@@ -69,11 +69,10 @@ const VISION_CATEGORIES = [
   { key: 'conclusion', label: 'Conclusion', icon: CheckCircle, description: 'Integration & completion' },
 ]
 
-// The $1 Activation Intensive offer is live for EVERYONE (no code/link required)
-// through October 1, 2026. After the cutoff the homepage automatically reverts to
-// full pricing. Solo uses LAUNCH2026; household remaps to HOUSEHOLD2026 at checkout.
+// The $1 Activation Intensive offer only applies via promo/referral links
+// (?promo= or ?ref=). The plain homepage always shows full pricing.
+// Solo uses LAUNCH2026; household remaps to HOUSEHOLD2026 at checkout.
 const DOLLAR_OFFER_CODE = LAUNCH_SOLO_PROMO_CODE
-const DOLLAR_OFFER_ENDS_AT = Date.parse('2026-10-02T04:00:00Z') // midnight Oct 2 ET (UTC-4)
 
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -113,13 +112,6 @@ export default function HomePage() {
           setPromoCode(DOLLAR_OFFER_CODE)
           promoApplied = true
         }
-      }
-
-      // Public $1 offer: live for EVERYONE through Oct 1, 2026 (no code/link needed).
-      // Reverts to full pricing automatically after the cutoff.
-      if (!promoApplied && Date.now() < DOLLAR_OFFER_ENDS_AT) {
-        setPromoCode(DOLLAR_OFFER_CODE)
-        promoApplied = true
       }
 
       // $1 launch offer only applies to pay-in-full.
