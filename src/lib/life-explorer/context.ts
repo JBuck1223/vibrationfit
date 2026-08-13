@@ -52,6 +52,7 @@ export async function getWonderWall(
     .from('le_wonder_items')
     .select('*')
     .eq('expedition_id', expeditionId)
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
 
   if (error) {
@@ -113,9 +114,17 @@ export async function loadActiveContext(
     .eq('student_id', student.id)
     .order('updated_at', { ascending: false })
 
+  // The lead explorer's Up Next queue outranks raw interest: queued wonders
+  // first (in queue order), then the rest by interest level.
   const highInterestWonders = wonderWall.wonder
     .filter((w) => w.status !== 'answered')
-    .sort((a, b) => (b.interest_level ?? 0) - (a.interest_level ?? 0))
+    .sort((a, b) => {
+      const aQueued = a.priority != null
+      const bQueued = b.priority != null
+      if (aQueued && bQueued) return a.priority! - b.priority!
+      if (aQueued !== bQueued) return aQueued ? -1 : 1
+      return (b.interest_level ?? 0) - (a.interest_level ?? 0)
+    })
 
   return {
     student,

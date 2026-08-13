@@ -16,8 +16,23 @@ export async function POST(
   const { id } = await params
   const body = await request.json()
 
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  const now = new Date().toISOString()
+  const updates: Record<string, unknown> = { updated_at: now }
   if (body.status) updates.status = body.status
+
+  // Wall-clock timing for the lesson record: first open stamps the start,
+  // finishing stamps the end. Never overwrite an existing stamp.
+  if (body.status === 'in_progress' || body.status === 'completed') {
+    const { data: current } = await supabase
+      .from('le_lessons')
+      .select('started_at, completed_at')
+      .eq('id', id)
+      .single()
+    if (current && !current.started_at) updates.started_at = now
+    if (body.status === 'completed' && current && !current.completed_at) {
+      updates.completed_at = now
+    }
+  }
 
   const { data: lesson, error } = await supabase
     .from('le_lessons')

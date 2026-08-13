@@ -70,6 +70,41 @@ export async function PATCH(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
+
+  // Bulk reorder: [{ id, sort_order, kind? }]. Dragging across boards changes
+  // kind too; status follows the board (learned = answered).
+  if (Array.isArray(body.reorder)) {
+    const ids = body.reorder.map((e: { id?: string }) => e?.id).filter(Boolean)
+    const { data: current } = await supabase
+      .from('le_wonder_items')
+      .select('id, kind, status')
+      .in('id', ids)
+    const currentById = new Map((current || []).map((c) => [c.id, c]))
+
+    for (const entry of body.reorder) {
+      if (!entry?.id || typeof entry.sort_order !== 'number') continue
+      const updates: Record<string, unknown> = {
+        sort_order: entry.sort_order,
+        updated_at: new Date().toISOString(),
+      }
+      const before = currentById.get(entry.id)
+      if (
+        entry.kind &&
+        ['know', 'wonder', 'learned'].includes(entry.kind) &&
+        before &&
+        entry.kind !== before.kind
+      ) {
+        updates.kind = entry.kind
+        // Status follows the board it lands on.
+        if (entry.kind === 'learned') updates.status = 'answered'
+        else if (before.status === 'answered') updates.status = 'unexplored'
+      }
+      const { error } = await supabase.from('le_wonder_items').update(updates).eq('id', entry.id)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
@@ -86,4 +121,19 @@ export async function PATCH(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ item: data })
+}
+
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const id = request.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+
+  const { error } = await supabase.from('le_wonder_items').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

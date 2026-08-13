@@ -2,7 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { CHECKIN_SYSTEM_PROMPT, buildCheckInUserPrompt } from './prompts'
-import type { CheckInInput, LeLessonRecord, SkillStatus } from './types'
+import { recordFlashbackResults } from './flashback'
+import type { CheckInInput, LeLessonRecord, LessonPayload, SkillStatus } from './types'
 
 interface StructuredCheckIn {
   recommended_next_action: string
@@ -74,17 +75,19 @@ async function structureCheckIn(
       newQuestion: input.new_question,
       direction: input.direction,
       parentNotes: input.parent_notes,
+      lowBattery: input.low_battery,
     })
     const model = 'openai/gpt-4o-mini'
     const estimated = estimateTokensForText(userPrompt, model)
     const tokenValidation = await validateTokenBalance(userId, estimated, supabase)
     if (tokenValidation) return fallbackStructure(input)
 
+    // NOTE: the AI gateway rejects response_format ("400 Invalid input"),
+    // so JSON-only output is enforced by the prompt and tolerant parsing below.
     const completion = await gatewayClient.chat.completions.create({
       model,
       temperature: 0.3,
       max_tokens: 1200,
-      response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: CHECKIN_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
@@ -109,7 +112,16 @@ async function structureCheckIn(
       supabase
     )
 
-    return { ...fallbackStructure(input), ...JSON.parse(content) } as StructuredCheckIn
+    const cleaned = content.replace(/^```json\s*/i, '').replace(/```$/i, '').trim()
+    let structured: Record<string, unknown>
+    try {
+      structured = JSON.parse(cleaned)
+    } catch {
+      const match = cleaned.match(/\{[\s\S]*\}/)
+      if (!match) return fallbackStructure(input)
+      structured = JSON.parse(match[0])
+    }
+    return { ...fallbackStructure(input), ...structured } as StructuredCheckIn
   } catch (err) {
     console.error('structureCheckIn fallback', err)
     return fallbackStructure(input)
@@ -189,6 +201,34 @@ export async function recordLessonCheckIn(
     .from('le_lessons')
     .update({ status: 'completed', updated_at: new Date().toISOString() })
     .eq('id', lesson.id)
+
+  // Advance the Up Next queue: the wonder this lesson explored leaves the
+  // queue (the parent can re-queue it from the steer panel to go deeper);
+  // remaining queued wonders shift up.
+  const { data: queuedItems } = await supabase
+    .from('le_wonder_items')
+    .select('id, priority, status')
+    .eq('expedition_id', lesson.expedition_id)
+    .not('priority', 'is', null)
+    .order('priority', { ascending: true })
+  if (queuedItems && queuedItems.length > 0) {
+    const now = new Date().toISOString()
+    const remaining = queuedItems.filter((q) => q.status !== 'exploring')
+    for (const explored of queuedItems.filter((q) => q.status === 'exploring')) {
+      await supabase
+        .from('le_wonder_items')
+        .update({ priority: null, updated_at: now })
+        .eq('id', explored.id)
+    }
+    for (let i = 0; i < remaining.length; i++) {
+      if (remaining[i].priority !== i + 1) {
+        await supabase
+          .from('le_wonder_items')
+          .update({ priority: i + 1, updated_at: now })
+          .eq('id', remaining[i].id)
+      }
+    }
+  }
 
   for (const statement of structured.learned_statements || []) {
     if (!statement.trim()) continue
@@ -270,5 +310,83 @@ export async function recordLessonCheckIn(
       .eq('id', lesson.expedition_id)
   }
 
+  // Retention engine: apply Expedition Flashback recall results.
+  if (input.flashback_results?.length) {
+    await recordFlashbackResults(supabase, input.flashback_results)
+  }
+
+  // Compliance derivation: every completed lesson writes its own daily
+  // activity-log entry (Florida contemporaneous log) — never parent homework.
+  await writeActivityLogFromLesson(supabase, userId, lesson, input)
+
   return { record: record as LeLessonRecord, structured }
+}
+
+async function writeActivityLogFromLesson(
+  supabase: SupabaseClient,
+  userId: string,
+  lesson: {
+    id: string
+    student_id: string
+    expedition_id: string
+    household_id: string | null
+    title: string
+    payload: LessonPayload
+  },
+  input: CheckInInput
+): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10)
+
+  // Idempotent: skip if this lesson already produced today's auto entry.
+  const autoTitle = `Lesson: ${lesson.title}`
+  const { data: existing } = await supabase
+    .from('le_activity_logs')
+    .select('id')
+    .eq('student_id', lesson.student_id)
+    .eq('entry_date', today)
+    .eq('title', autoTitle)
+    .maybeSingle()
+  if (existing) return
+
+  const p = lesson.payload
+  const time = p?.time_summary
+  const durationMinutes = input.low_battery
+    ? p?.low_battery_mode?.total_minutes || 15
+    : (time?.lesson_minutes || 0) +
+      (time?.reading_minutes || 0) +
+      (time?.foundational_minutes || 0)
+
+  const subjects = Array.from(
+    new Set((p?.objectives || []).map((o) => o.area.toLowerCase()))
+  )
+
+  const readingMaterials = [
+    ...(p?.parent_prep?.books || []),
+    ...(p?.core_resource?.resource_type === 'book' && p.core_resource.title
+      ? [p.core_resource.title]
+      : []),
+  ]
+
+  const title = input.low_battery && p?.low_battery_mode?.log_title
+    ? p.low_battery_mode.log_title
+    : autoTitle
+
+  await supabase.from('le_activity_logs').insert({
+    student_id: lesson.student_id,
+    expedition_id: lesson.expedition_id,
+    created_by: userId,
+    household_id: lesson.household_id,
+    entry_date: today,
+    title,
+    description: [
+      p?.identity?.essential_question ? `Essential question: ${p.identity.essential_question}` : null,
+      input.created_said_demonstrated ? `Student demonstrated: ${input.created_said_demonstrated}` : null,
+      input.low_battery ? 'Short-form (low-battery) lesson day.' : null,
+    ]
+      .filter(Boolean)
+      .join('\n') || null,
+    duration_minutes: Math.max(durationMinutes, 15),
+    reading_materials: Array.from(new Set(readingMaterials)),
+    subjects: subjects.length > 0 ? subjects : ['general'],
+  })
 }

@@ -11,7 +11,7 @@ import {
   Textarea,
   Input,
 } from '@/lib/design-system/components'
-import type { Direction } from '@/lib/life-explorer/types'
+import type { Direction, FlashbackItem } from '@/lib/life-explorer/types'
 
 function RecordForm() {
   const searchParams = useSearchParams()
@@ -32,6 +32,9 @@ function RecordForm() {
   const [direction, setDirection] = useState<Direction>('continue')
   const [photoUrl, setPhotoUrl] = useState('')
   const [parentNotes, setParentNotes] = useState('')
+  const [lowBattery, setLowBattery] = useState(false)
+  const [flashbackItems, setFlashbackItems] = useState<FlashbackItem[]>([])
+  const [flashbackRecall, setFlashbackRecall] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     async function load() {
@@ -40,12 +43,16 @@ function RecordForm() {
         const json = await res.json()
         const id = lessonIdParam || json.lesson?.id
         setLessonId(id || null)
-        if (id && json.lesson?.id === id) {
-          setLessonTitle(json.lesson.title)
-        } else if (id) {
+        let lessonData = id && json.lesson?.id === id ? json.lesson : null
+        if (id && !lessonData) {
           const lessonRes = await fetch(`/api/life-explorer/lessons/${id}`)
           const lessonJson = await lessonRes.json()
-          setLessonTitle(lessonJson.lesson?.title || '')
+          lessonData = lessonJson.lesson || null
+        }
+        if (lessonData) {
+          setLessonTitle(lessonData.title || '')
+          const items: FlashbackItem[] = lessonData.payload?.flashback?.items || []
+          setFlashbackItems(items.filter((i) => i.wonder_item_id))
         }
       } finally {
         setLoading(false)
@@ -71,6 +78,16 @@ function RecordForm() {
           direction,
           photo_url: photoUrl || undefined,
           parent_notes: parentNotes || undefined,
+          low_battery: lowBattery || undefined,
+          flashback_results:
+            flashbackItems.length > 0
+              ? flashbackItems
+                  .filter((f) => f.wonder_item_id && f.wonder_item_id in flashbackRecall)
+                  .map((f) => ({
+                    wonder_item_id: f.wonder_item_id as string,
+                    recalled: flashbackRecall[f.wonder_item_id as string],
+                  }))
+              : undefined,
         }),
       })
       const json = await res.json()
@@ -133,6 +150,15 @@ function RecordForm() {
           <p className="text-neutral-400 mt-2">{lessonTitle || 'Today’s lesson'}</p>
         </div>
 
+        <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 px-4 py-3 text-sm text-amber-200">
+          Days are now tracked on the{' '}
+          <Link href="/homeschool/life-explorer/calendar" className="underline underline-offset-2 hover:text-white">
+            Calendar
+          </Link>{' '}
+          — logging there is all that&apos;s required. This detailed check-in still works and
+          feeds tomorrow&apos;s lesson steering, but it&apos;s optional.
+        </div>
+
         {!lessonId && (
           <p className="text-amber-200 text-sm">No lesson to record. Generate one from Today first.</p>
         )}
@@ -179,6 +205,73 @@ function RecordForm() {
             ))}
           </div>
         </Field>
+        {flashbackItems.length > 0 && (
+          <Field label="Expedition Flashback — did they remember?">
+            <div className="space-y-2">
+              {flashbackItems.map((f) => (
+                <div
+                  key={f.wonder_item_id}
+                  className="rounded-xl border border-[#222] bg-[#111] px-4 py-3"
+                >
+                  <p className="text-sm text-neutral-200">{f.learned_statement}</p>
+                  <div className="mt-2 flex gap-2">
+                    {(
+                      [
+                        [true, 'Remembered it'],
+                        [false, 'Needs another visit'],
+                      ] as const
+                    ).map(([recalled, label]) => (
+                      <button
+                        key={String(recalled)}
+                        type="button"
+                        onClick={() =>
+                          setFlashbackRecall((prev) => ({
+                            ...prev,
+                            [f.wonder_item_id as string]: recalled,
+                          }))
+                        }
+                        className={`rounded-full px-3 py-1 text-xs border ${
+                          flashbackRecall[f.wonder_item_id as string] === recalled
+                            ? recalled
+                              ? 'border-[#39FF14] text-[#39FF14] bg-[#39FF14]/10'
+                              : 'border-amber-400 text-amber-300 bg-amber-400/10'
+                            : 'border-[#333] text-neutral-400'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Field>
+        )}
+
+        <Field label="How was today taught?">
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                [false, 'Full lesson'],
+                [true, 'Low-battery (15-min) version'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={String(value)}
+                type="button"
+                onClick={() => setLowBattery(value)}
+                className={`rounded-full px-4 py-2 text-sm border ${
+                  lowBattery === value
+                    ? 'border-[#39FF14] text-[#39FF14] bg-[#39FF14]/10'
+                    : 'border-[#333] text-neutral-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+
         <Field label="Optional photo URL">
           <Input
             value={photoUrl}
