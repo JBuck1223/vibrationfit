@@ -92,26 +92,39 @@ export async function generateImage({
 }
 
 /**
- * Edit an existing image using fal.ai nano-banana/edit
+ * Edit an existing image using a fal edit model (default nano-banana/edit).
+ * Accepts a single reference (imageUrl) or multiple references (imageUrls) —
+ * multiple references are used for character-consistent storybook pages.
  */
 export async function editImage({
   userId,
   imageUrl,
+  imageUrls,
   prompt,
   dimension = 'square',
   quality = 'standard',
   style = 'vivid',
   context = 'custom',
+  model,
 }: {
   userId: string
-  imageUrl: string
+  imageUrl?: string
+  imageUrls?: string[]
   prompt: string
   dimension?: ImageDimension
   quality?: 'standard' | 'hd'
   style?: 'vivid' | 'natural'
   context?: string
+  /** fal edit model override, e.g. 'fal-ai/nano-banana-pro/edit'. */
+  model?: string
 }): Promise<GenerateImageResult> {
-  const falModel = 'fal-ai/nano-banana/edit'
+  const falModel = model || 'fal-ai/nano-banana/edit'
+  const referenceUrls = (imageUrls && imageUrls.length > 0 ? imageUrls : [imageUrl]).filter(
+    (u): u is string => Boolean(u)
+  )
+  if (referenceUrls.length === 0) {
+    return { success: false, error: 'editImage requires at least one reference image', provider: 'fal' }
+  }
   
   // Get cost from ai_model_pricing table
   // Cost is calculated as: price_per_unit (in dollars) * 100 = cents
@@ -152,7 +165,7 @@ export async function editImage({
     const result = await fal.subscribe(falModel, {
       input: {
         prompt,
-        image_urls: [imageUrl],
+        image_urls: referenceUrls,
         aspect_ratio: aspectRatio,
         num_images: 1,
       },

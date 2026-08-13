@@ -5,10 +5,29 @@ import { Container, Stack } from '@/lib/design-system/components'
 import {
   ANTARCTICA_BOOKS,
   ANTARCTICA_LINKS,
-  ANTARCTICA_PDFS,
   ANTARCTICA_SUPPLIES,
-  ANTARCTICA_WEEK1_DAYS,
 } from '@/lib/life-explorer/antarctica-resources'
+
+const PRINT_LAYERS = [
+  {
+    title: 'Expedition Kit',
+    href: '/api/life-explorer/print/kit',
+    when: 'Print once, at launch',
+    what: 'Explorer passport, Wonder Wall headers, expedition map, experiment sheets, completion certificate.',
+  },
+  {
+    title: 'Weekly Explorer Packet',
+    href: '/api/life-explorer/print/week',
+    when: 'Print with the Sunday materials forecast',
+    what: "Five field-notes day pages, reading cards at the current rung (they level up automatically), and the expedition word cards.",
+  },
+  {
+    title: "Today's lesson sheet",
+    href: null,
+    when: 'Only when a lesson needs one',
+    what: 'If an experiment needs a recording sheet, the print button appears on the lesson page. Most days need nothing beyond a field-notes page.',
+  },
+] as const
 
 export default function ResourcesPage() {
   return (
@@ -20,51 +39,67 @@ export default function ResourcesPage() {
           </Link>
           <h2 className="text-3xl font-bold text-white mt-3">Antarctica Resources</h2>
           <p className="text-neutral-400 mt-2">
-            Parent guides, journals, and verified links from the Life Explorer PDF pack. No invented
-            URLs.
+            Printables generated on demand (designed to sip ink), verified books and links, and the
+            supply list. The lesson screen is the teacher guide — nothing to print there.
           </p>
         </div>
 
-        <Section title="Printable PDFs">
-          <ul className="space-y-2">
-            {ANTARCTICA_PDFS.map((pdf) => (
-              <li key={pdf.title}>
-                <a
-                  href={pdf.url || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#39FF14] underline underline-offset-2 hover:text-[#5FFF3E]"
-                >
-                  {pdf.title}
-                </a>
-                <p className="text-sm text-neutral-400 mt-0.5">{pdf.why_selected}</p>
-              </li>
-            ))}
-          </ul>
-        </Section>
-
-        <Section title="Week 1 arc">
-          <ul className="space-y-3">
-            {ANTARCTICA_WEEK1_DAYS.map((day) => (
-              <li key={day.day} className="rounded-xl border border-[#2a2a2a] p-3">
-                <p className="text-white font-medium">
-                  Day {day.day} — {day.title}
-                </p>
-                <p className="text-sm text-[#00FFFF] mt-1">{day.essential_question}</p>
-                <p className="text-sm text-neutral-400 mt-1">{day.focus}</p>
-                {day.core_book && (
-                  <p className="text-xs text-neutral-500 mt-1">Read-aloud: {day.core_book}</p>
+        <Section title="Print Kit — three layers, nothing wasted">
+          <ul className="space-y-4">
+            {PRINT_LAYERS.map((layer) => (
+              <li key={layer.title} className="rounded-xl border border-[#2a2a2a] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-white font-medium">{layer.title}</p>
+                  <span className="text-xs uppercase tracking-wide text-[#00FFFF]">
+                    {layer.when}
+                  </span>
+                </div>
+                <p className="text-sm text-neutral-400 mt-1">{layer.what}</p>
+                {layer.href && (
+                  <a
+                    href={layer.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center rounded-lg bg-[#39FF14] px-4 py-2 text-xs font-semibold text-black hover:bg-[#5FFF3E] transition-colors"
+                  >
+                    Open &amp; print
+                  </a>
                 )}
               </li>
             ))}
           </ul>
         </Section>
 
-        <Section title="Books">
+        <Section title="Our storybooks">
+          <p className="text-sm text-neutral-400">
+            Skip the buy list — make your own. The Life Explorers star in original, fully
+            illustrated picture books about whatever {`he's`} wondering right now, written at his
+            reading level (or as a read-aloud).
+          </p>
+          <Link
+            href="/homeschool/life-explorer/books"
+            className="mt-3 inline-flex items-center rounded-lg bg-[#39FF14] px-4 py-2 text-xs font-semibold text-black hover:bg-[#5FFF3E] transition-colors"
+          >
+            Open the bookshelf
+          </Link>
+        </Section>
+
+        <Section title="Books to borrow or buy">
           <ul className="space-y-2">
             {ANTARCTICA_BOOKS.map((book) => (
               <li key={book.title} className="text-neutral-200">
-                <span className="text-white font-medium">{book.title}</span>
+                {book.url ? (
+                  <a
+                    href={book.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white font-medium underline underline-offset-2 hover:text-[#39FF14]"
+                  >
+                    {book.title}
+                  </a>
+                ) : (
+                  <span className="text-white font-medium">{book.title}</span>
+                )}
                 <p className="text-sm text-neutral-400">{book.why_selected}</p>
               </li>
             ))}

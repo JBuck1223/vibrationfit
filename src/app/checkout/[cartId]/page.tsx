@@ -285,7 +285,10 @@ export default function CartCheckoutPage() {
 
   const elementsOptions = {
     mode: product.mode as 'payment' | 'subscription',
-    amount: product.amount,
+    // Must match the amount of the PaymentIntent created server-side, or
+    // stripe.confirmPayment fails in the deferred flow. The server subtracts
+    // the promo discount (e.g. $1 launch offer), so mirror it here.
+    amount: Math.max(0, product.amount - (promoDiscount?.amountOff || 0)),
     currency: product.currency,
     // Payment-mode intents are created server-side with setup_future_usage:
     // 'off_session' (so the card can bill the Day-56 subscription). In Stripe's

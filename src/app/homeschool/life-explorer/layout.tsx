@@ -1,46 +1,64 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { Container } from '@/lib/design-system/components'
+import { createClient } from '@/lib/supabase/server'
+import { LifeExplorerNav } from './LifeExplorerNav'
 
 export const metadata: Metadata = {
   title: 'Life Explorer | Vibration Fit Homeschool',
   description: 'Curiosity-driven daily lessons for Vibration Fit Homeschool.',
 }
 
-const NAV = [
-  { href: '/homeschool/life-explorer', label: 'Today' },
-  { href: '/homeschool/life-explorer/calendar', label: 'Calendar' },
-  { href: '/homeschool/life-explorer/resources', label: 'Resources' },
-  { href: '/homeschool/life-explorer/wonder', label: 'Wonder Wall' },
-  { href: '/homeschool/life-explorer/portfolio', label: 'Portfolio' },
-  { href: '/homeschool/life-explorer/progress', label: 'Progress' },
-]
+// Three surfaces only: Today (Expedition) · Map · Profile.
+// Wonder Wall, Resources, Portfolio, Calendar, Progress are panels inside
+// those three — never peer destinations that restate the same data.
+export default async function LifeExplorerLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  // Expedition-as-place context for the top bar, fetched server-side so the
+  // nav never waterfalls a client request.
+  let expeditionTitle: string | null = null
+  let lifeCategory: string | null = null
+  let studentName: string | null = null
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      const { data: student } = await supabase
+        .from('le_students')
+        .select('id, name')
+        .eq('active', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      if (student) {
+        studentName = student.name
+        const { data: expedition } = await supabase
+          .from('le_expeditions')
+          .select('title, life_category')
+          .eq('student_id', student.id)
+          .eq('status', 'active')
+          .maybeSingle()
+        expeditionTitle = expedition?.title || null
+        lifeCategory = expedition?.life_category || null
+      }
+    }
+  } catch {
+    // Nav renders fine without context.
+  }
 
-export default function LifeExplorerLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      <div className="border-b border-[#222] bg-[#0f0f0f]/90 backdrop-blur sticky top-0 z-20">
-        <Container size="lg" className="py-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-[#39FF14]/80">Vibration Fit Homeschool</p>
-              <h1 className="text-lg font-semibold text-white">Life Explorer</h1>
-            </div>
-            <nav className="flex flex-wrap gap-2">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-full border border-[#333] px-3 py-1.5 text-sm text-neutral-300 hover:border-[#39FF14]/40 hover:text-white transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        </Container>
-      </div>
-      {children}
+      <LifeExplorerNav
+        expeditionTitle={expeditionTitle}
+        lifeCategory={lifeCategory}
+        studentName={studentName}
+      />
+      {/* Horizontal padding for every surface (Container adds none by design);
+          bottom padding on mobile so the fixed tab bar never covers content */}
+      <div className="px-4 md:px-6 pb-24 md:pb-0">{children}</div>
     </div>
   )
 }

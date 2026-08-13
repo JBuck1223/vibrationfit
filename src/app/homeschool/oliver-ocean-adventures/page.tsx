@@ -116,6 +116,13 @@ export default async function OceanAdventuresPage() {
   return (
     <div className="min-h-screen bg-black">
       <Container size="lg" className="px-6 py-12">
+        <div className="mb-8 rounded-xl border border-amber-400/30 bg-amber-400/5 px-4 py-3 text-center text-sm text-amber-200">
+          Archived unit — the live program is{' '}
+          <a href="/homeschool/life-explorer" className="underline underline-offset-2 hover:text-white">
+            Life Explorer
+          </a>
+          . This finished study stays here as a keepsake.
+        </div>
         <header className="mb-12 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Waves className="w-10 h-10 text-[#00FFFF]" />

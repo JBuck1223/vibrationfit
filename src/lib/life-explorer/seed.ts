@@ -75,50 +75,17 @@ export async function seedOliverAntarctica(
         ],
         core_resources: antarcticaCoreResourcesPayload(),
         notes:
-          'First Life Explorer expedition — PDF pack in public/homeschool/life-explorer/antarctica/. Ocean Adventures remains a finished static unit.',
+          'First Life Explorer expedition — printables generate live at /api/life-explorer/print/*. Ocean Adventures remains a finished static unit.',
       })
       .select('*')
       .single()
     if (error || !data) throw new Error(error?.message || 'Failed to create expedition')
     expedition = data
 
-    const wonderSeeds = [
-      { kind: 'know', statement: 'Penguins live there.', interest_level: null, status: 'unexplored' },
-      { kind: 'know', statement: 'It is really cold.', interest_level: null, status: 'unexplored' },
-      {
-        kind: 'wonder',
-        statement: "Why don't penguins freeze?",
-        interest_level: 5,
-        status: 'unexplored',
-      },
-      {
-        kind: 'wonder',
-        statement: 'Is there ice everywhere?',
-        interest_level: 4,
-        status: 'unexplored',
-      },
-      {
-        kind: 'wonder',
-        statement: 'Can people live in Antarctica?',
-        interest_level: 3,
-        status: 'unexplored',
-      },
-    ]
-
-    await supabase.from('le_wonder_items').insert(
-      wonderSeeds.map((w) => ({
-        expedition_id: expedition!.id,
-        created_by: userId,
-        household_id: householdId || student!.household_id,
-        kind: w.kind,
-        statement: w.statement,
-        interest_level: w.interest_level,
-        status: w.status,
-        source: 'student',
-        original_language: true,
-        recorded_at: new Date().toISOString().slice(0, 10),
-      }))
-    )
+    // The Wonder Wall starts EMPTY on purpose. Day 1's lesson seeds it from
+    // the child's own words (Know/Wonder sticky notes) — never from canned
+    // statements. The pack's likely_wonders are parent conversation prompts
+    // only, surfaced inside lesson 1, not inserted as data.
     created = true
   }
 
