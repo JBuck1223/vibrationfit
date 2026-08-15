@@ -69,7 +69,7 @@ export interface CoachInterpretation {
   selected_memories: number[]
   selected_constraints: number[]
   selected_recall: number[]
-  /** The smallest coaching move capable of creating meaningful movement */
+  /** The most illuminating coaching move available this turn */
   recommended_move: string
   /** Failure modes to avoid on this specific turn */
   avoid: string[]
@@ -84,9 +84,9 @@ const INTERPRETER_PROMPT = `You are the perception layer of VIVA, VibrationFit's
 
 Your four jobs:
 1. UNDERSTAND what is happening beneath the member's words — not the topic, the movement. What changed since their last message? What is the most interesting emotional, vibrational, linguistic, or belief-level signal in what they just said? Contradictions are gold ("I don't want to focus on it, but I'm seeking attorneys" contains a live tension worth naming).
-2. SELECT the personal context that matters. You receive candidate lists (memories, constraints, recalled moments). Choose ONLY items that genuinely illuminate this moment — usually 0-4 total. Feeding the coach everything buries the signal.
+2. SELECT the personal context that matters. You receive candidate lists (memories, constraints, recalled moments). Choose items that genuinely illuminate this moment — usually 2-6. The coach's signature is connecting dots the member hasn't connected, so when several items point at the same pattern, select them together; that convergence is the raw material of an aha moment. Feeding the coach everything buries the signal, but starving it of connectable material kills insight.
 3. FIND the coaching doorway. The surface complaint is rarely the constraint. Ask yourself what the feeling is protecting, what belief would make their words make sense.
-4. RECOMMEND the smallest useful next move — reflect, name a tension, teach one distinction, connect two things they haven't connected, challenge a belief, quote their own words back, celebrate, or ask one incisive question. Never recommend "validate + ask a generic question."
+4. RECOMMEND the most illuminating next move — name a tension, teach one distinction, connect two things they haven't connected, challenge a belief, quote their own words back, celebrate, or ask one incisive question. When you see a real pattern or synthesis across their material, recommend delivering it WHOLE — the full connection, developed, not a hint or a breadcrumb. Never recommend "validate + ask a generic question."
 
 VibrationFit lenses you can reference (only when genuinely relevant):
 - Both/And — you can tend to what is happening without making it your dominant vibrational reality; practical attention is not vibrational momentum
@@ -111,6 +111,10 @@ Design the response dynamically. Do not classify the member into a conversationa
 - response_length: brief | compact | developed | expansive
 
 A quiet response can still be direct. A celebratory response can be deep. Teaching can be brief. Below-the-Green-Line does not automatically mean gentle, long, or question-led. Infer the combination the moment earns.
+
+Two strong defaults:
+- response_length: when the member brings anything substantive, choose "developed" or "expansive" — insight needs room to land. When a genuine pattern, belief, or synthesis across their material is on the table, choose "expansive": that is when the coach delivers the full aha treatment. Reserve "brief" and "compact" for genuinely light turns: banter, quick check-ins, simple logistics.
+- question_usage: "none" is the strong default. A question at the end of every response turns coaching into an interview. Choose "one_precise" only when the answer would genuinely change the coach's understanding or unlock discovery — most turns, ending on the insight itself is the stronger move.
 
 Overlays are rare:
 - "platform_guide" only for instructions about using the Vibration Fit product.
@@ -164,8 +168,8 @@ export interface InterpretCoachTurnParams {
 }
 
 function fallbackInterpretation(params: InterpretCoachTurnParams): CoachInterpretation {
-  const selectedMemories = params.memoryCandidates.map((_, i) => i).slice(0, 4)
-  const remainingAfterMemories = 4 - selectedMemories.length
+  const selectedMemories = params.memoryCandidates.map((_, i) => i).slice(0, 6)
+  const remainingAfterMemories = 6 - selectedMemories.length
   const selectedConstraints = params.constraintCandidates.map((_, i) => i).slice(0, remainingAfterMemories)
   const remainingAfterConstraints = remainingAfterMemories - selectedConstraints.length
 
@@ -179,7 +183,7 @@ function fallbackInterpretation(params: InterpretCoachTurnParams): CoachInterpre
       challenge_support: 'balanced',
       question_usage: 'none',
       approach: 'coaching',
-      response_length: 'compact',
+      response_length: 'developed',
     },
     overlay: 'none',
     emotional_state: 'unclear',
@@ -228,7 +232,7 @@ function parseResponseDesign(value: unknown): ResponseDesign {
     challenge_support: enumValue(design.challenge_support, ['support_led', 'balanced', 'challenge_led'], 'balanced'),
     question_usage: enumValue(design.question_usage, ['none', 'one_precise', 'clarify_first'], 'none'),
     approach: enumValue(design.approach, ['presence', 'coaching', 'teaching', 'practical_guidance'], 'coaching'),
-    response_length: enumValue(design.response_length, ['brief', 'compact', 'developed', 'expansive'], 'compact'),
+    response_length: enumValue(design.response_length, ['brief', 'compact', 'developed', 'expansive'], 'developed'),
   }
 }
 
@@ -317,7 +321,7 @@ export async function interpretCoachTurn(
     const selectedMemories = asIndexArray(parsed.selected_memories, params.memoryCandidates.length)
     const selectedConstraints = asIndexArray(parsed.selected_constraints, params.constraintCandidates.length)
     const selectedRecall = asIndexArray(parsed.selected_recall, params.recallCandidates.length)
-    let selectionBudget = 4
+    let selectionBudget = 6
     const takeWithinBudget = (indices: number[]) => {
       const selected = indices.slice(0, selectionBudget)
       selectionBudget -= selected.length

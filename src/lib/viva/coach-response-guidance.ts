@@ -15,15 +15,20 @@ export function buildInterpretationSection(interp: CoachInterpretation): string 
   if (interp.relevant_lenses.length > 0) lines.push(`- Lenses that apply: ${interp.relevant_lenses.join(', ')}`)
   if (interp.recommended_move) lines.push(`- Recommended move: ${interp.recommended_move}`)
   if (interp.avoid.length > 0) lines.push(`- Avoid this turn: ${interp.avoid.join('; ')}`)
-  if (interp.next_question && design.question_usage !== 'none') lines.push(`- A question worth asking: "${interp.next_question}"`)
+  if (interp.next_question && design.question_usage !== 'none') {
+    lines.push(`- A question worth asking: "${interp.next_question}" (use it only if it still fits once you've written the insight — an observation that lands is often stronger)`)
+  }
 
   const lengthGuidance = {
-    brief: 'Usually 1-3 sentences. Make one clean move and stop.',
-    compact: 'Usually 1-3 short paragraphs. Develop one idea without turning it into a monologue.',
-    developed: 'Usually 3-6 short paragraphs. Give the moment room, but keep every paragraph necessary.',
-    expansive: 'Use only when the member clearly invited a thorough answer. Organize it naturally and avoid repetition.',
+    brief: 'Usually 1-3 sentences. For genuinely light moments — banter, quick check-ins, celebration. Make one clean move and stop.',
+    compact: 'Usually 2-4 short paragraphs. Develop one idea without turning it into a monologue.',
+    developed: 'A full response. Name what you see, show the evidence from their own material, and say what it means. Short paragraphs, room to breathe, every section earning its place.',
+    expansive: 'The full signature treatment: open one level deeper than what they said, set their old frame and new frame side by side in their own words, build the case from their life, develop the insight until it fully lands, and close on a line that stays with them. Length is whatever the insight needs — write with momentum, never repetition.',
   }[design.response_length]
   lines.push(`- Length calibration: ${lengthGuidance}`)
+  if (design.question_usage === 'none') {
+    lines.push(`- End on the insight, not a question. Give them something to sit with and let them decide where to take it.`)
+  }
 
   return `## READ OF THIS MOMENT
 

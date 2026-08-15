@@ -16,6 +16,25 @@ import { z } from 'zod'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { INCANTATION_SYSTEM_PROMPT, buildIncantationPrompt } from '@/lib/viva/prompts/incantation-prompt'
+import { SPARK_QUERY_SYSTEM_PROMPT, buildSparkQueryPrompt } from '@/lib/viva/prompts/spark-query-prompt'
+
+/** Extracts the first JSON object from a model response (handles code fences). */
+function parseJsonObject(raw: string): Record<string, unknown> | null {
+  let text = raw.trim()
+  if (text.startsWith('```')) {
+    text = text.replace(/```json?\n?/g, '').replace(/```$/g, '').trim()
+  }
+  const candidates = [text, text.match(/\{[\s\S]*\}/)?.[0]]
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    try {
+      const parsed = JSON.parse(candidate)
+      if (parsed && typeof parsed === 'object') return parsed as Record<string, unknown>
+    } catch { /* try next candidate */ }
+  }
+  return null
+}
 
 const CATEGORY_ENUM = z.enum([
   'fun', 'health', 'travel', 'love', 'family', 'social',
@@ -299,6 +318,163 @@ export function buildCoachTools(ctx: CoachToolsContext) {
         }
       },
     }),
+
+    create_incantation: tool({
+      description:
+        'Create an incantation — a short (30-100 word), rhythmic, repeatable declaration for vocal practice — from the energy of this conversation. Offer when a new belief or desire crystallizes and the member wants language to encode it. Ask their framework preference first (self-powered, or invoking a divine name like God/the Universe/Source) unless you already know it. Confirm before creating.',
+      inputSchema: z.object({
+        focus: z.string().describe('The emotional voltage to build around — the belief or desire to encode, in one sentence'),
+        framework: z.enum(['self', 'spiritual']).describe("'self' = identity-as-truth, no external reference; 'spiritual' = seals with a divine name"),
+        divine_name: z.string().nullable().describe("The divine name to invoke (e.g. God, the Universe, Source). Required when framework is 'spiritual'."),
+      }),
+      execute: async ({ focus, framework, divine_name }) => {
+        if (framework === 'spiritual' && !divine_name?.trim()) {
+          return { success: false, message: 'A spiritual incantation needs a divine name — ask which one they connect with.' }
+        }
+
+        const result = await generateText({
+          model: gateway('openai/gpt-4o'),
+          system: INCANTATION_SYSTEM_PROMPT,
+          prompt: buildIncantationPrompt({
+            sourceContent: getConversationText().slice(0, 8000),
+            sourceLabel: 'VIVA conversation',
+            framework,
+            divineName: divine_name?.trim() || undefined,
+            intent: focus,
+          }),
+          temperature: 0.8,
+        })
+
+        if (result.usage?.totalTokens) {
+          trackTokenUsage({
+            user_id: userId,
+            action_type: 'incantation_generation',
+            model_used: 'gpt-4o',
+            tokens_used: result.usage.totalTokens,
+            input_tokens: result.usage.inputTokens || 0,
+            output_tokens: result.usage.outputTokens || 0,
+            provider: 'vercel_gateway',
+            provider_request_id: gatewayGenerationId(result),
+            success: true,
+            metadata: { helper: 'viva_coach_incantation' },
+          }).catch(() => {})
+        }
+
+        const parsed = parseJsonObject(result.text)
+        const text = typeof parsed?.text === 'string' ? parsed.text.trim() : ''
+        if (!text) return { success: false, message: 'Incantation generation came back empty.' }
+        const title = (typeof parsed?.title === 'string' && parsed.title.trim()) || 'Incantation'
+
+        const { data, error } = await supabase
+          .from('stories')
+          .insert({
+            user_id: userId,
+            entity_type: 'custom',
+            entity_id: conversationId || crypto.randomUUID(),
+            title,
+            content: text,
+            word_count: text.split(/\s+/).filter(Boolean).length,
+            source: 'ai_generated',
+            status: 'completed',
+            metadata: {
+              is_incantation: true,
+              source_label: 'VIVA conversation',
+              framework,
+              divine_name: framework === 'self' ? null : divine_name?.trim() || null,
+              intent: focus,
+              mode: typeof parsed?.mode === 'string' ? parsed.mode : null,
+              force: typeof parsed?.force === 'string' ? parsed.force : null,
+              created_by: 'viva_coach',
+            },
+          })
+          .select('id')
+          .single()
+
+        if (error || !data) return { success: false, message: 'Could not save the incantation.' }
+        return {
+          success: true,
+          message: `Created your incantation "${title}".`,
+          link: `/story/${data.id}`,
+          incantation: text,
+        }
+      },
+    }),
+
+    create_spark_query: tool({
+      description:
+        'Create a SparkQuery set — 3 empowering "Why am I / Why do I / Why does" questions that presuppose the desired reality — from this conversation. Offer when a limiting belief has been flipped or a new self-concept is emerging and daily reinforcement would help. Confirm before creating.',
+      inputSchema: z.object({
+        focus: z.string().describe('The desired outcome or identity shift the questions should presuppose, in one sentence'),
+      }),
+      execute: async ({ focus }) => {
+        const result = await generateText({
+          model: gateway('openai/gpt-4o'),
+          system: SPARK_QUERY_SYSTEM_PROMPT,
+          prompt: buildSparkQueryPrompt({
+            sourceContent: getConversationText().slice(0, 8000),
+            sourceLabel: 'VIVA conversation',
+            intent: focus,
+          }),
+          temperature: 0.8,
+        })
+
+        if (result.usage?.totalTokens) {
+          trackTokenUsage({
+            user_id: userId,
+            action_type: 'spark_query_generation',
+            model_used: 'gpt-4o',
+            tokens_used: result.usage.totalTokens,
+            input_tokens: result.usage.inputTokens || 0,
+            output_tokens: result.usage.outputTokens || 0,
+            provider: 'vercel_gateway',
+            provider_request_id: gatewayGenerationId(result),
+            success: true,
+            metadata: { helper: 'viva_coach_spark_query' },
+          }).catch(() => {})
+        }
+
+        const parsed = parseJsonObject(result.text)
+        const questions = Array.isArray(parsed?.questions)
+          ? (parsed.questions as unknown[])
+              .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
+              .map(q => (q.trim().endsWith('?') ? q.trim() : `${q.trim()}?`))
+          : []
+        if (questions.length !== 3) return { success: false, message: 'SparkQuery generation came back malformed.' }
+        const title = (typeof parsed?.title === 'string' && parsed.title.trim()) || 'SparkQuery™'
+        const content = questions.map((q, i) => `${i + 1}. ${q}`).join('\n')
+
+        const { data, error } = await supabase
+          .from('stories')
+          .insert({
+            user_id: userId,
+            entity_type: 'custom',
+            entity_id: conversationId || crypto.randomUUID(),
+            title,
+            content,
+            word_count: content.split(/\s+/).filter(Boolean).length,
+            source: 'ai_generated',
+            status: 'completed',
+            metadata: {
+              is_spark_query: true,
+              source_label: 'VIVA conversation',
+              intent: focus,
+              questions,
+              title,
+              created_by: 'viva_coach',
+            },
+          })
+          .select('id')
+          .single()
+
+        if (error || !data) return { success: false, message: 'Could not save the SparkQuery set.' }
+        return {
+          success: true,
+          message: `Created your SparkQuery set "${title}".`,
+          link: `/story/${data.id}`,
+          questions,
+        }
+      },
+    }),
   }
 }
 
@@ -315,6 +491,8 @@ You can take real actions in the member's VibrationFit account, right from this 
 - **Log abundance** (log_abundance_event): when they mention money or value received
 - **Add a Daily Paper task** (add_daily_paper_task): when a concrete next step emerges
 - **Create an activation story** (create_activation_story): when a real shift lands, offer to actualize it into a story they can rehearse
+- **Create an incantation** (create_incantation): when a new belief crystallizes and they want charged, repeatable language to encode it — ask whether they want it self-powered or sealed with a divine name (God, the Universe, Source) unless you already know
+- **Create a SparkQuery set** (create_spark_query): when a limiting belief has been flipped or a new self-concept is emerging — three "Why am I...?" questions that presuppose the new reality for daily practice
 
 Rules for actions:
 - OFFER, then act on their yes. Never act on ambiguous consent.
