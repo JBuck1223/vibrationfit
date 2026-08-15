@@ -5,9 +5,9 @@ Helper scripts for managing the two-machine git workflow safely.
 ## Workflow Overview
 
 ```
-jordan (Machine 1) ──┐
-                     ├──→ dev (integration/staging) ──→ main (production)
-vanessa (Machine 2) ─┘
+jordan (JV MacBook Pro) ──┐
+                          ├──→ dev (integration/staging) ──→ main (production)
+jvmacmini (JV Mac Mini) ──┘
 ```
 
 ## Quick Start
@@ -19,8 +19,8 @@ vanessa (Machine 2) ─┘
 ```
 
 This will:
-- Ask which machine you're on (1 or 2)
-- Checkout the correct branch (jordan or vanessa)
+- Ask which machine you're on (JV MacBook Pro or JV Mac Mini)
+- Checkout the correct branch (`jordan` or `jvmacmini`)
 - Pull latest changes from remote
 
 ### 2. Saving Your Work
@@ -42,14 +42,12 @@ This will:
 
 This will:
 - Merge jordan → dev
-- Test build
-- Merge vanessa → dev
-- Test build again
+- Merge jvmacmini → dev
+- Test the build
 - Push dev to remote
-- Sync dev back to jordan (all three branches match)
-- Sync dev back to vanessa (all three branches match)
+- Sync dev back to jordan and jvmacmini
 
-**Result:** jordan, vanessa, and dev are all identical. Continue working!
+**Result:** jordan, jvmacmini, and dev are all identical. Continue working!
 
 ### 4. Deploying to Production
 
@@ -70,7 +68,7 @@ If you prefer to run commands manually, here's the workflow:
 
 ### Daily Work
 
-**On Machine 1 (jordan):**
+**On JV MacBook Pro (jordan):**
 ```bash
 git checkout jordan
 git pull origin jordan
@@ -80,14 +78,14 @@ git commit -m "feat: your changes"
 git push origin jordan
 ```
 
-**On Machine 2 (Vanessa):**
+**On JV Mac Mini (jvmacmini):**
 ```bash
-git checkout Vanessa
-git pull origin Vanessa
+git checkout jvmacmini
+git pull origin jvmacmini
 # work, make changes
 git add -A
 git commit -m "feat: your changes"
-git push origin Vanessa
+git push origin jvmacmini
 ```
 
 ### Integration to Dev
@@ -98,7 +96,7 @@ git checkout dev
 git pull origin dev
 git merge jordan
 npm run build
-git merge Vanessa
+git merge jvmacmini
 npm run build
 git push origin dev
 
@@ -107,9 +105,9 @@ git checkout jordan
 git merge dev
 git push origin jordan
 
-git checkout Vanessa
+git checkout jvmacmini
 git merge dev
-git push origin Vanessa
+git push origin jvmacmini
 ```
 
 ### Deploy to Production
@@ -169,21 +167,16 @@ git checkout -b messy-branch
 
 ## Branch Purpose
 
-- **jordan** - Work from Machine 1
-- **Vanessa** - Work from Machine 2
-- **dev** - Integration/staging (jordan + Vanessa)
+- **jordan** - Work from JV MacBook Pro
+- **jvmacmini** - Work from JV Mac Mini
+- **dev** - Integration/staging (jordan + jvmacmini)
 - **main** - Production (deployed to Vercel)
 
 ## Safety Features
 
 All scripts include:
-- ✅ Automatic build testing before pushing
-- ✅ Exit on error (won't continue if something fails)
-- ✅ Confirmation prompts for production deploys
-- ✅ Return to original branch after completion
-- ✅ Clear success/error messages
-
-## Questions?
-
-See the full workflow guide at: `.cursor/plans/two_machine_git_workflow_91e81ce4.plan.md`
-
+- Automatic build testing before pushing
+- Exit on error (won't continue if something fails)
+- Confirmation prompts for production deploys
+- Return to original branch after completion
+- Clear success/error messages

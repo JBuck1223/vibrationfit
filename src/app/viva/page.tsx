@@ -11,6 +11,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import {
   PanelLeft,
   Plus,
@@ -425,7 +427,7 @@ export default function VivaPage() {
                   ) : (
                     <div>
                       <div className="prose prose-invert prose-neutral max-w-none text-[15px] leading-relaxed prose-p:my-3 prose-headings:text-white prose-strong:text-white">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{message.content}</ReactMarkdown>
                       </div>
                     </div>
                   )}

@@ -1,15 +1,14 @@
 # VibrationFit Git Workflow - Quick Reference
 
-## 🎯 Branch Structure
+## Branch Structure
 
 ```
-jordan (Machine 1) ──────┐
-                         ├──→ dev (staging) ──→ main (production → Vercel)
-Vanessa (Machine 2) ─────┤
-jvmacmini (JV Mac Mini) ─┘
+jordan (JV MacBook Pro) ──┐
+                          ├──→ dev (staging) ──→ main (production → Vercel)
+jvmacmini (JV Mac Mini) ──┘
 ```
 
-## 🚀 Common Commands
+## Common Commands
 
 ### Start Working
 ```bash
@@ -31,9 +30,9 @@ jvmacmini (JV Mac Mini) ─┘
 ./workflow/deploy-to-main.sh
 ```
 
-## 📋 Manual Workflow
+## Manual Workflow
 
-### Daily Work on Machine 1 (Jordan)
+### Daily Work on JV MacBook Pro
 ```bash
 git checkout jordan
 git pull origin jordan
@@ -41,16 +40,6 @@ git pull origin jordan
 git add -A
 git commit -m "your message"
 git push origin jordan
-```
-
-### Daily Work on Machine 2 (Vanessa)
-```bash
-git checkout Vanessa
-git pull origin Vanessa
-# make changes
-git add -A
-git commit -m "your message"
-git push origin Vanessa
 ```
 
 ### Daily Work on JV Mac Mini
@@ -65,23 +54,18 @@ git push origin jvmacmini
 
 ### Integration to Dev
 ```bash
-# Merge all branches to dev
+# Merge machine branches to dev
 git checkout dev
 git pull origin dev
 git merge jordan
-git merge Vanessa
 git merge jvmacmini
 npm run build
 git push origin dev
 
-# Sync back to all branches
+# Sync back to both machines
 git checkout jordan
 git merge dev
 git push origin jordan
-
-git checkout Vanessa
-git merge dev
-git push origin Vanessa
 
 git checkout jvmacmini
 git merge dev
@@ -97,7 +81,7 @@ npm run build
 git push origin main
 ```
 
-## 💡 Best Practices
+## Best Practices
 
 1. **Commit often** - Every 15-30 minutes
 2. **Pull before starting** - Always sync first
@@ -105,25 +89,23 @@ git push origin main
 4. **Clear messages** - Describe what and why
 5. **WIP commits OK** - Better than losing work
 
-## 🔧 Current Setup Status
+## Current Setup Status
 
-✅ Dev branch created and pushed  
-✅ Jordan branch synced with dev  
-✅ Vanessa branch synced with dev  
-✅ JV Mac Mini branch (jvmacmini) synced with dev  
-✅ Helper scripts installed and executable  
+- Dev branch created and pushed
+- JV MacBook Pro branch (`jordan`) synced with dev
+- JV Mac Mini branch (`jvmacmini`) synced with dev
+- Helper scripts installed and executable
+- Vanessa / Machine 2 is retired from this workflow
 
-## 📚 Full Documentation
+## Full Documentation
 
 - Helper Scripts: `workflow/README.md`
-- Detailed Guide: `.cursor/plans/two_machine_git_workflow_91e81ce4.plan.md`
 
-## ⚠️ Important Notes
+## Important Notes
 
 - **main** = Production (Vercel auto-deploys)
 - **dev** = Staging (test here first)
-- **jordan** = Machine 1 work
-- **Vanessa** = Machine 2 work
+- **jordan** = JV MacBook Pro work
 - **jvmacmini** = JV Mac Mini work
 
 Always merge through dev before going to main!
