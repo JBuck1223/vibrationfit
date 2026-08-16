@@ -25,7 +25,9 @@ import {
   Heart,
   Edit,
   Trash2,
+  Layers,
 } from 'lucide-react'
+import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 interface AbundanceEvent {
   id: string
@@ -66,6 +68,7 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
   const [event, setEvent] = useState<AbundanceEvent | null>(null)
   const [loading, setLoading] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showAddToKit, setShowAddToKit] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
@@ -279,6 +282,15 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
             {/* Actions */}
             <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowAddToKit(true)}
+                className="flex-1 sm:flex-none sm:w-auto"
+              >
+                <Layers className="w-4 h-4 mr-2" />
+                Add to manifestation
+              </Button>
+              <Button
                 variant="danger"
                 size="sm"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -308,6 +320,14 @@ export default function AbundanceEventPage({ params }: { params: Promise<{ id: s
           message="This cannot be undone."
           onConfirm={handleDelete}
           isDeleting={deleting}
+        />
+        <AddToKitSheet
+          isOpen={showAddToKit}
+          onClose={() => setShowAddToKit(false)}
+          slot="abundance"
+          entityType="abundance_events"
+          entityId={event.id}
+          label={event.note || 'Abundance event'}
         />
       </Stack>
     </Container>

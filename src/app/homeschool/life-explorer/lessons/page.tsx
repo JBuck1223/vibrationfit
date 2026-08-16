@@ -27,7 +27,7 @@ const STATUS_STYLES: Record<LessonStatus, { label: string; className: string }> 
   ready: { label: 'Ready', className: 'bg-[#00FFFF]/10 text-[#00FFFF]' },
   in_progress: { label: 'In progress', className: 'bg-[#FFFF00]/10 text-[#FFFF00]' },
   completed: { label: 'Completed', className: 'bg-[#39FF14]/10 text-[#39FF14]' },
-  skipped: { label: 'Skipped', className: 'bg-neutral-500/10 text-neutral-400' },
+  skipped: { label: 'Set aside', className: 'bg-neutral-500/10 text-neutral-400' },
 }
 
 function fmtDate(iso: string) {

@@ -33,6 +33,7 @@ function interpretation(overrides: Partial<CoachInterpretation> = {}): CoachInte
     recommended_move: 'Name the waiting pattern directly.',
     avoid: [],
     next_question: 'What are you waiting for permission to do?',
+    kit_move: 'none',
     confidence: 0.9,
     fallback: false,
     ...overrides,

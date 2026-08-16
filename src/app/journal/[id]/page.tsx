@@ -7,11 +7,12 @@ import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen, Layers } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useJournalStudio } from '@/components/journal-studio'
+import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 interface JournalEntry {
   id: string
@@ -25,6 +26,7 @@ interface JournalEntry {
   audio_recordings: any[]
   created_at: string
   updated_at: string
+  journal_tag?: string | null
 }
 
 export default function JournalEntryPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,6 +37,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: string; index: number } | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showAddToKit, setShowAddToKit] = useState(false)
   const [processedVideoUrls, setProcessedVideoUrls] = useState<Record<string, string>>({})
   const [deleting, setDeleting] = useState(false)
   const [entryId, setEntryId] = useState<string | null>(null)
@@ -565,6 +568,15 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
             {/* Actions */}
             <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowAddToKit(true)}
+                className="flex-1 sm:flex-none sm:w-auto"
+              >
+                <Layers className="w-4 h-4 mr-2" />
+                Add to manifestation
+              </Button>
+              <Button
                 variant="danger"
                 size="sm"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -734,6 +746,17 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
         isLoading={deleting}
         loadingText="Deleting..."
       />
+      {entry && (
+        <AddToKitSheet
+          isOpen={showAddToKit}
+          onClose={() => setShowAddToKit(false)}
+          slot="journal"
+          entityType="journal_entries"
+          entityId={entry.id}
+          label={entry.title}
+          layer={entry.journal_tag === 'vision' ? 'suite' : 'evidence'}
+        />
+      )}
       </Stack>
     </Container>
   )

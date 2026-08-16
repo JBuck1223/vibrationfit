@@ -10,9 +10,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
+import { VivaMarkdown } from '@/components/viva/VivaMarkdown'
+import { MessageCopyButton } from '@/components/viva/MessageCopyButton'
 import {
   PanelLeft,
   Plus,
@@ -26,8 +25,10 @@ import {
 } from 'lucide-react'
 import { keys } from '@/lib/query/keys'
 import { VivaChatInput } from '@/components/viva/VivaChatInput'
+import { VivaModeSwitcher } from '@/components/viva/VivaModeSwitcher'
 import { ConstraintsPanel } from '@/components/viva/ConstraintsPanel'
 import { cn } from '@/lib/utils'
+import { parseVivaMode, type VivaMode } from '@/lib/viva/modes'
 
 interface Message {
   id: string
@@ -43,6 +44,7 @@ interface Thread {
   pinned: boolean
   last_message_at: string | null
   updated_at: string
+  viva_mode?: VivaMode
 }
 
 interface RetrievalIndicator {
@@ -67,6 +69,7 @@ export default function VivaPage() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [indicators, setIndicators] = useState<RetrievalIndicator[]>([])
   const [isThinking, setIsThinking] = useState(false)
+  const [vivaMode, setVivaMode] = useState<VivaMode>('auto')
 
   // --- UI state ---
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -105,10 +108,30 @@ export default function VivaPage() {
   }, [messages.length, isThinking])
 
   // --- Thread management ---
+  const persistMode = async (conversationId: string | null, toMode: VivaMode, source: 'composer' | 'restore') => {
+    if (!conversationId) return
+    try {
+      await fetch('/api/viva/mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, toMode, source }),
+      })
+    } catch (err) {
+      console.error('Error saving VIVA mode:', err)
+    }
+  }
+
+  const handleModeChange = (next: VivaMode) => {
+    if (next === vivaMode) return
+    setVivaMode(next)
+    persistMode(threadId, next, 'composer')
+  }
+
   const startNewThread = () => {
     setThreadId(null)
     setMessages([])
     setIndicators([])
+    setVivaMode('auto')
     messageCountRef.current = 0
   }
 
@@ -129,6 +152,10 @@ export default function VivaPage() {
           }))
         )
       }
+      const thread = threads.find(t => t.id === id)
+      const restored = parseVivaMode(thread?.viva_mode)
+      setVivaMode(restored)
+      persistMode(id, restored, 'restore')
     } catch (err) {
       console.error('Error loading thread:', err)
     }
@@ -191,6 +218,7 @@ export default function VivaPage() {
           messages: messagesForAPI,
           conversationId: threadId,
           isNewSession: !threadId,
+          modeHint: vivaMode,
           ...(modelOverride ? { modelOverride } : {}),
         }),
       })
@@ -415,20 +443,23 @@ export default function VivaPage() {
               </div>
             )}
 
-            {messages.map(message => {
+            {messages.map((message, index) => {
+              const hideCopy = isStreaming && index === messages.length - 1 && !message.content.trim()
               return (
                 <div key={message.id}>
                   {message.role === 'user' ? (
-                    <div className="flex justify-end">
+                    <div className="flex flex-col items-end gap-1.5">
                       <div className="max-w-[85%] rounded-2xl bg-neutral-900 border border-neutral-800 px-4 py-2.5 text-[15px] text-neutral-100 whitespace-pre-wrap leading-relaxed">
                         {message.content}
                       </div>
+                      {!hideCopy && <MessageCopyButton text={message.content} align="right" />}
                     </div>
                   ) : (
-                    <div>
-                      <div className="prose prose-invert prose-neutral max-w-none text-[15px] leading-relaxed prose-p:my-3 prose-headings:text-white prose-strong:text-white">
-                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{message.content}</ReactMarkdown>
-                      </div>
+                    <div className="space-y-2">
+                      <VivaMarkdown>{message.content}</VivaMarkdown>
+                      {!hideCopy && message.content.trim() && (
+                        <MessageCopyButton text={message.content} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -459,6 +490,9 @@ export default function VivaPage() {
         {/* Input */}
         <div className="border-t border-neutral-900">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
+            <div className="mb-3">
+              <VivaModeSwitcher value={vivaMode} onChange={handleModeChange} disabled={isStreaming} />
+            </div>
             <VivaChatInput
               value={currentMessage}
               onChange={setCurrentMessage}

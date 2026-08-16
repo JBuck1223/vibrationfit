@@ -26,6 +26,10 @@ import { searchMemberContext, syncMemberEmbeddings } from '@/lib/viva/embeddings
 import { buildCoachTools, COACH_TOOLS_PROMPT } from '@/lib/viva/coach-tools'
 import { getVivaHouseholdLens } from '@/lib/viva/household-lens'
 import { checkIsAdmin } from '@/middleware/admin'
+import { parseVivaMode } from '@/lib/viva/modes'
+import { buildModeContract } from '@/lib/viva/prompts/mode-contracts'
+import { PLATFORM_MAP_PROMPT } from '@/lib/viva/prompts/platform-map'
+import { findOpenKitForConversation } from '@/lib/manifestations/kit-helpers'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -67,9 +71,10 @@ export async function POST(req: Request) {
       selectedCategories,
       userIntent,
       modeHint,
-      isNewSession,
       modelOverride,
     } = await req.json()
+
+    const selectedMode = parseVivaMode(modeHint)
 
     // =========================================================================
     // LAYER 0: SAVE — Create session + persist user message
@@ -83,6 +88,7 @@ export async function POST(req: Request) {
         .insert({
           user_id: user.id,
           mode: 'coach',
+          viva_mode: selectedMode,
           category: selectedCategories?.[0] || null,
           preview_message: userIntent || messages?.[messages.length - 1]?.content?.slice(0, 100) || 'Coaching session',
           message_count: 0,
@@ -107,7 +113,7 @@ export async function POST(req: Request) {
         conversation_id: currentConversationId || null,
         message: lastUserMessage.content,
         role: 'user',
-        context: { mode: 'coach', selectedCategories, userIntent },
+        context: { mode: 'coach', selected_mode: selectedMode, selectedCategories, userIntent },
         created_at: new Date().toISOString(),
       }).then(({ error }) => {
         if (error) console.error('[VIVA COACH] Error saving user message:', error)
@@ -120,15 +126,6 @@ export async function POST(req: Request) {
 
     const userName = user.user_metadata?.full_name?.split(' ')[0] || 'friend'
     const latestContent = lastUserMessage?.content || ''
-
-    const normalizeIntentHint = (hint: unknown): string | undefined => {
-      if (typeof hint !== 'string') return undefined
-      const normalized = hint.trim().toLowerCase()
-      return ['connection', 'coaching', 'conversation', 'momentum', 'guide', 'crisis'].includes(normalized)
-        ? normalized
-        : undefined
-    }
-    const intentHint = isNewSession ? normalizeIntentHint(modeHint) : undefined
 
     // Household lens first (fast) — it scopes memory/constraint/recall loads
     const householdLens = await getVivaHouseholdLens(supabase, user.id)
@@ -198,7 +195,11 @@ export async function POST(req: Request) {
     if (coachContext.songs?.length) lensParts.push('their songs')
     if (coachContext.visionBoard?.active?.length) lensParts.push('active vision board desires')
     if (coachContext.abundance?.events?.length) lensParts.push('abundance events')
-    if (coachContext.mapItems?.length) lensParts.push('MAP practices')
+    if (coachContext.mapCommitments?.length || coachContext.mapItems?.length) lensParts.push('MAP commitments')
+    if (coachContext.openKits?.length) {
+      lensParts.push(`open kits: ${coachContext.openKits.map(k => k.title).join(', ')}`)
+    }
+    if (coachContext.openVisionDraft) lensParts.push('an open Life Vision draft')
 
     const interpretation = await interpretCoachTurn({
       latestMessage: latestContent,
@@ -207,7 +208,7 @@ export async function POST(req: Request) {
       constraintCandidates: constraintLines,
       recallCandidates: recallLines,
       lensSummary: lensParts.length > 0 ? lensParts.join(', ') : undefined,
-      modeHint: intentHint,
+      selectedMode,
       userId: user.id,
     })
 
@@ -253,6 +254,8 @@ export async function POST(req: Request) {
         : null,
     }))
 
+    coachContext.selectedMode = selectedMode
+
     // Household lens: shared family story
     if (householdLens) {
       coachContext.householdLens = {
@@ -274,6 +277,8 @@ export async function POST(req: Request) {
     const overlaySection = buildOverlaySection(overlay)
     const systemPrompt = [
       basePrompt,
+      buildModeContract(selectedMode),
+      PLATFORM_MAP_PROMPT,
       COACH_TOOLS_PROMPT,
       overlaySection,
       interpretationSection,
@@ -333,11 +338,20 @@ export async function POST(req: Request) {
       })
     }
 
+    const activeKit = await findOpenKitForConversation(
+      supabase,
+      user.id,
+      currentConversationId || null,
+    )
+
     // In-app actions (queue songs, capture entries, create stories, ...)
     const tools = buildCoachTools({
       supabase,
       userId: user.id,
       conversationId: currentConversationId || null,
+      selectedMode,
+      overlay,
+      activeKitId: activeKit?.id || coachContext.openKits?.[0]?.id || null,
       getConversationText: () =>
         chatMessages
           .slice(-12)
@@ -373,7 +387,7 @@ export async function POST(req: Request) {
             conversation_id: currentConversationId || null,
             message: text,
             role: 'assistant',
-            context: { mode: 'coach', vivaMode: mode, responseDesign, overlay, emotional_state, selectedCategories, userIntent },
+            context: { mode: 'coach', selected_mode: selectedMode, vivaMode: mode, responseDesign, overlay, emotional_state, selectedCategories, userIntent },
             created_at: new Date().toISOString(),
           })
 
@@ -385,6 +399,7 @@ export async function POST(req: Request) {
                 last_message_at: new Date().toISOString(),
                 message_count: (conversationHistory.length || 0) + 2,
                 preview_message: messages[messages.length - 1]?.content?.slice(0, 100) || '',
+                viva_mode: selectedMode,
               })
               .eq('id', currentConversationId)
           }

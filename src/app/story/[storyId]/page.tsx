@@ -23,6 +23,7 @@ import {
   Save,
   X,
   Home,
+  Layers,
 } from 'lucide-react'
 import {
   Container,
@@ -38,6 +39,7 @@ import { useStory } from '@/lib/stories'
 import type { UpdateStoryPayload } from '@/lib/stories'
 import { useStoryStudio } from '@/components/story-studio'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
+import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
   life_vision: { label: 'Life Vision', icon: Target, badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30' },
@@ -76,6 +78,7 @@ export default function StoryDetailPage({
   const [editContent, setEditContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [showSourceInput, setShowSourceInput] = useState(false)
+  const [showAddToKit, setShowAddToKit] = useState(false)
   const [visionVersionLabel, setVisionVersionLabel] = useState<string | null>(null)
 
   // Audio state
@@ -691,6 +694,15 @@ export default function StoryDetailPage({
                 </section>
 
                 <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-1">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowAddToKit(true)}
+                    className="flex-1 sm:flex-none sm:w-auto"
+                  >
+                    <Layers className="w-4 h-4 mr-2" />
+                    Add to manifestation
+                  </Button>
                   {canDelete && (
                     <Button
                       variant="danger"
@@ -869,6 +881,14 @@ export default function StoryDetailPage({
           </Stack>
         </Card>
       </Stack>
+      <AddToKitSheet
+        isOpen={showAddToKit}
+        onClose={() => setShowAddToKit(false)}
+        slot={isSparkQuery ? 'spark_query' : isIncantation ? 'incantation' : 'story'}
+        entityType="stories"
+        entityId={story.id}
+        label={story.title || 'Untitled story'}
+      />
     </Container>
   )
 }

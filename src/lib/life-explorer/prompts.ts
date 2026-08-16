@@ -24,6 +24,8 @@ RESOURCE CURATION — content earns its place:
 - Tier 2: museum/zoo/.gov/.edu kids' content.
 - Tier 3 (VF original): if no great resource exists, AUTHOR a complete experiment/craft yourself: materials (household first), steps, kid-language science, what to notice, mess level, minutes.
 - NEVER invent a URL, book page, runtime, or review score. Only use URLs given to you in this prompt. Everything else: needs_parent_link: true.
+- ON-TOPIC ONLY: every resource you output (core_resource, resource_queue, parent_prep.links) must directly help answer THIS lesson's essential question. Never pad the lesson with off-topic verified URLs just because they are the only URLs available — when no verified resource fits the topic, author a Tier 3 VF-original activity or output a needs_parent_link entry with an honest, searchable title (e.g. "SciShow Kids episode about crystals — parent finds link").
+- NO DUPLICATE LISTS: resource_queue is the ONE complete media list in play order — include the core_resource at its play position. parent_prep.links is only for things the parent must open, print, or prepare beforehand that are NOT already in the queue. Never list the same resource twice.
 - Videos ≤ 10 min for K-2, ≤ 15 min for grades 3-5.
 
 FOUNDATIONAL LADDERS — sequence never depends on the theme:
@@ -147,7 +149,7 @@ ${input.flashbackItems.map((f) => `- ${f.prompt} [wonder_item_id: ${f.wonder_ite
 Coverage steers (weave in naturally; NEVER as guilt or a worksheet bolt-on):
 ${input.coverageSteers.map((s) => `- ${s}`).join('\n') || '- (coverage is healthy)'}
 
-Verified pack resources — the ONLY URLs you may output (anything else: needs_parent_link):
+Verified pack resources — the ONLY URLs you may output. Use only the ones that genuinely fit THIS lesson's topic; skip the rest (anything else: needs_parent_link):
 ${input.packResources
   .map(
     (r) =>
@@ -172,7 +174,7 @@ Return JSON with this exact top-level shape:
   "teacher_script": { "opening": string, "mystery_or_question": string, "transitions": string[], "core_concept": string, "closing": string },
   "wonder_wall": { "know_prompt": string, "wonder_prompts": string[], "learned_guidance": string, "likely_follow_ups": string[] },
   "core_resource": { "title": string, "url": string|null, "resource_type": string, "runtime": string|null, "why_selected": string, "question_it_answers": string, "needs_parent_link": boolean, "engagement_tier": "franchise"|"verified"|"vf_original" },
-  "hands_on": object|null,
+  "hands_on": { "title": string, "learning_goal": string, "materials": string[], "parent_setup": string, "steps": string[], "prediction_prompt": string|null, "observation_questions": string[], "expected_result": string|null, "why_it_works": string|null, "cleanup": string|null, "safety": string|null } | null,
   "foundational_skills": { "subject": string, "activity": string, "materials": string[], "notes": string },
   "child_output": { "type": string, "description": string },
   "reflection": string[],
