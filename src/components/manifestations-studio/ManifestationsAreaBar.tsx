@@ -51,7 +51,7 @@ export function ManifestationsAreaBar() {
   const { kits } = useManifestationsStudio()
 
   const isDetail = Boolean(segment && segment !== 'new')
-  const kitId = isDetail ? segment : ''
+  const kitId = segment && segment !== 'new' ? segment : ''
 
   let versionSelectors: AreaBarVersionSelector[] | undefined
   if (isDetail) {
