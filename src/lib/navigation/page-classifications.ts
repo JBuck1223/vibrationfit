@@ -31,6 +31,9 @@ export const PAGE_CLASSIFICATIONS = {
       '/north-star',
       '/tracking',
       '/viva',
+      '/manifestations',
+      '/manifestations/new',
+      '/manifestations/[id]',
     
     // Audio Studio (global hub)
     '/audio',
@@ -391,6 +394,7 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/life-vision',
   '/journal',
   '/map',
+  '/manifestations',
   '/profile',
   '/projects',
   '/reset',

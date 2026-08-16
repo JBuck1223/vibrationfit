@@ -7,7 +7,7 @@ import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { scrollSafeAutoResize } from '@/lib/design-system/components/forms/auto-resize-utils'
 import {
   Plus, Trash2, ChevronRight, CheckCircle2, Calendar,
-  Check, Archive, RotateCcw, Home, FolderInput, FolderKanban, StickyNote,
+  Check, Archive, RotateCcw, Home, FolderInput, FolderKanban, StickyNote, Layers,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { IdeaTask, IdeaStatus, IdeaAttachment, ProjectNote, ProjectReferenceLink } from '@/lib/projects/types'
@@ -16,6 +16,7 @@ import { ProjectNotesSection } from '@/components/projects/ProjectNotesSection'
 import { ProjectLinksSection } from '@/components/projects/ProjectLinksSection'
 import { ProjectMediaSection } from '@/components/projects/ProjectMediaSection'
 import { TaskDetailModal } from '@/components/projects/TaskDetailModal'
+import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 // Single-line-style text field that wraps and grows with its content so long
 // titles are never clipped. Enter commits (blurs) instead of inserting a newline.
@@ -84,6 +85,7 @@ export default function ProjectDetailPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [householdInfo, setHouseholdInfo] = useState<{ name: string; isMultiMember: boolean } | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showAddToKit, setShowAddToKit] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [movingTask, setMovingTask] = useState<IdeaTask | null>(null)
   const [moveTargets, setMoveTargets] = useState<{ id: string; title: string }[] | null>(null)
@@ -689,6 +691,15 @@ export default function ProjectDetailPage() {
             <Button
               size="sm"
               variant="ghost"
+              onClick={() => setShowAddToKit(true)}
+              className="text-neutral-400 hover:text-neutral-200"
+            >
+              <Layers className="h-4 w-4 mr-1" />
+              Add to manifestation
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setShowDeleteConfirm(true)}
               className="text-neutral-400 hover:text-red-400"
             >
@@ -780,6 +791,14 @@ export default function ProjectDetailPage() {
         message="This permanently deletes the project and all of its tasks. This action cannot be undone."
         itemName={project.title}
         isDeleting={deleting}
+      />
+      <AddToKitSheet
+        isOpen={showAddToKit}
+        onClose={() => setShowAddToKit(false)}
+        slot="project"
+        entityType="projects"
+        entityId={project.id}
+        label={project.title}
       />
     </Container>
   )

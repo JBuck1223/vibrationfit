@@ -6,13 +6,14 @@ import { Card, Input, Button, CategoryGrid, Container, Stack, PageHero, Spinner,
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter, Edit3, Save } from 'lucide-react'
+import { Calendar, CheckCircle, Circle, XCircle, ArrowLeft, Trash2, Upload, Sparkles, Filter, Edit3, Save, Layers } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import Link from 'next/link'
 import { colors } from '@/lib/design-system/tokens'
+import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -43,6 +44,7 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showAddToKit, setShowAddToKit] = useState(false)
   const [item, setItem] = useState<VisionBoardItem | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [actualizedFile, setActualizedFile] = useState<File | null>(null)
@@ -924,6 +926,15 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
               {/* Actions */}
               <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end">
                 <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowAddToKit(true)}
+                  className="flex-1 sm:flex-none sm:w-auto"
+                >
+                  <Layers className="w-4 h-4 mr-2" />
+                  Add to manifestation
+                </Button>
+                <Button
                   variant="primary"
                   size="sm"
                   onClick={() => setIsEditing(true)}
@@ -956,6 +967,16 @@ export default function VisionBoardItemPage({ params }: { params: Promise<{ id: 
           isLoading={deleting}
           loadingText="Deleting..."
         />
+        {item && (
+          <AddToKitSheet
+            isOpen={showAddToKit}
+            onClose={() => setShowAddToKit(false)}
+            slot="vision_board"
+            entityType="vision_board_items"
+            entityId={item.id}
+            label={item.name}
+          />
+        )}
       </Stack>
     </Container>
   )

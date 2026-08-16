@@ -21,6 +21,9 @@
 import { generateText } from 'ai'
 import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
+import { MODE_CONTRACTS_FOR_LUNA } from './prompts/mode-contracts'
+import type { KitMove, VivaMode } from './modes'
+
 export { buildInterpretationSection, buildOverlaySection } from './coach-response-guidance'
 export type ResponseStance =
   | 'stay_with'
@@ -75,6 +78,8 @@ export interface CoachInterpretation {
   avoid: string[]
   /** A question worth asking, if a question is the move (else null) */
   next_question: string | null
+  /** Kit / first-domino offer. Friend and Coach stay at none unless they explicitly ask. */
+  kit_move: KitMove
   confidence: number
   /** True when interpretation failed and we passed everything through */
   fallback: boolean
@@ -87,6 +92,7 @@ Your four jobs:
 2. SELECT the personal context that matters. You receive candidate lists (memories, constraints, recalled moments). Choose items that genuinely illuminate this moment — usually 2-6. The coach's signature is connecting dots the member hasn't connected, so when several items point at the same pattern, select them together; that convergence is the raw material of an aha moment. Feeding the coach everything buries the signal, but starving it of connectable material kills insight.
 3. FIND the coaching doorway. The surface complaint is rarely the constraint. Ask yourself what the feeling is protecting, what belief would make their words make sense.
 4. RECOMMEND the most illuminating next move — name a tension, teach one distinction, connect two things they haven't connected, challenge a belief, quote their own words back, celebrate, or ask one incisive question. When you see a real pattern or synthesis across their material, recommend delivering it WHOLE — the full connection, developed, not a hint or a breadcrumb. Never recommend "validate + ask a generic question."
+5. MANIFESTATION MOVE — only when the selected mode and the moment both support it. Friend: always none. Coach: none unless they explicitly ask to build. Builder: propose_kit, offer_first_domino, continue_kit, or find_kit_candidates (never a second manifestation for the same idea). Assistant: find_asset or none. Auto may choose any. Never recommend six CTAs. If they ask to build from what they already have, use find_kit_candidates. Never say "kit" to the member.
 
 VibrationFit lenses you can reference (only when genuinely relevant):
 - Both/And — you can tend to what is happening without making it your dominant vibrational reality; practical attention is not vibrational momentum
@@ -148,6 +154,7 @@ Return ONLY a JSON object (no markdown):
   "recommended_move": "one or two sentences",
   "avoid": ["..."],
   "next_question": "..." | null,
+  "kit_move": "none|propose_kit|offer_first_domino|continue_kit|find_asset|find_kit_candidates",
   "confidence": 0.0-1.0
 }`
 
@@ -160,7 +167,9 @@ export interface InterpretCoachTurnParams {
   recallCandidates: string[]
   /** One-line summary of what other ambient context exists (vision, papers, songs...) */
   lensSummary?: string
-  /** Explicit intent the member selected in the UI, if any */
+  /** In-thread mode the member locked (auto / friend / coach / builder / assistant) */
+  selectedMode?: VivaMode
+  /** @deprecated Use selectedMode. Kept for unused legacy session-intent hints. */
   modeHint?: string
   userId?: string
   /** Disable usage persistence for standalone diagnostics outside a request scope. */
@@ -200,6 +209,7 @@ function fallbackInterpretation(params: InterpretCoachTurnParams): CoachInterpre
     recommended_move: '',
     avoid: [],
     next_question: null,
+    kit_move: 'none',
     confidence: 0.3,
     fallback: true,
   }
@@ -256,7 +266,9 @@ export async function interpretCoachTurn(
 
     sections.push(`LATEST MESSAGE FROM MEMBER:\n"${params.latestMessage.slice(0, 1500)}"`)
 
-    if (params.modeHint) {
+    if (params.selectedMode) {
+      sections.push(`SELECTED THREAD MODE: ${params.selectedMode}\n${MODE_CONTRACTS_FOR_LUNA}\nTreat the selected mode as a strong prior for response_design and kit_move. Crisis overlay still wins. Do not open a second manifestation for a reality that already has an open one — continue it. Avoid six CTAs. Never say kit to the member.`)
+    } else if (params.modeHint) {
       sections.push(`The member selected this starting intent for the session: ${params.modeHint}. Treat it as useful evidence, not a mode that overrides what is happening now.`)
     }
 
@@ -345,6 +357,7 @@ export async function interpretCoachTurn(
       recommended_move: typeof parsed.recommended_move === 'string' ? parsed.recommended_move : '',
       avoid: asStringArray(parsed.avoid),
       next_question: typeof parsed.next_question === 'string' ? parsed.next_question : null,
+      kit_move: enumValue(parsed.kit_move, ['none', 'propose_kit', 'offer_first_domino', 'continue_kit', 'find_asset', 'find_kit_candidates'], 'none'),
       confidence: Math.min(1, Math.max(0, Number(parsed.confidence) || 0.5)),
       fallback: false,
     }

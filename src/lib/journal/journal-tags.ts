@@ -14,7 +14,7 @@ export interface JournalTagConfig {
 export const JOURNAL_TAG_CONFIG: Record<JournalTag, JournalTagConfig> = {
   vision: {
     label: 'Vision',
-    description: 'Intentions, goals, declarations',
+    description: 'Intentions, chosen realities, declarations',
     icon: Eye,
     color: '#BF00FF',
     bgColor: 'rgba(191, 0, 255, 0.1)',

@@ -152,6 +152,31 @@ export interface SiblingTagAlong {
   adaptation: string
 }
 
+/**
+ * The lesson's hands-on activity. Generated lessons follow the full contract
+ * shape; legacy payloads may carry arbitrary keys, so everything is optional
+ * and unknown keys are tolerated (the renderer humanizes them).
+ */
+export interface HandsOnActivity {
+  title?: string
+  activity?: string
+  description?: string
+  learning_goal?: string
+  materials?: string[]
+  parent_setup?: string
+  steps?: string[]
+  prediction_prompt?: string | null
+  observation_questions?: string[]
+  expected_result?: string | null
+  why_it_works?: string | null
+  troubleshooting?: string | null
+  cleanup?: string | null
+  safety?: string | null
+  extension?: string | null
+  documentation_prompt?: string | null
+  [key: string]: unknown
+}
+
 export interface LessonBlockTime {
   block: string
   minutes: number
@@ -207,7 +232,7 @@ export interface LessonPayload {
     likely_follow_ups: string[]
   }
   core_resource: CoreResource
-  hands_on: Record<string, unknown> | null
+  hands_on: HandsOnActivity | string | null
   foundational_skills: {
     subject: string
     activity: string

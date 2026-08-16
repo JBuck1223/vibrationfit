@@ -189,12 +189,25 @@ export interface CoachContextInput {
   visionBoard?: { active: any[]; actualized: any[] }
   abundance?: { events: any[]; totalMoney: number; totalValue: number; goals: any[] } | null
   mapItems?: any[]
+  mapCommitments?: any[]
+  visionTargets?: any[]
+  openVisionDraft?: { id: string; title: string | null; refined_categories: string[] } | null
+  openKits?: Array<{
+    id: string
+    title: string
+    chosen_reality: string | null
+    life_categories: string[]
+    conversation_id: string | null
+    vision_draft_id: string | null
+    slots: Array<{ slot: string; status: string }>
+  }>
   stories?: any[]
   constraints?: any[]
   semanticRecall?: any[]
   householdLens?: { householdName: string; sharedMemberNames: string[] } | null
   selectedCategories?: string[]
   userIntent?: string
+  selectedMode?: string
 }
 
 export interface RetrievalIndicator {
@@ -284,8 +297,12 @@ export function buildRetrievalIndicators(input: CoachContextInput): RetrievalInd
     indicators.push({ source: 'abundance', detail: `Remembering the evidence you've been collecting` })
   }
 
-  if (input.mapItems && input.mapItems.length > 0) {
+  if ((input.mapCommitments && input.mapCommitments.length > 0) || (input.mapItems && input.mapItems.length > 0)) {
     indicators.push({ source: 'map', detail: `Keeping your current commitments in mind` })
+  }
+
+  if (input.openKits && input.openKits.length > 0) {
+    indicators.push({ source: 'kits', detail: `Holding ${input.openKits[0].title}` })
   }
 
   if (input.constraints && input.constraints.length > 0) {
@@ -539,14 +556,54 @@ export function buildCoachSystemPrompt(input: CoachContextInput): string {
     }
   }
 
-  // --- Practice Rhythm (MAP) ---
+  // --- Practice Rhythm (MAP v2) ---
   let mapContext = ''
-  if (input.mapItems && input.mapItems.length > 0) {
+  if (input.mapCommitments && input.mapCommitments.length > 0) {
+    const items = input.mapCommitments.slice(0, 10).map((i: any) => {
+      const cadence = i.cadence ? ` (${typeof i.cadence === 'string' ? i.cadence : i.cadence.kind || 'recurring'})` : ''
+      return `- ${i.title}${i.category ? ` [${i.category}]` : ''}${cadence}`
+    })
+    mapContext = `\n\n**THIS WEEK'S ALIGNMENT PRACTICES (MAP commitments):**\n${items.join('\n')}`
+  } else if (input.mapItems && input.mapItems.length > 0) {
     const items = input.mapItems.slice(0, 10).map((i: any) => {
       const days = i.days_of_week?.length ? ` (${i.days_of_week.join('/')})` : ''
       return `- ${i.label || i.activity_type}${i.category ? ` [${i.category}]` : ''}${days}`
     })
     mapContext = `\n\n**THIS WEEK'S ALIGNMENT PRACTICES (what they committed to on their MAP):**\n${items.join('\n')}`
+  }
+
+  if (input.visionTargets && input.visionTargets.length > 0) {
+    const targets = input.visionTargets.slice(0, 8).map((t: any) =>
+      `- ${t.title}${t.category ? ` [${t.category}]` : ''}${t.status ? ` — ${t.status}` : ''}`
+    )
+    mapContext += `\n\n**VISION TARGETS ON THEIR MAP:**\n${targets.join('\n')}`
+  }
+
+  let draftContext = ''
+  if (input.openVisionDraft) {
+    const refined = input.openVisionDraft.refined_categories?.length
+      ? ` refined: ${input.openVisionDraft.refined_categories.join(', ')}`
+      : ''
+    draftContext = `\n\n**OPEN LIFE VISION DRAFT:** ${input.openVisionDraft.title || 'Draft'}${refined}. The active vision is unchanged until they say to commit.`
+  }
+
+  let kitsContext = ''
+  if (input.openKits && input.openKits.length > 0) {
+    const lines = input.openKits.map(kit => {
+      const slots = kit.slots.length > 0
+        ? kit.slots.map(s => `${s.slot}:${s.status}`).join(', ')
+        : 'no slots yet'
+      return `- "${kit.title}" (${kit.life_categories.join(', ') || 'uncategorized'}) — ${slots}${kit.chosen_reality ? `\n  Practicing: ${kit.chosen_reality}` : ''}`
+    })
+    kitsContext = `\n\n**OPEN MANIFESTATIONS (continue these — do not open a second one for the same reality):**\n${lines.join('\n')}`
+  } else {
+    const libraryRich =
+      (input.stories && input.stories.length > 0) ||
+      (input.journalEntries && input.journalEntries.length > 0) ||
+      ((input.visionBoard?.active?.length || 0) + (input.visionBoard?.actualized?.length || 0) > 0)
+    if (libraryRich) {
+      kitsContext = `\n\n**NO OPEN MANIFESTATIONS, BUT THEIR LIBRARY IS RICH:** They already have stories, journal, or board items and no manifestation yet. In Builder (or Auto when they ask), offer to gather what they already have with find_kit_candidates. Say what you found. Wait for yes before opening a manifestation or pinning. Do not dump the whole library. Never say "kit" to the member.`
+    }
   }
 
   // --- Activation Stories ---
@@ -618,6 +675,8 @@ ${songsContext}
 ${visionBoardContext}
 ${abundanceContext}
 ${mapContext}
+${draftContext}
+${kitsContext}
 ${storiesContext}
 ${recallContext}
 ${constraintsContext}
@@ -629,6 +688,7 @@ ${householdContext}
 
 ${selectedCategories && selectedCategories.length > 0 ? `Focus categories: ${selectedCategories.join(', ')}` : 'No specific category selected — let the conversation reveal what needs attention.'}
 ${input.userIntent ? `Their stated intent: "${input.userIntent}"` : ''}
+${input.selectedMode ? `In-thread mode: ${input.selectedMode}` : ''}
 
 Remember: You know this person. Their vision, patterns, and history shape how you listen—not how many facts you mention. Read the current moment and choose the smallest useful move.`
 }

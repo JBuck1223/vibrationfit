@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, life_categories, due_date, shareWithHousehold } = body
+    const { title, description, life_categories, due_date, shareWithHousehold, manifestation_id, manifestation_kit_id } = body
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
@@ -159,6 +159,9 @@ export async function POST(request: NextRequest) {
         due_date: due_date || null,
         created_by: user.id,
         household_id: householdId,
+        manifestation_id: typeof manifestation_id === 'string'
+          ? manifestation_id
+          : typeof manifestation_kit_id === 'string' ? manifestation_kit_id : null,
       })
       .select()
       .single()

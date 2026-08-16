@@ -66,12 +66,25 @@ Source of truth: `supabase/COMPLETE_SCHEMA_DUMP.sql`. Auto-generated doc: `docs/
 
 ### 🚧 VIVA Conversational Coach
 Conversational brain: retrieve → Luna interpreter (theory of the moment + context selections) → Terra response → background memory/constraint extraction + embedding sync. Threads, compounding memory (`viva_memory_items`), semantic recall (pgvector `member_embeddings`), constraint ledger, in-app tool actions, opt-in household lens.
-Schema: `conversation_sessions`, `ai_conversations`, `viva_memory_items`, `vibrational_constraints`, `member_embeddings`. API: `/api/viva/coach`, `/api/viva/conversations`, `/api/viva/constraints`, `/api/viva/memory-extract`. Lib: `src/lib/viva/coach-*.ts`, `memory-extractor.ts`, `embeddings.ts`, `household-lens.ts`. UI: `/viva`.
+In-thread modes (member-chosen, not a hidden classifier): Auto / Friend / Coach / Builder / Assistant. Mode shapes stance and tools. Persist `conversation_sessions.viva_mode`; log switches in `viva_mode_switches`; stamp `ai_conversations.context.selected_mode`. Stored mode key is `builder`.
+Schema: `conversation_sessions`, `ai_conversations`, `viva_memory_items`, `vibrational_constraints`, `member_embeddings`, `viva_mode_switches`. API: `/api/viva/coach`, `/api/viva/conversations`, `/api/viva/mode`, `/api/viva/constraints`. Lib: `src/lib/viva/coach-*.ts`, `modes.ts`, `memory-extractor.ts`, `embeddings.ts`, `household-lens.ts`. UI: `/viva`.
 
 - Memory extraction runs in-process via `after()` — do NOT reintroduce HTTP self-calls (the old empty-Cookie fetch silently failed every session)
 - Do NOT reintroduce the five-mode detector or mandatory A.U.R.A. sequencing
 - Do NOT inject `vibrational_events` / `emotional_snapshots` into coach context (deprecated lens)
 - Preserve crisis safety behavior and no-medical/legal/financial-advice guardrails
+- Friend = tools off; Coach = journal/flip only; Builder = manifestation + create tools + `find_kit_candidates`; Assistant = `find_asset` only
+- Never say "kit" to the member — the object is a manifestation
+
+### 🚧 My Manifestations
+Each manifestation is one chosen reality hub: Suite, Activations, Projects, Becoming, Actualize. Studio at `/manifestations` (AreaBar + DIY add/remove + gather-from-library). Join-table assets only — do not add `manifestation_id` to journal / abundance / board / daily_papers. Projects nest via nullable `projects.manifestation_id` plus a `manifestation_assets` row. Manifestation-scoped activations in `manifestation_activations` (also write global `area_activations`). Never auto-commit Life Vision or auto-fire the suite. Never silent-attach. Never say Complete; no 0–100% bar. Never say "kit" in member-facing copy.
+Schema: `manifestations`, `manifestation_assets`, `manifestation_activations`. API: `/api/manifestations`, `/api/manifestations/[id]`, `/api/manifestations/[id]/assets`, `/api/manifestations/candidates`. Lib: `src/lib/manifestations/*`. UI: `/manifestations`, `/manifestations/new`, `/manifestations/[id]`. Studio: `src/components/manifestations-studio/*`. Add-to-manifestation hooks on Journal, Vision Board, Stories, Projects, Abundance.
+
+- Do NOT store a manifestation as a Project Hub row
+- Do NOT auto-declare Actualized from scores or event counts
+- Continue an open manifestation for the same idea — never open a second one
+- Unpin is studio-only; VIVA create/append only
+- Do NOT hook Daily Paper, MAP, or Travel in this slice
 
 ### 🚧 Household Sharing System
 Per-member, per-feature sharing (share all vs select items) across Life Visions, Vision Board, Abundance, Audios, Projects, Stories, Travel. RLS: owner + explicitly shared (`household_id` set) + share-all members. Doc: `docs/features/household-sharing/README.md`.

@@ -11,6 +11,7 @@
 
 import {
   Home,
+  MessageCircle,
   User,
   Target,
   FileText,
@@ -22,7 +23,6 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
   Brain,
   Zap,
   CheckCircle,
@@ -129,6 +129,18 @@ export const userNavigationPrimary: NavItem[] = [
     href: '/tracking',
     icon: TrendingUp,
     description: 'Streaks, badges, and performance metrics',
+  },
+  {
+    name: 'VIVA',
+    href: '/viva',
+    icon: MessageCircle,
+    description: 'Talk with VIVA',
+  },
+  {
+    name: 'My Manifestations',
+    href: '/manifestations',
+    icon: Wand2,
+    description: 'Chosen realities you are practicing',
   },
 ]
 

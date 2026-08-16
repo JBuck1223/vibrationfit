@@ -206,6 +206,26 @@ input:-webkit-autofill:active {
   }
 }
 
+/* VIVA chat markdown — Tailwind preflight zeros p/list margins, so space them here */
+.viva-markdown p {
+  margin-bottom: 1rem;
+}
+.viva-markdown p:last-child {
+  margin-bottom: 0;
+}
+.viva-markdown ul,
+.viva-markdown ol {
+  margin-bottom: 1rem;
+  padding-left: 1.25rem;
+}
+.viva-markdown ul:last-child,
+.viva-markdown ol:last-child {
+  margin-bottom: 0;
+}
+.viva-markdown li + li {
+  margin-top: 0.5rem;
+}
+
 /* Hide scrollbar but keep functionality */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */

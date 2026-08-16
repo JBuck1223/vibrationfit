@@ -50,6 +50,9 @@ export {
   type BuildChatSystemPromptInput,
 } from './chat-system-prompt'
 
+export { buildModeContract, MODE_CONTRACTS_FOR_LUNA } from './mode-contracts'
+export { PLATFORM_MAP_PROMPT } from './platform-map'
+
 // NEW V3 PROMPTS - Life Vision Process Enhancement
 
 // Ideal State Questions (Step 2: Unleash Imagination)

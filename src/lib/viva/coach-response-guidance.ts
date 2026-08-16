@@ -18,6 +18,18 @@ export function buildInterpretationSection(interp: CoachInterpretation): string 
   if (interp.next_question && design.question_usage !== 'none') {
     lines.push(`- A question worth asking: "${interp.next_question}" (use it only if it still fits once you've written the insight — an observation that lands is often stronger)`)
   }
+  if (interp.kit_move && interp.kit_move !== 'none') {
+    const kitGuidance: Record<string, string> = {
+      propose_kit: 'A destination is live. Name a short flow, preview the first Life Vision edit in their voice, and ask to open (or continue) a manifestation and spin up a draft. Do not overwrite the active vision. One offer. Never say kit.',
+      offer_first_domino: 'The manifestation is open or they said yes. Preview the first slot and offer to draft or queue it — one slot, then stop.',
+      continue_kit: 'An open manifestation already holds this idea. Continue it. Do not open a second one.',
+      find_asset: 'They want to locate something they already made. Find it and link it. Do not generate a new one.',
+      find_kit_candidates: 'They want a manifestation from what they already have. Call find_kit_candidates, name a few items in their words, then wait for yes. On yes, open or continue one manifestation and pin only the items they chose. Do not dump the library. Do not silent-attach.',
+    }
+    lines.push(`- Manifestation move: ${interp.kit_move} — ${kitGuidance[interp.kit_move] || interp.kit_move}`)
+  } else {
+    lines.push(`- Manifestation move: none this turn. Do not offer a manifestation or a suite.`)
+  }
 
   const lengthGuidance = {
     brief: 'Usually 1-3 sentences. For genuinely light moments — banter, quick check-ins, celebration. Make one clean move and stop.',
@@ -54,6 +66,7 @@ Give clear, warm, step-by-step product directions. If the request is actually ab
 - Profile: /profile
 - VIVA: /viva
 - Map: /map
+- My Manifestations: /manifestations
 
 If an essential detail is missing, ask one focused clarifying question.`
   }

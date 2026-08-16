@@ -10,6 +10,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js'
 import { CoachContextInput } from './prompts/coach-system-prompt'
+import { loadOpenKitsSummary } from '@/lib/manifestations/kit-helpers'
 
 export interface LoadCoachContextParams {
   supabase: SupabaseClient
@@ -54,6 +55,10 @@ export async function loadCoachContext({
     visionBoardResult,
     abundanceResult,
     mapResult,
+    commitmentsResult,
+    visionTargetsResult,
+    draftResult,
+    kitsResult,
     storiesResult,
   ] = await Promise.all([
     // 1. User profile (profiles are versioned — load the active, non-draft one)
@@ -105,10 +110,22 @@ export async function loadCoachContext({
     // 10. Abundance flow (events + goals)
     loadAbundance(supabase, userId),
 
-    // 11. Practice rhythm (active MAP items)
+    // 11. Practice rhythm (legacy MAP items — fallback)
     loadMapItems(supabase, userId),
 
-    // 12. Activation stories
+    // 12. MAP v2 commitments
+    loadMapCommitments(supabase, userId),
+
+    // 13. MAP vision targets
+    loadVisionTargets(supabase, userId),
+
+    // 14. Open Life Vision draft
+    loadOpenVisionDraft(supabase, userId),
+
+    // 15. Open manifestation kits
+    loadOpenKitsSummary(supabase, userId),
+
+    // 16. Activation stories
     loadStories(supabase, userId),
   ])
 
@@ -125,6 +142,10 @@ export async function loadCoachContext({
     visionBoard: visionBoardResult,
     abundance: abundanceResult,
     mapItems: mapResult,
+    mapCommitments: commitmentsResult,
+    visionTargets: visionTargetsResult,
+    openVisionDraft: draftResult,
+    openKits: kitsResult,
     stories: storiesResult,
     selectedCategories,
     userIntent,
@@ -413,6 +434,60 @@ async function loadMapItems(supabase: SupabaseClient, userId: string): Promise<a
     return []
   }
   return data?.user_map_items || []
+}
+
+async function loadMapCommitments(supabase: SupabaseClient, userId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('commitments')
+    .select('id, title, category, type, status, cadence, activity_type')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('sort_order', { ascending: true })
+    .limit(12)
+
+  if (error) {
+    console.error('[Coach Context] Error loading MAP commitments:', error)
+    return []
+  }
+  return data || []
+}
+
+async function loadVisionTargets(supabase: SupabaseClient, userId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('vision_targets')
+    .select('id, title, category, status, achieved_at')
+    .eq('user_id', userId)
+    .neq('status', 'archived')
+    .order('updated_at', { ascending: false })
+    .limit(10)
+
+  if (error) {
+    console.error('[Coach Context] Error loading vision targets:', error)
+    return []
+  }
+  return data || []
+}
+
+async function loadOpenVisionDraft(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<{ id: string; title: string | null; refined_categories: string[] } | null> {
+  const { data, error } = await supabase
+    .from('vision_versions')
+    .select('id, title, refined_categories')
+    .eq('user_id', userId)
+    .eq('is_draft', true)
+    .eq('is_active', false)
+    .is('household_id', null)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[Coach Context] Error loading vision draft:', error)
+    return null
+  }
+  return data
 }
 
 /**

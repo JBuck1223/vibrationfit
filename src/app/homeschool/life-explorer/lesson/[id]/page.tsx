@@ -4,8 +4,43 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Container, Stack, Spinner, Button } from '@/lib/design-system/components'
-import type { LessonBundle, LessonPayload } from '@/lib/life-explorer/types'
+import type {
+  CoreResource,
+  HandsOnActivity,
+  LessonBundle,
+  LessonPayload,
+} from '@/lib/life-explorer/types'
 import { LessonChecklist, LessonJournal } from './LessonWorkbench'
+
+/** Display name of the hands-on activity, whatever shape the payload uses. */
+function handsOnTitle(handsOn: LessonPayload['hands_on']): string | null {
+  if (!handsOn || typeof handsOn === 'string') return null
+  const t = handsOn.title || handsOn.activity
+  return typeof t === 'string' && t.trim() ? t : null
+}
+
+/**
+ * One deduplicated media list in play order: resource_queue leads, then
+ * core_resource and parent-prep links only if they are not already queued.
+ * (Older payloads repeat the same resource across all three fields.)
+ */
+function buildPlayQueue(p: LessonPayload): CoreResource[] {
+  const out: CoreResource[] = []
+  const seen = new Set<string>()
+  const add = (r?: CoreResource | null) => {
+    if (!r || (!r.title && !r.url)) return
+    const keys = [r.url?.trim().toLowerCase(), r.title?.trim().toLowerCase()].filter(
+      (k): k is string => Boolean(k)
+    )
+    if (keys.some((k) => seen.has(k))) return
+    keys.forEach((k) => seen.add(k))
+    out.push(r)
+  }
+  ;(p.resource_queue || []).forEach(add)
+  add(p.core_resource)
+  ;(p.parent_prep?.links || []).forEach(add)
+  return out
+}
 
 export default function LessonPage() {
   const params = useParams<{ id: string }>()
@@ -113,6 +148,11 @@ export default function LessonPage() {
           )}
         </div>
 
+        {/* A regenerated-over version — nothing is lost, one tap brings it back */}
+        {lesson.status === 'skipped' && (
+          <RestoreVersionCard bundle={bundle} updateBundle={updateBundle} />
+        )}
+
         {/* Low-Battery Mode — sick day, meltdown day, errand day */}
         {p.low_battery_mode && (
           <LowBatteryCard mode={p.low_battery_mode} lowBattery={lowBattery} setLowBattery={setLowBattery} />
@@ -159,16 +199,18 @@ export default function LessonPage() {
           {p.parent_prep?.cleanup && (
             <p className="text-sm text-neutral-300 mt-2">Cleanup: {p.parent_prep.cleanup}</p>
           )}
-        </Section>
-
-        <Section title="Teacher Script">
-          <ScriptBlock label="Opening" text={p.teacher_script?.opening} />
-          <ScriptBlock label="Mystery / Question" text={p.teacher_script?.mystery_or_question} />
-          <ScriptBlock label="Core Concept" text={p.teacher_script?.core_concept} />
-          {(p.teacher_script?.transitions || []).map((t, i) => (
-            <ScriptBlock key={i} label={`Transition ${i + 1}`} text={t} />
-          ))}
-          <ScriptBlock label="Closing" text={p.teacher_script?.closing} />
+          {p.hands_on && (
+            <p className="text-sm text-neutral-300 mt-3 pt-3 border-t border-[#222]">
+              These materials set up{' '}
+              <span className="text-white font-medium">
+                {handsOnTitle(p.hands_on) || 'the hands-on activity'}
+              </span>{' '}
+              —{' '}
+              <a href="#hands-on" className="text-[#39FF14] underline">
+                full instructions below
+              </a>
+            </p>
+          )}
         </Section>
 
         {(p.block_minutes || []).length > 0 && (
@@ -187,6 +229,16 @@ export default function LessonPage() {
           </Section>
         )}
 
+        <Section title="Teacher Script">
+          <ScriptBlock label="Opening" text={p.teacher_script?.opening} />
+          <ScriptBlock label="Mystery / Question" text={p.teacher_script?.mystery_or_question} />
+          <ScriptBlock label="Core Concept" text={p.teacher_script?.core_concept} />
+          {(p.teacher_script?.transitions || []).map((t, i) => (
+            <ScriptBlock key={i} label={`Transition ${i + 1}`} text={t} />
+          ))}
+          <ScriptBlock label="Closing" text={p.teacher_script?.closing} />
+        </Section>
+
         <Section title="Core Activities">
           <BulletList items={p.core_activities || []} />
           {p.fun_contract?.choice_point && (
@@ -198,6 +250,14 @@ export default function LessonPage() {
             Good stopping point: {p.good_stopping_point || 'After core activities'}
           </p>
         </Section>
+
+        {p.hands_on && (
+          <Section id="hands-on" title="Hands-On">
+            <HandsOnBlock handsOn={p.hands_on} />
+          </Section>
+        )}
+
+        <PlayQueueSection queue={buildPlayQueue(p)} />
 
         {(p.sibling_tag_along || []).length > 0 && (
           <Section title="Little Sibling Tag-Along">
@@ -215,46 +275,6 @@ export default function LessonPage() {
         <Section title="Foundational Skills">
           <p className="text-white font-medium capitalize">{p.foundational_skills?.subject}</p>
           <p className="text-neutral-300 mt-1">{p.foundational_skills?.activity}</p>
-        </Section>
-
-        {p.hands_on && (
-          <Section title="Hands-On">
-            <pre className="whitespace-pre-wrap text-sm text-neutral-300 font-sans">
-              {typeof p.hands_on === 'string'
-                ? p.hands_on
-                : JSON.stringify(p.hands_on, null, 2)}
-            </pre>
-          </Section>
-        )}
-
-        <Section id="resources" title={p.resource_queue?.length ? 'Play Queue (in order)' : 'Resources'}>
-          {(p.resource_queue || []).length > 0 && (
-            <div className="mb-3 space-y-2">
-              {p.resource_queue!.map((r, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-xl border border-[#2a2a2a] p-3">
-                  <span className="text-[#39FF14] font-bold">{i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-white text-sm font-medium truncate">{r.title}</p>
-                    <p className="text-xs text-neutral-500 capitalize">{r.resource_type}</p>
-                  </div>
-                  {r.url && (
-                    <a
-                      href={r.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-full bg-[#39FF14] px-4 py-1.5 text-xs font-semibold text-black"
-                    >
-                      Play
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          <ResourceBlock resource={p.core_resource} />
-          {(p.parent_prep?.links || []).map((link, i) => (
-            <ResourceBlock key={i} resource={link} />
-          ))}
         </Section>
 
         {p.parent_answer_key && (
@@ -372,6 +392,62 @@ function FinishLessonButton({
       <Button variant="primary" size="lg" onClick={() => void finish()} disabled={busy}>
         {busy ? 'Finishing…' : 'Done — Log on Calendar'}
       </Button>
+    </div>
+  )
+}
+
+/**
+ * Shown on lessons that were set aside (usually by "Regenerate today").
+ * Restoring swaps it back to the active slot; the replacement version is
+ * set aside the same way — nothing is ever deleted.
+ */
+function RestoreVersionCard({
+  bundle,
+  updateBundle,
+}: {
+  bundle: LessonBundle
+  updateBundle: (fn: (b: LessonBundle) => LessonBundle) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function restore() {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/life-explorer/lessons/${bundle.lesson.id}/restore`, {
+        method: 'POST',
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || 'Failed to restore lesson')
+      if (json?.lesson) updateBundle((b) => ({ ...b, lesson: json.lesson }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to restore lesson')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#00FFFF]/25 bg-[#00FFFF]/5 px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-white font-medium">This version was set aside</p>
+          <p className="text-sm text-neutral-400 mt-0.5">
+            It was saved when the lesson was regenerated. Restore it and the newer version is
+            set aside the same way — nothing is deleted.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void restore()}
+          disabled={busy}
+          className="rounded-full border border-[#00FFFF]/40 px-4 py-2 text-sm text-[#00FFFF] hover:border-[#00FFFF] transition-colors disabled:opacity-60"
+        >
+          {busy ? 'Restoring…' : "Restore as today's lesson"}
+        </button>
+      </div>
+      {error && <p className="text-sm text-red-300 mt-2">{error}</p>}
     </div>
   )
 }
@@ -496,41 +572,145 @@ function ScriptBlock({ label, text }: { label: string; text?: string }) {
   )
 }
 
-function ResourceBlock({
-  resource,
-}: {
-  resource?: {
-    title?: string
-    url?: string | null
-    resource_type?: string
-    why_selected?: string
-    needs_parent_link?: boolean
-  } | null
-}) {
-  if (!resource?.title && !resource?.url) return null
+/** Single ordered, deduplicated media list — the parent never hunts mid-lesson. */
+function PlayQueueSection({ queue }: { queue: CoreResource[] }) {
+  if (queue.length === 0) return null
   return (
-    <div className="mb-3 rounded-xl border border-[#2a2a2a] p-3">
-      <p className="text-white font-medium">{resource.title || 'Resource'}</p>
-      {resource.resource_type && (
-        <p className="text-xs text-neutral-500 capitalize mt-0.5">{resource.resource_type}</p>
+    <Section id="resources" title={queue.length > 1 ? 'Play Queue (in order)' : 'Play Queue'}>
+      <div className="space-y-2">
+        {queue.map((r, i) => (
+          <div key={i} className="flex items-start gap-3 rounded-xl border border-[#2a2a2a] p-3">
+            <span className="text-[#39FF14] font-bold">{i + 1}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-white text-sm font-medium">{r.title || 'Resource'}</p>
+              <p className="text-xs text-neutral-500 capitalize mt-0.5">
+                {[r.resource_type, r.runtime].filter(Boolean).join(' · ')}
+              </p>
+              {r.why_selected && (
+                <p className="text-sm text-neutral-400 mt-1">{r.why_selected}</p>
+              )}
+              {!r.url && r.needs_parent_link && (
+                <p className="text-sm text-amber-300 mt-1">
+                  Needs a parent-chosen link — not invented by the system.
+                </p>
+              )}
+            </div>
+            {r.url && (
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-full bg-[#39FF14] px-4 py-1.5 text-xs font-semibold text-black"
+              >
+                Play
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
+/** Hands-on keys rendered with dedicated treatment, in teaching order. */
+const HANDS_ON_STRING_FIELDS: Array<{ key: string; label: string }> = [
+  { key: 'learning_goal', label: 'Learning goal' },
+  { key: 'parent_setup', label: 'Parent setup' },
+  { key: 'prediction_prompt', label: 'Prediction' },
+  { key: 'expected_result', label: 'Expected result' },
+  { key: 'why_it_works', label: 'Why it works' },
+  { key: 'troubleshooting', label: 'Troubleshooting' },
+  { key: 'cleanup', label: 'Cleanup' },
+  { key: 'safety', label: 'Safety' },
+  { key: 'extension', label: 'Extension' },
+  { key: 'documentation_prompt', label: 'Document it' },
+]
+
+const HANDS_ON_HANDLED_KEYS = new Set([
+  'title',
+  'activity',
+  'name',
+  'description',
+  'summary',
+  'materials',
+  'steps',
+  'procedure',
+  'instructions',
+  'observation_questions',
+  ...HANDS_ON_STRING_FIELDS.map((f) => f.key),
+])
+
+function humanizeKey(key: string): string {
+  const label = key.replace(/[_-]+/g, ' ').trim()
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+/** Structured activity card — never a raw JSON dump, whatever the payload shape. */
+function HandsOnBlock({ handsOn }: { handsOn: HandsOnActivity | string }) {
+  if (typeof handsOn === 'string') {
+    return <p className="text-sm text-neutral-300 leading-relaxed">{handsOn}</p>
+  }
+
+  const str = (v: unknown): string | null =>
+    typeof v === 'string' && v.trim() ? v.trim() : null
+  const list = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x.trim()) : []
+
+  const title = str(handsOn.title) || str(handsOn.activity) || str((handsOn as Record<string, unknown>).name)
+  const description = str(handsOn.description) || str((handsOn as Record<string, unknown>).summary)
+  const materials = list(handsOn.materials)
+  const steps = list(handsOn.steps).length
+    ? list(handsOn.steps)
+    : list((handsOn as Record<string, unknown>).procedure).length
+      ? list((handsOn as Record<string, unknown>).procedure)
+      : list((handsOn as Record<string, unknown>).instructions)
+  const observations = list(handsOn.observation_questions)
+
+  // Anything the contract doesn't name still renders readably.
+  const extraEntries = Object.entries(handsOn).filter(
+    ([key, value]) =>
+      !HANDS_ON_HANDLED_KEYS.has(key) &&
+      (str(value) !== null || list(value).length > 0)
+  )
+
+  return (
+    <div className="space-y-3">
+      {title && <p className="text-white font-medium">{title}</p>}
+      {description && <p className="text-sm text-neutral-300 leading-relaxed">{description}</p>}
+      <BulletList items={materials} label="Materials" />
+      {steps.length > 0 && (
+        <div>
+          <p className="text-xs uppercase tracking-wide text-neutral-500 mb-1">Steps</p>
+          <ol className="list-decimal pl-5 space-y-1.5 text-neutral-300 text-sm">
+            {steps.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ol>
+        </div>
       )}
-      {resource.url ? (
-        <a
-          href={resource.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[#39FF14] text-sm underline mt-1 inline-block"
-        >
-          Open link
-        </a>
-      ) : resource.needs_parent_link ? (
-        <p className="text-sm text-amber-300 mt-1">
-          Needs a parent-chosen link — not invented by the system.
-        </p>
-      ) : null}
-      {resource.why_selected && (
-        <p className="text-sm text-neutral-400 mt-1">{resource.why_selected}</p>
-      )}
+      {HANDS_ON_STRING_FIELDS.map(({ key, label }) => {
+        const value = str(handsOn[key])
+        if (!value) return null
+        return (
+          <div key={key}>
+            <p className="text-xs uppercase tracking-wide text-neutral-500 mb-1">{label}</p>
+            <p className="text-sm text-neutral-300 leading-relaxed">{value}</p>
+          </div>
+        )
+      })}
+      <BulletList items={observations} label="What to notice" />
+      {extraEntries.map(([key, value]) => (
+        <div key={key}>
+          <p className="text-xs uppercase tracking-wide text-neutral-500 mb-1">
+            {humanizeKey(key)}
+          </p>
+          {str(value) ? (
+            <p className="text-sm text-neutral-300 leading-relaxed">{str(value)}</p>
+          ) : (
+            <BulletList items={list(value)} />
+          )}
+        </div>
+      ))}
     </div>
   )
 }

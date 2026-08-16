@@ -52,6 +52,10 @@ export const keys = {
   vivaConversations: ['viva-conversations'] as const,
   vivaConstraints: ['viva-constraints'] as const,
 
+  // My Manifestations
+  manifestationKits: ['manifestation-kits'] as const,
+  manifestationKit: (id: string) => ['manifestation-kits', id] as const,
+
   // Travel Tracker
   trips: ['trips'] as const,
   tripDetail: (tripId: string) => ['trips', 'detail', tripId] as const,
@@ -85,6 +89,10 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   reset_items: [keys.resets],
   vibrational_constraints: [keys.vivaConstraints],
   conversation_sessions: [keys.vivaConversations],
+  manifestations: [keys.manifestationKits],
+  manifestation_assets: [keys.manifestationKits],
+  manifestation_activations: [keys.manifestationKits],
+  projects: [keys.manifestationKits],
   trips: [keys.trips, keys.travelStats],
   trip_flights: [keys.trips, keys.travelStats],
   dream_destinations: [keys.dreamDestinations],
