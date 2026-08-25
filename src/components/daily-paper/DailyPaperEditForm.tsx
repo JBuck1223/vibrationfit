@@ -143,9 +143,10 @@ export function DailyPaperEditForm({
     })
   }
 
-  const hasNewAttachment = attachmentFiles.length > 0 || imageFiles.length > 0
+  const hasNewScan = attachmentFiles.length > 0
+  const hasNewEvidence = imageFiles.length > 0 || aiGeneratedImageUrls.length > 0
   const hasExistingAttachment =
-    entry?.attachment_url && !attachmentRemoved && !hasNewAttachment
+    Boolean(entry?.attachment_url) && !attachmentRemoved && !hasNewScan && !hasNewEvidence
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -171,9 +172,13 @@ export function DailyPaperEditForm({
           ? (entry.metadata as { attachmentSection: 'evidence' | 'optional' }).attachmentSection
           : undefined
 
-      if (hasNewAttachment) {
-        const file = attachmentFiles[0]
-        attachmentSection = 'optional'
+      const uploadPaperFile = async (
+        file: File,
+        statusUploading: string,
+      ) => {
+        const { uploadUserFile } = await import(
+          '@/lib/storage/s3-storage-presigned'
+        )
         setAttachmentUpload({
           progress: 5,
           status: 'Preparing upload…',
@@ -181,10 +186,6 @@ export function DailyPaperEditForm({
           fileSize: file.size,
           isVisible: true,
         })
-
-        const { uploadUserFile } = await import(
-          '@/lib/storage/s3-storage-presigned'
-        )
         const uploadResult = await uploadUserFile(
           'journal',
           file,
@@ -194,29 +195,28 @@ export function DailyPaperEditForm({
               ...prev,
               progress,
               status:
-                progress < 100
-                  ? 'Uploading…'
-                  : 'Finishing upload…',
+                progress < 100 ? statusUploading : 'Finishing upload…',
               isVisible: true,
             }))
           }
         )
-
-        attachmentPayload = {
+        return {
           url: uploadResult.url,
           key: uploadResult.key,
           contentType: file.type,
           size: file.size,
         }
-      } else if (hasExistingAttachment && entry.attachment_url && entry.attachment_key) {
-        // Preserve existing attachmentSection
-        attachmentPayload = {
-          url: entry.attachment_url,
-          key: entry.attachment_key,
-          contentType: entry.attachment_content_type ?? undefined,
-          size:
-            entry.attachment_size != null ? Number(entry.attachment_size) : undefined,
-        }
+      }
+
+      const scanFile = attachmentFiles[0]
+      const evidenceFile = imageFiles[0]
+
+      if (scanFile) {
+        attachmentSection = 'optional'
+        attachmentPayload = await uploadPaperFile(
+          scanFile,
+          'Uploading handwritten Daily Paper…',
+        )
       } else if (aiGeneratedImageUrls.length > 0) {
         attachmentSection = 'evidence'
         const imageUrl = aiGeneratedImageUrls[0]
@@ -232,13 +232,6 @@ export function DailyPaperEditForm({
             size: 0,
           }
         } else {
-          setAttachmentUpload({
-            progress: 5,
-            status: 'Uploading VIVA image…',
-            fileName: 'viva-generated.png',
-            fileSize: 0,
-            isVisible: true,
-          })
           const proxyRes = await fetch(
             `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`
           )
@@ -247,62 +240,18 @@ export function DailyPaperEditForm({
           const vivaFile = new File([blob], 'viva-generated.png', {
             type: blob.type || 'image/png',
           })
-          const { uploadUserFile } = await import(
-            '@/lib/storage/s3-storage-presigned'
-          )
-          const uploadResult = await uploadUserFile(
-            'journal',
-            vivaFile,
-            user.id,
-            (progress) => {
-              setAttachmentUpload((prev) => ({
-                ...prev,
-                progress,
-                status:
-                  progress < 100 ? 'Uploading…' : 'Finishing upload…',
-                isVisible: true,
-              }))
-            }
-          )
-          attachmentPayload = {
-            url: uploadResult.url,
-            key: uploadResult.key,
-            contentType: vivaFile.type,
-            size: vivaFile.size,
-          }
+          attachmentPayload = await uploadPaperFile(vivaFile, 'Uploading VIVA image…')
         }
-      } else if (imageFiles.length > 0) {
+      } else if (evidenceFile) {
         attachmentSection = 'evidence'
-        const file = imageFiles[0]
-        setAttachmentUpload({
-          progress: 5,
-          status: 'Preparing upload…',
-          fileName: file.name,
-          fileSize: file.size,
-          isVisible: true,
-        })
-        const { uploadUserFile } = await import(
-          '@/lib/storage/s3-storage-presigned'
-        )
-        const uploadResult = await uploadUserFile(
-          'journal',
-          file,
-          user.id,
-          (progress) => {
-            setAttachmentUpload((prev) => ({
-              ...prev,
-              progress,
-              status:
-                progress < 100 ? 'Uploading…' : 'Finishing upload…',
-              isVisible: true,
-            }))
-          }
-        )
+        attachmentPayload = await uploadPaperFile(evidenceFile, 'Uploading…')
+      } else if (hasExistingAttachment && entry.attachment_url && entry.attachment_key) {
         attachmentPayload = {
-          url: uploadResult.url,
-          key: uploadResult.key,
-          contentType: file.type,
-          size: file.size,
+          url: entry.attachment_url,
+          key: entry.attachment_key,
+          contentType: entry.attachment_content_type ?? undefined,
+          size:
+            entry.attachment_size != null ? Number(entry.attachment_size) : undefined,
         }
       }
 
@@ -328,10 +277,11 @@ export function DailyPaperEditForm({
       }, 800)
     } catch (error) {
       console.error('Daily Paper update failed:', error)
+      const raw = error instanceof Error ? error.message : ''
       setSubmitError(
-        error instanceof Error
-          ? error.message
-          : 'Unable to save your Daily Paper right now.'
+        /is not an object|Cannot read propert/i.test(raw)
+          ? 'Unable to save that file. Please try again, or choose a different image.'
+          : raw || 'Unable to save your Daily Paper right now.'
       )
       setAttachmentUpload((prev) => ({ ...prev, isVisible: false }))
     } finally {
@@ -497,7 +447,7 @@ export function DailyPaperEditForm({
                   multiple={false}
                   maxFiles={1}
                   maxSize={50}
-                  label={hasNewAttachment ? 'Replace file' : 'Upload scan'}
+                  label={hasNewScan ? 'Replace file' : 'Upload scan'}
                   variant="ghost"
                   className="flex flex-col items-center"
                   onUpload={(files) => {
@@ -517,7 +467,7 @@ export function DailyPaperEditForm({
                   />
                 </div>
               )}
-              {!attachmentPreview && hasNewAttachment && (
+              {!attachmentPreview && hasNewScan && (
                 <div className="rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3 text-sm text-neutral-300 text-center">
                   Selected: {attachmentFiles[0]?.name}
                 </div>

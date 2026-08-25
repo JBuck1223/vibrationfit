@@ -133,6 +133,9 @@ export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
       return false
     }
 
+    const isReadableFile = (file: File | undefined | null): file is File =>
+      Boolean(file && typeof file.name === 'string' && typeof file.size === 'number')
+
     const validateFiles = (files: File[]): string | null => {
       // Validate number of files
       if (!multiple && files.length > 1) {
@@ -174,14 +177,29 @@ export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
     const processFiles = (files: File[]) => {
       setError('')
 
-      const validationError = validateFiles(files)
-      if (validationError) {
-        setError(validationError)
-        return
-      }
+      try {
+        const readableFiles = files.filter(isReadableFile)
+        if (files.length > 0 && readableFiles.length === 0) {
+          setError('That file could not be read. Please try another image.')
+          return
+        }
 
-      setSelectedFiles(files)
-      onUpload(files)
+        const validationError = validateFiles(readableFiles)
+        if (validationError) {
+          setError(validationError)
+          return
+        }
+
+        setSelectedFiles(readableFiles)
+        onUpload(readableFiles)
+      } catch (err) {
+        const raw = err instanceof Error ? err.message : ''
+        setError(
+          /is not an object|Cannot read propert/i.test(raw)
+            ? 'That file could not be read. Please try another image.'
+            : raw || 'That file could not be read. Please try another image.'
+        )
+      }
     }
 
     const handleRemoveFile = (index: number) => {
@@ -360,9 +378,9 @@ export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
         {/* File previews */}
         {showPreviews && selectedFiles.length > 0 && (
           <div className="space-y-2">
-            {selectedFiles.map((file, index) => (
+            {selectedFiles.filter(isReadableFile).map((file, index) => (
               <div
-                key={index}
+                key={`${file.name}-${index}`}
                 className="flex items-center justify-between p-3 bg-[rgba(31,31,31,0.5)] border border-[#333333] rounded-xl hover:bg-[#1F1F1F] transition-colors"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
