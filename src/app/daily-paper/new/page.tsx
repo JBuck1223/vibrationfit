@@ -127,6 +127,9 @@ export default function NewDailyPaperPage() {
       if (hasAttachment) {
         attachmentSection = 'optional'
         const file = attachmentFiles[0]
+        if (!file) {
+          throw new Error('Please choose a file to upload.')
+        }
 
         setAttachmentUpload({
           progress: 5,
@@ -208,6 +211,9 @@ export default function NewDailyPaperPage() {
       } else if (imageFiles.length > 0) {
         attachmentSection = 'evidence'
         const file = imageFiles[0]
+        if (!file) {
+          throw new Error('Please choose a file to upload.')
+        }
         setAttachmentUpload({
           progress: 5,
           status: 'Preparing upload…',
@@ -267,8 +273,11 @@ export default function NewDailyPaperPage() {
       }, 900)
     } catch (error) {
       console.error('Daily Paper submission failed:', error)
+      const raw = error instanceof Error ? error.message : ''
       setSubmitError(
-        error instanceof Error ? error.message : 'Unable to save your Daily Paper right now.',
+        /is not an object|Cannot read propert/i.test(raw)
+          ? 'Unable to save that file. Please try again, or choose a different image.'
+          : raw || 'Unable to save your Daily Paper right now.',
       )
       setAttachmentUpload((prev) => ({ ...prev, isVisible: false }))
     } finally {
