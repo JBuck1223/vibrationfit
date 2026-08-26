@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { progressTimeline, stateProfile } from '@/lib/life-explorer/state-standards'
+import { benchmarksForSkill } from '@/lib/life-explorer/readiness'
 
 export const dynamic = 'force-dynamic'
 
@@ -145,12 +146,12 @@ export async function GET(request: NextRequest) {
       <h2>Sequentially Progressive Instruction</h2>
       <p class="meta">${esc(profile.required_approach)}</p>
       <table>
-        <thead><tr><th>Date</th><th>Skill</th><th>Subject</th><th>Status</th></tr></thead>
+        <thead><tr><th>Date</th><th>Skill</th><th>Subject</th><th>Status</th><th>Benchmarks</th></tr></thead>
         <tbody>
           ${timeline
             .map(
               (t) =>
-                `<tr><td>${fmtDate(t.date)}</td><td>${esc(t.skill)}</td><td>${esc(t.subject)}</td><td>${esc(t.status.replace(/_/g, ' '))}</td></tr>`
+                `<tr><td>${fmtDate(t.date)}</td><td>${esc(t.skill)}</td><td>${esc(t.subject)}</td><td>${esc(t.status.replace(/_/g, ' '))}</td><td>${esc(benchmarksForSkill(t.skill).join(', ') || '—')}</td></tr>`
             )
             .join('')}
         </tbody>

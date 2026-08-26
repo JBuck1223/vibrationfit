@@ -5,31 +5,54 @@
 **Product name (long-term):** Vibration Fit Homeschool  
 **UI home:** `/homeschool/life-explorer`
 
-Life Explorer is a curiosity-driven homeschool system organized through the 12 Vibration Fit Life Categories. An Expedition (e.g. Travel → Antarctica) provides context for reading, writing, math, science, geography, art, communication, and life skills.
+Life Explorer is the homeschool we run. The point is a **tool-enabled human** — a child who uses books, hands, people, and VIVA to learn what he needs. Expeditions, ladders, and maps are the current shape, not a locked religion. See [PHILOSOPHY.md](./PHILOSOPHY.md).
 
 ## Product truth
 
-**Life Explorer turns a child's curiosity inside the 12 Life Categories into daily experiential lessons, while automatically proving learning for the state.** Everything else is a view of that truth.
+**Life Explorer turns the life this child chose into unique days, with tools (including layered books) and automatic proof for the state.** Everything else is a view of that truth.
 
-## Three surfaces only (parent IA)
+## Current shape (working bets, not locks)
 
-Top-level nav is only **Today · Map · Profile**. Wonder Wall, Resources, Portfolio, Calendar, and Progress are panels inside those three — never peer destinations.
+| Piece | Job |
+|-------|-----|
+| **Life I Choose** | Why. Whole-life vision on the student — seeded by the parent’s current-state profile, drafted by VIVA, made his by the child. Printable book + hear-it. |
+| **Current-state profile** | Where he is now, 12 categories through a kid lens. Parent-filled once, grounds the vision, World Map, and year arc drafts. |
+| **VIVA** | Who writes the days, map, year arc, week, expedition suggestions, and second explanation. Never called “AI” in the UI. |
+| **Expedition** | How. One real world; first-grade (then mixed) work integrated. |
+| **Selection engine** | When a new direction is needed, VIVA offers 3 — comfort, stretch, unknown. The child picks; the week composes around it. |
+| **World Map + 9-month arc** | What he’ll taste. Ours. Honest hits only. |
+| **Life Learning** | Year-long practice worlds: sight words, time, money, life sentences, fast facts, Life Compass. One weekly focus in the packet. |
+| **Year Map** | Grade-level science/social-studies Big Ideas; status derived, untouched ideas softly steer lessons, suggestions, and books. |
+| **Mastery** | Secure, then climb — math, reading, and writing ladders. Wobbly stays in a new unique lesson. |
+| **Semester** | Sem 1 = this grade secure. Sem 2 = next grade mixed in only where earned. |
 
-| Surface | Route | Job |
-|---------|-------|-----|
-| **Today (Expedition)** | `/homeschool/life-explorer` | "What do we do today, and what is the child curious about?" — lesson path, Wonder Wall, resources, materials forecast, check-in |
-| **Learning Map** | `/homeschool/life-explorer/map` | "Are we learning enough, across life, and can I prove it?" — categories/expeditions, coverage radar, Learning Calendar tab, one-click Reports tab |
-| **Profile** | `/homeschool/life-explorer/profile` | "Who is my child as a learner right now?" — portrait, facet depth, skills, Journey Feed |
+## Parent IA
+
+Top-level nav is **Today · Week · Map · Progress · Profile** — one tab per time horizon: run the day, shape the week, see the year, prove the growth, know the child. Each tab carries a panel row; nothing is ever a second school.
+
+| Tab | Panels (routes under `/homeschool/life-explorer`) | Job |
+|-----|-----|-----|
+| **Today** | Expedition (`/`), Record (`/record`), Wonder Wall (`/wonder`), Storybooks (`/books`) | What do we do today, and why (from Life I Choose)? Then the 2-minute check-in. |
+| **Week** | Coming Week (`/week`), Calendar (`/calendar`), New Direction (`/change`), Resources (`/resources`) | Five unique days VIVA composed, the Sunday packet, day tracking, and VIVA’s 3 suggestion cards (comfort / stretch / unknown) when a new expedition is needed. |
+| **Map** | Learning Map (`/map`), How It Works (`/overview`) | On-track sentence + World Map + Year Map Big Ideas + year arc + Florida ledger weather. |
+| **Progress** | Progress (`/progress`), Expeditions (`/expeditions`, drill into `/expeditions/[id]` → `/lesson/[id]`), Portfolio (`/portfolio`), Lesson Log (`/lessons`) | Ladder rungs (incl. writing), Life Learning weather, strong vs wobbly, semester aim, evaluation readiness + countdown, every expedition with its lessons, evidence gallery. |
+| **Profile** | Explorer (`/profile`), Life I Choose (`/vision`) | Who is this learner — identity, current-state profile intake, and the vision flow: where he is now → VIVA’s draft → his turn → tighten, print, hear it. |
 
 ## Curriculum engine
 
-- **Fun Contract** — six required beats per lesson (hook, story mission, embodiment, artifact, choice point, celebration). Validated in `generate.ts`; failures ship the Expedition Pack fallback lesson instead.
+- **VIVA composer** — lessons, World Map, year arc, week arc, Life I Choose draft + diction, expedition suggestions, Ask / Another way. Prompts in `src/lib/viva/prompts/`. Tokens on the gateway.
+- **Fun Contract** — six required beats per lesson (hook, story mission, embodiment, artifact, choice point, celebration). Validated in `generate.ts`; failures ship the Expedition Pack fallback.
 - **Facilitation guarantees** — weekly materials forecast, low-battery mode, sibling tag-along, parent answer key, resource play queue, time-boxed blocks.
 - **Retention engine** — Expedition Flashback spaced retrieval (`flashback.ts`).
-- **Sequential ladders** — expedition-independent math + phonics scope-and-sequences with mastery checks (`ladders.ts`).
-- **Resource curation** — Tier 1 franchises / Tier 2 verified / Tier 3 VF originals with quality gates (`curation.ts`). Never invent a URL.
-- **State Requirements Engine** — Florida profile, standards crosswalk, coverage radar, derived compliance artifacts (`state-standards.ts`, `/api/life-explorer/reports/binder`).
-- **Expedition Packs** — human-curated content unit with pre-built fallback lessons (`packs/`). Antarctica is the proving pack.
+- **Sequential ladders** — math + phonics + writing with a `grade` and FL benchmark codes on each rung; mastery gates climb and semester mix (`ladders.ts`, `semester.ts`).
+- **Life Learning** — six year-long practice worlds with rungs and weekly packet inserts (`life-learning.ts`); progress on `le_skill_progress`.
+- **Year Map** — grade-level Big Ideas with derived status and soft lesson steers (`year-map.ts`); untouched ideas feed the unknown suggestion card and the book composer.
+- **VF Kids compass** — 12 slices + 3 truths as rituals and naming at existing lesson beats (`vf-kids.ts`).
+- **Layered books** — a story VIVA authors can exist as the text, the same words sounded out, and the same sentences taken apart (with audio). Current composer still has `i_read` / `read_to_me`; the three-layer book is the next tool to build.
+- **Two-pass read-aloud** — pass 1 is a cold record (no help). Pass 2: tap a word or play the sentence, then record again. Whisper aligns to the page; misses light up. The page is the test.
+- **Resource curation** — household materials, VF originals, generated layered books, library/other readers when they fit. Never invent a URL. No publisher is required or banned.
+- **State ledger + readiness** — Florida weather from evidence, ladders, and the activity log (`state-standards.ts`); evaluation readiness rollup and anniversary countdown derived in `readiness.ts`.
+- **Expedition Packs** — human-curated fallback. Antarctica is **ours** (Expedition 1 of this life), not a Travel unit.
 
 **Origin chat:** [1st Grade Learning Requirements](https://chatgpt.com/share/6a7539f9-5274-83ea-9fe8-b30a72569e06) — see [CHAT_CONTEXT.md](./CHAT_CONTEXT.md)
 
@@ -37,15 +60,17 @@ Top-level nav is only **Today · Map · Profile**. Wonder Wall, Resources, Portf
 
 | Document | Purpose |
 |----------|---------|
-| [PHILOSOPHY.md](./PHILOSOPHY.md) | Permanent brain: purpose, categories, learning cycle, Wonder Wall, parent experience, pacing |
-| [LESSON_CONTRACT.md](./LESSON_CONTRACT.md) | Exact fields every generated lesson must contain |
+| [PHILOSOPHY.md](./PHILOSOPHY.md) | North star: tool-enabled human; working bets vs engineering |
+| [LESSON_CONTRACT.md](./LESSON_CONTRACT.md) | Fields a generated lesson currently includes |
 | [DATA_MODEL.md](./DATA_MODEL.md) | Stored shapes + Supabase table mapping |
-| [DAILY_WORKFLOW.md](./DAILY_WORKFLOW.md) | Sequence for generating and updating lessons |
-| [AGENT_RULES.md](./AGENT_RULES.md) | Hard rules for coding and lesson-generation agents |
+| [DAILY_WORKFLOW.md](./DAILY_WORKFLOW.md) | Sequence for composing and updating lessons |
+| [AGENT_RULES.md](./AGENT_RULES.md) | Engineering conventions + changeable bets |
 
 ## Expedition 1 content pack (Antarctica)
 
-- Expedition pack (lessons, resources, printables): `src/lib/life-explorer/packs/antarctica.ts`
+A pack we made. Recast in service of the Life I Choose — useful material, not a religion.
+
+- Expedition pack: `src/lib/life-explorer/packs/antarctica.ts`
 - Typed catalog: `src/lib/life-explorer/antarctica-resources.ts`
 - Parent UI: `/homeschool/life-explorer/resources`
 
@@ -53,9 +78,10 @@ Printables are generated live — never stored as static PDFs:
 
 | Layer | Route | When |
 |-------|-------|------|
-| Expedition Kit (passport, Wonder Wall headers, map, experiment sheets, certificate) | `/api/life-explorer/print/kit` | Once at expedition launch |
-| Weekly Explorer Packet (5 field-notes pages, reading cards at current rung, vocab cards) | `/api/life-explorer/print/week` | With the Sunday forecast |
-| Per-lesson sheet (only when the activity needs a recording sheet) | `/api/life-explorer/print/lesson?id=` | Button appears on the lesson page |
+| Life I Choose book | `/api/life-explorer/print/vision` | Whenever the parent wants the child to hold the why |
+| Expedition Kit | `/api/life-explorer/print/kit` | Once at expedition launch — includes the color-in Life Compass fridge page |
+| Weekly Explorer Packet | `/api/life-explorer/print/week` | With the Sunday forecast — cover carries the parent on-track strip; includes the week’s Life Learning story page + cut cards |
+| Per-lesson sheet | `/api/life-explorer/print/lesson?id=` | Only when the activity needs a recording sheet |
 
 Shared ink-minimal brand shell: `src/lib/life-explorer/print/layout.ts`. The teacher guide is never printed — the lesson screen is the teacher guide.
 
@@ -63,17 +89,19 @@ Only verified URLs from the pack may be linked. Everything else uses `needs_pare
 
 ## Related
 
-- **Oliver Ocean Adventures** (`homeschool/oliver-ocean-adventures/`) — finished static unit, surfaced on the Learning Map as a completed archive expedition. Do not regenerate or replace it.
-- **Yearly curriculum overview** (`docs/jordan/VibrationFit_Homeschool_Curriculum.md`) and **admin overview** (`/admin/homeschool`) — narrative/reference only. **The Learning Map is the pacing truth**; these documents do not define pacing.
+- **Oliver Ocean Adventures** (`homeschool/oliver-ocean-adventures/`) — finished static unit. Do not regenerate or replace it.
+- **Yearly curriculum overview** (`docs/jordan/VibrationFit_Homeschool_Curriculum.md`) and **admin overview** (`/admin/homeschool`) — narrative/reference only. **Life Explorer is the pacing truth.**
+- **Kids Activation Intensive** — later product. Life I Choose still lives in the school.
 
 ## Code map
 
 | Area | Path |
 |------|------|
 | Domain lib | `src/lib/life-explorer/` |
+| VIVA prompts | `src/lib/viva/prompts/life-explorer-*.ts` |
 | APIs | `src/app/api/life-explorer/` |
 | Parent UI | `src/app/homeschool/life-explorer/` |
 | Antarctica pack | `src/lib/life-explorer/packs/antarctica.ts` |
 | Print shell + routes | `src/lib/life-explorer/print/` + `src/app/api/life-explorer/print/` |
-| Migration | `supabase/migrations/*_life_explorer.sql` |
+| Migration | `supabase/migrations/*_life_explorer*.sql` |
 | Cursor rule | `.cursor/rules/life-explorer.mdc` |

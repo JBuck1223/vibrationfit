@@ -103,11 +103,7 @@ export default function LessonLogPage() {
           </Link>
           <h2 className="text-3xl font-bold text-white mt-3">Lesson Log</h2>
           {expedition && (
-            <p className="text-neutral-300 mt-2">
-              <span className="capitalize text-[#00FFFF]">{expedition.life_category}</span>
-              {' · '}
-              {expedition.title}
-            </p>
+            <p className="text-neutral-300 mt-2">{expedition.title}</p>
           )}
           {lessons.length > 0 && (
             <p className="text-sm text-neutral-500 mt-2">

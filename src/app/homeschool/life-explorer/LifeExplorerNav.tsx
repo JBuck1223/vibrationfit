@@ -2,44 +2,121 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Compass, Map, User, Sparkles, BookOpen, CalendarDays, Library, ListChecks } from 'lucide-react'
+import {
+  Compass,
+  Map,
+  User,
+  Sparkles,
+  BookOpen,
+  CalendarDays,
+  CalendarCheck2,
+  Library,
+  ListChecks,
+  Heart,
+  TrendingUp,
+  Images,
+  Shuffle,
+  NotebookPen,
+  Info,
+  Mountain,
+} from 'lucide-react'
 
 const BASE = '/homeschool/life-explorer'
 
-// Four surfaces. Calendar is first-class — it's how days get tracked.
-const SURFACES = [
-  { key: 'today', href: BASE, label: 'Today', icon: Compass },
-  { key: 'calendar', href: `${BASE}/calendar`, label: 'Calendar', icon: CalendarDays },
-  { key: 'map', href: `${BASE}/map`, label: 'Map', icon: Map },
-  { key: 'profile', href: `${BASE}/profile`, label: 'Profile', icon: User },
-] as const
+type SurfaceKey = 'today' | 'week' | 'map' | 'progress' | 'profile'
 
-// Panels that belong to the Today / Expedition surface.
-const EXPEDITION_PANELS = [
-  { href: BASE, label: 'Expedition', icon: Compass },
-  { href: `${BASE}/wonder`, label: 'Wonder Wall', icon: Sparkles },
-  { href: `${BASE}/lessons`, label: 'Lesson Log', icon: ListChecks },
-  { href: `${BASE}/books`, label: 'Storybooks', icon: Library },
-  { href: `${BASE}/resources`, label: 'Resources', icon: BookOpen },
-] as const
+interface Panel {
+  href: string
+  label: string
+  icon: typeof Compass
+}
 
-type Surface = 'today' | 'calendar' | 'map' | 'profile'
+interface Surface {
+  key: SurfaceKey
+  href: string
+  label: string
+  icon: typeof Compass
+  /** Path prefixes (after BASE) that belong to this surface. */
+  paths: string[]
+  panels: Panel[]
+}
+
+// Five surfaces, one per time horizon of the parent's job:
+// run the day → shape the week → see the year → prove the growth → know the child.
+const SURFACES: Surface[] = [
+  {
+    key: 'today',
+    href: BASE,
+    label: 'Today',
+    icon: Compass,
+    paths: ['/lesson/', '/record', '/wonder', '/books'],
+    panels: [
+      { href: BASE, label: 'Expedition', icon: Compass },
+      { href: `${BASE}/record`, label: 'Record', icon: NotebookPen },
+      { href: `${BASE}/wonder`, label: 'Wonder Wall', icon: Sparkles },
+      { href: `${BASE}/books`, label: 'Storybooks', icon: Library },
+    ],
+  },
+  {
+    key: 'week',
+    href: `${BASE}/week`,
+    label: 'Week',
+    icon: CalendarDays,
+    paths: ['/week', '/calendar', '/change', '/resources'],
+    panels: [
+      { href: `${BASE}/week`, label: 'Coming Week', icon: CalendarDays },
+      { href: `${BASE}/calendar`, label: 'Calendar', icon: CalendarCheck2 },
+      { href: `${BASE}/change`, label: 'New Direction', icon: Shuffle },
+      { href: `${BASE}/resources`, label: 'Resources', icon: BookOpen },
+    ],
+  },
+  {
+    key: 'map',
+    href: `${BASE}/map`,
+    label: 'Map',
+    icon: Map,
+    paths: ['/map', '/overview'],
+    panels: [
+      { href: `${BASE}/map`, label: 'Learning Map', icon: Map },
+      { href: `${BASE}/overview`, label: 'How It Works', icon: Info },
+    ],
+  },
+  {
+    key: 'progress',
+    href: `${BASE}/expeditions`,
+    label: 'Path',
+    icon: Mountain,
+    paths: ['/progress', '/portfolio', '/expeditions', '/lessons'],
+    panels: [
+      { href: `${BASE}/expeditions`, label: 'Expeditions', icon: Mountain },
+      { href: `${BASE}/progress`, label: 'Progress', icon: TrendingUp },
+      { href: `${BASE}/portfolio`, label: 'Portfolio', icon: Images },
+      { href: `${BASE}/lessons`, label: 'Lesson Log', icon: ListChecks },
+    ],
+  },
+  {
+    key: 'profile',
+    href: `${BASE}/profile`,
+    label: 'Profile',
+    icon: User,
+    paths: ['/profile', '/vision'],
+    panels: [
+      { href: `${BASE}/profile`, label: 'Explorer', icon: User },
+      { href: `${BASE}/vision`, label: 'Life I Choose', icon: Heart },
+    ],
+  },
+]
 
 function activeSurface(pathname: string): Surface {
-  if (pathname.startsWith(`${BASE}/calendar`)) return 'calendar'
-  if (pathname.startsWith(`${BASE}/map`) || pathname.startsWith(`${BASE}/overview`)) return 'map'
-  if (
-    pathname.startsWith(`${BASE}/profile`) ||
-    pathname.startsWith(`${BASE}/portfolio`) ||
-    pathname.startsWith(`${BASE}/progress`)
-  )
-    return 'profile'
-  return 'today'
+  for (const surface of SURFACES) {
+    if (surface.key === 'today') continue
+    if (surface.paths.some((p) => pathname.startsWith(`${BASE}${p}`))) return surface
+  }
+  return SURFACES[0]
 }
 
 export function LifeExplorerNav({
   expeditionTitle,
-  lifeCategory,
   studentName,
 }: {
   expeditionTitle?: string | null
@@ -47,7 +124,12 @@ export function LifeExplorerNav({
   studentName?: string | null
 }) {
   const pathname = usePathname() || BASE
+  const isBookReader = pathname.startsWith(`${BASE}/books/`)
   const surface = activeSurface(pathname)
+
+  // The storybook reader is its own full-screen chrome. Hide the section
+  // nav so its top bar and mobile tab bar don't sit on the page.
+  if (isBookReader) return null
 
   return (
     <>
@@ -64,8 +146,7 @@ export function LifeExplorerNav({
                   Life Explorer
                 </span>
                 {expeditionTitle && (
-                  <span className="hidden sm:inline truncate text-sm text-[#00FFFF] capitalize">
-                    {lifeCategory ? `${lifeCategory} · ` : ''}
+                  <span className="hidden sm:inline truncate text-sm text-[#00FFFF]">
                     {expeditionTitle}
                   </span>
                 )}
@@ -75,7 +156,7 @@ export function LifeExplorerNav({
             <nav className="hidden md:flex items-center gap-1 rounded-full border border-[#2a2a2a] bg-[#141414] p-1">
               {SURFACES.map((s) => {
                 const Icon = s.icon
-                const active = surface === s.key
+                const active = surface.key === s.key
                 return (
                   <Link
                     key={s.key}
@@ -102,43 +183,42 @@ export function LifeExplorerNav({
           </div>
         </div>
 
-        {surface === 'today' && (
-          <div className="border-t border-[#1c1c1c]">
-            <div className="mx-auto max-w-6xl px-4 md:px-6">
-              <nav className="flex gap-1 overflow-x-auto py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {EXPEDITION_PANELS.map((p) => {
-                  const Icon = p.icon
-                  const active =
-                    p.href === BASE
-                      ? pathname === BASE || pathname.startsWith(`${BASE}/lesson/`)
-                      : pathname.startsWith(p.href)
-                  return (
-                    <Link
-                      key={p.href}
-                      href={p.href}
-                      className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors ${
-                        active
-                          ? 'text-[#39FF14] bg-[#39FF14]/10'
-                          : 'text-neutral-400 hover:text-white'
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {p.label}
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
+        {/* Panel row for the active surface */}
+        <div className="border-t border-[#1c1c1c]">
+          <div className="mx-auto max-w-6xl px-4 md:px-6">
+            <nav className="flex gap-1 overflow-x-auto py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {surface.panels.map((p) => {
+                const Icon = p.icon
+                const active =
+                  p.href === BASE
+                    ? pathname === BASE || pathname.startsWith(`${BASE}/lesson/`)
+                    : pathname.startsWith(p.href)
+                return (
+                  <Link
+                    key={p.href}
+                    href={p.href}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors ${
+                      active
+                        ? 'text-[#39FF14] bg-[#39FF14]/10'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {p.label}
+                  </Link>
+                )
+              })}
+            </nav>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Mobile: fixed bottom tab bar */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[#222] bg-[#0f0f0f]/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {SURFACES.map((s) => {
             const Icon = s.icon
-            const active = surface === s.key
+            const active = surface.key === s.key
             return (
               <Link
                 key={s.key}

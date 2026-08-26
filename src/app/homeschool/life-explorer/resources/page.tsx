@@ -13,19 +13,19 @@ const PRINT_LAYERS = [
     title: 'Expedition Kit',
     href: '/api/life-explorer/print/kit',
     when: 'Print once, at launch',
-    what: 'Explorer passport, Wonder Wall headers, expedition map, experiment sheets, completion certificate.',
+    what: 'Explorer passport, Wonder Wall headers, expedition map, the fridge Life Compass (color a slice when it earns a story), experiment sheets, completion certificate.',
   },
   {
     title: 'Weekly Explorer Packet',
     href: '/api/life-explorer/print/week',
     when: 'Print with the Sunday materials forecast',
-    what: "Five field-notes day pages, reading cards at the current rung (they level up automatically), and the expedition word cards.",
+    what: "Five field-notes day pages, reading cards at the current rung (they level up automatically), this week's 12 sight words, expedition word cards, and this week's Life Learning pages — a clock story, a coin shop, or one compass card, rotating.",
   },
   {
-    title: "Today's lesson sheet",
+    title: "Today's lesson pages",
     href: null,
-    when: 'Only when a lesson needs one',
-    what: 'If an experiment needs a recording sheet, the print button appears on the lesson page. Most days need nothing beyond a field-notes page.',
+    when: 'On every lesson — print from the lesson screen',
+    what: "Today's teaching pictures: sort mats, maps, clocks, cards, tallies. A recording sheet only when the experiment needs one. The expedition kit is still the week-long pack; these pages are this day only.",
   },
 ] as const
 
@@ -40,7 +40,7 @@ export default function ResourcesPage() {
           <h2 className="text-3xl font-bold text-white mt-3">Antarctica Resources</h2>
           <p className="text-neutral-400 mt-2">
             Printables generated on demand (designed to sip ink), verified books and links, and the
-            supply list. The lesson screen is the teacher guide — nothing to print there.
+            supply list. Each lesson also has its own pictures on screen — print those from the lesson.
           </p>
         </div>
 

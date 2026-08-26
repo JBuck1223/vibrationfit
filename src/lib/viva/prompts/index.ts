@@ -136,3 +136,19 @@ export {
   TRAVEL_PARSER_SYSTEM_PROMPT,
   buildTravelParserPrompt,
 } from './travel-parser-prompt'
+
+export {
+  LIFE_EXPLORER_SIDEKICK_SYSTEM_PROMPT,
+  buildLifeExplorerSidekickPrompt,
+} from './life-explorer-sidekick'
+
+export {
+  LIFE_I_CHOOSE_TIGHTEN_SYSTEM_PROMPT,
+  buildLifeIChooseTightenPrompt,
+  WORLD_MAP_DRAFT_SYSTEM_PROMPT,
+  buildWorldMapDraftPrompt,
+  YEAR_ARC_DRAFT_SYSTEM_PROMPT,
+  buildYearArcDraftPrompt,
+  WEEK_ARC_DRAFT_SYSTEM_PROMPT,
+  buildWeekArcDraftPrompt,
+} from './life-explorer-compose'

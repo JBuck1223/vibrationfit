@@ -9,7 +9,7 @@ import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { READING_LADDER, currentLadderPosition } from './ladders'
 import { weeklySightWords } from './sight-words'
-import { buildBookUserPrompt } from './book-prompts'
+import { buildBookUserPrompt, type ChapterBrief } from './book-prompts'
 import { BOOK_STYLE_BIBLE } from './book-characters'
 import { loadStorybookWriterConfig } from './book-tools-config'
 import type { LeBook, LeCharacter, LeSkillProgress, LeStudent, BookReadingMode } from './types'
@@ -45,6 +45,8 @@ export interface CreateBookInput {
   topic: string
   readingMode: BookReadingMode
   characterIds: string[]
+  chapters?: ChapterBrief[]
+  expeditionId?: string
 }
 
 export async function composeAndSaveBook(
@@ -92,6 +94,12 @@ export async function composeAndSaveBook(
     decodableWords = readingPos.current_rung.decodable_words || []
     // Wide window — a book needs more vocabulary than the weekly 12 cards.
     sightWords = weeklySightWords(new Date(), 60)
+    if (input.chapters?.length) {
+      const chapterWords = input.chapters.flatMap((c) => c.decodable)
+      const chapterSight = input.chapters.flatMap((c) => c.sight)
+      decodableWords = Array.from(new Set([...(decodableWords || []), ...chapterWords]))
+      sightWords = Array.from(new Set([...(sightWords || []), ...chapterSight]))
+    }
   }
 
   const userPrompt = buildBookUserPrompt({
@@ -109,6 +117,7 @@ export async function composeAndSaveBook(
     expeditionTitle: expedition?.title || null,
     decodableWords,
     sightWords,
+    chapters: input.chapters,
   })
 
   // Model, temperature, token budget, and system prompt are admin-editable
@@ -136,6 +145,9 @@ export async function composeAndSaveBook(
   const content = completion.choices[0]?.message?.content
   if (!content) throw new Error('No story generated')
   const composed = parseComposedBook(content)
+  if (input.chapters?.length && composed.pages.length < 16) {
+    throw new Error('Expedition book needs at least 16 pages')
+  }
 
   await trackTokenUsage(
     {
@@ -161,7 +173,7 @@ export async function composeAndSaveBook(
     .from('le_books')
     .insert({
       student_id: student.id,
-      expedition_id: expedition?.id || null,
+      expedition_id: input.expeditionId || expedition?.id || null,
       created_by: userId,
       household_id: student.household_id,
       title: composed.title,

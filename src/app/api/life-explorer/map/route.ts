@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { computeCoverage, stateProfile } from '@/lib/life-explorer/state-standards'
-import type { LifeCategoryKey } from '@/lib/life-explorer/types'
+import { buildLedgerWeather } from '@/lib/life-explorer/ledger'
+import { WORLD_CLUSTERS } from '@/lib/life-explorer/world-map'
+import { computeYearMap } from '@/lib/life-explorer/year-map'
+import {
+  MATH_LADDER,
+  READING_LADDER,
+  WRITING_LADDER,
+  currentLadderPosition,
+} from '@/lib/life-explorer/ladders'
+import { weeklyLifeLearningFocus } from '@/lib/life-explorer/life-learning'
+import { schoolQuarter } from '@/lib/life-explorer/sight-words'
+import type { LeSkillProgress, LeYearArc, LifeCategoryKey } from '@/lib/life-explorer/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,9 +60,12 @@ export async function GET(request: NextRequest) {
     .eq('id', studentId)
     .single()
 
-  const since = new Date(Date.now() - 45 * 86_400_000).toISOString()
+  // Whole school year of inputs: coverage applies its own 30-day window,
+  // while the Year Map keeps a Big Idea met once it is genuinely met.
+  const since = new Date(Date.now() - 300 * 86_400_000).toISOString()
 
-  const [expeditions, lessons, recentLessons, evidence, logs, wonders] = await Promise.all([
+  const [expeditions, lessons, recentLessons, evidence, logs, wonders, mapItems, yearArc] =
+    await Promise.all([
     supabase
       .from('le_expeditions')
       .select('id, life_category, title, status, start_date')
@@ -83,6 +97,17 @@ export async function GET(request: NextRequest) {
       .neq('status', 'answered')
       .order('interest_level', { ascending: false })
       .limit(10),
+    supabase
+      .from('le_world_map_items')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('le_year_arcs')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('status', 'active')
+      .maybeSingle(),
   ])
 
   const lessonsByExpedition = new Map<string, { total: number; completed: number }>()
@@ -115,22 +140,75 @@ export async function GET(request: NextRequest) {
     activityLogs: (logs.data || []) as never,
   })
 
-  // Suggestions: open high-interest Wonders + untouched life categories.
-  const untouched = categories.filter((c) => c.expeditions.length === 0)
+  const yearMap = computeYearMap({
+    lessons: (recentLessons.data || []) as never,
+    evidence: (evidence.data || []) as never,
+    activityLogs: (logs.data || []) as never,
+  })
+
+  const { data: skills } = await supabase
+    .from('le_skill_progress')
+    .select('*')
+    .eq('student_id', studentId)
+
+  const ledger = buildLedgerWeather({
+    stateCode: student?.state_code,
+    gradeLevel: student?.grade_level,
+    yearArc: (yearArc.data as LeYearArc | null) || null,
+    skills: (skills || []) as LeSkillProgress[],
+    coverage,
+  })
+
+  const unvisited = (mapItems.data || []).filter((i) => i.status === 'unvisited')
   const suggestions = [
     ...(wonders.data || []).slice(0, 3).map((w) => ({
       kind: 'wonder' as const,
       label: `Open Wonder: "${w.statement}" — a whole expedition could grow from this`,
     })),
-    ...untouched.slice(0, 3).map((c) => ({
-      kind: 'category' as const,
-      label: `${c.label} ("${c.theme}") is unexplored — a natural next expedition home`,
+    ...unvisited.slice(0, 3).map((i) => ({
+      kind: 'world' as const,
+      label: `[${i.cluster}] ${i.name} is still waiting on the World Map`,
     })),
   ]
+
+  const world_map = WORLD_CLUSTERS.map((cluster) => ({
+    ...cluster,
+    items: (mapItems.data || []).filter((i) => i.cluster === cluster.key),
+  }))
+
+  // On-track sentence — assembled here so every surface says the same thing.
+  const skillRows = (skills || []) as LeSkillProgress[]
+  const readingRung = currentLadderPosition(READING_LADDER, skillRows, student?.grade_level)
+  const mathRung = currentLadderPosition(MATH_LADDER, skillRows, student?.grade_level)
+  const writingRung = currentLadderPosition(WRITING_LADDER, skillRows, student?.grade_level)
+  const llFocus = weeklyLifeLearningFocus(skillRows)
+  const compassStories = skillRows.filter(
+    (s) => s.subject === 'life_learning' && s.skill.startsWith('compass-') && s.status === 'secure'
+  ).length
+  const greenCount = coverage.filter((c) => c.level === 'green').length
+  const yearMapGreen = yearMap.filter((s) => s.level !== 'untouched').length
+  const on_track = [
+    greenCount === coverage.length
+      ? 'Subjects are green.'
+      : `${greenCount} of ${coverage.length} subjects are green this month.`,
+    `Reading is on ${readingRung.current_rung.label.toLowerCase()}.`,
+    `Math is on ${mathRung.current_rung.label.toLowerCase()}.`,
+    `Writing is on ${writingRung.current_rung.label.toLowerCase()}.`,
+    `Sight words: quarter ${schoolQuarter()} rotating.`,
+    `This week's Life Learning focus: ${llFocus.resource.name}.`,
+    `Big Ideas met: ${yearMapGreen} of ${yearMap.length}.`,
+    `Compass: ${compassStories} of 12 slices have a story.`,
+  ].join(' ')
 
   return NextResponse.json({
     student,
     state_profile: stateProfile(student?.state_code),
+    world_map,
+    year_map: yearMap,
+    on_track,
+    year_arc: yearArc.data || null,
+    ledger,
+    expeditions: expeditions.data || [],
     categories,
     coverage,
     suggestions,

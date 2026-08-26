@@ -16,6 +16,9 @@ import type {
   LessonPayload,
   SteerDirection,
 } from '@/lib/life-explorer/types'
+import type { ExpeditionSequence } from '@/lib/life-explorer/sequence'
+import { ExpeditionDashboard } from '@/components/life-explorer/ExpeditionDashboard'
+import { FacilitatorGuide } from '@/components/life-explorer/FacilitatorGuide'
 
 interface Chapter {
   id: string
@@ -33,6 +36,7 @@ interface TodayResponse {
   wonder_wall?: { know: LeWonderItem[]; wonder: LeWonderItem[]; learned: LeWonderItem[] }
   latest_record?: LeLessonRecord | null
   chapters?: Chapter[]
+  sequence?: ExpeditionSequence | null
   activity_logged_today?: boolean
   needs_seed?: boolean
   error?: string
@@ -143,39 +147,67 @@ export default function ExpeditionHomePage() {
   }
 
   return (
-    <Container size="md" className="py-10 md:py-14">
+    <Container size="lg" className="py-10 md:py-14">
       <Stack gap="lg">
-        {/* Expedition header */}
-        <div>
-          {expedition ? (
-            <>
-              <p className="text-[#00FFFF] text-sm mb-1 capitalize">
-                {expedition.life_category} expedition
-              </p>
-              <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
-                {expedition.title}
-              </h2>
-              <p className="mt-2 text-sm text-neutral-400">
-                {completedChapters.length === 0
-                  ? 'The adventure is just beginning'
-                  : `${completedChapters.length} adventure${completedChapters.length === 1 ? '' : 's'} so far`}
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
-                Start Life Explorer
-              </h2>
-              <p className="mt-3 text-neutral-300">
-                Every expedition starts with curiosity. Choose where to explore first.
-              </p>
-            </>
-          )}
-        </div>
+        {expedition && data?.sequence && data.sequence.total_days > 0 ? (
+          <ExpeditionDashboard
+            studentName={data.student?.name}
+            expeditionTitle={expedition.title}
+            expeditionId={expedition.id}
+            why={expedition.why_this_matters}
+            sequence={data.sequence}
+            primaryHref={
+              data.lesson
+                ? `/homeschool/life-explorer/lesson/${data.lesson.id}`
+                : `/homeschool/life-explorer/expeditions/${expedition.id}?day=${data.sequence.current_day}`
+            }
+            primaryLabel={data.lesson ? "Open today's adventure" : 'View this expedition'}
+          />
+        ) : (
+          <div>
+            {expedition ? (
+              <>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#39FF14]/80 mb-1.5">
+                  Current expedition
+                </p>
+                <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
+                  {expedition.title}
+                </h2>
+              </>
+            ) : (
+              <>
+                <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
+                  Start Life Explorer
+                </h2>
+                <p className="mt-3 text-neutral-300">
+                  Every expedition starts with curiosity. Choose where to explore first.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {data?.sequence?.guide && <FacilitatorGuide guide={data.sequence.guide} />}
 
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             {error}
+          </div>
+        )}
+
+        {/* The vision is the root of every composed day — nudge until it exists. */}
+        {data?.student && !data.student.life_i_choose && (
+          <div className="rounded-2xl border border-[#00FFFF]/30 bg-[#00FFFF]/5 px-4 py-3">
+            <p className="text-sm text-neutral-200">
+              {data.student.name}&apos;s Life I Choose isn&apos;t written yet. Fill out the
+              current-state profile and VIVA will draft it — then he makes it his.{' '}
+              <Link
+                href="/homeschool/life-explorer/vision"
+                className="text-[#00FFFF] hover:underline"
+              >
+                Start here
+              </Link>
+            </p>
           </div>
         )}
 
@@ -219,9 +251,24 @@ export default function ExpeditionHomePage() {
         {/* Story so far — chapters, not numbered days */}
         {(completedChapters.length > 0 || skippedChapters.length > 0) && (
           <div className="rounded-2xl border border-[#222] bg-[#111] p-5">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-3">
+              This expedition
+            </p>
             <p className="text-white font-semibold mb-1">The story so far</p>
             <p className="text-sm text-neutral-500 mb-4">
-              Tap a chapter to revisit the lesson and what happened.
+              Tap a chapter to revisit the lesson and what happened
+              {expedition && (
+                <>
+                  {' — or open the '}
+                  <Link
+                    href={`/homeschool/life-explorer/expeditions/${expedition.id}`}
+                    className="text-[#00FFFF] hover:underline"
+                  >
+                    full expedition record
+                  </Link>
+                </>
+              )}
+              .
             </p>
             <ol className="space-y-2">
               {completedChapters.map((c) => (
@@ -269,6 +316,7 @@ export default function ExpeditionHomePage() {
         {/* Weekly Materials Forecast + weekly packet */}
         {forecast && (forecast.plan_ahead.length > 0 || forecast.tonight.length > 0) && (
           <div className="rounded-2xl border border-[#222] bg-[#111] p-5">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-3">This week</p>
             <button
               type="button"
               onClick={() => setShowForecast((v) => !v)}
@@ -316,49 +364,24 @@ export default function ExpeditionHomePage() {
                 </div>
               </div>
             )}
-            <a
-              href="/api/life-explorer/print/week"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center rounded-lg border border-[#333] px-4 py-2 text-xs font-medium text-neutral-200 hover:border-[#39FF14]/40 hover:text-white transition-colors"
-            >
-              Print this week&apos;s packet
-            </a>
-          </div>
-        )}
-
-        {/* Quick links */}
-        {expedition && (
-          <div className="flex flex-wrap gap-3 text-sm">
-            <Link
-              href="/homeschool/life-explorer/wonder"
-              className="text-neutral-400 hover:text-white transition-colors"
-            >
-              Wonder Wall
-            </Link>
-            <span className="text-neutral-700">·</span>
-            <Link
-              href="/homeschool/life-explorer/calendar"
-              className="text-neutral-400 hover:text-white transition-colors"
-            >
-              Calendar
-            </Link>
-            <span className="text-neutral-700">·</span>
-            <Link
-              href="/homeschool/life-explorer/resources"
-              className="text-neutral-400 hover:text-white transition-colors"
-            >
-              Resources &amp; printables
-            </Link>
-            <span className="text-neutral-700">·</span>
-            <a
-              href="/api/life-explorer/print/kit"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-neutral-400 hover:text-white transition-colors"
-            >
-              Expedition Kit
-            </a>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                href="/api/life-explorer/print/week"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-lg border border-[#333] px-4 py-2 text-xs font-medium text-neutral-200 hover:border-[#39FF14]/40 hover:text-white transition-colors"
+              >
+                Print this week&apos;s packet
+              </a>
+              <a
+                href="/api/life-explorer/print/kit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-lg border border-[#333] px-4 py-2 text-xs font-medium text-neutral-400 hover:border-[#39FF14]/40 hover:text-white transition-colors"
+              >
+                Expedition Kit
+              </a>
+            </div>
           </div>
         )}
 
@@ -613,6 +636,7 @@ function MorningAppreciationCard({
   if (entry) {
     return (
       <div className="rounded-2xl border border-[#222] bg-[#111] p-5">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-3">Daily ritual</p>
         <div className="flex items-start gap-4">
           {entry.photo_url && (
             <Image
@@ -657,6 +681,7 @@ function MorningAppreciationCard({
           e.target.value = ''
         }}
       />
+      <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-3">Daily ritual</p>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-white font-semibold">Morning Appreciation</p>
@@ -779,6 +804,9 @@ function SteerPanel({
 
   return (
     <div className="rounded-2xl border border-[#222] bg-[#111] p-5">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-3">
+        Shape what&apos;s next
+      </p>
       <p className="text-white font-semibold">Steer the expedition</p>
       <p className="text-sm text-neutral-500 mt-0.5 mb-4">
         Star the wonders to explore next. The next lesson is built around the top of the queue —

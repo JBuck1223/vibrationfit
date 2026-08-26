@@ -1,8 +1,9 @@
 ---
-description: Life Explorer (Vibration Fit Homeschool) — canonical curriculum system rules
+description: Life Explorer (Vibration Fit Homeschool) — north star and engineering conventions
 globs:
   - docs/features/life-explorer/**
   - src/lib/life-explorer/**
+  - src/lib/viva/prompts/life-explorer*
   - src/app/api/life-explorer/**
   - src/app/homeschool/**
   - homeschool/life-explorer/**
@@ -11,23 +12,27 @@ globs:
 alwaysApply: false
 ---
 
-# Life Explorer Agent Rules
+# Life Explorer
 
-Before modifying Life Explorer or generating lessons, read:
+Read `docs/features/life-explorer/PHILOSOPHY.md` first.
 
-- `docs/features/life-explorer/PHILOSOPHY.md`
-- `docs/features/life-explorer/LESSON_CONTRACT.md`
-- `docs/features/life-explorer/DATA_MODEL.md`
-- `docs/features/life-explorer/DAILY_WORKFLOW.md`
-- `docs/features/life-explorer/AGENT_RULES.md`
+North star: a **tool-enabled human**. VIVA composes the day and can author layered books (story, words sounded out, sentence structure). Pedagogy is a working bet — not a lock. Do not tell the user they have “already decided” how school works.
 
-## Critical
+User-facing name is **VIVA**, never “AI.”
 
-**Do not confuse more content with a better lesson. The best lesson is the smallest complete experience that keeps the parent prepared, the child engaged, and the learning documented.**
+## Engineering (keep)
 
-- Never invent resource titles, URLs, page numbers, or runtimes.
-- Do not force every subject into every lesson.
-- Never tell the parent they are “behind.”
-- Preserve child language on Wonder Wall “Know” items.
+- Prompts in `src/lib/viva/prompts/` only; tokens on the gateway.
+- Never invent resource titles, URLs, page numbers, or runtimes. VF-authored books are real because we generated them.
+- Do not edit `supabase/COMPLETE_SCHEMA_DUMP.sql`.
 - Leave `homeschool/oliver-ocean-adventures/` untouched.
-- Product home is Vibration Fit only — not Company Engineers KB.
+- Product home is Vibration Fit, not Company Engineers KB.
+- v1 parent-held; no child login until built on purpose.
+- Catalog in code (`skill-catalog.ts`). Progress on `le_skill_progress`. Progress is the checklist; parent can override. No second benchmark-progress table.
+- Life I Choose from `le_student_profiles` + edit — no canned vision paragraph.
+
+## Working bets (change when asked or when they fail the child)
+
+- Life I Choose / expeditions / World Map / ladders / Flashback / Life Learning / Fun Contract / three-card discovery / semester mix / compass-as-lens.
+- Use any honest material: generated books, household, library, someone else’s reader. No publisher is banned. No publisher is the boss.
+- Smallest complete lesson; unique days; preserve Know-column language; never “behind.”

@@ -5,7 +5,13 @@
  * le_characters (per user) the first time a character is used, and a portrait
  * "character sheet" image is generated once and reused as the visual anchor
  * for every book they appear in.
+ *
+ * Kids (Oliver, Leila) are human children. Animals stay animals.
+ * Never mix a child's head onto an animal body.
  */
+
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { LeCharacter } from './types'
 
 export interface StarterCharacter {
   slug: string
@@ -15,6 +21,11 @@ export interface StarterCharacter {
   catchphrase: string
   /** Detailed, stable visual description — injected into every image prompt. */
   visual_description: string
+}
+
+export function isHumanSpecies(species?: string | null): boolean {
+  const s = (species || '').toLowerCase()
+  return s === 'boy' || s === 'girl' || s === 'child' || s === 'human'
 }
 
 /**
@@ -27,10 +38,32 @@ export const BOOK_STYLE_BIBLE = [
   'Big expressive eyes, exaggerated funny facial expressions.',
   'Rich saturated colors, warm lighting, subtle paper-grain texture.',
   'Simple uncluttered backgrounds that keep focus on the characters.',
+  'Characters may be human children or animals. Never mix a child\'s head onto an animal body.',
+  'A named child stays a child. A named animal stays that complete animal.',
   'Absolutely no words, letters, numbers, or text anywhere in the image.',
 ].join(' ')
 
 export const STARTER_CHARACTERS: StarterCharacter[] = [
+  {
+    slug: 'oliver',
+    name: 'Oliver',
+    species: 'boy',
+    personality:
+      'A seven-year-old Gulf kid who is first in the water. Thinks with his body. Asks why out loud. Bets they can. Loyal, loud laugh. He is himself — not an animal, not a mascot.',
+    catchphrase: "Let's GO.",
+    visual_description:
+      'A 7-year-old human boy, not an animal. Sandy-blonde hair, sun-lightened and a little salt-stiff, usually messy. Bright blue eyes. Sun-kissed surfer kid: tanned face, a few freckles, easy grin. Faded blue board shorts, a rash guard or bare shoulders, thin shark-tooth necklace. Barefoot more often than not. Sandy ankles. Human head, human arms, human legs.',
+  },
+  {
+    slug: 'leila',
+    name: 'Leila',
+    species: 'girl',
+    personality:
+      'A seven-year-old Gulf kid and Oliver\'s dock friend — a friend, not a crush. Oliver runs. Leila crouches. She finds the tiny crab he stepped over. She will say wait when he is about to wreck the tide pool — then she jumps in too. The science move is look again.',
+    catchphrase: 'Hold up. Look at THIS.',
+    visual_description:
+      'A 7-year-old human girl, not an animal. Dark brown hair in a salt-stiff braid that never stays neat. Warm brown eyes, freckles across the nose. Sun-browned skin. Faded coral rash guard, rolled shorts, one yellow flip-flop (the other lives in her mesh bag). Mesh bag of shells, sea glass, and a soggy notebook. Human head, human arms, human legs.',
+  },
   {
     slug: 'pip',
     name: 'Pip',
@@ -96,11 +129,64 @@ export function buildPortraitPrompt(character: {
   species?: string | null
   visual_description: string
 }): string {
+  const who = isHumanSpecies(character.species)
+    ? `${character.name}, a 7-year-old human ${character.species} (not an animal, not anthropomorphic)`
+    : `${character.name}${character.species ? `, a ${character.species}` : ''}`
   return [
-    `Character sheet portrait of ${character.name}${character.species ? `, a ${character.species}` : ''}.`,
+    `Character sheet portrait of ${who}.`,
     character.visual_description,
     'Full body, standing, facing slightly toward the viewer, friendly confident pose.',
     'Plain soft cream background, no scenery, no props beyond what the character wears or carries.',
     BOOK_STYLE_BIBLE,
   ].join(' ')
+}
+
+/** Create any missing starter rows for this user. Oliver is tagged to the student. */
+export async function ensureStarterCharacters(
+  supabase: SupabaseClient,
+  userId: string,
+  options?: { studentId?: string | null; householdId?: string | null }
+): Promise<LeCharacter[]> {
+  const { data: existingRows } = await supabase
+    .from('le_characters')
+    .select('*')
+    .eq('created_by', userId)
+    .order('is_starter', { ascending: false })
+    .order('created_at', { ascending: true })
+
+  let characters = (existingRows || []) as LeCharacter[]
+  const existingSlugs = new Set(characters.map((c) => c.slug))
+  const missing = STARTER_CHARACTERS.filter((s) => !existingSlugs.has(s.slug))
+
+  if (missing.length > 0) {
+    const { data: inserted } = await supabase
+      .from('le_characters')
+      .insert(
+        missing.map((s) => ({
+          created_by: userId,
+          household_id: options?.householdId || null,
+          student_id: s.slug === 'oliver' ? options?.studentId || null : null,
+          slug: s.slug,
+          name: s.name,
+          species: s.species,
+          personality: s.personality,
+          catchphrase: s.catchphrase,
+          visual_description: s.visual_description,
+          is_starter: true,
+        }))
+      )
+      .select('*')
+    characters = [...characters, ...((inserted || []) as LeCharacter[])]
+  }
+
+  const oliver = characters.find((c) => c.slug === 'oliver')
+  if (oliver && options?.studentId && oliver.student_id !== options.studentId) {
+    await supabase
+      .from('le_characters')
+      .update({ student_id: options.studentId, updated_at: new Date().toISOString() })
+      .eq('id', oliver.id)
+    oliver.student_id = options.studentId
+  }
+
+  return characters
 }

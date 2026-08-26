@@ -1,8 +1,9 @@
 'use client'
 
-import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system/components'
+import { ReadAloudPractice } from '@/components/life-explorer/ReadAloudPractice'
 import type { LeBook, LeBookPage } from '@/lib/life-explorer/types'
 
 interface CastMember {
@@ -18,6 +19,19 @@ interface CastMember {
  * Sheets: 0 = cover, 1..n = story pages, n+1 = "The End" back cover.
  * Turn pages by tapping the page edges, swiping, or arrow keys.
  */
+function PageArt({ src, alt, empty }: { src: string | null; alt: string; empty: ReactNode }) {
+  return (
+    <div className="relative min-h-[140px] flex-1 overflow-hidden rounded-2xl bg-[#1a1a1a]">
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-contain" />
+      ) : (
+        <div className="flex h-full min-h-[140px] items-center justify-center">{empty}</div>
+      )}
+    </div>
+  )
+}
+
 export default function BookReaderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [book, setBook] = useState<LeBook | null>(null)
@@ -35,6 +49,7 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
   const [redoNotes, setRedoNotes] = useState('')
   const [redoBusy, setRedoBusy] = useState(false)
   const [redoError, setRedoError] = useState<string | null>(null)
+  const [readAloudBusy, setReadAloudBusy] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -55,6 +70,12 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
     load()
   }, [load])
 
+  useEffect(() => {
+    if (pages.length === 0) return
+    const page = Number(new URLSearchParams(window.location.search).get('page') || '0')
+    if (page > 0) setIdx(Math.min(page, pages.length + 1))
+  }, [pages.length])
+
   // Poll while the book is still illustrating
   useEffect(() => {
     if (!book || book.status !== 'generating') return
@@ -66,7 +87,7 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
 
   const go = useCallback(
     (dir: 'next' | 'prev') => {
-      if (flip) return
+      if (flip || readAloudBusy) return
       const target = idx + (dir === 'next' ? 1 : -1)
       if (target < 0 || target > total - 1) return
       setFlip(dir)
@@ -77,18 +98,22 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
         setTimeout(() => setEntering(null), 260)
       }, 220)
     },
-    [flip, idx, total]
+    [flip, idx, total, readAloudBusy]
   )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (redoOpen) return
-      if (e.key === 'ArrowRight' || e.key === ' ') go('next')
+      if (redoOpen || readAloudBusy) return
+      if (e.key === 'ArrowRight') go('next')
+      if (e.key === ' ') {
+        e.preventDefault()
+        if (!readAloudBusy) go('next')
+      }
       if (e.key === 'ArrowLeft') go('prev')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [go, redoOpen])
+  }, [go, redoOpen, readAloudBusy])
 
   const sheet = useMemo(() => {
     if (!book) return null
@@ -161,7 +186,10 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
             : ''
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-[#0a0a0a]">
+    <div
+      data-book-reader
+      className="fixed inset-0 z-[70] flex h-[100dvh] min-h-0 flex-col bg-[#0a0a0a]"
+    >
       <style>{`
         @keyframes pageInNext {
           from { transform: perspective(1400px) rotateY(60deg); opacity: 0.3; transform-origin: right; }
@@ -174,7 +202,7 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
       `}</style>
 
       {/* Top bar */}
-      <div className="flex items-center justify-between gap-3 border-b border-[#1c1c1c] px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#1c1c1c] px-4 py-3">
         <Link
           href="/homeschool/life-explorer/books"
           className="rounded-full border border-[#2a2a2a] px-3 py-1.5 text-xs text-neutral-300 hover:border-[#39FF14] hover:text-[#39FF14] transition-colors"
@@ -206,14 +234,14 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {book.status === 'generating' && (
-        <div className="border-b border-[#1c1c1c] bg-[#39FF14]/5 px-4 py-2 text-center text-xs text-[#39FF14]">
+        <div className="shrink-0 border-b border-[#1c1c1c] bg-[#39FF14]/5 px-4 py-2 text-center text-xs text-[#39FF14]">
           {book.status_detail || 'Illustrating…'} — pages appear as they finish painting.
         </div>
       )}
 
-      {/* The page */}
+      {/* The page — picture yields leftover height so words and record stay visible. */}
       <div
-        className="relative flex flex-1 items-center justify-center overflow-hidden px-3 py-4 select-none"
+        className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 select-none"
         onTouchStart={(e) => {
           touchStartX.current = e.touches[0].clientX
         }}
@@ -227,68 +255,62 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
       >
         <div
           key={idx}
-          className={`flex max-h-full w-full max-w-2xl flex-col items-center transition-all duration-200 ${flipStyle}`}
+          className={`relative z-10 mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col transition-all duration-200 ${flipStyle}`}
         >
           {sheet?.kind === 'cover' && (
-            <div className="w-full rounded-3xl border border-[#2a2a2a] bg-[#111] p-4 md:p-6 shadow-[0_0_60px_rgba(57,255,20,0.06)]">
-              <div className="aspect-square w-full overflow-hidden rounded-2xl bg-[#1a1a1a] flex items-center justify-center">
-                {book.cover_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={book.cover_url} alt={book.title} className="h-full w-full object-cover" />
-                ) : (
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-3xl border border-[#2a2a2a] bg-[#111] p-3 md:p-4 shadow-[0_0_60px_rgba(57,255,20,0.06)]">
+              <PageArt
+                src={book.cover_url}
+                alt={book.title}
+                empty={
                   <div className="flex flex-col items-center gap-2 text-neutral-500 text-sm">
                     <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#39FF14]/30 border-t-[#39FF14]" />
                     Painting the cover…
                   </div>
-                )}
-              </div>
-              <h1 className="mt-4 text-center text-2xl md:text-3xl font-bold text-white">
+                }
+              />
+              <h1 className="mt-3 shrink-0 text-center text-xl md:text-2xl font-bold text-white">
                 {book.title}
               </h1>
-              <p className="mt-1 text-center text-xs uppercase tracking-[0.22em] text-[#39FF14]/80">
+              <p className="mt-1 shrink-0 text-center text-xs uppercase tracking-[0.22em] text-[#39FF14]/80">
                 A Life Explorers Book
               </p>
               {book.premise && (
-                <p className="mt-2 text-center text-sm text-neutral-400">{book.premise}</p>
+                <p className="mt-2 shrink-0 text-center text-sm text-neutral-400">{book.premise}</p>
               )}
             </div>
           )}
 
           {sheet?.kind === 'page' && sheet.page && (
-            <div className="w-full rounded-3xl border border-[#2a2a2a] bg-[#111] p-4 md:p-6">
-              <div className="aspect-square w-full overflow-hidden rounded-2xl bg-[#1a1a1a] flex items-center justify-center">
-                {sheet.page.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={sheet.page.image_url}
-                    alt={`Page ${sheet.page.page_number}`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : sheet.page.status === 'failed' ? (
-                  <p className="px-6 text-center text-xs text-neutral-500">
-                    This picture didn&apos;t come out — the words still work!
-                  </p>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-neutral-500 text-sm">
-                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#39FF14]/30 border-t-[#39FF14]" />
-                    Painting this page…
-                  </div>
-                )}
-              </div>
-              <p
-                className={`mt-4 text-center text-white ${
-                  iRead
-                    ? 'text-2xl md:text-3xl font-semibold leading-relaxed tracking-wide'
-                    : 'text-lg md:text-xl leading-relaxed'
-                }`}
-              >
-                {sheet.page.text}
-              </p>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-[#2a2a2a] bg-[#111] p-3 md:p-4">
+              <PageArt
+                src={sheet.page.image_url}
+                alt={`Page ${sheet.page.page_number}`}
+                empty={
+                  sheet.page.status === 'failed' ? (
+                    <p className="px-6 text-center text-xs text-neutral-500">
+                      This picture didn&apos;t come out — the words still work!
+                    </p>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-neutral-500 text-sm">
+                      <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#39FF14]/30 border-t-[#39FF14]" />
+                      Painting this page…
+                    </div>
+                  )
+                }
+              />
+              <ReadAloudPractice
+                key={sheet.page.id}
+                bookId={book.id}
+                pageId={sheet.page.id}
+                pageText={sheet.page.text}
+                onBusyChange={setReadAloudBusy}
+              />
             </div>
           )}
 
           {sheet?.kind === 'end' && (
-            <div className="w-full rounded-3xl border border-[#2a2a2a] bg-[#111] p-8 text-center">
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-3xl border border-[#2a2a2a] bg-[#111] p-6 md:p-8 text-center">
               <p className="text-4xl">🎉</p>
               <h2 className="mt-3 text-3xl font-bold text-white">The End</h2>
               <p className="mt-2 text-sm text-neutral-400">
@@ -341,25 +363,25 @@ export default function BookReaderPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
 
-        {/* Tap zones */}
+        {/* Tap zones sit behind the page so they never cover words or Record. */}
         {idx > 0 && (
           <button
             aria-label="Previous page"
             onClick={() => go('prev')}
-            className="absolute inset-y-0 left-0 w-1/5 cursor-w-resize"
+            className={`absolute inset-y-0 left-0 z-0 w-1/5 cursor-w-resize ${readAloudBusy ? 'pointer-events-none' : ''}`}
           />
         )}
         {idx < total - 1 && (
           <button
             aria-label="Next page"
             onClick={() => go('next')}
-            className="absolute inset-y-0 right-0 w-1/5 cursor-e-resize"
+            className={`absolute inset-y-0 right-0 z-0 w-1/5 cursor-e-resize ${readAloudBusy ? 'pointer-events-none' : ''}`}
           />
         )}
       </div>
 
-      {/* Bottom controls */}
-      <div className="flex items-center justify-center gap-4 border-t border-[#1c1c1c] px-4 py-3">
+      {/* Bottom controls — always below the page, never over it */}
+      <div className="flex shrink-0 items-center justify-center gap-4 border-t border-[#1c1c1c] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <button
           onClick={() => go('prev')}
           disabled={idx === 0}

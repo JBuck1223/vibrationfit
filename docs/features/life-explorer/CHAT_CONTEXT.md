@@ -1,5 +1,8 @@
 # Source Chat Context
 
+**Canon note (Aug 23, 2026):** This chat produced a full school design that later got written into VF as *hard locks* (“we do not follow anyone else,” “already decided”). That lock layer is revoked. North star is now a tool-enabled human — [PHILOSOPHY.md](./PHILOSOPHY.md). The ideas below are origin history, not commandments.
+
+
 **ChatGPT share:** https://chatgpt.com/share/6a7539f9-5274-83ea-9fe8-b30a72569e06  
 **Title:** 1st Grade Learning Requirements  
 **Ingested into VF:** August 2026

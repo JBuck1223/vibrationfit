@@ -11,6 +11,7 @@ import {
   printShell,
   writeLines,
 } from '@/lib/life-explorer/print/layout'
+import { compassKitPage } from '@/lib/life-explorer/print/life-learning-pages'
 import type { PackExperimentSheet } from '@/lib/life-explorer/packs/types'
 
 export const dynamic = 'force-dynamic'
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
 
   const expeditionId = request.nextUrl.searchParams.get('expedition_id')
   let expedition = null as { title: string; life_category: string } | null
+  let studentName = 'Explorer'
 
   if (expeditionId) {
     const { data } = await supabase
@@ -63,9 +65,12 @@ export async function GET(request: NextRequest) {
       .eq('id', expeditionId)
       .maybeSingle()
     expedition = data
+    const ctx = await loadActiveContext(supabase)
+    if (ctx?.student?.name) studentName = ctx.student.name
   } else {
     const ctx = await loadActiveContext(supabase)
     expedition = ctx?.expedition || null
+    if (ctx?.student?.name) studentName = ctx.student.name
   }
 
   if (!expedition) {
@@ -155,6 +160,8 @@ export async function GET(request: NextRequest) {
     passport,
     wonderWall,
     map,
+    // Printed once with the kit; lives on the fridge all year.
+    compassKitPage(studentName, title),
     ...p.experiment_sheets.map((s) => experimentSheetPage(s, title)),
     certificate,
   ]

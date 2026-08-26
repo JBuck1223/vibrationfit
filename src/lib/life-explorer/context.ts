@@ -98,15 +98,16 @@ export async function loadActiveContext(
     .limit(1)
     .maybeSingle()
 
-  const { data: readyLesson } = await supabase
+  const { data: openLessons } = await supabase
     .from('le_lessons')
     .select('*')
     .eq('student_id', student.id)
     .eq('expedition_id', expedition.id)
     .in('status', ['ready', 'in_progress'])
-    .order('lesson_number', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .order('lesson_number', { ascending: true })
+
+  const inProgress = (openLessons || []).find((l) => l.status === 'in_progress')
+  const readyLesson = (inProgress || openLessons?.[0] || null) as LeLesson | null
 
   const { data: skills } = await supabase
     .from('le_skill_progress')
@@ -131,7 +132,7 @@ export async function loadActiveContext(
     expedition,
     wonderWall,
     latestRecord: (latestRecord as LeLessonRecord) || null,
-    readyLesson: (readyLesson as LeLesson) || null,
+    readyLesson,
     skills: (skills as LeSkillProgress[]) || [],
     highInterestWonders,
   }

@@ -28,12 +28,12 @@ export default function OverviewPage() {
 
         <Card title="One idea">
           <p>
-            School subjects are artificial. Life isn&apos;t divided into math class and science
-            class — it&apos;s divided into things worth being curious about. Life Explorer organizes
-            learning through <strong className="text-white">Life Categories</strong> (Travel,
-            Health, Family, Money…) explored through{' '}
-            <strong className="text-white">Expeditions</strong>: multi-week adventures driven by
-            what the child actually wonders.
+            Life Explorer <strong className="text-white">is</strong> the curriculum. VIVA composes
+            the school from the child&apos;s <strong className="text-white">Life I Choose</strong>.
+            An <strong className="text-white">Expedition</strong> is how a real world is lived —
+            reading, math, science, and making all happen inside that world. The{' '}
+            <strong className="text-white">World Map</strong> charts what of the universe he will
+            taste this year. The 12 life categories feed the vision; the map charts the year.
           </p>
         </Card>
 
@@ -63,6 +63,14 @@ export default function OverviewPage() {
             Plus the parent guarantees: 5–10 minute prep, a 15-minute low-battery version, a
             sibling tag-along line for every activity, an answer key, and all media in a
             tap-to-play queue.
+          </p>
+        </Card>
+
+        <Card title="Mastery, then the semester">
+          <p>
+            A skill stays in play until it is solid, and a wobbly skill comes back inside a fresh
+            day rather than a repeat. Semester 1 makes this grade solid. Semester 2 weaves in the
+            next grade wherever this grade already is — each domain earns it on its own schedule.
           </p>
         </Card>
 

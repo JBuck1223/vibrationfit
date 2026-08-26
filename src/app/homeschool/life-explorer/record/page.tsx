@@ -28,6 +28,7 @@ function RecordForm() {
   const [enjoyedMost, setEnjoyedMost] = useState('')
   const [createdSaid, setCreatedSaid] = useState('')
   const [easyOrDifficult, setEasyOrDifficult] = useState('')
+  const [clicked, setClicked] = useState('')
   const [newQuestion, setNewQuestion] = useState('')
   const [direction, setDirection] = useState<Direction>('continue')
   const [photoUrl, setPhotoUrl] = useState('')
@@ -74,6 +75,7 @@ function RecordForm() {
           enjoyed_most: enjoyedMost,
           created_said_demonstrated: createdSaid,
           easy_or_difficult: easyOrDifficult,
+          clicked_in_new_situation: clicked || undefined,
           new_question: newQuestion,
           direction,
           photo_url: photoUrl || undefined,
@@ -180,6 +182,14 @@ function RecordForm() {
         </Field>
         <Field label="4. What new question did he ask?">
           <Textarea value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} rows={2} />
+        </Field>
+        <Field label="Did today's skill click enough to use in a new situation?">
+          <Textarea
+            value={clicked}
+            onChange={(e) => setClicked(e.target.value)}
+            rows={2}
+            placeholder="e.g. counted his own snack money without help"
+          />
         </Field>
         <Field label="5. Should we continue this topic tomorrow?">
           <div className="flex flex-wrap gap-2">
