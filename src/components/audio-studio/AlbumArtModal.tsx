@@ -16,6 +16,8 @@ interface AlbumArtModalProps {
   lyrics: string
   onArtGenerated: (imageUrl: string) => void
   currentCoverUrl?: string | null
+  reloadOnSave?: boolean
+  defaultSource?: ImageSource
 }
 
 export function AlbumArtModal({
@@ -26,9 +28,11 @@ export function AlbumArtModal({
   lyrics,
   onArtGenerated,
   currentCoverUrl,
+  reloadOnSave = true,
+  defaultSource = 'ai',
 }: AlbumArtModalProps) {
   const [saving, setSaving] = useState(false)
-  const [imageSource, setImageSource] = useState<ImageSource>('ai')
+  const [imageSource, setImageSource] = useState<ImageSource>(defaultSource)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -45,11 +49,11 @@ export function AlbumArtModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setImageSource('ai')
+      setImageSource(defaultSource)
       setUploadFile(null)
       setLightboxOpen(false)
     }
-  }, [isOpen])
+  }, [isOpen, defaultSource])
 
   const saveCover = useCallback(async (coverUrl?: string, file?: File) => {
     setSaving(true)
@@ -82,15 +86,17 @@ export function AlbumArtModal({
       onArtGenerated(data.cover_url || coverUrl!)
       toast.success('Album art saved to all tracks!')
       onClose()
-      // The cover S3 key is deterministic per song, so the browser keeps showing
-      // the cached old image. Reload so the new art shows everywhere it's used.
-      setTimeout(() => window.location.reload(), 400)
+      // The songwriter studio still reloads so every player/thumbnail picks up
+      // the new URL. Admin surfaces update local state instead.
+      if (reloadOnSave) {
+        setTimeout(() => window.location.reload(), 400)
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save album art')
     } finally {
       setSaving(false)
     }
-  }, [songId, onArtGenerated, onClose])
+  }, [songId, onArtGenerated, onClose, reloadOnSave])
 
   const handleVivaImageSelected = useCallback((imageUrl: string) => {
     if (!imageUrl) return

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { unshareTrackFromCatalog } from '@/lib/songs/catalog-sync'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,6 +61,11 @@ export async function PUT(
 
     if (status === 'approved' && updated) {
       await addToCatalog(adminDb, updated)
+    }
+
+    if (status === 'rejected' && updated) {
+      const track = updated.song_tracks as { mp3_url?: string | null } | null
+      await unshareTrackFromCatalog(adminDb, track?.mp3_url ?? null)
     }
 
     if (status === 'published' && updated) {
