@@ -6,10 +6,11 @@ import { AdminWrapper } from '@/components/AdminWrapper'
 import {
   Music2, RefreshCw, ArrowLeft, CheckCircle, XCircle,
   Clock, Play, Pause, Send, ChevronDown, ChevronUp, Download,
-  Copy, Check, Image as ImageIcon, FileAudio,
+  Copy, Check, Image as ImageIcon, FileAudio, ImagePlus,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { getVisionCategoryLabel, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import { AlbumArtModal } from '@/components/audio-studio/AlbumArtModal'
 
 interface Submission {
   id: string
@@ -78,6 +79,7 @@ export default function SongSubmissionsPage() {
   const [downloadingAudio, setDownloadingAudio] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [copiedLyrics, setCopiedLyrics] = useState<string | null>(null)
+  const [artModalSub, setArtModalSub] = useState<Submission | null>(null)
 
   const fetchSubmissions = useCallback(async () => {
     try {
@@ -228,6 +230,14 @@ export default function SongSubmissionsPage() {
     setTimeout(() => setCopiedLyrics(null), 2000)
   }
 
+  const handleArtSaved = (songId: string, coverUrl: string) => {
+    setSubmissions((prev) => prev.map((sub) => (
+      sub.song_id === songId && sub.song_tracks
+        ? { ...sub, song_tracks: { ...sub.song_tracks, cover_url: coverUrl } }
+        : sub
+    )))
+  }
+
   const counts = {
     pending: submissions.length > 0 && filter !== 'all'
       ? submissions.filter(s => s.status === 'pending').length
@@ -358,9 +368,15 @@ export default function SongSubmissionsPage() {
                             </button>
                           </div>
                         ) : (
-                          <div className="w-24 h-24 rounded-xl bg-[#39FF14]/10 flex items-center justify-center">
-                            <Music2 className="w-8 h-8 text-[#39FF14]" />
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setArtModalSub(sub)}
+                            className="w-24 h-24 rounded-xl bg-[#39FF14]/10 flex flex-col items-center justify-center gap-1 hover:bg-[#39FF14]/20 transition-colors"
+                            title="Add album art"
+                          >
+                            <ImagePlus className="w-6 h-6 text-[#39FF14]" />
+                            <span className="text-[10px] text-[#39FF14]/80">Add Art</span>
+                          </button>
                         )}
                       </div>
 
@@ -469,6 +485,14 @@ export default function SongSubmissionsPage() {
                               {downloadingArt === sub.id ? 'Downloading...' : 'Download Art'}
                             </button>
                           )}
+                          <button
+                            onClick={() => setArtModalSub(sub)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-800 hover:bg-neutral-700 text-sm text-neutral-300 transition-colors"
+                            title="Replace album art"
+                          >
+                            <ImagePlus className="w-3.5 h-3.5" />
+                            Change Art
+                          </button>
                         </div>
 
                         {/* Lyrics */}
@@ -579,18 +603,58 @@ export default function SongSubmissionsPage() {
                         {/* Actions for approved (uploaded to DistroKid) */}
                         {sub.status === 'approved' && (
                           <div className="flex flex-wrap gap-2">
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() => handleAction(sub.id, 'published')}
-                              disabled={actionLoading === sub.id}
-                            >
-                              <Send className="w-4 h-4 mr-1.5" />
-                              {actionLoading === sub.id ? 'Updating...' : 'Mark as Published'}
-                            </Button>
-                            <p className="text-[11px] text-neutral-600 w-full mt-0.5">
-                              Use after uploading to DistroKid and confirming it&apos;s live on streaming platforms.
-                            </p>
+                            {rejectingId === sub.id ? (
+                              <div className="flex flex-col gap-2 w-full">
+                                <input
+                                  type="text"
+                                  value={rejectNotes}
+                                  onChange={(e) => setRejectNotes(e.target.value)}
+                                  placeholder="Dismissal reason (optional)"
+                                  className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => handleAction(sub.id, 'rejected', rejectNotes)}
+                                    disabled={actionLoading === sub.id}
+                                  >
+                                    {actionLoading === sub.id ? 'Dismissing...' : 'Confirm Dismiss'}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setRejectingId(null); setRejectNotes('') }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() => handleAction(sub.id, 'published')}
+                                  disabled={actionLoading === sub.id}
+                                >
+                                  <Send className="w-4 h-4 mr-1.5" />
+                                  {actionLoading === sub.id ? 'Updating...' : 'Mark as Published'}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setRejectingId(sub.id)}
+                                  className="text-red-400 hover:text-red-300"
+                                >
+                                  <XCircle className="w-4 h-4 mr-1.5" />
+                                  Dismiss
+                                </Button>
+                                <p className="text-[11px] text-neutral-600 w-full mt-0.5">
+                                  Use after uploading to DistroKid and confirming it&apos;s live on streaming platforms. Dismiss moves it out of Approved.
+                                </p>
+                              </>
+                            )}
                           </div>
                         )}
 
@@ -612,6 +676,20 @@ export default function SongSubmissionsPage() {
           )}
         </Stack>
       </Container>
+
+      {artModalSub && (
+        <AlbumArtModal
+          isOpen
+          onClose={() => setArtModalSub(null)}
+          songId={artModalSub.song_id}
+          songTitle={artModalSub.songs?.title || 'Untitled Song'}
+          lyrics={artModalSub.songs?.lyrics || ''}
+          currentCoverUrl={artModalSub.song_tracks?.cover_url}
+          reloadOnSave={false}
+          defaultSource="upload"
+          onArtGenerated={(imageUrl) => handleArtSaved(artModalSub.song_id, imageUrl)}
+        />
+      )}
     </AdminWrapper>
   )
 }

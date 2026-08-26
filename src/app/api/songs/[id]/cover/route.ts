@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { applyAlbumArtWatermark } from '@/lib/audio/apply-album-art-branding'
 import { generateImage } from '@/lib/services/imageService'
 
@@ -84,17 +85,19 @@ async function uploadCoverToS3(userId: string, songId: string, buffer: Buffer, c
   return `${CDN_URL}/${key}`
 }
 
+type SongDb = Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>
+
 async function saveCoverUrl(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  db: SongDb,
   songId: string,
-  userId: string,
+  ownerId: string,
   coverUrl: string,
 ) {
-  const { data: song, error: songError } = await supabase
+  const { data: song, error: songError } = await db
     .from('songs')
     .select('id, metadata')
     .eq('id', songId)
-    .eq('user_id', userId)
+    .eq('user_id', ownerId)
     .single()
 
   if (songError || !song) {
@@ -103,27 +106,46 @@ async function saveCoverUrl(
 
   const existingMetadata = typeof song.metadata === 'object' && song.metadata ? song.metadata : {}
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from('songs')
     .update({
       metadata: { ...existingMetadata, custom_cover_url: coverUrl },
       updated_at: new Date().toISOString(),
     })
     .eq('id', songId)
-    .eq('user_id', userId)
+    .eq('user_id', ownerId)
 
   if (updateError) {
     return { error: 'Failed to update song metadata', status: 500 as const }
   }
 
-  const { error: tracksError } = await supabase
+  const { error: tracksError } = await db
     .from('song_tracks')
     .update({ cover_url: coverUrl })
     .eq('song_id', songId)
-    .eq('user_id', userId)
+    .eq('user_id', ownerId)
 
   if (tracksError) {
     console.error('[SongCover] Failed to update tracks:', tracksError)
+  }
+
+  const catalogDb = createAdminClient()
+  const { data: tracks } = await catalogDb
+    .from('song_tracks')
+    .select('mp3_url')
+    .eq('song_id', songId)
+    .not('mp3_url', 'is', null)
+
+  const previewUrls = [...new Set((tracks || []).map((t) => t.mp3_url).filter(Boolean))] as string[]
+  if (previewUrls.length > 0) {
+    const { error: catalogError } = await catalogDb
+      .from('music_catalog')
+      .update({ artwork_url: coverUrl, updated_at: new Date().toISOString() })
+      .in('preview_url', previewUrls)
+
+    if (catalogError) {
+      console.error('[SongCover] Failed to update catalog artwork:', catalogError)
+    }
   }
 
   return { coverUrl }
@@ -146,6 +168,32 @@ export async function POST(
     }
 
     const { id: songId } = await params
+    const adminDb = createAdminClient()
+    const { data: song } = await adminDb
+      .from('songs')
+      .select('id, user_id, title, lyrics, metadata')
+      .eq('id', songId)
+      .single()
+
+    if (!song) {
+      return NextResponse.json({ error: 'Song not found' }, { status: 404 })
+    }
+
+    const isOwner = song.user_id === user.id
+    if (!isOwner) {
+      const { data: profile } = await adminDb
+        .from('user_accounts')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+        return NextResponse.json({ error: 'Song not found' }, { status: 404 })
+      }
+    }
+
+    const ownerId = song.user_id as string
+    const db = isOwner ? supabase : adminDb
     const contentType = request.headers.get('content-type') || ''
 
     let coverUrl: string
@@ -170,7 +218,7 @@ export async function POST(
       const inputBuffer = Buffer.from(await file.arrayBuffer())
       try {
         const processed = await processAlbumArtImage(inputBuffer)
-        coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
+        coverUrl = await uploadCoverToS3(ownerId, songId, processed.buffer, processed.contentType)
       } catch (decodeErr) {
         // sharp can't decode some formats (notably HEIC/HEIF from iPhones, which
         // should be converted client-side before upload). Surface a clear,
@@ -190,17 +238,6 @@ export async function POST(
 
       // Auto-generate album art from the song's lyrics (VIVA + VF logo watermark).
       if (body?.generate === true) {
-        const { data: song } = await supabase
-          .from('songs')
-          .select('id, title, lyrics, metadata')
-          .eq('id', songId)
-          .eq('user_id', user.id)
-          .single()
-
-        if (!song) {
-          return NextResponse.json({ error: 'Song not found' }, { status: 404 })
-        }
-
         const existingMeta = typeof song.metadata === 'object' && song.metadata
           ? song.metadata as Record<string, unknown>
           : {}
@@ -233,7 +270,7 @@ export async function POST(
         }
         const inputBuffer = Buffer.from(await imageResponse.arrayBuffer())
         const processed = await processAlbumArtImage(inputBuffer)
-        coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
+        coverUrl = await uploadCoverToS3(ownerId, songId, processed.buffer, processed.contentType)
       } else {
         const { cover_url } = body
 
@@ -248,11 +285,11 @@ export async function POST(
 
         const inputBuffer = Buffer.from(await imageResponse.arrayBuffer())
         const processed = await processAlbumArtImage(inputBuffer)
-        coverUrl = await uploadCoverToS3(user.id, songId, processed.buffer, processed.contentType)
+        coverUrl = await uploadCoverToS3(ownerId, songId, processed.buffer, processed.contentType)
       }
     }
 
-    const result = await saveCoverUrl(supabase, songId, user.id, coverUrl)
+    const result = await saveCoverUrl(db, songId, ownerId, coverUrl)
 
     if ('error' in result) {
       return NextResponse.json({ error: result.error }, { status: result.status })
