@@ -536,11 +536,12 @@ export async function materializePackLessons(
     lessons.push(await insertGeneratedLesson(supabase, ctx, userId, n, payload, plannedFor))
   }
 
-  if (pack.slug === 'oceans') {
+  const expedition = ctx.expedition
+  if (pack.slug === 'oceans' && expedition) {
     const paint = () =>
       ensureExpeditionBook(supabase, userId, {
         studentId: ctx.student.id,
-        expeditionId: ctx.expedition.id,
+        expeditionId: expedition.id,
       }).catch((err) => console.error('le expedition book', err))
     try {
       after(paint)
