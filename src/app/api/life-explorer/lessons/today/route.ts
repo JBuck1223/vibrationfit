@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { loadActiveContext } from '@/lib/life-explorer/context'
+import { materializePackLessons } from '@/lib/life-explorer/generate'
+import { buildExpeditionSequence } from '@/lib/life-explorer/sequence'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const studentId = request.nextUrl.searchParams.get('student_id') || undefined
-  const ctx = await loadActiveContext(supabase, studentId)
+  let ctx = await loadActiveContext(supabase, studentId)
 
   if (!ctx) {
     return NextResponse.json({
@@ -22,6 +24,15 @@ export async function GET(request: NextRequest) {
       wonder_wall: { know: [], wonder: [], learned: [] },
       needs_seed: true,
     })
+  }
+
+  if (ctx.expedition) {
+    try {
+      await materializePackLessons(supabase, user.id, ctx.student.id)
+      ctx = (await loadActiveContext(supabase, studentId)) || ctx
+    } catch (err) {
+      console.error('le materialize pack', err)
+    }
   }
 
   // Story so far — every lesson of the expedition as chapters (titles, not
@@ -59,6 +70,19 @@ export async function GET(request: NextRequest) {
     latest_record: ctx.latestRecord,
     skills: ctx.skills,
     chapters,
+    sequence: ctx.expedition
+      ? buildExpeditionSequence({
+          expeditionTitle: ctx.expedition.title,
+          lessons: chapters.map((c) => ({
+            id: c.id,
+            lesson_number: c.lesson_number,
+            title: c.title,
+            essential_question: c.essential_question,
+            status: c.status,
+            planned_for: c.planned_for,
+          })),
+        })
+      : null,
     activity_logged_today: (todayLogs?.length || 0) > 0,
     needs_seed: !ctx.expedition,
   })

@@ -44,7 +44,6 @@ export const TIER1_FRANCHISES = {
     'JPL Education',
   ],
   book: [
-    'Life of Fred',
     'Usborne',
     'DK',
     'Caldecott list',

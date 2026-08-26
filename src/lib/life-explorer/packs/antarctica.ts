@@ -1,5 +1,6 @@
 /**
- * Expedition Pack: Travel → Antarctica (fun-first proving path).
+ * Expedition Pack: Antarctica — Expedition 1 of this life.
+ * Ours. Not a Travel unit. Not a third-party curriculum.
  *
  * Five complete lessons, each passing the Fun Contract, with facilitation
  * guarantees baked in (low-battery mode, sibling tag-along, parent answer
@@ -8,8 +9,9 @@
  */
 
 import { antarcticaCoreResourcesPayload } from '../antarctica-resources'
-import type { LessonPayload } from '../types'
+import type { LessonPayload, WeekArcDay, WorldCluster } from '../types'
 import type { ExpeditionPack } from './types'
+import { OCEANS_PACK } from './oceans'
 
 const UNKNOWN_SCRIPT =
   "Great question — real explorers write those down. Let's put it on the Wonder Wall and find out together."
@@ -753,9 +755,68 @@ export const ANTARCTICA_PACK: ExpeditionPack = {
 
 export const EXPEDITION_PACKS: Record<string, ExpeditionPack> = {
   antarctica: ANTARCTICA_PACK,
+  'ocean explorers': OCEANS_PACK,
+  ocean: OCEANS_PACK,
+  oceans: OCEANS_PACK,
 }
 
 export function packForExpedition(title: string): ExpeditionPack | null {
   const key = title.trim().toLowerCase()
-  return EXPEDITION_PACKS[key] || null
+  if (EXPEDITION_PACKS[key]) return EXPEDITION_PACKS[key]
+  if (key.includes('ocean')) return OCEANS_PACK
+  if (key.includes('antarctica')) return ANTARCTICA_PACK
+  return null
+}
+
+const PACK_MATH_RUNGS = [
+  'math-counting-100',
+  'math-skip-counting',
+  'math-place-value-tens-ones',
+  'math-counting-100',
+  'math-addition-within-10',
+] as const
+
+const PACK_READING_RUNGS = [
+  'read-cvc-blending',
+  'read-cvc-blending',
+  'read-cvc-blending',
+  'read-sight-vocabulary',
+  'read-cvc-blending',
+] as const
+
+export function addDaysIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00`)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+/** This week's Monday on weekdays; the coming Monday on Sat/Sun. */
+export function composeWeekStart(now = new Date()): string {
+  const d = new Date(now)
+  const day = d.getDay()
+  if (day === 0) d.setDate(d.getDate() + 1)
+  else if (day === 6) d.setDate(d.getDate() + 2)
+  else d.setDate(d.getDate() - (day - 1))
+  return d.toISOString().slice(0, 10)
+}
+
+export function weekDaysFromPack(pack: ExpeditionPack, weekStart: string): WeekArcDay[] {
+  const weekdays: WeekArcDay['weekday'][] = ['mon', 'tue', 'wed', 'thu', 'fri']
+  return weekdays.map((weekday, i) => {
+    const lesson = pack.fallback_lessons[i]
+    return {
+      weekday,
+      date: addDaysIso(weekStart, i),
+      why: lesson?.identity.essential_question || pack.essential_questions[i] || pack.tagline,
+      world_cluster: (lesson?.identity.world_cluster || 'water') as WorldCluster,
+      world_taste: lesson?.identity.world_taste || pack.tagline,
+      math_rung_key: PACK_MATH_RUNGS[i],
+      reading_rung_key: PACK_READING_RUNGS[i],
+      mix_next_grade: false,
+      story_chapter: lesson?.identity.lesson_title || `Day ${i + 1}`,
+      hook_seed: lesson?.fun_contract?.hook || '',
+      mission_seed: lesson?.fun_contract?.story_mission || '',
+      artifact_seed: lesson?.fun_contract?.artifact || '',
+    }
+  })
 }

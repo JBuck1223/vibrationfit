@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { materializePackLessons } from '@/lib/life-explorer/generate'
 import { seedLessonItems } from '@/lib/life-explorer/lesson-items'
-import type { LeLesson } from '@/lib/life-explorer/types'
+import type { LeLesson, LessonPayload } from '@/lib/life-explorer/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,12 +23,24 @@ export async function GET(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const { data: lesson, error } = await supabase
+  const { data: loaded, error } = await supabase
     .from('le_lessons')
     .select('*')
     .eq('id', id)
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 404 })
+
+  let lesson = loaded as LeLesson
+  const storedWhy = (lesson.payload as LessonPayload | null)?.identity?.why_this_matters || ''
+  if (storedWhy.includes('Florida sits next to the Atlantic')) {
+    try {
+      await materializePackLessons(supabase, user.id, lesson.student_id)
+      const { data: fresh } = await supabase.from('le_lessons').select('*').eq('id', id).single()
+      if (fresh) lesson = fresh as LeLesson
+    } catch (err) {
+      console.error('le materialize pack', err)
+    }
+  }
 
   const [itemsRes, notesRes, linksRes, mediaRes] = await Promise.all([
     supabase

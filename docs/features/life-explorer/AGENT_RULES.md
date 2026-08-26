@@ -1,30 +1,40 @@
 # Life Explorer — Agent Rules
 
-Read these docs before changing Life Explorer code or generating lessons:
+**Last Updated:** August 23, 2026  
+**Status:** Active
 
-1. [PHILOSOPHY.md](./PHILOSOPHY.md)
+Read before changing Life Explorer code or generating lessons:
+
+1. [PHILOSOPHY.md](./PHILOSOPHY.md) — north star (tool-enabled human). Pedagogy is a working bet, not a lock.
 2. [LESSON_CONTRACT.md](./LESSON_CONTRACT.md)
 3. [DATA_MODEL.md](./DATA_MODEL.md)
 4. [DAILY_WORKFLOW.md](./DAILY_WORKFLOW.md)
 
-## Hard rules
+Do not tell the parent “you’ve already decided” about how school works. That sentence came from these files treating design bets as law. If a bet is in the way, change the doc and the code.
 
-1. **Do not confuse more content with a better lesson. The best lesson is the smallest complete experience that keeps the parent prepared, the child engaged, and the learning documented.**
+## North star
 
-2. Never invent a title, page number, runtime, review score, or URL for a resource. Omit unknowns or set `needs_parent_link: true`.
+Build a **tool-enabled human**. VIVA composes days and layered books (story / sounded-out words / sentence structure). The child uses tools to learn what he needs. User-facing name is **VIVA**, never “AI.”
 
-3. Do not force every academic subject into every lesson.
+## Engineering conventions
 
-4. Do not tell the parent they are “behind” for exploring deeply.
+These keep the software honest. They are not pedagogy.
 
-5. Preserve the child’s original language on the Wonder Wall “Know” column — do not auto-correct inaccurate beliefs.
+1. VIVA prompts live in `src/lib/viva/prompts/` only — never inline in API routes. Tokens through the gateway and `trackTokenUsage`.
+2. Never invent a title, page number, runtime, review score, or URL. Omit or set `needs_parent_link: true`. Generated VF books we actually authored are first-class; we know those titles because we made them.
+3. Do not edit `supabase/COMPLETE_SCHEMA_DUMP.sql`.
+4. Leave `homeschool/oliver-ocean-adventures/` untouched (archive).
+5. Product lives in Vibration Fit, not Company Engineers’ knowledge base.
+6. Homeschool v1: parent-held screen; no child login until we build one on purpose.
+7. Catalogs live in code (`skill-catalog.ts`, Life Learning, Year Map, VF Kids). Progress stays on `le_skill_progress`. Progress is the master checklist: finishing the day marks keys `developing`; the parent can tap empty → `secure` or uncheck → `needs_support`. Do not add a second benchmark-progress table.
+8. Life I Choose is seeded from `le_student_profiles` and edited into his words. Do not hard-code a canned vision paragraph as if it were his.
 
-6. Structure belongs to the parent; curiosity belongs to the child.
+## Working bets (change when they stop serving)
 
-7. Leave `homeschool/oliver-ocean-adventures/` untouched — finished static unit.
-
-8. Life Explorer lives in Vibration Fit only. Do not store curriculum in Company Engineers’ brand knowledge base.
-
-9. Prefer household-scoped parent tooling; no child login in v1.
-
-10. Follow the daily workflow: generate next lesson only after incorporating check-in updates.
+- Expeditions, ladders, Flashback, Life Learning, three-card discovery, semester mix, Fun Contract, compass-as-lens — current shape, not frozen.
+- Materials may be household, VF-original, generated layered books, library books, or a page from someone else’s program. Nothing is banned for having a publisher.
+- Wobbly skill → a *new* unique practice is still a good default (not a cloned worksheet). Revisit if a better drill shows up.
+- Do not force every subject into every lesson.
+- Preserve the child’s language on Wonder Wall “Know.”
+- Do not tell the parent they are behind.
+- Smallest complete experience that keeps the parent prepared, the child engaged, and the learning documented — still the quality bar.

@@ -12,6 +12,12 @@ interface TodayContext {
   topWonder: string | null
 }
 
+interface TopicIdea {
+  topic: string
+  source: 'life_learning' | 'year_map'
+  label: string
+}
+
 const SPECIES_EMOJI: Record<string, string> = {
   penguin: '🐧',
   hamster: '🐹',
@@ -29,6 +35,7 @@ function characterEmoji(c: LeCharacter): string {
 export default function BooksPage() {
   const router = useRouter()
   const [books, setBooks] = useState<LeBook[]>([])
+  const [topicIdeas, setTopicIdeas] = useState<TopicIdea[]>([])
   const [characters, setCharacters] = useState<LeCharacter[]>([])
   const [ctx, setCtx] = useState<TodayContext>({
     studentName: null,
@@ -61,7 +68,7 @@ export default function BooksPage() {
       const [todayRes, charsRes, booksRes] = await Promise.all([
         fetch('/api/life-explorer/lessons/today'),
         fetch('/api/life-explorer/book-characters'),
-        fetch('/api/life-explorer/books'),
+        fetch('/api/life-explorer/books?ideas=1'),
       ])
       const today = await todayRes.json()
       const wonders = (today.wonder_wall?.wonder || []) as Array<{
@@ -91,7 +98,10 @@ export default function BooksPage() {
       if (charsRes.ok) setCharacters(charsJson.characters || [])
 
       const booksJson = await booksRes.json()
-      if (booksRes.ok) setBooks(booksJson.books || [])
+      if (booksRes.ok) {
+        setBooks(booksJson.books || [])
+        setTopicIdeas(booksJson.topic_ideas || [])
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
@@ -237,6 +247,29 @@ export default function BooksPage() {
               className="mt-1.5 w-full rounded-xl border border-[#2a2a2a] bg-[#0c0c0c] px-4 py-3 text-white placeholder-neutral-600 focus:border-[#39FF14] focus:outline-none"
             />
           </label>
+
+          {topicIdeas.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {topicIdeas.map((idea) => (
+                <button
+                  key={idea.topic}
+                  type="button"
+                  onClick={() => {
+                    topicTouched.current = true
+                    setTopic(idea.topic)
+                  }}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    topic === idea.topic
+                      ? 'border-[#39FF14]/60 text-[#39FF14]'
+                      : 'border-[#2a2a2a] text-neutral-400 hover:border-[#444] hover:text-neutral-200'
+                  }`}
+                >
+                  <span className="text-neutral-600 mr-1.5">{idea.label}</span>
+                  {idea.topic}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="mt-4">
             <p className="text-sm text-neutral-300 mb-1.5">Who reads it?</p>

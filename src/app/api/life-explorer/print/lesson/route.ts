@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { printShell } from '@/lib/life-explorer/print/layout'
 import {
-  brandLine,
-  checklist,
-  drawFrame,
-  esc,
-  pageFooter,
-  printShell,
-  writeLines,
-} from '@/lib/life-explorer/print/layout'
+  fallbackTodayPage,
+  recordingPage,
+  visualPage,
+} from '@/lib/life-explorer/print/lesson-visuals'
 import type { LessonPayload } from '@/lib/life-explorer/types'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/life-explorer/print/lesson?id= — the per-lesson recording sheet.
-// Exists only when the lesson's hands-on activity needs one; the lesson
-// page shows the print button conditionally.
+// GET /api/life-explorer/print/lesson?id= — today's lesson pages:
+// teaching visuals first, then a recording sheet if the activity needs one.
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const {
@@ -39,53 +35,24 @@ export async function GET(request: NextRequest) {
   }
 
   const payload = lesson.payload as LessonPayload
-  const p = payload.printable
   const expeditionTitle =
     (lesson.expedition as unknown as { title: string } | null)?.title ||
     payload.identity?.expedition ||
     ''
 
-  if (!p) {
-    return new NextResponse(
-      '<h1>No printable for this lesson</h1><p>This lesson uses the weekly field-notes page instead.</p>',
-      { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-    )
+  const pages: string[] = []
+  for (const visual of payload.visuals || []) {
+    pages.push(visualPage(visual, expeditionTitle))
+  }
+  if (payload.printable) {
+    pages.push(recordingPage(payload.printable, expeditionTitle))
+  }
+  if (pages.length === 0) {
+    pages.push(fallbackTodayPage(payload, expeditionTitle, lesson.title))
   }
 
-  const page = `
-    ${brandLine('Lesson Sheet')}
-    <p class="kicker">The big question</p>
-    <h1>${esc(p.question)}</h1>
-    <p class="lede">${esc(p.title)}</p>
-    ${
-      p.prediction_prompt
-        ? `<h2>My prediction</h2><p class="hint">${esc(p.prediction_prompt)}</p>${writeLines(2)}`
-        : ''
-    }
-    ${p.steps?.length ? `<h2>Steps</h2>${checklist(p.steps)}` : ''}
-    ${
-      p.chart
-        ? `<h2>What happened</h2>
-    <table class="grid">
-      <thead><tr><th></th>${p.chart.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>
-      <tbody>${p.chart.rows
-        .map(
-          (r) =>
-            `<tr><td><strong>${esc(r)}</strong></td>${p.chart!.columns.map(() => '<td></td>').join('')}</tr>`
-        )
-        .join('')}</tbody>
-    </table>`
-        : ''
-    }
-    ${
-      p.result_prompt
-        ? `<h2>My discovery</h2><p class="hint">${esc(p.result_prompt)}</p>${writeLines(2)}`
-        : ''
-    }
-    ${p.draw_prompt ? drawFrame(p.draw_prompt, 180) : ''}
-    ${pageFooter(expeditionTitle)}`
-
-  return new NextResponse(printShell({ title: `${lesson.title} — Lesson Sheet`, pages: [page] }), {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-  })
+  return new NextResponse(
+    printShell({ title: `${lesson.title} — today’s pages`, pages }),
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  )
 }

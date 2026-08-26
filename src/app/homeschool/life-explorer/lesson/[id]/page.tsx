@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ChevronDown } from 'lucide-react'
 import { Container, Stack, Spinner, Button } from '@/lib/design-system/components'
 import type {
   CoreResource,
@@ -11,6 +12,8 @@ import type {
   LessonPayload,
 } from '@/lib/life-explorer/types'
 import { LessonChecklist, LessonJournal } from './LessonWorkbench'
+import { normalizeLessonPayload } from '@/lib/life-explorer/normalize-payload'
+import { LessonVisualBoard } from '@/components/life-explorer/LessonVisuals'
 
 /** Display name of the hands-on activity, whatever shape the payload uses. */
 function handsOnTitle(handsOn: LessonPayload['hands_on']): string | null {
@@ -40,6 +43,14 @@ function buildPlayQueue(p: LessonPayload): CoreResource[] {
   add(p.core_resource)
   ;(p.parent_prep?.links || []).forEach(add)
   return out
+}
+
+type LessonStepDef = {
+  id: string
+  title: string
+  summary: string
+  defaultOpen: boolean
+  body: ReactNode
 }
 
 export default function LessonPage() {
@@ -106,232 +117,449 @@ export default function LessonPage() {
   }
 
   const lesson = bundle.lesson
-  const p = (lesson.payload || {}) as LessonPayload
+  const p = normalizeLessonPayload(lesson.payload)
+  const playQueue = buildPlayQueue(p)
+  const hasPrep =
+    (p.parent_prep?.materials?.length || 0) +
+      (p.parent_prep?.beforehand?.length || 0) +
+      (p.parent_prep?.safety?.length || 0) >
+      0 ||
+    Boolean(p.parent_prep?.cleanup) ||
+    (p.block_minutes || []).length > 0
+  const hasFlashback = Boolean(p.flashback && p.flashback.items.length > 0)
+  const paperVisuals = (p.visuals || []).filter((v) => v.kind === 'exercise')
+  const chapterLines =
+    p.book_chapter &&
+    (p.visuals || []).find((v) => v.kind === 'passage' && v.title?.includes(p.book_chapter!.title))
+  const hasCrew = Boolean(p.book_chapter || p.crew?.length || chapterLines)
+  const lookVisuals = (p.visuals || []).filter((v) => {
+    if (v.kind === 'exercise') return false
+    if (chapterLines && v === chapterLines) return false
+    return true
+  })
+
+  const steps: LessonStepDef[] = lowBattery && p.low_battery_mode
+    ? [
+        {
+          id: 'short',
+          title: 'Short version',
+          summary: `${p.low_battery_mode.total_minutes} minutes — still counts`,
+          defaultOpen: true,
+          body: (
+            <>
+              <BulletList items={p.low_battery_mode.steps} />
+              <p className="text-sm text-[#39FF14] mt-3">
+                This still counts. Log it on the calendar when you&apos;re done.
+              </p>
+            </>
+          ),
+        },
+      ]
+    : [
+        ...(hasPrep
+          ? [
+              {
+                id: 'set-out',
+                title: 'Set out',
+                  summary: p.parent_prep?.prep_minutes
+                  ? `${p.parent_prep.prep_minutes} min to gather`
+                  : "Materials and the day's rhythm",
+                defaultOpen: true,
+                body: (
+                  <>
+                    <BulletList items={p.parent_prep?.materials || []} label="Materials" />
+                    <BulletList items={p.parent_prep?.beforehand || []} label="Set out first" />
+                    <BulletList items={p.parent_prep?.safety || []} label="Safety" />
+                    {p.parent_prep?.cleanup && (
+                      <p className="text-sm text-neutral-300 mt-2">Cleanup: {p.parent_prep.cleanup}</p>
+                    )}
+                    {(p.block_minutes || []).length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-[#222]">
+                        <p className="text-xs uppercase tracking-wide text-neutral-500 mb-2">
+                          Today&apos;s rhythm
+                        </p>
+                        <ul className="space-y-1.5">
+                          {p.block_minutes!.map((b, i) => (
+                            <li key={i} className="flex items-center justify-between text-sm">
+                              <span className={b.optional ? 'text-neutral-500' : 'text-neutral-200'}>
+                                {b.block}
+                                {b.optional && (
+                                  <span className="ml-2 text-xs text-neutral-600">(optional)</span>
+                                )}
+                              </span>
+                              <span className="text-[#00FFFF]">{b.minutes} min</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </>
+                ),
+              } satisfies LessonStepDef,
+            ]
+          : []),
+        ...(hasFlashback
+          ? [
+              {
+                id: 'flashback',
+                title: 'Flashback',
+                summary: p.flashback!.game,
+                defaultOpen: false,
+                body: (
+                  <>
+                    <p className="text-sm text-[#00FFFF] mb-2">{p.flashback!.game}</p>
+                    <BulletList items={p.flashback!.items.map((f) => f.prompt)} />
+                    <p className="text-xs text-neutral-500 mt-2">
+                      Easy recalls come back later. Stumbles come back tomorrow.
+                    </p>
+                  </>
+                ),
+              } satisfies LessonStepDef,
+            ]
+          : []),
+        ...(paperVisuals.length > 0
+          ? [
+              {
+                id: 'paper',
+                title: 'Do this on paper',
+                summary: 'Pencil pages — math and words he finishes',
+                defaultOpen: true,
+                body: (
+                  <>
+                    <p className="text-sm text-neutral-400 mb-3">
+                      Print these or write on the screen. The pictures below are tools; these pages are the work.
+                    </p>
+                    <LessonVisualBoard visuals={paperVisuals} embedded />
+                  </>
+                ),
+              } satisfies LessonStepDef,
+            ]
+          : []),
+        ...(lookVisuals.length > 0
+          ? [
+              {
+                id: 'look',
+                title: 'Look at this',
+                summary: "Today's mats, maps, and cards",
+                defaultOpen: paperVisuals.length === 0,
+                body: <LessonVisualBoard visuals={lookVisuals} embedded />,
+              } satisfies LessonStepDef,
+            ]
+          : []),
+        ...(hasCrew
+          ? [
+              {
+                id: 'crew',
+                title: 'Read with the crew',
+                summary: p.book_chapter
+                  ? `${p.book_chapter.title}${p.crew?.length ? ` — ${p.crew.join(', ')}` : ''}`
+                  : (p.crew || []).join(', ') || 'Today’s chapter',
+                defaultOpen: true,
+                body: (
+                  <>
+                    {p.crew && p.crew.length > 0 && (
+                      <p className="text-sm text-[#00FFFF] mb-2">On duty: {p.crew.join(', ')}</p>
+                    )}
+                    {p.book_id && p.book_chapter ? (
+                      <p className="text-sm text-neutral-300 mb-3">
+                        <Link
+                          href={`/homeschool/life-explorer/books/${p.book_id}?page=${p.book_chapter.start_page}`}
+                          className="text-[#39FF14] hover:underline"
+                        >
+                          Open {p.book_chapter.title}
+                        </Link>
+                        <span className="text-neutral-500">
+                          {' '}
+                          — pages {p.book_chapter.start_page}–{p.book_chapter.end_page}. Read-aloud is the diction practice.
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-sm text-neutral-400 mb-3">
+                        The crew book is still being painted. Read today&apos;s chapter here.
+                      </p>
+                    )}
+                    {chapterLines && <LessonVisualBoard visuals={[chapterLines]} embedded />}
+                  </>
+                ),
+              } satisfies LessonStepDef,
+            ]
+          : []),
+        {
+          id: 'teach',
+          title: 'Teach',
+          summary: 'Hook, mystery, hands-on, then the core idea',
+          defaultOpen: true,
+          body: (
+            <>
+              {p.fun_contract?.hook && (
+                <ScriptBlock label="Hook — do this first" text={p.fun_contract.hook} />
+              )}
+              <ScriptBlock label="Say this — opening" text={p.teacher_script?.opening} />
+              <ScriptBlock label="Mystery / question" text={p.teacher_script?.mystery_or_question} />
+              {p.hands_on && (
+                <div id="hands-on" className="mt-4 pt-4 border-t border-[#222]">
+                  <p className="text-xs uppercase tracking-wide text-[#39FF14]/80 mb-2">
+                    Do this — {handsOnTitle(p.hands_on) || 'hands-on'}
+                  </p>
+                  <HandsOnBlock handsOn={p.hands_on} />
+                </div>
+              )}
+              {(p.teacher_script?.transitions || []).map((t, i) => (
+                <ScriptBlock key={i} label={`Then say — ${i + 1}`} text={t} />
+              ))}
+              <ScriptBlock label="Core idea" text={p.teacher_script?.core_concept} />
+              {p.foundational_skills?.activity && (
+                <div className="mt-4 pt-4 border-t border-[#222]">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 mb-1">
+                    Foundational — {p.foundational_skills.subject}
+                  </p>
+                  <p className="text-neutral-200 text-sm leading-relaxed">
+                    {p.foundational_skills.activity}
+                  </p>
+                </div>
+              )}
+              {(p.wonder_wall?.know_prompt || (p.wonder_wall?.wonder_prompts || []).length > 0) && (
+                <div className="mt-4 pt-4 border-t border-[#222]">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 mb-1">Wonder Wall</p>
+                  {p.wonder_wall.know_prompt && (
+                    <p className="text-sm text-neutral-300 mb-2">{p.wonder_wall.know_prompt}</p>
+                  )}
+                  <BulletList items={p.wonder_wall.wonder_prompts || []} />
+                </div>
+              )}
+            </>
+          ),
+        },
+        {
+          id: 'close',
+          title: 'Make and close',
+          summary: p.child_output?.type
+            ? `Make the ${p.child_output.type}, then close`
+            : 'Artifact, choice, and a clean stop',
+          defaultOpen: false,
+          body: (
+            <>
+              {p.child_output?.description && (
+                <div className="mb-3">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 mb-1">
+                    Make this — {p.child_output.type}
+                  </p>
+                  <p className="text-neutral-200 text-sm leading-relaxed">
+                    {p.child_output.description}
+                  </p>
+                </div>
+              )}
+              <ScriptBlock label="Close with this" text={p.teacher_script?.closing} />
+              {p.fun_contract?.choice_point && (
+                <p className="text-sm text-[#FFFF00] mt-3">
+                  Child&apos;s choice: {p.fun_contract.choice_point}
+                </p>
+              )}
+              {p.fun_contract?.celebration_close && (
+                <p className="text-sm text-neutral-200 mt-3">{p.fun_contract.celebration_close}</p>
+              )}
+              <p className="text-sm text-[#39FF14] mt-4">
+                Good stopping point: {p.good_stopping_point || 'After the artifact is made'}
+              </p>
+              {(p.reflection || []).length > 0 && (
+                <div className="mt-4 pt-4 border-t border-[#222]">
+                  <p className="text-xs uppercase tracking-wide text-neutral-500 mb-1">Reflection</p>
+                  <BulletList items={p.reflection} />
+                </div>
+              )}
+            </>
+          ),
+        },
+        ...(playQueue.length > 0
+          ? [
+              {
+                id: 'play',
+                title: playQueue.length > 1 ? 'Play queue' : 'Play',
+                summary: playQueue[0]?.title || 'One resource',
+                defaultOpen: false,
+                body: <PlayQueueList queue={playQueue} />,
+              } satisfies LessonStepDef,
+            ]
+          : []),
+      ]
+
+  steps.push(
+    {
+      id: 'check',
+      title: 'Check off',
+      summary: `${bundle.items.filter((i) => i.is_complete).length}/${bundle.items.length} done`,
+      defaultOpen: false,
+      body: <LessonChecklist bundle={bundle} updateBundle={updateBundle} embedded />,
+    },
+    {
+      id: 'record',
+      title: 'Record',
+      summary: 'Ask VIVA, then keep photos and notes with this lesson',
+      defaultOpen: false,
+      body: (
+        <div className="space-y-5">
+          <VivaSidekick lessonId={lesson.id} />
+          <LessonJournal bundle={bundle} updateBundle={updateBundle} embedded />
+        </div>
+      ),
+    }
+  )
 
   return (
-    <Container size="md" className="py-10 md:py-14">
-      <Stack gap="lg">
-        <div>
-          <div className="flex items-center justify-between gap-3">
-            <Link href="/homeschool/life-explorer" className="text-sm text-neutral-400 hover:text-white">
-              ← Today
-            </Link>
-            <Link
-              href="/homeschool/life-explorer/lessons"
-              className="text-sm text-neutral-400 hover:text-white"
-            >
-              Lesson Log →
-            </Link>
-          </div>
-          <h2 className="text-3xl font-bold text-white mt-3">{lesson.title}</h2>
-          {lesson.essential_question && (
-            <p className="text-neutral-300 mt-2 text-lg">{lesson.essential_question}</p>
-          )}
+    <div data-lesson-page className="w-full px-3 pt-2 pb-6 md:px-4 md:pt-3">
+      <Stack gap="sm">
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/homeschool/life-explorer" className="text-sm text-neutral-400 hover:text-white">
+            ← Today
+          </Link>
+          <Link
+            href="/homeschool/life-explorer/lessons"
+            className="text-sm text-neutral-400 hover:text-white"
+          >
+            Lesson Log →
+          </Link>
+        </div>
+
+        {lesson.status === 'skipped' && (
+          <RestoreVersionCard bundle={bundle} updateBundle={updateBundle} />
+        )}
+
+        <section className="rounded-2xl border border-[#2a2a2a] bg-[#111] p-4">
           <LessonTimingChips
             plannedFor={lesson.planned_for}
             startedAt={lesson.started_at || null}
             completedAt={lesson.completed_at || null}
             status={lesson.status}
           />
-          {p.fun_contract?.story_mission && (
-            <p className="mt-3 text-sm text-[#00FFFF]">{p.fun_contract.story_mission}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mt-2 leading-tight">{lesson.title}</h1>
+          {lesson.essential_question && (
+            <p className="text-neutral-200 mt-2 text-base md:text-lg leading-snug">{lesson.essential_question}</p>
           )}
-          {p.printable && (
+          {p.fun_contract?.story_mission && (
+            <p className="mt-2 text-sm text-[#00FFFF] leading-relaxed">{p.fun_contract.story_mission}</p>
+          )}
+          {p.identity?.why_this_matters && (
+            <p className="mt-2 text-sm text-neutral-400 leading-relaxed">{p.identity.why_this_matters}</p>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <a
               href={`/api/life-explorer/print/lesson?id=${lesson.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#333] px-4 py-2 text-sm text-neutral-200 hover:border-[#39FF14]/40 hover:text-white transition-colors"
+              className="inline-flex items-center rounded-xl border border-[#333] px-4 py-2 text-sm text-neutral-200 hover:border-[#39FF14]/40 hover:text-white transition-colors"
             >
-              Print today&apos;s sheet — {p.printable.title}
+              Print today&apos;s pages
             </a>
-          )}
-        </div>
+            {p.low_battery_mode && (
+              <button
+                type="button"
+                onClick={() => setLowBattery(!lowBattery)}
+                className={`rounded-xl px-4 py-2 text-sm border transition-colors ${
+                  lowBattery
+                    ? 'border-amber-400 text-amber-300 bg-amber-400/10'
+                    : 'border-[#333] text-neutral-300 hover:border-amber-400/40'
+                }`}
+              >
+                {lowBattery ? 'Back to full lesson' : `Short version · ${p.low_battery_mode.total_minutes} min`}
+              </button>
+            )}
+          </div>
+        </section>
 
-        {/* A regenerated-over version — nothing is lost, one tap brings it back */}
-        {lesson.status === 'skipped' && (
-          <RestoreVersionCard bundle={bundle} updateBundle={updateBundle} />
-        )}
+        <LessonPath key={lowBattery ? 'short' : 'full'} steps={steps} />
 
-        {/* Low-Battery Mode — sick day, meltdown day, errand day */}
-        {p.low_battery_mode && (
-          <LowBatteryCard mode={p.low_battery_mode} lowBattery={lowBattery} setLowBattery={setLowBattery} />
-        )}
-
-        {/* Expedition Flashback — 2-minute retrieval warm-up */}
-        {p.flashback && p.flashback.items.length > 0 && (
-          <Section title="Expedition Flashback (2 min)">
-            <p className="text-sm text-[#00FFFF] mb-2">{p.flashback.game}</p>
-            <BulletList items={p.flashback.items.map((f) => f.prompt)} />
-            <p className="text-xs text-neutral-500 mt-2">
-              Mark what they remembered — easy recalls come back later, stumbles come back
-              tomorrow. You&apos;ll capture the day on the calendar when you finish.
-            </p>
-          </Section>
-        )}
-
-        {/* Everything this lesson prescribes, as a checkable list that lives
-            inside the lesson bucket. */}
-        <LessonChecklist bundle={bundle} updateBundle={updateBundle} />
-
-        {lowBattery && p.low_battery_mode ? (
-          <Section title={`Low-Battery Lesson (${p.low_battery_mode.total_minutes} min)`}>
-            <BulletList items={p.low_battery_mode.steps} />
-            <p className="text-sm text-[#39FF14] mt-3">
-              This still counts. Log it on the calendar when you&apos;re done.
-            </p>
-          </Section>
-        ) : (
-          <>
-        {p.fun_contract?.hook && (
-          <Section title="The Hook">
-            <p className="text-neutral-200 leading-relaxed">&ldquo;{p.fun_contract.hook}&rdquo;</p>
-          </Section>
-        )}
-
-        <Section title="Parent Prep">
-          <p className="text-sm text-neutral-400 mb-3">
-            Prep time: {p.parent_prep?.prep_minutes ?? '—'} minutes
-          </p>
-          <BulletList items={p.parent_prep?.materials || []} label="Materials" />
-          <BulletList items={p.parent_prep?.beforehand || []} label="Beforehand" />
-          <BulletList items={p.parent_prep?.safety || []} label="Safety" />
-          {p.parent_prep?.cleanup && (
-            <p className="text-sm text-neutral-300 mt-2">Cleanup: {p.parent_prep.cleanup}</p>
-          )}
-          {p.hands_on && (
-            <p className="text-sm text-neutral-300 mt-3 pt-3 border-t border-[#222]">
-              These materials set up{' '}
-              <span className="text-white font-medium">
-                {handsOnTitle(p.hands_on) || 'the hands-on activity'}
-              </span>{' '}
-              —{' '}
-              <a href="#hands-on" className="text-[#39FF14] underline">
-                full instructions below
-              </a>
-            </p>
-          )}
-        </Section>
-
-        {(p.block_minutes || []).length > 0 && (
-          <Section title="Today's Rhythm">
-            <ul className="space-y-1.5">
-              {p.block_minutes!.map((b, i) => (
-                <li key={i} className="flex items-center justify-between text-sm">
-                  <span className={b.optional ? 'text-neutral-500' : 'text-neutral-200'}>
-                    {b.block}
-                    {b.optional && <span className="ml-2 text-xs text-neutral-600">(optional)</span>}
-                  </span>
-                  <span className="text-[#00FFFF]">{b.minutes} min</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        <Section title="Teacher Script">
-          <ScriptBlock label="Opening" text={p.teacher_script?.opening} />
-          <ScriptBlock label="Mystery / Question" text={p.teacher_script?.mystery_or_question} />
-          <ScriptBlock label="Core Concept" text={p.teacher_script?.core_concept} />
-          {(p.teacher_script?.transitions || []).map((t, i) => (
-            <ScriptBlock key={i} label={`Transition ${i + 1}`} text={t} />
-          ))}
-          <ScriptBlock label="Closing" text={p.teacher_script?.closing} />
-        </Section>
-
-        <Section title="Core Activities">
-          <BulletList items={p.core_activities || []} />
-          {p.fun_contract?.choice_point && (
-            <p className="text-sm text-[#FFFF00] mt-3">
-              Child&apos;s choice: {p.fun_contract.choice_point}
-            </p>
-          )}
-          <p className="text-sm text-[#39FF14] mt-3">
-            Good stopping point: {p.good_stopping_point || 'After core activities'}
-          </p>
-        </Section>
-
-        {p.hands_on && (
-          <Section id="hands-on" title="Hands-On">
-            <HandsOnBlock handsOn={p.hands_on} />
-          </Section>
-        )}
-
-        <PlayQueueSection queue={buildPlayQueue(p)} />
-
-        {(p.sibling_tag_along || []).length > 0 && (
-          <Section title="Little Sibling Tag-Along">
-            <ul className="space-y-2">
-              {p.sibling_tag_along!.map((t, i) => (
-                <li key={i} className="text-sm">
-                  <span className="text-white font-medium">{t.activity}: </span>
-                  <span className="text-neutral-300">{t.adaptation}</span>
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
-
-        <Section title="Foundational Skills">
-          <p className="text-white font-medium capitalize">{p.foundational_skills?.subject}</p>
-          <p className="text-neutral-300 mt-1">{p.foundational_skills?.activity}</p>
-        </Section>
-
-        {p.parent_answer_key && (
-          <Section title="Parent Answer Key">
-            <p className="text-xs text-neutral-500 mb-3">
-              You are never the one being tested. Kid-language answers for the likely questions:
-            </p>
-            <div className="space-y-3">
-              {p.parent_answer_key.likely_questions.map((q, i) => (
-                <div key={i}>
-                  <p className="text-white text-sm font-medium">&ldquo;{q.question}&rdquo;</p>
-                  <p className="text-neutral-300 text-sm mt-0.5">{q.kid_answer}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 rounded-xl border border-[#00FFFF]/20 bg-[#00FFFF]/5 px-4 py-3">
-              <p className="text-xs uppercase tracking-wide text-[#00FFFF]/80 mb-1">
-                When you don&apos;t know
-              </p>
-              <p className="text-sm text-neutral-200">&ldquo;{p.parent_answer_key.unknown_script}&rdquo;</p>
-            </div>
-          </Section>
-        )}
-
-        <Section title="Child Output">
-          <p className="text-neutral-300">
-            <span className="text-white font-medium capitalize">{p.child_output?.type}: </span>
-            {p.child_output?.description}
-          </p>
-        </Section>
-
-        <Section title="Reflection">
-          <BulletList items={p.reflection || []} />
-        </Section>
-
-        {(p.optional_extensions || []).length > 0 && (
-          <Section title="Optional Extensions">
-            <BulletList items={p.optional_extensions} />
-          </Section>
-        )}
-
-        {p.fun_contract?.celebration_close && (
-          <Section title="Celebration Close">
-            <p className="text-neutral-200">{p.fun_contract.celebration_close}</p>
-          </Section>
-        )}
-          </>
-        )}
-
-        {/* The lesson's permanent record — documents, photos, notes, links. */}
-        <LessonJournal bundle={bundle} updateBundle={updateBundle} />
-
-        <div className="pt-2">
+        <div className="pt-1">
           <FinishLessonButton bundle={bundle} updateBundle={updateBundle} />
         </div>
       </Stack>
-    </Container>
+    </div>
+  )
+}
+
+function VivaSidekick({ lessonId }: { lessonId: string }) {
+  const [open, setOpen] = useState<'ask' | 'another_way' | null>(null)
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function run(mode: 'ask' | 'another_way') {
+    setBusy(true)
+    setError(null)
+    setAnswer(null)
+    try {
+      const res = await fetch('/api/life-explorer/viva', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lesson_id: lessonId,
+          mode,
+          question: question.trim() || null,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'VIVA could not answer')
+      setAnswer(json.text)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'VIVA could not answer')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-[#222] bg-[#0d0d0d] p-4">
+      <p className="text-sm text-white font-medium">Ask VIVA</p>
+      <p className="text-xs text-neutral-500 mt-0.5">
+        A second explanation in kid language when something isn&apos;t landing. The answer key
+        below works offline.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen('ask')
+            setAnswer(null)
+          }}
+          className="rounded-full border border-[#39FF14]/40 px-3 py-1.5 text-xs text-[#39FF14]"
+        >
+          Ask VIVA
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen('another_way')
+            void run('another_way')
+          }}
+          disabled={busy}
+          className="rounded-full border border-[#00FFFF]/40 px-3 py-1.5 text-xs text-[#00FFFF] disabled:opacity-60"
+        >
+          {busy && open === 'another_way' ? 'VIVA is thinking…' : 'Another way'}
+        </button>
+      </div>
+      {open === 'ask' && (
+        <div className="mt-3 flex gap-2">
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="What did they just ask?"
+            className="flex-1 rounded-xl border border-[#333] bg-[#0a0a0a] text-white px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => void run('ask')}
+            disabled={busy}
+            className="rounded-xl bg-[#39FF14] px-3 py-2 text-sm font-semibold text-black disabled:opacity-60"
+          >
+            {busy ? '…' : 'Ask'}
+          </button>
+        </div>
+      )}
+      {error && <p className="text-sm text-red-300 mt-2">{error}</p>}
+      {answer && (
+        <p className="text-sm text-neutral-200 mt-3 leading-relaxed whitespace-pre-wrap">{answer}</p>
+      )}
+    </div>
   )
 }
 
@@ -481,7 +709,7 @@ function LessonTimingChips({
   }
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {chips.map((c, i) => (
         <span
           key={i}
@@ -499,52 +727,99 @@ function LessonTimingChips({
   )
 }
 
-function LowBatteryCard({
-  mode,
-  lowBattery,
-  setLowBattery,
-}: {
-  mode: { total_minutes: number; steps: string[] }
-  lowBattery: boolean
-  setLowBattery: (v: boolean) => void
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl border border-[#222] bg-[#111] px-5 py-4">
-      <div>
-        <p className="text-white font-medium">Rough morning?</p>
-        <p className="text-sm text-neutral-500 mt-0.5">
-          The {mode.total_minutes}-minute version still teaches something real — and still counts.
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={() => setLowBattery(!lowBattery)}
-        className={`rounded-full px-4 py-2 text-sm border transition-colors ${
-          lowBattery
-            ? 'border-amber-400 text-amber-300 bg-amber-400/10'
-            : 'border-[#333] text-neutral-300 hover:border-amber-400/40'
-        }`}
-      >
-        {lowBattery ? 'Back to full lesson' : 'Switch to short version'}
-      </button>
-    </div>
-  )
-}
+function LessonPath({ steps }: { steps: LessonStepDef[] }) {
+  const [open, setOpen] = useState<string[]>(() => steps.filter((s) => s.defaultOpen).map((s) => s.id))
+  const refs = useRef<Record<string, HTMLElement | null>>({})
 
-function Section({
-  title,
-  children,
-  id,
-}: {
-  title: string
-  children: React.ReactNode
-  id?: string
-}) {
+  function isOpen(id: string) {
+    return open.includes(id)
+  }
+
+  function toggle(id: string) {
+    setOpen((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
+  }
+
+  function goTo(id: string) {
+    setOpen((cur) => (cur.includes(id) ? cur : [...cur, id]))
+    requestAnimationFrame(() => {
+      refs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  function goNext(id: string) {
+    const i = steps.findIndex((s) => s.id === id)
+    const next = steps[i + 1]
+    if (next) goTo(next.id)
+  }
+
   return (
-    <section id={id} className="rounded-2xl border border-[#222] bg-[#111] p-5 md:p-6">
-      <h3 className="text-lg font-semibold text-white mb-3">{title}</h3>
-      {children}
-    </section>
+    <div>
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+        {steps.map((step, i) => (
+          <button
+            key={step.id}
+            type="button"
+            onClick={() => goTo(step.id)}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+              isOpen(step.id)
+                ? 'border-[#39FF14]/50 text-[#39FF14] bg-[#39FF14]/5'
+                : 'border-[#2a2a2a] text-neutral-400 hover:text-white'
+            }`}
+          >
+            {i + 1} {step.title}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 space-y-2">
+        {steps.map((step, i) => {
+          const openNow = isOpen(step.id)
+          const next = steps[i + 1]
+          return (
+            <section
+              key={step.id}
+              ref={(el) => {
+                refs.current[step.id] = el
+              }}
+              className="rounded-2xl border border-[#222] bg-[#111] overflow-hidden scroll-mt-20"
+            >
+              <button
+                type="button"
+                onClick={() => toggle(step.id)}
+                aria-expanded={openNow}
+                className="w-full flex items-center gap-3 px-4 py-3.5 md:px-5 text-left"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#333] text-xs font-semibold text-[#39FF14]">
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-white font-semibold">{step.title}</span>
+                  <span className="block text-xs text-neutral-500 mt-0.5 truncate">{step.summary}</span>
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${
+                    openNow ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              {openNow && (
+                <div className="px-4 pb-4 md:px-5 md:pb-5 border-t border-[#1c1c1c] pt-4">
+                  {step.body}
+                  {next && (
+                    <button
+                      type="button"
+                      onClick={() => goNext(step.id)}
+                      className="mt-5 text-sm text-[#00FFFF] hover:text-white"
+                    >
+                      Next — {next.title}
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -573,42 +848,40 @@ function ScriptBlock({ label, text }: { label: string; text?: string }) {
 }
 
 /** Single ordered, deduplicated media list — the parent never hunts mid-lesson. */
-function PlayQueueSection({ queue }: { queue: CoreResource[] }) {
+function PlayQueueList({ queue }: { queue: CoreResource[] }) {
   if (queue.length === 0) return null
   return (
-    <Section id="resources" title={queue.length > 1 ? 'Play Queue (in order)' : 'Play Queue'}>
-      <div className="space-y-2">
-        {queue.map((r, i) => (
-          <div key={i} className="flex items-start gap-3 rounded-xl border border-[#2a2a2a] p-3">
-            <span className="text-[#39FF14] font-bold">{i + 1}</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-white text-sm font-medium">{r.title || 'Resource'}</p>
-              <p className="text-xs text-neutral-500 capitalize mt-0.5">
-                {[r.resource_type, r.runtime].filter(Boolean).join(' · ')}
+    <div className="space-y-2">
+      {queue.map((r, i) => (
+        <div key={i} className="flex items-start gap-3 rounded-xl border border-[#2a2a2a] p-3">
+          <span className="text-[#39FF14] font-bold">{i + 1}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-white text-sm font-medium">{r.title || 'Resource'}</p>
+            <p className="text-xs text-neutral-500 capitalize mt-0.5">
+              {[r.resource_type, r.runtime].filter(Boolean).join(' · ')}
+            </p>
+            {r.why_selected && (
+              <p className="text-sm text-neutral-400 mt-1">{r.why_selected}</p>
+            )}
+            {!r.url && r.needs_parent_link && (
+              <p className="text-sm text-amber-300 mt-1">
+                Needs a parent-chosen link — not invented by the system.
               </p>
-              {r.why_selected && (
-                <p className="text-sm text-neutral-400 mt-1">{r.why_selected}</p>
-              )}
-              {!r.url && r.needs_parent_link && (
-                <p className="text-sm text-amber-300 mt-1">
-                  Needs a parent-chosen link — not invented by the system.
-                </p>
-              )}
-            </div>
-            {r.url && (
-              <a
-                href={r.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 rounded-full bg-[#39FF14] px-4 py-1.5 text-xs font-semibold text-black"
-              >
-                Play
-              </a>
             )}
           </div>
-        ))}
-      </div>
-    </Section>
+          {r.url && (
+            <a
+              href={r.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 rounded-full bg-[#39FF14] px-4 py-1.5 text-xs font-semibold text-black"
+            >
+              Play
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
   )
 }
 

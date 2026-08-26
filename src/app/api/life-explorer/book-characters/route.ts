@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { STARTER_CHARACTERS } from '@/lib/life-explorer/book-characters'
+import { ensureStarterCharacters } from '@/lib/life-explorer/book-characters'
 import { ensureCharacterPortrait } from '@/lib/life-explorer/book-illustrator'
 import type { LeCharacter } from '@/lib/life-explorer/types'
 
@@ -20,47 +20,18 @@ export async function GET() {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: existingRows, error } = await supabase
-    .from('le_characters')
-    .select('*')
-    .order('is_starter', { ascending: false })
+  const { data: student } = await supabase
+    .from('le_students')
+    .select('id, household_id')
+    .eq('active', true)
     .order('created_at', { ascending: true })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    .limit(1)
+    .maybeSingle()
 
-  let characters = (existingRows || []) as LeCharacter[]
-  const existingSlugs = new Set(characters.map((c) => c.slug))
-  const missing = STARTER_CHARACTERS.filter((s) => !existingSlugs.has(s.slug))
-
-  if (missing.length > 0) {
-    const { data: student } = await supabase
-      .from('le_students')
-      .select('household_id')
-      .eq('active', true)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle()
-
-    const { data: inserted, error: insertError } = await supabase
-      .from('le_characters')
-      .insert(
-        missing.map((s) => ({
-          created_by: user.id,
-          household_id: student?.household_id || null,
-          slug: s.slug,
-          name: s.name,
-          species: s.species,
-          personality: s.personality,
-          catchphrase: s.catchphrase,
-          visual_description: s.visual_description,
-          is_starter: true,
-        }))
-      )
-      .select('*')
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
-    }
-    characters = [...characters, ...((inserted || []) as LeCharacter[])]
-  }
+  const characters = await ensureStarterCharacters(supabase, user.id, {
+    studentId: student?.id || null,
+    householdId: student?.household_id || null,
+  })
 
   return NextResponse.json({ characters })
 }

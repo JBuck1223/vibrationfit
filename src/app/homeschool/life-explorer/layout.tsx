@@ -7,9 +7,8 @@ export const metadata: Metadata = {
   description: 'Curiosity-driven daily lessons for Vibration Fit Homeschool.',
 }
 
-// Three surfaces only: Today (Expedition) · Map · Profile.
-// Wonder Wall, Resources, Portfolio, Calendar, Progress are panels inside
-// those three — never peer destinations that restate the same data.
+// Today · Week · Map · Progress · Profile — one tab per time horizon.
+// Each tab carries its own panel row (e.g. Week → Coming Week / Calendar / New Direction / Resources).
 export default async function LifeExplorerLayout({
   children,
 }: {
@@ -57,8 +56,9 @@ export default async function LifeExplorerLayout({
         studentName={studentName}
       />
       {/* Horizontal padding for every surface (Container adds none by design);
-          bottom padding on mobile so the fixed tab bar never covers content */}
-      <div className="px-4 md:px-6 pb-24 md:pb-0">{children}</div>
+          bottom padding on mobile so the fixed tab bar never covers content.
+          Book reader is full-screen and strips this padding via :has(). */}
+      <div className="px-4 md:px-6 pb-24 md:pb-0 has-[[data-book-reader]]:p-0 has-[[data-lesson-page]]:px-0 has-[[data-lesson-page]]:pt-0">{children}</div>
     </div>
   )
 }

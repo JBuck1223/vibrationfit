@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { seedOliverAntarctica } from '@/lib/life-explorer/seed'
+import { seedOliverAntarctica, startOliverOceans } from '@/lib/life-explorer/seed'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -14,9 +14,15 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json().catch(() => ({}))
-    const result = await seedOliverAntarctica(supabase, user.id, {
-      generateLesson: body.generate_lesson !== false,
-    })
+    const expedition = String(body.expedition || body.pack || '').toLowerCase()
+    const result =
+      expedition === 'oceans' || expedition === 'ocean' || expedition === 'ocean explorers'
+        ? await startOliverOceans(supabase, user.id, {
+            generateLesson: body.generate_lesson !== false,
+          })
+        : await seedOliverAntarctica(supabase, user.id, {
+            generateLesson: body.generate_lesson !== false,
+          })
 
     return NextResponse.json(result)
   } catch (err) {

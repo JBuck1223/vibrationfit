@@ -25,7 +25,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { generateImage, editImage } from '@/lib/services/imageService'
-import { buildPortraitPrompt } from './book-characters'
+import { buildPortraitPrompt, isHumanSpecies } from './book-characters'
 import { loadStorybookIllustratorConfig } from './book-tools-config'
 import type { LeBook, LeBookPage, LeCharacter } from './types'
 
@@ -72,7 +72,8 @@ export async function ensureCharacterPortrait(
 }
 
 function characterLabel(c: LeCharacter): string {
-  return `${c.name}${c.species ? ` the ${c.species}` : ''}`
+  if (isHumanSpecies(c.species) || !c.species) return c.name
+  return `${c.name} the ${c.species}`
 }
 
 /** Prompt for the one-per-book cast lineup sheet (text-to-image, no refs). */
@@ -81,9 +82,9 @@ function castSheetPrompt(characters: LeCharacter[], styleBible: string): string 
     .map((c, i) => `${i + 1}. ${characterLabel(c)}: ${c.visual_description}`)
     .join(' ')
   return [
-    `Character lineup sheet for a children's picture book: ${characters.length} animal characters standing side by side in a single row, evenly spaced, all facing the viewer, full body.`,
+    `Character lineup sheet for a children's picture book: ${characters.length} characters standing side by side in a single row, evenly spaced, all facing the viewer, full body.`,
     `From left to right: ${lineup}`,
-    'Each character is one complete, separate animal — its own head, its own body, its own limbs. No character touches or overlaps another.',
+    'Each character is one complete figure — a child or an animal, never a child head on an animal body. Its own head, its own body, its own limbs. No character touches or overlaps another.',
     'Plain soft cream background, no scenery, no props beyond what each character wears or carries.',
     styleBible,
   ].join(' ')
@@ -132,7 +133,7 @@ function scenePrompt(options: {
   }
   parts.push(
     appearances,
-    'CRITICAL: each character is ONE complete animal — head, body, limbs, and colors all belong to that same animal, exactly as in the lineup. Never mix, merge, or swap features between characters.',
+    'CRITICAL: each character is ONE complete figure — a human child stays a human child, an animal stays that animal — head, body, limbs, and colors all belong to that same character, exactly as in the lineup. Never put a child head on an animal body. Never mix, merge, or swap features between characters.',
     'Do not include any characters that are not named in this scene.'
   )
   if (revisionNotes && revisionNotes.trim()) {

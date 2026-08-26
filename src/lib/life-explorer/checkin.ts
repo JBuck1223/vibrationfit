@@ -3,7 +3,10 @@ import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { CHECKIN_SYSTEM_PROMPT, buildCheckInUserPrompt } from './prompts'
 import { recordFlashbackResults } from './flashback'
-import type { CheckInInput, LeLessonRecord, LessonPayload, SkillStatus } from './types'
+import { MATH_LADDER, READING_LADDER, WRITING_LADDER, currentLadderPosition } from './ladders'
+import { catalogSkill } from './skill-catalog'
+import { weeklyLifeLearningFocus } from './life-learning'
+import type { CheckInInput, LeLessonRecord, LeSkillProgress, LessonPayload, SkillStatus } from './types'
 
 interface StructuredCheckIn {
   recommended_next_action: string
@@ -58,12 +61,21 @@ function fallbackStructure(input: CheckInInput): StructuredCheckIn {
   }
 }
 
+interface CheckInRungKeys {
+  mathRungKey?: string
+  readingRungKey?: string
+  writingRungKey?: string
+  lifeLearningRungKey?: string
+  compassSliceKey?: string
+}
+
 async function structureCheckIn(
   supabase: SupabaseClient,
   userId: string,
   studentName: string,
   lessonTitle: string,
-  input: CheckInInput
+  input: CheckInInput,
+  rungKeys: CheckInRungKeys = {}
 ): Promise<StructuredCheckIn> {
   try {
     const userPrompt = buildCheckInUserPrompt({
@@ -76,6 +88,8 @@ async function structureCheckIn(
       direction: input.direction,
       parentNotes: input.parent_notes,
       lowBattery: input.low_battery,
+      clickedInNewSituation: input.clicked_in_new_situation,
+      ...rungKeys,
     })
     const model = 'openai/gpt-4o-mini'
     const estimated = estimateTokensForText(userPrompt, model)
@@ -143,18 +157,38 @@ export async function recordLessonCheckIn(
     throw new Error('Lesson not found')
   }
 
-  const { data: student } = await supabase
-    .from('le_students')
-    .select('name')
-    .eq('id', lesson.student_id)
-    .single()
+  const [{ data: student }, { data: skillRows }] = await Promise.all([
+    supabase
+      .from('le_students')
+      .select('name, grade_level')
+      .eq('id', lesson.student_id)
+      .single(),
+    supabase
+      .from('le_skill_progress')
+      .select('*')
+      .eq('student_id', lesson.student_id),
+  ])
+
+  // Current rung keys so the interpreter records rung progress against the
+  // canonical ladder keys instead of free-text skill names.
+  const skills = (skillRows || []) as LeSkillProgress[]
+  const grade = student?.grade_level
+  const llFocus = weeklyLifeLearningFocus(skills)
+  const rungKeys: CheckInRungKeys = {
+    mathRungKey: currentLadderPosition(MATH_LADDER, skills, grade).current_rung.key,
+    readingRungKey: currentLadderPosition(READING_LADDER, skills, grade).current_rung.key,
+    writingRungKey: currentLadderPosition(WRITING_LADDER, skills, grade).current_rung.key,
+    lifeLearningRungKey: llFocus.rung.key,
+    compassSliceKey: llFocus.compass_slice_key || undefined,
+  }
 
   const structured = await structureCheckIn(
     supabase,
     userId,
     student?.name || 'the student',
     lesson.title,
-    input
+    input,
+    rungKeys
   )
 
   const newQuestions = [
@@ -301,6 +335,41 @@ export async function recordLessonCheckIn(
       },
       { onConflict: 'student_id,skill,subject' }
     )
+  }
+
+  const catalogKeys = (lesson.payload as LessonPayload | undefined)?.skill_keys || []
+  if (catalogKeys.length > 0) {
+    const { data: existingRows } = await supabase
+      .from('le_skill_progress')
+      .select('skill, subject, status, notes')
+      .eq('student_id', lesson.student_id)
+      .in('skill', catalogKeys)
+    const existing = new Map(
+      (existingRows || []).map((r) => [`${r.skill}::${r.subject}`, r as { status: string; notes: string | null }])
+    )
+    const today = new Date().toISOString().slice(0, 10)
+    const lessonNote = `Day ${lesson.payload?.identity?.lesson_number || ''} — ${lesson.title}`.replace('Day  —', 'Day')
+    for (const key of catalogKeys) {
+      const def = catalogSkill(key)
+      const subject = def?.subject || 'general'
+      const prior = existing.get(`${key}::${subject}`)
+      if (prior?.status === 'secure' || prior?.status === 'needs_support') continue
+      await supabase.from('le_skill_progress').upsert(
+        {
+          student_id: lesson.student_id,
+          created_by: userId,
+          household_id: lesson.household_id,
+          skill: key,
+          subject,
+          status: 'developing',
+          last_observed: today,
+          evidence_ids: evidenceId ? [evidenceId] : [],
+          notes: prior?.notes || lessonNote,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'student_id,skill,subject' }
+      )
+    }
   }
 
   if (input.direction === 'change') {

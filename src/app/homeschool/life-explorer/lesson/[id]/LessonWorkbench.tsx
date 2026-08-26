@@ -82,9 +82,11 @@ type BundleUpdater = (fn: (b: LessonBundle) => LessonBundle) => void
 export function LessonChecklist({
   bundle,
   updateBundle,
+  embedded = false,
 }: {
   bundle: LessonBundle
   updateBundle: BundleUpdater
+  embedded?: boolean
 }) {
   const lessonId = bundle.lesson.id
   const [newTitle, setNewTitle] = useState('')
@@ -151,14 +153,21 @@ export function LessonChecklist({
     })
   }
 
-  return (
-    <section className="rounded-2xl border border-[#39FF14]/25 bg-[#101510] p-5 md:p-6">
+  const body = (
+    <>
+      {!embedded && (
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Mission Checklist</h3>
+        <h3 className="text-lg font-semibold text-white">Check off as you go</h3>
         <span className="text-sm text-[#39FF14]">
           {done}/{bundle.items.length} done
         </span>
       </div>
+      )}
+      {embedded && (
+        <p className="text-sm text-[#39FF14] mb-4">
+          {done}/{bundle.items.length} done
+        </p>
+      )}
 
       <div className="space-y-5">
         {KIND_GROUPS.map((group) => {
@@ -199,7 +208,12 @@ export function LessonChecklist({
         </Button>
       </div>
       {error && <p className="text-sm text-red-300 mt-2">{error}</p>}
-    </section>
+    </>
+  )
+
+  if (embedded) return <div>{body}</div>
+  return (
+    <section className="rounded-2xl border border-[#222] bg-[#111] p-5 md:p-6">{body}</section>
   )
 }
 
@@ -299,17 +313,23 @@ function ChecklistRow({
 export function LessonJournal({
   bundle,
   updateBundle,
+  embedded = false,
 }: {
   bundle: LessonBundle
   updateBundle: BundleUpdater
+  embedded?: boolean
 }) {
-  return (
-    <section className="rounded-2xl border border-[#222] bg-[#111] p-5 md:p-6">
-      <h3 className="text-lg font-semibold text-white mb-1">Lesson Record</h3>
-      <p className="text-xs text-neutral-500 mb-4">
-        Everything captured in this lesson — documents, photos, notes, and links — stays
-        with the lesson forever.
-      </p>
+  const panel = (
+    <>
+      {!embedded && (
+        <>
+          <h3 className="text-lg font-semibold text-white mb-1">Lesson Record</h3>
+          <p className="text-xs text-neutral-500 mb-4">
+            Everything captured in this lesson — documents, photos, notes, and links — stays
+            with the lesson forever.
+          </p>
+        </>
+      )}
       <AttachmentPanel
         bundle={bundle}
         updateBundle={updateBundle}
@@ -318,7 +338,12 @@ export function LessonJournal({
         links={bundle.links}
         media={bundle.media}
       />
-    </section>
+    </>
+  )
+
+  if (embedded) return <div>{panel}</div>
+  return (
+    <section className="rounded-2xl border border-[#222] bg-[#111] p-5 md:p-6">{panel}</section>
   )
 }
 

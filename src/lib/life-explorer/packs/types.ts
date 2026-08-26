@@ -69,4 +69,32 @@ export interface ExpeditionPack {
    * Used as the ≈5-lesson starting path and as generation fallbacks.
    */
   fallback_lessons: LessonPayload[]
+  /**
+   * Adult-facing map of this week vs the boxed program the household
+   * is comparing against. Optional — oceans week 1 has one.
+   */
+  facilitator_guide?: FacilitatorGuide
+}
+
+export interface FacilitatorGuideRow {
+  day: number
+  lesson_title: string
+  boxed?: string
+  this_week?: string
+  extra?: string
+  math?: string
+  reading?: string
+  writing?: string
+  world?: string
+  chapter?: string
+  crew?: string
+}
+
+export interface FacilitatorGuide {
+  for_whom: string
+  promise: string
+  rows: FacilitatorGuideRow[]
+  leftovers: string[]
+  /** Subject → what this week does → leftover/later. */
+  week_map?: Array<{ subject: string; this_week: string; leftover?: string }>
 }

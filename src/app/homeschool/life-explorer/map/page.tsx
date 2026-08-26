@@ -34,9 +34,31 @@ interface CoverageRow {
 interface MapResponse {
   student: { id: string; name: string; state_code?: string | null } | null
   state_profile: { name: string; statute: string; recommended_evaluation: string }
+  world_map?: Array<{
+    key: string
+    label: string
+    hint: string
+    items: Array<{ id: string; name: string; status: string; taste_looks_like?: string | null }>
+  }>
+  year_map?: Array<{
+    idea: { key: string; subject: string; kid_prompt: string; weave_hint: string }
+    level: 'green' | 'thin' | 'untouched'
+    touches: number
+    last_touched: string | null
+  }>
+  on_track?: string
+  year_arc?: {
+    school_year: string
+    months: Array<{ month: string; tastes: Array<{ name: string; why: string }>; notes?: string }>
+  } | null
+  ledger?: {
+    semester: { semester: number; aim: string }
+    areas: Array<{ label: string; family: string; level: string; weather: string }>
+  } | null
   categories: MapCategory[]
   coverage: CoverageRow[]
   suggestions: Array<{ kind: string; label: string }>
+  expeditions?: Array<{ id: string; title: string; status: string }>
 }
 
 type Tab = 'map' | 'reports'
@@ -75,10 +97,10 @@ function LearningMapContent() {
     <Container size="lg" className="py-10 md:py-14">
       <Stack gap="lg">
         <div>
-          <h2 className="text-3xl font-bold text-white">Learning Map</h2>
+          <h2 className="text-3xl font-bold text-white">World Map</h2>
           <p className="text-neutral-400 mt-2">
-            Where {data?.student?.name || 'your explorer'} stands across all of life — and proof
-            for the state, one click away.{' '}
+            Everything {data?.student?.name || 'your explorer'} is set to taste this year, and how
+            the record looks so far.{' '}
             <Link
               href="/homeschool/life-explorer/overview"
               className="text-[#00FFFF] hover:underline"
@@ -159,16 +181,31 @@ function MapPanel({ data }: { data: MapResponse | null }) {
 
   return (
     <Stack gap="lg">
-      {/* Coverage radar */}
+      {/* On-track sentence — the whole year in one breath */}
+      {data.on_track && (
+        <p className="rounded-2xl border border-[#39FF14]/25 bg-[#39FF14]/5 px-4 py-3 text-sm text-neutral-200 leading-relaxed">
+          {data.on_track}
+        </p>
+      )}
+
+      <ComposeBar />
+
+      {/* Florida ledger weather */}
       <section className="rounded-2xl border border-[#222] bg-[#111] p-5 md:p-6">
-        <h3 className="text-lg font-semibold text-white mb-1">Coverage Radar</h3>
+        <h3 className="text-lg font-semibold text-white mb-1">Florida ledger</h3>
         <p className="text-sm text-neutral-500 mb-4">
-          Last 30 days by subject area. Thin areas softly steer future lessons — never guilt.
+          The last 30 days by subject, drawn automatically from lessons, evidence, and the
+          activity log.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {data.coverage.map((c) => (
+          {(data.ledger?.areas || data.coverage.map((c) => ({
+            label: c.area.label,
+            family: c.area.fl_benchmark_family,
+            level: c.level,
+            weather: `${c.level} · ${c.touches_last_30_days} touches`,
+          }))).map((c) => (
             <div
-              key={c.area.key}
+              key={c.label}
               className={`rounded-xl border p-3 ${
                 c.level === 'green'
                   ? 'border-[#39FF14]/40 bg-[#39FF14]/5'
@@ -177,10 +214,10 @@ function MapPanel({ data }: { data: MapResponse | null }) {
                     : 'border-[#333] bg-[#0f0f0f]'
               }`}
             >
-              <p className="text-white text-sm font-medium">{c.area.label}</p>
-              <p className="text-xs text-neutral-500 mt-0.5">{c.area.fl_benchmark_family}</p>
+              <p className="text-white text-sm font-medium">{c.label}</p>
+              <p className="text-xs text-neutral-500 mt-0.5">{c.family}</p>
               <p
-                className={`text-xs mt-2 capitalize ${
+                className={`text-xs mt-2 ${
                   c.level === 'green'
                     ? 'text-[#39FF14]'
                     : c.level === 'thin'
@@ -188,69 +225,37 @@ function MapPanel({ data }: { data: MapResponse | null }) {
                       : 'text-neutral-500'
                 }`}
               >
-                {c.level} · {c.touches_last_30_days} touches
+                {c.weather}
               </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 12 Life Categories → Expeditions */}
-      <section>
-        <h3 className="text-lg font-semibold text-white mb-1">Life Categories & Expeditions</h3>
-        <p className="text-sm text-neutral-500 mb-4">
-          The open world: done, active, and unexplored. Curiosity picks the next destination.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {data.categories.map((cat) => (
-            <div
-              key={cat.key}
-              className={`rounded-2xl border p-4 ${
-                cat.has_active
-                  ? 'border-[#39FF14]/50 bg-[#39FF14]/5'
-                  : cat.has_completed
-                    ? 'border-[#00FFFF]/30 bg-[#00FFFF]/5'
-                    : 'border-[#222] bg-[#111]'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-white font-semibold">{cat.label}</p>
-                {cat.has_active && (
-                  <span className="text-[10px] uppercase tracking-wide text-[#39FF14] border border-[#39FF14]/40 rounded-full px-2 py-0.5">
-                    Active
-                  </span>
-                )}
+      <WorldMapSection data={data} />
+
+      <YearMapSection data={data} />
+
+      {data.year_arc && (
+        <section>
+          <h3 className="text-lg font-semibold text-white mb-1">
+            {data.year_arc.school_year} arc
+          </h3>
+          <p className="text-sm text-neutral-500 mb-4">
+            The year at a glance, drafted by VIVA. Edit anything.
+          </p>
+          <div className="space-y-2">
+            {data.year_arc.months.map((m) => (
+              <div key={m.month} className="rounded-xl border border-[#222] bg-[#111] px-4 py-3">
+                <p className="text-white font-medium">{m.month}</p>
+                <p className="text-sm text-neutral-400 mt-1">
+                  {(m.tastes || []).map((t) => t.name).join(' · ') || m.notes}
+                </p>
               </div>
-              <p className="text-xs text-neutral-500 mt-0.5">{cat.theme}</p>
-              <div className="mt-3 space-y-1.5">
-                {cat.expeditions.length === 0 && (
-                  <p className="text-xs text-neutral-600">Unexplored territory</p>
-                )}
-                {cat.expeditions.map((e) => (
-                  <div key={e.id} className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-200">{e.title}</span>
-                    <span className="text-xs text-neutral-500 capitalize">
-                      {e.status} · {e.lessons_completed}/{e.lessons_total}
-                    </span>
-                  </div>
-                ))}
-                {/* Imported archive: finished static unit as a completed expedition */}
-                {cat.key === 'fun' && (
-                  <Link
-                    href="/homeschool/oliver-ocean-adventures"
-                    className="flex items-center justify-between text-sm group"
-                  >
-                    <span className="text-neutral-400 group-hover:text-white">
-                      Ocean Adventures (archive)
-                    </span>
-                    <span className="text-xs text-neutral-600">completed</span>
-                  </Link>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Suggestions */}
       {data.suggestions.length > 0 && (
@@ -272,6 +277,170 @@ function MapPanel({ data }: { data: MapResponse | null }) {
         {data.state_profile?.recommended_evaluation}
       </p>
     </Stack>
+  )
+}
+
+function ComposeBar() {
+  const [dump, setDump] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function run(kind: 'map' | 'arc') {
+    setBusy(kind)
+    setError(null)
+    try {
+      const url =
+        kind === 'map' ? '/api/life-explorer/world-map' : '/api/life-explorer/year-arc'
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: kind === 'map' ? 'draft' : undefined,
+          parent_worlds_dump: dump,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'VIVA could not draft this')
+      window.location.reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Draft failed')
+      setBusy(null)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#222] bg-[#111] p-5">
+      <p className="text-white font-medium">Ask VIVA to draft</p>
+      <p className="text-sm text-neutral-500 mt-1 mb-3">
+        List worlds you&apos;re drawn to — sky, earth, water, motion, living things, places,
+        making, people. VIVA drafts the map from the Life I Choose, and you can edit anything.
+      </p>
+      <textarea
+        value={dump}
+        onChange={(e) => setDump(e.target.value)}
+        rows={3}
+        placeholder="Ice, penguins, the backyard creek, how things freeze, maps, making boats…"
+        className="w-full rounded-xl border border-[#333] bg-[#0a0a0a] text-white px-3 py-2 text-sm"
+      />
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={!!busy}
+          onClick={() => void run('map')}
+          className="rounded-full border border-[#39FF14]/40 px-4 py-2 text-sm text-[#39FF14] disabled:opacity-60"
+        >
+          {busy === 'map' ? 'Drafting map…' : 'Draft World Map'}
+        </button>
+        <button
+          type="button"
+          disabled={!!busy}
+          onClick={() => void run('arc')}
+          className="rounded-full border border-[#00FFFF]/40 px-4 py-2 text-sm text-[#00FFFF] disabled:opacity-60"
+        >
+          {busy === 'arc' ? 'Drafting year…' : 'Draft 9-month arc'}
+        </button>
+      </div>
+      {error && <p className="text-sm text-red-300 mt-2">{error}</p>}
+    </div>
+  )
+}
+
+function WorldMapSection({ data }: { data: MapResponse }) {
+  const clusters = data.world_map || []
+  const empty = clusters.every((c) => c.items.length === 0)
+  return (
+    <section>
+      <h3 className="text-lg font-semibold text-white mb-1">World Map</h3>
+      <p className="text-sm text-neutral-500 mb-4">
+        The tastes ahead — sky, earth, water, motion, living things, places, making, people.
+        Lessons pick one up when it fits the current expedition.
+      </p>
+      {empty && (
+        <p className="text-sm text-neutral-500 mb-3">
+          The map is empty. Ask VIVA to draft it from the Life I Choose, then edit.
+        </p>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {clusters.map((c) => (
+          <div key={c.key} className="rounded-2xl border border-[#222] bg-[#111] p-4">
+            <p className="text-white font-semibold">{c.label}</p>
+            <p className="text-xs text-neutral-500 mt-0.5">{c.hint}</p>
+            <div className="mt-3 space-y-1.5">
+              {c.items.length === 0 && <p className="text-xs text-neutral-600">—</p>}
+              {c.items.map((i) => (
+                <p key={i.id} className="text-sm text-neutral-200">
+                  {i.name}
+                  <span className="text-xs text-neutral-500"> · {i.status}</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {(data.expeditions || []).length > 0 && (
+        <p className="text-xs text-neutral-500 mt-4">
+          <Link href="/homeschool/life-explorer/expeditions" className="text-neutral-400 hover:text-white">
+            Expeditions lived
+          </Link>
+          {': '}
+          {(data.expeditions || []).map((e) => e.title).join(' · ')}
+          {' · '}
+          <Link href="/homeschool/oliver-ocean-adventures" className="text-neutral-400 hover:text-white">
+            Ocean Adventures (archive)
+          </Link>
+        </p>
+      )}
+    </section>
+  )
+}
+
+function YearMapSection({ data }: { data: MapResponse }) {
+  const ideas = data.year_map || []
+  if (ideas.length === 0) return null
+  const science = ideas.filter((s) => s.idea.subject === 'science')
+  const social = ideas.filter((s) => s.idea.subject === 'social_studies')
+
+  const badge = (level: 'green' | 'thin' | 'untouched') =>
+    level === 'green'
+      ? 'border-[#39FF14]/40 text-[#39FF14]'
+      : level === 'thin'
+        ? 'border-amber-400/40 text-amber-300'
+        : 'border-[#333] text-neutral-500'
+
+  const label = (level: 'green' | 'thin' | 'untouched') =>
+    level === 'green' ? 'met' : level === 'thin' ? 'touched once' : 'still ahead'
+
+  const column = (title: string, rows: typeof ideas) => (
+    <div className="rounded-2xl border border-[#222] bg-[#111] p-4">
+      <p className="text-white font-semibold mb-3">{title}</p>
+      <div className="space-y-2">
+        {rows.map((s) => (
+          <div key={s.idea.key} className="flex items-start gap-2">
+            <span
+              className={`flex-none mt-0.5 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${badge(s.level)}`}
+            >
+              {label(s.level)}
+            </span>
+            <p className="text-sm text-neutral-300">{s.idea.kid_prompt}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <section>
+      <h3 className="text-lg font-semibold text-white mb-1">Year Map — Big Ideas</h3>
+      <p className="text-sm text-neutral-500 mb-4">
+        The first-grade science and social-studies ideas this year touches. Status comes from
+        lived lessons and evidence — a checklist, not a calendar. Ideas still ahead softly
+        steer future lessons and the next expedition&apos;s Unknown card.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {column('Science', science)}
+        {column('Social studies', social)}
+      </div>
+    </section>
   )
 }
 

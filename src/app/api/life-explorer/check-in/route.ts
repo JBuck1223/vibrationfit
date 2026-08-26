@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
       photo_url: body.photo_url,
       activities_completed: body.activities_completed,
       activities_skipped: body.activities_skipped,
+      clicked_in_new_situation: body.clicked_in_new_situation,
+      low_battery: body.low_battery,
     })
 
     return NextResponse.json(result)

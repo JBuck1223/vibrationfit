@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { LeLesson, LeLessonItem, LessonItemKind, LessonPayload } from './types'
+import { normalizeLessonPayload } from './normalize-payload'
 
 interface DerivedItem {
   title: string
@@ -15,6 +16,7 @@ interface DerivedItem {
  * that lives inside the lesson bucket.
  */
 export function deriveLessonItems(payload: LessonPayload): DerivedItem[] {
+  const p = normalizeLessonPayload(payload)
   const items: DerivedItem[] = []
   let order = 0
   const push = (title: string, kind: LessonItemKind, detail: string | null = null) => {
@@ -24,36 +26,46 @@ export function deriveLessonItems(payload: LessonPayload): DerivedItem[] {
   }
 
   // --- Prep: before the lesson starts ---
-  const materials = payload.parent_prep?.materials || []
+  const materials = p.parent_prep?.materials || []
   if (materials.length > 0) {
     push('Gather materials', 'prep', materials.join(', '))
   }
-  for (const step of payload.parent_prep?.beforehand || []) {
+  for (const step of p.parent_prep?.beforehand || []) {
     push(step, 'prep')
   }
-  if (payload.printable?.title) {
-    push(`Print today's sheet: ${payload.printable.title}`, 'prep')
+  if ((p.visuals || []).length > 0 || p.printable?.title) {
+    push("Print today's pages (or use them on the lesson screen)", 'prep')
   }
 
   // --- During the lesson ---
-  if (payload.flashback?.items?.length) {
-    push('Expedition Flashback (2 min)', 'activity', payload.flashback.game)
+  if (p.flashback?.items?.length) {
+    push('Expedition Flashback (2 min)', 'activity', p.flashback.game)
   }
-  for (const activity of payload.core_activities || []) {
+  if ((p.visuals || []).some((v) => v.kind === 'exercise')) {
+    push('Do the pencil pages', 'activity', 'Math and words he writes on.')
+  }
+  if (p.book_chapter || (p.crew && p.crew.length > 0)) {
+    push(
+      p.book_chapter ? `Read with the crew — ${p.book_chapter.title}` : 'Read with the crew',
+      'activity',
+      (p.crew || []).join(', ') || null
+    )
+  }
+  for (const activity of p.core_activities || []) {
     push(activity, 'activity')
   }
-  if (payload.foundational_skills?.activity) {
-    const subject = payload.foundational_skills.subject
+  if (p.foundational_skills?.activity) {
+    const subject = p.foundational_skills.subject
     push(
-      subject ? `${cap(subject)}: ${payload.foundational_skills.activity}` : payload.foundational_skills.activity,
+      subject ? `${cap(subject)}: ${p.foundational_skills.activity}` : p.foundational_skills.activity,
       'activity'
     )
   }
-  if (payload.child_output?.description) {
+  if (p.child_output?.description) {
     push(
-      `Create the ${payload.child_output.type || 'artifact'}`,
+      `Create the ${p.child_output.type || 'artifact'}`,
       'activity',
-      payload.child_output.description
+      p.child_output.description
     )
   }
 
@@ -61,13 +73,13 @@ export function deriveLessonItems(payload: LessonPayload): DerivedItem[] {
   push(
     'Update the Wonder Wall',
     'wrap_up',
-    payload.wonder_wall?.learned_guidance || 'Move answered wonders to Learned; add new wonders.'
+    p.wonder_wall?.learned_guidance || 'Move answered wonders to Learned; add new wonders.'
   )
-  if (payload.fun_contract?.artifact) {
-    push('Photograph the artifact for the lesson record', 'wrap_up', payload.fun_contract.artifact)
+  if (p.fun_contract?.artifact) {
+    push('Photograph the artifact for the lesson record', 'wrap_up', p.fun_contract.artifact)
   }
-  if (payload.reflection?.length) {
-    push('Talk through the reflection questions', 'wrap_up', payload.reflection.join(' • '))
+  if (p.reflection?.length) {
+    push('Talk through the reflection questions', 'wrap_up', p.reflection.join(' • '))
   }
 
   return items

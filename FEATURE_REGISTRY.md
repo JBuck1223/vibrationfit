@@ -116,7 +116,7 @@ Vision-to-action steps, 5-phase framework. Schema: `actualization_blueprints`, `
 Keyframe execution engine: story prompt → keyframe images → video clips (Veo first-last-frame chaining). Lib: `src/lib/cinematic/`, UI: `/admin/cinematic/*`, schema: `cu_*` tables.
 
 ### 🚧 Life Explorer (Vibration Fit Homeschool)
-Curiosity-driven homeschool organized by the 12 Life Categories: expeditions with Wonder Wall, daily lesson generation, parent check-in, and portfolio. Schema: `le_*` tables. API: `/api/life-explorer/*`. UI: `/homeschool/life-explorer`. Rule: `.cursor/rules/life-explorer.mdc`. Critical: never invent resource titles/URLs/runtimes; never regenerate `homeschool/oliver-ocean-adventures/`; smallest complete lesson wins.
+VIVA-composed homeschool: profile-seeded Life I Choose, expeditions, skill ladders + Life Learning + Year Map, daily lessons, layered books, parent check-in, portfolio. Schema: `le_*`. API: `/api/life-explorer/*`. UI: `/homeschool/life-explorer`. Rule: `.cursor/rules/life-explorer.mdc`. North star: tool-enabled human (see `docs/features/life-explorer/PHILOSOPHY.md`). Engineering: never invent resource titles/URLs/runtimes; never regenerate `homeschool/oliver-ocean-adventures/`; progress on `le_skill_progress` — no parent standards form unless requested. Pedagogy is a working bet, not a lock.
 
 ---
 

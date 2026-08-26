@@ -18,6 +18,8 @@ export interface MaterialsForecast {
   pantry: string[]
   /** Anything time-sensitive (e.g. "freeze the iceberg TONIGHT"). */
   tonight: string[]
+  /** Five-day learning sequence when a week arc exists. */
+  days?: unknown[]
 }
 
 export async function buildMaterialsForecast(
@@ -69,10 +71,25 @@ export async function buildMaterialsForecast(
     }
   }
 
+  const { data: week } = await supabase
+    .from('le_week_arcs')
+    .select('days, materials')
+    .eq('student_id', studentId)
+    .order('week_start', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const weekMaterials = (week?.materials || {}) as MaterialsForecast
+  for (const m of weekMaterials.plan_ahead || []) planAhead.add(m)
+  for (const t of weekMaterials.tonight || []) tonight.add(t)
+
+  const days = Array.isArray(week?.days) ? week.days : []
+
   return {
     expedition_title: expedition.title,
     plan_ahead: [...planAhead],
-    pantry: pack?.materials.pantry || [],
+    pantry: pack?.materials.pantry || weekMaterials.pantry || [],
     tonight: [...tonight],
+    days,
   }
 }

@@ -15,6 +15,17 @@ export interface ComposerCharacter {
   visual_description: string
 }
 
+export interface ChapterBrief {
+  title: string
+  start_page: number
+  end_page: number
+  animal: string
+  facts: string[]
+  decodable: string[]
+  sight: string[]
+  passage: string[]
+}
+
 export interface BookPromptInput {
   studentName: string
   gradeLevel: string
@@ -26,6 +37,8 @@ export interface BookPromptInput {
   decodableWords?: string[]
   /** For i_read mode: sight words the student is expected to know. */
   sightWords?: string[]
+  /** Five mini-arcs for an expedition book. Overrides the 10–12 page default. */
+  chapters?: ChapterBrief[]
 }
 
 /**
@@ -33,7 +46,7 @@ export interface BookPromptInput {
  * The live copy is admin-editable in the ai_tools table
  * (tool_key: life_explorer_storybook_writer); this is the code fallback.
  */
-export const DEFAULT_BOOK_SYSTEM_PROMPT = `You are a beloved children's picture-book author — Mo Willems' comic timing crossed with the warmth of Arnold Lobel. You write books for the "Life Explorers" series: a recurring cast of funny animal characters who go on adventures and learn real things about the world.
+export const DEFAULT_BOOK_SYSTEM_PROMPT = `You are a beloved children's picture-book author — Mo Willems' comic timing crossed with the warmth of Arnold Lobel. You write books for the "Life Explorers" series: a recurring cast of funny kids and animal characters who go on adventures and learn real things about the world. A named child is a child. A named animal is that animal. Never turn a kid into an animal.
 
 EVERY BOOK DOES TWO JOBS AT ONCE — if either fails, the book fails:
 JOB 1 — TEACH. The child finishes the book genuinely understanding how the topic works. Before writing, choose 3 to 5 true, kid-fascinating facts about the topic. The PLOT must run on those facts: early attempts fail because a character ignores or misunderstands how the thing really works, and the climax is won by using the facts correctly. If you removed the topic from this story, the story should collapse.
@@ -97,16 +110,40 @@ export function buildBookUserPrompt(input: BookPromptInput): string {
     )
     .join('\n')
 
+  const chapterBlock = input.chapters?.length
+    ? `
+THESE INSTRUCTIONS OVERRIDE PAGE COUNT AND CAST RULES IN THE SYSTEM PROMPT.
+
+Write ONE book in FIVE CHAPTERS. About 20 to 25 story pages total (4 or 5 pages per chapter).
+SETTING FAMILY: Gulf shore and dock, Florida. One place family — wet sand, dock, boats, Gulf west. Pages do not wander to a different-looking world.
+
+STANDING CAST: Oliver (human boy — himself) and Leila (human girl — his friend, not a crush). Each chapter also stars ONE named animal. Do not draw more than 3 figures per page. Day 5 may name the rest of the crew in the words; do not draw five bodies.
+
+Oliver is a 7-year-old human boy. Never draw him as an animal. Leila is a 7-year-old human girl. Never draw her as an animal.
+
+CHAPTERS (the plot MUST run on these facts and this language):
+${input.chapters
+  .map(
+    (ch) =>
+      `Chapter ${ch.title} (pages ${ch.start_page}–${ch.end_page}). Animal of the day: ${ch.animal}.
+Facts: ${ch.facts.join(' ')}
+Decodable: ${ch.decodable.join(', ')}. Sight: ${ch.sight.join(', ')}.
+Seed lines (polish, keep sound-out-able): ${ch.passage.join(' / ')}`
+  )
+  .join('\n\n')}
+`
+    : ''
+
   return `Write a Life Explorers picture book.
 
 READER: ${input.studentName}, grade ${input.gradeLevel}.
 TOPIC (this is what the book is really about — teach it through the adventure): ${input.topic}
 ${input.expeditionTitle ? `CURRENT EXPEDITION (setting/context if useful): ${input.expeditionTitle}` : ''}
 
-THE CAST (use all of them, no one else):
+THE CAST (use only these names, no one else):
 ${cast}
 
 ${readingModeRules(input)}
-
+${chapterBlock}
 Now write the book. JSON only.`
 }

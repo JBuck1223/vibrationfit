@@ -1,0 +1,14 @@
+---
+description: Stay in this Agents window and edit files in place
+alwaysApply: true
+---
+
+# Stay in this Agents window
+
+Never call `move_agent_to_root`, `move_agent_to_cloned_root`, `create_project`, or any tool that switches the Cursor workspace, project window, or agent root.
+
+Stay in the current Agents window. Work the already-open folders in place with absolute paths.
+
+This window often includes both Mosquito Curtains and vibrationfit. That is intended. Do not try to pick one project by moving the agent or opening another Editor window.
+
+If a workspace-switch tool fails or shows a purple error, ignore it and keep working. Only change windows or roots if the user explicitly asks.

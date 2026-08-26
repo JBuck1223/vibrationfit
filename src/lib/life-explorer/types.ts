@@ -12,6 +12,16 @@ export type LifeCategoryKey =
   | 'giving'
   | 'spirituality'
 
+export type WorldCluster =
+  | 'sky'
+  | 'earth'
+  | 'water'
+  | 'motion'
+  | 'living'
+  | 'places'
+  | 'making'
+  | 'people'
+
 export type ExpeditionStatus = 'active' | 'paused' | 'completed'
 export type WonderKind = 'know' | 'wonder' | 'learned'
 export type WonderStatus = 'unexplored' | 'exploring' | 'answered'
@@ -47,6 +57,14 @@ export interface LeStudent {
   updated_at: string
   /** Two-letter state for the State Requirements Engine (default FL). */
   state_code?: string | null
+  /** Whole-life vision. VIVA composes days from this why. */
+  life_i_choose?: string | null
+  /** Hear-it recording of the Life I Choose (CDN URL). */
+  life_i_choose_audio_url?: string | null
+  /** profile_draft = VIVA-drafted from the profile; child_edited = the child made it theirs. */
+  life_i_choose_source?: 'profile_draft' | 'child_edited' | null
+  /** Florida Notice of Intent date — annual evaluation due on this anniversary. */
+  notice_of_intent_date?: string | null
 }
 
 export interface LeExpedition {
@@ -65,6 +83,8 @@ export interface LeExpedition {
   updated_at: string
   /** Lead-explorer steering console state. */
   steer?: { direction?: SteerDirection; updated_at?: string } | null
+  /** Why this expedition is this life — not a subject unit. */
+  why_this_matters?: string | null
 }
 
 export interface LeWonderItem {
@@ -184,6 +204,82 @@ export interface LessonBlockTime {
 }
 
 /**
+ * A teaching visual that lives on the lesson screen and prints as today's
+ * pages. Tools the child uses (sort mat, map, clocks, cards) — not a
+ * worksheet packet, and not the expedition kit.
+ */
+export type LessonVisualKind =
+  | 'sort_mat'
+  | 'compare'
+  | 'map'
+  | 'clocks'
+  | 'cards'
+  | 'tally'
+  | 'draw'
+  | 'passage'
+  | 'place_value'
+  | 'exercise'
+
+export type ExerciseLayout =
+  | 'number_grid'
+  | 'facts'
+  | 'blank_clocks'
+  | 'lines'
+  | 'compare'
+  | 'skip_count'
+  | 'place_value_rows'
+  | 'port_starboard'
+  | 'coins'
+  | 'word_sort'
+  | 'spell'
+  | 'retell'
+
+export interface LessonExercise {
+  layout: ExerciseLayout
+  prompt?: string
+  from?: number
+  to?: number
+  columns?: number
+  facts?: string[]
+  times?: string[]
+  skip_by?: number
+  skip_to?: number
+  given?: number[]
+  pairs?: Array<{ left: string; right: string }>
+  bins?: string[]
+  words?: string[]
+  spell?: string[]
+  boxes?: string[]
+  coins?: Array<{ name: string; cents: string }>
+  line_count?: number
+  left_label?: string
+  right_label?: string
+}
+
+export interface LessonBookChapter {
+  title: string
+  start_page: number
+  end_page: number
+}
+
+export interface LessonVisual {
+  kind: LessonVisualKind
+  title: string
+  /** One line the child hears: what to do with this page. */
+  kid_do: string
+  columns?: string[]
+  cards?: Array<{ word: string; hint?: string }>
+  rows?: string[]
+  times?: string[]
+  map?: 'florida_home_water'
+  draw_prompt?: string
+  lines?: string[]
+  tens?: number
+  ones?: number
+  exercise?: LessonExercise
+}
+
+/**
  * Optional one-page recording sheet for a lesson — emitted ONLY when the
  * hands-on activity genuinely needs one (predictions, measurements).
  * Rendered on-brand by /api/life-explorer/print/lesson.
@@ -200,13 +296,17 @@ export interface LessonPrintable {
 
 export interface LessonPayload {
   identity: {
-    life_category: string
+    life_category?: string
     expedition: string
     lesson_title: string
     lesson_number: number
     recommended_age_grade: string
     estimated_total_minutes: number
     essential_question: string
+    /** From the Life I Choose — why this day is this life. */
+    why_this_matters?: string
+    world_cluster?: WorldCluster | null
+    world_taste?: string | null
   }
   parent_prep: {
     prep_minutes: number
@@ -267,8 +367,18 @@ export interface LessonPayload {
   resource_queue?: CoreResource[]
   /** State benchmark codes touched (derived crosswalk input). */
   standards_tags?: string[]
+  /** Teaching visuals for THIS day — on screen and in today's print. */
+  visuals?: LessonVisual[]
   /** One-page recording sheet — only when the activity needs one. */
   printable?: LessonPrintable | null
+  /** Catalog skill keys this day can mark practiced. */
+  skill_keys?: string[]
+  /** Who is on duty in the story and on the pencil pages. */
+  crew?: string[]
+  /** Expedition storybook, once generated. */
+  book_id?: string | null
+  /** Chapter of the expedition book that belongs to this day. */
+  book_chapter?: LessonBookChapter | null
 }
 
 export interface LeLesson {
@@ -467,6 +577,78 @@ export interface ActiveContext {
   highInterestWonders: LeWonderItem[]
 }
 
+export type WorldMapStatus = 'unvisited' | 'tasted' | 'wobbly' | 'secure'
+
+export interface LeWorldMapItem {
+  id: string
+  student_id: string
+  created_by: string
+  household_id: string | null
+  cluster: WorldCluster
+  name: string
+  taste_looks_like: string | null
+  status: WorldMapStatus
+  sort_order: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface YearArcMonth {
+  month: string
+  tastes: Array<{ cluster: WorldCluster; name: string; why: string }>
+  notes?: string
+}
+
+export type YearArcStatus = 'draft' | 'active' | 'archived'
+
+export interface LeYearArc {
+  id: string
+  student_id: string
+  created_by: string
+  household_id: string | null
+  school_year: string
+  semester_1_start: string
+  semester_1_end: string
+  semester_2_start: string
+  semester_2_end: string
+  months: YearArcMonth[]
+  parent_worlds_dump: string | null
+  status: YearArcStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface WeekArcDay {
+  weekday: 'mon' | 'tue' | 'wed' | 'thu' | 'fri'
+  date: string
+  why: string
+  world_cluster: WorldCluster | null
+  world_taste: string
+  math_rung_key: string
+  reading_rung_key: string
+  mix_next_grade: boolean
+  story_chapter: string
+  hook_seed: string
+  mission_seed: string
+  artifact_seed: string
+}
+
+export type WeekArcStatus = 'draft' | 'ready' | 'in_progress' | 'done'
+
+export interface LeWeekArc {
+  id: string
+  student_id: string
+  created_by: string
+  household_id: string | null
+  week_start: string
+  days: WeekArcDay[]
+  materials: { plan_ahead?: string[]; pantry?: string[]; tonight?: string[] }
+  status: WeekArcStatus
+  created_at: string
+  updated_at: string
+}
+
 export interface CheckInInput {
   lesson_id: string
   enjoyed_most?: string
@@ -481,6 +663,8 @@ export interface CheckInInput {
   activities_skipped?: string[]
   /** Whether the parent used the 15-minute Low-Battery version. */
   low_battery?: boolean
+  /** Clicked enough to try in a new situation? Drives secure vs stay. */
+  clicked_in_new_situation?: string
   /** Expedition Flashback recall results: wonder_item_id → recalled? */
   flashback_results?: Array<{ wonder_item_id: string; recalled: boolean }>
 }
@@ -554,6 +738,24 @@ export interface LeBookPage {
   status: BookPageStatus
   created_at: string
   updated_at: string
+}
+
+export interface LeBookReadAloud {
+  id: string
+  book_id: string
+  page_id: string
+  student_id: string
+  created_by: string
+  household_id: string | null
+  pass: 1 | 2
+  expected_text: string
+  transcript: string | null
+  audio_url: string | null
+  duration_seconds: number | null
+  word_results: import('./read-aloud').WordResult[]
+  hit_count: number
+  miss_count: number
+  created_at: string
 }
 
 /** One item in the Journey Feed (merged evidence + activity media). */
