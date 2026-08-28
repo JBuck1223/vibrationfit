@@ -2,34 +2,19 @@
 # Vercel Ignored Build Step.
 # Exit 0 = skip the deployment. Exit 1 = build it.
 #
-# The dashboard was set to production-only, which canceled every PR preview
-# (including /viva mobile fixes that have to be tested on a phone).
-# vercel.json ignoreCommand overrides that setting.
+# Production (main) only. Do not add preview, PR, or working-branch builds.
 
 set -u
 
-ref="${VERCEL_GIT_COMMIT_REF:-}"
-pr="${VERCEL_GIT_PULL_REQUEST_ID:-}"
 env="${VERCEL_ENV:-}"
+ref="${VERCEL_GIT_COMMIT_REF:-}"
 
-echo "Vercel ignore check: env=${env} ref=${ref} pr=${pr}"
+echo "Vercel ignore check: env=${env} ref=${ref}"
 
 if [ "${env}" = "production" ]; then
   echo "Building production"
   exit 1
 fi
 
-if [ -n "${pr}" ] && [ "${pr}" != "0" ]; then
-  echo "Building pull request #${pr}"
-  exit 1
-fi
-
-case "${ref}" in
-  main|dev|jordan|jvmacmini|cursor/*)
-    echo "Building branch ${ref}"
-    exit 1
-    ;;
-esac
-
-echo "Skipping ${ref:-unknown branch}"
+echo "Skipping ${ref:-unknown branch} (production only)"
 exit 0
