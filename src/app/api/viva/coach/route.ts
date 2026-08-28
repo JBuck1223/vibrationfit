@@ -30,9 +30,14 @@ import { parseVivaMode } from '@/lib/viva/modes'
 import { buildModeContract } from '@/lib/viva/prompts/mode-contracts'
 import { PLATFORM_MAP_PROMPT } from '@/lib/viva/prompts/platform-map'
 import { findOpenKitForConversation } from '@/lib/manifestations/kit-helpers'
+import {
+  COACH_STREAM_META_MARKER,
+  COACH_STREAM_PADDING,
+} from '@/lib/viva/coach-stream'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const maxDuration = 120
 
 const RESPONDER_MODEL = 'openai/gpt-5.6-terra'
 
@@ -120,6 +125,88 @@ export async function POST(req: Request) {
       })
     }
 
+    // Return headers + padding immediately so mobile WebKit does not drop the
+    // request during retrieve + Luna (those used to run before any bytes).
+    const encoder = new TextEncoder()
+    const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
+    const writer = writable.getWriter()
+
+    const write = async (text: string) => {
+      if (!text) return
+      await writer.write(encoder.encode(text))
+    }
+
+    void (async () => {
+      try {
+        await write(COACH_STREAM_PADDING)
+        await runCoachTurn({
+          write,
+          supabase,
+          user,
+          messages,
+          selectedCategories,
+          userIntent,
+          selectedMode,
+          modelOverride,
+          currentConversationId,
+          lastUserMessage,
+        })
+      } catch (error) {
+        console.error('[VIVA COACH] Stream error:', error)
+        try {
+          await write("\n\nI'm having trouble connecting right now. Let's try again in a moment.")
+        } catch {
+          /* writer may already be closed */
+        }
+      } finally {
+        try {
+          await writer.close()
+        } catch {
+          /* already closed */
+        }
+      }
+    })()
+
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, no-transform',
+        'X-Accel-Buffering': 'no',
+        'X-Conversation-Id': currentConversationId || '',
+      },
+    })
+  } catch (error) {
+    console.error('[VIVA COACH] Error:', error)
+    return new Response(
+      JSON.stringify({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+}
+
+async function runCoachTurn({
+  write,
+  supabase,
+  user,
+  messages,
+  selectedCategories,
+  userIntent,
+  selectedMode,
+  modelOverride,
+  currentConversationId,
+  lastUserMessage,
+}: {
+  write: (text: string) => Promise<void>
+  supabase: Awaited<ReturnType<typeof createClient>>
+  user: { id: string; email?: string; user_metadata?: { full_name?: string } }
+  messages: Array<{ role: string; content: string }>
+  selectedCategories?: string[]
+  userIntent?: string
+  selectedMode: ReturnType<typeof parseVivaMode>
+  modelOverride?: unknown
+  currentConversationId: string | null
+  lastUserMessage: { role: string; content: string } | null
+}) {
     // =========================================================================
     // LAYER 1: RETRIEVE — Load everything in parallel (interpretation follows)
     // =========================================================================
@@ -320,10 +407,11 @@ export async function POST(req: Request) {
     const tokenValidation = await validateTokenBalance(user.id, estimatedTokens, supabase)
 
     if (tokenValidation) {
-      return new Response(
-        JSON.stringify({ error: tokenValidation.error, tokensRemaining: tokenValidation.tokensRemaining }),
-        { status: tokenValidation.status, headers: { 'Content-Type': 'application/json' } }
+      await write(
+        `${COACH_STREAM_META_MARKER}${JSON.stringify({ indicators: [] })}\n` +
+        (tokenValidation.error || "You've used your available Creation Credits. Add more to keep talking with VIVA.")
       )
+      return
     }
 
     // Build chat messages
@@ -332,10 +420,11 @@ export async function POST(req: Request) {
       : messages
 
     if (!chatMessages || chatMessages.length === 0) {
-      return new Response(JSON.stringify({ error: 'No messages provided' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      await write(
+        `${COACH_STREAM_META_MARKER}${JSON.stringify({ indicators: [] })}\n` +
+        "I didn't catch a message there. Try sending that again."
+      )
+      return
     }
 
     const activeKit = await findOpenKitForConversation(
@@ -519,22 +608,9 @@ export async function POST(req: Request) {
       },
     })
 
-    // Return streaming response with metadata in headers
-    return new Response(result.textStream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
-        'X-Conversation-Id': currentConversationId || '',
-        'X-Retrieval-Indicators': JSON.stringify(retrievalIndicators),
-        'X-Viva-Mode': mode,
-        'X-Emotional-State': emotional_state,
-      },
-    })
-  } catch (error) {
-    console.error('[VIVA COACH] Error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
+    await write(`${COACH_STREAM_META_MARKER}${JSON.stringify({ indicators: retrievalIndicators })}\n`)
+
+    for await (const chunk of result.textStream) {
+      await write(chunk)
+    }
 }

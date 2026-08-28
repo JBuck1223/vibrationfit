@@ -29,6 +29,7 @@ import { VivaModeSwitcher } from '@/components/viva/VivaModeSwitcher'
 import { ConstraintsPanel } from '@/components/viva/ConstraintsPanel'
 import { cn } from '@/lib/utils'
 import { parseVivaMode, type VivaMode } from '@/lib/viva/modes'
+import { CoachStreamError, readCoachStream } from '@/lib/viva/coach-stream'
 
 interface Message {
   id: string
@@ -211,65 +212,60 @@ export default function VivaPage() {
         content: m.content,
       }))
 
-      const response = await fetch('/api/viva/coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const assistantId = (Date.now() + 1).toString()
+      let receivedText = false
+
+      const { parsed } = await readCoachStream({
+        url: '/api/viva/coach',
+        body: {
           messages: messagesForAPI,
           conversationId: threadId,
           isNewSession: !threadId,
           modeHint: vivaMode,
           ...(modelOverride ? { modelOverride } : {}),
-        }),
+        },
+        onHeaders: ({ conversationId }) => {
+          if (conversationId) setThreadId(conversationId)
+        },
+        onUpdate: (next) => {
+          if (next.indicators?.length) setIndicators(next.indicators)
+          if (!next.text) return
+          if (next.text.trim()) {
+            receivedText = true
+            setIsThinking(false)
+          }
+          setMessages(prev => {
+            if (prev.some(m => m.id === assistantId)) {
+              return prev.map(m => (m.id === assistantId ? { ...m, content: next.text } : m))
+            }
+            return [...prev, { id: assistantId, role: 'assistant', content: next.text }]
+          })
+        },
       })
 
-      const newThreadId = response.headers.get('X-Conversation-Id')
-      if (newThreadId) setThreadId(newThreadId)
-
-      const retrievalHeader = response.headers.get('X-Retrieval-Indicators')
-      if (retrievalHeader) {
-        try {
-          setIndicators(JSON.parse(retrievalHeader))
-        } catch { /* ignore malformed header */ }
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.error || 'Request failed')
-      }
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let assistantContent = ''
-      const assistantId = (Date.now() + 1).toString()
-
-      setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }])
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          assistantContent += decoder.decode(value, { stream: true })
-          if (assistantContent.trim()) {
-            setIsThinking(false)
-            setMessages(prev =>
-              prev.map(m => (m.id === assistantId ? { ...m, content: assistantContent } : m))
-            )
-          }
-        }
+      if (!parsed.text.trim() && !receivedText) {
+        throw new CoachStreamError("I didn't get a response back. Try sending that again.")
       }
 
       refreshThreads()
     } catch (err) {
       console.error('VIVA chat error:', err)
-      setMessages(prev => [
-        ...prev,
-        {
-          id: (Date.now() + 2).toString(),
-          role: 'assistant',
-          content: "I'm having trouble connecting right now. Let's try again in a moment.",
-        },
-      ])
+      const fallback =
+        err instanceof CoachStreamError
+          ? err.message
+          : "I'm having trouble connecting right now. Let's try again in a moment."
+      setMessages(prev => {
+        const last = prev[prev.length - 1]
+        if (last?.role === 'assistant' && last.content.trim()) return prev
+        return [
+          ...prev,
+          {
+            id: (Date.now() + 2).toString(),
+            role: 'assistant',
+            content: fallback,
+          },
+        ]
+      })
     } finally {
       setIsStreaming(false)
       setIsThinking(false)
@@ -488,7 +484,7 @@ export default function VivaPage() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-neutral-900">
+        <div className="border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
             <div className="mb-3">
               <VivaModeSwitcher value={vivaMode} onChange={handleModeChange} disabled={isStreaming} />

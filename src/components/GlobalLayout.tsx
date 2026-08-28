@@ -20,6 +20,22 @@ import {
   invalidateIntensiveSnapshot,
   type IntensiveSnapshot,
 } from '@/lib/intensive/intensive-snapshot'
+import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight'
+
+function VivaShell({ children }: { children: React.ReactNode }) {
+  const viewportHeight = useVisualViewportHeight()
+  return (
+    <div
+      className="flex bg-black overflow-hidden"
+      style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
+    >
+      <UserSidebar />
+      <main className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+        {children}
+      </main>
+    </div>
+  )
+}
 
 function PlayerSpacer() {
   const hasActive = useGlobalAudioStore(s => s.tracks.length > 0)
@@ -264,16 +280,10 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
       return <>{children}</>
     }
     
-    // VIVA: full-height conversational layout with internal scroll
+    // VIVA: full-height conversational layout with internal scroll.
+    // Use the visual viewport so iOS keyboard open/close does not freeze the thread.
     if (pathname === '/viva' || pathname?.startsWith('/viva/')) {
-      return (
-        <div className="flex h-screen bg-black">
-          <UserSidebar />
-          <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            {children}
-          </main>
-        </div>
-      )
+      return <VivaShell>{children}</VivaShell>
     }
 
     // Vibe Tribe pages: Full-screen layout with own sticky header

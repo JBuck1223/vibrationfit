@@ -191,6 +191,9 @@ export function VivaChatInput({
 
   // --- Send ---
   const handleSend = () => {
+    // Blur before the parent disables this field. iOS WebKit can silently
+    // drop in-flight requests when a focused textarea becomes disabled.
+    textareaRef.current?.blur()
     if (onSend) {
       onSend(attachments.length > 0 ? attachments : undefined)
     } else if (onSubmit) {
