@@ -300,6 +300,10 @@ export async function interpretCoachTurn(
       sections.push(`OTHER AMBIENT CONTEXT AVAILABLE TO THE COACH: ${params.lensSummary}`)
     }
 
+    sections.push(
+      'NOTE: The coach has on-demand read tools over ALL of the member\'s platform content (full Life Vision text, vision draft, journals, stories, song lyrics, Daily Papers, profile, vision board, abundance log, past threads) plus semantic search over everything they have written. Recommended moves may assume access to the member\'s actual copy — e.g. "pull their current money vision and propose the edit against their own words." The coach must never ask the member to paste in content that lives on the platform.'
+    )
+
     const result = await generateText({
       model: gateway(INTERPRETER_MODEL),
       system: INTERPRETER_PROMPT,

@@ -352,6 +352,7 @@ export async function POST(req: Request) {
       selectedMode,
       overlay,
       activeKitId: activeKit?.id || coachContext.openKits?.[0]?.id || null,
+      householdId: householdLens?.householdId,
       getConversationText: () =>
         chatMessages
           .slice(-12)
@@ -371,7 +372,8 @@ export async function POST(req: Request) {
       ...(supportsTemperature ? { temperature: overlay === 'crisis' ? 0.4 : 0.8 } : {}),
       tools,
       // Allow tool call -> result -> narration (and one follow-up action)
-      stopWhen: stepCountIs(4),
+      // Room for read → (read|write) → narrate chains
+      stopWhen: stepCountIs(6),
       async onFinish({ text, usage: stepUsage, totalUsage, response: aiResponse }: {
         text: string
         usage?: { totalTokens?: number; inputTokens?: number; outputTokens?: number }
