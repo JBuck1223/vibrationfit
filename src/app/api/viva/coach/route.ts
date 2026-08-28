@@ -9,7 +9,7 @@
  *   5. EXTRACT memories and sync embeddings in the background
  */
 
-import { streamText, generateText, stepCountIs } from 'ai'
+import { streamText, generateText, stepCountIs, type ModelMessage } from 'ai'
 import { after } from 'next/server'
 import { gateway } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
@@ -40,6 +40,15 @@ export const revalidate = 0
 export const maxDuration = 120
 
 const RESPONDER_MODEL = 'openai/gpt-5.6-terra'
+
+type CoachChatMessage = { role: 'user' | 'assistant'; content: string }
+
+function toCoachChatMessage(role: string, content: string): CoachChatMessage {
+  return {
+    role: role === 'assistant' ? 'assistant' : 'user',
+    content,
+  }
+}
 
 /**
  * Resolves which model powers this coaching turn.
@@ -80,6 +89,11 @@ export async function POST(req: Request) {
     } = await req.json()
 
     const selectedMode = parseVivaMode(modeHint)
+    const chatTurns: CoachChatMessage[] = Array.isArray(messages)
+      ? messages
+          .filter((m: { role?: string; content?: string }) => typeof m?.content === 'string')
+          .map((m: { role: string; content: string }) => toCoachChatMessage(m.role, m.content))
+      : []
 
     // =========================================================================
     // LAYER 0: SAVE — Create session + persist user message
@@ -95,7 +109,7 @@ export async function POST(req: Request) {
           mode: 'coach',
           viva_mode: selectedMode,
           category: selectedCategories?.[0] || null,
-          preview_message: userIntent || messages?.[messages.length - 1]?.content?.slice(0, 100) || 'Coaching session',
+          preview_message: userIntent || chatTurns[chatTurns.length - 1]?.content?.slice(0, 100) || 'Coaching session',
           message_count: 0,
           last_message_at: new Date().toISOString(),
         })
@@ -108,9 +122,7 @@ export async function POST(req: Request) {
     }
 
     // Save user message
-    const lastUserMessage = messages && messages.length > 0
-      ? [...messages].reverse().find((m: { role: string }) => m.role === 'user')
-      : null
+    const lastUserMessage = [...chatTurns].reverse().find(m => m.role === 'user') || null
 
     if (lastUserMessage) {
       supabase.from('ai_conversations').insert({
@@ -143,7 +155,7 @@ export async function POST(req: Request) {
           write,
           supabase,
           user,
-          messages,
+          messages: chatTurns,
           selectedCategories,
           userIntent,
           selectedMode,
@@ -199,13 +211,13 @@ async function runCoachTurn({
   write: (text: string) => Promise<void>
   supabase: Awaited<ReturnType<typeof createClient>>
   user: { id: string; email?: string; user_metadata?: { full_name?: string } }
-  messages: Array<{ role: string; content: string }>
+  messages: CoachChatMessage[]
   selectedCategories?: string[]
   userIntent?: string
   selectedMode: ReturnType<typeof parseVivaMode>
   modelOverride?: unknown
   currentConversationId: string | null
-  lastUserMessage: { role: string; content: string } | null
+  lastUserMessage: CoachChatMessage | null
 }) {
     // =========================================================================
     // LAYER 1: RETRIEVE — Load everything in parallel (interpretation follows)
@@ -383,7 +395,7 @@ async function runCoachTurn({
     }
 
     // Load conversation history
-    let conversationHistory: Array<{ role: string; content: string }> = []
+    let conversationHistory: CoachChatMessage[] = []
     if (currentConversationId) {
       const { data: historyMessages } = await supabase
         .from('ai_conversations')
@@ -394,10 +406,9 @@ async function runCoachTurn({
         .limit(20)
 
       if (historyMessages && historyMessages.length > 0) {
-        conversationHistory = historyMessages.map(msg => ({
-          role: msg.role,
-          content: msg.message,
-        }))
+        conversationHistory = historyMessages.map(msg =>
+          toCoachChatMessage(msg.role, msg.message)
+        )
       }
     }
 
@@ -457,7 +468,7 @@ async function runCoachTurn({
       // Routed through the Vercel AI Gateway for exact per-request billing
       model: gateway(gatewayModelId),
       system: systemPrompt,
-      messages: chatMessages,
+      messages: chatMessages as ModelMessage[],
       ...(supportsTemperature ? { temperature: overlay === 'crisis' ? 0.4 : 0.8 } : {}),
       tools,
       // Allow tool call -> result -> narration (and one follow-up action)
