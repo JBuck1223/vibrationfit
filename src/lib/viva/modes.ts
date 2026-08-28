@@ -19,9 +19,13 @@ export function parseVivaMode(value: unknown, fallback: VivaMode = 'auto'): Viva
   return isVivaMode(value) ? value : fallback
 }
 
+/** Read-only member-content tools — safe (and wanted) in every mode. */
+export const READ_TOOLS = ['read_member_content', 'search_member_history'] as const
+
 /** Tools Terra may call in each in-thread mode. Crisis overlay uses none. */
 export const MODE_TOOL_ALLOWLIST: Record<VivaMode, readonly string[]> = {
   auto: [
+    ...READ_TOOLS,
     'queue_song',
     'save_journal_entry',
     'add_vision_board_item',
@@ -42,14 +46,16 @@ export const MODE_TOOL_ALLOWLIST: Record<VivaMode, readonly string[]> = {
     'find_asset',
     'find_kit_candidates',
   ],
-  friend: [],
+  friend: [...READ_TOOLS],
   coach: [
+    ...READ_TOOLS,
     'save_journal_entry',
     'flip_constraint',
     'save_daily_paper_gratitude',
     'add_daily_paper_task',
   ],
   builder: [
+    ...READ_TOOLS,
     'queue_song',
     'save_journal_entry',
     'add_vision_board_item',
@@ -69,7 +75,7 @@ export const MODE_TOOL_ALLOWLIST: Record<VivaMode, readonly string[]> = {
     'find_asset',
     'find_kit_candidates',
   ],
-  assistant: ['find_asset'],
+  assistant: [...READ_TOOLS, 'find_asset'],
 }
 
 export type KitMove =

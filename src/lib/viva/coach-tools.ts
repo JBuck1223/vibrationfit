@@ -20,6 +20,7 @@ import { INCANTATION_SYSTEM_PROMPT, buildIncantationPrompt } from '@/lib/viva/pr
 import { SPARK_QUERY_SYSTEM_PROMPT, buildSparkQueryPrompt } from '@/lib/viva/prompts/spark-query-prompt'
 import { MODE_TOOL_ALLOWLIST, type VivaMode } from '@/lib/viva/modes'
 import { attachCreatedAssetToKit, buildKitCoachTools, KIT_TOOLS_PROMPT } from '@/lib/viva/coach-kit-tools'
+import { buildCoachReadTools, READ_TOOLS_PROMPT } from '@/lib/viva/coach-read-tools'
 import type { KitSlot } from '@/lib/manifestations/types'
 
 /** Extracts the first JSON object from a model response (handles code fences). */
@@ -55,6 +56,8 @@ export interface CoachToolsContext {
   selectedMode?: VivaMode
   overlay?: 'none' | 'platform_guide' | 'crisis'
   activeKitId?: string | null
+  /** Scopes semantic search when the member shares a household lens. */
+  householdId?: string | null
 }
 
 function filterToolsByMode<T extends Record<string, unknown>>(
@@ -518,14 +521,17 @@ export function buildCoachTools(ctx: CoachToolsContext) {
   }
 
   const kitTools = buildKitCoachTools(kitCtx)
-  const allTools = { ...coreTools, ...kitTools }
+  const readTools = buildCoachReadTools({ supabase, userId, householdId: ctx.householdId })
+  const allTools = { ...coreTools, ...kitTools, ...readTools }
   return filterToolsByMode(allTools, ctx.selectedMode || 'auto', ctx.overlay)
 }
 
 /**
  * System-prompt section describing VIVA's in-app abilities.
  */
-export const COACH_TOOLS_PROMPT = `## WHAT YOU CAN DO IN THE APP (actions)
+export const COACH_TOOLS_PROMPT = `${READ_TOOLS_PROMPT}
+
+## WHAT YOU CAN DO IN THE APP (actions)
 
 You can take real actions in the member's VibrationFit account, right from this conversation — only the tools available in this thread's mode will work.
 

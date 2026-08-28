@@ -424,7 +424,7 @@ export function buildCoachSystemPrompt(input: CoachContextInput): string {
     const categoryKeys = ['fun', 'health', 'travel', 'love', 'family', 'social', 'home', 'work', 'money', 'stuff', 'giving', 'spirituality']
     const hasContent = categoryKeys.filter(k => visionData[k] && visionData[k].trim().length > 50)
     if (hasContent.length > 0) {
-      visionContext = `\n\n**THEIR LIFE VISION:** They have vision text for: ${hasContent.join(', ')}. Ask which area they want to focus on if relevant.`
+      visionContext = `\n\n**THEIR LIFE VISION:** They have vision text for: ${hasContent.join(', ')}. When the conversation needs their actual wording — quoting it, updating it, working with it — fetch it with read_member_content (source: life_vision). Never ask them to paste or summarize it.`
     }
   }
 
