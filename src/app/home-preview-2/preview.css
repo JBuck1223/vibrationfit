@@ -1,0 +1,103 @@
+.hp-flow {
+  position: relative;
+  width: 100%;
+  isolation: isolate;
+}
+
+.hp-flow-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hp-flow-path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hp-flow-path-draw {
+  stroke-dasharray: 8 10;
+  animation: hp-flow-dash 18s linear infinite;
+}
+
+.hp-mark {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 6.5rem;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hp-mark svg {
+  display: block;
+  filter: drop-shadow(0 0 12px currentColor);
+}
+
+.hp-mark-lg svg {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.hp-mark-md svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.hp-mark-sm svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+.hp-mark span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: inherit;
+  line-height: 1.2;
+}
+
+.hp-mark-sm {
+  width: 3.4rem;
+  gap: 0.2rem;
+}
+
+.hp-mark-sm span {
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 9px;
+  color: #a3a3a3;
+}
+
+.hp-line-art {
+  width: 100%;
+}
+
+.hp-line-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@keyframes hp-flow-dash {
+  to {
+    stroke-dashoffset: -220;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-flow-path-draw {
+    animation: none;
+    stroke-dasharray: none;
+  }
+
+  .hp-flow-dot {
+    display: none;
+  }
+}
