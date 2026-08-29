@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { cn } from '../shared-utils'
-import { trackVideoMilestone } from '@/lib/tracking/pixels'
+import { reportVideoMilestone, reportVideoStart, reportVideoComplete } from '@/lib/tracking/engagement'
 
 /**
  * Derives the MediaConvert-generated thumbnail URL from a video URL.
@@ -43,6 +43,7 @@ interface VideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   showLeadCaptureAt?: 25 | 50 | 75 | 95
   trackingId?: string
   saveProgress?: boolean
+  onPlaybackTime?: (time: number) => void
   // Analytics
   onPlay?: () => void
   onPause?: () => void
@@ -67,6 +68,7 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
     showLeadCaptureAt,
     trackingId,
     saveProgress = true,
+    onPlaybackTime,
     onPlay,
     onPause,
     onComplete,
@@ -89,14 +91,16 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
     // Combine refs
     React.useImperativeHandle(ref, () => videoRef.current!)
 
-    // Load saved progress
     React.useEffect(() => {
-      if (saveProgress && trackingId) {
+      if (!trackingId) return
+      if (saveProgress) {
         const savedTime = localStorage.getItem(`video-progress-${trackingId}`)
         if (savedTime && videoRef.current) {
           videoRef.current.currentTime = parseFloat(savedTime)
         }
+        return
       }
+      localStorage.removeItem(`video-progress-${trackingId}`)
     }, [trackingId, saveProgress])
 
     const handleTimeUpdate = () => {
@@ -106,6 +110,7 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
       const total = videoRef.current.duration
       
       setCurrentTime(time)
+      onPlaybackTime?.(time)
       if (Number.isFinite(total) && total > 0) {
         setDuration(total)
       }
@@ -125,7 +130,7 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
             setMilestonesReached(prev => new Set([...prev, milestone]))
             onMilestoneReached?.(milestone as 25 | 50 | 75 | 95, time)
             if (trackingId) {
-              trackVideoMilestone(trackingId, milestone as 25 | 50 | 75 | 95, time)
+              reportVideoMilestone(trackingId, milestone as 25 | 50 | 75 | 95, time)
             }
 
             // Show lead capture form if specified
@@ -170,6 +175,9 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
     const handlePlay = () => {
       setIsPlaying(true)
       setHasStarted(true)
+      if (trackingId) {
+        reportVideoStart(trackingId)
+      }
       onPlay?.()
     }
 
@@ -179,6 +187,9 @@ export const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
     }
 
     const handleEnded = () => {
+      if (trackingId) {
+        reportVideoComplete(trackingId)
+      }
       onComplete?.()
     }
 

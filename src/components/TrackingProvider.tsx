@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { initTracking, trackPageView, getVisitorId, getSessionId } from '@/lib/tracking/client'
+import { initTracking, trackPageView } from '@/lib/tracking/client'
+import { PageEngagementTracker } from '@/components/PageEngagementTracker'
 
 interface TrackingContext {
   visitorId: string | null
@@ -54,5 +55,10 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
     trackPageView(pathname, document.title)
   }, [pathname, ctx.ready])
 
-  return <TrackingCtx.Provider value={ctx}>{children}</TrackingCtx.Provider>
+  return (
+    <TrackingCtx.Provider value={ctx}>
+      <PageEngagementTracker />
+      {children}
+    </TrackingCtx.Provider>
+  )
 }

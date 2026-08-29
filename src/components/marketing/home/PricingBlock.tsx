@@ -88,7 +88,7 @@ export function PricingBlock({ children }: { children?: React.ReactNode }) {
       })
       const data = await res.json()
       if (data.cartId) {
-        trackConversion('initiate_checkout', { content_name: 'intensive', currency: 'USD' })
+        trackConversion('initiate_checkout', { content_name: 'intensive', currency: 'USD', event_id: data.cartId })
         window.location.href = `/checkout/${data.cartId}`
         return
       }

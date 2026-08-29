@@ -18,6 +18,11 @@ html:has([data-preview]) body {
     radial-gradient(ellipse 40% 35% at 8% 22%, rgba(0, 255, 255, 0.08), transparent 50%);
 }
 
+.hp-offer-copy,
+.hp-offer-copy > p {
+  text-align: justify;
+}
+
 .hp-hero-stack {
   display: flex;
   flex-direction: column;
@@ -52,6 +57,34 @@ html:has([data-preview]) body {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
 }
 
+.hp-hero-stack[data-hero='stacked'] {
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.hp-hero-stack[data-hero='stacked'] .hp-hero-copy,
+.hp-hero-stack[data-hero='stacked'] .hp-hero-video {
+  max-width: 56rem;
+}
+
+.hp-hero-stack[data-hero='stacked'] .hp-hero-copy {
+  text-align: center;
+}
+
+.hp-hero-stack[data-hero='stacked'] .hp-hero-copy .hp-display {
+  text-align: center;
+}
+
+.hp-hero-stack[data-hero='stacked'] .hp-hero-copy .mt-8 > p:not(.hp-display) {
+  text-align: justify;
+}
+
+.hp-hero-stack[data-hero='stacked'] .hp-hero-video {
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 @media (min-width: 1024px) {
   .hp-hero-split {
     display: grid;
@@ -64,8 +97,17 @@ html:has([data-preview]) body {
     text-align: left;
   }
 
+  .hp-hero-stack[data-hero='stacked'] .hp-hero-copy {
+    text-align: center;
+  }
+
   .hp-hero-video {
     max-width: none;
+  }
+
+  .hp-hero-stack[data-hero='stacked'] .hp-hero-copy,
+  .hp-hero-stack[data-hero='stacked'] .hp-hero-video {
+    max-width: 56rem;
   }
 }
 
@@ -101,6 +143,31 @@ html:has([data-preview]) body {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.hp-offer-split {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.hp-offer-split-copy,
+.hp-offer-split-card {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .hp-offer-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .hp-offer-split-copy {
+    position: sticky;
+    top: 6.5rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -149,8 +216,31 @@ html:has([data-preview]) body {
   color: #00ffff;
 }
 
+.hp-story-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.hp-story-avatar {
+  height: 4.35rem;
+  width: 4.35rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 2px solid rgba(57, 255, 20, 0.4);
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.16);
+  background: #111;
+}
+
+.hp-story-avatar img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
 .hp-proof-name {
-  margin: 0.45rem 0 0;
+  margin: 0.3rem 0 0;
   font-size: 1.65rem;
   font-weight: 800;
   line-height: 1.1;

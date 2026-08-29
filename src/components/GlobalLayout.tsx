@@ -46,8 +46,6 @@ function PlayerSpacer() {
 
 interface GlobalLayoutProps {
   children: React.ReactNode
-  /** Cookie-backed session from the server so SSR and hydration agree on layout. */
-  initialAuthenticated?: boolean
 }
 
 // Check if a path is accessible based on intensive progress
@@ -169,14 +167,13 @@ function isPathAccessibleForIntensive(
   return false
 }
 
-export function GlobalLayout({ children, initialAuthenticated = false }: GlobalLayoutProps) {
+export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
   // Render tree is driven entirely by the session-level snapshot below.
   // We intentionally start with `null` (matches SSR) and fill in synchronously
   // from sessionStorage during the first mount effect, so subsequent navigations
   // inside the same session never re-query the database.
   const [snapshot, setSnapshot] = useState<IntensiveSnapshot | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(initialAuthenticated)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -190,7 +187,6 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
       // getSession reads from the cookie-backed session — no Auth API call.
       const { data: { session } } = await supabase.auth.getSession()
       if (cancelled) return
-      setIsAuthenticated(!!session)
       if (!session?.user) return
 
       // Peek first: if we already have a fresh snapshot for this user in
@@ -208,7 +204,6 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return
-      setIsAuthenticated(!!session)
       if (event === 'SIGNED_OUT') {
         invalidateIntensiveSnapshot()
         setSnapshot(null)
@@ -262,13 +257,8 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
   // section nav), so strip PageLayout's padding to avoid a gap around it.
   const fullBleedClass = pathname?.startsWith('/homeschool/life-explorer') ? '!p-0' : undefined
   
-  // Authenticated users on public pages (except /auth/*) see the sidebar layout
-  const effectivePageType = (pageType === 'PUBLIC' && isAuthenticated && !pathname?.startsWith('/auth'))
-    ? 'USER'
-    : pageType
-  
-  // Render based on effective page type
-  if (effectivePageType === 'USER' || effectivePageType === 'ADMIN') {
+  // Public/marketing pages always use Header + Footer. Sidebar is member/admin only.
+  if (pageType === 'USER' || pageType === 'ADMIN') {
     // Print pages: No sidebar, no padding (full-screen interface)
     // Exception: life-vision print pages use their own studio layout with AreaBar
     if (pathname?.includes('/print') && !pathname?.endsWith('/html') && !pathname?.startsWith('/life-vision')) {
@@ -307,7 +297,7 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
     // don't unmount the page tree. On the very first load of a new session we may
     // optimistically render the non-intensive layout for a moment before the snapshot
     // arrives; thereafter the layout is stable because the snapshot is cached.
-    if (effectivePageType === 'USER') {
+    if (pageType === 'USER') {
       if (intensiveMode) {
         const isAccessible = isPathAccessibleForIntensive(pathname, intensiveData, settingsComplete)
 
@@ -338,7 +328,7 @@ export function GlobalLayout({ children, initialAuthenticated = false }: GlobalL
     }
     
     // ADMIN pages: Use SidebarLayout with AdminSidebar
-    if (effectivePageType === 'ADMIN') {
+    if (pageType === 'ADMIN') {
       return (
         <SidebarLayout isAdmin={true}>
           <PageLayout className={cn(audioPageLayoutClass, fullBleedClass)}>

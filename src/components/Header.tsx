@@ -101,7 +101,10 @@ export function Header() {
             {!mounted ? (
               <div className="w-20 h-8 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
-              <div className="relative">
+              <div className="relative flex items-center gap-3">
+                <Button asChild variant="primary" size="sm">
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
                 <div
                   ref={accountMenuRef}
                   className="flex items-center gap-3 rounded-full px-3 py-2 hover:bg-neutral-800 transition-colors"
@@ -209,9 +212,14 @@ export function Header() {
             {!mounted ? (
               <div className="w-16 h-6 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
-              <Button onClick={handleLogout} variant="ghost" size="sm">
-                Logout
-              </Button>
+              <>
+                <Button asChild variant="primary" size="sm">
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+                <Button onClick={handleLogout} variant="ghost" size="sm">
+                  Logout
+                </Button>
+              </>
             ) : (
               <Button asChild variant="ghost" size="sm">
                 <Link href="/auth/login">Sign In</Link>

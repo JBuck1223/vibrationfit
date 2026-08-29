@@ -76,6 +76,7 @@ interface OptimizedVideoProps {
   onPlay?: () => void
   onPause?: () => void
   onComplete?: () => void
+  onPlaybackTime?: (time: number) => void
 }
 
 /**
@@ -108,7 +109,8 @@ export function OptimizedVideo({
   onMilestoneReached,
   onPlay,
   onPause,
-  onComplete
+  onComplete,
+  onPlaybackTime,
 }: OptimizedVideoProps) {
   const [isVisible, setIsVisible] = useState(!lazy)
   const [quality, setQuality] = useState<VideoQualityRendition>('1080p')
@@ -259,6 +261,7 @@ export function OptimizedVideo({
           onPlay={onPlay}
           onPause={onPause}
           onComplete={onComplete}
+          onPlaybackTime={onPlaybackTime}
           onError={handleVideoError}
           className="w-full"
         />

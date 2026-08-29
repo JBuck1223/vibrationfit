@@ -106,14 +106,32 @@ export async function POST(request: NextRequest) {
       referrer: body.referrer || null,
       landing_page: body.landing_page || null,
     }
-    if (!utm.utm_source && body.visitor_id) {
+    // Click IDs + Meta identifiers for server-side conversion matching
+    let clickIds: {
+      fbclid: string | null
+      fbc: string | null
+      fbp: string | null
+      gclid: string | null
+      ttclid: string | null
+    } = { fbclid: null, fbc: null, fbp: null, gclid: null, ttclid: null }
+
+    if (body.visitor_id) {
       try {
         const { data: visitor } = await supabase
           .from('visitors')
-          .select('first_utm_source, first_utm_medium, first_utm_campaign, first_utm_content, first_utm_term, first_referrer, first_landing_page')
+          .select('first_utm_source, first_utm_medium, first_utm_campaign, first_utm_content, first_utm_term, first_referrer, first_landing_page, first_fbclid, first_fbc, first_fbp, first_gclid, first_ttclid')
           .eq('id', body.visitor_id)
           .maybeSingle()
-        if (visitor?.first_utm_source) {
+
+        clickIds = {
+          fbclid: visitor?.first_fbclid || null,
+          fbc: visitor?.first_fbc || null,
+          fbp: visitor?.first_fbp || null,
+          gclid: visitor?.first_gclid || null,
+          ttclid: visitor?.first_ttclid || null,
+        }
+
+        if (!utm.utm_source && visitor?.first_utm_source) {
           utm = {
             utm_source: visitor.first_utm_source,
             utm_medium: visitor.first_utm_medium || null,
@@ -229,7 +247,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Server-side conversion events (Meta CAPI, GA4 MP, TikTok Events API)
+    // Server-side conversion events (Meta CAPI, GA4 MP, TikTok Events API).
+    // Live request cookies beat stored visitor values for Meta identifiers.
     sendServerConversion('lead', {
       email: body.email,
       phone: body.phone || undefined,
@@ -238,6 +257,11 @@ export async function POST(request: NextRequest) {
       contentName: body.type,
       eventId: lead.id,
       eventSourceUrl: body.landing_page ? `https://vibrationfit.com${body.landing_page}` : 'https://vibrationfit.com',
+      fbclid: clickIds.fbclid,
+      fbc: request.cookies.get('_fbc')?.value || clickIds.fbc,
+      fbp: request.cookies.get('_fbp')?.value || clickIds.fbp,
+      gclid: clickIds.gclid,
+      ttclid: clickIds.ttclid,
       ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
       userAgent: request.headers.get('user-agent') || undefined,
       visitorId: body.visitor_id || undefined,

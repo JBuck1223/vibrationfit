@@ -1559,7 +1559,7 @@ export async function POST(request: NextRequest) {
           const csVisitorId = session.metadata?.visitor_id
           let csVisitorData: Record<string, unknown> | null = null
           if (csVisitorId) {
-            const { data } = await supabaseAdmin.from('visitors').select('first_fbclid, first_gclid, first_ttclid').eq('id', csVisitorId).maybeSingle()
+            const { data } = await supabaseAdmin.from('visitors').select('first_fbclid, first_fbc, first_fbp, first_gclid, first_ttclid').eq('id', csVisitorId).maybeSingle()
             csVisitorData = data
           }
           sendServerConversion('purchase', {
@@ -1574,6 +1574,8 @@ export async function POST(request: NextRequest) {
             eventId: (session.payment_intent as string) || session.id,
             eventSourceUrl: 'https://vibrationfit.com/checkout/success',
             fbclid: (csVisitorData as any)?.first_fbclid || undefined,
+            fbc: (csVisitorData as any)?.first_fbc || undefined,
+            fbp: (csVisitorData as any)?.first_fbp || undefined,
             gclid: (csVisitorData as any)?.first_gclid || undefined,
             ttclid: (csVisitorData as any)?.first_ttclid || undefined,
             ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
@@ -2169,7 +2171,7 @@ export async function POST(request: NextRequest) {
         {
           let visitorData: Record<string, unknown> | null = null
           if (visitorId) {
-            const { data } = await supabaseAdmin.from('visitors').select('first_fbclid, first_gclid, first_ttclid').eq('id', visitorId).maybeSingle()
+            const { data } = await supabaseAdmin.from('visitors').select('first_fbclid, first_fbc, first_fbp, first_gclid, first_ttclid').eq('id', visitorId).maybeSingle()
             visitorData = data
           }
           sendServerConversion('purchase', {
@@ -2184,6 +2186,8 @@ export async function POST(request: NextRequest) {
             eventId: pi.id,
             eventSourceUrl: 'https://vibrationfit.com/checkout/success',
             fbclid: (visitorData as any)?.first_fbclid || undefined,
+            fbc: (visitorData as any)?.first_fbc || undefined,
+            fbp: (visitorData as any)?.first_fbp || undefined,
             gclid: (visitorData as any)?.first_gclid || undefined,
             ttclid: (visitorData as any)?.first_ttclid || undefined,
             ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,

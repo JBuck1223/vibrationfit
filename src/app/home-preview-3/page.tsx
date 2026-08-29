@@ -1,5 +1,5 @@
 import { Container } from '@/lib/design-system'
-import { ProofWall, SocialProofSection } from '@/lib/design-system/components'
+import { SocialProofSection } from '@/lib/design-system/components'
 import {
   Accent,
   Beats,
@@ -14,10 +14,10 @@ import {
 } from '@/components/marketing/home/primitives'
 import { SectionMedia } from '@/components/marketing/home/SectionMedia'
 import { HeroLayout } from '@/components/marketing/home/HeroLayout'
-import { PricingBlock } from '@/components/marketing/home/PricingBlock'
+import { OfferBuyBox } from '@/components/marketing/home/OfferCard'
 import { ReceiptsSection } from '@/components/marketing/home/ReceiptsSection'
-import { GuaranteesSection } from '@/components/marketing/home/GuaranteesSection'
 import { FaqSection } from '@/components/marketing/home/FaqSection'
+import { FoundersActualizations } from '@/components/marketing/home/FoundersActualizations'
 import {
   GreenLineMini,
   InstallRunEvolve,
@@ -29,97 +29,75 @@ export default function HomePreview3Page() {
     <div className="-mt-6 md:-my-12 lg:-mt-8" data-preview="v16-merged">
       {/* 1. Hero — Who it's for, What it is, The Outcome */}
       <header className="hp-hero-glow">
-        <Container size="xl" className="px-6 pb-20 pt-16 md:px-10 md:pb-28 md:pt-24">
+        <Container size="xl" className="px-6 pb-16 pt-8 md:px-10 md:pb-20 md:pt-10">
           <HeroLayout
+            variant="stacked"
             intro={
-              <>
-                <Eyebrow>The Life You Choose</Eyebrow>
-                <Display as="h1">
-                  Thoughts Become Things.
-                  <br />
-                  <Accent>So Why Isn&rsquo;t It Working?</Accent>
-                </Display>
-                <p className="mt-8 text-center text-xl text-neutral-200">
-                  You already know the law. This is how you live it.
-                </p>
-              </>
+              <Display as="h1">
+                Thoughts Become Things.
+                <br />
+                <Accent>So Why Isn&rsquo;t It Working?</Accent>
+              </Display>
             }
-          >
-            <Body>
-              <p>
-                This is for the person who has read the books, made the vision boards, felt it work&mdash;and
-                still keeps getting pulled back into the reality in front of them.
-              </p>
-              <Hit>The problem is not belief. The problem is practice.</Hit>
-              <p>
-                Vibration Fit is a Conscious Creation System you install in 72 hours: your{' '}
-                <span className="font-semibold text-white">Life I Choose</span>{' '}vision across 12 life
-                categories, your Vision Audio, your Vision Board, your journal, and your MAP&mdash;your
-                daily alignment practice&mdash;all guided by VIVA.
-              </p>
-              <Hit>
-                You walk out knowing exactly what you&rsquo;re creating, with a daily practice that keeps
-                you aligned with it.
-              </Hit>
-              <p className="hp-display text-[1.45rem] leading-snug text-[#39FF14] md:text-[1.75rem] lg:text-left">
-                Even when everything in front of you says, &ldquo;Not yet.&rdquo;
-              </p>
-            </Body>
-            <Cta className="lg:justify-start" />
-            <p className="mt-4 text-center text-sm text-neutral-500 lg:text-left">
-              $499 Solo &middot; $699 Household &middot; Backed by the 72-Hour Activation Guarantee
-            </p>
-          </HeroLayout>
+          />
         </Container>
       </header>
 
-      {/* 2. You Know the Law. Now Live It. */}
-      <Section>
-        <SectionMedia side="left" graphic={<GreenLineMini />}>
-          <Eyebrow tone="cyan" className="lg:text-left">The Practice</Eyebrow>
-          <Display className="lg:text-left">
-            You Know the Law.
-            <br />
-            <Accent>Now Live It.</Accent>
-          </Display>
-          <Body>
-            <p>
-              You do not need Manifestation 101. You&rsquo;ve felt this work&mdash;the money arrived, the
-              right person called, the opportunity appeared.
-            </p>
-            <p>
-              Then the moment passed, your attention returned to what was missing, and you went back to
-              reacting to what is instead of creating from the life you choose.
-            </p>
-            <p>You may recognize yourself here:</p>
-            <Beats
-              items={[
-                'You write a vision, then make decisions from your current reality.',
-                'You practice in bursts, then lose connection when contrast appears.',
-                'You collect another method because the last one never became part of your life.',
-                'You wait for proof before allowing yourself to feel good.',
-              ]}
-            />
-            <p>You haven&rsquo;t failed. And you&rsquo;re not missing more information.</p>
-            <p>
-              Someone can know everything about nutrition and still not be physically fit. You can know
-              everything about manifestation and still not be{' '}
-              <span className="font-semibold text-white">Vibration Fit.</span>
-            </p>
-            <p>
-              Vibrational Fitness is the practiced ability to intentionally align your thoughts, words,
-              and actions with the life you choose.
-            </p>
-            <Hit>
-              It doesn&rsquo;t mean feeling amazing every second. It means a shitty day doesn&rsquo;t take
-              your vision down with it.
-            </Hit>
-          </Body>
-          <Cta className="lg:justify-start" />
-        </SectionMedia>
-      </Section>
+      <section id="offer" className="scroll-mt-28 border-t border-white/10">
+        <span id="pricing" aria-hidden="true" />
+        <Container size="xl" className="px-6 py-12 md:px-10 md:py-16">
+          <div className="hp-offer-split">
+            <div className="hp-offer-split-copy">
+              <h2 className="text-[1.65rem] font-extrabold leading-[1.15] text-white md:text-[2.15rem]">
+                How Vibration Fit Works
+              </h2>
+              <p className="hp-display mt-5 text-[1.45rem] leading-tight text-[#39FF14] md:text-[1.75rem]">
+                You already know the law. This is how you live it.
+              </p>
+              <div className="hp-offer-copy mt-5 space-y-4 text-lg leading-[1.65] text-neutral-300">
+                <p>
+                  Vibration Fit is a self-guided software system that installs a custom-built Conscious
+                  Creation System in your reality.
+                </p>
+                <p>
+                  Our system, infused with V.I.V.A. (your Vibrationally Intelligent Virtual Assistant),
+                  walks you step by step through clearly defining a vision for your life across 12 life
+                  categories. It then empowers you with the tools you need to consistently activate this
+                  version of you in your vibrational point of attraction.
+                </p>
+                <p>
+                  The result? You consistently experience unresisted alignment with your deepest desires,
+                  and finally experience true vibrational leverage in this vibrationally based universe.
+                </p>
+                <p>
+                  This vibrational leverage is the path of least resistance to actually{' '}
+                  <span className="font-semibold text-white">LIVING</span> the life of your dreams. If you
+                  understand universal law, you already know this to be true. If you know, you know.
+                </p>
+                <p>
+                  Vibration Fit is NOT for those who have not yet been introduced to the basic concepts of conscious creation and manifestation. If you don&rsquo;t already understand that we at some level attract everything
+                  we experience based on an active vibrational point of attraction seeded from our dominant
+                  thought processes, Vibration Fit is NOT for you.
+                </p>
+                <p>
+                  It works in two parts.{' '}
+                  <span className="font-semibold text-white">Vision Activation</span> is the 72-hour
+                  install: your Life I Choose vision, Vision Audio, Vision Board, journal, and My Alignment
+                  Plan.{' '}
+                  <span className="font-semibold text-white">Membership</span> is what you run after that
+                  &mdash; the daily practice, VIVA, community, and studio tools that keep you living it as
+                  life changes.
+                </p>
+              </div>
+            </div>
+            <div className="hp-offer-split-card">
+              <OfferBuyBox />
+            </div>
+          </div>
+        </Container>
+      </section>
 
-      {/* 3. Real People. Real Results. — member videos, screenshots, and receipts */}
+      {/* 2. Real People. Real Results. — member videos, screenshots, and receipts */}
       <Section>
         <div className="rounded-2xl border-2 border-[#39FF14]/20 bg-black/40 p-4 md:p-6 lg:p-8">
           <SocialProofSection
@@ -168,6 +146,52 @@ export default function HomePreview3Page() {
           <ReceiptsSection />
         </div>
         <Cta />
+      </Section>
+
+      {/* 3. You Know the Law. Now Live It. */}
+      <Section>
+        <SectionMedia side="left" graphic={<GreenLineMini />}>
+          <Eyebrow tone="cyan" className="lg:text-left">The Practice</Eyebrow>
+          <Display className="lg:text-left">
+            You Know the Law.
+            <br />
+            <Accent>Now Live It.</Accent>
+          </Display>
+          <Body>
+            <p>
+              You already know the basic concepts of conscious creation. You&rsquo;ve felt this
+              work&mdash;the money arrived, the right person called, the opportunity appeared.
+            </p>
+            <p>
+              Then the moment passed, your attention returned to what was missing, and you went back to
+              reacting to what is instead of creating from the life you choose.
+            </p>
+            <p>You may recognize yourself here:</p>
+            <Beats
+              items={[
+                'You write a vision, then make decisions from your current reality.',
+                'You practice in bursts, then lose connection when contrast appears.',
+                'You collect another method because the last one never became part of your life.',
+                'You wait for proof before allowing yourself to feel good.',
+              ]}
+            />
+            <p>You haven&rsquo;t failed. And you&rsquo;re not missing more information.</p>
+            <p>
+              Someone can know everything about nutrition and still not be physically fit. You can know
+              everything about manifestation and still not be{' '}
+              <span className="font-semibold text-white">Vibration Fit.</span>
+            </p>
+            <p>
+              Vibrational Fitness is the practiced ability to intentionally align your thoughts, words,
+              and actions with the life you choose.
+            </p>
+            <Hit>
+              It doesn&rsquo;t mean feeling amazing every second. It means a shitty day doesn&rsquo;t take
+              your vision down with it.
+            </Hit>
+          </Body>
+          <Cta className="lg:justify-start" />
+        </SectionMedia>
       </Section>
 
       {/* 4. Meet VIVA */}
@@ -360,21 +384,16 @@ export default function HomePreview3Page() {
           </Body>
         </SectionMedia>
         <div className="mt-16">
-          <ProofWall
-            heading="We Used This Process On Ourselves First"
-            subtitle="Before we ever invited members into Vibration Fit, we used this exact system to go from overdrafted and in debt to six figures in the bank. Once it worked for us, we started helping others do the same."
-            caption="Real screenshots from our accounts, before and after applying the Vibration Fit system."
-            showHeadingOutside={false}
-            showStoryHighlight={false}
-            items={[
-              {
-                id: 'homepage-proof',
-                beforeImage: 'https://media.vibrationfit.com/site-assets/proof-wall/boa-screenshot.jpg',
-                afterImage: 'https://media.vibrationfit.com/site-assets/proof-wall/business-account-1.jpg',
-                story: '',
-              },
-            ]}
-          />
+          <h2 className="text-center text-[2rem] font-extrabold leading-[1.1] text-white md:text-[2.75rem]">
+            We Used This Process On Ourselves First
+          </h2>
+          <p className="mx-auto mt-5 max-w-3xl text-center text-lg leading-[1.6] text-neutral-300">
+            Before we ever invited members in, we used this exact system on ourselves. Here is what we
+            put on our vision board, and what actually showed up.
+          </p>
+          <div className="mt-10">
+            <FoundersActualizations />
+          </div>
         </div>
         <Cta />
       </Section>
@@ -411,39 +430,7 @@ export default function HomePreview3Page() {
         </div>
       </Section>
 
-      {/* 8. Our Guarantees */}
-      <Section>
-        <GuaranteesSection />
-      </Section>
-
-      {/* 9. Pricing */}
-      <Section>
-        <h2 className="text-center text-[2.75rem] font-extrabold leading-[1.08] text-[#39FF14] md:text-[3.75rem]">
-          Pricing
-        </h2>
-        <p className="mt-5 text-center text-[1.45rem] font-extrabold leading-tight text-white md:text-[1.85rem]">
-          72-Hour Vision Activation + First 28 Days of Vision Pro
-        </p>
-        <div className="mt-10">
-          <PricingBlock>
-            <div className="mx-auto mt-12 max-w-3xl">
-              <Body>
-                <Hit>
-                  You&rsquo;re not buying another manifestation course. You&rsquo;re installing your
-                  Conscious Creation System.
-                </Hit>
-                <p>
-                  Imagine looking up 90 days from now with a clear vision for your life, a system you
-                  actually use, and months of evidence that you know how to return to the life you choose.
-                </p>
-                <Punch>That&rsquo;s Vibrational Fitness.</Punch>
-              </Body>
-            </div>
-          </PricingBlock>
-        </div>
-      </Section>
-
-      {/* 10. The Close */}
+      {/* 8. The Close */}
       <Section>
         <SectionMedia
           side="left"
@@ -490,7 +477,7 @@ export default function HomePreview3Page() {
         </SectionMedia>
       </Section>
 
-      {/* 11. Full FAQ */}
+      {/* 9. Full FAQ */}
       <Section>
         <FaqSection />
       </Section>

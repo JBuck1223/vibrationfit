@@ -1,0 +1,23 @@
+---
+description: Keep verification lightweight — no browser checks or repeated curl loops unless asked
+alwaysApply: true
+---
+
+# Lean Verification
+
+Verification burns credits. Default to the cheapest check that catches real errors, then stop.
+
+## Do
+
+- Rely on TypeScript/linter errors surfaced after edits as the primary check
+- Run at most ONE `tsc --noEmit` or build check per task, and only for non-trivial changes
+- Trust that a correct code change works; hand visual/UI confirmation back to the user ("reload the page and check X")
+
+## Don't
+
+- Don't open the browser, take screenshots, or snapshot pages to verify UI changes unless the user explicitly asks
+- Don't curl pages repeatedly to confirm rendered HTML matches an edit
+- Don't restart or touch dev servers to force recompiles just to verify — report the suspected stale-server issue and let the user decide
+- Don't re-verify something already confirmed once
+
+If a check fails in a way that suggests stale tooling (dev server not picking up changes), say so and stop instead of investigating with more commands.

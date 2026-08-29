@@ -62,15 +62,19 @@ export function trackConversion(event: ConversionEvent, params: ConversionParams
 
   const { value, currency = 'USD', content_name, content_id, event_id, ...rest } = params
 
-  // Meta Pixel
+  // Meta Pixel -- eventID must go in the 4th argument for CAPI dedup to work
   if (hasPixel('fbq')) {
     const metaParams: Record<string, unknown> = {}
     if (value != null) metaParams.value = value
     if (currency) metaParams.currency = currency
     if (content_name) metaParams.content_name = content_name
     if (content_id) metaParams.content_ids = [content_id]
-    if (event_id) metaParams.eventID = event_id
-    window.fbq!('track', META_EVENT_MAP[event], metaParams)
+    window.fbq!(
+      'track',
+      META_EVENT_MAP[event],
+      metaParams,
+      event_id ? { eventID: event_id } : undefined
+    )
   }
 
   // Google Analytics 4 + Google Ads
@@ -113,21 +117,30 @@ export function trackConversion(event: ConversionEvent, params: ConversionParams
 /**
  * Fire a video milestone event to all installed marketing pixels.
  * Called automatically by the Video component when trackingId is set.
+ *
+ * Meta gets a DISTINCT custom event per milestone (VideoWatched25...95) so
+ * each tier can drive its own Custom Audience. Pass eventId to dedup against
+ * the matching server-side CAPI event.
  */
 export function trackVideoMilestone(
   trackingId: string,
   milestone: 25 | 50 | 75 | 95,
-  currentTimeSeconds: number
+  currentTimeSeconds: number,
+  eventId?: string
 ) {
   if (typeof window === 'undefined') return
 
-  // Meta Pixel -- custom event
   if (hasPixel('fbq')) {
-    window.fbq!('trackCustom', 'VideoMilestone', {
-      video_id: trackingId,
-      milestone_percent: milestone,
-      watch_time_seconds: Math.round(currentTimeSeconds * 10) / 10,
-    })
+    window.fbq!(
+      'trackCustom',
+      `VideoWatched${milestone}`,
+      {
+        video_id: trackingId,
+        milestone_percent: milestone,
+        watch_time_seconds: Math.round(currentTimeSeconds * 10) / 10,
+      },
+      eventId ? { eventID: eventId } : undefined
+    )
   }
 
   // GA4 -- uses the recognized video_progress event name
@@ -146,6 +159,65 @@ export function trackVideoMilestone(
       content_name: trackingId,
       value: milestone,
       description: `video_milestone_${milestone}`,
+    })
+  }
+}
+
+/**
+ * Fire a video start/complete custom event to Meta + GA4.
+ */
+export function trackVideoLifecycle(
+  trackingId: string,
+  phase: 'start' | 'complete',
+  eventId?: string
+) {
+  if (typeof window === 'undefined') return
+
+  const metaName = phase === 'start' ? 'VideoStarted' : 'VideoCompleted'
+  if (hasPixel('fbq')) {
+    window.fbq!(
+      'trackCustom',
+      metaName,
+      { video_id: trackingId },
+      eventId ? { eventID: eventId } : undefined
+    )
+  }
+
+  if (hasPixel('gtag')) {
+    window.gtag!('event', phase === 'start' ? 'video_start' : 'video_complete', {
+      video_id: trackingId,
+    })
+  }
+}
+
+/**
+ * Fire the PageEngaged custom event to Meta + GA4 -- used to build the
+ * "engaged site visitors" retargeting audience.
+ */
+export function trackPageEngaged(
+  params: { page_path: string; dwell_seconds: number; scroll_depth_percent: number },
+  eventId?: string
+) {
+  if (typeof window === 'undefined') return
+
+  if (hasPixel('fbq')) {
+    window.fbq!(
+      'trackCustom',
+      'PageEngaged',
+      {
+        page_path: params.page_path,
+        dwell_seconds: params.dwell_seconds,
+        scroll_depth_percent: params.scroll_depth_percent,
+      },
+      eventId ? { eventID: eventId } : undefined
+    )
+  }
+
+  if (hasPixel('gtag')) {
+    window.gtag!('event', 'page_engaged', {
+      page_path: params.page_path,
+      dwell_seconds: params.dwell_seconds,
+      scroll_depth: params.scroll_depth_percent,
     })
   }
 }

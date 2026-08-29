@@ -6,7 +6,7 @@ export const CTA_LABEL = 'Start Your 72-Hour Vision Activation'
 // Styled to match the design-system primary/lg Button. Rendered as a plain
 // anchor because Button's asChild path hydration-mismatches inside a server
 // component, which fires the global error toast on marketing pages.
-export function Cta({ href = '#pricing', className = '' }: { href?: string; className?: string }) {
+export function Cta({ href = '#offer', className = '' }: { href?: string; className?: string }) {
   return (
     <div className={`mt-10 flex justify-center ${className}`}>
       <a

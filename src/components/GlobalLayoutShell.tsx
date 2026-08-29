@@ -1,12 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
 import { GlobalLayout } from '@/components/GlobalLayout'
 
-export async function GlobalLayoutShell({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-
+export function GlobalLayoutShell({ children }: { children: React.ReactNode }) {
   return (
-    <GlobalLayout initialAuthenticated={!!session}>
+    <GlobalLayout>
       {children}
     </GlobalLayout>
   )

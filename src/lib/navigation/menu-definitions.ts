@@ -380,6 +380,7 @@ export const adminNavigation: NavItem[] = [
     description: 'Pipeline, campaigns, attribution, and analytics',
     children: [
       { name: 'CRM Dashboard', href: '/admin/crm/dashboard', icon: LayoutDashboard, description: 'CRM overview and metrics' },
+      { name: 'Ad Performance', href: '/admin/crm/marketing', icon: BarChart3, description: 'Campaign funnel: visitors, engagement, video, leads, revenue' },
       { name: 'Leads', href: '/admin/crm/leads', icon: UserPlus, description: 'Lead management' },
       { name: 'Leads Board', href: '/admin/crm/leads/board', icon: Kanban, description: 'Kanban board for leads' },
       { name: 'Campaigns', href: '/admin/crm/campaigns', icon: Megaphone, description: 'Marketing campaigns and tracking' },
@@ -586,6 +587,12 @@ export const mobileNavigation: NavItem[] = [
  * Used in: Header component account dropdown
  */
 export const headerAccountMenu: NavItem[] = [
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: Home,
+    description: 'Go to your member dashboard',
+  },
   {
     name: 'My Profile',
     href: '/profile',

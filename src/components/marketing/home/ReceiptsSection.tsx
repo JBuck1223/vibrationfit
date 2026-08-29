@@ -2,6 +2,21 @@ import Image from 'next/image'
 
 const PERMISSION = 'Member-reported result. Shared with permission.'
 
+const PHOTOS = {
+  misty:
+    'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/profile/avatar/1773446993357-7b91m913gzl-profile-picture.jpg',
+  alicia:
+    'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/profile/avatar/1773359526286-zs6slp1d2j-profile-picture.jpg',
+  cindy:
+    'https://media.vibrationfit.com/user-uploads/898e008f-d3d5-4f05-947b-138f6c8b92ba/profile/avatar/1773255229354-5vugx9p8leu-profile-picture.jpg',
+  barbara:
+    'https://media.vibrationfit.com/user-uploads/b12e9107-3ca4-4de2-8588-0e187248a7ee/profile/avatar/1784228229958-3hpboub14t3-profile-picture.jpg',
+  michele:
+    'https://media.vibrationfit.com/user-uploads/ef171ba4-746e-4065-8cff-c12dab6c9e6c/profile/avatar/1782860308527-kpkvb6uk9z-profile-picture-optimized.webp',
+  lisa:
+    'https://media.vibrationfit.com/user-uploads/25b2b667-9ebd-420c-916a-1ecc2baf9101/profile/avatar/1774900321590-xmksi7gopz-profile-picture.jpg',
+}
+
 function Permission() {
   return <p className="hp-proof-permission">{PERMISSION}</p>
 }
@@ -34,33 +49,50 @@ function Shot({
   )
 }
 
+function StoryHead({
+  name,
+  label,
+  photo,
+}: {
+  name: string
+  label: string
+  photo: string
+}) {
+  return (
+    <div className="hp-story-head">
+      <div className="hp-story-avatar">
+        <Image src={photo} alt={name} width={96} height={96} />
+      </div>
+      <div>
+        <p className="hp-proof-label">{label}</p>
+        <h3 className="hp-proof-name">{name}</h3>
+      </div>
+    </div>
+  )
+}
+
 export function ReceiptsSection() {
   return (
     <div className="hp-receipts">
-      <p className="mb-5 text-center text-[11px] font-semibold uppercase tracking-[0.32em] text-[#39FF14]">
-        Proof
-      </p>
-      <h2 className="text-center text-[2rem] font-extrabold leading-[1.1] text-white md:text-[2.75rem]">
-        The
-        <br />
-        <span className="hp-display text-[#39FF14]">Receipts</span>
-      </h2>
-
-      <div className="mt-8 space-y-5 text-lg leading-[1.7] text-neutral-300">
-        <p>We can talk about conscious creation all day.</p>
-        <p className="text-xl font-semibold leading-snug text-white md:text-2xl">
-          We would rather show you what members are experiencing.
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#39FF14]">
+          Proof
         </p>
-        <p>Different people. Different desires. Different categories.</p>
-        <p className="hp-display text-left text-[1.65rem] leading-tight text-[#39FF14] md:text-[2rem]">
-          One system.
-        </p>
+        <h2 className="text-[2rem] font-extrabold leading-[1.1] text-white md:text-[2.75rem]">
+          The <span className="hp-display text-[#39FF14]">Receipts</span>
+        </h2>
+        <div className="mt-5 space-y-3 text-lg leading-[1.6] text-neutral-300">
+          <p>We can talk about conscious creation all day. We&rsquo;d rather show you.</p>
+          <p>Different people. Different desires. Different categories.</p>
+          <p className="hp-display text-[1.65rem] leading-tight text-[#39FF14] md:text-[2rem]">
+            One system.
+          </p>
+        </div>
       </div>
 
       <div className="hp-featured">
         <article className="hp-story">
-          <p className="hp-proof-label">Family</p>
-          <h3 className="hp-proof-name">Misty</h3>
+          <StoryHead name="Misty" label="Family" photo={PHOTOS.misty} />
           <p className="hp-proof-punch">Six days later, her son texted.</p>
           <div className="hp-beats">
             <Beat label="What she wanted">Connection with her son and grandchildren.</Beat>
@@ -76,8 +108,7 @@ export function ReceiptsSection() {
         </article>
 
         <article className="hp-story">
-          <p className="hp-proof-label">Stuff</p>
-          <h3 className="hp-proof-name">Alicia</h3>
+          <StoryHead name="Alicia" label="Stuff" photo={PHOTOS.alicia} />
           <p className="hp-proof-punch">Ten miles from her house. Fully stocked.</p>
           <div className="hp-beats">
             <Beat label="What she wanted">A camper for family trips and summer income.</Beat>
@@ -96,8 +127,7 @@ export function ReceiptsSection() {
         </article>
 
         <article className="hp-story">
-          <p className="hp-proof-label">Work</p>
-          <h3 className="hp-proof-name">Cindy</h3>
+          <StoryHead name="Cindy" label="Work" photo={PHOTOS.cindy} />
           <p className="hp-proof-punch">A major paying gig, then three more in one day.</p>
           <div className="hp-beats">
             <Beat label="What she wanted">Recognition, collaboration, and a career in music.</Beat>
@@ -114,8 +144,7 @@ export function ReceiptsSection() {
         </article>
 
         <article className="hp-story">
-          <p className="hp-proof-label">Fun</p>
-          <h3 className="hp-proof-name">Barbara</h3>
+          <StoryHead name="Barbara" label="Fun" photo={PHOTOS.barbara} />
           <p className="hp-proof-punch">Then friends invited her to a lake house.</p>
           <div className="hp-beats">
             <Beat label="What she wanted">Friendship and adventures. She took the lake house out of her vision.</Beat>
@@ -130,8 +159,7 @@ export function ReceiptsSection() {
         </article>
 
         <article className="hp-story">
-          <p className="hp-proof-label">Family</p>
-          <h3 className="hp-proof-name">Michele</h3>
+          <StoryHead name="Michele" label="Family" photo={PHOTOS.michele} />
           <p className="hp-proof-punch">This is not just a WIN, it is a miracle.</p>
           <div className="hp-beats">
             <Beat label="What she wanted">
@@ -157,8 +185,7 @@ export function ReceiptsSection() {
         </article>
 
         <article className="hp-story">
-          <p className="hp-proof-label">Home</p>
-          <h3 className="hp-proof-name">Lisa</h3>
+          <StoryHead name="Lisa" label="Home" photo={PHOTOS.lisa} />
           <p className="hp-proof-punch">That same day, the solutions started ringing.</p>
           <div className="hp-beats">
             <Beat label="What she practiced">
@@ -179,8 +206,7 @@ export function ReceiptsSection() {
 
       <article className="hp-more-misty">
         <div className="hp-more-misty-copy">
-          <p className="hp-proof-label">Money</p>
-          <h3 className="hp-proof-name">More From Misty</h3>
+          <StoryHead name="More From Misty" label="Money" photo={PHOTOS.misty} />
           <p className="hp-proof-punch">More than $100,000 hit the bank.</p>
           <p className="hp-proof-quote">
             After journaling through frustration and rewriting the story, Misty reported that more than

@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
       referrer,
       urlParams,
       device,
+      fbp,
+      fbc,
     } = body as {
       visitorId: string
       sessionId: string
@@ -32,6 +34,8 @@ export async function POST(request: NextRequest) {
       referrer?: string | null
       urlParams?: Record<string, string>
       device?: { deviceType?: string; browser?: string; os?: string }
+      fbp?: string | null
+      fbc?: string | null
     }
 
     if (!visitorId || !sessionId) {
@@ -48,9 +52,13 @@ export async function POST(request: NextRequest) {
     const msclkid = urlParams?.msclkid || null
     const ttclid = urlParams?.ttclid || null
 
+    // Prefer request cookies (always same-origin) over body values
+    const metaFbp = request.cookies.get('_fbp')?.value || fbp || null
+    const metaFbc = request.cookies.get('_fbc')?.value || fbc || null
+
     const { data: existingVisitor } = await supabase
       .from('visitors')
-      .select('id, session_count')
+      .select('id, session_count, first_fbp, first_fbc')
       .eq('id', visitorId)
       .maybeSingle()
 
@@ -69,6 +77,8 @@ export async function POST(request: NextRequest) {
         first_fbclid: fbclid,
         first_msclkid: msclkid,
         first_ttclid: ttclid,
+        first_fbp: metaFbp,
+        first_fbc: metaFbc,
         first_url_params: urlParams || {},
         last_utm_source: utmSource,
         last_utm_medium: utmMedium,
@@ -87,6 +97,9 @@ export async function POST(request: NextRequest) {
         updates.last_utm_medium = utmMedium
         updates.last_utm_campaign = utmCampaign
       }
+      // Backfill Meta identifiers (pixel cookies often appear after first visit)
+      if (metaFbp && !existingVisitor.first_fbp) updates.first_fbp = metaFbp
+      if (metaFbc && !existingVisitor.first_fbc) updates.first_fbc = metaFbc
 
       if (isNewSession) {
         await supabase
@@ -122,6 +135,8 @@ export async function POST(request: NextRequest) {
         li_fat_id: urlParams?.li_fat_id || null,
         gbraid: urlParams?.gbraid || null,
         wbraid: urlParams?.wbraid || null,
+        fbp: metaFbp,
+        fbc: metaFbc,
         url_params: urlParams || {},
         device_type: device?.deviceType || null,
         browser: device?.browser || null,

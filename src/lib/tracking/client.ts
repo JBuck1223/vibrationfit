@@ -25,6 +25,23 @@ export function getSessionId(): string | null {
   return getCookie(SESSION_COOKIE)
 }
 
+/** Meta browser ID cookie, set by the Meta Pixel. */
+export function getFbp(): string | null {
+  return getCookie('_fbp')
+}
+
+/**
+ * Meta click ID cookie. The pixel sets _fbc when fbclid is in the URL, but it
+ * loads async -- fall back to constructing it from the URL param directly.
+ */
+export function getFbc(): string | null {
+  const cookie = getCookie('_fbc')
+  if (cookie) return cookie
+  if (typeof window === 'undefined') return null
+  const fbclid = new URLSearchParams(window.location.search).get('fbclid')
+  return fbclid ? `fb.1.${Date.now()}.${fbclid}` : null
+}
+
 function extractUrlParams(): Record<string, string> {
   if (typeof window === 'undefined') return {}
   const params: Record<string, string> = {}
@@ -95,6 +112,8 @@ export async function initTracking(): Promise<TrackingIds> {
         referrer: document.referrer || null,
         urlParams,
         device: getDeviceInfo(),
+        fbp: getFbp(),
+        fbc: getFbc(),
       }),
     })
     const data = await res.json()
