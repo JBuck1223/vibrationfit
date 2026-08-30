@@ -21,8 +21,9 @@ import { FoundersActualizations } from '@/components/marketing/home/FoundersActu
 import {
   GreenLineMini,
   InstallRunEvolve,
-  VivaPipeline,
 } from '@/components/marketing/home/graphics'
+import { LifeCategoryOrbit } from '@/components/marketing/home/LifeCategoryOrbit'
+import { NoteCollage } from '@/components/marketing/home/NoteCollage'
 
 export default function HomePreview3Page() {
   return (
@@ -196,7 +197,7 @@ export default function HomePreview3Page() {
 
       {/* 4. Meet VIVA */}
       <Section>
-        <SectionMedia graphic={<VivaPipeline />}>
+        <SectionMedia graphic={<LifeCategoryOrbit />}>
           <Eyebrow className="lg:text-left">Meet VIVA</Eyebrow>
           <Display className="lg:text-left">
             What VIVA
@@ -314,18 +315,7 @@ export default function HomePreview3Page() {
 
       {/* 6. A Note From Jordan & Vanessa + founders proof */}
       <Section>
-        <SectionMedia
-          photos={[
-            {
-              src: '/home-preview/photos/founders-couch.png',
-              alt: 'Jordan and Vanessa in Vibration Fit shirts, living the life they choose',
-            },
-            {
-              src: 'https://media.vibrationfit.com/site-assets/proof-wall/house-actualized.jpg',
-              alt: 'Jordan and Vanessa at their dream home',
-            },
-          ]}
-        >
+        <SectionMedia graphic={<NoteCollage />}>
           <Eyebrow tone="purple" className="lg:text-left">From Us</Eyebrow>
           <Display className="lg:text-left">
             A Note From
