@@ -1,15 +1,28 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { ImageLightbox } from '@/lib/design-system'
 import { LIFE_CATEGORY_PHOTOS } from './life-category-photos'
 
 const CYCLE_MS = 2800
 
 export function LifeCategoryOrbit() {
   const [active, setActive] = useState(0)
-  const [paused, setPaused] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   const current = LIFE_CATEGORY_PHOTOS[active]
+  const paused = hovered || lightboxOpen
+
+  const lightboxImages = useMemo(
+    () =>
+      LIFE_CATEGORY_PHOTOS.map((photo) => ({
+        url: photo.src,
+        alt: photo.alt,
+        caption: photo.label,
+      })),
+    [],
+  )
 
   useEffect(() => {
     if (paused) return
@@ -23,8 +36,8 @@ export function LifeCategoryOrbit() {
   return (
     <div
       className={`hp-orbit${paused ? ' is-paused' : ''}`}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div className="hp-orbit-stage" role="group" aria-label="Twelve life categories">
         <div className="hp-orbit-spin">
@@ -41,36 +54,56 @@ export function LifeCategoryOrbit() {
                 aria-label={`${photo.label}${isActive ? ', showing now' : ''}`}
                 aria-pressed={isActive}
               >
-                <span className="hp-orbit-node-face">
-                  <Image
-                    src={photo.src}
-                    alt=""
-                    fill
-                    sizes="80px"
-                    className="hp-orbit-node-img"
-                    style={{ objectPosition: photo.focus }}
-                  />
+                <span className="hp-orbit-node-body">
+                  <span className="hp-orbit-node-face">
+                    <Image
+                      src={photo.src}
+                      alt=""
+                      fill
+                      sizes="80px"
+                      className="hp-orbit-node-img"
+                      style={{ objectPosition: photo.focus }}
+                    />
+                  </span>
+                  <span className="hp-orbit-node-meta">
+                    <photo.icon className="hp-orbit-node-icon" aria-hidden="true" />
+                    <span className="hp-orbit-node-label">{photo.label}</span>
+                  </span>
                 </span>
               </button>
             )
           })}
         </div>
-        <div className="hp-orbit-center">
+        <button
+          type="button"
+          className="hp-orbit-center"
+          onClick={() => setLightboxOpen(true)}
+          aria-label={`View ${current.label} photo`}
+        >
           <Image
             key={current.key}
             src={current.src}
             alt={current.alt}
             fill
-            sizes="(min-width: 1024px) 340px, 60vw"
+            sizes="(min-width: 1024px) 800px, 90vw"
+            quality={90}
             className="hp-orbit-center-img"
             style={{ objectPosition: current.focus }}
             priority
           />
-        </div>
+        </button>
       </div>
-      <p className="hp-orbit-caption" aria-live="polite">
-        {current.label}
-      </p>
+
+      <ImageLightbox
+        images={lightboxImages}
+        currentIndex={active}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onNavigate={setActive}
+        showCopyButton={false}
+        showThumbnails
+        showCounter
+      />
     </div>
   )
 }

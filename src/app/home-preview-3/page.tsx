@@ -1,3 +1,4 @@
+import { Check, X } from 'lucide-react'
 import { Container } from '@/lib/design-system'
 import { SocialProofSection } from '@/lib/design-system/components'
 import {
@@ -19,18 +20,19 @@ import { ReceiptsSection } from '@/components/marketing/home/ReceiptsSection'
 import { FaqSection } from '@/components/marketing/home/FaqSection'
 import { FoundersActualizations } from '@/components/marketing/home/FoundersActualizations'
 import {
-  GreenLineMini,
   InstallRunEvolve,
+  VibrationalFitness,
 } from '@/components/marketing/home/graphics'
 import { LifeCategoryOrbit } from '@/components/marketing/home/LifeCategoryOrbit'
 import { NoteCollage } from '@/components/marketing/home/NoteCollage'
+import { PlatformScreens } from '@/components/marketing/home/PlatformScreens'
 
 export default function HomePreview3Page() {
   return (
-    <div className="-mt-6 md:-my-12 lg:-mt-8" data-preview="v16-merged">
+    <div className="-mx-4 -mt-6 overflow-x-clip sm:-mx-6 md:-mx-6 md:-my-12 md:overflow-x-visible lg:-mx-8 lg:-mt-8" data-preview="v16-merged">
       {/* 1. Hero — Who it's for, What it is, The Outcome */}
       <header className="hp-hero-glow">
-        <Container size="xl" className="px-6 pb-16 pt-8 md:px-10 md:pb-20 md:pt-10">
+        <Container size="xl" className="px-4 pb-16 pt-8 md:px-10 md:pb-20 md:pt-10">
           <HeroLayout
             variant="stacked"
             intro={
@@ -46,7 +48,7 @@ export default function HomePreview3Page() {
 
       <section id="offer" className="scroll-mt-28 border-t border-white/10">
         <span id="pricing" aria-hidden="true" />
-        <Container size="xl" className="px-6 py-12 md:px-10 md:py-16">
+        <Container size="xl" className="px-4 py-12 md:px-10 md:py-16">
           <div className="hp-offer-split">
             <div className="hp-offer-split-copy">
               <h2 className="text-[1.65rem] font-extrabold leading-[1.15] text-white md:text-[2.15rem]">
@@ -75,20 +77,23 @@ export default function HomePreview3Page() {
                   <span className="font-semibold text-white">LIVING</span> the life of your dreams. If you
                   understand universal law, you already know this to be true. If you know, you know.
                 </p>
-                <p>
-                  Vibration Fit is NOT for those who have not yet been introduced to the basic concepts of conscious creation and manifestation. If you don&rsquo;t already understand that we at some level attract everything
-                  we experience based on an active vibrational point of attraction seeded from our dominant
-                  thought processes, Vibration Fit is NOT for you.
-                </p>
-                <p>
-                  It works in two parts.{' '}
-                  <span className="font-semibold text-white">Vision Activation</span> is the 72-hour
-                  install: your Life I Choose vision, Vision Audio, Vision Board, journal, and My Alignment
-                  Plan.{' '}
-                  <span className="font-semibold text-white">Membership</span> is what you run after that
-                  &mdash; the daily practice, VIVA, community, and studio tools that keep you living it as
-                  life changes.
-                </p>
+                <p>This works in two parts:</p>
+                <ol className="list-decimal space-y-0 pl-6 [text-align:left]">
+                  <li>
+                    <span className="font-semibold text-white">Vision Activation</span>
+                    {' '}
+                    is your initiation where we install your Conscious Creation System. (you pay $499
+                    one-time)
+                  </li>
+                  <li>
+                    <span className="font-semibold text-white">Vision Pro Membership</span>
+                    {' '}
+                    keeps your Conscious Creation System running &mdash; the daily practice, VIVA,
+                    community, and studio tools that keep you living it and evolving it as life
+                    changes. ($99/28 days).
+                  </li>
+                </ol>
+                <p>That&rsquo;s it.</p>
               </div>
             </div>
             <div className="hp-offer-split-card">
@@ -151,7 +156,7 @@ export default function HomePreview3Page() {
 
       {/* 3. You Know the Law. Now Live It. */}
       <Section>
-        <SectionMedia side="left" graphic={<GreenLineMini />}>
+        <SectionMedia side="left" graphic={<VibrationalFitness />}>
           <Eyebrow tone="cyan" className="lg:text-left">The Practice</Eyebrow>
           <Display className="lg:text-left">
             You Know the Law.
@@ -160,26 +165,8 @@ export default function HomePreview3Page() {
           </Display>
           <Body>
             <p>
-              You already know the basic concepts of conscious creation. You&rsquo;ve felt this
-              work&mdash;the money arrived, the right person called, the opportunity appeared.
-            </p>
-            <p>
-              Then the moment passed, your attention returned to what was missing, and you went back to
-              reacting to what is instead of creating from the life you choose.
-            </p>
-            <p>You may recognize yourself here:</p>
-            <Beats
-              items={[
-                'You write a vision, then make decisions from your current reality.',
-                'You practice in bursts, then lose connection when contrast appears.',
-                'You collect another method because the last one never became part of your life.',
-                'You wait for proof before allowing yourself to feel good.',
-              ]}
-            />
-            <p>You haven&rsquo;t failed. And you&rsquo;re not missing more information.</p>
-            <p>
-              Someone can know everything about nutrition and still not be physically fit. You can know
-              everything about manifestation and still not be{' '}
+              Someone can know everything about nutrition and strength training and still not be
+              physically fit. You can know everything about manifestation and still not be{' '}
               <span className="font-semibold text-white">Vibration Fit.</span>
             </p>
             <p>
@@ -373,10 +360,12 @@ export default function HomePreview3Page() {
             </p>
           </Body>
         </SectionMedia>
-        <div className="mt-16">
-          <h2 className="text-center text-[2rem] font-extrabold leading-[1.1] text-white md:text-[2.75rem]">
-            We Used This Process On Ourselves First
-          </h2>
+        <div className="mt-16 border-t border-white/10 pt-16 md:mt-20 md:pt-20">
+          <Display>
+            We Used This Process
+            <br />
+            <Accent>On Ourselves First</Accent>
+          </Display>
           <p className="mx-auto mt-5 max-w-3xl text-center text-lg leading-[1.6] text-neutral-300">
             Before we ever invited members in, we used this exact system on ourselves. Here is what we
             put on our vision board, and what actually showed up.
@@ -390,43 +379,69 @@ export default function HomePreview3Page() {
 
       {/* 7. Who This Is For */}
       <Section>
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-5xl">
           <Eyebrow>Fit Check</Eyebrow>
           <Display>
             Who This
             <br />
             <Accent>Is For</Accent>
           </Display>
-          <Body>
-            <p>Vibration Fit is for you if:</p>
-            <Beats
-              items={[
-                'You already believe your thoughts, focus, and energy influence what you experience.',
-                <>
-                  You know manifestation works because you&rsquo;ve experienced it&mdash;but you
-                  haven&rsquo;t learned how to create consistently.
-                </>,
-                <>
-                  You&rsquo;re not completely clear on what you want next&mdash;or you know what you want,
-                  but keep getting pulled back into what is.
-                </>,
-                'You want a practical way to intentionally align with the life you choose.',
-                'You want to enjoy your life now while creating more of what you want.',
-              ]}
-            />
-            <Hit>It&rsquo;s for the person who&rsquo;s ready to stop studying manifestation and start living it.</Hit>
-          </Body>
+
+          <div className="mt-12 grid gap-6 lg:grid-cols-2">
+            <article className="rounded-2xl border-2 border-[#39FF14]/30 bg-[#39FF14]/[0.04] p-6 md:p-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#39FF14]">
+                This is for you if
+              </p>
+              <ul className="mt-6 space-y-4">
+                {[
+                  'You already believe your thoughts, focus, and energy influence what you experience.',
+                  'You know manifestation works because you’ve experienced it—but you want to create more consistently.',
+                  'You don\'t know what you want.',
+                  'You know what you want, but keep getting pulled back into what is.',
+                  'You want a practical way to intentionally align with the life you choose.',
+                  'You want to enjoy your life now while creating more of what you want.',
+                ].map((item) => (
+                  <li key={item} className="flex gap-3 text-lg leading-snug text-neutral-200">
+                    <Check className="mt-0.5 h-5 w-5 shrink-0 text-[#39FF14]" strokeWidth={2.5} aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <article className="rounded-2xl border-2 border-[#FF0040]/30 bg-[#FF0040]/[0.04] p-6 md:p-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#FF0040]">
+                This probably isn&rsquo;t for you yet if
+              </p>
+              <ul className="mt-6 space-y-4">
+                {[
+                  'You’re still deciding whether your thoughts, focus, and energy influence what you experience.',
+                  'You’re looking to be convinced that manifestation works rather than learning how to practice it consistently.',
+                  'The idea that you have a role in creating your experience feels impossible for you to entertain.',
+                  'You prefer to argue for your limitations rather than intentionally stepping into the version of you who can truly have it all.',
+                  'You’re already convinced this won’t work for you.',
+                ].map((item) => (
+                  <li key={item} className="flex gap-3 text-lg leading-snug text-neutral-200">
+                    <X className="mt-0.5 h-5 w-5 shrink-0 text-[#FF0040]" strokeWidth={2.5} aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          </div>
+
+          <div className="mx-auto mt-10 max-w-3xl text-center">
+            <Hit>
+              It&rsquo;s for the person who&rsquo;s ready to stop studying manifestation and start living it.
+            </Hit>
+          </div>
           <Cta />
         </div>
       </Section>
 
       {/* 8. The Close */}
       <Section>
-        <SectionMedia
-          side="left"
-          src="/home-preview/photos/family-lake-home.jpg"
-          alt="Jordan and Vanessa with their first baby at their waterfront home"
-        >
+        <SectionMedia side="left" graphic={<PlatformScreens />}>
           <Eyebrow className="lg:text-left">Now</Eyebrow>
           <Display className="lg:text-left">
             Start Creating
