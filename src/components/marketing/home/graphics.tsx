@@ -121,6 +121,112 @@ export function AttentionSplit() {
   )
 }
 
+const PRACTICE_CX = 160
+const PRACTICE_CY = 160
+const PRACTICE_R = 128
+const PRACTICE_INNER_R = 54
+const PRACTICE_RING_PATH = `M ${PRACTICE_CX} ${PRACTICE_CY - PRACTICE_R} A ${PRACTICE_R} ${PRACTICE_R} 0 1 1 ${PRACTICE_CX - 0.01} ${PRACTICE_CY - PRACTICE_R}`
+
+function practicePoint(index: number, radius: number) {
+  const angle = ((index * 30 - 90) * Math.PI) / 180
+  return {
+    x: PRACTICE_CX + radius * Math.cos(angle),
+    y: PRACTICE_CY + radius * Math.sin(angle),
+  }
+}
+
+export function VibrationalFitness() {
+  const categories = VISION_CATEGORIES.filter(
+    (category) => category.key !== 'forward' && category.key !== 'conclusion',
+  )
+
+  return (
+    <div className="hp-practice-art" aria-label="Vibrational Fitness: the Vibration Fit mark aligned across twelve life categories">
+      <div className="hp-practice-ring">
+        <svg className="hp-practice-links" viewBox="0 0 320 320" aria-hidden="true">
+          <defs>
+            <filter id="vf-glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <circle cx={PRACTICE_CX} cy={PRACTICE_CY} r="46" className="hp-practice-ripple" />
+          <circle cx={PRACTICE_CX} cy={PRACTICE_CY} r="68" className="hp-practice-ripple hp-practice-ripple-2" />
+          <circle cx={PRACTICE_CX} cy={PRACTICE_CY} r="90" className="hp-practice-ripple hp-practice-ripple-3" />
+
+          <circle
+            cx={PRACTICE_CX}
+            cy={PRACTICE_CY}
+            r={PRACTICE_R}
+            fill="none"
+            stroke={TONE.cyan}
+            strokeWidth="10"
+            opacity="0.05"
+          />
+          <path
+            d={PRACTICE_RING_PATH}
+            fill="none"
+            stroke={TONE.cyan}
+            strokeWidth="1.15"
+            opacity="0.28"
+            className="hp-flow-path hp-flow-path-draw"
+          />
+
+          {categories.map((category, index) => {
+            const outer = practicePoint(index, PRACTICE_R)
+            const inner = practicePoint(index, PRACTICE_INNER_R)
+            return (
+              <line
+                key={category.key}
+                x1={inner.x}
+                y1={inner.y}
+                x2={outer.x}
+                y2={outer.y}
+                stroke={TONE.cyan}
+                strokeWidth="1"
+                opacity="0.16"
+              />
+            )
+          })}
+
+          <g
+            fill={TONE.lime}
+            filter="url(#vf-glow)"
+            transform="translate(160 160) scale(0.078) translate(-512 -512)"
+          >
+            <path d="M991.02,639.67c-56.5,211.45-249.93,367.64-479.22,367.64-265.29,0-482.58-209.09-495.33-470.94v-46.94c0-8.62,7.02-15.63,15.57-15.63,2.62.05,15.75,1.06,15.75,15.63v70c0,16.62,13.53,30.15,30.19,30.15s30.18-13.53,30.18-30.15v-132.04c0-.31,0-.62.03-.92.48-8.48,7.55-15.23,16.15-15.23s16.18,7.24,16.18,16.15v188.52c0,16.98,13.83,30.79,30.82,30.79s29.73-13.52,29.73-30.79v-234.61c0-8,7.54-15.02,16.15-15.02s15.05,6.75,15.05,15.02v113.3h559.55v-14.45H246.71v-98.85c0-16.25-13.23-29.47-29.5-29.47s-30.61,13.49-30.61,29.47v234.61c0,9.31-6.57,16.34-15.27,16.34s-16.35-7.33-16.35-16.34v-188.52c0-16.87-13.75-30.6-30.66-30.6-15.6,0-28.51,11.7-30.4,26.79-.16,1.25-.24,2.53-.24,3.82v132.04c0,8.66-7.05,15.7-15.72,15.7s-15.72-7.04-15.72-15.7l-.02-70c0-21.93-17.97-30.01-30.1-30.08-4.97,0-9.68,1.21-13.82,3.36-9.69,5.01-16.31,15.1-16.31,26.72v51.95c.12,2.33.27,4.64.44,6.95,3.91,56.03,16.94,110.44,38.86,162.19,25.72,60.73,62.53,115.27,109.43,162.1,46.9,46.84,101.51,83.59,162.31,109.29,62.96,26.61,129.84,40.08,198.77,40.08s135.81-13.47,198.77-40.08c60.8-25.69,115.42-62.45,162.31-109.29,46.89-46.84,83.7-101.38,109.42-162.1,9.8-23.12,17.78-46.77,24-70.86h-15.28Z" />
+            <path d="M1021.56,475.66c-3.91-56.03-16.94-110.44-38.86-162.19-25.72-60.73-62.53-115.27-109.43-162.1-46.9-46.84-101.51-83.59-162.31-109.29C648.01,15.47,581.13,2,512.2,2s-135.81,13.47-198.77,40.08c-60.8,25.69-115.42,62.45-162.31,109.29-46.89,46.84-83.7,101.38-109.42,162.1-10.02,23.66-18.18,47.87-24.46,72.54h15.28C88.45,173.71,282.31,16.69,512.2,16.69c265.29,0,482.58,209.09,495.33,470.94v46.94c0,8.62-7.02,15.63-15.57,15.63-2.62-.05-15.75-1.06-15.75-15.63v-70c0-16.62-13.53-30.15-30.19-30.15s-30.18,13.53-30.18,30.15v132.04c0,8.91-7.27,16.15-16.17,16.15s-16.18-7.24-16.18-16.15v-188.52c0-16.98-13.83-30.79-30.82-30.79s-29.73,13.52-29.73,30.79v234.61c0,8-7.54,15.02-16.15,15.02s-15.05-6.75-15.05-15.02v-113.3H232.19v14.45h545.1v98.85c0,16.25,13.23,29.47,29.5,29.47s30.61-13.49,30.61-29.47v-234.61c0-9.31,6.57-16.34,15.27-16.34s16.35,7.33,16.35,16.34v188.52c0,16.87,13.75,30.6,30.66,30.6s30.64-13.73,30.64-30.6v-132.04c0-8.66,7.05-15.7,15.72-15.7s15.72,7.04,15.72,15.7l.02,70c0,21.93,17.97,30.01,30.1,30.08,4.97,0,9.68-1.21,13.82-3.36,9.69-5.01,16.31-15.1,16.31-26.72v-51.95c-.12-2.33-.27-4.64-.44-6.95Z" />
+          </g>
+
+          <circle r="2.5" fill={TONE.lime} className="hp-flow-dot">
+            <animateMotion dur="18s" repeatCount="indefinite" path={PRACTICE_RING_PATH} />
+          </circle>
+        </svg>
+        {categories.map((category, index) => {
+          const Icon = category.icon
+
+          return (
+            <span
+              key={category.key}
+              className="hp-practice-cat"
+              style={{ '--cat-angle': `${index * 30 - 90}deg` } as React.CSSProperties}
+            >
+              <span className="hp-practice-cat-badge">
+                <Icon className="hp-practice-cat-icon" strokeWidth={1.75} aria-hidden="true" />
+              </span>
+              <span className="hp-practice-cat-label">{category.label}</span>
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function GreenLineMini() {
   return (
     <div className="hp-line-art" aria-hidden="true">
@@ -224,29 +330,55 @@ export function CreationLoop() {
   )
 }
 
+const SYSTEM_REPS = [
+  { icon: Brain, label: 'Creations' },
+  { icon: RadioTower, label: 'Activations' },
+  { icon: Heart, label: 'Connections' },
+  { icon: CalendarDays, label: 'Sessions' },
+] as const
+
 export function InstallRunEvolve() {
   return (
-    <FlowCanvas
-      viewBox="0 0 320 460"
-      paths={
-        <>
-          <GlowPath tone="cyan" d="M160 70 C160 130 160 180 160 230" />
-          <GlowPath tone="purple" d="M160 270 C160 320 160 350 160 390" />
-          <line x1="160" y1="230" x2="58" y2="230" stroke={TONE.lime} strokeWidth="1.25" opacity="0.35" />
-          <line x1="160" y1="230" x2="262" y2="230" stroke={TONE.teal} strokeWidth="1.25" opacity="0.35" />
-          <line x1="160" y1="230" x2="58" y2="292" stroke={TONE.purple} strokeWidth="1.25" opacity="0.35" />
-          <line x1="160" y1="230" x2="262" y2="292" stroke={TONE.yellow} strokeWidth="1.25" opacity="0.35" />
-        </>
-      }
-    >
-      <Mark icon={Rocket} label="Install" tone="lime" x={50} y={12} />
-      <Mark icon={Map} label="Run" tone="cyan" x={50} y={46} />
-      <Mark icon={Brain} label="Creations" tone="lime" x={16} y={50} size="sm" />
-      <Mark icon={RadioTower} label="Activations" tone="teal" x={84} y={50} size="sm" />
-      <Mark icon={Heart} label="Connections" tone="purple" x={16} y={64} size="sm" />
-      <Mark icon={CalendarDays} label="Sessions" tone="yellow" x={84} y={64} size="sm" />
-      <Mark icon={RefreshCw} label="Evolve" tone="purple" x={50} y={88} />
-    </FlowCanvas>
+    <div className="hp-system" aria-label="Install once, run daily, evolve as life changes">
+      <div className="hp-system-phase" style={{ color: TONE.lime }}>
+        <span className="hp-system-node">
+          <Rocket strokeWidth={1.6} aria-hidden="true" />
+        </span>
+        <p className="hp-system-kicker">Phase 1</p>
+        <p className="hp-system-title">Install</p>
+        <p className="hp-system-hint">Once</p>
+      </div>
+
+      <span className="hp-system-spine" aria-hidden="true" />
+
+      <div className="hp-system-phase" style={{ color: TONE.cyan }}>
+        <span className="hp-system-node">
+          <Map strokeWidth={1.6} aria-hidden="true" />
+        </span>
+        <p className="hp-system-kicker">Phase 2</p>
+        <p className="hp-system-title">Run</p>
+        <p className="hp-system-hint">Daily</p>
+        <ul className="hp-system-reps">
+          {SYSTEM_REPS.map((rep) => (
+            <li key={rep.label} className="hp-system-rep">
+              <rep.icon strokeWidth={1.75} aria-hidden="true" />
+              <span>{rep.label}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <span className="hp-system-spine hp-system-spine-evolve" aria-hidden="true" />
+
+      <div className="hp-system-phase" style={{ color: TONE.purple }}>
+        <span className="hp-system-node">
+          <RefreshCw strokeWidth={1.6} aria-hidden="true" />
+        </span>
+        <p className="hp-system-kicker">Phase 3</p>
+        <p className="hp-system-title">Evolve</p>
+        <p className="hp-system-hint">As life changes</p>
+      </div>
+    </div>
   )
 }
 

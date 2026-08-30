@@ -42,7 +42,7 @@ function Shot({
   height: number
 }) {
   return (
-    <figure className="hp-shot hp-shot-crop">
+    <figure className="hp-shot">
       <Image src={src} alt={alt} width={width} height={height} />
       <figcaption>{PERMISSION}</figcaption>
     </figure>

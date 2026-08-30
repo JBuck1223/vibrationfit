@@ -131,7 +131,6 @@ function GuaranteeCards() {
 
 export function OfferBuyBox() {
   const [planType, setPlanType] = useState<'solo' | 'household'>('solo')
-  const [paymentPlan, setPaymentPlan] = useState<'full' | '2pay'>('full')
   const [isLoading, setIsLoading] = useState(false)
   const [promoCode, setPromoCode] = useState<string | null>(null)
   const [referralSource, setReferralSource] = useState<string | null>(null)
@@ -159,11 +158,8 @@ export function OfferBuyBox() {
 
   const hasPromo = ready && Boolean(promoCode)
   const intensiveTotal = planType === 'solo' ? 499 : 699
-  const twoPayInstallment = planType === 'solo' ? 275 : 399
-  const twoPayTotal = planType === 'solo' ? 550 : 798
   const membershipPrice = planType === 'solo' ? 99 : 149
-  const activePlan = hasPromo ? 'full' : paymentPlan
-  const todayAmount = hasPromo ? 1 : activePlan === '2pay' ? twoPayInstallment : intensiveTotal
+  const todayAmount = hasPromo ? 1 : intensiveTotal
 
   const featureGroups: Array<{
     heading: string
@@ -288,13 +284,12 @@ export function OfferBuyBox() {
           items: [
             {
               product_key: 'intensive',
-              plan: activePlan,
+              plan: 'full',
               continuity: '28day',
               plan_type: planType,
             },
           ],
-          promoCode:
-            activePlan === 'full' ? resolveIntensiveLaunchPromoCode(promoCode, planType) : undefined,
+          promoCode: resolveIntensiveLaunchPromoCode(promoCode, planType),
           referralSource: referralSource || undefined,
           campaignName: campaignName || undefined,
           visitorId,
@@ -315,86 +310,47 @@ export function OfferBuyBox() {
   }
 
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-black/30 px-5 py-6 text-center lg:px-6 lg:py-7">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#39FF14]">
+    <div className="hp-offer-card flex flex-col items-center rounded-2xl px-5 py-6 text-center lg:px-6 lg:py-7">
+      <p className="text-xl font-extrabold leading-tight text-[#39FF14] md:text-[1.65rem]">
         72-Hour Vision Activation
       </p>
       <p className="mt-1 text-xs text-neutral-400">+ your first 28 days of Vision Pro</p>
 
-      <div className="mt-4 inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/40 p-1">
-        <button
-          type="button"
-          onClick={() => setPlanType('solo')}
-          className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-            planType === 'solo'
-              ? 'bg-[#39FF14] text-black'
-              : 'text-neutral-400 hover:text-white'
-          }`}
-        >
-          <User className="h-3.5 w-3.5" />
-          Solo
-        </button>
-        <button
-          type="button"
-          onClick={() => setPlanType('household')}
-          className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-            planType === 'household'
-              ? 'bg-[#00FFFF] text-black'
-              : 'text-neutral-400 hover:text-white'
-          }`}
-        >
-          <Users className="h-3.5 w-3.5" />
-          Household
-        </button>
-      </div>
-
       {hasPromo ? (
-        <div className="mt-4">
+        <div className="mt-5">
           <p className="text-lg font-extrabold text-neutral-500 line-through">${intensiveTotal}</p>
-          <p className="text-5xl font-extrabold leading-none text-[#39FF14]">$1</p>
+          <p className="text-6xl font-extrabold leading-none text-[#39FF14]">$1</p>
+          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-400">
+            today
+          </p>
           <p className="mt-1.5 text-xs text-neutral-400">{promoCode?.toUpperCase()} applied</p>
         </div>
       ) : (
-        <div className="mt-4">
-          <p className="text-5xl font-extrabold leading-none text-[#39FF14]">${todayAmount}</p>
-          {activePlan === '2pay' ? (
-            <p className="mt-1.5 text-xs text-neutral-400">
-              today, then ${twoPayInstallment} in 14 days &middot; ${twoPayTotal} total
-            </p>
-          ) : (
-            <p className="mt-1.5 text-xs text-neutral-500">today &middot; best value</p>
-          )}
+        <div className="mt-5">
+          <p className="text-6xl font-extrabold leading-none text-[#39FF14]">${todayAmount}</p>
+          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-400">
+            one-time
+          </p>
         </div>
       )}
 
-      {!hasPromo ? (
-        <div className="mt-3 flex justify-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setPaymentPlan('full')}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              activePlan === 'full'
-                ? 'bg-[#39FF14] text-black'
-                : 'border border-white/15 text-neutral-400 hover:text-white'
-            }`}
-          >
-            Pay in Full
-          </button>
-          <button
-            type="button"
-            onClick={() => setPaymentPlan('2pay')}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              activePlan === '2pay'
-                ? 'bg-[#39FF14] text-black'
-                : 'border border-white/15 text-neutral-400 hover:text-white'
-            }`}
-          >
-            2 Payments
-          </button>
-        </div>
-      ) : null}
+      <p className="mt-3 text-sm leading-snug text-neutral-300 md:text-base">
+        Then <span className="font-semibold text-white">${membershipPrice} every 28 days</span>{' '}
+        unless canceled. Cancel any time.
+      </p>
 
       <div className="mt-5 w-full border-t border-white/10 pt-5">
+        <p className="mb-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
+          <Shield className="h-3.5 w-3.5 text-[#FFFF00]" />
+          Backed by two guarantees
+        </p>
+        <GuaranteeCards />
+      </div>
+
+      <div className="mt-5 w-full border-t border-white/10 pt-5">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+          What&rsquo;s Inside
+        </p>
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {featureGroups.map((group) => (
             <div
@@ -453,18 +409,6 @@ export function OfferBuyBox() {
         <ShoppingCart className="h-3.5 w-3.5 text-[#39FF14]" />
         Next step: secure checkout
       </p>
-      <p className="mt-1.5 text-xs leading-snug text-neutral-400">
-        Then <span className="font-semibold text-white">${membershipPrice} every 28 days</span>{' '}
-        unless canceled. Cancel any time.
-      </p>
-
-      <div className="mt-5 w-full border-t border-white/10 pt-5">
-        <p className="mb-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
-          <Shield className="h-3.5 w-3.5 text-[#FFFF00]" />
-          Backed by two guarantees
-        </p>
-        <GuaranteeCards />
-      </div>
     </div>
   )
 }
