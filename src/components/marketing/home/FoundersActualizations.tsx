@@ -7,7 +7,7 @@ const cardChrome = {
   showTitleOnCard: false,
   showContentOnCard: false,
   showModalImages: false,
-} as const
+}
 
 export function FoundersActualizations() {
   return (
