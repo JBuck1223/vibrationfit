@@ -19,9 +19,10 @@
 ## 🚀 Quick Start (For Agents Building Pages)
 
 ### Essential Reading Order:
-1. **`AGENT_PAGE_BUILDING_GUIDE.md`** ← **START HERE!**
-2. **`mobile-design-rules.md`** ← Critical for mobile
-3. **`PAGE_BUILDING_RULES.md`** ← Full details when needed
+1. **`/rules/AGENT_QUICK_START.md`** ← START HERE
+2. **`.cursor/rules/page-chrome.mdc`** ← AreaBar studios, slim titles, no boxed PageHero
+3. **`PAGE_BUILDING_RULES.md`** / `/rules/PAGE_BUILDING_RULES.md`
+4. **`/rules/STUDIO_PAGE_BUILDING_RULES.md`** ← Admin, Life Vision, and every multi-route area
 
 **Or use quick reference:** `/rules/AGENT_QUICK_START.md` (40 lines, ultra-fast)
 

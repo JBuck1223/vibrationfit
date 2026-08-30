@@ -3,10 +3,11 @@
 ## 🎯 Start Here for Building Pages
 
 **For Agents Building New Pages:**
-1. **Read First**: `rules/AGENT_QUICK_START.md` (2-minute read)
-2. **Full Guide**: `docs/AGENT_PAGE_BUILDING_GUIDE.md` (complete reference)
-3. **Page Rules**: `rules/PAGE_BUILDING_RULES.md` (layout patterns)
-4. **Mobile Rules**: `rules/mobile-design-rules.md` (mobile requirements)
+1. **Read First**: `rules/AGENT_QUICK_START.md`
+2. **Chrome**: `.cursor/rules/page-chrome.mdc` (AreaBar studios, slim titles, no boxed PageHero)
+3. **Page Rules**: `rules/PAGE_BUILDING_RULES.md`
+4. **Studio layouts**: `rules/STUDIO_PAGE_BUILDING_RULES.md`
+5. **Mobile Rules**: `rules/mobile-design-rules.md`
 
 ---
 

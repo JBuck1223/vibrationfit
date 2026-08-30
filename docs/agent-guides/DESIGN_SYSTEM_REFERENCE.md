@@ -87,7 +87,9 @@ import {
 import { AreaBar, type AreaBarTab, type ContextOption } from '@/lib/design-system/components'
 ```
 
-`AreaBar` provides the shared studio header (title, primary tabs, optional context row). Use it for Audio, Journal, Life Vision, and other “studio” surfaces for consistent chrome.
+`AreaBar` is the page header for every studio (Admin, Audio, Journal, Life Vision, Account, …). Do not also render `PageHero` / `PageHeader` on pages inside a studio.
+
+`PageHero` is a slim left-aligned title row for standalone (non-studio) pages only. Never use the old boxed gradient hero.
 
 ### Global playlist audio
 **Import from:** `@/lib/design-system/components` (media exports)

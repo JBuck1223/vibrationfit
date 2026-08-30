@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Container, Stack, PageHero, Card } from '@/lib/design-system/components'
+import { Container, Stack, Card } from '@/lib/design-system/components'
 import * as LucideIcons from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -86,12 +86,6 @@ export default function AdminDashboardClient({
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="ADMIN"
-          title="Admin Dashboard"
-          subtitle="Central hub for managing Vibration Fit"
-        />
-
         {topLevelCards.length > 0 && (
           <SectionGroup
             title="Quick Access"

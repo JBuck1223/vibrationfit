@@ -50,11 +50,17 @@ export async function PATCH(request: NextRequest) {
 
     // Only allow updating specific fields
     const allowedFields = [
+      'name',
+      'description',
+      'features',
       'monthly_token_grant',
       'annual_token_grant',
       'storage_quota_gb',
       'price_monthly',
       'price_yearly',
+      'included_seats',
+      'max_household_members',
+      'rollover_max_cycles',
       'is_active',
     ]
 

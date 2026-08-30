@@ -4,6 +4,19 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe/config'
 import { toTitleCase } from '@/lib/utils'
 import { triggerEvent } from '@/lib/messaging/events'
+import { getFamilyActivationAmount } from '@/lib/billing/products'
+import {
+  getActiveMembershipSubscription,
+  isPayPalSubscription,
+  getVaultMethod,
+  remainingCycleFraction,
+  chargeMemberVault,
+  recomputeSubscriptionAmount,
+} from '@/lib/paypal/vault-billing'
+
+function tierBaseAmount(tier: { billing_interval?: string | null; price_monthly?: number | null; price_yearly?: number | null }): number {
+  return tier.billing_interval === 'year' ? (tier.price_yearly || 0) : (tier.price_monthly || 0)
+}
 
 const TIER_TYPE_TO_ENV_KEY: Record<string, string> = {
   vision_pro_annual: 'STRIPE_PRICE_ANNUAL',
@@ -28,10 +41,6 @@ function resolveStripePriceId(tier: { stripe_price_id: string | null; tier_type:
 
 export async function POST(request: NextRequest) {
   try {
-    if (!stripe) {
-      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
-    }
-
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
@@ -55,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const { data: targetTier } = await supabase
       .from('membership_tiers')
-      .select('id, name, stripe_price_id, tier_type, billing_interval, plan_category, is_household_plan')
+      .select('id, name, stripe_price_id, tier_type, billing_interval, plan_category, is_household_plan, price_monthly, price_yearly')
       .eq('id', targetTierId)
       .eq('is_active', true)
       .maybeSingle()
@@ -64,21 +73,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Target plan not found' }, { status: 404 })
     }
 
-    const stripePriceId = resolveStripePriceId(targetTier)
-    if (!stripePriceId) {
-      return NextResponse.json({ error: 'Stripe price not configured for this plan' }, { status: 400 })
-    }
+    const serviceClientForSub = createServiceClient()
+    const subscription = await getActiveMembershipSubscription(serviceClientForSub, user.id)
 
-    const { data: subscription } = await supabase
-      .from('customer_subscriptions')
-      .select('id, stripe_subscription_id, membership_tier_id')
-      .eq('user_id', user.id)
-      .in('status', ['active', 'trialing'])
-      .not('stripe_subscription_id', 'is', null)
-      .limit(1)
-      .maybeSingle()
-
-    if (!subscription?.stripe_subscription_id) {
+    if (!subscription) {
       return NextResponse.json({ error: 'No active subscription found' }, { status: 400 })
     }
 
@@ -86,67 +84,167 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Already on this plan' }, { status: 400 })
     }
 
+    const usePayPal = isPayPalSubscription(subscription)
+
     // Fetch current tier to detect direction of change
     const { data: currentTier } = await supabase
       .from('membership_tiers')
-      .select('id, tier_type, is_household_plan')
+      .select('id, tier_type, is_household_plan, billing_interval, price_monthly, price_yearly')
       .eq('id', subscription.membership_tier_id)
       .maybeSingle()
 
     const isHouseholdToSolo = currentTier?.is_household_plan && !targetTier.is_household_plan
 
-    const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
-    const mainItem = stripeSub.items.data.find(item => {
-      const meta = item.price.metadata || {}
-      return !meta.addon_type
-    })
+    let updatedSubId = subscription.id
 
-    if (!mainItem) {
-      return NextResponse.json({ error: 'Unable to find main subscription item' }, { status: 500 })
-    }
+    if (usePayPal) {
+      // ── PayPal / DB-driven: day-based proration charged via vaulted card ──
+      const newBase = tierBaseAmount(targetTier)
+      const oldBase = currentTier ? tierBaseAmount(currentTier) : (subscription.amount_cents || 0)
+      const intervalChanged = (currentTier?.billing_interval || 'month') !== (targetTier.billing_interval || 'month')
+      const newIntervalDays = targetTier.billing_interval === 'year' ? 365 : 28
+      const fraction = remainingCycleFraction(subscription)
 
-    // If downgrading from household to solo, remove seat add-on items first
-    const itemsToUpdate: any[] = []
-    if (isHouseholdToSolo) {
-      for (const item of stripeSub.items.data) {
-        if (item.id !== mainItem.id) {
-          itemsToUpdate.push({ id: item.id, deleted: true })
+      // Immediate charge: upgrades pay the difference for the remaining cycle;
+      // interval changes pay the new period minus credit for unused time.
+      // Downgrades and trialing subs charge nothing now.
+      let immediateCharge = 0
+      if (subscription.status !== 'trialing') {
+        immediateCharge = intervalChanged
+          ? Math.max(0, Math.round(newBase - oldBase * fraction))
+          : Math.max(0, Math.round((newBase - oldBase) * fraction))
+      }
+
+      if (immediateCharge > 0) {
+        const vault = await getVaultMethod(serviceClientForSub, user.id, subscription.payment_method_id)
+        if (!vault) {
+          return NextResponse.json({
+            error: 'No payment method on file. Please update your card in Billing first.',
+          }, { status: 402 })
+        }
+        try {
+          await chargeMemberVault({
+            serviceClient: serviceClientForSub,
+            userId: user.id,
+            subscriptionId: subscription.id,
+            vault,
+            amountCents: immediateCharge,
+            description: `Plan change to ${targetTier.name} — prorated`,
+            requestId: `plan-change-${subscription.id}-${targetTierId}-${subscription.next_billing_at || 'trial'}`,
+            metadata: { from_tier: currentTier?.tier_type, to_tier: targetTier.tier_type },
+          })
+        } catch (err: any) {
+          return NextResponse.json({
+            error: `Plan change charge failed: ${err?.message || 'Card declined'}`,
+          }, { status: 402 })
         }
       }
-    }
 
-    let updatedSub: Awaited<ReturnType<typeof stripe.subscriptions.update>>
+      // Downgrading to solo removes paid seat add-ons
+      if (isHouseholdToSolo) {
+        await serviceClientForSub
+          .from('subscription_addons')
+          .update({ status: 'canceled', updated_at: new Date().toISOString() })
+          .eq('subscription_id', subscription.id)
+          .eq('addon_type', 'seat')
+          .eq('status', 'active')
+      }
 
-    try {
-      updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-        items: [
-          { id: mainItem.id, price: stripePriceId },
-          ...itemsToUpdate,
-        ],
-        proration_behavior: 'create_prorations',
-        cancel_at_period_end: false,
-      })
-    } catch {
-      updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-        items: [
-          { id: mainItem.id, deleted: true },
-          { price: stripePriceId },
-          ...itemsToUpdate,
-        ],
-        proration_behavior: 'create_prorations',
-        cancel_at_period_end: false,
-      })
-    }
-
-    await supabase
-      .from('customer_subscriptions')
-      .update({
+      const subUpdate: Record<string, any> = {
         membership_tier_id: targetTierId,
-        stripe_price_id: stripePriceId,
+        billing_interval_days: newIntervalDays,
         cancel_at_period_end: false,
         canceled_at: null,
+        updated_at: new Date().toISOString(),
+      }
+      // Interval change on a paid sub: the new full period was just charged,
+      // so the cycle restarts now. Same-interval changes keep their dates.
+      if (intervalChanged && subscription.status !== 'trialing') {
+        const periodEnd = new Date(Date.now() + newIntervalDays * 24 * 60 * 60 * 1000)
+        subUpdate.current_period_start = new Date().toISOString()
+        subUpdate.current_period_end = periodEnd.toISOString()
+        subUpdate.next_billing_at = periodEnd.toISOString()
+      }
+
+      await serviceClientForSub
+        .from('customer_subscriptions')
+        .update(subUpdate)
+        .eq('id', subscription.id)
+
+      await serviceClientForSub
+        .from('user_accounts')
+        .update({ membership_tier_id: targetTierId })
+        .eq('id', user.id)
+
+      // amount_cents = new tier base + surviving active add-ons
+      await recomputeSubscriptionAmount(serviceClientForSub, subscription.id)
+    } else {
+      // ── Stripe (legacy subscriptions) ──
+      if (!stripe) {
+        return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
+      }
+      const stripePriceId = resolveStripePriceId(targetTier)
+      if (!stripePriceId) {
+        return NextResponse.json({ error: 'Stripe price not configured for this plan' }, { status: 400 })
+      }
+      if (!subscription.stripe_subscription_id) {
+        return NextResponse.json({ error: 'No active subscription found' }, { status: 400 })
+      }
+
+      const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
+      const mainItem = stripeSub.items.data.find(item => {
+        const meta = item.price.metadata || {}
+        return !meta.addon_type
       })
-      .eq('id', subscription.id)
+
+      if (!mainItem) {
+        return NextResponse.json({ error: 'Unable to find main subscription item' }, { status: 500 })
+      }
+
+      // If downgrading from household to solo, remove seat add-on items first
+      const itemsToUpdate: any[] = []
+      if (isHouseholdToSolo) {
+        for (const item of stripeSub.items.data) {
+          if (item.id !== mainItem.id) {
+            itemsToUpdate.push({ id: item.id, deleted: true })
+          }
+        }
+      }
+
+      let updatedSub: Awaited<ReturnType<typeof stripe.subscriptions.update>>
+
+      try {
+        updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+          items: [
+            { id: mainItem.id, price: stripePriceId },
+            ...itemsToUpdate,
+          ],
+          proration_behavior: 'create_prorations',
+          cancel_at_period_end: false,
+        })
+      } catch {
+        updatedSub = await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+          items: [
+            { id: mainItem.id, deleted: true },
+            { price: stripePriceId },
+            ...itemsToUpdate,
+          ],
+          proration_behavior: 'create_prorations',
+          cancel_at_period_end: false,
+        })
+      }
+      updatedSubId = updatedSub.id
+
+      await supabase
+        .from('customer_subscriptions')
+        .update({
+          membership_tier_id: targetTierId,
+          stripe_price_id: stripePriceId,
+          cancel_at_period_end: false,
+          canceled_at: null,
+        })
+        .eq('id', subscription.id)
+    }
 
     // Handle household dissolution when downgrading to solo
     let householdDissolved = false
@@ -239,8 +337,8 @@ export async function POST(request: NextRequest) {
       try {
         const serviceClient = createServiceClient()
 
-        // Handle Stripe charge if amount > 0
-        let finalAmount = intensiveAmount ?? 19900
+        // Charge if amount > 0 (via vault for PayPal, invoice for Stripe)
+        let finalAmount = intensiveAmount ?? await getFamilyActivationAmount()
         if (promoCode) {
           const { validateCouponCode, calculateDiscount } = await import('@/lib/billing/coupons')
           const couponResult = await validateCouponCode(promoCode, {
@@ -253,7 +351,22 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (finalAmount > 0 && stripe) {
+        if (finalAmount > 0 && usePayPal) {
+          const vault = await getVaultMethod(serviceClient, user.id, subscription.payment_method_id)
+          if (!vault) {
+            throw new Error('No payment method on file for intensive charge')
+          }
+          await chargeMemberVault({
+            serviceClient,
+            userId: user.id,
+            subscriptionId: subscription.id,
+            vault,
+            amountCents: finalAmount,
+            description: 'Activation Intensive (household upgrade)',
+            requestId: `upgrade-intensive-${subscription.id}-${partnerId}`,
+            metadata: { partner_id: partnerId, source: 'plan_change' },
+          })
+        } else if (finalAmount > 0 && stripe) {
           const { data: sub } = await serviceClient
             .from('customer_subscriptions')
             .select('stripe_customer_id')
@@ -355,7 +468,7 @@ export async function POST(request: NextRequest) {
       success: true,
       newTier: targetTier.name,
       newTierType: targetTier.tier_type,
-      subscriptionId: updatedSub.id,
+      subscriptionId: updatedSubId,
       householdCreated,
       partnerInvited,
       partnerId,
@@ -451,10 +564,6 @@ async function createHouseholdForUser(userId: string, email: string): Promise<bo
  */
 export async function GET(request: NextRequest) {
   try {
-    if (!stripe) {
-      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
-    }
-
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
@@ -469,13 +578,55 @@ export async function GET(request: NextRequest) {
 
     const { data: targetTier } = await supabase
       .from('membership_tiers')
-      .select('stripe_price_id, tier_type')
+      .select('id, name, stripe_price_id, tier_type, billing_interval, price_monthly, price_yearly')
       .eq('id', targetTierId)
       .eq('is_active', true)
       .maybeSingle()
 
     if (!targetTier) {
       return NextResponse.json({ error: 'Target plan not found' }, { status: 404 })
+    }
+
+    // ── PayPal / DB-driven preview: same day-based math the POST charges ──
+    const serviceClientForSub = createServiceClient()
+    const dbSub = await getActiveMembershipSubscription(serviceClientForSub, user.id)
+    if (dbSub && isPayPalSubscription(dbSub)) {
+      const { data: currentTier } = await supabase
+        .from('membership_tiers')
+        .select('billing_interval, price_monthly, price_yearly')
+        .eq('id', dbSub.membership_tier_id)
+        .maybeSingle()
+
+      const newBase = tierBaseAmount(targetTier)
+      const oldBase = currentTier ? tierBaseAmount(currentTier) : (dbSub.amount_cents || 0)
+      const intervalChanged = (currentTier?.billing_interval || 'month') !== (targetTier.billing_interval || 'month')
+      const fraction = remainingCycleFraction(dbSub)
+
+      let immediateAmount = 0
+      let description: string
+      if (dbSub.status === 'trialing') {
+        description = `Switch to ${targetTier.name} — new rate starts when billing begins`
+      } else if (intervalChanged) {
+        immediateAmount = Math.max(0, Math.round(newBase - oldBase * fraction))
+        description = `${targetTier.name} (credit applied for unused time on current plan)`
+      } else {
+        immediateAmount = Math.max(0, Math.round((newBase - oldBase) * fraction))
+        description = immediateAmount > 0
+          ? `${targetTier.name} — prorated for the rest of the current cycle`
+          : `Switch to ${targetTier.name} — new rate starts at next renewal`
+      }
+
+      return NextResponse.json({
+        prorationAmount: immediateAmount,
+        currency: 'usd',
+        immediateAmount,
+        lines: [{ description, amount: immediateAmount }],
+      })
+    }
+
+    // ── Stripe (legacy subscriptions) ──
+    if (!stripe) {
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
     }
 
     const resolvedPriceId = resolveStripePriceId(targetTier)

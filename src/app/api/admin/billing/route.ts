@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAccess } from '@/lib/supabase/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { fetchStripeRevenueByUser } from '@/lib/billing/stripe-revenue'
+import { fetchPayPalRevenueByUser } from '@/lib/billing/paypal-revenue'
 
 const PAGE_SIZE = 1000
 const MAX_ROWS = 50000
@@ -145,12 +146,20 @@ export async function GET(request: NextRequest) {
         if (row.created_at > agg.last_activity) agg.last_activity = row.created_at
       }
 
-      // Real revenue from Stripe charges in the range (net of refunds).
-      // Run alongside the account lookup; members with revenue but no AI
-      // usage still need to appear in the profitability view.
-      const stripeRevenue = await fetchStripeRevenueByUser(supabase, startIso, endIso)
+      // Real revenue in the range (net of refunds): Stripe charges (legacy
+      // subscribers) plus PayPal charges from our own orders/payment_history.
+      // Members with revenue but no AI usage still need to appear in the
+      // profitability view.
+      const [stripeRevenue, paypalRevenue] = await Promise.all([
+        fetchStripeRevenueByUser(supabase, startIso, endIso),
+        fetchPayPalRevenueByUser(supabase, startIso, endIso),
+      ])
 
-      for (const userId of stripeRevenue.byUser.keys()) {
+      const revenueUserIds = new Set([
+        ...stripeRevenue.byUser.keys(),
+        ...paypalRevenue.byUser.keys(),
+      ])
+      for (const userId of revenueUserIds) {
         if (!byUser.has(userId)) {
           byUser.set(userId, {
             user_id: userId,
@@ -186,10 +195,12 @@ export async function GET(request: NextRequest) {
           const account = agg.user_id ? accounts.get(agg.user_id) : null
           const tier = account?.membership_tiers || null
 
-          // Real Stripe revenue when available; tier-prorated as fallback
+          // Real charge revenue when available; tier-prorated as fallback
           let revenueCentsForRange: number
-          if (stripeRevenue.available) {
-            revenueCentsForRange = agg.user_id ? stripeRevenue.byUser.get(agg.user_id) || 0 : 0
+          if (stripeRevenue.available || paypalRevenue.available) {
+            revenueCentsForRange = agg.user_id
+              ? (stripeRevenue.byUser.get(agg.user_id) || 0) + (paypalRevenue.byUser.get(agg.user_id) || 0)
+              : 0
           } else if (tier) {
             revenueCentsForRange =
               tier.billing_interval === 'year' && tier.price_yearly
@@ -221,9 +232,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         users,
         totals,
-        revenue_source: stripeRevenue.available ? 'stripe' : 'tier_prorated',
+        revenue_source:
+          stripeRevenue.available || paypalRevenue.available
+            ? [
+                ...(stripeRevenue.available ? ['stripe'] : []),
+                ...(paypalRevenue.available ? ['paypal'] : []),
+              ].join('+')
+            : 'tier_prorated',
         stripe_unmapped_cents: stripeRevenue.available ? stripeRevenue.unmappedCents : null,
         stripe_error: stripeRevenue.error || null,
+        paypal_error: paypalRevenue.error || null,
         start: startIso,
         end: endIso,
         days,

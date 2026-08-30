@@ -1,36 +1,58 @@
-# Agent Quick Start - Building Pages Perfectly
+# Agent Quick Start — Building Pages
 
-## 🚀 One-Command Page Building
+## Studio area (multiple routes) — copy this
 
-When building a new page, use this template and follow these rules:
+Layout (`src/app/your-area/layout.tsx`): AreaBar outside `<main>`. See `rules/STUDIO_PAGE_BUILDING_RULES.md`. Register `/your-area` in `STUDIO_ROUTE_PREFIXES`.
+
+Page inside the studio:
 
 ```tsx
 'use client'
 
-import { Container, Card, Button, Spinner } from '@/lib/design-system/components'
+import { Container, Stack, Card } from '@/lib/design-system/components'
 
 export default function YourPage() {
   return (
     <Container size="xl">
-      {/* Your content */}
+      <Stack gap="lg">
+        <Card>Content — no PageHero, AreaBar is the header</Card>
+      </Stack>
     </Container>
   )
 }
 ```
 
-## ✅ The 3 Non-Negotiable Rules
+Admin is already a studio. Never add a boxed header on `/admin/*`.
 
-1. **NO PageLayout** - GlobalLayout provides it automatically
-2. **Container has NO padding** - Uses PageLayout's padding automatically  
-3. **Mobile-first ALWAYS** - Responsive everything
+## Standalone page (single route)
 
+```tsx
+'use client'
 
-## 📚 Full Guides - MUST READ
+import { Container, Stack, PageHero, Card, Button } from '@/lib/design-system/components'
 
-- **Complete Guide**: `docs/AGENT_PAGE_BUILDING_GUIDE.md`
-- **Page Rules**: `rules/PAGE_BUILDING_RULES.md`
-- **Mobile Rules**: `rules/mobile-design-rules.md`
+export default function YourPage() {
+  return (
+    <Container size="xl">
+      <Stack gap="lg">
+        <PageHero title="Page title" subtitle="Optional">
+          <Button size="sm">Action</Button>
+        </PageHero>
+        <Card>Content</Card>
+      </Stack>
+    </Container>
+  )
+}
+```
 
----
+`PageHero` is a slim left-aligned title row — not a gradient card.
 
-**Remember**: Copy the template above, follow the 3 rules, make everything responsive. That's it!
+## Non-negotiable
+
+1. **NO PageLayout** — GlobalLayout already provides it
+2. **NO boxed / gradient PageHero** — that pattern is retired
+3. **NO PageHero inside a studio** — AreaBar is the chrome
+4. Container has **no** padding — PageLayout / studio `<main>` own it
+5. Mobile-first
+
+Full rules: `rules/PAGE_BUILDING_RULES.md` · `rules/STUDIO_PAGE_BUILDING_RULES.md`

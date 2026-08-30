@@ -334,6 +334,7 @@ export const adminNavigation: NavItem[] = [
       { name: 'Members List', href: '/admin/crm/members', icon: UserCheck, description: 'All users with engagement, revenue, and actions' },
       { name: 'Members Board', href: '/admin/crm/members/board', icon: Kanban, description: 'Kanban board for members' },
       { name: 'Orders', href: '/admin/orders', icon: ShoppingCart, description: 'Order status & email delivery pipeline' },
+      { name: 'Products & Pricing', href: '/admin/products', icon: ShoppingCart, description: 'All products, prices, and checkout links — database-driven' },
       { name: 'Membership Tiers', href: '/admin/membership-tiers', icon: Layers, description: 'Token grants & storage quotas' },
       { name: 'Token Analytics', href: '/admin/token-usage', icon: BarChart3, description: 'User token usage analytics' },
       { name: 'Member Storage', href: '/admin/member-storage', icon: HardDrive, description: 'Browse member uploaded files and storage' },

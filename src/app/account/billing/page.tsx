@@ -11,6 +11,7 @@ import HouseholdSection from '@/components/billing/HouseholdSection'
 import PaymentMethodsList from '@/components/billing/PaymentMethodsList'
 import InvoiceHistory from '@/components/billing/InvoiceHistory'
 import AddCardForm from '@/components/billing/AddCardForm'
+import PayPalAddCardForm from '@/components/billing/PayPalAddCardForm'
 import CancelMembershipDialog from '@/components/billing/CancelMembershipDialog'
 
 type IntensiveBillingData = {
@@ -126,6 +127,13 @@ function BillingContent() {
     }
   }
 
+  // PayPal members save cards through the vault flow; Stripe members keep the
+  // Stripe SetupIntent form. Without a subscription, follow the site gateway.
+  const subscriptionProvider: string | null = membership?.subscription?.provider || null
+  const usePayPalCardForm = subscriptionProvider
+    ? subscriptionProvider === 'paypal'
+    : process.env.NEXT_PUBLIC_PAYMENT_GATEWAY !== 'stripe'
+
   if (loading) {
     return (
       <Container size="xl">
@@ -172,11 +180,19 @@ function BillingContent() {
           onAddCard={() => setShowAddCard(true)}
         />
 
-        <AddCardForm
-          isOpen={showAddCard}
-          onClose={() => setShowAddCard(false)}
-          onSuccess={fetchAll}
-        />
+        {usePayPalCardForm ? (
+          <PayPalAddCardForm
+            isOpen={showAddCard}
+            onClose={() => setShowAddCard(false)}
+            onSuccess={fetchAll}
+          />
+        ) : (
+          <AddCardForm
+            isOpen={showAddCard}
+            onClose={() => setShowAddCard(false)}
+            onSuccess={fetchAll}
+          />
+        )}
 
         <InvoiceHistory invoices={invoices} />
       </Stack>

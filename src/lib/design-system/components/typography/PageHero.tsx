@@ -3,12 +3,8 @@
 import React from 'react'
 import { cn } from '../shared-utils'
 
-// ============================================================================
-// PAGE HERO COMPONENT
-// 🔒 LOCKED - See FEATURE_REGISTRY.md before modifying
-// Current padding: 24px mobile (p-6), 32px desktop (lg:p-8)
-// DO NOT modify internal padding - manage spacing at page level
-// ============================================================================
+// Slim page title row. Not a card, not a marketing hero.
+// Studio pages should use AreaBar instead — do not render this inside a studio layout.
 
 export interface PageHeroProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   eyebrow?: React.ReactNode
@@ -32,52 +28,31 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
     return (
       <div
         ref={ref}
-        className={cn(className)}
+        className={cn('space-y-3', className)}
         {...props}
       >
-        {/* Subtle Gradient Border */}
-        <div className="relative p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/30 via-[#14B8A6]/20 to-[#BF00FF]/30">
-          {/* Modern Enhanced Layout with Card Container */}
-          <div className="relative p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-            
-            <div className="relative z-10">
-              {/* Eyebrow */}
-              {eyebrow && (
-                <div className="text-center mb-4">
-                  <div className="text-[10px] md:text-xs uppercase tracking-[0.35em] text-primary-500/80 font-semibold">
-                    {eyebrow}
-                  </div>
-                </div>
-              )}
-              
-              {/* Title Section */}
-              <div className={cn("text-center", subtitle || children ? "mb-4" : "")}>
-                <h1 className="text-2xl md:text-5xl font-bold leading-tight text-white">
-                  {title}
-                </h1>
-              </div>
-              
-              {/* Subtitle */}
-              {subtitle && (
-                <div className={cn("text-center", children ? "mb-4" : "")}>
-                  <p className="text-xs md:text-lg text-neutral-300">
-                    {subtitle}
-                  </p>
-                </div>
-              )}
-
-              {/* Custom Children (video, buttons, etc.) - consistent mobile button width site-wide */}
-              {children && (
-                <div className="flex flex-col items-stretch md:items-center space-y-4 md:space-y-4 lg:space-y-6 w-full [&_button]:w-full [&_button]:md:w-auto">
-                  {children}
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="min-w-0">
+          {eyebrow && (
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
+              {eyebrow}
+            </p>
+          )}
+          <h1 className="text-lg font-semibold leading-tight text-white md:text-2xl">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-1 max-w-2xl text-sm text-neutral-400">
+              {subtitle}
+            </p>
+          )}
         </div>
+        {children && (
+          <div className="flex flex-wrap items-center gap-2">
+            {children}
+          </div>
+        )}
       </div>
     )
   }
 )
 PageHero.displayName = 'PageHero'
-

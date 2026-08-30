@@ -249,6 +249,44 @@ export async function GET() {
       await Promise.all(tasks)
     }
 
+    // PayPal DB-driven subscriptions: card + next payment come from our own DB
+    if (subscription.provider === 'paypal') {
+      const admin = createAdminClient()
+      const pmQuery = admin
+        .from('payment_methods')
+        .select('id, brand, last4, expiry')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+      const { data: pm } = subscription.payment_method_id
+        ? await pmQuery.eq('id', subscription.payment_method_id).maybeSingle()
+        : await pmQuery.eq('is_default', true).limit(1).maybeSingle()
+
+      if (pm) {
+        const [expYearStr, expMonthStr] = (pm.expiry || '').split('-')
+        defaultPaymentMethod = {
+          id: pm.id,
+          brand: pm.brand ? pm.brand.toLowerCase() : null,
+          last4: pm.last4 || null,
+          expMonth: expMonthStr ? parseInt(expMonthStr, 10) : null,
+          expYear: expYearStr ? parseInt(expYearStr, 10) : null,
+        }
+      }
+
+      if (subscription.next_billing_at && subscription.amount_cents && !subscription.cancel_at_period_end) {
+        upcomingInvoice = {
+          amountDue: subscription.amount_cents,
+          currency: 'usd',
+          periodEnd: subscription.next_billing_at,
+          nextPaymentAttempt: subscription.next_billing_at,
+          lines: [{
+            description: tierData?.name || 'Membership renewal',
+            amount: subscription.amount_cents,
+            currency: 'usd',
+          }],
+        }
+      }
+    }
+
     return NextResponse.json({
       subscription: {
         id: subscription.id,
@@ -267,6 +305,7 @@ export async function GET() {
         canceledAt: subscription.canceled_at,
         neverActivated,
         stripeSubscriptionId: subscription.stripe_subscription_id,
+        provider: subscription.provider || (subscription.stripe_subscription_id ? 'stripe' : 'paypal'),
         tier: tierData,
         discount,
       },

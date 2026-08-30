@@ -6,7 +6,16 @@ import { Home, User, UserPlus, Mail, X, Zap, Tag, Check, Loader2, Sparkles } fro
 import { formatPrice, PRICING } from '@/lib/billing/config'
 import { toast } from 'sonner'
 
-const INTENSIVE_PRICE = 19900 // Family Activation Intensive (one-time per additional member)
+// Fallbacks while /api/billing/household-pricing loads (DB is authoritative)
+const DEFAULT_PRICING = {
+  includedSeats: 2,
+  maxHouseholdMembers: 6,
+  seatPrice28day: PRICING.ADDON_28DAY,
+  seatPriceAnnual: PRICING.ADDON_ANNUAL,
+  familyActivationPrice: 19900,
+}
+
+type HouseholdPricing = typeof DEFAULT_PRICING
 
 type CouponValidation = {
   valid: boolean
@@ -79,6 +88,16 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
   const [cancelingId, setCancelingId] = useState<string | null>(null)
 
   const [memberIntensives, setMemberIntensives] = useState<MemberIntensive[]>([])
+  const [pricing, setPricing] = useState<HouseholdPricing>(DEFAULT_PRICING)
+
+  useEffect(() => {
+    fetch('/api/billing/household-pricing')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data && typeof data.includedSeats === 'number') setPricing(data)
+      })
+      .catch(() => {})
+  }, [])
 
   const fetchIntensiveStatus = useCallback(async () => {
     if (!data?.household?.id) return
@@ -103,15 +122,17 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
   const activeMembers = members?.filter((m: Member) => m.status === 'active') || []
   const pendingInvitations = invitations?.filter((i: Invitation) => i.status === 'pending') || []
   const totalOccupied = activeMembers.length + pendingInvitations.length
-  const INCLUDED_SEATS = 2
+  const INCLUDED_SEATS = pricing.includedSeats
+  const INTENSIVE_PRICE = pricing.familyActivationPrice
   const paidSeats = Math.max(0, totalOccupied - INCLUDED_SEATS)
 
-  const seatPrice = billingInterval === 'year' ? PRICING.ADDON_ANNUAL : PRICING.ADDON_28DAY
+  const seatPrice = billingInterval === 'year' ? pricing.seatPriceAnnual : pricing.seatPrice28day
   const seatIntervalLabel = billingInterval === 'year' ? ' per year' : ' every 28 days'
   const willNeedPaidSeat = totalOccupied + 1 > INCLUDED_SEATS
-  // Household plans include 2 Activation Intensives + 2 seats: an included
+  const atMaxMembers = totalOccupied + 1 > pricing.maxHouseholdMembers
+  // Household plans include intensives for the included seats: an included
   // seat gets its intensive at no charge. Additional members are a Family
-  // Activation: $199 one-time + a recurring seat.
+  // Activation: one-time charge + a recurring seat. All prices from the DB.
   const isIncludedSeat = !willNeedPaidSeat
 
   const intensiveDiscount = couponResult?.valid ? (couponResult.discountAmount || 0) : 0
@@ -322,16 +343,22 @@ export default function HouseholdSection({ data, billingInterval, onRefresh }: P
       )}
 
       {isAdmin && !showAddForm && (
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowAddForm(true)}
+            disabled={atMaxMembers}
             className="w-full max-w-sm justify-center md:w-auto md:max-w-none"
           >
             <UserPlus className="w-4 h-4 mr-2" />
             Add Household Member
           </Button>
+          {atMaxMembers && (
+            <p className="text-xs text-neutral-500">
+              Your plan allows up to {pricing.maxHouseholdMembers} household members.
+            </p>
+          )}
         </div>
       )}
 

@@ -46,6 +46,32 @@ async function cancelSingleSubscription(
   const tierName = sub.membership_tiers?.name || sub.membership_tiers?.tier_type || 'subscription'
 
   try {
+    // DB-driven subscriptions (PayPal / manual grants): no gateway object to
+    // cancel — flipping the row stops the billing cron.
+    if (!stripeSubId) {
+      if (immediate) {
+        await adminDb
+          .from('customer_subscriptions')
+          .update({ status: 'canceled', next_billing_at: null, canceled_at: new Date().toISOString() })
+          .eq('id', sub.id)
+        await adminDb
+          .from('user_storage')
+          .delete()
+          .eq('subscription_id', sub.id)
+      } else {
+        await adminDb
+          .from('customer_subscriptions')
+          .update({ cancel_at_period_end: true, canceled_at: new Date().toISOString() })
+          .eq('id', sub.id)
+      }
+      return {
+        subscriptionId: sub.id,
+        stripeSubscriptionId: '',
+        tierName,
+        status: immediate ? 'canceled' : 'cancel_at_period_end',
+      }
+    }
+
     if (!stripe) throw new Error('Stripe not configured')
 
     let stripeStatus: string

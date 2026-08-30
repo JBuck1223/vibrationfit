@@ -20,10 +20,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
-  if (!stripe) {
-    return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
-  }
-
   const { orderId, amount, reason, itemIds } = await request.json()
 
   if (!orderId) {
@@ -34,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   const { data: order, error: orderError } = await adminDb
     .from('orders')
-    .select('id, user_id, total_amount, currency, status, stripe_payment_intent_id, stripe_checkout_session_id, metadata')
+    .select('id, user_id, total_amount, currency, status, provider, paypal_capture_id, stripe_payment_intent_id, stripe_checkout_session_id, metadata')
     .eq('id', orderId)
     .single()
 
@@ -46,22 +42,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Order is already fully refunded' }, { status: 400 })
   }
 
+  const isPayPalOrder = order.provider === 'paypal'
+
   let paymentIntentId = order.stripe_payment_intent_id
 
-  if (!paymentIntentId && order.stripe_checkout_session_id) {
-    try {
-      const session = await stripe.checkout.sessions.retrieve(order.stripe_checkout_session_id)
-      paymentIntentId = session.payment_intent as string
-    } catch {
-      // fall through
+  if (isPayPalOrder) {
+    if (!order.paypal_capture_id) {
+      return NextResponse.json(
+        { error: 'No PayPal capture found for this order. Refund must be processed in the PayPal dashboard.' },
+        { status: 400 },
+      )
     }
-  }
+  } else {
+    if (!stripe) {
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
+    }
 
-  if (!paymentIntentId) {
-    return NextResponse.json(
-      { error: 'No payment intent found for this order. Refund must be processed directly in Stripe.' },
-      { status: 400 },
-    )
+    if (!paymentIntentId && order.stripe_checkout_session_id) {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(order.stripe_checkout_session_id)
+        paymentIntentId = session.payment_intent as string
+      } catch {
+        // fall through
+      }
+    }
+
+    if (!paymentIntentId) {
+      return NextResponse.json(
+        { error: 'No payment intent found for this order. Refund must be processed directly in Stripe.' },
+        { status: 400 },
+      )
+    }
   }
 
   // Line-item refund: calculate amount from selected items
@@ -108,15 +119,30 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const refund = await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      amount: refundAmount,
-      reason: (reason as 'duplicate' | 'fraudulent' | 'requested_by_customer') || 'requested_by_customer',
-    })
+    let refundId: string
+    if (isPayPalOrder) {
+      const { refundCapture } = await import('@/lib/paypal/orders')
+      const ppRefund = await refundCapture({
+        captureId: order.paypal_capture_id!,
+        // Full-order refunds omit the amount so PayPal refunds whatever remains
+        ...(refundAmount < order.total_amount || refundedItemIds.length > 0
+          ? { amountCents: refundAmount, currency: order.currency || 'usd' }
+          : {}),
+        note: typeof reason === 'string' ? reason : undefined,
+      })
+      refundId = ppRefund.id
+    } else {
+      const refund = await stripe!.refunds.create({
+        payment_intent: paymentIntentId,
+        amount: refundAmount,
+        reason: (reason as 'duplicate' | 'fraudulent' | 'requested_by_customer') || 'requested_by_customer',
+      })
+      refundId = refund.id
+    }
 
     const existingRefunds = order.metadata?.refunds || []
     const refundRecord = {
-      refund_id: refund.id,
+      refund_id: refundId,
       amount: refundAmount,
       item_ids: refundedItemIds.length > 0 ? refundedItemIds : null,
       type: refundedItemIds.length > 0 ? 'line_item' : (isPartial ? 'partial' : 'full'),
@@ -129,9 +155,10 @@ export async function POST(request: NextRequest) {
       .from('orders')
       .update({
         status: newStatus,
+        ...(isPayPalOrder ? { paypal_refund_id: refundId } : {}),
         metadata: {
           ...(order.metadata || {}),
-          refund_id: refund.id,
+          refund_id: refundId,
           refund_amount: refundAmount,
           refund_type: refundedItemIds.length > 0 ? 'line_item' : (isPartial ? 'partial' : 'full'),
           refunded_at: new Date().toISOString(),
@@ -175,7 +202,7 @@ export async function POST(request: NextRequest) {
       type: 'refund',
       title: `Refund Processed: ${customerName}`,
       body: `${refundTypeLabel} refund of ${amountStr} for order ${orderId.slice(0, 8)}...`,
-      metadata: { orderId, userId: order.user_id, amount: refundAmount, refundId: refund.id, itemIds: refundedItemIds },
+      metadata: { orderId, userId: order.user_id, amount: refundAmount, refundId, itemIds: refundedItemIds },
       link: '/admin/orders',
     }).catch(err => console.error('Refund admin notification error:', err))
 
@@ -185,14 +212,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      refundId: refund.id,
+      refundId,
       amount: refundAmount,
       type: refundedItemIds.length > 0 ? 'line_item' : (isPartial ? 'partial' : 'full'),
-      status: refund.status,
       itemIds: refundedItemIds,
     })
   } catch (err: any) {
-    console.error('Stripe refund error:', err)
+    console.error('Refund error:', err)
     return NextResponse.json(
       { error: err?.message || 'Failed to process refund' },
       { status: 500 },

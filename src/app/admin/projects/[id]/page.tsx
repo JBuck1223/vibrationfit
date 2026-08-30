@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
-import { Container, Card, Button, Input, Stack, PageHero, Spinner, Modal } from '@/lib/design-system/components'
+import { Container, Card, Button, Input, Stack, Spinner, Modal } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import {

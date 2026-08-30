@@ -2,9 +2,11 @@
 
 ## Core Principle
 
-**Studio pages (audio, life-vision, journal, profile, story, vision-board) use a different layout pattern than regular pages.** The AreaBar must be full-width on mobile, so studio layouts own their own padding instead of relying on PageLayout.
+**Studio pages (admin, audio, life-vision, journal, profile, story, vision-board, account, map, …) use a different layout pattern than standalone pages.** The AreaBar must be full-width on mobile, so studio layouts own their own padding instead of relying on PageLayout.
 
-Regular pages follow PAGE_BUILDING_RULES.md. Studio pages follow these rules.
+Standalone pages follow PAGE_BUILDING_RULES.md. Studio pages follow these rules.
+
+AreaBar **is** the page header. Do not add `PageHero`, `PageHeader`, or any boxed title card on pages inside a studio.
 
 ---
 
@@ -97,18 +99,13 @@ export default function YourStudioLayout({ children }: { children: React.ReactNo
 
 ## Pages Inside Studio Layouts
 
-Pages rendered inside a studio layout still follow the standard Container + Stack pattern from PAGE_BUILDING_RULES.md:
+Pages rendered inside a studio layout use Container + Stack only — **no PageHero**:
 
 ```tsx
 export default function YourStudioPage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="THE LIFE I CHOOSE"
-          title="Page Title"
-          subtitle="Description"
-        />
         <Card>Content</Card>
       </Stack>
     </Container>
@@ -116,7 +113,7 @@ export default function YourStudioPage() {
 }
 ```
 
-The `<main>` in the layout provides the outer padding. Container provides width constraints. Stack provides section spacing. Same as always.
+The `<main>` in the layout provides the outer padding. Container provides width constraints. Stack provides section spacing. AreaBar is the header.
 
 ---
 
@@ -193,7 +190,7 @@ FullBleed removes the parent's horizontal padding on mobile. If you need content
 ## Reference Files
 
 - **Studio Route Prefixes**: `src/lib/navigation/page-classifications.ts` (`STUDIO_ROUTE_PREFIXES`)
-- **Studio Layouts**: `src/app/journal/layout.tsx`, `src/app/audio/layout.tsx`, `src/app/life-vision/layout.tsx`, `src/app/profile/layout.tsx`, `src/app/story/layout.tsx`, `src/app/vision-board/layout.tsx`
+- **Studio Layouts**: `src/app/admin/layout.tsx`, `src/app/journal/layout.tsx`, `src/app/audio/layout.tsx`, `src/app/life-vision/layout.tsx`, `src/app/profile/layout.tsx`, `src/app/story/layout.tsx`, `src/app/vision-board/layout.tsx`, `src/app/account/layout.tsx`
 - **FullBleed Component**: `src/lib/design-system/components/layout/FullBleed.tsx`
 - **AreaBar Component**: `src/lib/design-system/components/navigation/AreaBar.tsx`
 - **GlobalLayout**: `src/components/GlobalLayout.tsx`
@@ -217,7 +214,7 @@ StudioProvider
 
 1. **AreaBar outside `<main>`** -- never wrap it in a padding container
 2. **`<main>` owns mobile padding** -- `px-4 md:px-0` with `--content-px: 1rem`
-3. **Pages use Container + Stack** -- same as regular pages inside `<main>`
+3. **Pages use Container + Stack only** -- no PageHero / PageHeader inside a studio
 4. **FullBleed for edge-to-edge** -- wrap any section that needs to break out
 5. **No hardcoded negative margins** -- always use FullBleed with CSS variables
 6. **Re-apply inner padding** -- use `px-4 md:px-0` inside FullBleed for aligned content

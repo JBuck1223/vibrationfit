@@ -330,6 +330,87 @@ export async function resolveStripePriceId(
   return addon?.stripePriceId || undefined
 }
 
+export type SeatPricing = {
+  /** product_prices.id for the seat row (for audit metadata) */
+  priceId: string
+  unitAmount: number
+  currency: string
+}
+
+/**
+ * DB-driven seat price for household add-on members. Source of truth is the
+ * household_addon_* product_prices rows (editable in /admin/products).
+ * Legacy day/28 and calendar-month subs share the 28-day seat price.
+ */
+export async function getSeatPricing(
+  billingInterval: AddonBillingInterval,
+  supabase?: SupabaseClient,
+): Promise<SeatPricing | null> {
+  const sb = await getSupabase(supabase)
+  const addonKey = billingInterval === 'annual' ? 'seat_addon_annual' : 'seat_addon_28day'
+  const productKey = billingInterval === 'annual' ? 'household_addon_annual' : 'household_addon_28day'
+
+  const { data: dbProduct } = await sb
+    .from('products')
+    .select('id')
+    .eq('key', productKey)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (!dbProduct) return null
+
+  const { data: prices } = await sb
+    .from('product_prices')
+    .select('id, unit_amount, currency, metadata')
+    .eq('product_id', dbProduct.id)
+    .eq('is_active', true)
+  const price = prices?.find((p: any) => p.metadata?.addon_key === addonKey) || prices?.[0]
+  if (!price) return null
+
+  return { priceId: price.id, unitAmount: price.unit_amount, currency: price.currency || 'usd' }
+}
+
+/**
+ * DB-driven price for the Family Activation Intensive (one-time charge per
+ * additional household member). Falls back to $199 if the row is missing.
+ */
+export async function getFamilyActivationAmount(supabase?: SupabaseClient): Promise<number> {
+  const sb = await getSupabase(supabase)
+  const { data: dbProduct } = await sb
+    .from('products')
+    .select('id')
+    .eq('key', 'family_activation')
+    .eq('is_active', true)
+    .maybeSingle()
+  if (!dbProduct) return 19900
+
+  const { data: prices } = await sb
+    .from('product_prices')
+    .select('unit_amount, metadata')
+    .eq('product_id', dbProduct.id)
+    .eq('is_active', true)
+  const price = prices?.find((p: any) => p.metadata?.addon_key === 'family_activation') || prices?.[0]
+  return price?.unit_amount ?? 19900
+}
+
+export type HouseholdSeatConfig = {
+  includedSeats: number
+  maxHouseholdMembers: number
+}
+
+/**
+ * Seat limits from the user's membership tier (membership_tiers is
+ * authoritative; falls back to the historical 2-included / 6-max).
+ */
+export function seatConfigFromTier(tier: {
+  included_seats?: number | null
+  max_household_members?: number | null
+} | null | undefined): HouseholdSeatConfig {
+  return {
+    includedSeats: tier?.included_seats ?? 2,
+    maxHouseholdMembers: tier?.max_household_members ?? 6,
+  }
+}
+
 const SEAT_PRICE_KEYS: Record<string, string> = {
   '28day': 'STRIPE_PRICE_SEAT_ADDON_28DAY',
   'month': 'STRIPE_PRICE_SEAT_ADDON_MONTH',

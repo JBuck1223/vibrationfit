@@ -8,11 +8,11 @@
 
 | File | Purpose | When to Use |
 |------|---------|-------------|
-| **AGENT_QUICK_START.md** | Ultra-quick page template + 3 rules | **START HERE!** Every new page |
-| **PAGE_BUILDING_RULES.md** | Complete page building guide | When you need full details |
+| **AGENT_QUICK_START.md** | Studio vs standalone templates | **START HERE!** Every new page |
+| **PAGE_BUILDING_RULES.md** | Page chrome + Container/Stack | When you need full details |
+| **STUDIO_PAGE_BUILDING_RULES.md** | AreaBar layouts (Life Vision, Admin, …) | Any multi-route area |
 | **mobile-design-rules.md** | Mobile-first design requirements | Before building ANY component |
 | **CATEGORY_MAPPING_SYSTEM.md** | 🔒 Category key conversion system | **CRITICAL!** Before using any category keys |
-| **HEADER_DESIGN_GUIDE.md** | Header component patterns | When building page headers |
 
 ---
 
@@ -33,36 +33,27 @@ That's it! 🎉
 
 **All rules are also available in `docs/design-system/` for comprehensive reference:**
 
-- `docs/design-system/AGENT_PAGE_BUILDING_GUIDE.md` - Complete guide
-- `docs/design-system/PAGE_BUILDING_RULES.md` - Full page rules
-- `docs/design-system/mobile-design-rules.md` - Mobile requirements
-- `docs/design-system/MOBILE_DESIGN_SYSTEM_GUIDE.md` - Mobile system
+- `rules/AGENT_QUICK_START.md` - Start here
+- `rules/PAGE_BUILDING_RULES.md` - Chrome + layout
+- `rules/STUDIO_PAGE_BUILDING_RULES.md` - AreaBar studios (including admin)
+- `docs/design-system/PAGE_BUILDING_RULES.md` - Pointer to the canonical rules
 
 ---
 
-## ✅ The 3 Non-Negotiable Rules
+## Non-negotiable
 
-1. **NO PageLayout** - GlobalLayout provides it automatically
-2. **Container has NO padding** - Uses PageLayout's padding automatically
-3. **Mobile-first ALWAYS** - Responsive everything
+1. **NO PageLayout** — GlobalLayout provides it automatically
+2. **NO boxed PageHero** — AreaBar for studios; slim title for standalone pages
+3. **Container has NO padding** — PageLayout / studio `<main>` own it
+4. **Mobile-first ALWAYS**
 
 ---
 
 ## 🎨 Quick Template
 
-```tsx
-'use client'
+Studio pages: AreaBar in the layout, Container + Stack in the page, **no PageHero**.
 
-import { Container, Card, Button, Spinner } from '@/lib/design-system/components'
-
-export default function YourPage() {
-  return (
-    <Container size="xl">
-      {/* Your content */}
-    </Container>
-  )
-}
-```
+Standalone pages: slim `PageHero` (title row) or a plain `h1`. Never a gradient header card.
 
 ---
 

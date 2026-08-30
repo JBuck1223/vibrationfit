@@ -17,7 +17,9 @@ Import from `@/lib/design-system/components`:
 - `GradientButton` for hero sections (gradients: `brand`, `green`, `teal`, `purple`, `cosmic`)
 - `AIButton` for VIVA features
 - `Card` variants: `default`, `elevated`, `outlined`
-- Also: `Input`, `Textarea`, `Badge`, `ProgressBar`, `Spinner`, `Container`, `PageLayout`, `Footer`, `Video`
+- Also: `Input`, `Textarea`, `Badge`, `ProgressBar`, `Spinner`, `Container`, `PageLayout`, `Footer`, `Video`, `AreaBar`, `PageHero`
+- `AreaBar` is the header for studio areas (Life Vision, Admin, Journal, …). See `rules/STUDIO_PAGE_BUILDING_RULES.md`.
+- `PageHero` is a slim left-aligned title row for standalone pages only — never a boxed/gradient hero, never inside a studio layout.
 
 ## Brand Colors
 

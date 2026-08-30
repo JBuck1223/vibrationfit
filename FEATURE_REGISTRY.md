@@ -1,6 +1,6 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** August 8, 2026
+**Last Updated:** August 30, 2026
 **Purpose:** What's locked, what's fragile, and the constraints agents must respect. Feature details live in `docs/features/`; history lives in git.
 
 | Status | Agent action |
@@ -36,7 +36,7 @@ See `.cursor/rules/design-system.mdc` for components, colors, and patterns.
 
 - Buttons always `rounded-full`; colors only from `tokens.ts`; no inline styles
 - Do NOT modify component APIs without checking all usages
-- **PageHero:** do NOT modify its internal padding or add default margins — manage spacing at the page level via `className` (e.g. `<PageHero className="mb-8" />`); keep top/bottom padding equal
+- **PageHero:** slim left-aligned title row (not a boxed gradient hero). Do not restore the old card/gradient-border header. Studio pages use `AreaBar` instead; do not add PageHero inside studio layouts.
 
 ### 🔒 Token System (Creation Credits)
 Financial system. Schema: `token_transactions`, `token_usage`, `ai_model_pricing`. Doc: `docs/architecture/TOKEN_SYSTEM_SIMPLIFIED.md`.

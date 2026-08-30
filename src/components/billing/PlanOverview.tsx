@@ -7,7 +7,8 @@ import { formatPrice, formatTokensShort, formatStorage, PRICING, TOKEN_GRANTS, S
 
 import { toast } from 'sonner'
 
-const PARTNER_INTENSIVE_PRICE = 19900
+// Fallback while /api/billing/household-pricing loads (DB is authoritative)
+const DEFAULT_PARTNER_INTENSIVE_PRICE = 19900
 
 type CouponValidation = {
   valid: boolean
@@ -273,6 +274,18 @@ export default function PlanOverview({
   const [couponLoading, setCouponLoading] = useState(false)
   const [couponResult, setCouponResult] = useState<CouponValidation | null>(null)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [partnerIntensivePrice, setPartnerIntensivePrice] = useState(DEFAULT_PARTNER_INTENSIVE_PRICE)
+
+  useEffect(() => {
+    fetch('/api/billing/household-pricing')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data && typeof data.familyActivationPrice === 'number') {
+          setPartnerIntensivePrice(data.familyActivationPrice)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   if (!subscription || !subscription.tier) {
     return (
@@ -498,7 +511,7 @@ export default function PlanOverview({
         }
         if (includeIntensive) {
           payload.includeIntensive = true
-          payload.intensiveAmount = PARTNER_INTENSIVE_PRICE
+          payload.intensiveAmount = partnerIntensivePrice
           if (couponResult?.valid) payload.promoCode = couponCode.trim()
         }
       }
@@ -561,7 +574,7 @@ export default function PlanOverview({
         body: JSON.stringify({
           code: couponCode.trim(),
           productKey: 'intensive',
-          purchaseAmount: PARTNER_INTENSIVE_PRICE,
+          purchaseAmount: partnerIntensivePrice,
         }),
       })
       const data = await res.json()
@@ -579,7 +592,7 @@ export default function PlanOverview({
   }
 
   const intensiveDiscount = couponResult?.valid ? (couponResult.discountAmount || 0) : 0
-  const intensiveFinal = Math.max(0, PARTNER_INTENSIVE_PRICE - intensiveDiscount)
+  const intensiveFinal = Math.max(0, partnerIntensivePrice - intensiveDiscount)
 
   const resetUpgradeState = () => {
     setUpgradeState('idle')
@@ -884,7 +897,7 @@ export default function PlanOverview({
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-xs text-neutral-300 bg-neutral-900/60 rounded-lg px-3 py-2">
                         <span>Partner Intensive (one-time)</span>
-                        <span className="font-medium text-white">{formatPrice(PARTNER_INTENSIVE_PRICE)}</span>
+                        <span className="font-medium text-white">{formatPrice(partnerIntensivePrice)}</span>
                       </div>
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">

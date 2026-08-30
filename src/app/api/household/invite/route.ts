@@ -62,22 +62,32 @@ export async function POST(request: NextRequest) {
       .eq('household_id', household.id)
       .eq('status', 'active')
 
-    // Household plans include 2 seats. Additional members are a paid Family
-    // Activation ($199 one-time + recurring seat) and must go through the
-    // billed add-household-member flow -- this free path only covers the
-    // included seats.
+    // Household plans include a set number of seats (from the membership
+    // tier). Additional members are a paid Family Activation (one-time +
+    // recurring seat) and must go through the billed add-household-member
+    // flow -- this free path only covers the included seats.
     const { count: pendingCount } = await serviceClient
       .from('household_invitations')
       .select('id', { count: 'exact', head: true })
       .eq('household_id', household.id)
       .eq('status', 'pending')
 
-    const INCLUDED_SEATS = 2
+    const { seatConfigFromTier } = await import('@/lib/billing/products')
+    const { data: subWithTier } = await serviceClient
+      .from('customer_subscriptions')
+      .select('membership_tiers ( included_seats, max_household_members )')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const { includedSeats } = seatConfigFromTier(subWithTier?.membership_tiers as any)
+
     const totalOccupied = (members?.length || 0) + (pendingCount || 0)
-    if (totalOccupied + 1 > INCLUDED_SEATS) {
+    if (totalOccupied + 1 > includedSeats) {
       return NextResponse.json(
         {
-          error: 'Your included seats are full. Additional family members require a Family Activation ($199 one-time + $29 every 28 days). Use "Add Family Member" in Billing to add them.',
+          error: 'Your included seats are full. Additional family members require a Family Activation (one-time charge + a recurring seat). Use "Add Family Member" in Billing to add them.',
           requiresPaidSeat: true,
         },
         { status: 402 },

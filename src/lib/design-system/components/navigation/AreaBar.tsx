@@ -77,8 +77,8 @@ export interface AreaBarProps {
   area: { name: string; icon: LucideIcon }
   /** When set, replaces `area.name` in the main title row (e.g. current page headline) */
   areaHeadline?: string
-  /** Top Nav in Center */
-  tabs: AreaBarTab[]
+  /** Top Nav in Center. Omit or pass [] for a title-only bar. */
+  tabs?: AreaBarTab[]
   /** Context Nav — secondary tab strip rendered below Top Nav */
   contextNav?: AreaBarContextNavItem[]
   /** Sub Nav — subordinate strip rendered below Context Nav (e.g. tools for the active context item) */
@@ -487,7 +487,7 @@ function VersionSelectorSheet({
 export function AreaBar({
   area,
   areaHeadline,
-  tabs,
+  tabs = [],
   contextNav,
   subNav,
   contextEyebrow,
@@ -509,6 +509,7 @@ export function AreaBar({
 
   const AreaIcon = area.icon
   const displayTitle = areaHeadline ?? area.name
+  const hasTabs = tabs.length > 0
   const tabGridCols = GRID_COLS[tabs.length] || 'grid-cols-3'
   const isHero = variant === 'hero'
 
@@ -783,11 +784,13 @@ export function AreaBar({
                 )}
               </div>
               {/* Tabs */}
-              <div className={`px-3 pb-2${useFluidAccountTabs ? ' flex justify-center' : ''}`}>
-                <nav className={appLikePrimaryTabs ? `${appLikeTabNavClass} ${tabGridCols}${useFluidAccountTabs ? ' w-full max-w-lg' : ''}` : `grid ${tabGridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`}>
-                  {renderTabLinks('compact')}
-                </nav>
-              </div>
+              {hasTabs && (
+                <div className={`px-3 pb-2${useFluidAccountTabs ? ' flex justify-center' : ''}`}>
+                  <nav className={appLikePrimaryTabs ? `${appLikeTabNavClass} ${tabGridCols}${useFluidAccountTabs ? ' w-full max-w-lg' : ''}` : `grid ${tabGridCols} p-1 gap-1 rounded-xl bg-black/30 backdrop-blur-sm`}>
+                    {renderTabLinks('compact')}
+                  </nav>
+                </div>
+              )}
               {/* Waterfall rows */}
               {renderWaterfallRows({ isMobile: true })}
             </div>
@@ -822,11 +825,13 @@ export function AreaBar({
               </div>
             )}
             {/* Tabs */}
-            <div className={`w-full min-w-0 px-3 pb-2.5${useFluidAccountTabs ? ' flex justify-center' : ''}`}>
-              <nav className={appLikePrimaryTabs ? `${appLikeTabNavClass} ${tabGridCols}${useFluidAccountTabs ? ' w-full max-w-lg' : ''}` : `grid ${tabGridCols} w-full p-1 gap-1 rounded-xl bg-neutral-900/60`}>
-                {renderTabLinks('compact')}
-              </nav>
-            </div>
+            {hasTabs && (
+              <div className={`w-full min-w-0 px-3 pb-2.5${useFluidAccountTabs ? ' flex justify-center' : ''}`}>
+                <nav className={appLikePrimaryTabs ? `${appLikeTabNavClass} ${tabGridCols}${useFluidAccountTabs ? ' w-full max-w-lg' : ''}` : `grid ${tabGridCols} w-full p-1 gap-1 rounded-xl bg-neutral-900/60`}>
+                  {renderTabLinks('compact')}
+                </nav>
+              </div>
+            )}
             {/* Waterfall rows */}
             {renderWaterfallRows({ isMobile: true })}
           </div>
@@ -903,7 +908,22 @@ export function AreaBar({
         <div className="hidden md:block rounded-2xl border-2 border-[#333] bg-neutral-850">
           {/* Row 1: Title | Tabs | Right */}
           <div className="px-6">
-            {useFluidAccountTabs ? (
+            {!hasTabs ? (
+              <div className="flex items-center justify-between gap-3">
+                <div className={desktopTitleColClass}>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
+                    <AreaIcon className="h-5 w-5 text-[#39FF14]" />
+                  </div>
+                  <h1 className={desktopH1Class}>{displayTitle}</h1>
+                </div>
+                <div className={desktopRightColClass}>
+                  {topRightSelectors.map(sel => (
+                    <VersionSelectorDropdown key={sel.id} selector={sel} compact />
+                  ))}
+                  {menuItems}
+                </div>
+              </div>
+            ) : useFluidAccountTabs ? (
               <div className="relative py-3">
                 <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex max-w-[40%] items-center">
                   <div className="pointer-events-auto flex min-w-0 items-center gap-3">

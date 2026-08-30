@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CRM_SENDERS } from '@/lib/crm/senders'
+import SubscriptionBillingControls from '@/components/admin/SubscriptionBillingControls'
 
 // ── Types ──
 
@@ -78,6 +79,11 @@ interface MemberSubscription {
   user_id: string
   stripe_subscription_id: string
   stripe_customer_id: string | null
+  provider: string | null
+  amount_cents: number | null
+  billing_interval_days: number | null
+  next_billing_at: string | null
+  failure_count: number | null
   status: string
   cancel_at_period_end: boolean
   current_period_start: string | null
@@ -1325,14 +1331,20 @@ function MemberDetailContent() {
                     : sub.status === 'canceled' ? 'bg-neutral-500/20 text-neutral-400 border-neutral-500/30'
                     : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
 
+                  const isDbDriven = sub.provider === 'paypal' || !sub.stripe_subscription_id
+
                   return (
-                    <div key={sub.id} className="flex items-center justify-between p-3 bg-neutral-800/50 rounded-xl border border-neutral-700/50">
+                    <div key={sub.id} className="p-3 bg-neutral-800/50 rounded-xl border border-neutral-700/50">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <CreditCard className="w-4 h-4 text-neutral-400" />
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-white">{tierName}</span>
                             <Badge className={`text-xs ${statusColor}`}>{sub.status}</Badge>
+                            {isDbDriven && (
+                              <Badge className="bg-[#00FFFF]/10 text-[#00FFFF] border-[#00FFFF]/30 text-xs">PayPal</Badge>
+                            )}
                             {sub.cancel_at_period_end && (
                               <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
                                 Cancels at period end
@@ -1340,7 +1352,13 @@ function MemberDetailContent() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-xs text-neutral-500">
-                            {sub.current_period_end && (
+                            {isDbDriven && typeof sub.amount_cents === 'number' && sub.amount_cents > 0 && (
+                              <span>${(sub.amount_cents / 100).toFixed(2)} every {sub.billing_interval_days || 28} days</span>
+                            )}
+                            {isDbDriven && sub.next_billing_at && (
+                              <span>Next charge {formatDate(sub.next_billing_at)}</span>
+                            )}
+                            {!isDbDriven && sub.current_period_end && (
                               <span>Period ends {formatDate(sub.current_period_end)}</span>
                             )}
                             {sub.stripe_subscription_id && (
@@ -1402,6 +1420,10 @@ function MemberDetailContent() {
                       {sub.cancel_at_period_end && (
                         <span className="text-xs text-orange-400">Pending Cancel</span>
                       )}
+                    </div>
+                    {isDbDriven && (
+                      <SubscriptionBillingControls subscriptionId={sub.id} onChanged={loadMember} />
+                    )}
                     </div>
                   )
                 })}

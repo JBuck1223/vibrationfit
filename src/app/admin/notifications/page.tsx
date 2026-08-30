@@ -37,6 +37,7 @@ const TYPE_CONFIG: Record<AdminNotificationType, { label: string; icon: typeof D
   purchase: { label: 'Purchase', icon: DollarSign, color: '#39FF14' },
   refund: { label: 'Refund', icon: RotateCcw, color: '#FF0040' },
   subscription_canceled: { label: 'Subscription Canceled', icon: XCircle, color: '#FF0040' },
+  payment_failed: { label: 'Payment Failed', icon: XCircle, color: '#FF0040' },
   intensive_completed: { label: 'Intensive Completed', icon: Trophy, color: '#FFFF00' },
   lead_created: { label: 'New Lead', icon: UserPlus, color: '#00FFFF' },
   support_ticket: { label: 'Support Ticket', icon: MessageSquare, color: '#BF00FF' },

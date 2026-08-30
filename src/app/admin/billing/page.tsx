@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Container, Card, Badge, Spinner, Stack, PageHero } from '@/lib/design-system/components'
+import { Container, Card, Badge, Spinner, Stack } from '@/lib/design-system/components'
 import { DollarSign, Users, Scale, TrendingDown, RefreshCw } from 'lucide-react'
 
 // ============================================================================
@@ -36,7 +36,7 @@ interface PerUserResponse {
     total_actions: number
     users_count: number
   }
-  revenue_source: 'stripe' | 'tier_prorated'
+  revenue_source: string
   stripe_unmapped_cents: number | null
   stripe_error: string | null
   days: number
@@ -163,12 +163,6 @@ export default function AdminBillingPage() {
     <AdminWrapper>
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero
-            eyebrow="ADMIN"
-            title="Billing & Cost Ledger"
-            subtitle="Per-member spend, provider truth, and profitability"
-          />
-
           {/* Date range controls */}
           <Card variant="outlined" className="!p-4">
             <div className="flex flex-wrap items-center gap-3">
@@ -231,7 +225,7 @@ export default function AdminBillingPage() {
                   <div>
                     <div className="text-2xl font-bold text-white">{fmt(perUser.totals.total_revenue_cents)}</div>
                     <div className="text-sm text-neutral-400">
-                      {perUser.revenue_source === 'stripe' ? 'Revenue (Stripe)' : 'Revenue (prorated est.)'}
+                      {perUser.revenue_source === 'tier_prorated' ? 'Revenue (prorated est.)' : 'Revenue (real charges)'}
                     </div>
                   </div>
                 </div>
@@ -458,7 +452,7 @@ export default function AdminBillingPage() {
                           <th className="px-4 py-3 font-medium">Member</th>
                           <th className="px-4 py-3 font-medium">Tier</th>
                           <th className="px-4 py-3 font-medium text-right">
-                            Revenue {perUser.revenue_source === 'stripe' ? '(Stripe)' : '(est.)'}
+                            Revenue {perUser.revenue_source === 'tier_prorated' ? '(est.)' : '(real)'}
                           </th>
                           <th className="px-4 py-3 font-medium text-right">Cost</th>
                           <th className="px-4 py-3 font-medium text-right">Margin</th>
@@ -509,9 +503,9 @@ export default function AdminBillingPage() {
                     </table>
                   </Card>
                   <p className="text-xs text-neutral-500">
-                    {perUser.revenue_source === 'stripe'
-                      ? 'Revenue is real Stripe charges (net of refunds) paid during the selected range.'
-                      : 'Stripe is unavailable, so revenue is estimated from the membership tier price prorated to the range.'}
+                    {perUser.revenue_source === 'tier_prorated'
+                      ? 'Charge history is unavailable, so revenue is estimated from the membership tier price prorated to the range.'
+                      : `Revenue is real charges (net of refunds) paid during the selected range — source: ${perUser.revenue_source}.`}
                     {' '}Sorted worst margin first — members at the top are the closest to (or past) unprofitable.
                     {perUser.stripe_unmapped_cents != null && perUser.stripe_unmapped_cents > 0 && (
                       <> {`$${(perUser.stripe_unmapped_cents / 100).toFixed(2)} in Stripe charges could not be matched to a member account.`}</>

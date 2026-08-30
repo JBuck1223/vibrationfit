@@ -6,7 +6,6 @@ import { Container, Card, Button, Input, Stack, Spinner, Modal } from '@/lib/des
 import { CategoryGrid, DatePicker } from '@/lib/design-system'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { ProjectsAreaBar } from '@/components/projects-studio'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import {
   Search, Plus, Calendar, CheckCircle2,
@@ -170,8 +169,6 @@ function ProjectsListContent() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <ProjectsAreaBar contextText="Plan and track projects organized by life category" />
-
         {/* Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="relative flex-1 w-full min-w-0">

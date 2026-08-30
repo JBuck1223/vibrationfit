@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { Container, Card, Badge, Button, Spinner, Stack, PageHero } from '@/lib/design-system/components'
+import { Container, Card, Badge, Button, Spinner, Stack } from '@/lib/design-system/components'
 import {
   Layers,
   Coins,
@@ -26,6 +26,7 @@ interface MembershipTier {
   id: string
   name: string
   description: string | null
+  features: string[] | null
   is_active: boolean
   tier_type: string
   billing_interval: string
@@ -103,11 +104,17 @@ function TierCard({
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editValues, setEditValues] = useState({
+    name: tier.name,
+    description: tier.description || '',
+    featuresText: (tier.features || []).join('\n'),
     monthly_token_grant: tier.monthly_token_grant,
     annual_token_grant: tier.annual_token_grant,
     storage_quota_gb: tier.storage_quota_gb,
     price_monthly: tier.price_monthly,
     price_yearly: tier.price_yearly || 0,
+    included_seats: tier.included_seats,
+    max_household_members: tier.max_household_members ?? 0,
+    rollover_max_cycles: tier.rollover_max_cycles ?? 0,
   })
 
   const tokenGrant = tier.billing_interval === 'year'
@@ -119,7 +126,16 @@ function TierCard({
   const handleSave = async () => {
     setSaving(true)
     try {
-      await onSave(tier.id, editValues)
+      const { featuresText, name, description, included_seats, max_household_members, rollover_max_cycles, ...numeric } = editValues
+      await onSave(tier.id, {
+        ...numeric,
+        name: name.trim() || tier.name,
+        description: description.trim() || null,
+        features: featuresText.split('\n').map(f => f.trim()).filter(Boolean),
+        included_seats,
+        max_household_members: max_household_members > 0 ? max_household_members : null,
+        rollover_max_cycles: rollover_max_cycles > 0 ? rollover_max_cycles : null,
+      })
       setEditing(false)
     } finally {
       setSaving(false)
@@ -128,11 +144,17 @@ function TierCard({
 
   const handleCancel = () => {
     setEditValues({
+      name: tier.name,
+      description: tier.description || '',
+      featuresText: (tier.features || []).join('\n'),
       monthly_token_grant: tier.monthly_token_grant,
       annual_token_grant: tier.annual_token_grant,
       storage_quota_gb: tier.storage_quota_gb,
       price_monthly: tier.price_monthly,
       price_yearly: tier.price_yearly || 0,
+      included_seats: tier.included_seats,
+      max_household_members: tier.max_household_members ?? 0,
+      rollover_max_cycles: tier.rollover_max_cycles ?? 0,
     })
     setEditing(false)
   }
@@ -251,6 +273,34 @@ function TierCard({
       ) : (
         /* Edit Mode */
         <div className="space-y-3 mb-4">
+          {/* Name + Description */}
+          <div>
+            <label className="text-xs text-neutral-400 block mb-1">Display Name</label>
+            <input
+              type="text"
+              value={editValues.name}
+              onChange={(e) => setEditValues(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-neutral-400 block mb-1">Description</label>
+            <input
+              type="text"
+              value={editValues.description}
+              onChange={(e) => setEditValues(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-neutral-400 block mb-1">Features (one per line — shown on checkout & billing)</label>
+            <textarea
+              value={editValues.featuresText}
+              onChange={(e) => setEditValues(prev => ({ ...prev, featuresText: e.target.value }))}
+              className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none min-h-[90px]"
+            />
+          </div>
+
           {/* Price */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -325,6 +375,40 @@ function TierCard({
               onChange={(e) => setEditValues(prev => ({ ...prev, storage_quota_gb: parseInt(e.target.value) || 0 }))}
               className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none"
             />
+          </div>
+
+          {/* Seats + Rollover */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-neutral-400 block mb-1">Included Seats</label>
+              <input
+                type="number"
+                min={1}
+                value={editValues.included_seats}
+                onChange={(e) => setEditValues(prev => ({ ...prev, included_seats: parseInt(e.target.value) || 1 }))}
+                className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-neutral-400 block mb-1">Max Members (0 = none)</label>
+              <input
+                type="number"
+                min={0}
+                value={editValues.max_household_members}
+                onChange={(e) => setEditValues(prev => ({ ...prev, max_household_members: parseInt(e.target.value) || 0 }))}
+                className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-neutral-400 block mb-1">Rollover Cycles (0 = off)</label>
+              <input
+                type="number"
+                min={0}
+                value={editValues.rollover_max_cycles}
+                onChange={(e) => setEditValues(prev => ({ ...prev, rollover_max_cycles: parseInt(e.target.value) || 0 }))}
+                className="w-full bg-[#1A1A1A] border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-primary-500 focus:outline-none"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -444,12 +528,6 @@ export default function AdminMembershipTiersPage() {
     <AdminWrapper>
       <Container size="xl">
         <Stack gap="lg">
-          <PageHero
-            eyebrow="ADMIN"
-            title="Membership Tiers"
-            subtitle="View and manage token grants, storage quotas, and billing configuration"
-          />
-
           {/* Success Message */}
           {successMessage && (
             <div className="flex items-center gap-2 bg-primary-500/10 border border-primary-500/30 rounded-xl px-4 py-3 text-primary-400 text-sm">

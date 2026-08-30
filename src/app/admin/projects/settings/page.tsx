@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Container, Card, Button, Input, Stack, Spinner, Modal } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { ProjectsAreaBar } from '@/components/projects-studio'
 import {
   Plus, Trash2, Edit3, Palette, Tag, LayoutGrid,
   Sliders, X,
@@ -263,8 +262,6 @@ function SettingsContent() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <ProjectsAreaBar contextText="Manage categories, custom fields, and tags" />
-
         {/* Tabs */}
         <div className="flex gap-1 border-b border-neutral-800">
           {settingsTabs.map(tab => {

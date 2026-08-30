@@ -1,0 +1,46 @@
+---
+description: Page chrome — AreaBar studios, slim titles, never boxed PageHero
+globs: src/**/*.tsx
+alwaysApply: true
+---
+
+# Page Chrome
+
+Do **not** put a boxed/gradient `PageHero` (or a giant centered header card) on new or rebuilt pages. That Dec 2025 pattern is retired.
+
+## Studios (default for any area with more than one route)
+
+Follow `rules/STUDIO_PAGE_BUILDING_RULES.md`. Layout owns chrome:
+
+```
+StudioProvider
+  AreaBar          ← outside <main>, full-width on mobile
+  <main>           ← padding + --content-px
+    {children}     ← no second page header
+```
+
+- Register the prefix in `STUDIO_ROUTE_PREFIXES` (`src/lib/navigation/page-classifications.ts`)
+- Pages inside a studio do **not** add `PageHero`, `PageHeader`, or a custom title banner
+- Admin is a studio (`/admin`). `AdminAreaBar` uses the real `AreaBar`. Default is title-only. Pages push tabs with `useAdminStudioChrome` only for in-page views that are not already sidebar destinations.
+
+## Standalone pages (one-off routes with no AreaBar)
+
+Slim left-aligned title only. Use `PageHero` (now a title row, not a card) or a plain `h1`.
+
+```tsx
+<Container size="xl">
+  <Stack gap="lg">
+    <PageHero title="Page title" subtitle="One line, optional">
+      <Button size="sm">Primary action</Button>
+    </PageHero>
+    {/* content */}
+  </Stack>
+</Container>
+```
+
+## Never
+
+- Gradient-bordered / padded hero cards as page headers
+- Centered `text-4xl`/`text-5xl` page titles
+- `PageHero` inside a studio layout
+- Copying templates from old `PAGE_BUILDING_RULES` that say “PageHero is required”

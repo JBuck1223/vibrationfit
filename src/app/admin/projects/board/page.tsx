@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Container, Stack, Spinner } from '@/lib/design-system/components'
 import { AdminWrapper } from '@/components/AdminWrapper'
-import { ProjectsAreaBar } from '@/components/projects-studio'
 import {
   Calendar, CheckCircle2,
 } from 'lucide-react'
@@ -103,10 +102,8 @@ function KanbanBoard() {
   }
 
   return (
-    <div className="px-4 md:px-6 pb-8">
+    <div className="pb-8">
       <Stack gap="lg">
-        <ProjectsAreaBar contextText="Drag items between columns to update their status" />
-
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '60vh' }}>
           {VISUAL_COLUMNS.map(col => {
             const columnProjects = projects.filter(p => {

@@ -40,6 +40,10 @@
     {
       "path": "/api/cron/sync-provider-costs",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/billing",
+      "schedule": "0 12 * * *"
     }
   ],
   "functions": {
@@ -57,6 +61,9 @@
       "memory": 1024
     },
     "src/app/api/cron/sync-provider-costs/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/cron/billing/route.ts": {
       "maxDuration": 300
     },
     "src/app/api/upload/route.ts": {

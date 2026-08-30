@@ -5,6 +5,7 @@ export type AdminNotificationType =
   | 'purchase'
   | 'refund'
   | 'subscription_canceled'
+  | 'payment_failed'
   | 'intensive_completed'
   | 'lead_created'
   | 'support_ticket'

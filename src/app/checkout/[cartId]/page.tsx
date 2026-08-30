@@ -8,9 +8,14 @@ import { Container, Card } from '@/lib/design-system/components'
 import { Spinner } from '@/lib/design-system/components'
 import OrderSummary from '@/components/checkout/OrderSummary'
 import CheckoutForm, { type AccountDetails } from '@/components/checkout/CheckoutForm'
+import PayPalCheckoutForm from '@/components/checkout/PayPalCheckoutForm'
 import { toast } from 'sonner'
 import { getVisitorId, getSessionId } from '@/lib/tracking/client'
 import type { CheckoutProduct } from '@/lib/checkout/products'
+
+// Gateway switch: 'paypal' (default) or 'stripe' — flip the env var in Vercel
+// to instantly restore the old Stripe Elements checkout.
+const PAYMENT_GATEWAY = process.env.NEXT_PUBLIC_PAYMENT_GATEWAY === 'stripe' ? 'stripe' : 'paypal'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -255,6 +260,57 @@ export default function CartCheckoutPage() {
     }
   }
 
+  // --------------------------------------------------------------------------
+  // PayPal card-fields flow
+  // --------------------------------------------------------------------------
+  async function handlePayPalCreateOrder(accountDetails: AccountDetails): Promise<string> {
+    if (!cart || !product) throw new Error('Cart not loaded')
+    const item = cart.items[0]
+
+    // Capture email on the cart for abandoned cart recovery
+    if (accountDetails.email) {
+      fetch(`/api/cart/${cartId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: accountDetails.email }),
+      }).catch(() => {})
+    }
+
+    const res = await fetch('/api/paypal/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...accountDetails,
+        product: item.product_key,
+        plan: item.plan,
+        continuity: item.continuity,
+        planType: item.plan_type,
+        packKey: item.pack_key,
+        promoCode: hasPromoPackage ? undefined : (promoCode || undefined),
+        promoPackage: (item as any).promo_package || undefined,
+        referralSource: cart.referralSource || undefined,
+        campaignName: cart.campaignName || undefined,
+        cartSessionId: cart.id,
+        visitorId: getVisitorId() || undefined,
+        sessionId: getSessionId() || undefined,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to start checkout')
+    return data.id
+  }
+
+  async function handlePayPalApproved(orderID: string): Promise<string> {
+    const res = await fetch('/api/paypal/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderID }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Payment failed. Please try again.')
+    return data.redirectUrl
+  }
+
   if (loading) {
     return (
       <Container size="md" className="flex justify-center">
@@ -325,22 +381,48 @@ export default function CartCheckoutPage() {
     },
   }
 
+  const summaryColumn = (
+    <div className="lg:col-span-2 order-1 lg:order-1">
+      <OrderSummary
+        product={product}
+        promoCode={promoCode}
+        onPromoCodeChange={setPromoCode}
+        promoDiscount={promoDiscount}
+        onValidatePromo={validatePromo}
+        validatingPromo={validatingPromo}
+        hidePromoInput={hasPromoPackage}
+      />
+    </div>
+  )
+
+  if (PAYMENT_GATEWAY === 'paypal') {
+    return (
+      <Container size="xl">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {summaryColumn}
+          <div className="lg:col-span-3 order-2 lg:order-2">
+            <Card className="p-6 md:p-8">
+              <PayPalCheckoutForm
+                createOrder={handlePayPalCreateOrder}
+                onApproved={handlePayPalApproved}
+                submitLabel={submitLabel}
+                submitLabelShort={submitLabelShort}
+                continuity={(cart?.items?.[0]?.continuity as 'annual' | '28day') || undefined}
+                planType={(cart?.items?.[0]?.plan_type as 'solo' | 'household') || undefined}
+                paymentPlan={(cart?.items?.[0]?.plan as 'full' | '2pay') || undefined}
+              />
+            </Card>
+          </div>
+        </div>
+      </Container>
+    )
+  }
+
   return (
     <Container size="xl">
       <Elements stripe={stripePromise} options={elementsOptions}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-2 order-1 lg:order-1">
-            <OrderSummary
-              product={product}
-              promoCode={promoCode}
-              onPromoCodeChange={setPromoCode}
-              promoDiscount={promoDiscount}
-              onValidatePromo={validatePromo}
-              validatingPromo={validatingPromo}
-              hidePromoInput={hasPromoPackage}
-            />
-          </div>
-
+          {summaryColumn}
           <div className="lg:col-span-3 order-2 lg:order-2">
             <Card className="p-6 md:p-8">
               <CheckoutForm
