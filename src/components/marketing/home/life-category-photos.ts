@@ -7,6 +7,7 @@ export type LifeCategoryPhoto = {
   label: string
   icon: LucideIcon
   src: string
+  lightboxSrc?: string
   alt: string
   focus: string
   width: number
@@ -16,6 +17,7 @@ export type LifeCategoryPhoto = {
 const ENTRIES: Array<{
   key: LifeCategoryKey
   src: string
+  lightboxSrc?: string
   alt: string
   focus: string
   width: number
@@ -23,10 +25,11 @@ const ENTRIES: Array<{
 }> = [
   {
     key: 'fun',
-    src: '/home-preview/photos/skydive-engagement.jpg',
-    alt: 'Jordan and Vanessa skydiving together',
-    focus: 'center 35%',
-    width: 1536,
+    src: '/home-preview/photos/skydive-jordan-vanessa.jpg',
+    lightboxSrc: '/home-preview/photos/skydive-engagement.jpg',
+    alt: 'Jordan and Vanessa skydiving',
+    focus: 'center',
+    width: 1024,
     height: 1024,
   },
   {
@@ -124,6 +127,7 @@ export const LIFE_CATEGORY_PHOTOS: LifeCategoryPhoto[] = ENTRIES.map((entry) => 
   label: getVisionCategory(entry.key)?.label ?? entry.key,
   icon: getVisionCategoryIcon(entry.key),
   src: entry.src,
+  lightboxSrc: entry.lightboxSrc,
   alt: entry.alt,
   focus: entry.focus,
   width: entry.width,

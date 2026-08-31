@@ -1,9 +1,9 @@
 'use client'
 
-import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { ImageLightbox } from '@/lib/design-system'
 import { LIFE_CATEGORY_PHOTOS } from './life-category-photos'
+import { MarketingImage } from './MarketingImage'
 
 const CYCLE_MS = 2800
 
@@ -17,7 +17,7 @@ export function LifeCategoryOrbit() {
   const lightboxImages = useMemo(
     () =>
       LIFE_CATEGORY_PHOTOS.map((photo) => ({
-        url: photo.src,
+        url: photo.lightboxSrc ?? photo.src,
         alt: photo.alt,
         caption: photo.label,
       })),
@@ -56,7 +56,7 @@ export function LifeCategoryOrbit() {
               >
                 <span className="hp-orbit-node-body">
                   <span className="hp-orbit-node-face">
-                    <Image
+                    <MarketingImage
                       src={photo.src}
                       alt=""
                       fill
@@ -80,17 +80,18 @@ export function LifeCategoryOrbit() {
           onClick={() => setLightboxOpen(true)}
           aria-label={`View ${current.label} photo`}
         >
-          <Image
-            key={current.key}
-            src={current.src}
-            alt={current.alt}
-            fill
-            sizes="(min-width: 1024px) 800px, 90vw"
-            quality={90}
-            className="hp-orbit-center-img"
-            style={{ objectPosition: current.focus }}
-            priority
-          />
+          {LIFE_CATEGORY_PHOTOS.map((photo, index) => (
+            <MarketingImage
+              key={photo.key}
+              src={photo.src}
+              alt={index === active ? photo.alt : ''}
+              fill
+              sizes="(min-width: 1024px) 800px, 90vw"
+              className={`hp-orbit-center-img${index === active ? ' is-active' : ''}`}
+              style={{ objectPosition: photo.focus }}
+              priority={index === 0}
+            />
+          ))}
         </button>
       </div>
 

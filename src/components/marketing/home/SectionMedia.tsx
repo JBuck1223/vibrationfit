@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { MarketingImage } from './MarketingImage'
 
 type Photo = { src: string; alt: string }
 
@@ -31,13 +31,13 @@ export function SectionMedia({
             <div className={`hp-life-collage hp-life-collage-${Math.min(items.length, 4)}`}>
               {items.map((photo) => (
                 <div key={photo.src} className="hp-life-tile">
-                  <Image src={photo.src} alt={photo.alt} width={1200} height={800} className="h-auto w-full" loading="eager" />
+                  <MarketingImage src={photo.src} alt={photo.alt} width={1200} height={800} className="h-auto w-full" loading="eager" />
                 </div>
               ))}
             </div>
           ) : items[0] ? (
             <div className="overflow-hidden rounded-2xl border border-white/10">
-              <Image src={items[0].src} alt={items[0].alt} width={1200} height={800} className="h-auto w-full" loading="eager" />
+              <MarketingImage src={items[0].src} alt={items[0].alt} width={1200} height={800} className="h-auto w-full" loading="eager" />
             </div>
           ) : null}
         </div>

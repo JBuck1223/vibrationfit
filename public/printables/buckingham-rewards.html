@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Buckingham Rewards — Oliver &amp; Adeline</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #2a1f18;
+        --muted: #6d5b4e;
+        --gold: #e3a008;
+        --gold-deep: #b7791f;
+        --paper-edge: #c9b8a4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: #c9b8a4;
+        color: var(--ink);
+        font-family: Nunito, "Trebuchet MS", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 16px;
+        padding: 14px 20px;
+        background: #3b2a1e;
+        color: #fff7ea;
+      }
+
+      .toolbar p {
+        margin: 0;
+        flex: 1 1 220px;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .toolbar label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .toolbar input {
+        width: 240px;
+        border: 0;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font: inherit;
+        color: var(--ink);
+        background: #fff7ea;
+      }
+
+      .toolbar button,
+      .toolbar a.print-link {
+        border: 0;
+        border-radius: 999px;
+        padding: 8px 18px;
+        font: inherit;
+        font-weight: 800;
+        color: #3b2a1e;
+        background: #ffd56a;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .stage {
+        padding: 28px 16px 48px;
+      }
+
+      .sheet {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 8.5in;
+        min-height: 11in;
+        margin: 0 auto 28px;
+        padding: 0.28in 0.34in 0.26in;
+        background: var(--paper);
+        color: var(--ink);
+        border: 10px solid var(--kid);
+        outline: 4px dotted #ffe08a;
+        outline-offset: -16px;
+      }
+
+      .doodle {
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        color: var(--gold-deep);
+        opacity: 0.85;
+        pointer-events: none;
+      }
+
+      .doodle svg {
+        width: 100%;
+        height: 100%;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+      }
+
+      .doodle.tl { top: 10px; left: 12px; }
+      .doodle.tr { top: 10px; right: 12px; }
+      .doodle.bl { bottom: 10px; left: 12px; }
+      .doodle.br { bottom: 10px; right: 12px; }
+
+      .sheet.oliver {
+        --paper: #fff1f0;
+        --kid: #d3202a;
+        --kid-deep: #9b181f;
+        --kid-soft: #ffd0d2;
+        --pop: #ffd56a;
+        --pop-soft: #fff3bf;
+      }
+
+      .sheet.adeline {
+        --paper: #e7f8f2;
+        --kid: #0b7c74;
+        --kid-deep: #065f5a;
+        --kid-soft: #b8ebe3;
+        --pop: #2f9e44;
+        --pop-soft: #d3f4d8;
+      }
+
+      .banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 10px 6px 12px;
+        padding: 10px 14px 14px;
+        border-radius: 28px 28px 18px 18px;
+        background: var(--kid);
+        color: #fffdf8;
+        box-shadow: 0 6px 0 var(--kid-deep);
+      }
+
+      .banner-copy small {
+        display: block;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.88;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 42px;
+        font-weight: 800;
+        line-height: 0.9;
+      }
+
+      .week-chip {
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        border-radius: 16px;
+        background: #fffdf8;
+        color: var(--kid-deep);
+        text-align: right;
+      }
+
+      .week-chip b {
+        display: block;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .week-value {
+        display: inline-block;
+        min-width: 140px;
+        font-weight: 800;
+      }
+
+      .path-wrap {
+        margin: 0 6px 12px;
+      }
+
+      .path-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--kid-deep);
+      }
+
+      .path {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .stone {
+        flex: 1;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid var(--kid);
+        border-radius: 999px;
+        background: #fffdf8;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--kid-deep);
+      }
+
+      .stone:nth-child(odd) {
+        background: var(--kid-soft);
+      }
+
+      .stone:nth-child(3n) {
+        background: #fff3bf;
+        border-color: var(--gold-deep);
+        color: #8a5a12;
+      }
+
+      .chest {
+        flex: 0 0 78px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        border: 3px solid var(--gold-deep);
+        border-radius: 16px;
+        background: #ffd56a;
+        color: #8a5a12;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .chest svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .grid-wrap {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        margin: 0 6px;
+      }
+
+      table {
+        width: 100%;
+        height: 100%;
+        border-collapse: separate;
+        border-spacing: 0 3px;
+        table-layout: fixed;
+      }
+
+      col.task { width: auto; }
+      col.pts { width: 38px; }
+      col.day,
+      col.sum { width: 42px; }
+
+      th {
+        padding: 0 3px 4px;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--kid-deep);
+        text-align: center;
+      }
+
+      th.task {
+        text-align: left;
+        padding-left: 8px;
+      }
+
+      .day-pill {
+        display: inline-block;
+        min-width: 36px;
+        padding: 2px 0;
+        border-radius: 999px;
+        background: var(--kid-soft);
+      }
+
+      td {
+        padding: 4px 3px;
+        vertical-align: middle;
+        background: #fffdf8;
+      }
+
+      td:first-child {
+        border-radius: 14px 0 0 14px;
+        padding-left: 7px;
+      }
+
+      td:last-child {
+        border-radius: 0 14px 14px 0;
+        padding-right: 7px;
+      }
+
+      .section td {
+        padding: 8px 8px 2px;
+        background: transparent;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--kid-deep);
+      }
+
+      .task-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.2;
+      }
+
+      .task-name small {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .icon {
+        position: relative;
+        flex: 0 0 30px;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: var(--kid-soft);
+        color: var(--kid-deep);
+      }
+
+      .icon.sun { background: #ffe08a; color: #8a5a12; }
+      .icon.moon { background: #d0bfff; color: #5b21b6; }
+      .icon.bath { background: #a5d8ff; color: #1864ab; }
+      .icon.shirt { background: #ffc9c9; color: #c92a2a; }
+      .icon.tidy { background: #b2f2bb; color: #2b8a3e; }
+      .icon.book { background: #c3fae8; color: #087f5b; }
+      .icon.math { background: #ffd8a8; color: #d9480f; }
+      .icon.read { background: #e5dbff; color: #5f3dc4; }
+      .icon.science { background: #d8f5a2; color: #5c940d; }
+      .icon.art { background: #ffc0eb; color: #a61e4d; }
+      .icon.abc { background: #ffd6a5; color: #d9480f; }
+
+      .icon svg {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .icon.screen::after {
+        content: "";
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--gold);
+        border: 2px solid #fffdf8;
+      }
+
+      .pts {
+        text-align: center;
+      }
+
+      .coin {
+        width: 26px;
+        height: 26px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #f59f00;
+        border-radius: 999px;
+        background: #ffe066;
+        color: #8a5a12;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .box {
+        width: 22px;
+        height: 22px;
+        margin: 0 auto;
+        border: 3px solid var(--kid);
+        border-radius: 999px;
+        background: #fff;
+      }
+
+      .box.weekly {
+        border-style: dashed;
+        border-radius: 7px;
+      }
+
+      .write {
+        height: 20px;
+        border-bottom: 2px dotted var(--paper-edge);
+      }
+
+      .bottom {
+        display: grid;
+        grid-template-columns: 1.4fr 0.9fr;
+        gap: 10px;
+        margin: 12px 6px 0;
+      }
+
+      .panel {
+        padding: 10px 12px 12px;
+        border-radius: 18px;
+        background: #fffdf8;
+        border: 3px solid var(--kid-soft);
+      }
+
+      .panel h2 {
+        margin: 0 0 8px;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--kid-deep);
+      }
+
+      .bonus-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      .bonus-grid p {
+        margin: 0;
+        padding: 7px 7px 8px;
+        border-radius: 12px;
+        font-size: 10.5px;
+        font-weight: 700;
+        line-height: 1.25;
+        background: var(--kid-soft);
+        color: var(--ink);
+      }
+
+      .bonus-grid strong {
+        display: block;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--kid-deep);
+      }
+
+      .days {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+      }
+
+      .days label {
+        display: block;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--kid-deep);
+      }
+
+      .stars {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 3px;
+        margin-bottom: 8px;
+      }
+
+      .star {
+        text-align: center;
+      }
+
+      .star-face {
+        width: 34px;
+        height: 34px;
+        margin: 0 auto 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #ffe8a3;
+        color: #8a5a12;
+      }
+
+      .star-face svg {
+        width: 22px;
+        height: 22px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+      }
+
+      .star span {
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--kid-deep);
+      }
+
+      .total-box {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 8px;
+        padding-top: 8px;
+      }
+
+      .total-box p {
+        margin: 0;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--kid-deep);
+      }
+
+      .total-line {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--kid);
+        line-height: 1;
+      }
+
+      .total-line .blank {
+        min-width: 48px;
+        border-bottom: 3px solid var(--ink);
+      }
+
+      .total-line em {
+        font-style: normal;
+        font-size: 16px;
+        color: var(--muted);
+      }
+
+      .rules {
+        margin: 10px 6px 0;
+        padding: 8px 12px;
+        border-radius: 16px;
+        background: var(--kid-soft);
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.4;
+        color: var(--kid-deep);
+      }
+
+      .rules strong {
+        font-family: "Baloo 2", Nunito, sans-serif;
+        font-size: 13px;
+        color: var(--kid-deep);
+      }
+
+      @media print {
+        @page {
+          size: letter portrait;
+          margin: 0.25in;
+        }
+
+        html,
+        body {
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          background: white !important;
+        }
+
+        .toolbar,
+        .no-print,
+        .doodle {
+          display: none !important;
+        }
+
+        .stage {
+          padding: 0;
+          height: 100%;
+        }
+
+        .sheet {
+          width: 100%;
+          max-width: 100%;
+          height: 10.5in;
+          min-height: 10.5in;
+          max-height: 10.5in;
+          margin: 0;
+          padding: 0.16in 0.18in 0.14in;
+          border-width: 8px;
+          outline: 3px dotted #ffe08a;
+          outline-offset: -14px;
+          overflow: hidden;
+          page-break-after: always;
+          page-break-inside: avoid;
+          break-after: page;
+          break-inside: avoid;
+          box-shadow: none;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .sheet:last-child {
+          page-break-after: auto;
+          break-after: auto;
+        }
+
+        .banner {
+          margin: 2px 2px 10px;
+          padding: 10px 14px 12px;
+          box-shadow: none;
+        }
+
+        h1 {
+          font-size: 40px;
+        }
+
+        .path-wrap {
+          margin: 0 2px 10px;
+        }
+
+        .path-label {
+          font-size: 14px;
+        }
+
+        .stone {
+          height: 34px;
+          font-size: 13px;
+        }
+
+        .chest {
+          flex-basis: 72px;
+          height: 42px;
+          font-size: 14px;
+        }
+
+        .grid-wrap {
+          margin: 0 2px;
+        }
+
+        th {
+          font-size: 12px;
+        }
+
+        td {
+          padding: 6px 3px;
+        }
+
+        .section td {
+          padding: 10px 6px 3px;
+          font-size: 16px;
+        }
+
+        .task-name {
+          font-size: 13px;
+        }
+
+        .icon {
+          flex-basis: 30px;
+          width: 30px;
+          height: 30px;
+        }
+
+        .box {
+          width: 22px;
+          height: 22px;
+        }
+
+        .coin {
+          width: 26px;
+          height: 26px;
+          font-size: 13px;
+        }
+
+        .bottom {
+          margin: 10px 2px 0;
+          gap: 10px;
+        }
+
+        .panel {
+          padding: 10px 12px 12px;
+        }
+
+        .panel h2 {
+          font-size: 16px;
+        }
+
+        .rules {
+          margin: 10px 2px 0;
+          padding: 8px 12px;
+          font-size: 11px;
+        }
+
+        .total-line {
+          font-size: 28px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar no-print">
+      <p>
+        Two letter pages. In Safari or Chrome, press Command-P. Turn on
+        Background graphics so the colors print.
+      </p>
+      <label>
+        Week of
+        <input
+          id="week-input"
+          type="text"
+          value="September 1–5, 2026"
+          autocomplete="off"
+        />
+      </label>
+    </div>
+
+    <svg width="0" height="0" aria-hidden="true">
+      <symbol id="i-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4" />
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24">
+        <path d="M15.5 4.5A7.5 7.5 0 1 0 19.5 14 6 6 0 0 1 15.5 4.5z" />
+      </symbol>
+      <symbol id="i-bath" viewBox="0 0 24 24">
+        <path d="M4 12h16v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-4zM7 12V8a2 2 0 0 1 2-2h1" />
+        <path d="M5 21h14" />
+      </symbol>
+      <symbol id="i-shirt" viewBox="0 0 24 24">
+        <path d="M8 6l4-2 4 2 3 2-2 3h-2v8H9V11H7L5 8l3-2z" />
+      </symbol>
+      <symbol id="i-tidy" viewBox="0 0 24 24">
+        <path d="M4 18h16M7 18V9l5-4 5 4v9" />
+        <path d="M10 18v-5h4v5" />
+      </symbol>
+      <symbol id="i-book" viewBox="0 0 24 24">
+        <path d="M5 5h8a3 3 0 0 1 3 3v11H8a3 3 0 0 0-3 3V5z" />
+        <path d="M16 8h3a2 2 0 0 1 2 2v9h-5" />
+      </symbol>
+      <symbol id="i-math" viewBox="0 0 24 24">
+        <path d="M7 8h6M10 5v6M15 15l4 4M19 15l-4 4M7 17h6" />
+      </symbol>
+      <symbol id="i-read" viewBox="0 0 24 24">
+        <path d="M4 7c3 0 5 1.5 8 1.5S17 7 20 7v11c-3 0-5 1.5-8 1.5S7 18 4 18V7z" />
+        <path d="M12 8.5V19" />
+      </symbol>
+      <symbol id="i-science" viewBox="0 0 24 24">
+        <path d="M9 3h6M10 3v5L6 18a3 3 0 0 0 2.7 4h6.6A3 3 0 0 0 18 18l-4-10V3" />
+      </symbol>
+      <symbol id="i-art" viewBox="0 0 24 24">
+        <path d="M12 4a8 8 0 1 0 7.5 5.2c0 1.3-1.1 2.3-2.4 2.3H15a2 2 0 0 0-2 2v.3A2.7 2.7 0 0 1 10.3 17" />
+        <circle cx="8" cy="10" r="0.8" fill="currentColor" stroke="none" />
+        <circle cx="10.5" cy="7.5" r="0.8" fill="currentColor" stroke="none" />
+        <circle cx="14" cy="7.2" r="0.8" fill="currentColor" stroke="none" />
+      </symbol>
+      <symbol id="i-abc" viewBox="0 0 24 24">
+        <rect x="4" y="5" width="7" height="7" rx="1.4" />
+        <rect x="13" y="12" width="7" height="7" rx="1.4" />
+        <path d="M6.2 10.4L7.5 6.8 8.8 10.4M6.6 9.2h1.8M14.8 17.6V13.4h2.2a1.4 1.4 0 0 1 0 2.8H14.8" />
+      </symbol>
+      <symbol id="i-chest" viewBox="0 0 24 24">
+        <path d="M4 10h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z" />
+        <path d="M4 10V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" />
+        <path d="M12 10v4" />
+        <rect x="10.2" y="12.2" width="3.6" height="2.4" rx="0.6" />
+      </symbol>
+      <symbol id="i-star" viewBox="0 0 24 24">
+        <path d="M12 3.4l2.3 6.6h7l-5.6 4.1 2.1 6.5L12 16.7 6.2 20.6l2.1-6.5L2.7 10h7z" />
+      </symbol>
+    </svg>
+
+    <div class="stage">
+      <article class="sheet oliver">
+        <span class="doodle tl"><svg><use href="#i-star"></use></svg></span>
+        <span class="doodle tr"><svg><use href="#i-chest"></use></svg></span>
+        <span class="doodle bl"><svg><use href="#i-chest"></use></svg></span>
+        <span class="doodle br"><svg><use href="#i-star"></use></svg></span>
+        <div class="banner">
+          <div class="banner-copy">
+            <small>Buckingham Reward Quest</small>
+            <h1>Oliver</h1>
+          </div>
+          <div class="week-chip">
+            <b>Week of</b>
+            <span class="week-value">September 1–5, 2026</span>
+          </div>
+        </div>
+
+        <div class="path-wrap">
+          <div class="path-label">
+            <span>Treasure path — color a stone every 10 points</span>
+            <span>About 125 coins this week. Chest opens at 100.</span>
+          </div>
+          <div class="path" aria-label="Progress toward 100 points">
+            <span class="stone">10</span>
+            <span class="stone">20</span>
+            <span class="stone">30</span>
+            <span class="stone">40</span>
+            <span class="stone">50</span>
+            <span class="stone">60</span>
+            <span class="stone">70</span>
+            <span class="stone">80</span>
+            <span class="stone">90</span>
+            <span class="chest">
+              <svg><use href="#i-chest"></use></svg>
+              100
+            </span>
+          </div>
+        </div>
+
+        <div class="grid-wrap">
+        <table>
+          <colgroup>
+            <col class="task" />
+            <col class="pts" />
+            <col class="day" />
+            <col class="day" />
+            <col class="day" />
+            <col class="day" />
+            <col class="day" />
+            <col class="sum" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="task">Your jobs</th>
+              <th>Pts</th>
+              <th><span class="day-pill">Mon</span></th>
+              <th><span class="day-pill">Tue</span></th>
+              <th><span class="day-pill">Wed</span></th>
+              <th><span class="day-pill">Thu</span></th>
+              <th><span class="day-pill">Fri</span></th>
+              <th>Week</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="section"><td colspan="8">Home jobs</td></tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon sun screen" title="Needed for screens"><svg><use href="#i-sun"></use></svg></span>
+                  <span>Brush morning teeth on your own</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">3</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon moon"><svg><use href="#i-moon"></use></svg></span>
+                  <span>Brush night teeth on your own</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">3</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon bath"><svg><use href="#i-bath"></use></svg></span>
+                  <span>Take your bath or shower when it is time</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">2</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon shirt"><svg><use href="#i-shirt"></use></svg></span>
+                  <span>Get dressed and put clothes in the hamper</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">1</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon tidy screen" title="Needed for screens"><svg><use href="#i-tidy"></use></svg></span>
+                  <span>Keep your spaces tidy through the day</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">2</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr class="section"><td colspan="8">School jobs</td></tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon book screen" title="Needed for screens"><svg><use href="#i-book"></use></svg></span>
+                  <span>Language Arts lesson</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">4</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon math screen" title="Needed for screens"><svg><use href="#i-math"></use></svg></span>
+                  <span>Math lesson</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">4</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon read screen" title="Needed for screens"><svg><use href="#i-read"></use></svg></span>
+                  <span>Read for 20 minutes</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">4</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon science"><svg><use href="#i-science"></use></svg></span>
+                  <span>Science <small>Once this week — stamp the day you do it</small></span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">5</span></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon art"><svg><use href="#i-art"></use></svg></span>
+                  <span>Art <small>Once this week — stamp the day you do it</small></span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">5</span></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="bottom">
+          <div class="panel">
+            <h2>Bonus boosts — these help the chest</h2>
+            <div class="bonus-grid">
+              <p><strong>+1 Helpful</strong> Put something away, take out trash, bring dishes, tidy a spot, help a sibling</p>
+              <p><strong>+2 Super helpful</strong> Set or clear the table, laundry, groceries, bigger tidy</p>
+              <p><strong>+3 Wow</strong> Spot a family job and take care of it</p>
+            </div>
+            <div class="days">
+              <div><label>Mon</label><div class="write"></div></div>
+              <div><label>Tue</label><div class="write"></div></div>
+              <div><label>Wed</label><div class="write"></div></div>
+              <div><label>Thu</label><div class="write"></div></div>
+              <div><label>Fri</label><div class="write"></div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Gold-dot jobs done = screens</h2>
+            <div class="stars">
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Mon</span>
+              </div>
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Tue</span>
+              </div>
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Wed</span>
+              </div>
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Thu</span>
+              </div>
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Fri</span>
+              </div>
+            </div>
+            <div class="total-box">
+              <p>My points</p>
+              <div class="total-line"><span class="blank"></span><em>/ 100</em></div>
+            </div>
+          </div>
+        </div>
+        <p class="rules">
+          <strong>How we play. </strong>
+          Gold-dot jobs unlock your own Nex, TV, or iPad that day. Family movie night and family Nex are always for everyone.
+          Hit 100 by Friday and pick one prize from the Reward Chest. Every point you earn stays yours. New week, fresh quest.
+        </p>
+      </article>
+
+      <article class="sheet adeline">
+        <span class="doodle tl"><svg><use href="#i-star"></use></svg></span>
+        <span class="doodle tr"><svg><use href="#i-chest"></use></svg></span>
+        <span class="doodle bl"><svg><use href="#i-chest"></use></svg></span>
+        <span class="doodle br"><svg><use href="#i-star"></use></svg></span>
+        <div class="banner">
+          <div class="banner-copy">
+            <small>Buckingham Reward Quest</small>
+            <h1>Adeline</h1>
+          </div>
+          <div class="week-chip">
+            <b>Week of</b>
+            <span class="week-value">September 1–5, 2026</span>
+          </div>
+        </div>
+
+        <div class="path-wrap">
+          <div class="path-label">
+            <span>Treasure path — color a stone every 10 points</span>
+            <span>About 125 coins this week. Chest opens at 100.</span>
+          </div>
+          <div class="path" aria-label="Progress toward 100 points">
+            <span class="stone">10</span>
+            <span class="stone">20</span>
+            <span class="stone">30</span>
+            <span class="stone">40</span>
+            <span class="stone">50</span>
+            <span class="stone">60</span>
+            <span class="stone">70</span>
+            <span class="stone">80</span>
+            <span class="stone">90</span>
+            <span class="chest">
+              <svg><use href="#i-chest"></use></svg>
+              100
+            </span>
+          </div>
+        </div>
+
+        <div class="grid-wrap">
+        <table>
+          <colgroup>
+            <col class="task" />
+            <col class="pts" />
+            <col class="day" />
+            <col class="day" />
+            <col class="day" />
+            <col class="day" />
+            <col class="day" />
+            <col class="sum" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="task">Your jobs</th>
+              <th>Pts</th>
+              <th><span class="day-pill">Mon</span></th>
+              <th><span class="day-pill">Tue</span></th>
+              <th><span class="day-pill">Wed</span></th>
+              <th><span class="day-pill">Thu</span></th>
+              <th><span class="day-pill">Fri</span></th>
+              <th>Week</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="section"><td colspan="8">Home jobs</td></tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon sun screen" title="Needed for screens"><svg><use href="#i-sun"></use></svg></span>
+                  <span>Brush morning teeth on your own</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">3</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon moon"><svg><use href="#i-moon"></use></svg></span>
+                  <span>Brush night teeth on your own</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">3</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon bath"><svg><use href="#i-bath"></use></svg></span>
+                  <span>Take your bath or shower when it is time</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">2</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon shirt"><svg><use href="#i-shirt"></use></svg></span>
+                  <span>Get dressed and put clothes in the hamper</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">1</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon tidy screen" title="Needed for screens"><svg><use href="#i-tidy"></use></svg></span>
+                  <span>Keep your spaces tidy through the day</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">2</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr class="section"><td colspan="8">School jobs</td></tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon abc screen" title="Needed for screens"><svg><use href="#i-abc"></use></svg></span>
+                  <span>Kindergarten Prep lesson</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">8</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon read screen" title="Needed for screens"><svg><use href="#i-read"></use></svg></span>
+                  <span>Read for 20 minutes <small>Together or beginning reading</small></span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">4</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon science"><svg><use href="#i-science"></use></svg></span>
+                  <span>Science <small>Once this week — stamp the day you do it</small></span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">5</span></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon art"><svg><use href="#i-art"></use></svg></span>
+                  <span>Art <small>Once this week — stamp the day you do it</small></span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">5</span></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="box weekly"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="bottom">
+          <div class="panel">
+            <h2>Bonus boosts — these help the chest</h2>
+            <div class="bonus-grid">
+              <p><strong>+1 Helpful</strong> Put something away, take out trash, bring dishes, tidy a spot, help a sibling</p>
+              <p><strong>+2 Super helpful</strong> Set or clear the table, laundry, groceries, bigger tidy</p>
+              <p><strong>+3 Wow</strong> Spot a family job and take care of it</p>
+            </div>
+            <div class="days">
+              <div><label>Mon</label><div class="write"></div></div>
+              <div><label>Tue</label><div class="write"></div></div>
+              <div><label>Wed</label><div class="write"></div></div>
+              <div><label>Thu</label><div class="write"></div></div>
+              <div><label>Fri</label><div class="write"></div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Gold-dot jobs done = screens</h2>
+            <div class="stars">
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Mon</span>
+              </div>
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Tue</span>
+              </div>
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Wed</span>
+              </div>
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Thu</span>
+              </div>
+              <div class="star">
+                <div class="star-face"><svg><use href="#i-star"></use></svg></div>
+                <span>Fri</span>
+              </div>
+            </div>
+            <div class="total-box">
+              <p>My points</p>
+              <div class="total-line"><span class="blank"></span><em>/ 100</em></div>
+            </div>
+          </div>
+        </div>
+        <p class="rules">
+          <strong>How we play. </strong>
+          Gold-dot jobs unlock your own Nex, TV, or iPad that day. Family movie night and family Nex are always for everyone.
+          Hit 100 by Friday and pick one prize from the Reward Chest. Every point you earn stays yours. New week, fresh quest.
+        </p>
+      </article>
+    </div>
+
+    <script>
+      const input = document.getElementById("week-input");
+      const targets = document.querySelectorAll(".week-value");
+      function syncWeek() {
+        const value = input.value.trim() || "_______________";
+        targets.forEach((el) => {
+          el.textContent = value;
+        });
+      }
+      input.addEventListener("input", syncWeek);
+    </script>
+  </body>
+</html>

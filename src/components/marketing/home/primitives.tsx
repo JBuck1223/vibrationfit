@@ -3,7 +3,7 @@ import { Container } from '@/lib/design-system'
 
 export const CTA_LABEL = 'Start Your 72-Hour Vision Activation'
 
-// Styled to match the design-system primary/lg Button. Rendered as a plain
+// Styled to match the design-system primary/md Button. Rendered as a plain
 // anchor because Button's asChild path hydration-mismatches inside a server
 // component, which fires the global error toast on marketing pages.
 export function Cta({ href = '#offer', className = '' }: { href?: string; className?: string }) {
@@ -11,10 +11,10 @@ export function Cta({ href = '#offer', className = '' }: { href?: string; classN
     <div className={`mt-10 flex justify-center ${className}`}>
       <a
         href={href}
-        className="inline-flex items-center justify-center gap-2.5 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-5 py-4 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:whitespace-nowrap md:px-10 md:text-base"
+        className="inline-flex w-full items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-4 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:w-auto md:whitespace-nowrap md:px-7"
       >
         {CTA_LABEL}
-        <ArrowRight className="h-5 w-5" />
+        <ArrowRight className="h-4 w-4" />
       </a>
     </div>
   )

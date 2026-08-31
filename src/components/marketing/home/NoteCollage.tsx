@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { MarketingImage } from './MarketingImage'
 
 type NotePhoto = {
   src: string
@@ -163,7 +163,7 @@ function Column({
       <div className="hp-note-collage-track">
         {photos.map((photo) => (
           <figure key={photo.src} className="hp-note-collage-tile">
-            <Image
+            <MarketingImage
               src={photo.src}
               alt={photo.alt}
               width={photo.width}
@@ -174,7 +174,7 @@ function Column({
         ))}
         {photos.map((photo) => (
           <figure key={`${photo.src}-loop`} className="hp-note-collage-tile" aria-hidden="true">
-            <Image
+            <MarketingImage
               src={photo.src}
               alt=""
               width={photo.width}

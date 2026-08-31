@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { MarketingImage } from './MarketingImage'
 
 const PERMISSION = 'Member-reported result. Shared with permission.'
 
@@ -43,7 +43,7 @@ function Shot({
 }) {
   return (
     <figure className="hp-shot">
-      <Image src={src} alt={alt} width={width} height={height} />
+      <MarketingImage src={src} alt={alt} width={width} height={height} />
       <figcaption>{PERMISSION}</figcaption>
     </figure>
   )
@@ -61,7 +61,7 @@ function StoryHead({
   return (
     <div className="hp-story-head">
       <div className="hp-story-avatar">
-        <Image src={photo} alt={name} width={96} height={96} />
+        <MarketingImage src={photo} alt={name} width={96} height={96} />
       </div>
       <div>
         <p className="hp-proof-label">{label}</p>
