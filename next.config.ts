@@ -61,13 +61,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Production: unique id per deploy so CDN/clients do not keep stale chunks.
+  // Production: commit SHA so chunks bust on a new deploy without a unique
+  // timestamp, which invalidated Vercel's restored webpack cache and helped
+  // the 2e8f5a47 production build hang until BUILD_EXCEEDED_MAXIMUM_TIME.
   // Development: stable id so HTML and chunk paths stay aligned if the dev server re-reads config.
   generateBuildId: async () => {
     if (process.env.NODE_ENV === 'development') {
       return 'dev'
     }
-    return `build-${Date.now()}`
+    return process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || `build-${Date.now()}`
   },
 };
 

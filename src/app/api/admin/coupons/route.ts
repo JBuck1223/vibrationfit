@@ -84,6 +84,9 @@ export async function POST(request: NextRequest) {
     validUntil,
     campaignId,
     metadata,
+    renewalDiscountType,
+    renewalDiscountValue,
+    renewalDiscountCycles,
   } = body
 
   if (!name || !discountType || !discountValue) {
@@ -96,6 +99,18 @@ export async function POST(request: NextRequest) {
 
   if (discountType === 'percent' && (discountValue < 1 || discountValue > 100)) {
     return NextResponse.json({ error: 'Percent discount must be between 1 and 100' }, { status: 400 })
+  }
+
+  if (renewalDiscountType) {
+    if (!['percent', 'fixed'].includes(renewalDiscountType)) {
+      return NextResponse.json({ error: 'Renewal discount type must be percent or fixed' }, { status: 400 })
+    }
+    if (!renewalDiscountValue || renewalDiscountValue < 1) {
+      return NextResponse.json({ error: 'Renewal discount value is required when a renewal discount type is set' }, { status: 400 })
+    }
+    if (renewalDiscountType === 'percent' && renewalDiscountValue > 100) {
+      return NextResponse.json({ error: 'Renewal percent discount must be between 1 and 100' }, { status: 400 })
+    }
   }
 
   const admin = getServiceClient()
@@ -117,6 +132,9 @@ export async function POST(request: NextRequest) {
       valid_until: validUntil || null,
       campaign_id: campaignId || null,
       metadata: metadata || {},
+      renewal_discount_type: renewalDiscountType || null,
+      renewal_discount_value: renewalDiscountType ? renewalDiscountValue : null,
+      renewal_discount_cycles: renewalDiscountType ? (renewalDiscountCycles || null) : null,
     })
     .select()
     .single()
@@ -174,6 +192,9 @@ export async function PATCH(request: NextRequest) {
     minPurchaseAmount: 'min_purchase_amount',
     maxDiscountAmount: 'max_discount_amount',
     campaignId: 'campaign_id',
+    renewalDiscountType: 'renewal_discount_type',
+    renewalDiscountValue: 'renewal_discount_value',
+    renewalDiscountCycles: 'renewal_discount_cycles',
   }
 
   const dbUpdates: Record<string, any> = {}

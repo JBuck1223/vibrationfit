@@ -21,7 +21,7 @@ import { createClient } from '@supabase/supabase-js'
 import { chargeVaultedCard } from '@/lib/paypal/orders'
 import { isPayPalConfigured } from '@/lib/paypal/client'
 import { createAdminNotification } from '@/lib/admin/notifications'
-import { applySubscriptionAddonGrants } from '@/lib/paypal/vault-billing'
+import { applySubscriptionAddonGrants, tickRenewalDiscount } from '@/lib/paypal/vault-billing'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -50,6 +50,9 @@ type DueSubscription = {
   status: string
   cancel_at_period_end: boolean | null
   order_item_id: string | null
+  renewal_discount_type: 'percent' | 'fixed' | null
+  renewal_discount_value: number | null
+  renewal_discount_cycles_remaining: number | null
   membership_tiers: {
     id: string
     name: string
@@ -81,6 +84,7 @@ export async function GET(request: NextRequest) {
     .select(`
       id, user_id, amount_cents, billing_interval_days, next_billing_at,
       failure_count, status, cancel_at_period_end, order_item_id,
+      renewal_discount_type, renewal_discount_value, renewal_discount_cycles_remaining,
       membership_tiers (id, name, tier_type, plan_category),
       payment_methods (id, paypal_vault_id, status)
     `)
@@ -103,11 +107,6 @@ export async function GET(request: NextRequest) {
       const tier = sub.membership_tiers
       const pm = sub.payment_methods
 
-      if (!sub.amount_cents || sub.amount_cents <= 0) {
-        results.skipped++
-        continue
-      }
-
       // Member canceled: period is over, end access instead of charging
       if (sub.cancel_at_period_end && tier?.plan_category !== 'intensive') {
         await supabaseAdmin
@@ -120,6 +119,48 @@ export async function GET(request: NextRequest) {
           })
           .eq('id', sub.id)
         results.closed++
+        continue
+      }
+
+      if (!sub.amount_cents || sub.amount_cents <= 0) {
+        // 100%-off renewal discount: a free cycle. Advance the period and
+        // grant tokens without charging; the discount countdown still ticks.
+        const isFreeCycle = Boolean(sub.renewal_discount_type) && tier?.plan_category !== 'intensive'
+        if (!isFreeCycle) {
+          results.skipped++
+          continue
+        }
+
+        const intervalDays = sub.billing_interval_days || 28
+        const periodEnd = new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000)
+        await supabaseAdmin
+          .from('customer_subscriptions')
+          .update({
+            status: 'active' as any,
+            current_period_start: new Date().toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            next_billing_at: periodEnd.toISOString(),
+            failure_count: 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', sub.id)
+
+        await tickRenewalDiscount(supabaseAdmin as any, sub).catch(err =>
+          console.error('[billing cron] renewal discount tick failed for sub', sub.id, err),
+        )
+
+        if (tier?.id) {
+          const { error: grantError } = await supabaseAdmin.rpc('grant_tokens_for_tier', {
+            p_user_id: sub.user_id,
+            p_tier_id: tier.id,
+            p_subscription_id: sub.id,
+          })
+          if (grantError) {
+            console.error('[billing cron] token grant failed for sub', sub.id, grantError)
+          }
+        }
+
+        results.charged++
         continue
       }
 
@@ -216,6 +257,11 @@ export async function GET(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', sub.id)
+
+        // Cycle-limited renewal discount: count down; restore full price when done
+        await tickRenewalDiscount(supabaseAdmin as any, sub).catch(err =>
+          console.error('[billing cron] renewal discount tick failed for sub', sub.id, err),
+        )
 
         if (tier?.id) {
           const { error: grantError } = await supabaseAdmin.rpc('grant_tokens_for_tier', {

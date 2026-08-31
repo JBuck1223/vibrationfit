@@ -273,6 +273,7 @@ export async function chargeRenewalNow(
     .select(`
       id, user_id, status, amount_cents, billing_interval_days, next_billing_at,
       payment_method_id, provider,
+      renewal_discount_type, renewal_discount_value, renewal_discount_cycles_remaining,
       membership_tiers ( id, name, plan_category )
     `)
     .eq('id', subscriptionId)
@@ -323,6 +324,10 @@ export async function chargeRenewalNow(
     if (grantError) console.error('[vault-billing] token grant failed:', grantError)
   }
 
+  await tickRenewalDiscount(serviceClient, sub as any).catch(err =>
+    console.error('[vault-billing] renewal discount tick failed:', err),
+  )
+
   await applySubscriptionAddonGrants(serviceClient, sub, charge.orderId).catch(err =>
     console.error('[vault-billing] addon grants failed:', err),
   )
@@ -330,9 +335,64 @@ export async function chargeRenewalNow(
   return { chargedCents: sub.amount_cents, nextBillingAt: periodEnd.toISOString() }
 }
 
+export type RenewalDiscountFields = {
+  renewal_discount_type: 'percent' | 'fixed' | null
+  renewal_discount_value: number | null
+  renewal_discount_cycles_remaining: number | null
+}
+
+/**
+ * Apply a subscription's active renewal discount to a full-price amount.
+ * A discount is active while its type/value are set and cycles_remaining is
+ * either null (forever) or > 0.
+ */
+export function applyRenewalDiscount(fullPriceCents: number, sub: RenewalDiscountFields): number {
+  if (!sub.renewal_discount_type || !sub.renewal_discount_value) return fullPriceCents
+  if (sub.renewal_discount_cycles_remaining !== null && sub.renewal_discount_cycles_remaining <= 0) {
+    return fullPriceCents
+  }
+  const discount = sub.renewal_discount_type === 'percent'
+    ? Math.round(fullPriceCents * sub.renewal_discount_value / 100)
+    : sub.renewal_discount_value
+  return Math.max(0, fullPriceCents - discount)
+}
+
+/**
+ * After a successful renewal charge, count down a cycle-limited discount.
+ * When the last discounted cycle is used up, clear the discount fields and
+ * restore amount_cents to full price (tier base + add-ons).
+ */
+export async function tickRenewalDiscount(
+  serviceClient: ServiceClient,
+  sub: { id: string } & RenewalDiscountFields,
+): Promise<void> {
+  if (!sub.renewal_discount_type || sub.renewal_discount_cycles_remaining === null) return
+
+  const remaining = sub.renewal_discount_cycles_remaining - 1
+  if (remaining > 0) {
+    await serviceClient
+      .from('customer_subscriptions')
+      .update({ renewal_discount_cycles_remaining: remaining, updated_at: new Date().toISOString() })
+      .eq('id', sub.id)
+    return
+  }
+
+  await serviceClient
+    .from('customer_subscriptions')
+    .update({
+      renewal_discount_type: null,
+      renewal_discount_value: null,
+      renewal_discount_cycles_remaining: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', sub.id)
+  await recomputeSubscriptionAmount(serviceClient, sub.id)
+}
+
 /**
  * Recompute a subscription's renewal amount: tier base price + all active
- * add-on rows. Keeps amount_cents consistent after any addon change.
+ * add-on rows, then any active renewal discount. Keeps amount_cents
+ * consistent after any addon or plan change.
  */
 export async function recomputeSubscriptionAmount(
   serviceClient: ServiceClient,
@@ -340,7 +400,10 @@ export async function recomputeSubscriptionAmount(
 ): Promise<number | null> {
   const { data: sub } = await serviceClient
     .from('customer_subscriptions')
-    .select('id, membership_tiers ( price_monthly, price_yearly, billing_interval )')
+    .select(`
+      id, renewal_discount_type, renewal_discount_value, renewal_discount_cycles_remaining,
+      membership_tiers ( price_monthly, price_yearly, billing_interval )
+    `)
     .eq('id', subscriptionId)
     .maybeSingle()
   if (!sub) return null
@@ -361,7 +424,7 @@ export async function recomputeSubscriptionAmount(
     0,
   )
 
-  const total = base + addonTotal
+  const total = applyRenewalDiscount(base + addonTotal, sub as unknown as RenewalDiscountFields)
   await serviceClient
     .from('customer_subscriptions')
     .update({ amount_cents: total, updated_at: new Date().toISOString() })
