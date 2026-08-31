@@ -173,7 +173,7 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
                   </h2>
                 )}
                 {subtitle && (
-                  <p className="text-neutral-400 max-w-2xl mx-auto text-base md:text-lg leading-relaxed">
+                  <p className="text-neutral-400 mx-auto max-w-4xl text-base leading-relaxed md:max-w-5xl md:text-lg">
                     {subtitle}
                   </p>
                 )}

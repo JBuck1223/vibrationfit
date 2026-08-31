@@ -211,13 +211,20 @@ export default function HomePreview4Page() {
                 <p>Over 72 hours, you build your Conscious Creation System and leave with:</p>
                 <Beats
                   items={[
-                    'Your Life I Choose vision',
-                    'Your Vision Audio',
+                    'Your Profile',
+                    'Your Life I Choose vision across 12 categories',
+                    'Your Vision Audio, generated or recorded in your own voice, and mixed into immersion tracks',
                     'Your Vision Board',
                     'Your journal',
                     'Your My Alignment Plan (MAP)',
+                    'Your first Vibe Tribe Connection and Alignment Gym tour',
                   ]}
                 />
+                <p>
+                  VIVA writes your Life I Choose using vibrational grammar, even if you start without
+                  complete clarity.
+                </p>
+                <p>You don&rsquo;t leave with more information.</p>
                 <Hit>You leave with your personal system installed.</Hit>
               </Body>
             </div>
@@ -245,8 +252,9 @@ export default function HomePreview4Page() {
                 <p>Your desires will change as you grow. That&rsquo;s not inconsistency.</p>
                 <Punch>That&rsquo;s evolution.</Punch>
                 <p>
-                  Update your vision as your life expands. Every past version is preserved, so you can
-                  look back and see how much of what you once wrote is now your actual life.
+                  Update your profile, Life I Choose, Vision Audio, Vision Board, and MAP as your life
+                  expands. Every past version is preserved, so you can look back and see how much of
+                  what you once wrote is now your actual life.
                 </p>
               </Body>
             </div>

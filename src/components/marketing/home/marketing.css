@@ -1,6 +1,8 @@
 /* overflow-x: hidden on html/body creates a scroll container and kills sticky. */
 html:has([data-preview]),
-html:has([data-preview]) body {
+html:has([data-home]),
+html:has([data-preview]) body,
+html:has([data-home]) body {
   overflow-x: clip;
 }
 
@@ -13,9 +15,9 @@ html:has([data-preview]) body {
 
 .hp-hero-glow {
   background:
-    radial-gradient(ellipse 90% 55% at 50% -10%, rgba(57, 255, 20, 0.16), transparent 58%),
-    radial-gradient(ellipse 45% 40% at 88% 18%, rgba(191, 0, 255, 0.1), transparent 52%),
-    radial-gradient(ellipse 40% 35% at 8% 22%, rgba(0, 255, 255, 0.08), transparent 50%);
+    radial-gradient(ellipse 140% 90% at 50% 40%, rgba(57, 255, 20, 0.14), transparent 72%),
+    radial-gradient(ellipse 80% 70% at 92% 55%, rgba(191, 0, 255, 0.09), transparent 68%),
+    radial-gradient(ellipse 75% 65% at 6% 50%, rgba(0, 255, 255, 0.07), transparent 66%);
 }
 
 .hp-offer-copy,
@@ -52,7 +54,7 @@ html:has([data-preview]) body {
   max-width: 48rem;
   margin-inline: auto;
   overflow: hidden;
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   background: #000;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
 }
@@ -80,7 +82,6 @@ html:has([data-preview]) body {
 }
 
 .hp-hero-stack[data-hero='stacked'] .hp-hero-video {
-  border-radius: 0;
   background: transparent;
   box-shadow: none;
 }
@@ -537,6 +538,30 @@ html:has([data-preview]) body {
   .hp-offer-split-copy {
     position: sticky;
     top: 6.5rem;
+  }
+
+  /* Offer card is taller than the copy, so stick the text — same
+     mechanic as Install It Once, inverted. Card scrolls past until
+     the bottom of this container. */
+  .hp-with-photo:has(.hp-offer-card) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hp-with-photo:has(.hp-offer-card) .hp-with-photo-copy {
+    position: sticky;
+    top: 6.5rem;
+    align-self: start;
+  }
+
+  .hp-with-photo:has(.hp-offer-card) .hp-with-photo-media {
+    overflow: visible;
+  }
+
+  .hp-with-photo:has(.hp-offer-card) .hp-with-photo-sticky {
+    position: static;
+    overflow: visible;
+    padding: 2.5rem;
+    margin: -2.5rem;
   }
 }
 

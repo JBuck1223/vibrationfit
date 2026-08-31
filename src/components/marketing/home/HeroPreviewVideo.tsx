@@ -52,7 +52,7 @@ export function HeroPreviewVideo() {
 
   return (
     <div className="hp-hero-video">
-      <div className="relative overflow-hidden bg-black">
+      <div className="relative overflow-hidden rounded-2xl bg-black">
         <video
           ref={videoRef}
           src={SRC}
