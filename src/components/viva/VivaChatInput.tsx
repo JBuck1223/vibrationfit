@@ -2,8 +2,31 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { Mic, Square, Loader2, ArrowUp, Paperclip, X, FileText } from 'lucide-react'
+import { toast } from 'sonner'
 import { VIVALoadingOverlay } from '@/lib/design-system/components/overlays'
 import { cn } from '@/lib/utils'
+
+const AUDIO_MIME_CANDIDATES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/mp4',
+  'audio/aac',
+  'audio/ogg;codecs=opus',
+]
+
+function pickAudioMimeType(): { mimeType: string; filename: string } {
+  const mimeType =
+    AUDIO_MIME_CANDIDATES.find(
+      (type) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)
+    ) || ''
+  const ext =
+    mimeType.includes('mp4') || mimeType.includes('aac')
+      ? 'mp4'
+      : mimeType.includes('ogg')
+        ? 'ogg'
+        : 'webm'
+  return { mimeType, filename: `recording.${ext}` }
+}
 
 export interface ChatAttachment {
   id: string
@@ -15,7 +38,7 @@ export interface ChatAttachment {
 interface VivaChatInputProps {
   value: string
   onChange: (value: string) => void
-  onSend?: (attachments?: ChatAttachment[]) => void
+  onSend?: (attachments?: ChatAttachment[], text?: string) => void
   /** @deprecated Use onSend instead */
   onSubmit?: (value: string) => void
   disabled?: boolean
@@ -54,6 +77,24 @@ export function VivaChatInput({
   const animationFrameRef = useRef<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const valueRef = useRef(value)
+  const onChangeRef = useRef(onChange)
+  const onSendRef = useRef(onSend)
+  const discardedRef = useRef(false)
+  const mimeTypeRef = useRef('')
+  const filenameRef = useRef('recording.webm')
+
+  useEffect(() => {
+    valueRef.current = value
+  }, [value])
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  useEffect(() => {
+    onSendRef.current = onSend
+  }, [onSend])
 
   useEffect(() => {
     return () => {
@@ -124,12 +165,16 @@ export function VivaChatInput({
       }
       updateLevel()
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm',
-      })
+      const { mimeType, filename } = pickAudioMimeType()
+      mimeTypeRef.current = mimeType
+      filenameRef.current = filename
+      discardedRef.current = false
+
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
+      mimeTypeRef.current = mediaRecorder.mimeType || mimeType || 'audio/webm'
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data)
@@ -144,37 +189,61 @@ export function VivaChatInput({
           streamRef.current = null
         }
 
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        if (blob.size === 0) return
+        if (discardedRef.current) {
+          chunksRef.current = []
+          return
+        }
+
+        const blobType = mimeTypeRef.current || 'audio/webm'
+        const blob = new Blob(chunksRef.current, { type: blobType })
+        chunksRef.current = []
+        if (blob.size === 0) {
+          toast.error('That recording was empty. Try again?')
+          return
+        }
 
         setIsTranscribing(true)
         try {
           const formData = new FormData()
-          formData.append('audio', blob, 'recording.webm')
+          formData.append('audio', blob, filenameRef.current)
           const response = await fetch('/api/transcribe', {
             method: 'POST',
             body: formData,
           })
-          if (response.ok) {
-            const data = await response.json()
-            if (data.transcript) {
-              onChange(value ? `${value}\n${data.transcript}` : data.transcript)
-            }
+          const data = await response.json().catch(() => ({})) as { transcript?: string; error?: string }
+          if (!response.ok) {
+            throw new Error(data.error || 'Transcription failed.')
+          }
+          const transcript = data.transcript?.trim()
+          if (!transcript) {
+            throw new Error('No words came through. Try recording again?')
+          }
+
+          const existing = valueRef.current.trim()
+          const next = existing ? `${existing}\n${transcript}` : transcript
+          onChangeRef.current(next)
+
+          // Chat surfaces treat the stop button as submit — send the transcript
+          // instead of leaving it in the box where a failed send looks like it vanished.
+          if (onSendRef.current) {
+            onSendRef.current(undefined, next)
           }
         } catch (err) {
           console.error('[VivaChatInput] Transcription error:', err)
+          toast.error(err instanceof Error ? err.message : 'Could not turn that recording into text. Try again?')
         } finally {
           setIsTranscribing(false)
         }
       }
 
-      mediaRecorder.start(1000)
+      mediaRecorder.start(250)
       setIsRecording(true)
       setRecordingDuration(0)
       timerRef.current = setInterval(() => setRecordingDuration(prev => prev + 1), 1000)
     } catch (err) {
       console.error('[VivaChatInput] Mic access error:', err)
       setIsRecording(false)
+      toast.error('Could not access the microphone. Check permissions and try again.')
     }
   }
 
@@ -183,10 +252,20 @@ export function VivaChatInput({
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop()
+    const recorder = mediaRecorderRef.current
+    if (recorder && recorder.state === 'recording') {
+      if (typeof recorder.requestData === 'function') {
+        recorder.requestData()
+      }
+      recorder.stop()
     }
     setIsRecording(false)
+  }
+
+  const cancelRecording = () => {
+    discardedRef.current = true
+    stopRecording()
+    chunksRef.current = []
   }
 
   // --- Send ---
@@ -195,7 +274,7 @@ export function VivaChatInput({
     // drop in-flight requests when a focused textarea becomes disabled.
     textareaRef.current?.blur()
     if (onSend) {
-      onSend(attachments.length > 0 ? attachments : undefined)
+      onSend(attachments.length > 0 ? attachments : undefined, value)
     } else if (onSubmit) {
       onSubmit(value)
     }
@@ -317,10 +396,7 @@ export function VivaChatInput({
           <div className="flex items-center justify-between mt-2">
             <button
               type="button"
-              onClick={() => {
-                stopRecording()
-                chunksRef.current = []
-              }}
+              onClick={cancelRecording}
               className="p-2 bg-neutral-600 hover:bg-neutral-500 text-neutral-300 hover:text-white rounded-full transition-colors"
               title="Cancel"
             >

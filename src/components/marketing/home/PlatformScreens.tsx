@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { MarketingImage } from './MarketingImage'
 
 type Shot = {
   src: string
@@ -33,10 +33,10 @@ const LEFT: Shot[] = [
     height: 1840,
   },
   {
-    src: '/home-preview/screenshots/audio.jpg',
+    src: '/home-preview/screenshots/audio-studio.jpg',
     alt: 'Audio Studio playing Life Vision audio',
-    width: 2880,
-    height: 1840,
+    width: 1440,
+    height: 1560,
   },
   {
     src: '/home-preview/screenshots/abundance-tracker.jpg',
@@ -109,7 +109,7 @@ function Column({
       <div className="hp-note-collage-track">
         {shots.map((shot) => (
           <figure key={shot.src} className="hp-note-collage-tile">
-            <Image
+            <MarketingImage
               src={shot.src}
               alt={shot.alt}
               width={shot.width}
@@ -120,7 +120,7 @@ function Column({
         ))}
         {shots.map((shot) => (
           <figure key={`${shot.src}-loop`} className="hp-note-collage-tile" aria-hidden="true">
-            <Image
+            <MarketingImage
               src={shot.src}
               alt=""
               width={shot.width}

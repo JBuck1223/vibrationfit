@@ -251,6 +251,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/home-preview',                   // Draft front door — unlisted, noindex
     '/home-preview-2',                 // Lucide-flow test of the draft front door
     '/home-preview-3',                 // Merged draft: live-page sales machinery + preview soul
+    '/home-preview-4',                 // Layout experiment of the merged draft
     '/privacy-policy',
     '/terms-of-service',
     '/100k',                           // From $100K in Debt to $100K in the Bank (free guide)

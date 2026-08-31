@@ -27,9 +27,9 @@ import { LifeCategoryOrbit } from '@/components/marketing/home/LifeCategoryOrbit
 import { NoteCollage } from '@/components/marketing/home/NoteCollage'
 import { PlatformScreens } from '@/components/marketing/home/PlatformScreens'
 
-export default function HomePreview3Page() {
+export default function HomePreview4Page() {
   return (
-    <div className="-mx-4 -mt-6 overflow-x-clip sm:-mx-6 md:-mx-6 md:-my-12 md:overflow-x-visible lg:-mx-8 lg:-mt-8" data-preview="v16-merged">
+    <div className="-mx-4 -mt-6 overflow-x-clip sm:-mx-6 md:-mx-6 md:-my-12 md:overflow-x-visible lg:-mx-8 lg:-mt-8" data-preview="v17-layout">
       {/* 1. Hero — Who it's for, What it is, The Outcome */}
       <header className="hp-hero-glow">
         <Container size="xl" className="px-4 pb-16 pt-8 md:px-10 md:pb-20 md:pt-10">
@@ -103,60 +103,15 @@ export default function HomePreview3Page() {
         </Container>
       </section>
 
-      {/* 2. Real People. Real Results. — member videos, screenshots, and receipts */}
+      {/* 2. The Receipts */}
       <Section>
-        <div className="rounded-2xl border-2 border-[#39FF14]/20 bg-black/40 p-4 md:p-6 lg:p-8">
-          <SocialProofSection
-            eyebrow="Vibration Fit Member Results"
-            title="Real People. Real Results."
-            subtitle="Watch unedited stories and scroll through real screenshots from Vibration Fit members using universal law to create tangible wins in money, relationships, opportunities, and everyday life."
-            microcopy="All videos and messages are from real Vibration Fit members, shared with permission. Screenshots are unedited."
-            videos={[
-              {
-                id: 'v1',
-                src: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541.webm',
-                poster: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541-thumb.jpg',
-                label: 'Testimonial',
-              },
-              {
-                id: 'v2',
-                src: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-1080p.mp4',
-                poster: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-thumb.0000000.jpg',
-                label: 'Michele',
-              },
-              {
-                id: 'v3',
-                src: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695.webm',
-                poster: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695-thumb.jpg',
-                label: 'Activation',
-              },
-            ]}
-            screenshots={[
-              { id: 's1', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0002-4.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's2', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0003-5.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's3', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0004-7.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's4', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0005-8.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's5', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0006-9.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's6', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0007-13.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's7', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0008-jeanie.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's8', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0009-11.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's9', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0010-12.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's10', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0011-14.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's11', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0012-15.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's12', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0013-16.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's13', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0014-17.jpg', alt: 'Vibration Fit member testimonial' },
-            ]}
-          />
-        </div>
-        <div className="mt-16">
-          <ReceiptsSection />
-        </div>
+        <ReceiptsSection />
         <Cta />
       </Section>
 
       {/* 3. You Know the Law. Now Live It. */}
       <Section>
-        <SectionMedia side="left" graphic={<VibrationalFitness />}>
+        <SectionMedia side="left" graphic={<LifeCategoryOrbit />}>
           <Eyebrow tone="cyan" className="lg:text-left">The Practice</Eyebrow>
           <Display className="lg:text-left">
             You Know the Law.
@@ -184,7 +139,7 @@ export default function HomePreview3Page() {
 
       {/* 4. Meet VIVA */}
       <Section>
-        <SectionMedia graphic={<LifeCategoryOrbit />}>
+        <SectionMedia graphic={<PlatformScreens />}>
           <Eyebrow className="lg:text-left">Meet VIVA</Eyebrow>
           <Display className="lg:text-left">
             What VIVA
@@ -441,7 +396,7 @@ export default function HomePreview3Page() {
 
       {/* 8. The Close */}
       <Section>
-        <SectionMedia side="left" graphic={<PlatformScreens />}>
+        <SectionMedia side="left" graphic={<VibrationalFitness />}>
           <Eyebrow className="lg:text-left">Now</Eyebrow>
           <Display className="lg:text-left">
             Start Creating
@@ -482,7 +437,54 @@ export default function HomePreview3Page() {
         </SectionMedia>
       </Section>
 
-      {/* 9. Full FAQ */}
+      {/* 9. Member results */}
+      <Section>
+        <div className="rounded-2xl bg-black/40 p-4 md:p-6 lg:p-8">
+          <SocialProofSection
+            eyebrow="Vibration Fit Member Results"
+            title="Real People. Real Results."
+            subtitle="Watch unedited stories and scroll through real screenshots from Vibration Fit members using universal law to create tangible wins across all 12 life categories."
+            microcopy="All videos and messages are from real Vibration Fit members, shared with permission. Screenshots are unedited."
+            videos={[
+              {
+                id: 'v1',
+                src: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541.webm',
+                poster: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541-thumb.jpg',
+                label: 'Testimonial',
+              },
+              {
+                id: 'v2',
+                src: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-1080p.mp4',
+                poster: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-thumb.0000000.jpg',
+                label: 'Michele',
+              },
+              {
+                id: 'v3',
+                src: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695.webm',
+                poster: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695-thumb.jpg',
+                label: 'Activation',
+              },
+            ]}
+            screenshots={[
+              { id: 's1', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0002-4.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's2', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0003-5.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's3', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0004-7.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's4', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0005-8.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's5', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0006-9.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's6', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0007-13.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's7', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0008-jeanie.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's8', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0009-11.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's9', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0010-12.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's10', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0011-14.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's11', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0012-15.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's12', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0013-16.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's13', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0014-17.jpg', alt: 'Vibration Fit member testimonial' },
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* 10. Full FAQ */}
       <Section>
         <FaqSection />
       </Section>

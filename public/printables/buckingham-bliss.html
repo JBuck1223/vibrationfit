@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Buckingham Bliss — Weekly Rhythm</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #f3eee6;
+        --ink: #241c16;
+        --muted: #6a6158;
+        --rule: #cbbfb0;
+        --cream: #fffdf8;
+        --gold: #9a7a38;
+        --gold-soft: #f3ead0;
+        --oliver: #1f5c57;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: #d8d0c6;
+        color: var(--ink);
+        font-family: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 16px;
+        padding: 14px 20px;
+        background: #241c16;
+        color: #f3eee6;
+      }
+
+      .toolbar p {
+        margin: 0;
+        flex: 1 1 260px;
+        font-size: 13px;
+        line-height: 1.4;
+        color: #d8cfc3;
+      }
+
+      .toolbar button {
+        border: 0;
+        border-radius: 4px;
+        padding: 8px 16px;
+        font: inherit;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #241c16;
+        background: #e8d39a;
+        cursor: pointer;
+      }
+
+      .stage {
+        padding: 28px 16px 48px;
+      }
+
+      .sheet {
+        width: 11in;
+        height: 8.5in;
+        margin: 0 auto;
+        padding: 0.28in 0.32in 0.24in;
+        background: var(--paper);
+        color: var(--ink);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .kicker {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 16px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .hero {
+        padding: 2px 0 8px;
+        border-bottom: 2px solid var(--gold);
+        margin-bottom: 8px;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: Fraunces, Georgia, "Times New Roman", serif;
+        font-size: 36px;
+        font-weight: 600;
+        line-height: 0.9;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+      }
+
+      h1 em {
+        font-style: italic;
+        font-weight: 500;
+        color: var(--gold);
+      }
+
+      .week {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 7px;
+        min-height: 0;
+        flex: 1;
+      }
+
+      .day {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        padding: 7px 8px 8px;
+        background: var(--cream);
+        border: 1px solid var(--rule);
+      }
+
+      .day header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 4px;
+        padding-bottom: 5px;
+        margin-bottom: 4px;
+        border-bottom: 1.5px solid var(--ink);
+      }
+
+      .day header.sun {
+        margin-top: 10px;
+      }
+
+      .day h2 {
+        margin: 0;
+        font-family: Fraunces, Georgia, serif;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+
+      .day ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .day li {
+        padding: 3.5px 0;
+        border-bottom: 1px solid var(--soft, #e7dfd4);
+        font-size: 10px;
+        line-height: 1.25;
+        color: var(--ink);
+      }
+
+      .day li:last-child {
+        border-bottom: 0;
+      }
+
+      .day li b {
+        display: block;
+        font-family: Fraunces, Georgia, serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .day li.mark {
+        background: var(--gold-soft);
+        margin: 0 -8px;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .night {
+        margin: 2px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .night li {
+        padding: 0;
+        border: 0;
+        font-size: 10px;
+        line-height: 1.3;
+        color: var(--muted);
+      }
+
+      .day.thu {
+        border-color: var(--gold);
+        background: #faf6ea;
+      }
+
+      .day.sat {
+        border-color: var(--oliver);
+        background: #f4f8f7;
+      }
+
+      .ideas {
+        margin-top: 8px;
+        padding: 6px 12px 7px;
+        background: var(--cream);
+        border: 1px solid var(--rule);
+      }
+
+      .ideas h3 {
+        margin: 0 0 4px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+
+      .ideas ul {
+        margin: 0;
+        padding-left: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 28px;
+      }
+
+      .ideas li {
+        font-family: Fraunces, Georgia, serif;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.25;
+      }
+
+      .ideas li small {
+        display: block;
+        margin-top: 1px;
+        font-family: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+
+      @media print {
+        @page {
+          size: letter landscape;
+          margin: 0;
+        }
+
+        html,
+        body {
+          background: white;
+        }
+
+        .toolbar,
+        .no-print {
+          display: none !important;
+        }
+
+        .stage {
+          padding: 0;
+        }
+
+        .sheet {
+          margin: 0;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar no-print">
+      <p>
+        One landscape letter page. Print with Background graphics on so the cream
+        paper comes through.
+      </p>
+      <button type="button" onclick="window.print()">Print schedule</button>
+    </div>
+
+    <div class="stage">
+      <article class="sheet">
+        <div class="kicker">
+          <span>The Buckingham Family</span>
+        </div>
+        <div class="hero">
+          <h1>Buckingham <em>Bliss</em></h1>
+        </div>
+
+        <div class="week">
+          <article class="day">
+            <header>
+              <h2>Monday</h2>
+            </header>
+            <ol>
+              <li><b>6:30–7:30</b> Wake up &amp; work out</li>
+              <li><b>7:30–8:00</b> Shower &amp; breakfast</li>
+              <li><b>8:00–8:30</b> Kinder prep for Adeline and ELA for Oliver</li>
+              <li><b>8:30–8:45</b> Handwriting for Oliver</li>
+              <li><b>8:45–9:45</b> Outing</li>
+              <li><b>9:45–10:00</b> Snack</li>
+              <li><b>10:00–10:30</b> Math for Oliver</li>
+              <li class="mark"><b>10:30–11:00</b> Science with Mommy</li>
+              <li>
+                <b>11:00–3:00</b> Work block. Kelly helps with kids and home.
+                <ul class="night">
+                  <li>12:00 Lunch &amp; nap time for Eloise</li>
+                  <li>2:30 Snack</li>
+                </ul>
+              </li>
+              <li><b>3:00–8:00</b> Family time and dinner</li>
+              <li>
+                <b>Bedtime routine</b>
+                <ul class="night">
+                  <li>8:00 Bath</li>
+                  <li>8:30 Teeth</li>
+                  <li>8:40 Reading</li>
+                  <li>9:00 Bedtime</li>
+                </ul>
+              </li>
+            </ol>
+          </article>
+
+          <article class="day">
+            <header>
+              <h2>Tuesday</h2>
+            </header>
+            <ol>
+              <li><b>6:30–7:30</b> Wake up &amp; work out</li>
+              <li><b>7:30–8:00</b> Shower &amp; breakfast</li>
+              <li><b>8:00–8:30</b> Kinder prep for Adeline and ELA for Oliver</li>
+              <li><b>8:30–8:45</b> Handwriting for Oliver</li>
+              <li><b>8:45–9:45</b> Outing</li>
+              <li><b>9:45–10:00</b> Snack</li>
+              <li><b>10:00–10:30</b> Math for Oliver</li>
+              <li>
+                <b>10:30–3:00</b> Work block. Kelly helps with kids and home.
+                <ul class="night">
+                  <li>12:00 Lunch &amp; nap time for Eloise</li>
+                  <li>2:30 Snack</li>
+                </ul>
+              </li>
+              <li><b>3:00–8:00</b> Family time and dinner</li>
+              <li>
+                <b>Bedtime routine</b>
+                <ul class="night">
+                  <li>8:00 Bath</li>
+                  <li>8:30 Teeth</li>
+                  <li>8:40 Reading</li>
+                  <li>9:00 Bedtime</li>
+                </ul>
+              </li>
+            </ol>
+          </article>
+
+          <article class="day">
+            <header>
+              <h2>Wednesday</h2>
+            </header>
+            <ol>
+              <li><b>6:30–7:30</b> Wake up &amp; work out</li>
+              <li><b>7:30–8:00</b> Shower &amp; breakfast</li>
+              <li><b>8:00–8:30</b> Kinder prep for Adeline and ELA for Oliver</li>
+              <li><b>8:30–8:45</b> Handwriting for Oliver</li>
+              <li><b>8:45–9:45</b> Outing</li>
+              <li><b>9:45–10:00</b> Snack</li>
+              <li><b>10:00–10:30</b> Math for Oliver</li>
+              <li class="mark"><b>10:30–11:00</b> Science with Mommy</li>
+              <li>
+                <b>11:00–3:00</b> Work block. Kelly helps with kids and home.
+                <ul class="night">
+                  <li>12:00 Lunch &amp; nap time for Eloise</li>
+                  <li>2:30 Snack</li>
+                </ul>
+              </li>
+              <li class="mark"><b>12:00–12:45</b> Ninja Juniors for Oliver at Kidz Gym</li>
+              <li><b>3:00–8:00</b> Family time and dinner</li>
+              <li>
+                <b>Bedtime routine</b>
+                <ul class="night">
+                  <li>8:00 Bath</li>
+                  <li>8:30 Teeth</li>
+                  <li>8:40 Reading</li>
+                  <li>9:00 Bedtime</li>
+                </ul>
+              </li>
+            </ol>
+          </article>
+
+          <article class="day thu">
+            <header>
+              <h2>Thursday</h2>
+            </header>
+            <ol>
+              <li><b>6:30–7:30</b> Wake up &amp; work out</li>
+              <li><b>7:30–8:00</b> Shower &amp; breakfast</li>
+              <li><b>8:00–8:30</b> Kinder prep for Adeline and ELA for Oliver</li>
+              <li><b>8:30–8:45</b> Handwriting for Oliver</li>
+              <li><b>8:45–9:45</b> Outing</li>
+              <li><b>9:45–10:00</b> Snack</li>
+              <li><b>10:00–10:30</b> Math for Oliver</li>
+              <li class="mark"><b>10:30–11:00</b> Art with Mommy</li>
+              <li class="mark"><b>10:00–12:00</b> Ohana Farm &amp; Gardens. Whole family. Starts in October.</li>
+              <li class="mark"><b>12:00–1:00</b> Alignment Gym</li>
+              <li>
+                <b>11:00–3:00</b> Work block. Kelly helps with kids and home.
+                <ul class="night">
+                  <li>12:00 Lunch &amp; nap time for Eloise</li>
+                  <li>2:30 Snack</li>
+                </ul>
+              </li>
+              <li><b>3:00–8:00</b> Family time and dinner</li>
+              <li>
+                <b>Bedtime routine</b>
+                <ul class="night">
+                  <li>8:00 Bath</li>
+                  <li>8:30 Teeth</li>
+                  <li>8:40 Reading</li>
+                  <li>9:00 Bedtime</li>
+                </ul>
+              </li>
+            </ol>
+          </article>
+
+          <article class="day">
+            <header>
+              <h2>Friday</h2>
+            </header>
+            <ol>
+              <li><b>6:30–7:30</b> Wake up &amp; work out</li>
+              <li><b>7:30–8:00</b> Shower &amp; breakfast</li>
+              <li><b>8:00–8:30</b> Kinder prep for Adeline and ELA for Oliver</li>
+              <li><b>8:30–8:45</b> Handwriting for Oliver</li>
+              <li><b>8:45–9:45</b> Outing</li>
+              <li><b>9:45–10:00</b> Snack</li>
+              <li><b>10:00–10:30</b> Math for Oliver</li>
+              <li>
+                <b>10:30–3:00</b> Work block. Kelly helps with kids and home.
+                <ul class="night">
+                  <li>12:00 Lunch &amp; nap time for Eloise</li>
+                  <li>2:30 Snack</li>
+                </ul>
+              </li>
+              <li><b>3:00–8:00</b> Family time and dinner</li>
+              <li>
+                <b>Bedtime routine</b>
+                <ul class="night">
+                  <li>8:00 Bath</li>
+                  <li>8:30 Teeth</li>
+                  <li>8:40 Reading</li>
+                  <li>9:00 Bedtime</li>
+                </ul>
+              </li>
+            </ol>
+          </article>
+
+          <article class="day sat">
+            <header>
+              <h2>Saturday</h2>
+            </header>
+            <ol>
+              <li class="mark"><b>9:30–11:00</b> Flag football for Oliver @ Greenbrook Park</li>
+              <li><b>Rest of the day</b> Open</li>
+              <li>
+                <b>Bedtime routine</b>
+                <ul class="night">
+                  <li>8:00 Bath</li>
+                  <li>8:30 Teeth</li>
+                  <li>8:40 Reading</li>
+                  <li>9:00 Bedtime</li>
+                </ul>
+              </li>
+            </ol>
+            <header class="sun">
+              <h2>Sunday</h2>
+            </header>
+            <ol>
+              <li>Meal prep for the week</li>
+            </ol>
+          </article>
+        </div>
+
+        <div class="ideas">
+          <h3>Weekly fun ideas</h3>
+          <ul>
+            <li>Boat, fishing, park, pool, Shellstone, swings, flowers</li>
+            <li>
+              Mote Aquarium
+              <small>Daily 9:30–5:00</small>
+            </li>
+            <li>
+              Fruitville Library
+              <small>Mon–Thu 10:00–7:00, Fri–Sat 10:00–5:00</small>
+            </li>
+            <li>
+              The Cookie Cottage
+              <small>Drop-in Tue–Sat 10:30–4:30, $10/child</small>
+            </li>
+          </ul>
+        </div>
+      </article>
+    </div>
+  </body>
+</html>

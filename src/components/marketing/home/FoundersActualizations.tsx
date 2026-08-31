@@ -12,6 +12,7 @@ const cardChrome = {
 export function FoundersActualizations() {
   return (
     <SwipeableCards
+      className="hp-actualizations-cards"
       cards={[
         {
           id: 'vision-profit',

@@ -492,7 +492,7 @@ export default function VivaPage() {
             <VivaChatInput
               value={currentMessage}
               onChange={setCurrentMessage}
-              onSend={() => sendMessage()}
+              onSend={(_attachments, text) => sendMessage(text)}
               disabled={isStreaming}
               placeholder="Talk to VIVA..."
               canSend={!!currentMessage.trim() && !isStreaming}

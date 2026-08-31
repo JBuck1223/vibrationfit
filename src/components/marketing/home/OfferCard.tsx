@@ -396,10 +396,10 @@ export function OfferBuyBox() {
 
       <Button
         variant="primary"
-        size="lg"
+        size="md"
         onClick={handlePurchase}
         disabled={isLoading}
-        className="mt-5 h-auto min-h-14 w-full !whitespace-normal px-5 py-4 text-center md:px-6"
+        className="mt-5 h-auto w-full !whitespace-normal text-center md:w-auto md:!whitespace-nowrap"
       >
         {isLoading ? 'Processing...' : CTA_LABEL}
         {!isLoading ? <ArrowRight className="h-4 w-4 shrink-0" /> : null}

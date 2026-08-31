@@ -115,43 +115,52 @@ html:has([data-preview]) body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .hp-with-photo-media {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
 }
 
 .hp-with-photo-sticky {
   width: 100%;
+  min-width: 0;
 }
 
 .hp-note-collage {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 0.55rem;
   width: 100%;
-  height: 28rem;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
-  mask-image: linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  contain: inline-size;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
 
 .hp-note-collage-col {
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
 }
 
 .hp-note-collage-track {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.55rem;
+  width: max-content;
 }
 
 .hp-note-collage-col.is-up .hp-note-collage-track {
-  animation: hp-note-scroll-up 90s linear infinite;
+  animation: hp-note-scroll-left 42s linear infinite;
 }
 
 .hp-note-collage-col.is-down .hp-note-collage-track {
-  animation: hp-note-scroll-down 102s linear infinite;
+  animation: hp-note-scroll-right 48s linear infinite;
 }
 
 .hp-note-collage:hover .hp-note-collage-track {
@@ -159,6 +168,7 @@ html:has([data-preview]) body {
 }
 
 .hp-note-collage-tile {
+  flex: 0 0 13.5rem;
   margin: 0;
   overflow: hidden;
   border-radius: 0.75rem;
@@ -169,7 +179,26 @@ html:has([data-preview]) body {
 .hp-note-collage-tile img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 9rem;
+  object-fit: cover;
+}
+
+@keyframes hp-note-scroll-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - 0.275rem));
+  }
+}
+
+@keyframes hp-note-scroll-right {
+  from {
+    transform: translateX(calc(-50% - 0.275rem));
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes hp-note-scroll-up {
@@ -190,10 +219,46 @@ html:has([data-preview]) body {
   }
 }
 
+@media (min-width: 1024px) {
+  .hp-note-collage {
+    grid-template-columns: 1fr 1fr;
+    height: 28rem;
+    mask-image: linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  }
+
+  .hp-note-collage-track {
+    flex-direction: column;
+    width: auto;
+  }
+
+  .hp-note-collage-col.is-up .hp-note-collage-track {
+    animation-name: hp-note-scroll-up;
+    animation-duration: 90s;
+  }
+
+  .hp-note-collage-col.is-down .hp-note-collage-track {
+    animation-name: hp-note-scroll-down;
+    animation-duration: 102s;
+  }
+
+  .hp-note-collage-tile {
+    flex: none;
+  }
+
+  .hp-note-collage-tile img {
+    height: auto;
+    object-fit: unset;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hp-note-collage {
     height: auto;
     mask-image: none;
+  }
+
+  .hp-note-collage-col {
+    overflow-x: auto;
   }
 
   .hp-note-collage-track {
@@ -209,6 +274,21 @@ html:has([data-preview]) body {
   .hp-with-photo:has(.hp-note-collage) .hp-with-photo-sticky {
     height: auto;
     max-height: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .hp-actualizations-cards [data-swipeable-card] {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100%;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  .hp-actualizations-cards .px-16 {
+    padding-left: 0;
+    padding-right: 0;
   }
 }
 
@@ -249,6 +329,7 @@ html:has([data-preview]) body {
 .hp-orbit-spin {
   position: absolute;
   inset: 0;
+  pointer-events: none;
   animation: hp-orbit-spin 48s linear infinite;
 }
 
@@ -273,18 +354,25 @@ html:has([data-preview]) body {
 }
 
 .hp-orbit-center-img {
-  animation: hp-orbit-fade 0.45s ease;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.hp-orbit-center-img.is-active {
+  opacity: 1;
 }
 
 .hp-orbit-node {
   position: absolute;
   left: calc(50% + 40% * cos(var(--orbit-angle)));
   top: calc(50% + 40% * sin(var(--orbit-angle)));
+  z-index: 3;
   width: 13%;
   overflow: visible;
   padding: 0;
   border: 0;
   background: transparent;
+  pointer-events: auto;
   cursor: pointer;
   transform: translate(-50%, -50%);
 }
@@ -411,6 +499,7 @@ html:has([data-preview]) body {
   .hp-orbit-spin,
   .hp-orbit-node-body {
     animation: none;
+    transition: none;
   }
 
   .hp-orbit-node-face {
@@ -656,7 +745,7 @@ html:has([data-preview]) body {
 .hp-more-misty {
   display: grid;
   gap: 1.5rem;
-  margin-top: 2.5rem;
+  margin-top: 1rem;
   padding: 1.5rem 1.35rem 1.4rem;
   border-radius: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -842,6 +931,7 @@ html:has([data-preview]) body {
     grid-template-columns: 1.1fr 0.9fr;
     align-items: start;
     gap: 2rem;
+    margin-top: 1.15rem;
     padding: 2rem 2rem 1.75rem;
   }
 

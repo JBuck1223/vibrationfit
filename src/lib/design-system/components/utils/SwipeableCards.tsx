@@ -149,7 +149,9 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     const [startY, setStartY] = useState(0)
     const [translateX, setTranslateX] = useState(0)
     const [translateY, setTranslateY] = useState(0)
-    const [isMobile, setIsMobile] = useState(false)
+    const [isMobile, setIsMobile] = useState(() =>
+      typeof window !== 'undefined' ? window.innerWidth < 768 : false
+    )
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
     const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; type: 'active' | 'actualized' } | null>(null)
     
@@ -835,7 +837,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                     ref={(el) => {
                       cardRefs.current[idx] = el
                     }}
-                    className="flex-shrink-0 w-full px-1"
+                    className="w-full min-w-full max-w-full flex-shrink-0 px-1"
                     style={{
                       opacity: isActive ? 1 : 0.4,
                       pointerEvents: isActive ? 'auto' : 'none',
@@ -857,10 +859,10 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                     >
                       <div className="w-full space-y-2">
                         {(card.activeImage || card.actualizedImage) ? (
-                          <>
+                          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
                             {card.activeImage && (
                               <div
-                                className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl cursor-pointer group"
+                                className="relative aspect-[4/3] overflow-hidden rounded-xl cursor-pointer group"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   setLightboxImage({
@@ -873,27 +875,23 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                                 <img
                                   src={card.activeImage}
                                   alt={card.activeImageAlt || card.title || 'Active vision'}
-                                  className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                                  className="h-full w-full object-cover"
                                   loading="lazy"
                                   decoding="async"
                                 />
-                                <div className="absolute top-2 right-2 bg-green-600 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
-                                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                                  <span className="text-white text-xs font-semibold">Active</span>
+                                <div className="absolute top-1.5 left-1.5 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg pointer-events-none">
+                                  Active
                                 </div>
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
                               </div>
                             )}
 
                             {(card.activeImage && card.actualizedImage) && (
-                              <div className="flex items-center justify-center">
-                                <Icon icon={ArrowDown} size="md" color="#BF00FF" className="animate-pulse" />
-                              </div>
+                              <Icon icon={ArrowDown} size="sm" color="#BF00FF" className="rotate-[-90deg] animate-pulse" />
                             )}
 
                             {card.actualizedImage && (
                               <div
-                                className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl cursor-pointer group"
+                                className="relative aspect-[4/3] overflow-hidden rounded-xl cursor-pointer group"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   setLightboxImage({
@@ -906,18 +904,17 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
                                 <img
                                   src={card.actualizedImage}
                                   alt={card.actualizedImageAlt || card.title || 'Actualized result'}
-                                  className="w-full h-full object-contain transition-opacity group-hover:opacity-90"
+                                  className="h-full w-full object-cover"
                                   loading="lazy"
                                   decoding="async"
                                 />
-                                <div className="absolute top-2 right-2 bg-purple-500 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-lg pointer-events-none">
-                                  <CheckCircle className="w-4 h-4 text-white" />
-                                  <span className="text-white text-xs font-semibold">Actualized</span>
+                                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full bg-purple-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg pointer-events-none">
+                                  <CheckCircle className="h-3 w-3" />
+                                  Actualized
                                 </div>
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
                               </div>
                             )}
-                          </>
+                          </div>
                         ) : card.image ? (
                           <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-neutral-800 -mx-4 -mt-4 mb-0">
                             <img
