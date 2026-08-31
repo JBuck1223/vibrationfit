@@ -34,6 +34,11 @@ export type CouponRow = {
   is_active: boolean
   campaign_id: string | null
   metadata: Record<string, any>
+  /** When set, the coupon also discounts membership renewals */
+  renewal_discount_type: 'percent' | 'fixed' | null
+  renewal_discount_value: number | null
+  /** Renewal charges that get the discount; null = forever */
+  renewal_discount_cycles: number | null
 }
 
 export type CouponCodeRow = {

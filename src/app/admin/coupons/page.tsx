@@ -23,6 +23,9 @@ type Coupon = {
   is_active: boolean
   campaign_id: string | null
   metadata: Record<string, any>
+  renewal_discount_type: 'percent' | 'fixed' | null
+  renewal_discount_value: number | null
+  renewal_discount_cycles: number | null
   created_at: string
   total_redemptions: number
   codes_count: number
@@ -33,6 +36,17 @@ type Coupon = {
 function discountLabel(c: Coupon): string {
   if (c.discount_type === 'percent') return `${c.discount_value}% off`
   return `${formatPrice(c.discount_value)} off`
+}
+
+function renewalDiscountLabel(c: Coupon): string | null {
+  if (!c.renewal_discount_type || !c.renewal_discount_value) return null
+  const amount = c.renewal_discount_type === 'percent'
+    ? `${c.renewal_discount_value}%`
+    : formatPrice(c.renewal_discount_value)
+  const duration = c.renewal_discount_cycles
+    ? `first ${c.renewal_discount_cycles} renewal${c.renewal_discount_cycles > 1 ? 's' : ''}`
+    : 'forever'
+  return `${amount} off renewals (${duration})`
 }
 
 function statusBadge(c: Coupon) {
@@ -57,6 +71,9 @@ export default function CouponsAdminPage() {
   const [formMaxPerUser, setFormMaxPerUser] = useState('1')
   const [formValidUntil, setFormValidUntil] = useState('')
   const [formEligibleProducts, setFormEligibleProducts] = useState('')
+  const [formRenewalType, setFormRenewalType] = useState<'' | 'percent' | 'fixed'>('')
+  const [formRenewalValue, setFormRenewalValue] = useState('')
+  const [formRenewalCycles, setFormRenewalCycles] = useState('')
   const [creating, setCreating] = useState(false)
 
   // Bulk generation state
@@ -100,6 +117,9 @@ export default function CouponsAdminPage() {
           eligibleProducts: formEligibleProducts
             ? formEligibleProducts.split(',').map(s => s.trim()).filter(Boolean)
             : undefined,
+          renewalDiscountType: formRenewalType || undefined,
+          renewalDiscountValue: formRenewalType ? Number(formRenewalValue) : undefined,
+          renewalDiscountCycles: formRenewalType && formRenewalCycles ? Number(formRenewalCycles) : undefined,
         }),
       })
 
@@ -116,6 +136,9 @@ export default function CouponsAdminPage() {
       setFormMaxRedemptions('')
       setFormValidUntil('')
       setFormEligibleProducts('')
+      setFormRenewalType('')
+      setFormRenewalValue('')
+      setFormRenewalCycles('')
       fetchCoupons()
     } catch (err: any) {
       toast.error(err.message || 'Failed to create coupon')
@@ -286,6 +309,54 @@ export default function CouponsAdminPage() {
                 </div>
               </div>
 
+              {/* Renewal discount — also discount the recurring membership */}
+              <div className="border border-neutral-800 rounded-xl p-4 space-y-4 bg-neutral-900/40">
+                <div>
+                  <div className="text-sm font-medium text-white">Renewal discount (optional)</div>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    Also discounts the recurring membership price, starting with the first renewal.
+                    Leave off to discount the checkout charge only.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Type</label>
+                    <select
+                      value={formRenewalType}
+                      onChange={e => setFormRenewalType(e.target.value as '' | 'percent' | 'fixed')}
+                      className="w-full rounded-xl bg-neutral-800 border-2 border-neutral-700 text-white px-4 py-2.5 focus:border-[#39FF14] focus:outline-none"
+                    >
+                      <option value="">No renewal discount</option>
+                      <option value="percent">Percent Off</option>
+                      <option value="fixed">Fixed Amount Off (cents)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">
+                      {formRenewalType === 'fixed' ? 'Amount (cents)' : 'Percent (1-100)'}
+                    </label>
+                    <Input
+                      type="number"
+                      value={formRenewalValue}
+                      onChange={e => setFormRenewalValue(e.target.value)}
+                      placeholder={formRenewalType === 'fixed' ? '2000' : '50'}
+                      disabled={!formRenewalType}
+                      required={Boolean(formRenewalType)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Cycles (blank = forever)</label>
+                    <Input
+                      type="number"
+                      value={formRenewalCycles}
+                      onChange={e => setFormRenewalCycles(e.target.value)}
+                      placeholder="3"
+                      disabled={!formRenewalType}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-3 justify-end">
                 <Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>
                   Cancel
@@ -361,9 +432,12 @@ export default function CouponsAdminPage() {
                           <span className="font-semibold text-white truncate">{coupon.name}</span>
                           {statusBadge(coupon)}
                         </div>
-                        <div className="text-sm text-neutral-400 flex items-center gap-3">
+                        <div className="text-sm text-neutral-400 flex items-center gap-3 flex-wrap">
                           <span className="font-mono text-[#39FF14]">{coupon.master_code || 'No code'}</span>
                           <span>{discountLabel(coupon)}</span>
+                          {renewalDiscountLabel(coupon) && (
+                            <span className="text-[#39FF14]/80">{renewalDiscountLabel(coupon)}</span>
+                          )}
                           <span>{coupon.total_redemptions}{coupon.max_redemptions ? `/${coupon.max_redemptions}` : ''} used</span>
                           {coupon.codes_count > 1 && <span>{coupon.codes_count} codes</span>}
                         </div>
@@ -379,6 +453,9 @@ export default function CouponsAdminPage() {
                         <div>
                           <span className="text-neutral-500">Discount</span>
                           <div className="text-white font-medium">{discountLabel(coupon)}</div>
+                          {renewalDiscountLabel(coupon) && (
+                            <div className="text-xs text-[#39FF14]/80 mt-0.5">{renewalDiscountLabel(coupon)}</div>
+                          )}
                         </div>
                         <div>
                           <span className="text-neutral-500">Per User Limit</span>

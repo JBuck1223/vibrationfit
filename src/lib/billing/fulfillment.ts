@@ -326,11 +326,40 @@ export async function fulfillPayPalPurchase(params: {
       .maybeSingle()
 
     if (tier) {
-      const renewalAmount = continuityPlan === 'annual'
+      const fullRenewalAmount = continuityPlan === 'annual'
         ? (tier.price_yearly || 0)
         : (tier.price_monthly || 0)
       const intervalDays = continuityPlan === 'annual' ? 365 : 28
       const trialEnd = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000)
+
+      // Coupon renewal discount: start the subscription at the discounted
+      // price and stamp the countdown fields the billing cron manages.
+      let renewalAmount = fullRenewalAmount
+      let renewalDiscount: {
+        renewal_discount_type: 'percent' | 'fixed'
+        renewal_discount_value: number
+        renewal_discount_cycles_remaining: number | null
+      } | null = null
+      if (ctx.promoCode) {
+        try {
+          const { validateCouponCode } = await import('@/lib/billing/coupons')
+          const couponResult = await validateCouponCode(ctx.promoCode, { userId, productKey: product })
+          const coupon = couponResult.valid ? (couponResult.coupon as any) : null
+          if (coupon?.renewal_discount_type && coupon?.renewal_discount_value) {
+            renewalDiscount = {
+              renewal_discount_type: coupon.renewal_discount_type,
+              renewal_discount_value: coupon.renewal_discount_value,
+              renewal_discount_cycles_remaining: coupon.renewal_discount_cycles ?? null,
+            }
+            const discount = coupon.renewal_discount_type === 'percent'
+              ? Math.round(fullRenewalAmount * coupon.renewal_discount_value / 100)
+              : coupon.renewal_discount_value
+            renewalAmount = Math.max(0, fullRenewalAmount - discount)
+          }
+        } catch (err) {
+          console.error('[fulfillment] renewal discount lookup failed', err)
+        }
+      }
 
       const { data: newSub, error: subErr } = await supabaseAdmin
         .from('customer_subscriptions')
@@ -352,6 +381,7 @@ export async function fulfillPayPalPurchase(params: {
           promo_code: ctx.promoCode || null,
           referral_source: ctx.referralSource || null,
           campaign_name: ctx.campaignName || null,
+          ...(renewalDiscount || {}),
         })
         .select('id')
         .single()
