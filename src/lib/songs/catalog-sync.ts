@@ -19,7 +19,7 @@ const MEMBER_CREATED_TAG = 'member-created'
 // Maps a song's source entity to the table/column that holds its life category.
 const ENTITY_CATEGORY_LOOKUP: Record<string, { table: string; column: string }> = {
   life_vision: { table: 'life_visions', column: 'category' },
-  vision_board_item: { table: 'vision_board_items', column: 'life_category' },
+  vision_board_item: { table: 'manifestations', column: 'life_category' },
   journal_entry: { table: 'journal_entries', column: 'life_category' },
 }
 

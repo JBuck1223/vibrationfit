@@ -47,7 +47,7 @@ export function VisionBoardDeleteButton({ itemId, itemName, imageUrl, status }: 
 
       // Delete from database
       const { error } = await supabase
-        .from('vision_board_items')
+        .from('manifestations')
         .delete()
         .eq('id', itemId)
 

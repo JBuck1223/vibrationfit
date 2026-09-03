@@ -5,6 +5,7 @@ import {
   attachKitAsset,
   assetLink,
   ensureVisionDraft,
+  findManifestationVisionDraftId,
   findOpenKitForConversation,
   findSimilarOpenKit,
   normalizeLifeCategories,
@@ -14,6 +15,10 @@ import {
 } from '@/lib/manifestations/kit-helpers'
 import { HANDOFF_SLOTS, KIT_SLOTS, type KitSlot } from '@/lib/manifestations/types'
 import { findLibraryCandidates } from '@/lib/manifestations/library-candidates'
+import { generateImage } from '@/lib/services/imageService'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { extractAndStoreMentions } from '@/lib/vibe-tribe/mention-utils'
+import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
 
 const CATEGORY_ENUM = z.enum([
   'fun', 'health', 'travel', 'love', 'family', 'social',
@@ -42,10 +47,10 @@ async function resolveKitId(
 async function kitPrimaryArea(supabase: SupabaseClient, kitId: string): Promise<string> {
   const { data } = await supabase
     .from('manifestations')
-    .select('life_categories')
+    .select('categories')
     .eq('id', kitId)
     .maybeSingle()
-  return data?.life_categories?.[0] || 'work'
+  return data?.categories?.[0] || 'work'
 }
 
 export async function attachCreatedAssetToKit(
@@ -78,39 +83,90 @@ export async function attachCreatedAssetToKit(
   await touchKit(ctx.supabase, kitId)
 }
 
+/** Attach an entity to several manifestations at once (e.g. one journal entry, many desires). */
+export async function attachAssetToManifestations(
+  ctx: KitToolsContext,
+  params: {
+    manifestationIds: string[]
+    slot: KitSlot
+    entityType: string
+    entityId: string
+  },
+): Promise<string[]> {
+  const attached: string[] = []
+  for (const rawId of params.manifestationIds) {
+    const { data: item } = await ctx.supabase
+      .from('manifestations')
+      .select('id')
+      .eq('id', rawId)
+      .eq('user_id', ctx.userId)
+      .maybeSingle()
+    if (!item) continue
+    await attachCreatedAssetToKit(ctx, {
+      kitId: item.id,
+      slot: params.slot,
+      entityType: params.entityType,
+      entityId: params.entityId,
+    })
+    attached.push(item.id)
+  }
+  return attached
+}
+
 export function buildKitCoachTools(ctx: KitToolsContext) {
   const { supabase, userId, conversationId } = ctx
 
   return {
-    open_manifestation_kit: tool({
+    add_manifestation: tool({
       description:
-        'Open a My Manifestations hub for one chosen reality, or continue the open manifestation that already holds this idea. Confirm first. Never create a second one for the same reality.',
+        'Add an active desire to the member\'s Manifestations (their vision board is the visualizer). Use when a clear specific want surfaces in conversation ("I want to take the kids to Japan"). Offer first — e.g. "This sounds like an active desire. Let\'s add it to Manifestations. Want me to generate an image for this?" — and act only on their yes. Never create a duplicate for the same reality.',
       inputSchema: z.object({
-        title: z.string().describe('Short name of the chosen reality, e.g. "$1M Vibration Fit" or "Japan"'),
-        chosen_reality: z.string().describe('One-sentence identity they are practicing'),
-        life_categories: z.array(CATEGORY_ENUM).min(1).describe('Life Vision categories that play into this'),
-        flow: z.array(z.string()).nullable().describe('Ordered 3-5 activation slots they agreed to, e.g. vision draft then story then song'),
+        name: z.string().describe('The desire, short and specific — this is the manifestation title'),
+        description: z.string().nullable().describe('One or two sentences of detail, in their words'),
+        why_it_matters: z.string().nullable().describe('Why they want it, in their first-person voice (may draw on their Life Vision language)'),
+        what_it_feels_like: z.string().nullable().describe('What living it feels like, first-person present tense'),
+        life_categories: z.array(CATEGORY_ENUM).nullable().describe('Life categories this desire plays into'),
+        generate_image: z.boolean().nullable().describe('true only when they said yes to a generated image'),
       }),
-      execute: async ({ title, chosen_reality, life_categories, flow }) => {
-        const categories = normalizeLifeCategories(life_categories)
-        const existing =
-          (await findOpenKitForConversation(supabase, userId, conversationId)) ||
-          (await findSimilarOpenKit(supabase, userId, title, categories))
+      execute: async ({ name, description, why_it_matters, what_it_feels_like, life_categories, generate_image }) => {
+        const categories = normalizeLifeCategories(life_categories || [])
+        const existing = await findSimilarOpenKit(supabase, userId, name, categories)
 
         if (existing) {
           await supabase
             .from('manifestations')
             .update({
               conversation_id: conversationId || existing.conversation_id,
+              why_it_matters: existing.why_it_matters || why_it_matters?.trim() || null,
+              what_it_feels_like: existing.what_it_feels_like || what_it_feels_like?.trim() || null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', existing.id)
           return {
             success: true,
             continued: true,
-            kit_id: existing.id,
-            message: `Continuing your manifestation "${existing.title}".`,
+            manifestation_id: existing.id,
+            message: `"${existing.name}" is already on your Manifestations — continuing with it.`,
             link: `/manifestations/${existing.id}`,
+          }
+        }
+
+        let imageUrl: string | null = null
+        if (generate_image) {
+          try {
+            const imageResult = await generateImage({
+              userId,
+              prompt: `${name}. ${description || why_it_matters || ''}`.trim(),
+              dimension: 'landscape_4_3',
+              quality: 'standard',
+              style: 'vivid',
+              context: 'vision_board',
+            })
+            if (imageResult.success && imageResult.imageUrl) {
+              imageUrl = imageResult.imageUrl
+            }
+          } catch (error) {
+            console.error('[VIVA] manifestation image generation failed:', error)
           }
         }
 
@@ -118,26 +174,31 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
           .from('manifestations')
           .insert({
             user_id: userId,
-            title: title.trim(),
-            chosen_reality: chosen_reality.trim(),
-            life_categories: categories,
+            name: name.trim(),
+            description: description?.trim() || null,
+            why_it_matters: why_it_matters?.trim() || null,
+            what_it_feels_like: what_it_feels_like?.trim() || null,
+            categories,
             conversation_id: conversationId,
-            status: 'open',
-            flow: flow && flow.length > 0 ? flow : [],
+            image_url: imageUrl,
+            status: 'active',
           })
-          .select('id, title')
+          .select('id, name')
           .single()
 
         if (error || !data) {
-          console.error('[VIVA] open kit failed:', error)
-          return { success: false, message: 'Could not open the manifestation.' }
+          console.error('[VIVA] add manifestation failed:', error)
+          return { success: false, message: 'Could not add the manifestation.' }
         }
 
         return {
           success: true,
           continued: false,
-          kit_id: data.id,
-          message: `Opened "${data.title}" in My Manifestations.`,
+          manifestation_id: data.id,
+          image_generated: Boolean(imageUrl),
+          message: imageUrl
+            ? `Added "${data.name}" to your Manifestations with a generated image.`
+            : `Added "${data.name}" to your Manifestations.`,
           link: `/manifestations/${data.id}`,
         }
       },
@@ -162,11 +223,6 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
         if (updated.error) return { success: false, message: updated.error }
 
         if (kitId) {
-          await supabase
-            .from('manifestations')
-            .update({ vision_draft_id: draft.id, updated_at: new Date().toISOString() })
-            .eq('id', kitId)
-            .eq('user_id', userId)
           await attachKitAsset(supabase, {
             kitId,
             slot: 'vision_draft',
@@ -181,6 +237,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
             area: categories[0]?.category || await kitPrimaryArea(supabase, kitId),
             slot: 'vision_draft',
           })
+          await touchKit(supabase, kitId)
         }
 
         return {
@@ -194,7 +251,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
     commit_vision_draft: tool({
       description:
-        'Commit a Life Vision draft as the new active vision. Only after a separate, explicit yes. Never implied from opening a manifestation or drafting.',
+        'Commit a Life Vision draft as the new active vision. Only after a separate, explicit yes. Never implied from adding a manifestation or drafting.',
       inputSchema: z.object({
         kit_id: z.string().uuid().nullable(),
         draft_id: z.string().uuid().nullable(),
@@ -203,12 +260,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
         const kitId = await resolveKitId(ctx, kit_id)
         let draftId = draft_id
         if (!draftId && kitId) {
-          const { data: kit } = await supabase
-            .from('manifestations')
-            .select('vision_draft_id')
-            .eq('id', kitId)
-            .maybeSingle()
-          draftId = kit?.vision_draft_id || null
+          draftId = await findManifestationVisionDraftId(supabase, kitId)
         }
         if (!draftId) return { success: false, message: 'No draft to commit.' }
 
@@ -223,13 +275,6 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
         }
 
         if (kitId) {
-          await supabase
-            .from('manifestations')
-            .update({
-              vision_version_id: draftId,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', kitId)
           await attachKitAsset(supabase, {
             kitId,
             slot: 'vision_draft',
@@ -238,6 +283,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
             status: 'actualized',
             pinnedBy: 'viva',
           })
+          await touchKit(supabase, kitId)
         }
 
         return {
@@ -261,7 +307,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
       }),
       execute: async ({ kit_id, slot, entity_id, entity_type, handoff_path }) => {
         const kitId = await resolveKitId(ctx, kit_id)
-        if (!kitId) return { success: false, message: 'Open a manifestation first.' }
+        if (!kitId) return { success: false, message: 'Add the manifestation first.' }
 
         const isHandoff = Boolean(HANDOFF_SLOTS[slot]) && !entity_id
         const asset = await attachKitAsset(supabase, {
@@ -309,7 +355,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
     pin_kit_evidence: tool({
       description:
-        'Pin an existing journal win, vision board item, Daily Paper, abundance event, or Dream List destination onto a manifestation as Becoming. Offer first. Does not write a foreign key onto those tables.',
+        'Pin an existing journal win, related manifestation, Daily Paper, abundance event, or Dream List destination onto a manifestation as Becoming. Offer first. Does not write a foreign key onto those tables.',
       inputSchema: z.object({
         kit_id: z.string().uuid().nullable(),
         slot: z.enum(['journal', 'vision_board', 'daily_paper', 'abundance', 'dream_destination', 'trip']),
@@ -317,11 +363,11 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
       }),
       execute: async ({ kit_id, slot, entity_id }) => {
         const kitId = await resolveKitId(ctx, kit_id)
-        if (!kitId) return { success: false, message: 'Open a manifestation first.' }
+        if (!kitId) return { success: false, message: 'Add the manifestation first.' }
 
         const tableBySlot: Record<string, { table: string; userCol: string }> = {
           journal: { table: 'journal_entries', userCol: 'user_id' },
-          vision_board: { table: 'vision_board_items', userCol: 'user_id' },
+          vision_board: { table: 'manifestations', userCol: 'user_id' },
           daily_paper: { table: 'daily_papers', userCol: 'user_id' },
           abundance: { table: 'abundance_events', userCol: 'user_id' },
           dream_destination: { table: 'dream_destinations', userCol: 'user_id' },
@@ -364,7 +410,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
     add_kit_project: tool({
       description:
-        'Capture an inspired action as a project nested on the active manifestation. Confirm the title first.',
+        'Capture inspired action as an action group nested on the active manifestation (with steps added later). Confirm the title first.',
       inputSchema: z.object({
         kit_id: z.string().uuid().nullable(),
         title: z.string(),
@@ -373,7 +419,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
       }),
       execute: async ({ kit_id, title, description, life_categories }) => {
         const kitId = await resolveKitId(ctx, kit_id)
-        if (!kitId) return { success: false, message: 'Open a manifestation first.' }
+        if (!kitId) return { success: false, message: 'Add the manifestation first.' }
 
         const { data: maxRow } = await supabase
           .from('projects')
@@ -400,8 +446,8 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
           .single()
 
         if (error || !data) {
-          console.error('[VIVA] add kit project failed:', error)
-          return { success: false, message: 'Could not create the project.' }
+          console.error('[VIVA] add manifestation action group failed:', error)
+          return { success: false, message: 'Could not create the action group.' }
         }
 
         await attachKitAsset(supabase, {
@@ -423,50 +469,59 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
         return {
           success: true,
-          message: `Captured "${data.title}" as a project on this manifestation.`,
-          link: `/projects/${data.id}`,
+          message: `Captured "${data.title}" as inspired action on this manifestation.`,
+          link: `/manifestations/${kitId}`,
         }
       },
     }),
 
-    actualize_kit: tool({
+    actualize_manifestation: tool({
       description:
-        'Mark a manifestation Actualized. Only on an explicit yes that this reality is real. Never infer from scores or event counts.',
+        'Mark a manifestation Actualized. Only on an explicit yes that this reality is real. Never infer from scores or event counts. After it succeeds, offer to share the win in the Vibe Tribe (draft_vibe_post).',
       inputSchema: z.object({
-        kit_id: z.string().uuid().nullable(),
-        story: z.string().nullable().describe('Optional short first-person note of how it became real'),
+        manifestation_id: z.string().uuid().nullable(),
+        story: z.string().nullable().describe('Optional short first-person note of how it became real — saved as the actualization story'),
       }),
-      execute: async ({ kit_id, story }) => {
-        const kitId = await resolveKitId(ctx, kit_id)
+      execute: async ({ manifestation_id, story }) => {
+        const kitId = await resolveKitId(ctx, manifestation_id)
         if (!kitId) return { success: false, message: 'Which manifestation are we Actualizing?' }
 
-        const { data: kit } = await supabase
+        const { data: item } = await supabase
           .from('manifestations')
-          .select('id, title, status')
+          .select('id, name, status')
           .eq('id', kitId)
           .eq('user_id', userId)
           .maybeSingle()
 
-        if (!kit) return { success: false, message: 'Manifestation not found.' }
-        if (kit.status === 'actualized') {
-          return { success: true, message: `"${kit.title}" is already Actualized.`, link: `/manifestations/${kitId}` }
+        if (!item) return { success: false, message: 'Manifestation not found.' }
+        if (item.status === 'actualized') {
+          return { success: true, message: `"${item.name}" is already Actualized.`, link: `/manifestations/${kitId}` }
         }
 
-        let storyId: string | null = null
         if (story?.trim()) {
           const { data: entry } = await supabase
             .from('journal_entries')
             .insert({
               user_id: userId,
               date: new Date().toISOString().slice(0, 10),
-              title: `Actualized: ${kit.title}`,
+              title: `Actualized: ${item.name}`,
               content: story.trim(),
               journal_tag: 'win',
               categories: [],
             })
             .select('id')
             .single()
-          storyId = entry?.id || null
+          if (entry?.id) {
+            await attachKitAsset(supabase, {
+              kitId,
+              slot: 'journal',
+              layer: 'evidence',
+              entityType: 'journal_entries',
+              entityId: entry.id,
+              status: 'ready',
+              pinnedBy: 'viva',
+            })
+          }
         }
 
         const { error } = await supabase
@@ -474,7 +529,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
           .update({
             status: 'actualized',
             actualized_at: new Date().toISOString(),
-            actualization_story_id: storyId,
+            actualization_story: story?.trim() || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', kitId)
@@ -483,15 +538,75 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
         return {
           success: true,
-          message: `"${kit.title}" is Actualized.`,
+          message: `"${item.name}" is Actualized. Offer to share this win in the Vibe Tribe — you can draft the post from this conversation for them to check.`,
           link: `/manifestations/${kitId}`,
+        }
+      },
+    }),
+
+    draft_vibe_post: tool({
+      description:
+        'Publish a Vibe Tribe post for the member. ALWAYS show them the exact draft text in conversation first and get an explicit yes before calling this — e.g. after a manifestation is Actualized: "Want to share this in the Vibe Tribe? I can create a post based on our convo you can check." Never post without approval.',
+      inputSchema: z.object({
+        content: z.string().describe('The approved post text, in their first-person voice'),
+        vibe_tag: z.enum(['win', 'wobble', 'vision', 'collaboration']).describe('win for actualized manifestations'),
+        manifestation_id: z.string().uuid().nullable().describe('Attach the manifestation image to the post when relevant'),
+        life_categories: z.array(CATEGORY_ENUM).nullable(),
+      }),
+      execute: async ({ content, vibe_tag, manifestation_id, life_categories }) => {
+        const text = content.trim()
+        if (!text) return { success: false, message: 'The post needs content.' }
+
+        let mediaUrls: string[] = []
+        if (manifestation_id) {
+          const { data: item } = await supabase
+            .from('manifestations')
+            .select('image_url, actualized_image_url')
+            .eq('id', manifestation_id)
+            .eq('user_id', userId)
+            .maybeSingle()
+          const image = item?.actualized_image_url || item?.image_url
+          if (image) mediaUrls = [image]
+        }
+
+        const mediaType = mediaUrls.length > 0 ? 'image' : 'none'
+
+        const { data: newPost, error } = await supabase
+          .from('vibe_posts')
+          .insert({
+            user_id: userId,
+            content: text,
+            media_urls: mediaUrls,
+            media_type: mediaType,
+            vibe_tag,
+            life_categories: normalizeLifeCategories(life_categories || []),
+          })
+          .select('id')
+          .single()
+
+        if (error || !newPost) {
+          console.error('[VIVA] vibe post failed:', error)
+          return { success: false, message: 'Could not create the post.' }
+        }
+
+        try {
+          const adminClient = createAdminClient()
+          await extractAndStoreMentions(adminClient, text, userId, { post_id: newPost.id })
+        } catch { /* mentions are best-effort */ }
+        autoVerifyOccurrenceByActivityType(userId, 'vibe_tribe_post').catch(() => {})
+
+        return {
+          success: true,
+          post_id: newPost.id,
+          message: 'Shared in the Vibe Tribe.',
+          link: '/vibe-tribe',
         }
       },
     }),
 
     find_kit_candidates: tool({
       description:
-        'Search the member library for existing stories, journal wins, board items, songs, abundance, projects, and dream destinations that could belong in a manifestation. Read-only. Say what you found in their words, then wait for yes before opening a manifestation or pinning. Do not dump the whole library.',
+        'Search the member library for existing stories, journal wins, manifestations, songs, abundance, action groups, and dream destinations that could belong in a manifestation. Read-only. Say what you found in their words, then wait for yes before adding or pinning. Do not dump the whole library.',
       inputSchema: z.object({
         query: z.string().nullable(),
         categories: z.array(CATEGORY_ENUM).nullable(),
@@ -524,7 +639,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
     find_asset: tool({
       description:
-        'Find an existing story, journal entry, manifestation, song, vision board item, or project and return a link. Do not generate anything new.',
+        'Find an existing story, journal entry, manifestation, song, or action group and return a link. Do not generate anything new.',
       inputSchema: z.object({
         query: z.string(),
         kind: z.enum(['story', 'journal', 'manifestation', 'song', 'vision_board', 'project', 'any']).nullable(),
@@ -533,18 +648,21 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
         const q = query.trim()
         if (!q) return { success: false, message: 'What should I look for?' }
         const pattern = `%${q}%`
-        const want = kind && kind !== 'any' ? [kind] : ['story', 'journal', 'manifestation', 'song', 'vision_board', 'project']
+        const normalizedKind = kind === 'vision_board' ? 'manifestation' : kind
+        const want = normalizedKind && normalizedKind !== 'any'
+          ? [normalizedKind]
+          : ['story', 'journal', 'manifestation', 'song', 'project']
         const hits: Array<{ label: string; link: string }> = []
 
         if (want.includes('manifestation')) {
           const { data } = await supabase
             .from('manifestations')
-            .select('id, title')
+            .select('id, name')
             .eq('user_id', userId)
-            .or(`title.ilike.${pattern},chosen_reality.ilike.${pattern}`)
+            .or(`name.ilike.${pattern},why_it_matters.ilike.${pattern},description.ilike.${pattern}`)
             .limit(3)
           for (const row of data || []) {
-            hits.push({ label: `Manifestation: ${row.title}`, link: `/manifestations/${row.id}` })
+            hits.push({ label: `Manifestation: ${row.name}`, link: `/manifestations/${row.id}` })
           }
         }
         if (want.includes('story')) {
@@ -580,26 +698,18 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
             hits.push({ label: `Song: ${row.title}`, link: '/audio' })
           }
         }
-        if (want.includes('vision_board')) {
-          const { data } = await supabase
-            .from('vision_board_items')
-            .select('id, name')
-            .eq('user_id', userId)
-            .ilike('name', pattern)
-            .limit(3)
-          for (const row of data || []) {
-            hits.push({ label: `Board: ${row.name}`, link: '/vision-board' })
-          }
-        }
         if (want.includes('project')) {
           const { data } = await supabase
             .from('projects')
-            .select('id, title')
+            .select('id, title, manifestation_id')
             .eq('created_by', userId)
             .ilike('title', pattern)
             .limit(3)
           for (const row of data || []) {
-            hits.push({ label: `Project: ${row.title}`, link: `/projects/${row.id}` })
+            hits.push({
+              label: `Action group: ${row.title}`,
+              link: row.manifestation_id ? `/manifestations/${row.manifestation_id}` : '/manifestations',
+            })
           }
         }
 
@@ -706,20 +816,23 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
 export const KIT_TOOLS_PROMPT = `## MANIFESTATIONS AND MODE ACTIONS
 
+A manifestation is one desire on the member's board: image, Active/Actualized state, why they want it, what it feels like, inspired action steps, and the journey documented in their journal.
+
 When Builder (or Auto, if they are ready) and a destination is live:
 - find_kit_candidates — read-only search of what they already have. Say what you found. Do not pin yet.
-- open_manifestation_kit — create or continue one manifestation for this reality (after yes)
+- add_manifestation — when a clear active desire surfaces, offer: "This sounds like an active desire. Let's add it to Manifestations. Want me to generate an image for this?" Create only after yes; set generate_image true only if they said yes to the image. Never create a second one for the same reality.
 - draft_vision_categories — write the previewed edit into a draft; never the active vision
 - commit_vision_draft — only after a second, explicit yes
 - queue_kit_asset — next suite slot; voice/mix/new song are handoffs
-- pin_kit_evidence — attach an existing win / board / paper / abundance item after yes
-- add_kit_project — inspired action on this manifestation
-- actualize_kit — only they say it is real
+- pin_kit_evidence — attach an existing win / paper / abundance item after yes
+- add_kit_project — inspired action (an action group with steps) on this manifestation
+- actualize_manifestation — only when they say it is real. Right after, offer: "Want to share this in the Vibe Tribe? I can create a post based on our convo you can check."
+- draft_vibe_post — ONLY after showing the exact draft and getting an explicit yes
 
-If they already have stories, journal, or board items and no manifestation yet, offer to gather what they have. Call find_kit_candidates, name a few, then on yes: open_manifestation_kit, pin_kit_evidence for wins/board/abundance/dreams, queue_kit_asset with the existing entity_id for stories/songs/board, add_kit_project only when they want a new project. Never silent-attach. Never dump the whole library. Never say "kit" to the member.
+If they already have stories, journal, or manifestations and the desire is new, offer to gather what they have. Call find_kit_candidates, name a few, then on yes: add_manifestation, pin_kit_evidence for wins/abundance/dreams, queue_kit_asset with the existing entity_id for stories/songs, add_kit_project only when they want new action. Never silent-attach. Never dump the whole library. Never say "kit" to the member.
 
 Coach mode may also: flip_constraint, save_journal_entry, save_daily_paper_gratitude, add_daily_paper_task.
 Assistant mode may only: find_asset.
 Friend mode: no tools.
 
-When a manifestation is active, new creates (story, incantation, SparkQuery, journal, board, song, Daily Paper) attach to that manifestation.`
+When a manifestation is active in this thread, new creates (story, incantation, SparkQuery, journal, song, Daily Paper) attach to that manifestation.`

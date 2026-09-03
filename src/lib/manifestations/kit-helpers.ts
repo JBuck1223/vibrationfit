@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { KitAssetStatus, KitLayer, KitSlot, ManifestationKit } from './types'
+import type { KitAssetStatus, KitLayer, KitSlot, Manifestation } from './types'
 import { HANDOFF_SLOTS, SLOT_TO_TRACKING_AREA } from './types'
 export { assetLink } from './types'
 
@@ -20,18 +20,18 @@ export async function findOpenKitForConversation(
   supabase: SupabaseClient,
   userId: string,
   conversationId: string | null,
-): Promise<ManifestationKit | null> {
+): Promise<Manifestation | null> {
   if (!conversationId) return null
   const { data } = await supabase
     .from('manifestations')
     .select('*')
     .eq('user_id', userId)
     .eq('conversation_id', conversationId)
-    .eq('status', 'open')
+    .eq('status', 'active')
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  return (data as ManifestationKit | null) ?? null
+  return (data as Manifestation | null) ?? null
 }
 
 export async function findSimilarOpenKit(
@@ -39,35 +39,30 @@ export async function findSimilarOpenKit(
   userId: string,
   title: string,
   lifeCategories: string[],
-): Promise<ManifestationKit | null> {
+): Promise<Manifestation | null> {
   const { data } = await supabase
     .from('manifestations')
     .select('*')
     .eq('user_id', userId)
-    .eq('status', 'open')
+    .eq('status', 'active')
     .order('updated_at', { ascending: false })
-    .limit(20)
+    .limit(30)
 
-  const kits = (data || []) as ManifestationKit[]
+  const items = (data || []) as Manifestation[]
   const needle = title.trim().toLowerCase()
-  const overlap = (kit: ManifestationKit) => {
-    const cats = kit.life_categories || []
+  const overlap = (item: Manifestation) => {
+    const cats = item.categories || []
     return lifeCategories.some(c => cats.includes(c))
   }
 
-  const exact = kits.find(k => k.title.trim().toLowerCase() === needle)
+  const exact = items.find(i => i.name.trim().toLowerCase() === needle)
   if (exact) return exact
 
-  const titled = kits.find(k => {
-    const t = k.title.trim().toLowerCase()
-    return (t.includes(needle) || needle.includes(t)) && overlap(k)
+  const titled = items.find(i => {
+    const t = i.name.trim().toLowerCase()
+    return (t.includes(needle) || needle.includes(t)) && overlap(i)
   })
-  if (titled) return titled
-
-  if (lifeCategories.length > 0) {
-    return kits.find(overlap) || null
-  }
-  return null
+  return titled || null
 }
 
 export async function loadOpenKitsSummary(
@@ -79,29 +74,33 @@ export async function loadOpenKitsSummary(
   chosen_reality: string | null
   life_categories: string[]
   conversation_id: string | null
-  vision_draft_id: string | null
   slots: Array<{ slot: string; status: string }>
 }>> {
-  const { data: kits } = await supabase
+  const { data: items } = await supabase
     .from('manifestations')
-    .select('id, title, chosen_reality, life_categories, conversation_id, vision_draft_id')
+    .select('id, name, why_it_matters, categories, conversation_id')
     .eq('user_id', userId)
-    .eq('status', 'open')
+    .eq('status', 'active')
+    .not('conversation_id', 'is', null)
     .order('updated_at', { ascending: false })
     .limit(8)
 
-  if (!kits || kits.length === 0) return []
+  if (!items || items.length === 0) return []
 
-  const ids = kits.map(k => k.id)
+  const ids = items.map(i => i.id)
   const { data: assets } = await supabase
     .from('manifestation_assets')
     .select('manifestation_id, slot, status')
     .in('manifestation_id', ids)
 
-  return kits.map(kit => ({
-    ...kit,
+  return items.map(item => ({
+    id: item.id,
+    title: item.name,
+    chosen_reality: item.why_it_matters,
+    life_categories: item.categories || [],
+    conversation_id: item.conversation_id,
     slots: (assets || [])
-      .filter(a => a.manifestation_id === kit.id)
+      .filter(a => a.manifestation_id === item.id)
       .map(a => ({ slot: a.slot, status: a.status })),
   }))
 }
@@ -123,6 +122,9 @@ export async function attachKitAsset(
   const layer = params.layer || defaultLayerForSlot(params.slot)
   const status = params.status || (params.entityId ? 'ready' : HANDOFF_SLOTS[params.slot] ? 'handoff' : 'queued')
   const handoffPath = params.handoffPath ?? HANDOFF_SLOTS[params.slot] ?? null
+
+  // Never pin a manifestation to itself
+  if (params.slot === 'vision_board' && params.entityId === params.kitId) return null
 
   if (params.entityId) {
     const { data: existing } = await supabase
@@ -159,7 +161,7 @@ export async function attachKitAsset(
     .single()
 
   if (error || !data) {
-    console.error('[Kit] attach asset failed:', error)
+    console.error('[Manifestations] attach asset failed:', error)
     return null
   }
   return data
@@ -207,6 +209,23 @@ export async function touchKit(supabase: SupabaseClient, kitId: string): Promise
     .from('manifestations')
     .update({ updated_at: new Date().toISOString() })
     .eq('id', kitId)
+}
+
+/** Latest Life Vision draft attached to a manifestation (via assets, not a column). */
+export async function findManifestationVisionDraftId(
+  supabase: SupabaseClient,
+  manifestationId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('manifestation_assets')
+    .select('entity_id')
+    .eq('manifestation_id', manifestationId)
+    .eq('slot', 'vision_draft')
+    .not('entity_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data?.entity_id || null
 }
 
 const VISION_CATEGORY_COLUMNS = [
@@ -274,7 +293,7 @@ export async function ensureVisionDraft(
     .single()
 
   if (error || !draft) {
-    console.error('[Kit] ensure draft failed:', error)
+    console.error('[Manifestations] ensure draft failed:', error)
     return { error: 'Could not open a Life Vision draft.' }
   }
   return { id: draft.id, existed: false }
@@ -316,9 +335,8 @@ export async function updateDraftCategories(
     .eq('id', draftId)
 
   if (error) {
-    console.error('[Kit] update draft failed:', error)
+    console.error('[Manifestations] update draft failed:', error)
     return { error: 'Could not update the draft.', categories: [] }
   }
   return { categories: valid.map(v => v.category) }
 }
-

@@ -59,7 +59,7 @@ const FEATURE_META: {
   href: string
 }[] = [
   { key: 'life_visions', label: 'Life Visions', color: '#39FF14', icon: Sparkles, href: '/life-vision' },
-  { key: 'vision_board', label: 'Vision Board', color: '#BF00FF', icon: ImageIcon, href: '/vision-board' },
+  { key: 'vision_board', label: 'Vision Board', color: '#BF00FF', icon: ImageIcon, href: '/manifestations' },
   { key: 'abundance', label: 'Abundance Tracker', color: '#FFFF00', icon: TrendingUp, href: '/abundance-tracker' },
   { key: 'audio', label: 'Audios', color: '#00FFFF', icon: Headphones, href: '/audio' },
   { key: 'projects', label: 'Projects', color: '#FF6600', icon: FolderKanban, href: '/projects' },

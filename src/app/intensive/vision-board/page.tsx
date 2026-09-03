@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
-import VisionBoardPage from '@/app/vision-board/page'
+import VisionBoardPage from '@/app/manifestations/page'
 
 export default function IntensiveVisionBoardPage() {
   const { setCompletedAt } = useIntensiveStep()

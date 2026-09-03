@@ -41,7 +41,7 @@ export default async function DashboardPage() {
     supabase.from('user_profiles').select('*').eq('user_id', user.id).eq('is_active', true).maybeSingle(),
     supabase.from('user_profiles').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('vision_versions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-    supabase.from('vision_board_items').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+    supabase.from('manifestations').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('journal_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('assessment_results').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.rpc('get_user_total_refinements', { p_user_id: user.id }),

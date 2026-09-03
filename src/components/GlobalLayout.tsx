@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useLayoutEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
 import { Header } from '@/components/Header'
@@ -175,7 +175,19 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   // inside the same session never re-query the database.
   const [snapshot, setSnapshot] = useState<IntensiveSnapshot | null>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash
+
+    // In-page CTAs used to leave #offer on the homepage URL. Reloading then
+    // jumped past the header, and this reset yanked the page back to top.
+    if (pathname === '/' && hash === '#offer') {
+      history.replaceState(null, '', window.location.pathname + window.location.search)
+      window.scrollTo(0, 0)
+      return
+    }
+
+    if (hash) return
     window.scrollTo(0, 0)
   }, [pathname])
 

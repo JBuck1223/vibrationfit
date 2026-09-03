@@ -34,7 +34,7 @@
 
 ### Phase 3: Activation & Daily Practice
 
-5. **Create Vision Board** (`/vision-board/new`)
+5. **Add Manifestations** (`/manifestations/new`)
    - Add images for specific desires
    - Organize in Kanban (Desire → In Progress → Actualized)
 
@@ -61,7 +61,7 @@
 → VIVA fetches and displays it
 
 ### "I want to activate my vision daily"
-→ `/vision-board` (create boards) → `/life-vision/[id]/audio` (generate audio) → Daily practice
+→ `/manifestations` (add manifestations) → `/life-vision/[id]/audio` (generate audio) → Daily practice
 
 ---
 

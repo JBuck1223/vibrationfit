@@ -159,7 +159,7 @@ export default function ActivityFeedPage() {
                     <Link href="/journal/new">Write a Journal Entry</Link>
                   </Button>
                   <Button asChild variant="secondary" size="sm">
-                    <Link href="/vision-board">Create a Vision Board</Link>
+                    <Link href="/manifestations">Create a Vision Board</Link>
                   </Button>
                 </div>
               </Card>

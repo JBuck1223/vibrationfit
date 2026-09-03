@@ -172,10 +172,10 @@ async function getDetailedCreations(
     db.from('audio_sets').select('*', { count: 'exact', head: true })
       .eq('user_id', userId).then(r => r.count || 0),
 
-    db.from('vision_board_items').select('*', { count: 'exact', head: true })
+    db.from('manifestations').select('*', { count: 'exact', head: true })
       .eq('user_id', userId).gte('created_at', thirtyDaysAgo.toISOString())
       .then(r => r.count || 0),
-    db.from('vision_board_items').select('*', { count: 'exact', head: true })
+    db.from('manifestations').select('*', { count: 'exact', head: true })
       .eq('user_id', userId).then(r => r.count || 0),
 
     db.from('journal_entries').select('*', { count: 'exact', head: true })
@@ -234,7 +234,7 @@ async function getRecentCreationItems(
       .limit(5)
       .then(r => (r.data || []).map(d => ({ type: 'audio', title: d.name || 'Audio Set', created_at: d.created_at }))),
 
-    db.from('vision_board_items')
+    db.from('manifestations')
       .select('name, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -325,10 +325,10 @@ async function getDetailedActivations(
       .eq('user_id', userId).then(r => r.count || 0),
 
     // Vision board items
-    db.from('vision_board_items').select('*', { count: 'exact', head: true })
+    db.from('manifestations').select('*', { count: 'exact', head: true })
       .eq('user_id', userId).gte('created_at', thirtyDaysAgo.toISOString())
       .then(r => r.count || 0),
-    db.from('vision_board_items').select('*', { count: 'exact', head: true })
+    db.from('manifestations').select('*', { count: 'exact', head: true })
       .eq('user_id', userId).then(r => r.count || 0),
 
     // Alignment gym sessions

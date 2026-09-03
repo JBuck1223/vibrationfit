@@ -593,7 +593,7 @@ function ActivitySnapshot({
     {
       icon: ImageIcon,
       label: 'Vision Board',
-      value: `${stats.vision_board_items_count ?? 0} items`,
+      value: `${stats.manifestations_count ?? 0} items`,
     },
     {
       icon: BookOpen,

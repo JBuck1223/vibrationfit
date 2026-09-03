@@ -33,6 +33,14 @@ export const PAGE_CLASSIFICATIONS = {
       '/viva',
       '/manifestations',
       '/manifestations/new',
+      '/manifestations/create',
+      '/manifestations/ideas',
+      '/manifestations/queue',
+      '/manifestations/queue/[batchId]',
+      '/manifestations/export',
+      '/manifestations/gallery',
+      '/manifestations/resources',
+      '/manifestations/about',
       '/manifestations/[id]',
     
     // Audio Studio (global hub)
@@ -54,15 +62,8 @@ export const PAGE_CLASSIFICATIONS = {
     '/life-vision/new/assembly',
     '/life-vision/new/[category]',
     
-    // Vision Board & Gallery
+    // Legacy Vision Board routes (redirect to /manifestations)
     '/vision-board',
-    '/vision-board/new',
-    '/vision-board/create',
-    '/vision-board/ideas',
-    '/vision-board/queue',
-    '/vision-board/queue/[batchId]',
-    '/vision-board/export',
-    '/vision-board/gallery',
     '/vision-board/[id]',
     
     // Journal System
@@ -164,8 +165,8 @@ export const PAGE_CLASSIFICATIONS = {
     '/referral',
 
     // Projects
+    // Legacy Projects routes (redirect into owning manifestation)
     '/projects',
-    '/projects/organize',
     '/projects/[id]',
 
     // Reset
@@ -214,6 +215,8 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Content Management
     '/admin/assets',
+    '/admin/slide-decks',
+    '/admin/slide-decks/[slug]',
     '/admin/vibrational-event/sources',
     
     // AI & Models
@@ -257,6 +260,12 @@ export const PAGE_CLASSIFICATIONS = {
     '/privacy-policy',
     '/terms-of-service',
     '/100k',                           // From $100K in Debt to $100K in the Bank (free guide)
+
+    // Activation Experience (public lead magnet; wizard + immersion require the
+    // free session created at email capture)
+    '/activation',
+    '/activation/experience',
+    '/activation/[id]',
     
     // Authentication
     '/auth/login',

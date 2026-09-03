@@ -30,6 +30,8 @@ interface PayPalCheckoutFormProps {
   continuity?: 'annual' | '28day' | null
   planType?: 'solo' | 'household' | null
   paymentPlan?: 'full' | '2pay' | null
+  /** Overrides the renewal billing phrase when a promo discounts renewals */
+  renewalPhrase?: string | null
 }
 
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
@@ -37,19 +39,24 @@ function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 's
   return planType === 'solo' ? '$999 per year' : '$1,490 per year'
 }
 
+// The card inputs live inside PayPal-hosted iframes, so they're styled via
+// PayPal's style API to match the design-system Input: dark bg, 2px border,
+// rounded-xl. Only documented selectors/properties — exotic ones can make
+// the SDK abort rendering (fields flash then disappear).
 const cardFieldStyle = {
   input: {
     'font-size': '16px',
     'font-family': 'system-ui, sans-serif',
     color: '#FFFFFF',
     padding: '12px 16px',
+    background: '#404040',
+    border: '2px solid #666666',
+    'border-radius': '12px',
   },
   '.invalid': { color: '#FF0040' },
   ':focus': { color: '#FFFFFF' },
 }
 
-const fieldWrapperClass =
-  'bg-[#404040] rounded-xl border-2 border-[#666666] focus-within:border-[#39FF14] transition-colors min-h-[48px]'
 
 function SubmitSection({
   validateAccount,
@@ -142,9 +149,10 @@ export default function PayPalCheckoutForm({
   continuity,
   planType,
   paymentPlan,
+  renewalPhrase,
 }: PayPalCheckoutFormProps) {
   const membershipBillingPhrase =
-    continuity && planType ? getMembershipBillingPhrase(continuity, planType) : null
+    renewalPhrase || (continuity && planType ? getMembershipBillingPhrase(continuity, planType) : null)
   const agreementLabel = membershipBillingPhrase
     ? `I understand and agree to the charges shown, including that my Vision Pro membership will continue billing on Day 28 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
     : "I agree to the charges shown, including Vision Pro billing starting on Day 28 at my selected plan, covered by the 16‑week guarantee."
@@ -324,28 +332,20 @@ export default function PayPalCheckoutForm({
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#E5E7EB] mb-1">Name on card</label>
-              <div className={fieldWrapperClass}>
-                <PayPalNameField />
-              </div>
+              <PayPalNameField placeholder="Name on card" />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#E5E7EB] mb-1">Card number</label>
-              <div className={fieldWrapperClass}>
-                <PayPalNumberField />
-              </div>
+              <PayPalNumberField placeholder="Card number" />
             </div>
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-[#E5E7EB] mb-1">Expiration</label>
-                <div className={fieldWrapperClass}>
-                  <PayPalExpiryField />
-                </div>
+                <PayPalExpiryField placeholder="MM / YY" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#E5E7EB] mb-1">CVV</label>
-                <div className={fieldWrapperClass}>
-                  <PayPalCVVField />
-                </div>
+                <PayPalCVVField placeholder="CVV" />
               </div>
             </div>
           </div>
@@ -367,23 +367,12 @@ export default function PayPalCheckoutForm({
                 By completing this purchase, you are enrolling in the 28‑day Vision Activation Intensive and your
                 included 28 days of Vision Pro Vibration Fit Membership.
               </p>
-              {continuity === '28day' ? (
-                <p>
-                  After your first 28 days, your membership will automatically continue at{' '}
-                  <strong className="text-neutral-200">
-                    {isHousehold ? '$149 every 28 days' : '$99 every 28 days'}
-                  </strong>
-                  , billed to the same payment method, until you choose to cancel. You can cancel any time with
-                  one click in your account before your next renewal.
-                </p>
-              ) : (
-                <p>
-                  After your first 28 days, your membership will automatically continue at{' '}
-                  <strong className="text-neutral-200">{isHousehold ? '$1,490 per year' : '$999 per year'}</strong>
-                  , billed to the same payment method, until you choose to cancel. You can cancel any time with
-                  one click in your account before your next renewal.
-                </p>
-              )}
+              <p>
+                After your first 28 days, your membership will automatically continue at{' '}
+                <strong className="text-neutral-200">{membershipBillingPhrase}</strong>
+                , billed to the same payment method, until you choose to cancel. You can cancel any time with
+                one click in your account before your next renewal.
+              </p>
               {isTwoPay && (
                 <p>
                   2‑pay option: You will be charged {isHousehold ? '$399' : '$275'} today and{' '}

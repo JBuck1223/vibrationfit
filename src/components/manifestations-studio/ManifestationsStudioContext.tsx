@@ -3,12 +3,12 @@
 import React, { createContext, useCallback, useContext } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { keys } from '@/lib/query/keys'
-import type { KitListItem } from '@/lib/manifestations/types'
+import type { ManifestationListItem } from '@/lib/manifestations/types'
 
 interface ManifestationsStudioContextValue {
-  kits: KitListItem[]
+  manifestations: ManifestationListItem[]
   loading: boolean
-  refreshKits: () => Promise<void>
+  refreshManifestations: () => Promise<void>
 }
 
 const ManifestationsStudioContext = createContext<ManifestationsStudioContextValue | null>(null)
@@ -19,27 +19,27 @@ export function useManifestationsStudio() {
   return ctx
 }
 
-async function fetchKits(): Promise<KitListItem[]> {
+async function fetchManifestations(): Promise<ManifestationListItem[]> {
   const res = await fetch('/api/manifestations')
   if (!res.ok) return []
   const data = await res.json()
-  return data.kits || []
+  return data.manifestations || []
 }
 
 export function ManifestationsStudioProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
 
-  const { data: kits = [], isLoading: loading } = useQuery({
+  const { data: manifestations = [], isLoading: loading } = useQuery({
     queryKey: keys.manifestationKits,
-    queryFn: fetchKits,
+    queryFn: fetchManifestations,
   })
 
-  const refreshKits = useCallback(async () => {
+  const refreshManifestations = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: keys.manifestationKits })
   }, [queryClient])
 
   return (
-    <ManifestationsStudioContext.Provider value={{ kits, loading, refreshKits }}>
+    <ManifestationsStudioContext.Provider value={{ manifestations, loading, refreshManifestations }}>
       {children}
     </ManifestationsStudioContext.Provider>
   )

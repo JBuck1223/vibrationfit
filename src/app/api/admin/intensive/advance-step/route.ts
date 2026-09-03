@@ -521,7 +521,7 @@ async function advanceStep8_VisionBoard(
 ) {
   // Check if items exist
   const { data: existing } = await supabase
-    .from('vision_board_items')
+    .from('manifestations')
     .select('id')
     .eq('user_id', userId)
     .limit(1)
@@ -541,7 +541,7 @@ async function advanceStep8_VisionBoard(
     updated_at: now
   }))
 
-  await supabase.from('vision_board_items').insert(items)
+  await supabase.from('manifestations').insert(items)
 }
 
 // Step 9: Journal entries (3 entries: written, voice, video)

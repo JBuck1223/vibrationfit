@@ -309,10 +309,10 @@ export default function TrackingContent({ user, profileData, visionData, visionB
                 </div>
                 <div className="flex gap-1.5">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href="/vision-board" className="text-xs">View</Link>
+                    <Link href="/manifestations" className="text-xs">View</Link>
                   </Button>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href="/vision-board/new" className="text-xs flex items-center gap-1">
+                    <Link href="/manifestations/new" className="text-xs flex items-center gap-1">
                       <Plus className="w-3 h-3" /> Add
                     </Link>
                   </Button>
@@ -329,7 +329,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
                   
                   <div className="space-y-1.5">
                     {visionBoardData.slice(0, 3).map((item) => (
-                      <Link key={item.id} href={`/vision-board/${item.id}`} className="block group">
+                      <Link key={item.id} href={`/manifestations/${item.id}`} className="block group">
                         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors">
                           <div className="w-1.5 h-1.5 rounded-full bg-[#39FF14] flex-shrink-0" />
                           <div className="flex-1 min-w-0">
@@ -345,7 +345,7 @@ export default function TrackingContent({ user, profileData, visionData, visionB
                   </div>
                   
                   {visionBoardData.length > 3 && (
-                    <Link href="/vision-board" className="block">
+                    <Link href="/manifestations" className="block">
                       <p className="text-xs text-neutral-500 text-center hover:text-neutral-300 transition-colors">
                         +{visionBoardData.length - 3} more items
                       </p>

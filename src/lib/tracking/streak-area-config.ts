@@ -23,16 +23,14 @@ const SIDEBAR_ICON_HREF: Partial<Record<AreaSlug, string>> = {
   'vision-audio': '/audio',
   journal: '/journal',
   'daily-paper': '/daily-paper',
-  'vision-board': '/vision-board',
+  'vision-board': '/manifestations',
   'vibe-tribe': '/vibe-tribe',
   'alignment-gym': '/alignment-gym',
 }
 
 function getSidebarIcon(href: string): LucideIcon | undefined {
-  const item = userNavigation.find(
-    entry => 'href' in entry && entry.href === href,
-  )
-  return item && 'icon' in item ? item.icon : undefined
+  const item = userNavigation.find(entry => entry.href === href)
+  return item?.icon
 }
 
 export function getStreakAreaIcon(area: AreaSlug): LucideIcon {
@@ -93,7 +91,7 @@ export const STREAK_AREAS: StreakAreaConfig[] = [
     pillar: 'activations',
     title: 'Vision Board',
     theme: 'green',
-    href: '/vision-board',
+    href: '/manifestations',
     cta: 'Open Vision Board',
     ctaDone: 'View Board',
   },

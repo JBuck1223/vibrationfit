@@ -70,7 +70,7 @@ export async function GET() {
         .eq('household_id', household.householdId)
         .order('created_at', { ascending: false }),
       service
-        .from('vision_board_items')
+        .from('manifestations')
         .select('id, user_id, name, description, image_url, status, categories, created_at')
         .eq('household_id', household.householdId)
         .order('created_at', { ascending: false }),
@@ -108,7 +108,7 @@ export async function GET() {
           .order('created_at', { ascending: false })
           .limit(ITEM_LIMIT),
         supabase
-          .from('vision_board_items')
+          .from('manifestations')
           .select('id, user_id, household_id, name, image_url, status, created_at', { count: 'exact' })
           .or(sharedOr)
           .order('created_at', { ascending: false })
@@ -162,7 +162,7 @@ export async function GET() {
             sublabel: i.status === 'actualized' ? 'Actualized' : dateLabel(i.created_at),
             ownerId: i.user_id,
             createdAt: i.created_at,
-            href: '/vision-board',
+            href: '/manifestations',
           })),
         },
         abundance: {

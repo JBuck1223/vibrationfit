@@ -84,7 +84,7 @@ interface IntensiveStats {
   audio_sets_count: number
   audio_tracks_count: number
   audio_tracks_completed: number
-  vision_board_items_count: number
+  manifestations_count: number
   vision_board_images_count: number
   journal_entries_count: number
   profile_completion_percent: number
@@ -294,7 +294,7 @@ export default function IntensiveUnlockPage() {
     }
 
     // Vision board - based on vision board items (both digital + physical via downloader)
-    if (stats.vision_board_items_count > 0) {
+    if (stats.manifestations_count > 0) {
       data.has_vision_board = 'yes_both'
       data.vision_board_management = 10
     }
@@ -337,7 +337,7 @@ export default function IntensiveUnlockPage() {
       case 'vision_clarity':
         return 'Our score for you is 10/10, as you have created a Life Vision.'
       case 'vibrational_harmony':
-        return `Our score for you is 10/10, as you have ${stats.visions_count} vision${stats.visions_count !== 1 ? 's' : ''}, ${stats.audio_sets_count} audio set${stats.audio_sets_count !== 1 ? 's' : ''}, and ${stats.vision_board_items_count} vision board item${stats.vision_board_items_count !== 1 ? 's' : ''}.`
+        return `Our score for you is 10/10, as you have ${stats.visions_count} vision${stats.visions_count !== 1 ? 's' : ''}, ${stats.audio_sets_count} audio set${stats.audio_sets_count !== 1 ? 's' : ''}, and ${stats.manifestations_count} vision board item${stats.manifestations_count !== 1 ? 's' : ''}.`
       case 'vibrational_constraints_clarity':
         if (stats.vibe_posts_count > 0 && stats.vibe_tribe_engaged) {
           return 'Our score for you is 10/10, as you have posted in and engaged with the Vibe Tribe.'
@@ -348,11 +348,11 @@ export default function IntensiveUnlockPage() {
       case 'audio_iteration_ease':
         return `Our score for you is 10/10, as you have created ${stats.audio_sets_count} audio set${stats.audio_sets_count !== 1 ? 's' : ''} with ${stats.audio_tracks_count} track${stats.audio_tracks_count !== 1 ? 's' : ''} with new generations ready at the click of a button.`
       case 'vision_board_management':
-        return `Our score for you is 10/10, as you have ${stats.vision_board_items_count} item${stats.vision_board_items_count !== 1 ? 's' : ''} on your vision board with easy management and downloads.`
+        return `Our score for you is 10/10, as you have ${stats.manifestations_count} item${stats.manifestations_count !== 1 ? 's' : ''} on your vision board with easy management and downloads.`
       case 'journey_capturing': {
         const profiles = stats.profile_versions_count ?? 0
         const visions = stats.visions_count ?? 0
-        const boardItems = stats.vision_board_items_count ?? 0
+        const boardItems = stats.manifestations_count ?? 0
         const journals = stats.journal_entries_count ?? 0
         return `Our score for you is 10/10, as you have ${profiles} profile version${profiles !== 1 ? 's' : ''}, ${visions} life vision${visions !== 1 ? 's' : ''}, ${boardItems} vision board item${boardItems !== 1 ? 's' : ''}, ${journals} journal entr${journals !== 1 ? 'ies' : 'y'}, and Vibe Tribe activity on your account - each easy to create new versions or add new entries.`
       }
@@ -525,7 +525,7 @@ export default function IntensiveUnlockPage() {
           <>
             <StatBadge icon={Target} label="Visions" value={stats.visions_count} />
             <StatBadge icon={Headphones} label="Audio Sets" value={stats.audio_sets_count} />
-            <StatBadge icon={Layout} label="Board Items" value={stats.vision_board_items_count} />
+            <StatBadge icon={Layout} label="Board Items" value={stats.manifestations_count} />
           </>
         )
       case 'vision_iteration_ease':
@@ -544,7 +544,7 @@ export default function IntensiveUnlockPage() {
       case 'vision_board_management':
         return (
           <>
-            <StatBadge icon={Layout} label="Board Items" value={stats.vision_board_items_count} />
+            <StatBadge icon={Layout} label="Board Items" value={stats.manifestations_count} />
             <StatBadge icon={CheckCircle} label="With Images" value={stats.vision_board_images_count} />
           </>
         )
@@ -565,7 +565,7 @@ export default function IntensiveUnlockPage() {
           <>
             <StatBadge icon={User} label="Profile Versions" value={stats.profile_versions_count ?? 0} />
             <StatBadge icon={Target} label="Life Visions" value={stats.visions_count ?? 0} />
-            <StatBadge icon={Layout} label="Vision Board Items" value={stats.vision_board_items_count ?? 0} />
+            <StatBadge icon={Layout} label="Vision Board Items" value={stats.manifestations_count ?? 0} />
             <StatBadge icon={FileText} label="Journal Entries" value={stats.journal_entries_count ?? 0} />
             <StatBadge icon={Users} label="Vibe Tribe Posts" value={vibePosts} />
             <StatBadge icon={MessageSquare} label="Vibe Tribe Engaged" value={engaged ? 'Yes' : 'No'} />

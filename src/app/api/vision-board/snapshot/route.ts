@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     const [{ data: items, error: itemsError }, { data: events, error: eventsError }] = await Promise.all([
       supabase
-        .from('vision_board_items')
+        .from('manifestations')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false }),

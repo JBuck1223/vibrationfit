@@ -94,21 +94,25 @@ We teach **Joy → Manifestation**: Freedom is the basis of life, Joy is the pur
 - **Version Control**: Multiple profile versions can be saved
 - **Integration**: Profile data enhances AI prompts and personalization
 
-### 4. Vision Board System (`/vision-board`)
+### 4. Manifestations (`/manifestations`)
 
-**Purpose**: Visual activation tool for specific desires and goals
+**Purpose**: One record per active desire — the board grid is the visualizer
 
-- **Kanban-Style Boards**:
-  - **Desire** (or "Active") - Things you want to activate in your vibration now
-  - **In Progress** - Things currently happening/moving forward
-  - **Actualized** - Things that have come to fruition
-  - **Inactive** - Things no longer relevant (evolved priorities)
+- **States**:
+  - **Active** - Desires you're activating in your vibration now
+  - **Actualized** - Realities that have come to fruition
+  - **Inactive** - No longer relevant (evolved priorities)
+
+- **Each manifestation carries**:
+  - Image (uploaded or VIVA-generated)
+  - Why you want it + What it feels like (owned text, seeded from Life Vision)
+  - Inspired Action Steps (nested action groups with steps)
+  - The Journey (attached journal entries)
+  - How It Manifested (actualization story + evidence photo)
 
 - **Features**:
-  - Image uploads and AI-generated images
-  - Organize by category or create custom boards
-  - Move items between columns as they progress
-  - Gallery view of all vision board items
+  - Grid/list board with status and category filters
+  - VIVA can add manifestations from conversation (with a generated image) and, after actualization, draft a Vibe Tribe post for approval
 
 ### 5. Conscious Creation Journal (`/journal`)
 
@@ -144,7 +148,7 @@ We teach **Joy → Manifestation**: Freedom is the basis of life, Joy is the pur
 - Break down big visions into manageable phases
 - Resource mapping (people, tools, skills, finances)
 - Timeline creation (flexible and adaptable)
-- Integration with Vision Boards
+- Integration with Manifestations
 
 ### 8. Dashboard & Analytics (`/dashboard`)
 
@@ -168,7 +172,7 @@ We teach **Joy → Manifestation**: Freedom is the basis of life, Joy is the pur
 1. **Complete Profile** (`/profile/new`) - Share your current story across all 12 categories
 2. **Take Assessment** (`/assessment`) - Understand your Green Line status
 3. **Create Life Vision** (`/life-vision/new`) - Build your "Life I Choose™" document
-4. **Set Up Vision Board** (`/vision-board/new`) - Visualize specific desires
+4. **Add Manifestations** (`/manifestations/new`) - Visualize specific desires
 5. **Start Journaling** (`/journal/new`) - Capture evidence of actualization
 6. **Daily Activation** - Use vision audio, review vision board, journal wins
 
@@ -180,7 +184,7 @@ We teach **Joy → Manifestation**: Freedom is the basis of life, Joy is the pur
 - Cross-category connections are automatically woven in
 
 #### Building Alignment Plan (MAP)
-- Vision Boards for visualization
+- Manifestations for visualization
 - Vision Audio for daily listening
 - Journal entries to track progress
 - Regular assessment to measure alignment
@@ -217,11 +221,11 @@ We teach **Joy → Manifestation**: Freedom is the basis of life, Joy is the pur
 ### "Where do I start?"
 → Begin with Profile completion, then Assessment, then Life Vision creation. This gives you foundation data for powerful AI assistance.
 
-### "What's the difference between Life Vision and Vision Board?"
-→ Life Vision is your comprehensive "Life I Choose™" document across 12 categories. Vision Boards are visual tools for specific desires you're actively working toward actualizing.
+### "What's the difference between Life Vision and Manifestations?"
+→ Life Vision is your comprehensive "Life I Choose™" document across 12 categories. Manifestations are the specific desires you're actively working toward actualizing — each with an image, why you want it, inspired action steps, and its journey. Life Vision seeds the language; each manifestation owns its own text.
 
 ### "How do I stay above the Green Line?"
-→ Use your Alignment Plan (MAP): daily vision audio, vision board review, journal evidence, and periodic assessment to track alignment.
+→ Use your Alignment Plan (MAP): daily vision audio, manifestation review, journal evidence, and periodic assessment to track alignment.
 
 ### "Can I update my vision?"
 → Yes! Use the Refine tool at `/life-vision/[id]/refine`. AI will help you elevate your vision while maintaining your authentic voice.

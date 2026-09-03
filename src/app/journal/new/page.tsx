@@ -12,6 +12,7 @@ export default function NewJournalEntryPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isIntensiveUrlParam = searchParams.get('intensive') === 'true'
+  const manifestationParam = searchParams.get('manifestation')
   const supabase = createClient()
   const { refreshEntries } = useJournalStudio()
 
@@ -20,6 +21,21 @@ export default function NewJournalEntryPage() {
   const [formKey, setFormKey] = useState(0)
   const [isUserInIntensive, setIsUserInIntensive] = useState(false)
   const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
+  const [manifestationName, setManifestationName] = useState<string | null>(null)
+
+  // ?manifestation= pre-attaches the new entry to that manifestation's Journey
+  useEffect(() => {
+    if (!manifestationParam) return
+    const loadName = async () => {
+      const { data } = await supabase
+        .from('manifestations')
+        .select('name')
+        .eq('id', manifestationParam)
+        .maybeSingle()
+      if (data?.name) setManifestationName(data.name)
+    }
+    void loadName()
+  }, [manifestationParam, supabase])
 
   useEffect(() => {
     const checkIntensiveMode = async () => {
@@ -57,8 +73,19 @@ export default function NewJournalEntryPage() {
     router.push('/journal')
   }
 
-  const handleSuccess = async (_entryId: string, meta?: { title: string }) => {
+  const handleSuccess = async (entryId: string, meta?: { title: string }) => {
     if (meta?.title) setSavedTitle(meta.title)
+    if (manifestationParam) {
+      try {
+        await fetch(`/api/manifestations/${manifestationParam}/assets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slot: 'journal', entity_type: 'journal_entries', entity_id: entryId }),
+        })
+      } catch (error) {
+        console.error('Could not attach entry to manifestation:', error)
+      }
+    }
     // Update the studio context so the area bar entry list includes the new entry
     void refreshEntries()
     if (isUserInIntensive) {
@@ -83,6 +110,11 @@ export default function NewJournalEntryPage() {
   return (
     <Container size="xl">
       <Stack gap="md">
+        {manifestationName && (
+          <p className="text-xs text-neutral-400 rounded-xl border border-[#BF00FF]/30 bg-[#BF00FF]/10 px-4 py-2.5">
+            This entry will be added to the journey of <span className="text-[#D46BFF] font-medium">{manifestationName}</span>.
+          </p>
+        )}
         <NewJournalEntryForm
           key={formKey}
           onCancel={() => router.back()}

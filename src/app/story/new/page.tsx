@@ -79,8 +79,8 @@ const SOURCE_TYPES: SourceType[] = [
   {
     kind: 'story',
     entityType: 'vision_board_item',
-    label: 'Vision Board Item',
-    description: 'Transform a vision board item into a vivid narrative of living that reality.',
+    label: 'Manifestation',
+    description: 'Transform a manifestation into a vivid narrative of living that reality.',
     icon: Image,
     color: 'bg-cyan-500/20 text-cyan-400',
   },
@@ -304,7 +304,7 @@ export default function NewStoryWizardPage() {
         const user = session?.user
         if (!user) { router.push('/auth/login'); return }
         const { data } = await supabase
-          .from('vision_board_items')
+          .from('manifestations')
           .select('id, name, description, categories, image_url')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
@@ -607,7 +607,7 @@ export default function NewStoryWizardPage() {
       if (focusNotes.trim()) parts.push(`Focus: ${focusNotes.trim()}`)
       return {
         content: parts.join('\n\n'),
-        label: `Vision Board: ${selectedEntity.name || 'Untitled'}`,
+        label: `Manifestation: ${selectedEntity.name || 'Untitled'}`,
       }
     }
     if (sourceType === 'journal_entry' && selectedEntity) {
@@ -904,7 +904,7 @@ export default function NewStoryWizardPage() {
   function getEntityDisplayName(entity: any): string {
     if (!entity) return ''
     if (selectedSource?.entityType === 'life_vision') return `Version ${entity.version_number}`
-    if (selectedSource?.entityType === 'vision_board_item') return entity.name || 'Vision Board Item'
+    if (selectedSource?.entityType === 'vision_board_item') return entity.name || 'Manifestation'
     if (selectedSource?.entityType === 'journal_entry') return entity.title || 'Untitled Entry'
     return entity.name || entity.title || 'Selected Item'
   }

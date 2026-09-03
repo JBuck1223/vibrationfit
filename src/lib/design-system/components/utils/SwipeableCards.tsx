@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useIsMobile } from '@/lib/design-system/mobile-utils'
 import { X, ChevronLeft, ChevronRight, ArrowDown, CheckCircle } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Card } from '../cards/Card'
@@ -149,9 +150,7 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
     const [startY, setStartY] = useState(0)
     const [translateX, setTranslateX] = useState(0)
     const [translateY, setTranslateY] = useState(0)
-    const [isMobile, setIsMobile] = useState(() =>
-      typeof window !== 'undefined' ? window.innerWidth < 768 : false
-    )
+    const isMobile = useIsMobile()
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
     const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; type: 'active' | 'actualized' } | null>(null)
     
@@ -244,17 +243,6 @@ export const SwipeableCards = React.forwardRef<HTMLDivElement, SwipeableCardsPro
         setIsTransitionDisabled(false)
       }
     }, [carouselIndex, hasLooping, totalCards, isTransitionDisabled])
-
-    // Detect mobile viewport
-    useEffect(() => {
-      const checkMobile = () => {
-        setIsMobile(window.innerWidth < 768)
-      }
-      
-      checkMobile()
-      window.addEventListener('resize', checkMobile)
-      return () => window.removeEventListener('resize', checkMobile)
-    }, [])
 
     // Haptic feedback helper
     const triggerHaptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {

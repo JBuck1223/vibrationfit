@@ -19,7 +19,7 @@ import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { INCANTATION_SYSTEM_PROMPT, buildIncantationPrompt } from '@/lib/viva/prompts/incantation-prompt'
 import { SPARK_QUERY_SYSTEM_PROMPT, buildSparkQueryPrompt } from '@/lib/viva/prompts/spark-query-prompt'
 import { MODE_TOOL_ALLOWLIST, type VivaMode } from '@/lib/viva/modes'
-import { attachCreatedAssetToKit, buildKitCoachTools, KIT_TOOLS_PROMPT } from '@/lib/viva/coach-kit-tools'
+import { attachAssetToManifestations, attachCreatedAssetToKit, buildKitCoachTools, KIT_TOOLS_PROMPT } from '@/lib/viva/coach-kit-tools'
 import { buildCoachReadTools, READ_TOOLS_PROMPT } from '@/lib/viva/coach-read-tools'
 import type { KitSlot } from '@/lib/manifestations/types'
 
@@ -175,15 +175,16 @@ export function buildCoachTools(ctx: CoachToolsContext) {
 
     save_journal_entry: tool({
       description:
-        'Save a journal entry for the member, capturing something meaningful they just expressed or realized. Always confirm with the member before saving, and write it in their voice (first person).',
+        'Save a journal entry for the member — the Journal is their documentation engine for clarity gained in conversation and steps taken toward manifestations. Use when they express or realize something meaningful, land a decision, or take a step toward a desire. Always confirm with the member before saving, and write it in their voice (first person). Propose which manifestation(s) it relates to; one entry can attach to several.',
       inputSchema: z.object({
         title: z.string().describe('Short evocative title'),
         content: z.string().describe("The entry, in the member's first-person voice, drawn from what they actually said"),
         category: CATEGORY_ENUM.nullable().describe('Life category if clearly relevant'),
         journal_tag: z.enum(['vision', 'win', 'wobble']).nullable().describe('vision = manifestation seed / chosen reality; win = becoming evidence; wobble = contrast'),
-        kit_id: z.string().uuid().nullable(),
+        manifestation_ids: z.array(z.string().uuid()).nullable().describe('Manifestations this entry documents progress or clarity for — confirm the member agrees before attaching'),
+        kit_id: z.string().uuid().nullable().describe('Legacy single-manifestation attach; prefer manifestation_ids'),
       }),
-      execute: async ({ title, content, category, journal_tag, kit_id }) => {
+      execute: async ({ title, content, category, journal_tag, manifestation_ids, kit_id }) => {
         const { data, error } = await supabase
           .from('journal_entries')
           .insert({
@@ -198,32 +199,28 @@ export function buildCoachTools(ctx: CoachToolsContext) {
           .single()
 
         if (error || !data) return { success: false, message: 'Could not save the journal entry.' }
-        await attach(journal_tag === 'win' ? 'journal' : 'journal', 'journal_entries', data.id, kit_id)
-        return { success: true, message: `Saved "${title}" to your journal.`, link: `/journal/${data.id}` }
-      },
-    }),
 
-    add_vision_board_item: tool({
-      description:
-        'Add a desire to the member\'s vision board. Use when they express a clear specific want ("I want to take the kids to Japan"). Confirm before adding.',
-      inputSchema: z.object({
-        name: z.string().describe('The desire, short and specific'),
-        description: z.string().nullable().describe('One or two sentences of detail, in their words'),
-        category: CATEGORY_ENUM.nullable(),
-        kit_id: z.string().uuid().nullable(),
-      }),
-      execute: async ({ name, description, category, kit_id }) => {
-        const { data, error } = await supabase.from('vision_board_items').insert({
-          user_id: userId,
-          name,
-          description: description || null,
-          categories: category ? [category] : null,
-          status: 'active',
-        }).select('id').single()
+        const ids = [...new Set([...(manifestation_ids || []), ...(kit_id ? [kit_id] : [])])]
+        let attachedCount = 0
+        if (ids.length > 0) {
+          const attached = await attachAssetToManifestations(kitCtx, {
+            manifestationIds: ids,
+            slot: 'journal',
+            entityType: 'journal_entries',
+            entityId: data.id,
+          })
+          attachedCount = attached.length
+        } else {
+          await attach('journal', 'journal_entries', data.id, null)
+        }
 
-        if (error || !data) return { success: false, message: 'Could not add the vision board item.' }
-        await attach('vision_board', 'vision_board_items', data.id, kit_id)
-        return { success: true, message: `Added "${name}" to your vision board.`, link: '/vision-board' }
+        return {
+          success: true,
+          message: attachedCount > 0
+            ? `Saved "${title}" to your journal and attached it to ${attachedCount} manifestation${attachedCount === 1 ? '' : 's'}.`
+            : `Saved "${title}" to your journal.`,
+          link: `/journal/${data.id}`,
+        }
       },
     }),
 
@@ -536,8 +533,8 @@ export const COACH_TOOLS_PROMPT = `${READ_TOOLS_PROMPT}
 You can take real actions in the member's VibrationFit account, right from this conversation — only the tools available in this thread's mode will work.
 
 - **Queue a song** (queue_song): when one of THEIR songs fits this moment, offer to queue it
-- **Save a journal entry** (save_journal_entry): when they express something worth keeping, offer to capture it. Use journal_tag vision for a manifestation seed, win for becoming evidence.
-- **Add a vision board item** (add_vision_board_item): when a clear desire surfaces
+- **Save a journal entry** (save_journal_entry): the Journal is their documentation engine. When clarity lands, a decision is made, or a step is taken toward a desire, offer "Want me to capture this in your Journal?" and propose which manifestation(s) it relates to (manifestation_ids — one entry can attach to several). Use journal_tag vision for a manifestation seed, win for becoming evidence.
+- **Add a manifestation** (add_manifestation): when a clear active desire surfaces
 - **Log abundance** (log_abundance_event): when they mention money or value received
 - **Add a Daily Paper task** (add_daily_paper_task): when a concrete next step emerges
 - **Create an activation story** (create_activation_story): when a real shift lands, offer to actualize it into a story they can rehearse

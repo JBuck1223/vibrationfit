@@ -5,6 +5,11 @@ import { resolveAssetLabels } from '@/lib/manifestations/library-candidates'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * GET /api/manifestations/[id]
+ * One manifestation with its depth: assets (journal/stories/…), activations,
+ * and nested action groups (projects) with their steps (tasks).
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -17,14 +22,14 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: kit, error } = await supabase
+    // RLS also allows household-shared items; scope to visible row
+    const { data: manifestation, error } = await supabase
       .from('manifestations')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
       .maybeSingle()
 
-    if (error || !kit) {
+    if (error || !manifestation) {
       return NextResponse.json({ error: 'Manifestation not found' }, { status: 404 })
     }
 
@@ -42,7 +47,7 @@ export async function GET(
         .order('activation_date', { ascending: false }),
       supabase
         .from('projects')
-        .select('id, title, description, status, life_categories, due_date, created_at')
+        .select('id, title, description, status, life_categories, due_date, created_at, sort_order, project_tasks(id, title, description, is_complete, parent_task_id, sort_order)')
         .eq('manifestation_id', id)
         .neq('status', 'archived')
         .order('sort_order', { ascending: false }),
@@ -55,16 +60,36 @@ export async function GET(
     const assets = assetsResult.data || []
     const labels = await resolveAssetLabels(supabase, assets)
 
+    // Journal entries linked to this manifestation, hydrated for The Journey
+    const journalIds = assets
+      .filter(a => a.slot === 'journal' && a.entity_id)
+      .map(a => a.entity_id as string)
+    let journalEntries: Array<Record<string, unknown>> = []
+    if (journalIds.length > 0) {
+      const { data: entries } = await supabase
+        .from('journal_entries')
+        .select('id, title, content, date, journal_tag, categories')
+        .in('id', journalIds)
+        .order('date', { ascending: false })
+      journalEntries = entries || []
+    }
+
     return NextResponse.json({
-      kit,
+      manifestation,
       assets: assets.map(asset => ({
         ...asset,
         label: (asset.entity_id && labels[asset.entity_id]) || null,
       })),
+      journal_entries: journalEntries,
       activations,
       activations_this_week: activations.filter(a => a.activation_date >= weekAgoStr).length,
       activations_since_opened: activations.length,
-      projects: projectsResult.data || [],
+      projects: (projectsResult.data || []).map(p => ({
+        ...p,
+        project_tasks: (p.project_tasks || []).sort(
+          (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order,
+        ),
+      })),
     })
   } catch (error) {
     console.error('[Manifestations] detail error:', error)
@@ -72,6 +97,10 @@ export async function GET(
   }
 }
 
+/**
+ * PATCH /api/manifestations/[id]
+ * Update manifestation fields, including Actualization.
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -87,14 +116,23 @@ export async function PATCH(
     const body = await request.json()
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
 
-    if (typeof body.title === 'string' && body.title.trim()) updates.title = body.title.trim()
-    if (typeof body.chosen_reality === 'string') updates.chosen_reality = body.chosen_reality.trim()
-    if (Array.isArray(body.life_categories)) updates.life_categories = normalizeLifeCategories(body.life_categories)
+    const name = typeof body.name === 'string' ? body.name : typeof body.title === 'string' ? body.title : null
+    if (name && name.trim()) updates.name = name.trim()
+    if (typeof body.description === 'string') updates.description = body.description.trim() || null
+    if (typeof body.why_it_matters === 'string') updates.why_it_matters = body.why_it_matters.trim() || null
+    if (typeof body.chosen_reality === 'string') updates.why_it_matters = body.chosen_reality.trim() || null
+    if (typeof body.what_it_feels_like === 'string') updates.what_it_feels_like = body.what_it_feels_like.trim() || null
+    if (typeof body.actualization_story === 'string') updates.actualization_story = body.actualization_story.trim() || null
+    if (typeof body.image_url === 'string') updates.image_url = body.image_url || null
+    if (typeof body.actualized_image_url === 'string') updates.actualized_image_url = body.actualized_image_url || null
+    if (Array.isArray(body.categories) || Array.isArray(body.life_categories)) {
+      updates.categories = normalizeLifeCategories(body.categories ?? body.life_categories)
+    }
     if (body.status === 'actualized') {
       updates.status = 'actualized'
       updates.actualized_at = new Date().toISOString()
-    } else if (body.status === 'archived' || body.status === 'open') {
-      updates.status = body.status
+    } else if (body.status === 'active' || body.status === 'inactive' || body.status === 'open') {
+      updates.status = body.status === 'open' ? 'active' : body.status
     }
 
     const { data, error } = await supabase
@@ -110,13 +148,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update manifestation' }, { status: 500 })
     }
 
-    return NextResponse.json({ kit: data })
+    return NextResponse.json({ manifestation: data })
   } catch (error) {
     console.error('[Manifestations] PATCH error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
+/**
+ * POST /api/manifestations/[id]  { action: 'activate' }
+ * Record a "showed up" activation.
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -134,20 +176,20 @@ export async function POST(
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
     }
 
-    const { data: kit } = await supabase
+    const { data: item } = await supabase
       .from('manifestations')
-      .select('id, life_categories')
+      .select('id, categories')
       .eq('id', id)
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (!kit) {
+    if (!item) {
       return NextResponse.json({ error: 'Manifestation not found' }, { status: 404 })
     }
 
     const area = typeof body.area === 'string' && body.area
       ? body.area
-      : kit.life_categories?.[0] || 'work'
+      : item.categories?.[0] || 'work'
 
     await recordKitActivation(supabase, {
       kitId: id,

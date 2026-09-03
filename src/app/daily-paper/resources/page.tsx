@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import {
   Container,
   Card,
@@ -13,7 +12,7 @@ import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { Download, Heart, Target, Sparkles } from 'lucide-react'
 
 const HALF_PAGE_PDF =
-  'https://media.vibrationfit.com/site-assets/processes/daily-paper/daily-paper-for-print.pdf'
+  'https://media.vibrationfit.com/site-assets/processes/daily-paper/daily-paper-2-per-page.pdf'
 const FULL_PAGE_PDF =
   'https://media.vibrationfit.com/site-assets/processes/daily-paper/full-page-daily-paper.pdf'
 const DAILY_PAPER_VIDEO =
@@ -67,11 +66,11 @@ export default function DailyPaperResourcesPage() {
                 <Inline gap="sm" className="items-start">
                   <Target className="h-5 w-5 text-[#2DD4BF]" />
                   <Text size="sm" className="text-white font-semibold">
-                    Component 2: Top 3 Priorities
+                    Component 2: Aligned Actions
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
-                  The feeling of positive movement forward, or progress, is such a satisfying feeling! That’s why we have the top 3 priorities for the day listed. This helps us hone in on What’s Important Now so we can WIN at intentionally creating our life by choice!
+                  The feeling of positive movement forward, or progress, is such a satisfying feeling. That’s why the Daily Paper asks for three aligned actions for the day. This helps you hone in on What’s Important Now so you can WIN at intentionally creating your life by choice.
                 </p>
               </Stack>
 
@@ -79,7 +78,7 @@ export default function DailyPaperResourcesPage() {
                 <Inline gap="sm" className="items-start">
                   <Sparkles className="h-5 w-5 text-[#8B5CF6]" />
                   <Text size="sm" className="text-white font-semibold">
-                    Component 3: Something Fun
+                    Component 3: Fun Promise
                   </Text>
                 </Inline>
                 <p className="text-sm text-neutral-300 leading-relaxed">
@@ -103,7 +102,7 @@ export default function DailyPaperResourcesPage() {
             </Text>
             <Stack gap="sm" className="text-sm text-neutral-300 leading-relaxed">
               <p>
-                • You can print either a half page or full page Daily Paper below and write them by hand, then upload a photo of the completed entry to the form by selecting “File Upload Only”. The half page has room for two Daily Paper entries while the full page has room for one Daily Paper entry (for those who like to write more).
+                • Print a half-page or full-page Daily Paper below and write by hand, then upload a photo of the completed entry. The half page has two entries per sheet. The full page has one entry with more room to write.
               </p>
               <p>
                 • Or if you prefer to type your Daily Paper digitally, you can submit it electronically. All form submissions will be saved to your member account (for your viewing only).
@@ -122,16 +121,16 @@ export default function DailyPaperResourcesPage() {
             </p>
             <Inline gap="sm" justify="center" className="flex-wrap">
               <Button variant="primary" size="sm" className="justify-center" asChild>
-                <Link href={HALF_PAGE_PDF} target="_blank">
+                <a href={HALF_PAGE_PDF} target="_blank" rel="noopener noreferrer">
                   <Download className="mr-2 h-4 w-4" />
                   Half-page PDF
-                </Link>
+                </a>
               </Button>
               <Button variant="primary" size="sm" className="justify-center" asChild>
-                <Link href={FULL_PAGE_PDF} target="_blank">
+                <a href={FULL_PAGE_PDF} target="_blank" rel="noopener noreferrer">
                   <Download className="mr-2 h-4 w-4" />
                   Full-page PDF
-                </Link>
+                </a>
               </Button>
             </Inline>
           </Stack>

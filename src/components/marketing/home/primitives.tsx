@@ -1,24 +1,6 @@
-import { ArrowRight } from 'lucide-react'
 import { Container } from '@/lib/design-system'
 
-export const CTA_LABEL = 'Start Your 72-Hour Vision Activation'
-
-// Styled to match the design-system primary/md Button. Rendered as a plain
-// anchor because Button's asChild path hydration-mismatches inside a server
-// component, which fires the global error toast on marketing pages.
-export function Cta({ href = '#offer', className = '' }: { href?: string; className?: string }) {
-  return (
-    <div className={`mt-10 flex justify-center ${className}`}>
-      <a
-        href={href}
-        className="inline-flex w-full items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-4 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:w-auto md:whitespace-nowrap md:px-7"
-      >
-        {CTA_LABEL}
-        <ArrowRight className="h-4 w-4" />
-      </a>
-    </div>
-  )
-}
+export { Cta, CTA_LABEL } from '@/components/marketing/home/CtaButton'
 
 export function Eyebrow({
   children,
@@ -52,7 +34,7 @@ export function Display({
   className?: string
 }) {
   const sizes = {
-    h1: 'text-[2.35rem] leading-[1.08] md:text-[3.25rem] lg:text-[3.75rem]',
+    h1: 'text-center text-[1.65rem] leading-[1.15] md:text-[3.25rem] md:leading-[1.1] lg:text-[3.75rem]',
     h2: 'text-[2rem] leading-[1.1] md:text-[2.75rem]',
     h3: 'text-[1.65rem] leading-snug md:text-[1.85rem]',
   }
@@ -72,7 +54,7 @@ export function Accent({ children }: { children: React.ReactNode }) {
 }
 
 export function Body({ children }: { children: React.ReactNode }) {
-  return <div className="mt-8 space-y-5 text-lg leading-[1.7] text-neutral-300">{children}</div>
+  return <div className="mt-8 space-y-5 text-lg leading-[1.7] text-pretty text-neutral-300">{children}</div>
 }
 
 export function Hit({ children }: { children: React.ReactNode }) {
@@ -103,7 +85,7 @@ export function Beats({ items }: { items: React.ReactNode[] }) {
 export function Section({ children }: { children: React.ReactNode }) {
   return (
     <section className="border-t border-white/10">
-      <Container size="xl" className="px-4 py-20 md:px-10 md:py-28">
+      <Container size="xl" className="px-4 py-12 md:px-10 md:py-20 lg:py-28">
         {children}
       </Container>
     </section>

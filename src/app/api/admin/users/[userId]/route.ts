@@ -61,7 +61,7 @@ export async function GET(
       adminDb.from('journal_entries').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
       adminDb.from('sequence_enrollments').select('*, sequences:sequence_id(name, description)').eq('user_id', userId).order('enrolled_at', { ascending: false }),
       adminDb.from('vibe_posts').select('id, content, media_type, hearts_count, comments_count, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
-      adminDb.from('vision_board_items').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      adminDb.from('manifestations').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
     ])
 
     const storageTotal = (storageRes.data || []).reduce((sum: number, row: any) => sum + (row.quota_gb || 0), 0)

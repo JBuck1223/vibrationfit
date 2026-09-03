@@ -1,5 +1,13 @@
-export const KIT_STATUSES = ['open', 'actualized', 'archived'] as const
-export type KitStatus = (typeof KIT_STATUSES)[number]
+/**
+ * Manifestations — the base record for every desire.
+ *
+ * A manifestation IS a manifestations row (the board is the visualizer).
+ * Depth hangs off it via manifestation_assets (journal, stories, songs, …)
+ * and projects.manifestation_id (nested action groups with steps).
+ */
+
+export const MANIFESTATION_STATUSES = ['active', 'actualized', 'inactive'] as const
+export type ManifestationStatus = (typeof MANIFESTATION_STATUSES)[number]
 
 export const KIT_LAYERS = ['suite', 'project', 'evidence', 'milestone'] as const
 export type KitLayer = (typeof KIT_LAYERS)[number]
@@ -27,25 +35,27 @@ export type KitSlot = (typeof KIT_SLOTS)[number]
 export const KIT_ASSET_STATUSES = ['queued', 'ready', 'handoff', 'skipped', 'actualized'] as const
 export type KitAssetStatus = (typeof KIT_ASSET_STATUSES)[number]
 
-export interface ManifestationKit {
+/** One manifestation = one manifestations row. */
+export interface Manifestation {
   id: string
   user_id: string
   household_id: string | null
-  title: string
-  chosen_reality: string | null
-  life_categories: string[]
+  name: string
+  description: string | null
+  image_url: string | null
+  status: ManifestationStatus
+  categories: string[] | null
+  why_it_matters: string | null
+  what_it_feels_like: string | null
   conversation_id: string | null
-  vision_draft_id: string | null
-  vision_version_id: string | null
-  status: KitStatus
   actualized_at: string | null
-  actualization_story_id: string | null
-  flow: unknown
+  actualized_image_url: string | null
+  actualization_story: string | null
   created_at: string
   updated_at: string
 }
 
-export interface ManifestationKitAsset {
+export interface ManifestationAsset {
   id: string
   manifestation_id: string
   layer: KitLayer
@@ -59,7 +69,7 @@ export interface ManifestationKitAsset {
   created_at: string
 }
 
-export interface ManifestationKitActivation {
+export interface ManifestationActivation {
   id: string
   manifestation_id: string
   user_id: string
@@ -68,7 +78,7 @@ export interface ManifestationKitActivation {
   created_at: string
 }
 
-export interface KitListItem extends ManifestationKit {
+export interface ManifestationListItem extends Manifestation {
   asset_ready_count: number
   asset_queued_count: number
   activations_this_week: number
@@ -83,7 +93,7 @@ export const SLOT_LABELS: Record<KitSlot, string> = {
   song: 'Song',
   voice: 'Voice',
   mix: 'Mix',
-  vision_board: 'Vision board',
+  vision_board: 'Related manifestation',
   journal: 'Journal',
   daily_paper: 'Daily Paper',
   abundance: 'Abundance',
@@ -91,7 +101,7 @@ export const SLOT_LABELS: Record<KitSlot, string> = {
   trip: 'Trip',
   map_target: 'MAP target',
   map_commitment: 'MAP commitment',
-  project: 'Project',
+  project: 'Action group',
 }
 
 export const HANDOFF_SLOTS: Partial<Record<KitSlot, string>> = {
@@ -112,7 +122,7 @@ export function assetLink(slot: KitSlot, entityId: string | null, handoffPath: s
     case 'journal':
       return entityId ? `/journal/${entityId}` : '/journal'
     case 'vision_board':
-      return '/vision-board'
+      return entityId ? `/manifestations/${entityId}` : '/manifestations'
     case 'daily_paper':
       return '/daily-paper'
     case 'abundance':
@@ -121,7 +131,7 @@ export function assetLink(slot: KitSlot, entityId: string | null, handoffPath: s
     case 'trip':
       return '/travel-tracker/dream'
     case 'project':
-      return entityId ? `/projects/${entityId}` : '/projects'
+      return entityId ? `/projects/${entityId}` : '/manifestations'
     case 'song':
       return '/audio'
     case 'voice':

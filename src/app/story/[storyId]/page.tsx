@@ -43,7 +43,7 @@ import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
   life_vision: { label: 'Life Vision', icon: Target, badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30' },
-  vision_board_item: { label: 'Vision Board', icon: Image, badgeColor: 'text-cyan-400 bg-cyan-500/20 border-cyan-500/30' },
+  vision_board_item: { label: 'Manifestations', icon: Image, badgeColor: 'text-cyan-400 bg-cyan-500/20 border-cyan-500/30' },
   journal_entry: { label: 'Journal', icon: BookOpen, badgeColor: 'text-teal-400 bg-teal-500/20 border-teal-500/30' },
   custom: { label: 'Custom', icon: Lightbulb, badgeColor: 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30' },
   goal: { label: 'Goal', icon: BookOpen, badgeColor: 'text-green-400 bg-green-500/20 border-green-500/30' },
@@ -381,7 +381,7 @@ export default function StoryDetailPage({
       : sourceEntityType === 'life_vision' && sourceEntityId
         ? `/life-vision/${sourceEntityId}`
         : sourceEntityType === 'vision_board_item'
-          ? '/vision-board'
+          ? '/manifestations'
           : null
   const hasGenerationDetails = !!(
     story.metadata?.source_input ||
@@ -770,7 +770,7 @@ export default function StoryDetailPage({
                           {sourceLabel || (
                             sourceEntityType === 'journal_entry' ? 'Journal Entry'
                             : sourceEntityType === 'life_vision' ? 'Life Vision'
-                            : sourceEntityType === 'vision_board_item' ? 'Vision Board'
+                            : sourceEntityType === 'vision_board_item' ? 'Manifestations'
                             : 'Source'
                           )}
                         </Link>

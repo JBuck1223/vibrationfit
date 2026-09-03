@@ -361,7 +361,7 @@ function IntensiveDashboardContent() {
       // If vision_board_completed is false but user has items in all 12 categories, mark complete
       if (!checklistData.vision_board_completed) {
         const { data: visionBoardItems } = await supabase
-          .from('vision_board_items')
+          .from('manifestations')
           .select('categories')
           .eq('user_id', user.id)
           .eq('status', 'active')

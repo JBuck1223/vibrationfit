@@ -35,7 +35,7 @@ interface SourceOption {
 const SOURCE_OPTIONS: SourceOption[] = [
   { type: 'custom', label: 'Custom', description: 'Start with your own idea', icon: Music2, color: 'text-[#39FF14]' },
   { type: 'life_vision', label: 'Life Vision', description: 'Draw from your vision categories', icon: Target, color: 'text-purple-400' },
-  { type: 'vision_board_item', label: 'Vision Board', description: 'Turn a vision board item into a song', icon: Image, color: 'text-cyan-400' },
+  { type: 'vision_board_item', label: 'Manifestations', description: 'Turn a manifestation into a song', icon: Image, color: 'text-cyan-400' },
   { type: 'journal_entry', label: 'Journal Entry', description: 'Transform a journal entry into music', icon: BookOpen, color: 'text-teal-400' },
 ]
 
@@ -164,7 +164,7 @@ export default function SongwriterPage() {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) return
         const { data } = await supabase
-          .from('vision_board_items')
+          .from('manifestations')
           .select('id, name, description, categories, image_url')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
@@ -281,7 +281,7 @@ export default function SongwriterPage() {
 
   function getEntityLabel(entity: any): string {
     if (source === 'life_vision') return entity.title || entity.version_name || 'Life Vision'
-    if (source === 'vision_board_item') return entity.name || 'Vision Board Item'
+    if (source === 'vision_board_item') return entity.name || 'Manifestation'
     if (source === 'journal_entry') return entity.title || 'Journal Entry'
     return 'Item'
   }

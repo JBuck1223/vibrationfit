@@ -134,7 +134,7 @@ export async function getUserBadgeProgress(
 
     // Vision board items
     supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId),
 
@@ -271,7 +271,7 @@ async function getDistinctActivationDays(
 
       // Vision board items
       supabase
-        .from('vision_board_items')
+        .from('manifestations')
         .select('created_at')
         .eq('user_id', userId)
         .then(r => r.data?.map(d => d.created_at) || []),
