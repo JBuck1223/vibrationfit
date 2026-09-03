@@ -5,7 +5,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, Gem, Eye, FileText, ArrowUp, Headphones, Moon, Zap, Music, Mic, Users } from 'lucide-react'
-import { commitDraft, getRefinedCategories } from '@/lib/life-vision/draft-helpers'
+import { getRefinedCategories } from '@/lib/life-vision/draft-helpers'
+import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
+import { ActivationKitProgressCard } from '@/components/life-vision/ActivationKitProgressCard'
 import { 
   Button, 
   Card, 
@@ -114,6 +116,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   const [userProfile, setUserProfile] = useState<{ first_name?: string; full_name?: string } | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [versionToolbarLoading, setVersionToolbarLoading] = useState(false)
+  const [showCommitDialog, setShowCommitDialog] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [householdCtx, setHouseholdCtx] = useState<{
     isAdmin: boolean
@@ -774,22 +777,10 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   }, [vision, calculateCompletion])
 
   // Commit draft vision as active version
-  const handleToolbarCommitDraft = async () => {
+  // Toolbar already confirmed; the dialog commits then offers the Activation Kit
+  const handleToolbarCommitDraft = () => {
     if (!vision) return
-    setVersionToolbarLoading(true)
-    try {
-      const newActive = await commitDraft(vision.id)
-      await refreshVisions()
-      // Commit happens in place (same id), so navigating to the same route won't
-      // refetch. Update local state so the badge/toolbar reflect the active version immediately.
-      setVision(prev => (prev ? { ...prev, ...newActive, is_draft: false, is_active: true } : prev))
-      router.push(`/life-vision/${newActive.id}`)
-    } catch (error) {
-      console.error('Error committing draft:', error)
-      setError(error instanceof Error ? error.message : 'Failed to commit draft')
-    } finally {
-      setVersionToolbarLoading(false)
-    }
+    setShowCommitDialog(true)
   }
 
   const handleToolbarDeleteDraft = async () => {
@@ -938,6 +929,13 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 isLoading={versionToolbarLoading}
               />
             </div>
+          </Container>
+        )}
+
+        {/* Activation Kit progress (latest run for this active vision) */}
+        {displayStatus === 'active' && !isSharedWithMe && (
+          <Container size="xl">
+            <ActivationKitProgressCard visionId={vision.id} />
           </Container>
         )}
 
@@ -1141,6 +1139,21 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           type="delete"
           isLoading={!!deletingVersion}
         />
+
+        {/* Commit + Activation Kit (toolbar already confirmed the commit) */}
+        {vision && (
+          <CommitVisionDialog
+            isOpen={showCommitDialog}
+            onClose={() => setShowCommitDialog(false)}
+            draftId={vision.id}
+            skipCommitConfirmation
+            onCommitted={async (visionId) => {
+              await refreshVisions()
+              setVision(prev => (prev ? { ...prev, is_draft: false, is_active: true } : prev))
+              router.push(`/life-vision/${visionId}`)
+            }}
+          />
+        )}
       </Stack>
     </div>
   )

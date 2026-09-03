@@ -33,7 +33,7 @@ export async function GET(
       return NextResponse.json({ error: 'Manifestation not found' }, { status: 404 })
     }
 
-    const [assetsResult, activationsResult, projectsResult] = await Promise.all([
+    const [assetsResult, activationsResult, projectsResult, versionsResult] = await Promise.all([
       supabase
         .from('manifestation_assets')
         .select('*')
@@ -51,6 +51,12 @@ export async function GET(
         .eq('manifestation_id', id)
         .neq('status', 'archived')
         .order('sort_order', { ascending: false }),
+      supabase
+        .from('manifestation_essence_versions')
+        .select('*')
+        .eq('manifestation_id', id)
+        .order('version_number', { ascending: false })
+        .limit(30),
     ])
 
     const weekAgo = new Date()
@@ -84,6 +90,7 @@ export async function GET(
       activations,
       activations_this_week: activations.filter(a => a.activation_date >= weekAgoStr).length,
       activations_since_opened: activations.length,
+      essence_versions: versionsResult.data || [],
       projects: (projectsResult.data || []).map(p => ({
         ...p,
         project_tasks: (p.project_tasks || []).sort(

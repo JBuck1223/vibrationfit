@@ -60,6 +60,11 @@ export const keys = {
   activations: ['activations'] as const,
   activation: (id: string) => ['activations', id] as const,
 
+  // Activation Kits (post-commit vision asset generation)
+  activationKits: ['activation-kits'] as const,
+  activationKitRuns: ['activation-kit-runs'] as const,
+  activationKitRun: (id: string) => ['activation-kit-runs', id] as const,
+
   // Travel Tracker
   trips: ['trips'] as const,
   tripDetail: (tripId: string) => ['trips', 'detail', tripId] as const,
@@ -97,6 +102,8 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   manifestation_activations: [keys.manifestationKits],
   projects: [keys.manifestationKits],
   activations: [keys.activations],
+  activation_kits: [keys.activationKits],
+  activation_kit_runs: [keys.activationKitRuns, keys.audioSets],
   trips: [keys.trips, keys.travelStats],
   trip_flights: [keys.trips, keys.travelStats],
   dream_destinations: [keys.dreamDestinations],

@@ -55,11 +55,11 @@ function recordingKeyForVisionCategory(key: VisionCategoryKey): LifeCategoryKey 
 import { createClient } from '@/lib/supabase/client'
 import {
   updateDraftCategory,
-  commitDraft,
   getCategoriesChangedFromActive,
   normalizeVisionCategoryText,
   type VisionData,
 } from '@/lib/life-vision/draft-helpers'
+import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
@@ -85,8 +85,9 @@ export default function UnifiedCategoryPage() {
   const [showDraftBanner, setShowDraftBanner] = useState(true)
   const [showFreshConfirm, setShowFreshConfirm] = useState(false)
   const [isResettingDraft, setIsResettingDraft] = useState(false)
-  const [isCommittingDraft, setIsCommittingDraft] = useState(false)
+  const [isCommittingDraft] = useState(false)
   const [commitError, setCommitError] = useState<string | null>(null)
+  const [showCommitDialog, setShowCommitDialog] = useState(false)
 
   const [sourceMode, setSourceMode] = useState<SourceMode | null>(null)
   const [includeProfile, setIncludeProfile] = useState(true)
@@ -602,19 +603,10 @@ export default function UnifiedCategoryPage() {
     }
   }
 
-  const handleCommitDraft = async () => {
+  const handleCommitDraft = () => {
     if (!draftVision) return
-    setIsCommittingDraft(true)
     setCommitError(null)
-    try {
-      const vision = await commitDraft(draftVision.id)
-      await refreshVisions()
-      router.push(`/life-vision/${vision.id}`)
-    } catch (err) {
-      console.error('Error committing draft:', err)
-      setCommitError(err instanceof Error ? err.message : 'Failed to commit draft')
-      setIsCommittingDraft(false)
-    }
+    setShowCommitDialog(true)
   }
 
   const saveCategoryState = async () => {
@@ -2104,6 +2096,18 @@ export default function UnifiedCategoryPage() {
         confirmText="Delete Draft & Start Fresh"
         isProcessing={isResettingDraft}
       />
+
+      {draftVision && (
+        <CommitVisionDialog
+          isOpen={showCommitDialog}
+          onClose={() => setShowCommitDialog(false)}
+          draftId={draftVision.id}
+          onCommitted={async (visionId) => {
+            await refreshVisions()
+            router.push(`/life-vision/${visionId}`)
+          }}
+        />
+      )}
     </Container>
   )
 }

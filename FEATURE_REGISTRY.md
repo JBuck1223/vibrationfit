@@ -97,6 +97,22 @@ Schema: `activations` (owner-only RLS, realtime). API: `/api/activation/start`, 
 - Assets live in the shared tables (`stories` entity_type `custom`, `songs`, `audio_sets`, `manifestations`) with `metadata.feature = 'activation'`
 - Funnel events go through `journey_events` (check constraint lists the allowed `activation_*` event types)
 
+### 🚧 VIVA Vision Update (`/life-vision/update`)
+Two-pane VIVA-led Life Vision update: chat/speak about what changed (left), live editable draft with all categories (right). VIVA streams full-replacement category proposals inside `<<<VISION key>>> … <<<END VISION>>>` markers; the client routes them into that category's editor as accept/edit/discard proposals. Includes harmony ripple-effect suggestions across categories (ask first, propose on yes) and a per-category compare-to-active toggle. Doc: `docs/features/vision-update/README.md`.
+API: `/api/viva/vision-update` (coach stream protocol). Prompts: `src/lib/viva/prompts/vision-update-prompts.ts`. Parser: `src/lib/life-vision/vision-update-stream.ts`. Entry: AreaBar Update tab (manual wizard stays at `/life-vision/new/fun` as "Update Myself").
+
+- The endpoint never writes to the draft — accepted proposals save via existing `PATCH /api/vision/draft/update`
+- Uses the existing draft model unchanged (Life Vision Generation System stays LOCKED)
+- Follow-on (not built yet): 90-day review cron + nudge card seeding this page with VIVA's observations
+
+### 🚧 Activation Kit on Commit
+After a Life Vision commit, the shared `CommitVisionDialog` offers "Generate your Activation Kit?" — default kit prefilled, saved-kit selector, inline setting edits, save-back, Skip. Generates voice tracks (content-hash dedupe means only changed sections cost TTS), audio mixes (audio-mixer Lambda), and board manifestations with images for refined categories. Progress card on `/life-vision/[id]` polls the run. Doc: `docs/features/activation-kit/README.md`.
+Schema: `activation_kits` (saved presets, one default per user), `activation_kit_runs` (per-asset `asset_status`, both owner-only RLS + realtime). API: `/api/activation-kit/generate`, `/api/activation-kit/runs/[id]`, `/api/activation-kit/kits` (CRUD). Lib: `src/lib/activation-kit/*` (separate namespace from the lead-magnet `src/lib/activation/`). Prompts: `src/lib/viva/prompts/activation-kit-prompts.ts`.
+
+- Nothing generates without explicit confirmation (kit generation costs tokens); VIVA's `commit_vision_draft` tool must never auto-start a kit
+- Orchestrator is idempotent — reruns only regenerate missing/failed assets; a failed mix never blocks voice tracks
+- No song generation in the kit (excluded by design)
+
 ### 🚧 Household Sharing System
 Per-member, per-feature sharing (share all vs select items) across Life Visions, Vision Board, Abundance, Audios, Projects, Stories, Travel. RLS: owner + explicitly shared (`household_id` set) + share-all members. Doc: `docs/features/household-sharing/README.md`.
 

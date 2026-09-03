@@ -14,7 +14,7 @@ import {
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ArrowRight, Eye, Sparkles, Target, Compass, Lightbulb, CheckCircle, FileCheck } from 'lucide-react'
-import { commitDraft } from '@/lib/life-vision/draft-helpers'
+import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 import { VISION_CATEGORIES, ORDERED_VISION_CATEGORIES, META_CATEGORY_KEYS, getCategoryStateField, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { createClient } from '@/lib/supabase/client'
@@ -40,7 +40,8 @@ export default function VIVALifeVisionLandingPage() {
   const [visionStatus, setVisionStatus] = useState<'none' | 'in_progress' | 'completed'>('none')
   const [completedCategoryKeys, setCompletedCategoryKeys] = useState<string[]>([])
   const [draftVisionId, setDraftVisionId] = useState<string | null>(null)
-  const [isCommittingDraft, setIsCommittingDraft] = useState(false)
+  const [isCommittingDraft] = useState(false)
+  const [showCommitDialog, setShowCommitDialog] = useState(false)
   const [commitError, setCommitError] = useState<string | null>(null)
   
   // 12 life categories only (Forward/Conclusion handled at assembly)
@@ -177,20 +178,10 @@ export default function VIVALifeVisionLandingPage() {
   }
 
 
-  const handleCommitDraft = async () => {
+  const handleCommitDraft = () => {
     if (!draftVisionId) return
-    setIsCommittingDraft(true)
     setCommitError(null)
-    try {
-      const vision = await commitDraft(draftVisionId)
-      // Update the studio context so the area bar reflects the new active vision
-      await refreshVisions()
-      router.push(`/life-vision/${vision.id}`)
-    } catch (err) {
-      console.error('Error committing draft:', err)
-      setCommitError(err instanceof Error ? err.message : 'Failed to commit draft')
-      setIsCommittingDraft(false)
-    }
+    setShowCommitDialog(true)
   }
 
   // Show loading spinner while checking status
@@ -297,6 +288,18 @@ export default function VIVALifeVisionLandingPage() {
           </Stack>
         </Card>
       </Stack>
+
+      {draftVisionId && (
+        <CommitVisionDialog
+          isOpen={showCommitDialog}
+          onClose={() => setShowCommitDialog(false)}
+          draftId={draftVisionId}
+          onCommitted={async (visionId) => {
+            await refreshVisions()
+            router.push(`/life-vision/${visionId}`)
+          }}
+        />
+      )}
     </Container>
   )
 }

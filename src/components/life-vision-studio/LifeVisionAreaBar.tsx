@@ -13,7 +13,7 @@ const VOICE_DISPLAY_NAMES: Record<string, string> = {
 const TABS = [
   { label: 'View', path: '/life-vision', icon: Eye },
   { label: 'About', path: '/life-vision/about', icon: Info },
-  { label: 'Update', path: '/life-vision/new/fun', icon: PenLine },
+  { label: 'Update', path: '/life-vision/update', icon: PenLine },
 ]
 
 const CREATE_AREA_ROUTES = [
@@ -31,6 +31,7 @@ export function LifeVisionAreaBar() {
   const isAboutPage = pathname === '/life-vision/about' || pathname === '/life-vision/about/'
   const isPrintPage = /^\/life-vision\/[^/]+\/print/.test(pathname)
   const isHousehold = pathname.startsWith('/life-vision/household')
+  const isUpdatePage = pathname === '/life-vision/update' || pathname.startsWith('/life-vision/update/')
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
     || /^\/life-vision\/[^/]+\/refine/.test(pathname)
     || /^\/life-vision\/[^/]+\/draft/.test(pathname)
@@ -40,6 +41,7 @@ export function LifeVisionAreaBar() {
     && !isCreateArea
     && !isAboutPage
     && !isPrintPage
+    && !isUpdatePage
     && pathname !== '/life-vision'
     && /^\/life-vision\/[^/]+/.test(pathname)
     && !pathname.startsWith('/life-vision/audio')
@@ -231,6 +233,14 @@ export function LifeVisionAreaBar() {
         }
       }
     }
+  } else if (isUpdatePage) {
+    // VIVA-led update page — manual wizard stays as the secondary path
+    contextNav = [
+      { label: 'Update Myself', path: '/life-vision/new/fun', icon: PenLine, isActive: false },
+      ...(draftId
+        ? [{ label: 'Review and Commit', path: `/life-vision/${draftId}/draft`, icon: CheckCircle, isActive: false }]
+        : []),
+    ]
   } else if (isHousehold) {
     // Household workshop (convert/merge + empty state). Download PDF targets
     // the active household vision (else newest, else the personal active).
@@ -488,7 +498,9 @@ export function LifeVisionAreaBar() {
     }
   }
 
-  const isOnCreateSubPage = isCreateArea && pathname !== '/life-vision/new/fun'
+  // Create-area routes keep the Update tab highlighted (its path is now the
+  // VIVA-led update page, so every create/refine subpage is a "sub page").
+  const isOnCreateSubPage = isCreateArea
 
   const mergedContextEyebrow = studioAreaChrome?.contextEyebrow
   const mergedContextText = studioAreaChrome?.contextText ?? contextText
@@ -503,7 +515,7 @@ export function LifeVisionAreaBar() {
       contextText={mergedContextText}
       versionSelectors={versionSelectors}
       keepTabActive={!isOnCreateSubPage}
-      activeParentPath={isOnCreateSubPage ? '/life-vision/new/fun' : undefined}
+      activeParentPath={isOnCreateSubPage ? '/life-vision/update' : undefined}
       variant="default"
       appLikePrimaryTabs
     />
