@@ -36,6 +36,7 @@ export const ACTION_LABELS: Record<string, string> = {
   'transcription': 'Audio Transcription',
   'vision_board_ideas': 'Vision Board Ideas',
   'project_organize': 'Project Organize',
+  'manifestation_distill': 'Manifestation Distill',
   
   // Admin Actions
   'admin_grant': 'Admin Token Grant',
@@ -81,6 +82,7 @@ export const ACTION_ICONS: Record<string, string> = {
   'transcription': 'Mic2',
   'vision_board_ideas': 'Pin',
   'project_organize': 'FolderKanban',
+  'manifestation_distill': 'Sparkles',
   
   // Admin Actions
   'admin_grant': 'Plus',
@@ -125,6 +127,7 @@ export const ACTION_CATEGORIES: Record<string, string[]> = {
     'transcription',
     'vision_board_ideas',
     'project_organize',
+    'manifestation_distill',
   ],
   'Token Management': [
     'admin_grant',

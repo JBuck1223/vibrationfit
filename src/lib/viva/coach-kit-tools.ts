@@ -288,7 +288,8 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
         return {
           success: true,
-          message: 'Your Life Vision draft is now the active vision.',
+          message:
+            'Your Life Vision draft is now the active vision. Offer the member their Activation Kit next: fresh voice tracks, mixes, and board images generate from the vision page (never start generation for them).',
           link: `/life-vision/${draftId}`,
           result: commitResult,
         }

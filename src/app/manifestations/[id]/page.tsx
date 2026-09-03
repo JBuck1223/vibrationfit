@@ -8,8 +8,8 @@ import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import {
-  ArrowLeft, ArrowUpRight, BookOpen, CheckCircle, ChevronDown, ChevronRight,
-  Edit3, Heart, Layers, ListChecks, Plus, Save, Sparkles, Trash2, Unlink, Upload, XCircle,
+  ArrowLeft, ArrowUpRight, BookOpen, Brain, CheckCircle, ChevronDown, ChevronRight,
+  Edit3, Layers, ListChecks, Plus, Save, Sparkles, Trash2, Unlink, Upload, XCircle,
 } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
@@ -20,6 +20,8 @@ import { colors } from '@/lib/design-system/tokens'
 import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 import { AddExistingToKitModal } from '@/components/manifestations-studio/AddExistingToKitModal'
 import { GatherFromLibrary } from '@/components/manifestations-studio/GatherFromLibrary'
+import { EssenceSection, type EssenceVersion } from '@/components/manifestations-studio/EssenceSection'
+import { BrainDumpOrganizer } from '@/components/manifestations-studio/BrainDumpOrganizer'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
 import { keys } from '@/lib/query/keys'
 import { SLOT_LABELS, assetLink, type KitSlot, type Manifestation, type ManifestationAsset } from '@/lib/manifestations/types'
@@ -66,6 +68,7 @@ interface ManifestationDetail {
   activations_this_week: number
   activations_since_opened: number
   projects: ActionGroup[]
+  essence_versions: EssenceVersion[]
 }
 
 async function fetchDetail(id: string): Promise<ManifestationDetail> {
@@ -133,7 +136,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
   const [actualizedAiGeneratedImageUrl, setActualizedAiGeneratedImageUrl] = useState<string | null>(null)
   const [showVisionFileDrop, setShowVisionFileDrop] = useState(false)
   const [showEvidenceFileDrop, setShowEvidenceFileDrop] = useState(false)
-  const [pullingVision, setPullingVision] = useState(false)
+  const [showBrainDump, setShowBrainDump] = useState(false)
   const [newGroupTitle, setNewGroupTitle] = useState('')
   const [addingGroup, setAddingGroup] = useState(false)
   const [showAddGroup, setShowAddGroup] = useState(false)
@@ -192,46 +195,6 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
         ? prev.categories.filter(c => c !== categoryLabel)
         : [...prev.categories, categoryLabel]
     }))
-  }
-
-  /** Copy language from the matching Life Vision categories — a copy, never a link. */
-  const pullFromLifeVision = async () => {
-    if (pullingVision) return
-    setPullingVision(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) return
-      const { data: vision } = await supabase
-        .from('vision_versions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('is_active', true)
-        .is('household_id', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (!vision) {
-        alert('No active Life Vision found to pull from.')
-        return
-      }
-      const cats = formData.categories.length > 0
-        ? formData.categories
-        : VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key)
-      const texts = cats
-        .map(key => (typeof vision[key] === 'string' ? vision[key].trim() : ''))
-        .filter(Boolean)
-      if (texts.length === 0) {
-        alert('The matching Life Vision categories are empty.')
-        return
-      }
-      const pulled = texts.join('\n\n')
-      setFormData(prev => ({
-        ...prev,
-        why_it_matters: prev.why_it_matters ? `${prev.why_it_matters}\n\n${pulled}` : pulled,
-      }))
-    } finally {
-      setPullingVision(false)
-    }
   }
 
   const handleSave = async () => {
@@ -327,6 +290,21 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
         .eq('id', id)
 
       if (error) throw error
+
+      // Version the essence text when it changed by hand (history mirrors vision refinement)
+      const newWhy = formData.why_it_matters.trim() || null
+      const newFeels = formData.what_it_feels_like.trim() || null
+      if (newWhy !== (item.why_it_matters || null) || newFeels !== (item.what_it_feels_like || null)) {
+        const nextVersion = (data?.essence_versions?.[0]?.version_number ?? 0) + 1
+        await supabase.from('manifestation_essence_versions').insert({
+          manifestation_id: id,
+          user_id: user.id,
+          why_it_matters: newWhy,
+          what_it_feels_like: newFeels,
+          source: 'member',
+          version_number: nextVersion,
+        })
+      }
 
       if (formData.status !== item.status) {
         await supabase.rpc('increment_vision_board_stats', {
@@ -461,25 +439,25 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
   const getStatusBadge = (status: string) => {
     if (status === 'active') {
       return (
-        <div className="bg-green-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-          <span className="text-white text-sm font-semibold">Active</span>
+        <div className="rounded-full px-4 py-2 flex items-center gap-2 bg-black/60 backdrop-blur border border-[#39FF14]/40 shadow-lg">
+          <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
+          <span className="text-[#39FF14] text-sm font-semibold">Active</span>
         </div>
       )
     }
     if (status === 'actualized') {
       return (
-        <div className="bg-purple-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
-          <CheckCircle className="w-4 h-4 text-white" />
-          <span className="text-white text-sm font-semibold">Actualized</span>
+        <div className="rounded-full px-4 py-2 flex items-center gap-2 bg-black/60 backdrop-blur border border-[#BF00FF]/40 shadow-lg">
+          <CheckCircle className="w-4 h-4 text-[#D46BFF]" />
+          <span className="text-[#D46BFF] text-sm font-semibold">Actualized</span>
         </div>
       )
     }
     if (status === 'inactive') {
       return (
-        <div className="bg-gray-500 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
-          <XCircle className="w-4 h-4 text-white" />
-          <span className="text-white text-sm font-semibold">Inactive</span>
+        <div className="rounded-full px-4 py-2 flex items-center gap-2 bg-black/60 backdrop-blur border border-neutral-600 shadow-lg">
+          <XCircle className="w-4 h-4 text-neutral-400" />
+          <span className="text-neutral-400 text-sm font-semibold">Inactive</span>
         </div>
       )
     }
@@ -574,21 +552,12 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm font-medium text-white">Why you want it</label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={pullFromLifeVision}
-                    disabled={pullingVision}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {pullingVision ? 'Pulling…' : 'Pull from my Life Vision'}
-                  </Button>
+                  <span className="text-xs text-neutral-500">VIVA can distill this for you — save, then use Refresh with VIVA</span>
                 </div>
                 <Textarea
                   value={formData.why_it_matters}
                   onChange={(e) => setFormData({ ...formData, why_it_matters: e.target.value })}
-                  placeholder="Why this matters to you — in your words. Your Life Vision can seed the language; this text belongs to the manifestation."
+                  placeholder="Why this matters to you — in your words. VIVA seeds it from your Life Vision, journal, and conversations; this text belongs to you."
                   rows={4}
                 />
               </div>
@@ -885,14 +854,14 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                       className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
                         formData.status === status.value
                           ? status.value === 'active'
-                            ? 'bg-green-600 text-white shadow-lg'
+                            ? 'bg-[#39FF14] text-black shadow-lg'
                             : status.value === 'actualized'
-                            ? 'bg-purple-500 text-white shadow-lg'
-                            : 'bg-gray-600 text-white shadow-lg'
+                            ? 'bg-[#BF00FF] text-white shadow-lg'
+                            : 'bg-neutral-600 text-white shadow-lg'
                           : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                       }`}
                     >
-                      {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
+                      {status.value === 'active' && <div className={`w-2 h-2 rounded-full animate-pulse ${formData.status === 'active' ? 'bg-black' : 'bg-white'}`}></div>}
                       {status.value === 'actualized' && <CheckCircle className="w-3 h-3 text-white" />}
                       {status.value === 'inactive' && <XCircle className="w-3 h-3 text-white" />}
                       {status.label}
@@ -1079,50 +1048,41 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                 )}
               </section>
 
-              {/* Why you want it / What it feels like */}
-              <section className="space-y-4">
-                <SectionHeader
-                  icon={Heart}
-                  title="Why you want it"
-                  subtitle="Owned by this manifestation — your Life Vision seeds the language, then this text is yours"
-                  action={
-                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                      <Edit3 className="w-4 h-4" />
-                    </Button>
-                  }
-                />
-                <div className="grid md:grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-[#282828] bg-[#161616] px-4 py-3.5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-neutral-500 mb-1.5">Why you want it</p>
-                    {item.why_it_matters ? (
-                      <p className="text-neutral-200 whitespace-pre-wrap">{item.why_it_matters}</p>
-                    ) : (
-                      <p className="text-sm text-neutral-500">Not captured yet — add why this matters to you.</p>
-                    )}
-                  </div>
-                  <div className="rounded-xl border border-[#282828] bg-[#161616] px-4 py-3.5">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-neutral-500 mb-1.5">What it feels like</p>
-                    {item.what_it_feels_like ? (
-                      <p className="text-neutral-200 whitespace-pre-wrap">{item.what_it_feels_like}</p>
-                    ) : (
-                      <p className="text-sm text-neutral-500">Not captured yet — first person, present tense.</p>
-                    )}
-                  </div>
-                </div>
-              </section>
+              {/* The Essence — why you want it / what it feels like */}
+              <EssenceSection
+                manifestationId={item.id}
+                whyItMatters={item.why_it_matters}
+                whatItFeelsLike={item.what_it_feels_like}
+                versions={data?.essence_versions || []}
+                onSaved={refresh}
+                onEdit={() => setIsEditing(true)}
+              />
+
 
               {/* Inspired Action Steps */}
               <section className="space-y-4">
                 <SectionHeader
                   icon={ListChecks}
                   title="Inspired Action Steps"
-                  subtitle="Action groups with steps — simple lists or nested plans"
+                  subtitle="Action groups with steps — brain dump it and VIVA organizes, or build by hand"
                   action={
-                    <Button variant="ghost" size="sm" onClick={() => setShowAddGroup(v => !v)}>
-                      <Plus className="w-4 h-4 mr-1" /> Group
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <Button variant="ghost" size="sm" onClick={() => setShowBrainDump(v => !v)}>
+                        <Brain className="w-4 h-4 mr-1" /> Brain dump
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowAddGroup(v => !v)}>
+                        <Plus className="w-4 h-4 mr-1" /> Group
+                      </Button>
+                    </div>
                   }
                 />
+                {showBrainDump && (
+                  <BrainDumpOrganizer
+                    manifestationId={item.id}
+                    onApplied={() => { setShowBrainDump(false); refresh() }}
+                    onClose={() => setShowBrainDump(false)}
+                  />
+                )}
                 {showAddGroup && (
                   <div className="flex gap-2 items-center">
                     <Input
@@ -1135,8 +1095,8 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                     </Button>
                   </div>
                 )}
-                {(data?.projects || []).length === 0 && !showAddGroup ? (
-                  <p className="text-sm text-neutral-500">No inspired actions yet. Add a group, or ask VIVA to capture next steps from a conversation.</p>
+                {(data?.projects || []).length === 0 && !showAddGroup && !showBrainDump ? (
+                  <p className="text-sm text-neutral-500">No inspired actions yet. Brain dump what&apos;s in your head and VIVA organizes it, or add a group by hand.</p>
                 ) : (
                   <div className="space-y-3">
                     {(data?.projects || []).map(group => {

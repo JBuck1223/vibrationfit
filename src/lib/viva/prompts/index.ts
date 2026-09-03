@@ -141,6 +141,19 @@ export {
   buildProjectOrganizePrompt,
 } from './project-organize-prompt'
 
+// Manifestation Distill (why you want it / what it feels like)
+export {
+  MANIFESTATION_DISTILL_SYSTEM_PROMPT,
+  buildManifestationDistillPrompt,
+  type ManifestationDistillInput,
+} from './manifestation-distill-prompt'
+
+// Manifestation Brain Dump (inspired action organizer)
+export {
+  MANIFESTATION_ORGANIZE_SYSTEM_PROMPT,
+  buildManifestationOrganizePrompt,
+} from './manifestation-organize-prompt'
+
 // Travel Parser (Travel Tracker email/itinerary import)
 export {
   TRAVEL_PARSER_SYSTEM_PROMPT,

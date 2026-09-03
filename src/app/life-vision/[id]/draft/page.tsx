@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Gem, Copy, Sparkles, X, Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { getDraftVision, commitDraft, getDraftCategories } from '@/lib/life-vision/draft-helpers'
+import { getDraftVision, getDraftCategories } from '@/lib/life-vision/draft-helpers'
+import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 import { 
   Button, 
@@ -84,7 +85,8 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
   const [activeVision, setActiveVision] = useState<VisionData | null>(null)
   const [refinedCategories, setRefinedCategories] = useState<string[]>([])
   const [completionPercentage, setCompletionPercentage] = useState(0)
-  const [isCommitting, setIsCommitting] = useState(false)
+  const [isCommitting] = useState(false)
+  const [showCommitDialog, setShowCommitDialog] = useState(false)
   const [showStepCompleteModal, setShowStepCompleteModal] = useState(false)
   const [committedVisionId, setCommittedVisionId] = useState<string | null>(null)
   const [isNotDraft, setIsNotDraft] = useState(false)
@@ -132,8 +134,9 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       : null
   )
 
-  // Confirm commit (confirmation handled by VersionActionToolbar's dialog)
-  const confirmCommit = async () => {
+  // Confirm commit (confirmation handled by VersionActionToolbar's dialog;
+  // CommitVisionDialog runs the commit then offers the Activation Kit)
+  const confirmCommit = () => {
     if (!draftVision) return
 
     // Only require refined categories when there's an active vision to compare against
@@ -142,23 +145,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
       return
     }
 
-    setIsCommitting(true)
-
-    try {
-      const committedVision = await commitDraft(draftVision.id)
-
-      // Update the studio context so the area bar reflects the new active vision
-      await refreshVisions()
-
-      // Navigate to the new active vision
-      router.push(`/life-vision/${committedVision.id}`)
-    } catch (err) {
-      console.error('Error committing draft:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      alert(`Failed to commit draft as active vision: ${errorMessage}`)
-    } finally {
-      setIsCommitting(false)
-    }
+    setShowCommitDialog(true)
   }
 
   // Confirm delete (confirmation handled by VersionActionToolbar's dialog)
@@ -841,6 +828,19 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
           }
         }}
       />
+
+      {draftVision && (
+        <CommitVisionDialog
+          isOpen={showCommitDialog}
+          onClose={() => setShowCommitDialog(false)}
+          draftId={draftVision.id}
+          skipCommitConfirmation
+          onCommitted={async (visionId) => {
+            await refreshVisions()
+            router.push(`/life-vision/${visionId}`)
+          }}
+        />
+      )}
     </Container>
   )
 }
