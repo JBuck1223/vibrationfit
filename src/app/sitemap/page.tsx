@@ -49,7 +49,8 @@ import {
   FlaskConical,
   Mic,
   Clock,
-  DollarSign
+  DollarSign,
+  Presentation,
 } from 'lucide-react'
 import { Card, Badge, Container, Input } from '@/lib/design-system'
 
@@ -122,7 +123,7 @@ export default function SitemapPage() {
         // Tracking
         { href: '/daily-paper', label: 'Daily Paper', icon: BookOpen, description: 'Daily paper view and tracking' },
         { href: '/daily-paper/new', label: 'New Daily Paper Entry', icon: Plus, description: 'Create new daily paper entry' },
-        { href: '/daily-paper/resources', label: 'Daily Paper Resources', icon: FileText, description: 'Daily paper PDFs and resources' },
+        { href: '/daily-paper/resources', label: 'Daily Paper Resources', icon: FileText, description: 'Daily paper printables and resources' },
         { href: '/abundance-tracker', label: 'Abundance Tracker', icon: DollarSign, description: 'Track abundance and gratitude' },
 
         // Profile & Account
@@ -203,6 +204,7 @@ export default function SitemapPage() {
         
         // Content Management
         { href: '/admin/assets', label: 'Site Assets', icon: Upload, description: 'Upload and manage media assets' },
+        { href: '/admin/slide-decks', label: 'Slide Decks', icon: Presentation, description: 'Teaching decks and live presentation links' },
         { href: '/admin/emails', label: 'Email Templates', icon: FileText, description: 'Manage email templates' },
         { href: '/admin/emails/list', label: 'Email List', icon: FileText, description: 'View all emails' },
         { href: '/admin/emails/[id]', label: 'Email Detail', icon: Eye, description: 'Email template detail', isDynamic: true },

@@ -70,7 +70,7 @@ async function loadLegacySampleIds(): Promise<LegacySampleIds> {
     fetchLatestId('life_visions', user.id),
     fetchLatestId('stories', user.id),
     fetchLatestId('journal_entries', user.id),
-    fetchLatestId('vision_board_items', user.id),
+    fetchLatestId('manifestations', user.id),
     fetchLatestId('audio_generation_batches', user.id),
     fetchLatestId('user_maps', user.id),
     fetchLatestId('assessment_results', user.id),

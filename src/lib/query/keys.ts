@@ -56,6 +56,10 @@ export const keys = {
   manifestationKits: ['manifestation-kits'] as const,
   manifestationKit: (id: string) => ['manifestation-kits', id] as const,
 
+  // Activation Experience
+  activations: ['activations'] as const,
+  activation: (id: string) => ['activations', id] as const,
+
   // Travel Tracker
   trips: ['trips'] as const,
   tripDetail: (tripId: string) => ['trips', 'detail', tripId] as const,
@@ -74,7 +78,7 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   vision_versions: [keys.visions, keys.audioSets],
   user_profiles: [keys.profile],
   journal_entries: [keys.journalEntries],
-  vision_board_items: [keys.visionBoardCount],
+  manifestations: [keys.visionBoardCount, keys.manifestationKits],
   stories: [keys.stories, keys.audioSets],
   user_playlists: [keys.playlists],
   user_playlist_tracks: [keys.playlists],
@@ -89,10 +93,10 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   reset_items: [keys.resets],
   vibrational_constraints: [keys.vivaConstraints],
   conversation_sessions: [keys.vivaConversations],
-  manifestations: [keys.manifestationKits],
   manifestation_assets: [keys.manifestationKits],
   manifestation_activations: [keys.manifestationKits],
   projects: [keys.manifestationKits],
+  activations: [keys.activations],
   trips: [keys.trips, keys.travelStats],
   trip_flights: [keys.trips, keys.travelStats],
   dream_destinations: [keys.dreamDestinations],

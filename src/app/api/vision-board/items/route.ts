@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       : []
     const shareAllSet = new Set(shareAllIds)
 
-    let query = supabase.from('vision_board_items').select('*')
+    let query = supabase.from('manifestations').select('*')
 
     if (scope === 'mine' || !household) {
       query = query.eq('user_id', user.id)
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
 
     // Create vision board item
     const { data: newItem, error: insertError } = await supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .insert({
         user_id: user.id,
         name,
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
     try {
       // Get all user's vision board items
       const { data: allItems } = await supabase
-        .from('vision_board_items')
+        .from('manifestations')
         .select('categories')
         .eq('user_id', user.id)
         .eq('status', 'active')
@@ -303,7 +303,7 @@ export async function PUT(request: NextRequest) {
     // RLS allows the creator to edit their own items, and any active household
     // member to collaboratively edit items shared with the household.
     const { data: updatedItem, error: updateError } = await supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .update({
         ...updates,
         updated_at: new Date().toISOString(),
@@ -364,7 +364,7 @@ export async function DELETE(request: NextRequest) {
     // RLS enforces permission: the creator can delete their own items, and for
     // household-shared items the creator or a household admin can delete.
     const { error: deleteError } = await supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .delete()
       .eq('id', id)
 

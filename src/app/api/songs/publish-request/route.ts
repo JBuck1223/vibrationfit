@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         if (vision?.category) lifeCategories = [vision.category]
       } else if (song.entity_type === 'vision_board_item') {
         const { data: item } = await adminDb
-          .from('vision_board_items')
+          .from('manifestations')
           .select('life_category')
           .eq('id', song.entity_id)
           .single()

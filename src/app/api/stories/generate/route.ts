@@ -94,7 +94,7 @@ async function buildPromptForEntity(
     case 'vision_board_item': {
       if (!entityId) throw new Error('vision_board_item requires entityId')
       const { data: item, error } = await supabase
-        .from('vision_board_items')
+        .from('manifestations')
         .select('id, name, description, categories')
         .eq('id', entityId)
         .eq('user_id', userId)

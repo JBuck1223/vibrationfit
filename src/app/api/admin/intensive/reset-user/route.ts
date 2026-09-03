@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Delete vision board items
     await adminClient
-      .from('vision_board_items')
+      .from('manifestations')
       .delete()
       .eq('user_id', userId)
 

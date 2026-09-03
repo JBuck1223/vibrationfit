@@ -1,1 +1,0 @@
-export { ProjectsAreaBar } from './ProjectsAreaBar'

@@ -1,1 +1,5 @@
-export { default } from '@/app/vision-board/resources/page'
+import { redirect } from 'next/navigation'
+
+export default function VisionBoardRedirect() {
+  redirect('/manifestations/about')
+}

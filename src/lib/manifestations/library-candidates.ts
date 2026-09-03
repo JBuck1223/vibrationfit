@@ -165,7 +165,7 @@ export async function findLibraryCandidates(
   if (allow('vision_board')) {
     jobs.push((async () => {
       const { data } = await supabase
-        .from('vision_board_items')
+        .from('manifestations')
         .select('id, name, description, created_at, categories')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -180,12 +180,12 @@ export async function findLibraryCandidates(
         push({
           slot: 'vision_board',
           layer: 'suite',
-          entity_type: 'vision_board_items',
+          entity_type: 'manifestations',
           entity_id: row.id,
           label: row.name,
           date: row.created_at,
         })
-        if (results.filter(r => r.entity_type === 'vision_board_items').length >= LIMIT) break
+        if (results.filter(r => r.entity_type === 'manifestations').length >= LIMIT) break
       }
     })())
   }
@@ -374,7 +374,7 @@ export async function resolveAssetLabels(
 
   const lookups: Array<{ table: string; labelCol: string }> = [
     { table: 'journal_entries', labelCol: 'title' },
-    { table: 'vision_board_items', labelCol: 'name' },
+    { table: 'manifestations', labelCol: 'name' },
     { table: 'stories', labelCol: 'title' },
     { table: 'songs', labelCol: 'title' },
     { table: 'abundance_events', labelCol: 'note' },

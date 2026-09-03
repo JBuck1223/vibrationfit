@@ -5,11 +5,13 @@ import { Card, Button, Input } from '@/lib/design-system/components'
 import { Check, Tag, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react'
 import type { CheckoutProduct } from '@/lib/checkout/products'
 
+type RenewalPromo = { type: 'percent' | 'fixed'; value: number; cycles: number | null }
+
 interface OrderSummaryProps {
   product: CheckoutProduct
   promoCode: string
   onPromoCodeChange: (code: string) => void
-  promoDiscount: { label: string; amountOff: number } | null
+  promoDiscount: { label: string; amountOff: number; renewal?: RenewalPromo | null } | null
   onValidatePromo: () => void
   validatingPromo: boolean
   hidePromoInput?: boolean
@@ -20,16 +22,62 @@ function formatDollars(cents: number): string {
   return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`
 }
 
+function fullRenewalCents(continuity: 'annual' | '28day', planType: 'solo' | 'household'): number {
+  if (continuity === '28day') return planType === 'solo' ? 9900 : 14900
+  return planType === 'solo' ? 99900 : 149000
+}
+
+function discountedRenewalCents(fullCents: number, renewal: RenewalPromo): number {
+  const off = renewal.type === 'percent'
+    ? Math.round(fullCents * renewal.value / 100)
+    : renewal.value
+  return Math.max(0, fullCents - off)
+}
+
+/**
+ * Billing phrase for the membership agreement/disclosure when a promo
+ * discounts renewals, e.g. "$1 every 28 days for your first 2 renewals,
+ * then $99 every 28 days". Returns null when the promo doesn't change it.
+ */
+export function renewalBillingPhrase(
+  continuity: 'annual' | '28day',
+  planType: 'solo' | 'household',
+  renewal: RenewalPromo | null | undefined,
+): string | null {
+  if (!renewal) return null
+  const full = fullRenewalCents(continuity, planType)
+  const discounted = discountedRenewalCents(full, renewal)
+  if (discounted >= full) return null
+  const cycleWord = continuity === '28day' ? 'every 28 days' : 'per year'
+  if (renewal.cycles) {
+    return `${formatDollars(discounted)} ${cycleWord} for your first ${renewal.cycles} renewal${renewal.cycles > 1 ? 's' : ''}, then ${formatDollars(full)} ${cycleWord}`
+  }
+  return `${formatDollars(discounted)} ${cycleWord}`
+}
+
 function getDay28UpcomingLabel(
   continuity: 'annual' | '28day',
   planType: 'solo' | 'household',
+  renewal?: RenewalPromo | null,
 ): string {
-  if (continuity === '28day') {
-    const price = planType === 'solo' ? 99 : 149
-    return `Vision Pro membership: $${price}, then $${price} every 28 days`
+  const full = fullRenewalCents(continuity, planType)
+  const cycleWord = continuity === '28day' ? 'every 28 days' : 'per year'
+  const name = continuity === '28day' ? 'Vision Pro membership' : 'Vision Pro Annual membership'
+
+  if (renewal) {
+    const discounted = discountedRenewalCents(full, renewal)
+    if (discounted < full) {
+      if (renewal.cycles) {
+        return `${name}: ${formatDollars(discounted)} ${cycleWord} for your first ${renewal.cycles} renewal${renewal.cycles > 1 ? 's' : ''}, then ${formatDollars(full)} ${cycleWord}`
+      }
+      return `${name}: ${formatDollars(discounted)}, then ${formatDollars(discounted)} ${cycleWord}`
+    }
   }
-  const price = planType === 'solo' ? 999 : 1490
-  return `Vision Pro Annual membership: $${price.toLocaleString()}, then renews annually`
+
+  if (continuity === '28day') {
+    return `${name}: ${formatDollars(full)}, then ${formatDollars(full)} every 28 days`
+  }
+  return `${name}: ${formatDollars(full)}, then renews annually`
 }
 
 /** Short money story for mobile collapsed header: "Today: $499 • Day 28: $99 every 28 days" */
@@ -38,14 +86,19 @@ function getMoneyStoryLine(
   continuity: 'annual' | '28day',
   planType: 'solo' | 'household',
   isTwoPay: boolean,
+  renewal?: RenewalPromo | null,
 ): string {
   const today = formatDollars(todayCents)
   const secondPayment = isTwoPay ? ` • In 14 days: ${today}` : ''
-  if (continuity === '28day') {
-    const day28 = planType === 'solo' ? '$99 every 28 days' : '$149 every 28 days'
-    return `Today: ${today}${secondPayment} • Day 28: ${day28}`
+  const full = fullRenewalCents(continuity, planType)
+  const cycleWord = continuity === '28day' ? 'every 28 days' : 'per year'
+
+  let renewalCents = full
+  if (renewal) {
+    const discounted = discountedRenewalCents(full, renewal)
+    if (discounted < full) renewalCents = discounted
   }
-  const day28 = planType === 'solo' ? '$999 per year' : '$1,490 per year'
+  const day28 = `${formatDollars(renewalCents)} ${cycleWord}`
   return `Today: ${today}${secondPayment} • Day 28: ${day28}`
 }
 
@@ -79,8 +132,10 @@ export default function OrderSummary({
   const todayChargeAmount = total
   const intensiveTotalAmount = total
 
+  const renewalPromo = promoDiscount?.renewal || null
+
   const moneyStoryLine = isIntensive
-    ? getMoneyStoryLine(todayChargeAmount, continuity, planType, isTwoPay)
+    ? getMoneyStoryLine(todayChargeAmount, continuity, planType, isTwoPay, renewalPromo)
     : null
   const [mobileSummaryExpanded, setMobileSummaryExpanded] = useState(false)
 
@@ -168,7 +223,7 @@ export default function OrderSummary({
               </p>
             )}
             <p className="text-sm text-neutral-300 mb-1">
-              <strong>Day 28:</strong> {getDay28UpcomingLabel(continuity, planType)}
+              <strong>Day 28:</strong> {getDay28UpcomingLabel(continuity, planType, renewalPromo)}
             </p>
             <p className="text-xs text-neutral-500">
               Cancel anytime before Day 28 in‑app. Covered by 16‑week Membership Guarantee.

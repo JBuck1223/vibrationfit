@@ -340,7 +340,7 @@ async function loadVisionBoard(
   selectedCategories?: string[]
 ): Promise<{ active: any[]; actualized: any[] }> {
   let activeQuery = supabase
-    .from('vision_board_items')
+    .from('manifestations')
     .select('name, description, categories, created_at')
     .eq('user_id', userId)
     .eq('status', 'active')
@@ -354,7 +354,7 @@ async function loadVisionBoard(
   const [activeResult, actualizedResult] = await Promise.all([
     activeQuery,
     supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('name, actualization_story, categories, actualized_at')
       .eq('user_id', userId)
       .eq('status', 'actualized')

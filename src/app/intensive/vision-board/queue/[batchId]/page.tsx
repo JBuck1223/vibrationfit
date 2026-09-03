@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useIntensiveStep } from '@/components/intensive-studio/IntensiveStepContext'
-import VisionBoardQueueBatchPage from '@/app/vision-board/queue/[batchId]/page'
+import VisionBoardQueueBatchPage from '@/app/manifestations/queue/[batchId]/page'
 
 export default function IntensiveVisionBoardQueueBatchPage() {
   const { setCompletedAt } = useIntensiveStep()

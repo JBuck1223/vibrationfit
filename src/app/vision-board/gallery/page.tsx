@@ -1,3 +1,5 @@
-import { createLegacyPublicRedirect } from '@/lib/navigation/legacy-redirect-page'
+import { redirect } from 'next/navigation'
 
-export default createLegacyPublicRedirect('/vision-board/gallery')
+export default function VisionBoardRedirect() {
+  redirect('/manifestations/gallery')
+}

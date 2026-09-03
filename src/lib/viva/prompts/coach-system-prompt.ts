@@ -198,7 +198,6 @@ export interface CoachContextInput {
     chosen_reality: string | null
     life_categories: string[]
     conversation_id: string | null
-    vision_draft_id: string | null
     slots: Array<{ slot: string; status: string }>
   }>
   stories?: any[]

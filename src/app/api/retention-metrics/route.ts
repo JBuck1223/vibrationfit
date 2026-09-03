@@ -395,7 +395,7 @@ async function getActivationsMetrics(
     
     // Vision board items recent
     supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
@@ -403,7 +403,7 @@ async function getActivationsMetrics(
     
     // Vision board items lifetime
     supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .then((r: any) => r.count || 0),
@@ -515,7 +515,7 @@ async function getCreationsMetrics(
     
     // Vision board items recent
     supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
@@ -523,7 +523,7 @@ async function getCreationsMetrics(
     
     // Vision board items lifetime
     supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .then((r: any) => r.count || 0),
@@ -598,7 +598,7 @@ async function getCreationsMetrics(
       .then((r: any) => r.data ? { type: 'audio' as const, title: r.data.name, createdAt: r.data.created_at } : null),
     
     supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('name, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })

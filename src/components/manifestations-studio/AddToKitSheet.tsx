@@ -5,7 +5,7 @@ import { X, Layers, Plus, Check, Loader2 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Input } from '@/lib/design-system'
 import { keys } from '@/lib/query/keys'
-import type { KitLayer, KitListItem, KitSlot } from '@/lib/manifestations/types'
+import type { KitLayer, KitSlot, ManifestationListItem } from '@/lib/manifestations/types'
 
 interface AddToKitSheetProps {
   isOpen: boolean
@@ -15,13 +15,15 @@ interface AddToKitSheetProps {
   entityId: string
   label?: string
   layer?: KitLayer
+  /** When pinning from a manifestation itself, exclude it from the picker. */
+  excludeId?: string
 }
 
-async function fetchKits(): Promise<KitListItem[]> {
+async function fetchManifestations(): Promise<ManifestationListItem[]> {
   const res = await fetch('/api/manifestations')
   if (!res.ok) return []
   const data = await res.json()
-  return (data.kits || []).filter((k: KitListItem) => k.status === 'open')
+  return (data.manifestations || []).filter((m: ManifestationListItem) => m.status === 'active')
 }
 
 export function AddToKitSheet({
@@ -32,6 +34,7 @@ export function AddToKitSheet({
   entityId,
   label,
   layer,
+  excludeId,
 }: AddToKitSheetProps) {
   const queryClient = useQueryClient()
   const [adding, setAdding] = useState<string | null>(null)
@@ -40,11 +43,12 @@ export function AddToKitSheet({
   const [newTitle, setNewTitle] = useState('')
   const [creating, setCreating] = useState(false)
 
-  const { data: kits = [], isLoading } = useQuery({
+  const { data: allManifestations = [], isLoading } = useQuery({
     queryKey: keys.manifestationKits,
-    queryFn: fetchKits,
+    queryFn: fetchManifestations,
     enabled: isOpen,
   })
+  const kits = allManifestations.filter(m => m.id !== excludeId && m.id !== entityId)
 
   useEffect(() => {
     if (isOpen) {
@@ -78,11 +82,11 @@ export function AddToKitSheet({
     const res = await fetch('/api/manifestations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle.trim() }),
+      body: JSON.stringify({ name: newTitle.trim() }),
     })
     if (res.ok) {
       const data = await res.json()
-      await pin(data.kit.id)
+      await pin(data.manifestation.id)
       setShowCreate(false)
     }
     setCreating(false)
@@ -115,7 +119,7 @@ export function AddToKitSheet({
                 className="w-full flex items-center gap-3 rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3 text-left hover:border-neutral-600"
               >
                 <Layers className="w-4 h-4 text-[#39FF14] shrink-0" />
-                <span className="flex-1 min-w-0 text-sm text-white truncate">{kit.title}</span>
+                <span className="flex-1 min-w-0 text-sm text-white truncate">{kit.name}</span>
                 {added.has(kit.id) ? (
                   <Check className="w-4 h-4 text-[#39FF14]" />
                 ) : adding === kit.id ? (

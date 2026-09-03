@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { getActiveProfileClient } from '@/lib/supabase/profile-client'
@@ -18,7 +18,7 @@ import {
   Menu,
   Home,
 } from 'lucide-react'
-import { userNavigation, userNavigationPrimary, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
+import { userNavigationPrimary, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
@@ -30,7 +30,7 @@ interface SidebarProps {
 
 // LocalStorage keys for sidebar state
 const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
-const SIDEBAR_GROUPS_KEY = 'vibrationfit-sidebar-groups'
+const SIDEBAR_GROUPS_KEY = 'vibrationfit-sidebar-groups-v2'
 
 function getDefaultExpandedGroups(groups: NavGroup[]): string[] {
   return groups.filter((group) => !group.defaultCollapsed).map((group) => group.name)
@@ -50,7 +50,12 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const search = searchParams.toString()
   const { count: unreadNotifications } = useAdminNotificationCount(isAdmin)
+
+  const itemIsActive = (item: NavItem, isChild = false) =>
+    isNavItemActive(item, pathname, profile?.id, isChild, search)
   
   // Sync with localStorage after mount to avoid hydration mismatch
   useEffect(() => {
@@ -180,7 +185,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
     navigation.forEach((item) => {
       if (item.children) {
         const hasActiveChild = item.children.some(child => 
-          isNavItemActive(child, pathname, profile?.id, true) // true = isChildOfDropdown
+          itemIsActive(child, true)
         )
         if (hasActiveChild) {
           itemsToExpand.push(item.name)
@@ -199,7 +204,24 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
         return newExpanded
       })
     }
-  }, [pathname, navigation, profile?.id])
+  }, [pathname, search, navigation, profile?.id])
+
+  // Auto-expand nav groups when one of their items is active
+  useEffect(() => {
+    const groupsToExpand = groups
+      .filter(group => group.items.some(item => itemIsActive(item)))
+      .map(group => group.name)
+
+    if (groupsToExpand.length === 0) return
+
+    setExpandedGroups(prev => {
+      const next = [...prev]
+      for (const name of groupsToExpand) {
+        if (!next.includes(name)) next.push(name)
+      }
+      return next
+    })
+  }, [pathname, search, groups, profile?.id])
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -296,13 +318,10 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       {/* Navigation */}
       <nav className="flex-1 min-h-0 px-4 pt-1 pb-4 space-y-1 overflow-y-auto">
         {primaryNavigation.length > 0 && (
-          <div className={cn(
-            'mb-2',
-            isCollapsed ? 'space-y-1' : 'grid grid-cols-3 gap-1'
-          )}>
+          <div className="mb-3 space-y-1">
             {primaryNavigation.map((item) => {
               const Icon = item.icon
-              const isActive = isNavItemActive(item, pathname, profile?.id)
+              const isActive = itemIsActive(item)
 
               return (
                 <Link
@@ -310,21 +329,15 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                   href={item.href}
                   title={item.description || item.name}
                   className={cn(
-                    'flex transition-all duration-200 rounded-lg',
-                    isCollapsed
-                      ? 'justify-center p-2'
-                      : 'flex-col items-center gap-0.5 px-1 py-2',
+                    'flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200',
+                    isCollapsed ? 'justify-center p-2' : 'px-3 py-2.5',
                     isActive
                       ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
                       : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
                   )}
                 >
-                  <Icon className={cn('flex-shrink-0', isCollapsed ? 'w-5 h-5' : 'w-4 h-4')} />
-                  {!isCollapsed && (
-                    <span className="text-[10px] font-medium leading-tight text-center truncate w-full">
-                      {item.name}
-                    </span>
-                  )}
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  {!isCollapsed && <span className="flex-1">{item.name}</span>}
                 </Link>
               )
             })}
@@ -334,13 +347,11 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
         {navigation.map((item) => {
           const itemHref = item.href
           
-          const isActive = isNavItemActive(item, pathname, profile?.id)
+          const isActive = itemIsActive(item)
           const isExpanded = expandedItems.includes(item.name)
           const Icon = item.icon
           
-          const hasActiveChild = item.children?.some(child => 
-            isNavItemActive(child, pathname, profile?.id, true)
-          )
+          const hasActiveChild = item.children?.some(child => itemIsActive(child, true))
           const shouldHighlightParent = isActive && !hasActiveChild
 
           return (
@@ -368,7 +379,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                     <div className="ml-6 mt-2 space-y-1">
                       {item.children.map((child) => {
                         const ChildIcon = child.icon
-                        const isChildActive = isNavItemActive(child, pathname, profile?.id, true)
+                        const isChildActive = itemIsActive(child, true)
                         
                         return (
                           <Link
@@ -417,37 +428,58 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           )
         })}
         
-        {!isCollapsed && groups.map((group) => {
-          const hasSectionTitle = group.name === 'Account & Billing'
-          const isGroupExpanded = hasSectionTitle ? expandedGroups.includes(group.name) : true
+        {groups.map((group) => {
+          const isGroupExpanded = expandedGroups.includes(group.name)
           
+          if (isCollapsed) {
+            return (
+              <div key={group.name} className="pt-2 mt-2 border-t border-neutral-800 space-y-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon
+                  const isActive = itemIsActive(item)
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      title={item.name}
+                      className={cn(
+                        'flex justify-center p-2 rounded-lg transition-all duration-200',
+                        isActive
+                          ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
+                          : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                      )}
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                    </Link>
+                  )
+                })}
+              </div>
+            )
+          }
+
           return (
-            <div key={group.name}>
-              {hasSectionTitle && (
-                <button
-                  onClick={() => toggleGroup(group.name)}
-                  className="flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
-                >
-                  <span className="text-xs font-semibold tracking-wider text-neutral-500 uppercase flex-1">
-                    {group.name}
-                  </span>
-                  <ChevronDown className={cn(
-                    'w-4 h-4 text-neutral-500 transition-transform duration-200',
-                    isGroupExpanded ? 'rotate-180' : ''
-                  )} />
-                </button>
-              )}
+            <div key={group.name} className="pt-3">
+              <button
+                onClick={() => toggleGroup(group.name)}
+                className="flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
+              >
+                <span className="text-xs font-semibold tracking-wider text-neutral-500 uppercase flex-1">
+                  {group.name}
+                </span>
+                <ChevronDown className={cn(
+                  'w-4 h-4 text-neutral-500 transition-transform duration-200',
+                  isGroupExpanded ? 'rotate-180' : ''
+                )} />
+              </button>
               
               {isGroupExpanded && (
-                <div className={cn(hasSectionTitle && 'mt-2', 'space-y-1')}>
+                <div className="mt-1 space-y-1">
                   {group.items.map((item) => {
-                    const isActive = isNavItemActive(item, pathname, profile?.id)
+                    const isActive = itemIsActive(item)
                     const isExpanded = expandedItems.includes(item.name)
                     const Icon = item.icon
                     
-                    const hasActiveChild = item.children?.some(child => 
-                      isNavItemActive(child, pathname, profile?.id, true)
-                    )
+                    const hasActiveChild = item.children?.some(child => itemIsActive(child, true))
                     const shouldHighlightParent = isActive && !hasActiveChild
 
                     return (
@@ -475,7 +507,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                               <div className="ml-6 mt-1 space-y-1">
                                 {item.children.map((child) => {
                                   const ChildIcon = child.icon
-                                  const isChildActive = isNavItemActive(child, pathname, profile?.id, true)
+                                  const isChildActive = itemIsActive(child, true)
                                   
                                   return (
                                     <Link
@@ -608,7 +640,7 @@ export function UserSidebar({ className }: { className?: string }) {
   return (
     <SidebarBase
       className={className}
-      navigation={userNavigation as NavItem[]}
+      navigation={[]}
       primaryNavigation={userNavigationPrimary}
       groups={userNavigationGroups}
       isAdmin={false}
@@ -623,7 +655,7 @@ export function AdminSidebar({ className }: { className?: string }) {
 
 // Generic Sidebar Component (for backward compatibility)
 export function Sidebar({ className, isAdmin = false }: SidebarProps) {
-  const navigation = isAdmin ? adminNavigation : (userNavigation as NavItem[])
+  const navigation = isAdmin ? adminNavigation : []
   const groups = isAdmin ? [] : userNavigationGroups
   const primaryNavigation = isAdmin ? [] : userNavigationPrimary
   return (
@@ -687,7 +719,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
 
   const drawerSections = userNavigationGroups.map((group) => ({
     title: group.name,
-    showTitle: group.name === 'Account & Billing',
+    showTitle: true,
     items: group.items.map((item) => ({
       name: item.name,
       href: item.name === 'Life Vision' && activeVisionId ? `/life-vision/${activeVisionId}` : item.href,

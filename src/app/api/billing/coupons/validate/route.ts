@@ -34,6 +34,13 @@ export async function POST(request: NextRequest) {
       discountAmount: result.discountAmount,
       percent_off: result.discountType === 'percent' ? result.discountValue : undefined,
       amount_off: result.discountType === 'fixed' ? result.discountValue : undefined,
+      renewalDiscount: result.coupon?.renewal_discount_type && result.coupon?.renewal_discount_value
+        ? {
+            type: result.coupon.renewal_discount_type,
+            value: result.coupon.renewal_discount_value,
+            cycles: result.coupon.renewal_discount_cycles,
+          }
+        : null,
     })
   } catch (error) {
     console.error('Coupon validation error:', error)

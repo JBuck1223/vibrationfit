@@ -30,7 +30,7 @@ export interface IntensiveStats {
   audio_tracks_completed: number
   
   // Vision Board Stats
-  vision_board_items_count: number
+  manifestations_count: number
   vision_board_images_count: number
   
   // Journal Stats
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       audio_sets_count: 0,
       audio_tracks_count: 0,
       audio_tracks_completed: 0,
-      vision_board_items_count: 0,
+      manifestations_count: 0,
       vision_board_images_count: 0,
       journal_entries_count: 0,
       profile_completion_percent: 0,
@@ -187,11 +187,11 @@ export async function GET(request: NextRequest) {
     // VISION BOARD STATS
     // ========================================================================
     const { data: visionBoardItems, count: boardItemCount } = await supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('id, image_url', { count: 'exact' })
       .eq('user_id', user.id)
     
-    stats.vision_board_items_count = boardItemCount || 0
+    stats.manifestations_count = boardItemCount || 0
     stats.vision_board_images_count = visionBoardItems?.filter(i => i.image_url).length || 0
 
     // ========================================================================
@@ -447,7 +447,7 @@ export async function GET(request: NextRequest) {
       { value: Math.min(stats.visions_count, 5) / 5, weight: 20 },           // Up to 5 visions
       { value: Math.min(stats.total_refinements, 10) / 10, weight: 15 },     // Up to 10 refinements
       { value: Math.min(stats.audio_sets_count, 5) / 5, weight: 20 },        // Up to 5 audio sets
-      { value: Math.min(stats.vision_board_items_count, 20) / 20, weight: 15 }, // Up to 20 board items
+      { value: Math.min(stats.manifestations_count, 20) / 20, weight: 15 }, // Up to 20 board items
       { value: Math.min(stats.journal_entries_count, 10) / 10, weight: 10 }, // Up to 10 journal entries
       { value: stats.profile_completion_percent / 100, weight: 10 },          // Profile completion
       { value: stats.vibe_posts_count > 0 && stats.vibe_tribe_engaged ? 1 : 0, weight: 10 },

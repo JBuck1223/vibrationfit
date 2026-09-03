@@ -22,7 +22,8 @@ html:has([data-home]) body {
 
 .hp-offer-copy,
 .hp-offer-copy > p {
-  text-align: justify;
+  text-align: left;
+  text-wrap: pretty;
 }
 
 .hp-hero-stack {
@@ -33,6 +34,28 @@ html:has([data-home]) body {
 
 .hp-hero-intro {
   width: 100%;
+  container-type: inline-size;
+}
+
+/* Fit the hero lockup to the column: as large as the design size, never wider than the row. */
+.hp-hero-headline {
+  font-size: min(1.65rem, calc(100cqi / 13.5));
+}
+
+@media (min-width: 768px) {
+  .hp-hero-headline {
+    font-size: min(3.25rem, calc(100cqi / 13.5));
+  }
+}
+
+@media (min-width: 1024px) {
+  .hp-hero-headline {
+    font-size: min(3.75rem, calc(100cqi / 13.5));
+  }
+}
+
+.hp-hero-headline-line {
+  white-space: nowrap;
 }
 
 .hp-hero-split {
@@ -78,7 +101,8 @@ html:has([data-home]) body {
 }
 
 .hp-hero-stack[data-hero='stacked'] .hp-hero-copy .mt-8 > p:not(.hp-display) {
-  text-align: justify;
+  text-align: left;
+  text-wrap: pretty;
 }
 
 .hp-hero-stack[data-hero='stacked'] .hp-hero-video {

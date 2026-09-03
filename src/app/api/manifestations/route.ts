@@ -4,6 +4,10 @@ import { normalizeLifeCategories } from '@/lib/manifestations/kit-helpers'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * GET /api/manifestations
+ * List the member's manifestations (manifestations) with depth counts.
+ */
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -12,11 +16,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: kits, error } = await supabase
+    const { data: items, error } = await supabase
       .from('manifestations')
       .select('*')
       .eq('user_id', user.id)
-      .neq('status', 'archived')
+      .neq('status', 'inactive')
       .order('updated_at', { ascending: false })
 
     if (error) {
@@ -24,9 +28,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to load manifestations' }, { status: 500 })
     }
 
-    const ids = (kits || []).map(k => k.id)
+    const ids = (items || []).map(i => i.id)
     if (ids.length === 0) {
-      return NextResponse.json({ kits: [] })
+      return NextResponse.json({ manifestations: [] })
     }
 
     const weekAgo = new Date()
@@ -43,24 +47,28 @@ export async function GET() {
       supabase.from('projects').select('id, manifestation_id').in('manifestation_id', ids).neq('status', 'archived'),
     ])
 
-    const listed = (kits || []).map(kit => {
-      const assets = (assetsResult.data || []).filter(a => a.manifestation_id === kit.id)
+    const listed = (items || []).map(item => {
+      const assets = (assetsResult.data || []).filter(a => a.manifestation_id === item.id)
       return {
-        ...kit,
+        ...item,
         asset_ready_count: assets.filter(a => a.status === 'ready' || a.status === 'actualized').length,
         asset_queued_count: assets.filter(a => a.status === 'queued' || a.status === 'handoff').length,
-        activations_this_week: (activationsResult.data || []).filter(a => a.manifestation_id === kit.id).length,
-        project_count: (projectsResult.data || []).filter(p => p.manifestation_id === kit.id).length,
+        activations_this_week: (activationsResult.data || []).filter(a => a.manifestation_id === item.id).length,
+        project_count: (projectsResult.data || []).filter(p => p.manifestation_id === item.id).length,
       }
     })
 
-    return NextResponse.json({ kits: listed })
+    return NextResponse.json({ manifestations: listed })
   } catch (error) {
     console.error('[Manifestations] GET error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
+/**
+ * POST /api/manifestations
+ * Create a manifestation (a manifestations row).
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -70,31 +78,36 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const title = typeof body.title === 'string' ? body.title.trim() : ''
-    if (!title) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+    const name = typeof body.name === 'string' && body.name.trim()
+      ? body.name.trim()
+      : typeof body.title === 'string' ? body.title.trim() : ''
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
     const { data, error } = await supabase
       .from('manifestations')
       .insert({
         user_id: user.id,
-        title,
-        chosen_reality: typeof body.chosen_reality === 'string' ? body.chosen_reality.trim() : null,
-        life_categories: normalizeLifeCategories(body.life_categories),
+        name,
+        description: typeof body.description === 'string' ? body.description.trim() || null : null,
+        why_it_matters: typeof body.why_it_matters === 'string'
+          ? body.why_it_matters.trim() || null
+          : typeof body.chosen_reality === 'string' ? body.chosen_reality.trim() || null : null,
+        what_it_feels_like: typeof body.what_it_feels_like === 'string' ? body.what_it_feels_like.trim() || null : null,
+        categories: normalizeLifeCategories(body.categories ?? body.life_categories),
         conversation_id: typeof body.conversation_id === 'string' ? body.conversation_id : null,
-        status: 'open',
-        flow: Array.isArray(body.flow) ? body.flow : [],
+        status: 'active',
       })
       .select()
       .single()
 
     if (error || !data) {
       console.error('[Manifestations] create failed:', error)
-      return NextResponse.json({ error: 'Failed to open manifestation' }, { status: 500 })
+      return NextResponse.json({ error: 'Failed to create manifestation' }, { status: 500 })
     }
 
-    return NextResponse.json({ kit: data }, { status: 201 })
+    return NextResponse.json({ manifestation: data }, { status: 201 })
   } catch (error) {
     console.error('[Manifestations] POST error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

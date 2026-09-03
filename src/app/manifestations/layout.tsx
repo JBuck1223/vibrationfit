@@ -3,12 +3,10 @@ import React from 'react'
 import { ManifestationsStudioProvider } from '@/components/manifestations-studio/ManifestationsStudioContext'
 import { ManifestationsAreaBar } from '@/components/manifestations-studio/ManifestationsAreaBar'
 
-export const dynamic = 'force-dynamic'
-
 export const metadata: Metadata = {
   title: {
-    template: '%s | My Manifestations',
-    default: 'My Manifestations',
+    template: '%s | Manifestations',
+    default: 'Manifestations',
   },
 }
 

@@ -66,7 +66,7 @@ export default async function TrackingPage() {
 
   // Fetch vision board items
   const { data: visionBoardData } = await supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('*')
       .eq('user_id', user.id)
     .order('created_at', { ascending: false })

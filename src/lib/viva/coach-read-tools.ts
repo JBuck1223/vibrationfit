@@ -260,14 +260,14 @@ export function buildCoachReadTools(ctx: CoachReadToolsContext) {
             case 'vision_board': {
               const [active, actualized] = await Promise.all([
                 supabase
-                  .from('vision_board_items')
+                  .from('manifestations')
                   .select('name, description, categories, created_at')
                   .eq('user_id', userId)
                   .eq('status', 'active')
                   .order('created_at', { ascending: false })
                   .limit(limit ?? 15),
                 supabase
-                  .from('vision_board_items')
+                  .from('manifestations')
                   .select('name, actualization_story, categories, actualized_at')
                   .eq('user_id', userId)
                   .eq('status', 'actualized')

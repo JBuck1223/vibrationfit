@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
 
     // Get Vision Board Items
     const { data: visionBoardItems } = await supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('id, name, status, created_at, image_url')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
         timestamp: item.created_at,
         icon: 'ImageIcon',
         color: 'text-accent-500',
-        link: `/vision-board/${item.id}`,
+        link: `/manifestations/${item.id}`,
         metadata: item.image_url ? {
           fileUrl: item.image_url,
           fileName: `${item.name}.jpg`,
@@ -240,7 +240,7 @@ export async function GET(request: NextRequest) {
           desc: 'Created image with VIVA',
           icon: 'ImageIcon',
           color: 'text-accent-400',
-          link: '/vision-board/new'
+          link: '/manifestations/new'
         },
         vision_generation: {
           title: 'Generated Vision',
@@ -345,7 +345,7 @@ export async function GET(request: NextRequest) {
               desc: fileName,
               icon: 'ImageIcon',
               color: 'text-accent-500',
-              link: '/vision-board'
+              link: '/manifestations'
             },
             'journal': { 
               title: 'Uploaded Journal Evidence',

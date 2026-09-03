@@ -26,7 +26,7 @@ async function fetchItemCount(): Promise<number> {
   if (!user) return 0
 
   const { count } = await supabase
-    .from('vision_board_items')
+    .from('manifestations')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
 

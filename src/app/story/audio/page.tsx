@@ -29,7 +29,7 @@ import type { Story } from '@/lib/stories/types'
 
 const ENTITY_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   life_vision: { label: 'Life Vision', color: 'text-purple-400 bg-purple-500/20', icon: Sparkles },
-  vision_board_item: { label: 'Vision Board', color: 'text-cyan-400 bg-cyan-500/20', icon: Image },
+  vision_board_item: { label: 'Manifestations', color: 'text-cyan-400 bg-cyan-500/20', icon: Image },
   journal_entry: { label: 'Journal', color: 'text-teal-400 bg-teal-500/20', icon: PenLine },
   custom: { label: 'Custom', color: 'text-yellow-400 bg-yellow-500/20', icon: FileText },
   goal: { label: 'Goal', color: 'text-green-400 bg-green-500/20', icon: BookOpen },

@@ -180,7 +180,7 @@ async function detectLifeVision(supabase: Supa, userId: string, anchor: ResetAnc
 
 async function detectVisionBoard(supabase: Supa, userId: string, startedAt: string): Promise<DetectionResult> {
   const { data } = await supabase
-    .from('vision_board_items')
+    .from('manifestations')
     .select('categories, created_at, updated_at')
     .eq('user_id', userId)
     .or(`created_at.gt.${startedAt},updated_at.gt.${startedAt}`)

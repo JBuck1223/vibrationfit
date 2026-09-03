@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Plus,
   FileText,
@@ -34,7 +34,7 @@ import { getStoryKind, getStoryKindLabel, type StoryKind, type StoryMetadata } f
 
 const ENTITY_TYPE_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
   life_vision: { label: 'Life Vision', badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30', icon: Target },
-  vision_board_item: { label: 'Vision Board', badgeColor: 'text-cyan-400 bg-cyan-500/20 border-cyan-500/30', icon: Image },
+  vision_board_item: { label: 'Manifestations', badgeColor: 'text-cyan-400 bg-cyan-500/20 border-cyan-500/30', icon: Image },
   journal_entry: { label: 'Journal', badgeColor: 'text-teal-400 bg-teal-500/20 border-teal-500/30', icon: BookOpen },
   custom: { label: 'Custom', badgeColor: 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30', icon: Lightbulb },
   goal: { label: 'Goal', badgeColor: 'text-green-400 bg-green-500/20 border-green-500/30', icon: BookOpen },
@@ -44,7 +44,7 @@ const ENTITY_TYPE_META: Record<string, { label: string; badgeColor: string; icon
 const FILTER_OPTIONS = [
   { label: 'All', value: 'all' },
   { label: 'Life Vision', value: 'life_vision' },
-  { label: 'Vision Board', value: 'vision_board_item' },
+  { label: 'Manifestations', value: 'vision_board_item' },
   { label: 'Journal', value: 'journal_entry' },
   { label: 'Custom', value: 'custom' },
 ]
@@ -72,14 +72,38 @@ function storyKindBadgeClass(metadata?: StoryMetadata | null): string {
 
 export default function StoryHubPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { stories, loading, activePill, setActivePill, currentUserId, household } = useStoryStudio()
 
-  const [showFilters, setShowFilters] = useState(false)
+  const kindFromUrl = searchParams.get('kind')
+  const initialKind: 'all' | StoryKind =
+    kindFromUrl === 'incantation' ||
+    kindFromUrl === 'spark_query' ||
+    kindFromUrl === 'essence' ||
+    kindFromUrl === 'day_in_the_life'
+      ? kindFromUrl
+      : 'all'
+
+  const [showFilters, setShowFilters] = useState(initialKind !== 'all')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [kindFilter, setKindFilter] = useState<'all' | StoryKind>('all')
+  const [kindFilter, setKindFilterState] = useState<'all' | StoryKind>(initialKind)
   const [scope, setScope] = useState<HouseholdScope>('me')
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const setKindFilter = useCallback((kind: 'all' | StoryKind) => {
+    setKindFilterState(kind)
+    const params = new URLSearchParams(searchParams.toString())
+    if (kind === 'all') params.delete('kind')
+    else params.set('kind', kind)
+    const query = params.toString()
+    router.replace(query ? `/story?${query}` : '/story', { scroll: false })
+  }, [router, searchParams])
+
+  useEffect(() => {
+    setKindFilterState(initialKind)
+    if (initialKind !== 'all') setShowFilters(true)
+  }, [initialKind])
 
   const memberById = useMemo(() => {
     const map = new Map<string, { displayName: string; isSelf: boolean }>()

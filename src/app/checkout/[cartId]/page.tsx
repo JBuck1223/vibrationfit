@@ -6,7 +6,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import { Container, Card } from '@/lib/design-system/components'
 import { Spinner } from '@/lib/design-system/components'
-import OrderSummary from '@/components/checkout/OrderSummary'
+import OrderSummary, { renewalBillingPhrase } from '@/components/checkout/OrderSummary'
 import CheckoutForm, { type AccountDetails } from '@/components/checkout/CheckoutForm'
 import PayPalCheckoutForm from '@/components/checkout/PayPalCheckoutForm'
 import { toast } from 'sonner'
@@ -51,7 +51,11 @@ export default function CartCheckoutPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [promoCode, setPromoCode] = useState('')
-  const [promoDiscount, setPromoDiscount] = useState<{ label: string; amountOff: number } | null>(null)
+  const [promoDiscount, setPromoDiscount] = useState<{
+    label: string
+    amountOff: number
+    renewal?: { type: 'percent' | 'fixed'; value: number; cycles: number | null } | null
+  } | null>(null)
   const [validatingPromo, setValidatingPromo] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const hasAutoAppliedPromo = useRef(false)
@@ -155,7 +159,7 @@ export default function CartCheckoutPage() {
           ?? (data.percent_off
             ? Math.round(product.amount * data.percent_off / 100)
             : data.amount_off || 0)
-        setPromoDiscount({ label: data.name || promoCode, amountOff })
+        setPromoDiscount({ label: data.name || promoCode, amountOff, renewal: data.renewalDiscount || null })
       })
       .catch(() => setPromoDiscount(null))
       .finally(() => setValidatingPromo(false))
@@ -200,7 +204,7 @@ export default function CartCheckoutPage() {
         ?? (data.percent_off
           ? Math.round(product.amount * data.percent_off / 100)
           : data.amount_off || 0)
-      setPromoDiscount({ label: data.name || promoCode, amountOff })
+      setPromoDiscount({ label: data.name || promoCode, amountOff, renewal: data.renewalDiscount || null })
       toast.success('Promo code applied')
     } catch {
       toast.error('Could not validate promo code')
@@ -410,6 +414,11 @@ export default function CartCheckoutPage() {
                 continuity={(cart?.items?.[0]?.continuity as 'annual' | '28day') || undefined}
                 planType={(cart?.items?.[0]?.plan_type as 'solo' | 'household') || undefined}
                 paymentPlan={(cart?.items?.[0]?.plan as 'full' | '2pay') || undefined}
+                renewalPhrase={renewalBillingPhrase(
+                  (cart?.items?.[0]?.continuity as 'annual' | '28day') || '28day',
+                  (cart?.items?.[0]?.plan_type as 'solo' | 'household') || 'solo',
+                  promoDiscount?.renewal,
+                )}
               />
             </Card>
           </div>

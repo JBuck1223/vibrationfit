@@ -64,6 +64,16 @@ export { buildFinalAssemblyPrompt } from './final-assembly-prompt'
 // Activation Prompt (Step 6: Celebration & next steps)
 export { buildActivationReflectionPrompt } from './activation-prompt'
 
+// Activation Experience (public lead magnet: reflection → category → vision object)
+export {
+  ACTIVATION_REFLECTION_SYSTEM_PROMPT,
+  ACTIVATION_CATEGORY_SYSTEM_PROMPT,
+  ACTIVATION_VISION_SYSTEM_PROMPT,
+  buildActivationReflectionPrompt as buildActivationExperienceReflectionPrompt,
+  buildActivationCategoryPrompt,
+  buildActivationVisionPrompt,
+} from './activation-experience-prompts'
+
 // Flip Frequency (already well-structured in flip-frequency.ts)
 // Imported directly from @/lib/viva/flip-frequency
 // ENHANCED V3: Now includes density awareness in flip-frequency-prompt.ts

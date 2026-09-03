@@ -10,9 +10,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Try to load uploaded images from vision_board_items table
+    // Try to load uploaded images from manifestations table
     const { data, error } = await supabase
-      .from('vision_board_items')
+      .from('manifestations')
       .select('id, image_url, created_at')
       .eq('user_id', user.id)
       .not('image_url', 'is', null)

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { Gift, X } from 'lucide-react'
+import { LAUNCH_SOLO_PROMO_CODE } from '@/lib/billing/launch-promo'
 
 const BANNER_MIN_HEIGHT = 48
 const DISMISSED_KEY = 'vf_ref_banner_dismissed'
@@ -106,7 +107,7 @@ export function ReferralBanner() {
   return (
     <div
       ref={bannerRef}
-      className="fixed top-0 left-0 right-0 z-[9998] bg-gradient-to-r from-[#39FF14] to-[#00FFFF] px-10 sm:px-4 py-2 shadow-lg flex items-center justify-center"
+      className="fixed top-0 left-0 right-0 z-[100000] bg-gradient-to-r from-[#39FF14] to-[#00FFFF] px-10 sm:px-4 py-2 shadow-lg flex items-center justify-center"
       style={{ minHeight: BANNER_MIN_HEIGHT }}
     >
       <button
@@ -118,7 +119,11 @@ export function ReferralBanner() {
       </button>
 
       <a
-        href={isOfferPage ? '#pricing' : `/?ref=${refCode}`}
+        href={
+          isOfferPage
+            ? `/checkout?product=intensive&plan=full&continuity=28day&planType=solo&promo=${LAUNCH_SOLO_PROMO_CODE}&ref=${refCode}`
+            : `/?ref=${refCode}`
+        }
         onClick={handleDismiss}
         className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-black text-xs sm:text-sm font-medium hover:opacity-80 transition-opacity text-center sm:text-left justify-center"
       >

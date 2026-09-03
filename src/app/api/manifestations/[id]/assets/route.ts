@@ -19,7 +19,7 @@ export async function POST(
 
     const { data: kit } = await supabase
       .from('manifestations')
-      .select('id, life_categories')
+      .select('id, categories')
       .eq('id', id)
       .eq('user_id', user.id)
       .maybeSingle()
@@ -67,7 +67,7 @@ export async function POST(
     await recordKitActivation(supabase, {
       kitId: id,
       userId: user.id,
-      area: kit.life_categories?.[0] || 'work',
+      area: kit.categories?.[0] || 'work',
       slot,
     })
     await touchKit(supabase, id)

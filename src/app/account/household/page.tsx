@@ -182,7 +182,7 @@ export default function AccountHouseholdPage() {
                   <h3 className="text-base font-semibold text-white">Shared Vision Board</h3>
                 </div>
                 <Link
-                  href="/vision-board?scope=household"
+                  href="/manifestations?scope=household"
                   className="inline-flex items-center gap-1 text-xs font-medium text-neutral-400 transition-colors hover:text-accent-500"
                 >
                   Open Board <ChevronRight className="h-3.5 w-3.5" />
@@ -191,7 +191,7 @@ export default function AccountHouseholdPage() {
               {hubData.boardItems.length === 0 ? (
                 <p className="text-sm leading-relaxed text-neutral-400">
                   No shared creations yet. On your{' '}
-                  <Link href="/vision-board" className="text-primary-500 hover:underline">
+                  <Link href="/manifestations" className="text-primary-500 hover:underline">
                     vision board
                   </Link>
                   , turn on &ldquo;Include in household&rdquo; on any creation to share it here.
@@ -199,7 +199,7 @@ export default function AccountHouseholdPage() {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {hubData.boardItems.slice(0, 8).map((item) => (
-                    <Link key={item.id} href="/vision-board?scope=household">
+                    <Link key={item.id} href="/manifestations?scope=household">
                       <div className="group relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-800 border border-white/[0.06] hover:border-accent-500/40 transition-colors">
                         {item.image_url ? (
                           // eslint-disable-next-line @next/next/no-img-element

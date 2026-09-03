@@ -47,7 +47,7 @@ export function useDeleteItem(options: UseDeleteItemOptions = {}) {
 
       // Delete from database
       const { error } = await supabase
-        .from('vision_board_items')
+        .from('manifestations')
         .delete()
         .eq('id', itemToDelete.id)
 

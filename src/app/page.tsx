@@ -47,12 +47,12 @@ export default function HomePage() {
     <div className={`${display.variable} -mx-4 -mt-6 overflow-x-clip sm:-mx-6 md:-mx-6 md:-my-12 md:overflow-x-visible lg:-mx-8 lg:-mt-8`} data-home="front-door">
       {/* 1. Hero — Who it's for, What it is, The Outcome */}
       <header className="hp-hero-glow">
-        <Container size="xl" className="px-4 pb-16 pt-8 md:px-10 md:pb-20 md:pt-10">
+        <Container size="xl" className="px-4 py-12 md:px-10 md:pb-20 md:pt-10">
           <HeroLayout
             variant="stacked"
             intro={
-              <Display as="h1">
-                Thoughts Become Things.
+              <Display as="h1" className="hp-hero-headline">
+                <span className="hp-hero-headline-line">Thoughts Become Things.</span>
                 <br />
                 <Accent>So Why Isn&rsquo;t It Working?</Accent>
               </Display>
@@ -61,9 +61,8 @@ export default function HomePage() {
         </Container>
       </header>
 
-      <section id="offer" className="scroll-mt-28 border-t border-white/10">
-        <span id="pricing" aria-hidden="true" />
-        <Container size="xl" className="px-4 py-12 md:px-10 md:py-16">
+      <section className="border-t border-white/10">
+        <Container size="xl" className="px-4 py-12 md:px-10 md:py-16 lg:py-20">
           <SectionMedia graphic={<OfferBuyBox />}>
             <h2 className="text-left text-[1.65rem] font-extrabold leading-[1.15] text-white lg:text-left md:text-[2.15rem]">
               How Vibration Fit Works

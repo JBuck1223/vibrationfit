@@ -310,7 +310,10 @@ export function OfferBuyBox() {
   }
 
   return (
-    <div className="hp-offer-card flex flex-col items-center rounded-2xl px-5 py-6 text-center lg:px-6 lg:py-7">
+    <div
+      id="pricing"
+      className="hp-offer-card flex scroll-mt-24 flex-col items-center rounded-2xl px-5 py-6 text-center lg:px-6 lg:py-7"
+    >
       <p className="text-xl font-extrabold leading-tight text-[#39FF14] md:text-[1.65rem]">
         72-Hour Vision Activation
       </p>

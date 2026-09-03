@@ -78,8 +78,12 @@ import {
   Mic,
   FolderKanban,
   Flame,
+  Presentation,
+  Sparkles,
+  Lightbulb,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { SLIDE_DECKS } from '@/lib/slide-decks/catalog'
 
 /**
  * Navigation menu item structure
@@ -108,7 +112,7 @@ export interface NavGroup {
 }
 
 /**
- * USER NAVIGATION - Compact primary links at top of sidebar (MAP, Dashboard, Tracking)
+ * USER NAVIGATION - Primary links at the top of the member sidebar
  */
 export const userNavigationPrimary: NavItem[] = [
   {
@@ -118,51 +122,22 @@ export const userNavigationPrimary: NavItem[] = [
     description: 'Run your MAP and stay connected',
   },
   {
-    name: 'MAP',
-    href: '/map',
-    icon: Map,
-    description: 'My Alignment Plan - your alignment actions',
-  },
-  {
-    name: 'Tracking',
-    href: '/tracking',
-    icon: TrendingUp,
-    description: 'Streaks, badges, and performance metrics',
+    name: 'VIVA',
+    href: '/viva',
+    icon: Sparkles,
+    description: 'Talk with VIVA',
   },
 ]
 
 /**
- * USER NAVIGATION - Legacy top-level items (use userNavigationPrimary instead)
- */
-export const userNavigation: (NavItem | NavGroup)[] = []
-
-/**
- * USER NAVIGATION GROUPS - Collapsible groups below top-level items
+ * USER NAVIGATION GROUPS - Journey sections below the primary links
  */
 export const userNavigationGroups: NavGroup[] = [
   {
-    name: 'Navigation',
+    name: 'Capture',
     isCollapsible: true,
     defaultCollapsed: false,
     items: [
-      {
-        name: 'Abundance Tracker',
-        href: '/abundance-tracker',
-        icon: DollarSign,
-        description: 'Dashboard and log for abundance moments',
-      },
-      {
-        name: 'Alignment Gym',
-        href: '/alignment-gym',
-        icon: Video,
-        description: 'Weekly live group coaching sessions',
-      },
-      {
-        name: 'Audio',
-        href: '/audio',
-        icon: Headphones,
-        description: 'Key AM/PM/Sleep audio sets',
-      },
       {
         name: 'Daily Paper',
         href: '/daily-paper',
@@ -176,53 +151,29 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'My Journal',
       },
       {
+        name: 'Abundance',
+        href: '/abundance-tracker',
+        icon: DollarSign,
+        description: 'Dashboard and log for abundance moments',
+      },
+    ],
+  },
+  {
+    name: 'Choose',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    items: [
+      {
         name: 'Life Vision',
         href: '/life-vision',
         icon: Target,
         description: 'My Active Vision',
       },
       {
-        name: 'Profile',
-        href: '/profile',
-        icon: User,
-        description: 'Your active profile',
-      },
-      {
-        name: 'Projects',
-        href: '/projects',
-        icon: FolderKanban,
-        description: 'Projects and task organization',
-      },
-      {
-        name: 'Stories',
-        href: '/story',
-        icon: Library,
-        description: 'Focus Stories',
-      },
-      {
-        name: 'Vibe Tribe',
-        href: '/vibe-tribe',
-        icon: UsersRound,
-        description: 'Connect with the Vibration Fit community',
-      },
-      {
-        name: 'Vision Board',
-        href: '/vision-board',
+        name: 'Manifestations',
+        href: '/manifestations',
         icon: Image,
-        description: 'My Vision Board',
-      },
-    ],
-  },
-  {
-    name: 'Account & Billing',
-    isCollapsible: true,
-    defaultCollapsed: true,
-    items: [
-      {
-        name: 'Account',
-        href: '/account',
-        icon: Settings,
-        description: 'Account, billing, and preferences',
+        description: 'My Manifestations',
       },
       {
         name: 'Assessment',
@@ -230,17 +181,61 @@ export const userNavigationGroups: NavGroup[] = [
         icon: Brain,
         description: 'Vibrational assessment and results',
       },
+    ],
+  },
+  {
+    name: 'Activate',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    items: [
       {
-        name: 'Household',
-        href: '/account/household',
-        icon: Home,
-        description: 'Shared visions, vision boards, and members',
+        name: 'Stories',
+        href: '/story',
+        icon: Library,
+        description: 'Focus Stories',
       },
       {
-        name: 'Referral',
-        href: '/referral',
-        icon: Share2,
-        description: 'Share your referral link and earn rewards',
+        name: 'Incantations',
+        href: '/story?kind=incantation',
+        icon: Mic,
+        description: 'Spoken force statements',
+      },
+      {
+        name: 'SparkQueries',
+        href: '/story?kind=spark_query',
+        icon: Lightbulb,
+        description: 'SparkQuery teaching questions',
+      },
+      {
+        name: 'Audio',
+        href: '/audio',
+        icon: Headphones,
+        description: 'Key AM/PM/Sleep audio sets',
+      },
+      {
+        name: 'Songs',
+        href: '/audio/songs',
+        icon: Music2,
+        description: 'My songs',
+      },
+    ],
+  },
+  {
+    name: 'Plan',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    items: [
+      {
+        name: 'MAP',
+        href: '/map',
+        icon: Map,
+        description: 'My Alignment Plan - your alignment actions',
+      },
+      {
+        name: 'Tracking',
+        href: '/tracking',
+        icon: TrendingUp,
+        description: 'Streaks, badges, and performance metrics',
       },
       {
         name: 'Reset',
@@ -248,32 +243,60 @@ export const userNavigationGroups: NavGroup[] = [
         icon: Flame,
         description: 'Hit the reset button - recommit, phoenix style',
       },
+    ],
+  },
+  {
+    name: 'Connect',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    items: [
       {
-        name: 'Storage',
-        href: '/storage',
-        icon: HardDrive,
-        description: 'File storage usage and history',
+        name: 'Alignment Gym',
+        href: '/alignment-gym',
+        icon: Video,
+        description: 'Weekly live group coaching sessions',
       },
       {
-        name: 'Support',
-        href: '/support/tickets',
-        icon: Users,
-        description: 'Get help and support',
-      },
-      {
-        name: 'Tokens',
-        href: '/tokens',
-        icon: Zap,
-        description: 'Creation credits, usage, and history',
-      },
-      {
-        name: 'Updates',
-        href: '/support/announcements',
-        icon: Bell,
-        description: 'Product updates and announcements',
+        name: 'Vibe Tribe',
+        href: '/vibe-tribe',
+        icon: UsersRound,
+        description: 'Connect with the Vibration Fit community',
       },
     ],
   },
+  {
+    name: 'Account',
+    isCollapsible: true,
+    defaultCollapsed: true,
+    items: [
+      {
+        name: 'Profile',
+        href: '/profile',
+        icon: User,
+        description: 'Your active profile',
+      },
+      {
+        name: 'Billing',
+        href: '/account/billing',
+        icon: CreditCard,
+        description: 'Plan, payment methods, and invoices',
+      },
+      {
+        name: 'Settings',
+        href: '/account',
+        icon: Settings,
+        description: 'Account, household, tokens, storage, and support',
+      },
+    ],
+  },
+]
+
+/**
+ * Flat member nav list for icon lookup and legacy consumers.
+ */
+export const userNavigation: NavItem[] = [
+  ...userNavigationPrimary,
+  ...userNavigationGroups.flatMap(group => group.items),
 ]
 
 /**
@@ -435,6 +458,27 @@ export const adminNavigation: NavItem[] = [
   },
 
   // ============================================================================
+  // SLIDE DECKS
+  // ============================================================================
+  {
+    name: 'Slide Decks',
+    href: '/admin/slide-decks',
+    icon: Presentation,
+    requiresAdmin: true,
+    hasDropdown: true,
+    description: 'Teaching decks and live presentation links',
+    children: [
+      { name: 'All Decks', href: '/admin/slide-decks', icon: Presentation, description: 'Browse, preview, and present HTML slide decks' },
+      ...SLIDE_DECKS.map(deck => ({
+        name: deck.shortTitle,
+        href: `/admin/slide-decks/${deck.slug}`,
+        icon: Presentation,
+        description: deck.description,
+      })),
+    ],
+  },
+
+  // ============================================================================
   // CINEMATIC PRODUCTION
   // ============================================================================
   {
@@ -564,9 +608,9 @@ export const mobileNavigation: NavItem[] = [
   },
   {
     name: 'Board',
-    href: '/vision-board',
+    href: '/manifestations',
     icon: Image,
-    description: 'Vision Board',
+    description: 'Manifestations',
   },
   {
     name: 'Journal',
@@ -694,21 +738,59 @@ export function findNavItemByHref(
  * - Parent dropdowns are NEVER highlighted (only their children)
  * - Child items use EXACT matching only (no startsWith)
  * - Only top-level non-dropdown items can match via startsWith
+ * - `search` is the query string without a leading `?` (e.g. "kind=incantation")
  */
+function splitNavHref(href: string): { path: string; query: URLSearchParams } {
+  const qIndex = href.indexOf('?')
+  if (qIndex === -1) {
+    return { path: href, query: new URLSearchParams() }
+  }
+  return {
+    path: href.slice(0, qIndex),
+    query: new URLSearchParams(href.slice(qIndex + 1)),
+  }
+}
+
+function queryMatches(itemQuery: URLSearchParams, search: string): boolean {
+  const current = new URLSearchParams(search)
+  for (const [key, value] of itemQuery.entries()) {
+    if (current.get(key) !== value) return false
+  }
+  return true
+}
+
 export function isNavItemActive(
   item: NavItem,
   pathname: string,
   activeProfileId?: string | null,
-  isChildOfDropdown: boolean = false
+  isChildOfDropdown: boolean = false,
+  search: string = '',
 ): boolean {
   // RULE 1: Parent dropdown items are NEVER highlighted
   // The sidebar will show them as "expanded" but not "active"
   if (item.hasDropdown && item.children) {
     return false
   }
+
+  const { path: itemPath, query: itemQuery } = splitNavHref(item.href)
+  const hasItemQuery = [...itemQuery.keys()].length > 0
+
+  if (hasItemQuery) {
+    return pathname === itemPath && queryMatches(itemQuery, search)
+  }
   
   // RULE 2: Exact match - highest priority (always works)
-  if (item.href === pathname) {
+  if (itemPath === pathname) {
+    if (itemPath === '/story') {
+      const kind = new URLSearchParams(search).get('kind')
+      if (kind === 'incantation' || kind === 'spark_query') return false
+    }
+    if (itemPath === '/audio') {
+      return true
+    }
+    if (itemPath === '/account') {
+      return pathname === '/account'
+    }
     return true
   }
   
@@ -716,21 +798,21 @@ export function isNavItemActive(
   // This prevents "/life-vision" from matching when on "/life-vision/household"
   if (isChildOfDropdown) {
     // /life-vision links should highlight when on any /life-vision/[uuid] page
-    if (item.href === '/life-vision') {
+    if (itemPath === '/life-vision') {
       if (pathname.match(/^\/life-vision\/[a-f0-9-]{36}(\/|$)/)) {
         return true
       }
     }
     
     // /profile links should highlight when on the active profile page
-    if (item.href === '/profile') {
+    if (itemPath === '/profile') {
       const uuidMatch = pathname.match(/^\/profile\/([a-f0-9-]{36})(\/|$)/)
       if (uuidMatch) {
         return uuidMatch[1] === activeProfileId
       }
     }
 
-    if (item.href === '/account') {
+    if (itemPath === '/account') {
       return pathname === '/account'
     }
 
@@ -742,69 +824,91 @@ export function isNavItemActive(
   // e.g., Dashboard matching /dashboard/anything
   if (!item.hasDropdown && !item.children) {
     // Special handling for specific items
-    if (item.href === '/journal') {
+    if (itemPath === '/journal') {
       if (pathname.match(/^\/journal\/[a-f0-9-]{36}(\/|$)/) || pathname === '/journal/new' || pathname.startsWith('/journal/daily-paper')) {
         return true
       }
     }
     
-    if (item.href === '/vision-board') {
-      if (pathname.match(/^\/vision-board\/[a-f0-9-]{36}(\/|$)/) || pathname === '/vision-board/new') {
+    if (itemPath === '/manifestations') {
+      if (pathname.startsWith('/manifestations/')) {
         return true
       }
     }
     
-    if (item.href === '/assessment') {
+    if (itemPath === '/assessment') {
       if (pathname.startsWith('/assessment/')) {
         return true
       }
     }
     
-    if (item.href === '/vibe-tribe') {
+    if (itemPath === '/vibe-tribe') {
       if (pathname.startsWith('/vibe-tribe/')) {
         return true
       }
     }
     
-    if (item.href === '/story') {
+    if (itemPath === '/story') {
+      const kind = new URLSearchParams(search).get('kind')
+      if (kind === 'incantation' || kind === 'spark_query') return false
       if (pathname.startsWith('/story/')) {
         return true
       }
     }
     
-    if (item.href === '/dashboard') {
+    if (itemPath === '/dashboard') {
       return false
     }
+
+    if (itemPath === '/viva') {
+      return pathname.startsWith('/viva/')
+    }
     
-    if (item.href === '/admin/inbox') {
+    if (itemPath === '/admin/inbox') {
       if (pathname.startsWith('/admin/inbox')) {
         return true
       }
     }
     
-    // Audio hub: /audio matches all audio sub-routes
-    if (item.href === '/audio') {
+    // Songs owns songwriter routes; Audio owns the rest of the hub
+    if (itemPath === '/audio/songs') {
+      return pathname === '/audio/songs' || pathname.startsWith('/audio/songwriter')
+    }
+
+    if (itemPath === '/audio') {
+      if (pathname.startsWith('/audio/songs') || pathname.startsWith('/audio/songwriter')) {
+        return false
+      }
       if (pathname.startsWith('/audio/')) {
         return true
       }
     }
     
     // /profile top-level matches any profile route
-    if (item.href === '/profile') {
+    if (itemPath === '/profile') {
       if (pathname.startsWith('/profile/')) {
         return true
       }
     }
     
     // /life-vision top-level matches any life-vision route
-    if (item.href === '/life-vision') {
+    if (itemPath === '/life-vision') {
       if (pathname.startsWith('/life-vision/')) {
         return true
       }
     }
+
+    if (itemPath === '/account/billing') {
+      return pathname.startsWith('/account/billing')
+    }
+
+    if (itemPath === '/account') {
+      if (pathname.startsWith('/account/billing')) return false
+      return pathname === '/account' || pathname.startsWith('/account/')
+    }
     
     // Special handling for /map - match sub-routes like /map/new, /map/[id]
-    if (item.href === '/map') {
+    if (itemPath === '/map') {
       if (pathname.startsWith('/map/')) {
         return true
       }
@@ -812,18 +916,28 @@ export function isNavItemActive(
     }
 
     // Reset studio: /reset matches /reset/update etc.
-    if (item.href === '/reset') {
+    if (itemPath === '/reset') {
       if (pathname.startsWith('/reset/')) {
         return true
       }
     }
 
-    // Member Projects: /projects matches /projects/[id]
-    if (item.href === '/projects') {
-      if (pathname.startsWith('/projects/')) {
-        return true
-      }
+    if (itemPath === '/tracking') {
+      return pathname.startsWith('/tracking/')
     }
+
+    if (itemPath === '/daily-paper') {
+      return pathname.startsWith('/daily-paper/')
+    }
+
+    if (itemPath === '/abundance-tracker') {
+      return pathname.startsWith('/abundance-tracker/')
+    }
+
+    if (itemPath === '/alignment-gym') {
+      return pathname.startsWith('/alignment-gym/')
+    }
+
   }
   
   return false

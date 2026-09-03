@@ -25,19 +25,23 @@ type Props = {
   onSuccess: () => void
 }
 
+// Styled via PayPal's style API to match the design-system Input (the inputs
+// live in PayPal-hosted iframes, out of reach of our CSS). Only documented
+// selectors/properties — exotic ones can make the SDK abort rendering.
 const cardFieldStyle = {
   input: {
     'font-size': '16px',
     'font-family': 'system-ui, sans-serif',
     color: '#FFFFFF',
     padding: '12px 16px',
+    background: '#404040',
+    border: '2px solid #666666',
+    'border-radius': '12px',
   },
   '.invalid': { color: '#FF0040' },
   ':focus': { color: '#FFFFFF' },
 }
 
-const fieldWrapperClass =
-  'bg-[#404040] rounded-xl border-2 border-[#666666] focus-within:border-[#39FF14] transition-colors min-h-[48px]'
 
 function SaveCardButton({
   onClose,
@@ -181,28 +185,20 @@ export default function PayPalAddCardForm({ isOpen, onClose, onSuccess }: Props)
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#E5E7EB] mb-1">Name on card</label>
-              <div className={fieldWrapperClass}>
-                <PayPalNameField />
-              </div>
+              <PayPalNameField placeholder="Name on card" />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#E5E7EB] mb-1">Card number</label>
-              <div className={fieldWrapperClass}>
-                <PayPalNumberField />
-              </div>
+              <PayPalNumberField placeholder="Card number" />
             </div>
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-medium text-[#E5E7EB] mb-1">Expiration</label>
-                <div className={fieldWrapperClass}>
-                  <PayPalExpiryField />
-                </div>
+                <PayPalExpiryField placeholder="MM / YY" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#E5E7EB] mb-1">CVV</label>
-                <div className={fieldWrapperClass}>
-                  <PayPalCVVField />
-                </div>
+                <PayPalCVVField placeholder="CVV" />
               </div>
             </div>
 

@@ -79,7 +79,7 @@ export function Header() {
 
   return (
     <header className={cn(
-      "z-[99999] bg-black/95 backdrop-blur-sm border-b border-neutral-800"
+      "sticky top-0 z-[99999] bg-black/95 backdrop-blur-sm border-b border-neutral-800"
     )}>
       <Container size="full" className="px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-between h-16 gap-4">

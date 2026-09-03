@@ -7,7 +7,7 @@ import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen, Layers } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen, Layers, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -43,6 +43,30 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
   const [entryId, setEntryId] = useState<string | null>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [attachedManifestations, setAttachedManifestations] = useState<
+    Array<{ assetId: string; manifestationId: string; name: string }>
+  >([])
+
+  const loadAttachedManifestations = async (id: string) => {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('manifestation_assets')
+      .select('id, manifestation_id, manifestations(name)')
+      .eq('slot', 'journal')
+      .eq('entity_id', id)
+    setAttachedManifestations(
+      (data || []).map((row: any) => ({
+        assetId: row.id,
+        manifestationId: row.manifestation_id,
+        name: row.manifestations?.name || 'Manifestation',
+      }))
+    )
+  }
+
+  const detachManifestation = async (assetId: string, manifestationId: string) => {
+    await fetch(`/api/manifestations/${manifestationId}/assets/${assetId}`, { method: 'DELETE' })
+    if (entryId) await loadAttachedManifestations(entryId)
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -71,6 +95,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
 
       setEntry(entryData)
       setLoading(false)
+      void loadAttachedManifestations(resolvedParams.id)
     }
 
     fetchData()
@@ -539,6 +564,36 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
               </section>
             )}
 
+            {/* Manifestations this entry documents */}
+            {attachedManifestations.length > 0 && (
+              <section className="space-y-4">
+                <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+                  Manifestations
+                </Text>
+                <div className="flex flex-wrap gap-2">
+                  {attachedManifestations.map(m => (
+                    <span
+                      key={m.assetId}
+                      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#BF00FF]/35 bg-[#BF00FF]/10 px-2 py-1 text-xs text-[#D46BFF]"
+                    >
+                      <Wand2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <Link href={`/manifestations/${m.manifestationId}`} className="truncate hover:underline">
+                        {m.name}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => detachManifestation(m.assetId, m.manifestationId)}
+                        className="shrink-0 text-[#D46BFF]/70 hover:text-white"
+                        title="Detach from this manifestation"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Journal entry content */}
             <section className="space-y-4">
               <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
@@ -749,7 +804,10 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
       {entry && (
         <AddToKitSheet
           isOpen={showAddToKit}
-          onClose={() => setShowAddToKit(false)}
+          onClose={() => {
+            setShowAddToKit(false)
+            if (entryId) void loadAttachedManifestations(entryId)
+          }}
           slot="journal"
           entityType="journal_entries"
           entityId={entry.id}

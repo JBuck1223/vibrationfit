@@ -91,7 +91,7 @@ export async function GET(
         .select('*', { count: 'exact', head: true })
         .eq('user_id', id),
       adminClient
-        .from('vision_board_items')
+        .from('manifestations')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', id),
       adminClient
