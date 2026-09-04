@@ -1,6 +1,6 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** September 2, 2026
+**Last Updated:** September 3, 2026
 **Purpose:** What's locked, what's fragile, and the constraints agents must respect. Feature details live in `docs/features/`; history lives in git.
 
 | Status | Agent action |
@@ -67,9 +67,10 @@ Source of truth: `supabase/COMPLETE_SCHEMA_DUMP.sql`. Auto-generated doc: `docs/
 ### 🚧 VIVA Conversational Coach
 Conversational brain: retrieve → Luna interpreter (theory of the moment + context selections) → Terra response → background memory/constraint extraction + embedding sync. Threads, compounding memory (`viva_memory_items`), semantic recall (pgvector `member_embeddings`), constraint ledger, in-app tool actions, opt-in household lens.
 In-thread modes (member-chosen, not a hidden classifier): Auto / Friend / Coach / Builder / Assistant. Mode shapes stance and tools. Persist `conversation_sessions.viva_mode`; log switches in `viva_mode_switches`; stamp `ai_conversations.context.selected_mode`. Stored mode key is `builder`.
-Schema: `conversation_sessions`, `ai_conversations`, `viva_memory_items`, `vibrational_constraints`, `member_embeddings`, `viva_mode_switches`. API: `/api/viva/coach`, `/api/viva/conversations`, `/api/viva/mode`, `/api/viva/constraints`. Lib: `src/lib/viva/coach-*.ts`, `modes.ts`, `memory-extractor.ts`, `embeddings.ts`, `household-lens.ts`. UI: `/viva`.
+Schema: `conversation_sessions`, `ai_conversations`, `viva_memory_items`, `vibrational_constraints`, `member_embeddings`, `viva_mode_switches`. API: `/api/viva/coach`, `/api/viva/conversations`, `/api/viva/mode`, `/api/viva/constraints`. Lib: `src/lib/viva/coach-*.ts`, `modes.ts`, `memory-extractor.ts`, `embeddings.ts`, `household-lens.ts`. UI: `/viva`. Chat chrome: `src/components/viva/VivaChatMessage.tsx` + `VivaChatInput.tsx`.
 
 - Memory extraction runs in-process via `after()` — do NOT reintroduce HTTP self-calls (the old empty-Cookie fetch silently failed every session)
+- Chat chrome is shared — user bubbles are VIVA purple (`accent`), never Electric Lime; do not invent a local bubble style
 - Do NOT reintroduce the five-mode detector or mandatory A.U.R.A. sequencing
 - Do NOT inject `vibrational_events` / `emotional_snapshots` into coach context (deprecated lens)
 - Preserve crisis safety behavior and no-medical/legal/financial-advice guardrails
@@ -88,14 +89,15 @@ VIVA flows: `add_manifestation` (desire detection + optional image, offer first)
 - Do NOT hook Daily Paper, MAP, or Travel in this slice
 
 ### 🚧 Activation Experience (public lead magnet)
-Public funnel: email capture creates a free account (`signup_source: 'activation'`, 100k trial-token grant) → Current State → VIVA reflection → Dream Layer → category confirmation → core written assets (Life I Choose vision, Future-Self Story, Incantation, SparkQuery, text-only manifestations) → text preview → "Enter My Activation" → Immersion screen with enrichment (vision audio, Mureka song, manifestation images) arriving async. Completion states: `activation_ready` (core assets) → `activation_entered` (primary metric) → `activation_enriched` (secondary). Doc: `docs/features/activation/README.md`.
-Schema: `activations` (owner-only RLS, realtime). API: `/api/activation/start`, `/api/activation/track`, `/api/activation/[id]` (+ `/reflect`, `/category`, `/generate`, `/enrich`). Lib: `src/lib/activation/*` (orchestrator, events). Prompts: `src/lib/viva/prompts/activation-experience-prompts.ts`. UI: `/activation`, `/activation/experience`, `/activation/[id]`.
+Public funnel: email capture creates a free account (`signup_source: 'activation'`, 100k trial-token grant) → orientation + **I am ready** → member picks one life category → bounded VIVA chat tailored to that area (same Conversational Intelligence brain as `/viva`, `gpt-5.6-terra`, no member history) → **Create My Activation** → Preview checklist (no text) → **Enter My Activation** (`opened`) → Immersion shows the writing; audio / song / images queue there → **I've Entered This Reality** (`entered`, north-star) → Offer + downloads. Doc: `docs/features/activation/README.md`.
+Schema: `activations` (owner-only RLS, `conversation` jsonb, `opened_at`, eval columns). API: `/api/activation/start`, `/api/activation/latest`, `/api/activation/track`, `/api/activation/[id]` (+ `/chat`, `/generate`, `/enrich`; `/reflect` and `/category` retired from the member path). Lib: `src/lib/activation/*`. Prompts: `src/lib/viva/prompts/activation-chat-prompts.ts` + `activation-experience-prompts.ts`. UI: `/activation`, `/activation/experience`, `/activation/[id]`. Admin inspector: `/admin/activation`.
 
-- Never block entry or the Immersion screen on audio/song/images — enrichment is per-asset (`asset_status` jsonb) and failure-tolerant
-- No commitment / 72-hour language anywhere in the public flow; the optional field is `inspired_next_step`
-- Existing-member emails must NOT be auto-logged-in at `/api/activation/start` — magic-link email only (account-takeover guard)
+- North-star: `activation_entered ÷ activation_started` where entered = Start Here complete, not the first Enter click
+- Never block Preview / Immersion / Offer on audio/song/images — enrichment is per-asset (`asset_status` jsonb) and failure-tolerant
+- No offer until `entered`. No commitment / 72-hour / MAP language; `inspired_next_step` is optional
+- Existing-member emails must NOT be auto-logged-in at `/api/activation/start` — branded magic-link only (account-takeover guard). `/auth/callback` must honor `/activation` `returnTo`
 - Assets live in the shared tables (`stories` entity_type `custom`, `songs`, `audio_sets`, `manifestations`) with `metadata.feature = 'activation'`
-- Funnel events go through `journey_events` (check constraint lists the allowed `activation_*` event types)
+- Funnel events go through `journey_events` with first-class `activation_id`; do not emit a journey event per chat turn
 
 ### 🚧 VIVA Vision Update (`/life-vision/update`)
 Two-pane VIVA-led Life Vision update: chat/speak about what changed (left), live editable draft with all categories (right). VIVA streams full-replacement category proposals inside `<<<VISION key>>> … <<<END VISION>>>` markers; the client routes them into that category's editor as accept/edit/discard proposals. Includes harmony ripple-effect suggestions across categories (ask first, propose on yes) and a per-category compare-to-active toggle. Doc: `docs/features/vision-update/README.md`.
@@ -103,6 +105,7 @@ API: `/api/viva/vision-update` (coach stream protocol). Prompts: `src/lib/viva/p
 
 - The endpoint never writes to the draft — accepted proposals save via existing `PATCH /api/vision/draft/update`
 - Uses the existing draft model unchanged (Life Vision Generation System stays LOCKED)
+- Chat chrome must use `VivaChatMessage` / `VivaChatInput` — same as `/viva`
 - Follow-on (not built yet): 90-day review cron + nudge card seeding this page with VIVA's observations
 
 ### 🚧 Activation Kit on Commit

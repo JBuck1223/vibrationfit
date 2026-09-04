@@ -10,8 +10,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { VivaMarkdown } from '@/components/viva/VivaMarkdown'
-import { MessageCopyButton } from '@/components/viva/MessageCopyButton'
+import { VivaAssistantMessage, VivaThinkingIndicator, VivaUserMessage } from '@/components/viva/VivaChatMessage'
 import {
   PanelLeft,
   Plus,
@@ -444,19 +443,15 @@ export default function VivaPage() {
               return (
                 <div key={message.id}>
                   {message.role === 'user' ? (
-                    <div className="flex flex-col items-end gap-1.5">
-                      <div className="max-w-[85%] rounded-2xl bg-neutral-900 border border-neutral-800 px-4 py-2.5 text-[15px] text-neutral-100 whitespace-pre-wrap leading-relaxed">
-                        {message.content}
-                      </div>
-                      {!hideCopy && <MessageCopyButton text={message.content} align="right" />}
-                    </div>
+                    <VivaUserMessage copyText={message.content} hideCopy={hideCopy}>
+                      {message.content}
+                    </VivaUserMessage>
                   ) : (
-                    <div className="space-y-2">
-                      <VivaMarkdown>{message.content}</VivaMarkdown>
-                      {!hideCopy && message.content.trim() && (
-                        <MessageCopyButton text={message.content} />
-                      )}
-                    </div>
+                    <VivaAssistantMessage
+                      markdown={message.content}
+                      copyText={message.content}
+                      hideCopy={hideCopy}
+                    />
                   )}
                 </div>
               )
@@ -468,14 +463,8 @@ export default function VivaPage() {
                   <p className="text-xs text-neutral-500 animate-pulse">
                     {indicators.map(i => i.detail).join('... ')}
                   </p>
-                ) : (
-                  <p className="text-xs text-neutral-500 animate-pulse">Here with you...</p>
-                )}
-                <div className="flex gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-600 animate-pulse" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-600 animate-pulse [animation-delay:150ms]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-600 animate-pulse [animation-delay:300ms]" />
-                </div>
+                ) : null}
+                <VivaThinkingIndicator label={indicators.length > 0 ? '' : 'Here with you'} />
               </div>
             )}
 

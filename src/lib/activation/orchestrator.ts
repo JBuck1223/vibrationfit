@@ -8,8 +8,8 @@
  *    + manifestation rows (text only, images arrive in enrichment)
  *
  *  runEnrichment  (slow, called by the Immersion screen — never blocks entry)
- *    vision audio (TTS) + personalized song (lyrics → Mureka submit)
- *    + manifestation images
+ *    spoken audio (separate Life I Choose + Future-Self Story TTS tracks)
+ *    + personalized song (lyrics → Mureka submit) + manifestation images
  *
  * Per-asset state lives in activations.asset_status:
  *   { [asset]: { state: 'pending'|'generating'|'ready'|'failed',
@@ -63,6 +63,11 @@ export interface AssetState {
   [key: string]: unknown
 }
 
+export type ActivationChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export type ActivationRow = {
   id: string
   user_id: string
@@ -84,6 +89,13 @@ export type ActivationRow = {
   asset_status: Record<string, AssetState>
   ready_at: string | null
   entered_at: string | null
+  opened_at?: string | null
+  conversation?: ActivationChatMessage[]
+  prompt_version?: string | null
+  intake_turn_count?: number
+  intake_ready_at?: string | null
+  needs_support?: boolean
+  resume_email_sent_at?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -171,6 +183,7 @@ async function runTextGeneration(params: {
   toolKey: string
   system: string
   prompt: string
+  promptVersion?: string | null
 }): Promise<string> {
   const toolConfig = await loadToolConfig(params.toolKey)
   const result = await generateText({
@@ -193,7 +206,7 @@ async function runTextGeneration(params: {
     provider: 'vercel_gateway',
     provider_request_id: gatewayGenerationId(result),
     success: true,
-    metadata: { feature: 'activation', activation_id: params.activationId },
+    metadata: { feature: 'activation', activation_id: params.activationId, prompt_version: params.promptVersion || null },
   }).catch((err) => console.error('[activation] token tracking failed:', err))
 
   return result.text || ''
@@ -272,6 +285,7 @@ export async function generateCoreAssets(
           category: activation.category,
           firstName: options?.firstName,
         }),
+        promptVersion: activation.prompt_version,
       })
       const vision = parseJsonBlock<VisionObject>(raw)
       if (!vision?.vision_statement) throw new Error('Vision generation returned an unexpected format')
@@ -351,6 +365,7 @@ export async function generateCoreAssets(
           toolKey: 'focus_story_generation',
           system: FOCUS_STORY_SYSTEM_PROMPT,
           prompt: buildCustomStoryPrompt(sourceContent, `My ${categoryLabel} Activation`),
+          promptVersion: activation.prompt_version,
         })
         if (!text.trim()) throw new Error('Story generation returned empty text')
         const story = await createFreshStoryRecord(supabase, {
@@ -398,6 +413,7 @@ export async function generateCoreAssets(
             sourceLabel: 'Activation Vision',
             framework: 'self',
           }),
+          promptVersion: activation.prompt_version,
         })
         const parsed = parseJsonBlock<{ text?: string; title?: string; variants?: Array<{ text: string }> }>(raw)
         const text = (parsed?.text || parsed?.variants?.[0]?.text || '').trim()
@@ -439,6 +455,7 @@ export async function generateCoreAssets(
             sourceContent,
             sourceLabel: 'Activation Vision',
           }),
+          promptVersion: activation.prompt_version,
         })
         const parsed = parseJsonBlock<{ title?: string; questions?: string[] }>(raw)
         const questions = (parsed?.questions || [])
@@ -502,30 +519,64 @@ export async function runEnrichment(
 
   const tasks: Array<Promise<void>> = []
 
-  // ---- Vision audio (TTS of the Future-Self Story + vision) ----
-  if (!isReady(activation, 'audio') && !isActivelyGenerating(activation, 'audio') && activation.story_id) {
+  // ---- Spoken audio: one TTS track per written asset, not a combined read-through ----
+  const AUDIO_SECTION_VISION = 'life_i_choose'
+  const AUDIO_SECTION_STORY = 'future_self_story'
+
+  if (!isActivelyGenerating(activation, 'audio') && (activation.vision_statement || activation.story_id)) {
     tasks.push((async () => {
-      await patchAssetStatus(supabase, activation, 'audio', { state: 'generating', started_at: now() })
       try {
-        const { data: story } = await supabase
-          .from('stories')
-          .select('id, content')
-          .eq('id', activation.story_id!)
-          .single()
-        if (!story?.content) throw new Error('Story content not found')
+        const { data: story } = activation.story_id
+          ? await supabase
+              .from('stories')
+              .select('id, content')
+              .eq('id', activation.story_id)
+              .single()
+          : { data: null }
 
-        const audioText = [activation.vision_statement, story.content].filter(Boolean).join('\n\n')
+        const desiredSections: Array<{ sectionKey: string; text: string }> = []
+        if (activation.vision_statement?.trim()) {
+          desiredSections.push({ sectionKey: AUDIO_SECTION_VISION, text: activation.vision_statement.trim() })
+        }
+        if (story?.content?.trim()) {
+          desiredSections.push({ sectionKey: AUDIO_SECTION_STORY, text: story.content.trim() })
+        }
+        if (desiredSections.length === 0) throw new Error('Nothing to narrate')
 
+        // Re-run even when asset_status.audio is 'ready' so older combined
+        // "activation" tracks get split into the two matching sections.
+        let existingKeys = new Set<string>()
+        if (activation.audio_set_id) {
+          const { data: existingTracks } = await supabase
+            .from('audio_tracks')
+            .select('section_key')
+            .eq('audio_set_id', activation.audio_set_id)
+            .eq('status', 'completed')
+          existingKeys = new Set((existingTracks || []).map((t) => t.section_key))
+        }
+        const missingSections = desiredSections.filter((s) => !existingKeys.has(s.sectionKey))
+        if (missingSections.length === 0) {
+          if (!isReady(activation, 'audio')) {
+            await patchAssetStatus(supabase, activation, 'audio', {
+              state: 'ready', error_message: null, finished_at: now(),
+            })
+          }
+          return
+        }
+
+        await patchAssetStatus(supabase, activation, 'audio', { state: 'generating', started_at: now() })
+
+        const contentId = story?.id || activation.id
         let audioSetId = activation.audio_set_id
         if (!audioSetId) {
           const { data: audioSet, error: setErr } = await supabase
             .from('audio_sets')
             .insert({
               user_id: userId,
-              content_type: 'story',
-              content_id: story.id,
+              content_type: story?.id ? 'story' : 'custom',
+              content_id: contentId,
               name: 'Activation Audio',
-              description: 'Guided audio of your Life I Choose vision and Future-Self Story',
+              description: 'Spoken Life I Choose and Future-Self Story as separate tracks',
               variant: 'standard',
               voice_id: 'nova',
               is_active: true,
@@ -540,34 +591,41 @@ export async function runEnrichment(
 
         const results = await generateAudioTracks({
           userId,
-          contentType: 'story',
-          contentId: story.id,
-          sections: [{ sectionKey: 'activation', text: audioText }],
+          contentType: story?.id ? 'story' : 'custom',
+          contentId,
+          sections: missingSections,
           voice: 'nova',
           format: 'mp3',
           audioSetId: audioSetId ?? undefined,
           audioSetName: 'Activation Audio',
           variant: 'standard',
         })
-        const result = results[0]
-        if (!result || result.status === 'failed') {
-          throw new Error(result?.error || 'Audio generation failed')
+        const failed = results.filter((r) => r.status === 'failed')
+        const ok = results.filter((r) => r.status !== 'failed')
+        if (ok.length === 0) {
+          throw new Error(failed[0]?.error || 'Audio generation failed')
         }
 
-        const { data: track } = await supabase
+        const { data: tracks } = await supabase
           .from('audio_tracks')
-          .select('id')
+          .select('id, section_key, audio_url')
           .eq('audio_set_id', audioSetId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        if (track) {
-          activation.audio_track_id = track.id
-          await supabase.from('activations').update({ audio_track_id: track.id }).eq('id', activation.id)
+          .eq('status', 'completed')
+        const visionTrack = (tracks || []).find((t) => t.section_key === AUDIO_SECTION_VISION)
+        if (visionTrack) {
+          activation.audio_track_id = visionTrack.id
+          await supabase.from('activations').update({ audio_track_id: visionTrack.id }).eq('id', activation.id)
+        }
+
+        if (failed.length > 0) {
+          throw new Error(failed.map((r) => r.error || r.sectionKey).join('; '))
         }
 
         await patchAssetStatus(supabase, activation, 'audio', {
-          state: 'ready', error_message: null, finished_at: now(), audio_url: result.audioUrl,
+          state: 'ready',
+          error_message: null,
+          finished_at: now(),
+          tracks: (tracks || []).map((t) => ({ section_key: t.section_key, audio_url: t.audio_url })),
         })
       } catch (err) {
         errors.push(`audio: ${err instanceof Error ? err.message : err}`)

@@ -36,8 +36,8 @@ export async function POST(
     if (!activation) return NextResponse.json({ error: 'Activation not found' }, { status: 404 })
 
     const row = activation as ActivationRow
-    if (!row.current_state?.trim() || !row.category) {
-      return NextResponse.json({ error: 'Complete the earlier steps first' }, { status: 400 })
+    if (!row.current_state?.trim() || !row.dream_response?.want?.trim() || !row.category) {
+      return NextResponse.json({ error: 'VIVA still needs a little more from your conversation' }, { status: 400 })
     }
 
     const wasReady = !!row.ready_at
@@ -51,6 +51,12 @@ export async function POST(
       result = await generateCoreAssets(supabase, row, { firstName })
     } catch (err) {
       const e = err as Error & { insufficientTokens?: boolean; status?: number }
+      await recordActivationEvent(createAdminClient(), {
+        eventType: 'activation_generate_failed',
+        activationId: row.id,
+        userId: user.id,
+        eventData: { message: e.message, insufficientTokens: !!e.insufficientTokens },
+      })
       if (e.insufficientTokens) {
         return NextResponse.json({ error: e.message, insufficientTokens: true }, { status: e.status || 402 })
       }

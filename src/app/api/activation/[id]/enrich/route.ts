@@ -35,7 +35,7 @@ export async function POST(
     if (!activation) return NextResponse.json({ error: 'Activation not found' }, { status: 404 })
 
     const row = activation as ActivationRow
-    if (!['ready', 'entered'].includes(row.status)) {
+    if (!['ready', 'opened', 'entered'].includes(row.status)) {
       return NextResponse.json({ error: 'Activation is not ready yet' }, { status: 409 })
     }
 

@@ -33,4 +33,5 @@ Schema source of truth: `supabase/COMPLETE_SCHEMA_DUMP.sql`. Never auto-update i
 - NEVER use "AI" in user-facing text — always "VIVA" (e.g. "VIVA Coach", "Powered by VIVA"). Technical names like `AIButton` may keep "AI".
 - Say "Actualize" not "Complete", "Vision" not "Goal", "Alignment" not "Progress"
 - "Above the Green Line" = aligned/success states; "Below the Green Line" = contrast/awareness
+- VIVA chat chrome is shared (`VivaUserMessage`, `VivaAssistantMessage`, `VivaChatInput`). User bubbles use VIVA purple (`accent`), never Electric Lime. See `.cursor/rules/viva-chat.mdc`.
 - NO emojis in code or UI text — use Lucide React icons (`lucide-react`)

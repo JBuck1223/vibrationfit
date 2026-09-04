@@ -1,18 +1,14 @@
 /**
  * Activation Experience — email capture + account + session.
  *
- * POST /api/activation/start  { email, firstName?, visitor_id?, session_id?, ... }
+ * New email  → create a free account, grant trial tokens, create/resume the
+ *              activation, sign this browser in, and send a branded resume email
+ *              with a separate magic link.
  *
- * New email  → creates a free account (signup_source: 'activation'), grants a
- *              one-time trial token allowance sized for one full Activation,
- *              creates the lead + activation row, and signs the browser in
- *              (magic-link token verified server-side, cookies set on this
- *              response). Returns { activationId }.
+ * Known email, matching session → resume the latest incomplete activation.
  *
- * Known email → NEVER auto-logs-in (that would let anyone hijack a member
- *              account by typing their email). If the browser already has a
- *              session for that email we just create the activation; otherwise
- *              we email a magic link and return { checkEmail: true }.
+ * Known email, no session → never auto-login. Create or resume the activation,
+ *              then email a branded magic link that includes the activation id.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -26,15 +22,45 @@ import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { triggerEvent } from '@/lib/messaging/events'
 import { recordActivationEvent } from '@/lib/activation/events'
 import { rateLimit } from '@/lib/rate-limit'
+import {
+  activationResumePath,
+  findLatestActivation,
+  findLatestIncompleteActivation,
+  sendActivationBegunEmail,
+  type ActivationResumeRow,
+} from '@/lib/activation/resume'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * One full Activation ≈ 36k tokens (reflection, vision, story, incantation,
- * SparkQuery, audio, song lyrics, ~3 images) — 100k gives regeneration
- * headroom while staying at ~10% of one Vision Pro month.
- */
 const ACTIVATION_TOKEN_GRANT = 100_000
+
+async function createActivationRow(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<ActivationResumeRow> {
+  const { data: activation, error } = await admin
+    .from('activations')
+    .insert({ user_id: userId, status: 'started' })
+    .select('id, status, entered_at, opened_at, ready_at, resume_email_sent_at')
+    .single()
+  if (error || !activation) {
+    throw new Error(error?.message || 'Could not start your activation')
+  }
+  return activation as ActivationResumeRow
+}
+
+async function resumeOrCreateActivation(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<{ activation: ActivationResumeRow; created: boolean }> {
+  const latest = await findLatestActivation(admin, userId)
+  if (latest?.status === 'entered') {
+    return { activation: latest, created: false }
+  }
+  const incomplete = await findLatestIncompleteActivation(admin, userId)
+  if (incomplete) return { activation: incomplete, created: false }
+  return { activation: await createActivationRow(admin, userId), created: true }
+}
 
 export async function POST(request: NextRequest) {
   const limited = await rateLimit(request, 'activation-start', 5)
@@ -43,7 +69,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Honeypot: bots fill the hidden "website" field
     if (typeof body.website === 'string' && body.website.trim()) {
       return NextResponse.json({ activationId: crypto.randomUUID() }, { status: 201 })
     }
@@ -59,10 +84,8 @@ export async function POST(request: NextRequest) {
 
     const admin = createAdminClient()
     const supabase = await createClient()
+    const origin = request.nextUrl.origin
 
-    // -------------------------------------------------------------------
-    // 1. Resolve the user: new account, existing session, or check-email
-    // -------------------------------------------------------------------
     const existingUserId = await getUserIdByEmail(admin, email)
     let userId: string
     let isNewUser = false
@@ -90,30 +113,41 @@ export async function POST(request: NextRequest) {
           source: 'activation_lead_magnet',
         }, admin)
       } catch (grantErr) {
-        // Don't fail signup; the generate step will surface an empty balance
         console.error('[activation/start] token grant failed:', grantErr)
       }
     } else {
-      // Existing account: only proceed silently when this browser already
-      // holds a session for that same user.
       const { data: { user: sessionUser } } = await supabase.auth.getUser()
       if (sessionUser?.id === existingUserId) {
         userId = existingUserId
       } else {
-        await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            shouldCreateUser: false,
-            emailRedirectTo: `${request.nextUrl.origin}/activation/experience`,
-          },
-        })
-        return NextResponse.json({ checkEmail: true }, { status: 200 })
+        // Account-takeover guard: create/resume, then email. Never auto-login.
+        const { activation, created } = await resumeOrCreateActivation(admin, existingUserId)
+        if (created) {
+          await recordActivationEvent(admin, {
+            eventType: 'activation_started',
+            activationId: activation.id,
+            userId: existingUserId,
+            visitorId: body.visitor_id || null,
+            sessionId: body.session_id || null,
+            eventData: { is_new_user: false, resumed: false },
+          })
+        }
+        try {
+          await sendActivationBegunEmail({
+            admin,
+            origin,
+            email,
+            firstName,
+            userId: existingUserId,
+            activation,
+          })
+        } catch (emailErr) {
+          console.error('[activation/start] resume email failed:', emailErr)
+        }
+        return NextResponse.json({ checkEmail: true, activationId: activation.id }, { status: 200 })
       }
     }
 
-    // -------------------------------------------------------------------
-    // 2. Lead + funnel events (new users only get a fresh lead row)
-    // -------------------------------------------------------------------
     let leadId: string | null = null
     if (isNewUser) {
       const { data: lead, error: leadErr } = await admin
@@ -144,14 +178,6 @@ export async function POST(request: NextRequest) {
         leadId = lead.id
       }
 
-      await recordActivationEvent(admin, {
-        eventType: 'activation_started',
-        userId,
-        leadId,
-        visitorId: body.visitor_id || null,
-        sessionId: body.session_id || null,
-        eventData: { is_new_user: true },
-      })
       await admin.from('journey_events').insert({
         event_type: 'email_captured',
         user_id: userId,
@@ -180,32 +206,21 @@ export async function POST(request: NextRequest) {
         name: firstName || undefined,
         leadType: 'activation',
       }).catch((err) => console.error('[activation/start] triggerEvent error:', err))
-    } else {
+    }
+
+    const { activation, created } = await resumeOrCreateActivation(admin, userId)
+    if (created) {
       await recordActivationEvent(admin, {
         eventType: 'activation_started',
+        activationId: activation.id,
         userId,
+        leadId,
         visitorId: body.visitor_id || null,
         sessionId: body.session_id || null,
-        eventData: { is_new_user: false },
+        eventData: { is_new_user: isNewUser },
       })
     }
 
-    // -------------------------------------------------------------------
-    // 3. Create the activation row
-    // -------------------------------------------------------------------
-    const { data: activation, error: activationErr } = await admin
-      .from('activations')
-      .insert({ user_id: userId, status: 'started' })
-      .select('id')
-      .single()
-    if (activationErr || !activation) {
-      console.error('[activation/start] activation insert failed:', activationErr)
-      return NextResponse.json({ error: 'Could not start your activation' }, { status: 500 })
-    }
-
-    // -------------------------------------------------------------------
-    // 4. New accounts only: sign this browser in (cookies set on response)
-    // -------------------------------------------------------------------
     if (isNewUser) {
       const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
         type: 'magiclink',
@@ -226,7 +241,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ activationId: activation.id, isNewUser }, { status: 201 })
+    try {
+      await sendActivationBegunEmail({
+        admin,
+        origin,
+        email,
+        firstName,
+        userId,
+        activation,
+      })
+    } catch (emailErr) {
+      console.error('[activation/start] resume email failed:', emailErr)
+    }
+
+    return NextResponse.json({
+      activationId: activation.id,
+      isNewUser,
+      status: activation.status,
+      resumePath: activationResumePath(activation),
+    }, { status: created ? 201 : 200 })
   } catch (error) {
     console.error('[activation/start] error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

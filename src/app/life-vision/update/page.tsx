@@ -23,6 +23,7 @@ import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionS
 import { useLifeVisionStudioAreaChrome } from '@/components/life-vision-studio/useLifeVisionStudioAreaChrome'
 import { VivaChatInput } from '@/components/viva/VivaChatInput'
 import { VivaMarkdown } from '@/components/viva/VivaMarkdown'
+import { VivaThinkingIndicator, VivaUserMessage } from '@/components/viva/VivaChatMessage'
 import { readCoachStream, CoachStreamError } from '@/lib/viva/coach-stream'
 import {
   parseVisionUpdateMessage,
@@ -494,11 +495,9 @@ export default function VisionUpdatePage() {
           {messages.map((message, i) => {
             if (message.role === 'user') {
               return (
-                <div key={i} className="flex justify-end">
-                  <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md border border-[#39FF14]/20 bg-gradient-to-br from-[#39FF14]/15 to-[#39FF14]/[0.04] px-4 py-2.5 text-[15px] text-neutral-100">
-                    {message.content}
-                  </div>
-                </div>
+                <VivaUserMessage key={i} hideCopy>
+                  {message.content}
+                </VivaUserMessage>
               )
             }
             const parsed = parseVisionUpdateMessage(message.content)
@@ -509,14 +508,7 @@ export default function VisionUpdatePage() {
                   {parsed.chatText ? (
                     <VivaMarkdown>{parsed.chatText}</VivaMarkdown>
                   ) : isLast && isStreaming ? (
-                    <span className="inline-flex items-center gap-2 text-sm text-neutral-500">
-                      <span className="inline-flex gap-1">
-                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#BF00FF] [animation-delay:0ms]" />
-                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#BF00FF] [animation-delay:150ms]" />
-                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#BF00FF] [animation-delay:300ms]" />
-                      </span>
-                      Here with you
-                    </span>
+                    <VivaThinkingIndicator />
                   ) : null}
                   {parsed.proposals.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">

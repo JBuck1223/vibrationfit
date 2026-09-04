@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { recordActivationEvent } from '@/lib/activation/events'
 
 function getAdminClient() {
   return createSupabaseAdmin(
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
   const returnTo = requestUrl.searchParams.get('returnTo')
   const origin = requestUrl.origin
   const defaultRedirect = returnTo && returnTo.startsWith('/') ? `${origin}${returnTo}` : `${origin}/dashboard`
+  const isActivationReturn = !!returnTo && returnTo.startsWith('/activation')
 
   const supabase = await createClient()
 
@@ -25,11 +27,27 @@ export async function GET(request: Request) {
     ? `${origin}/auth/setup-password?returnTo=${encodeURIComponent(returnTo)}`
     : `${origin}/auth/setup-password`
 
+  async function honorActivationReturn(userId?: string | null) {
+    if (!isActivationReturn || !returnTo) return null
+    if (userId) {
+      const idMatch = returnTo.match(/[?&]id=([0-9a-f-]{36})/i) || returnTo.match(/\/activation\/([0-9a-f-]{36})/i)
+      await recordActivationEvent(getAdminClient(), {
+        eventType: 'activation_resumed',
+        userId,
+        activationId: idMatch?.[1] || null,
+        eventData: { return_to: returnTo },
+      })
+    }
+    return NextResponse.redirect(`${origin}${returnTo}`)
+  }
+
   // Handle PKCE code exchange (standard flow)
   if (code) {
     await supabase.auth.exchangeCodeForSession(code)
 
     const { data: { user } } = await supabase.auth.getUser()
+    const activationRedirect = await honorActivationReturn(user?.id)
+    if (activationRedirect) return activationRedirect
 
     if (user) {
       const needsPassword = user.user_metadata?.has_password !== true
@@ -68,6 +86,9 @@ export async function GET(request: Request) {
       console.error('Magic link verification failed:', error)
       return NextResponse.redirect(`${origin}/auth/login`)
     }
+
+    const activationRedirect = await honorActivationReturn(data.user?.id)
+    if (activationRedirect) return activationRedirect
 
     if (data.user) {
       const needsPassword = data.user.user_metadata?.has_password !== true

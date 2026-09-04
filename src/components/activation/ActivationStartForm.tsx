@@ -12,19 +12,28 @@ import { useRouter } from 'next/navigation'
 import { ArrowRight, Mail } from 'lucide-react'
 import { useTracking } from '@/components/TrackingProvider'
 import { trackConversion } from '@/lib/tracking/pixels'
+import { ACTIVATION_COPY } from '@/lib/activation/copy'
 
-export function ActivationStartForm() {
+export function ActivationStartForm({
+  previewState,
+  previewEmail,
+}: {
+  previewState?: 'form' | 'check-email'
+  previewEmail?: string
+} = {}) {
   const router = useRouter()
   const { visitorId, sessionId } = useTracking()
+  const copy = ACTIVATION_COPY.startForm
 
   const [firstName, setFirstName] = useState('')
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(previewEmail || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [checkEmail, setCheckEmail] = useState(false)
+  const [checkEmail, setCheckEmail] = useState(previewState === 'check-email')
 
   async function handleStart(e: React.FormEvent) {
     e.preventDefault()
+    if (previewState) return
     setLoading(true)
     setError(null)
 
@@ -52,7 +61,7 @@ export function ActivationStartForm() {
       if (data.isNewUser && data.activationId) {
         trackConversion('lead', { content_name: 'activation', event_id: data.activationId })
       }
-      router.push(`/activation/experience?id=${data.activationId}`)
+      router.push(data.resumePath || `/activation/experience?id=${data.activationId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setLoading(false)
@@ -63,11 +72,10 @@ export function ActivationStartForm() {
     return (
       <div className="mx-auto mt-10 w-full max-w-md rounded-2xl border-2 border-[#00FFFF]/30 bg-[#101010] p-6 text-center md:p-8">
         <Mail className="mx-auto mb-3 h-8 w-8 text-[#00FFFF]" />
-        <h3 className="mb-2 text-lg font-bold text-white">Check your email</h3>
+        <h3 className="mb-2 text-lg font-bold text-white">{copy.checkEmailTitle}</h3>
         <p className="text-sm leading-relaxed text-neutral-400">
-          You already have a Vibration Fit account, so we sent a secure sign-in link
-          to <span className="text-white">{email}</span>. Open it on this device to
-          continue your Activation.
+          {copy.checkEmailBefore}{' '}
+          <span className="text-white">{email}</span>. {copy.checkEmailAfter}
         </p>
       </div>
     )
@@ -90,7 +98,7 @@ export function ActivationStartForm() {
           <input
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="First name"
+            placeholder={copy.firstNamePlaceholder}
             required
             className="w-full rounded-xl border-2 border-[#222] bg-[#0D0D0D] px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-[#39FF14] focus:outline-none"
           />
@@ -98,7 +106,7 @@ export function ActivationStartForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={copy.emailPlaceholder}
             required
             className="w-full rounded-xl border-2 border-[#222] bg-[#0D0D0D] px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-[#39FF14] focus:outline-none"
           />
@@ -110,12 +118,12 @@ export function ActivationStartForm() {
             disabled={loading || !firstName || !email}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-transparent bg-[#39FF14] px-6 py-3 text-sm font-semibold text-black transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? 'Setting up your space...' : 'Create My Free Activation'}
+            {loading ? copy.submitting : copy.submit}
             {!loading && <ArrowRight className="h-4 w-4" />}
           </button>
 
           <p className="text-center text-xs text-neutral-500">
-            No credit card required. Takes 10–15 minutes. Your information stays private.
+            {copy.footer}
           </p>
         </div>
       </div>

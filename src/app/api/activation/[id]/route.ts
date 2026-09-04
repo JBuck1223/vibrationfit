@@ -6,17 +6,17 @@
  *                               asset state (Mureka completes via the songs
  *                               poll endpoint) and records activation_enriched
  *                               once when every enrichment asset is terminal.
- * PATCH /api/activation/[id]  — autosave wizard inputs and record the two
- *                               explicit user moments: entering the Activation
- *                               and saving an inspired next step.
+ * PATCH /api/activation/[id]  — persist intake fields and the explicit user
+ *                               moments: orient, open, enter, inspired step.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordActivationEvent } from '@/lib/activation/events'
-import type { ActivationRow, AssetState } from '@/lib/activation/orchestrator'
-import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+import type { ActivationChatMessage, ActivationRow, AssetState } from '@/lib/activation/orchestrator'
+import { LIFE_CATEGORY_KEYS, getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
+import { ACTIVATION_COPY } from '@/lib/activation/copy'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,8 +58,8 @@ export async function GET(
         ? supabase.from('songs').select('id, title, lyrics, status, metadata').eq('id', activation.song_id).maybeSingle()
         : Promise.resolve({ data: null }),
       activation.audio_set_id
-        ? supabase.from('audio_tracks').select('id, audio_url, duration_seconds').eq('audio_set_id', activation.audio_set_id).order('created_at', { ascending: false }).limit(1).maybeSingle()
-        : Promise.resolve({ data: null }),
+        ? supabase.from('audio_tracks').select('id, audio_url, duration_seconds, section_key').eq('audio_set_id', activation.audio_set_id).eq('status', 'completed').order('created_at', { ascending: true })
+        : Promise.resolve({ data: [] as any[] }),
       (activation.manifestation_ids || []).length
         ? supabase.from('manifestations').select('id, name, description, image_url, categories').in('id', activation.manifestation_ids)
         : Promise.resolve({ data: [] as any[] }),
@@ -67,17 +67,27 @@ export async function GET(
 
     const stories = storiesRes.data || []
     const song = songRes.data as { id: string; title: string; lyrics: string; status: string; metadata: Record<string, unknown> } | null
-    const audioTrack = trackRes.data as { id: string; audio_url: string; duration_seconds: number } | null
+    const audioTracks = (trackRes.data || []) as Array<{
+      id: string; audio_url: string; duration_seconds: number; section_key: string
+    }>
     const manifestations = boardRes.data || []
 
     let songTracks: Array<{ id: string; audio_url: string; cover_url: string | null; title: string | null }> = []
-    if (song?.status === 'completed') {
+    if (song && (song.status === 'completed' || song.status === 'generating_music')) {
       const { data } = await supabase
         .from('song_tracks')
-        .select('id, audio_url, cover_url, title')
+        .select('id, mp3_url, cover_url, title')
         .eq('song_id', song.id)
+        .not('mp3_url', 'is', null)
         .order('created_at', { ascending: true })
-      songTracks = data || []
+      songTracks = (data || [])
+        .filter((t): t is typeof t & { mp3_url: string } => !!t.mp3_url)
+        .map((t) => ({
+          id: t.id,
+          audio_url: t.mp3_url,
+          cover_url: t.cover_url,
+          title: t.title,
+        }))
     }
 
     // ---- Lazy sync: song asset state follows the songs row ----
@@ -121,7 +131,7 @@ export async function GET(
         incantation: stories.find((s) => s.id === activation.incantation_id) || null,
         sparkQuery: stories.find((s) => s.id === activation.spark_query_id) || null,
         song: song ? { ...song, tracks: songTracks } : null,
-        audioTrack,
+        audioTracks,
         manifestations,
       },
     })
@@ -131,7 +141,12 @@ export async function GET(
   }
 }
 
-const WIZARD_STATUSES = ['started', 'current_state', 'dream', 'category_confirmed'] as const
+const WIZARD_STATUSES = ['started', 'oriented', 'current_state', 'dream', 'category_confirmed'] as const
+
+function openingMessage(firstName: string | null | undefined, category: string): ActivationChatMessage {
+  const label = getVisionCategoryLabel(category as VisionCategoryKey)
+  return { role: 'assistant', content: ACTIVATION_COPY.chat.opening(firstName, label) }
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -141,7 +156,7 @@ export async function PATCH(
     const { id } = await params
     const loaded = await loadOwnedActivation(id)
     if ('error' in loaded) return loaded.error
-    const { supabase, activation } = loaded
+    const { supabase, user, activation } = loaded
 
     const body = await request.json()
     const updates: Record<string, unknown> = {}
@@ -169,12 +184,10 @@ export async function PATCH(
       })
     }
     if (typeof body.status === 'string') {
-      // The wizard may only move through its own statuses; ready/entered are
-      // set by the generate route and the enter action below.
       if (!(WIZARD_STATUSES as readonly string[]).includes(body.status)) {
         return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
       }
-      if (!['ready', 'entered', 'generating'].includes(activation.status)) {
+      if (!['ready', 'opened', 'entered', 'generating'].includes(activation.status)) {
         updates.status = body.status
         if (body.status === 'category_confirmed' && activation.status !== 'category_confirmed') {
           await recordActivationEvent(admin, {
@@ -187,10 +200,63 @@ export async function PATCH(
       }
     }
 
-    // "Enter My Activation" — the primary conversion event of the free experience
+    if (body.action === 'orient' && ['started', 'current_state', 'dream'].includes(activation.status)) {
+      updates.status = 'oriented'
+      await recordActivationEvent(admin, {
+        eventType: 'activation_oriented',
+        activationId: activation.id,
+        userId: activation.user_id,
+      })
+    }
+
+    if (body.action === 'choose_category') {
+      const chosen = typeof body.category === 'string' ? body.category : ''
+      if (!(LIFE_CATEGORY_KEYS as readonly string[]).includes(chosen)) {
+        return NextResponse.json({ error: 'Choose a life category' }, { status: 400 })
+      }
+      if (['ready', 'opened', 'entered', 'generating'].includes(activation.status)) {
+        return NextResponse.json({ error: 'This Activation is already past intake' }, { status: 409 })
+      }
+      updates.category = chosen
+      if (activation.status === 'oriented' || activation.status === 'started') {
+        updates.status = 'oriented'
+      }
+      const existing = Array.isArray(activation.conversation) ? activation.conversation : []
+      const userHasSpoken = existing.some((m) => m.role === 'user')
+      if (!userHasSpoken) {
+        const firstName =
+          (user.user_metadata?.first_name as string | undefined) ||
+          (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ||
+          null
+        updates.conversation = [openingMessage(firstName, chosen)]
+      }
+      if (activation.category !== chosen) {
+        await recordActivationEvent(admin, {
+          eventType: 'category_confirmed',
+          activationId: activation.id,
+          userId: activation.user_id,
+          eventData: { category: chosen, source: 'member_pick' },
+        })
+      }
+    }
+
+    // Enter My Activation — Preview → Immersion. Not the north-star.
+    if (body.action === 'open' && !activation.opened_at && ['ready', 'opened'].includes(activation.status)) {
+      updates.status = 'opened'
+      updates.opened_at = new Date().toISOString()
+      await recordActivationEvent(admin, {
+        eventType: 'activation_opened',
+        activationId: activation.id,
+        userId: activation.user_id,
+        eventData: { category: activation.category },
+      })
+    }
+
+    // I've Entered This Reality — after Start Here. North-star metric.
     if (body.action === 'enter' && !activation.entered_at) {
       updates.status = 'entered'
       updates.entered_at = new Date().toISOString()
+      if (!activation.opened_at) updates.opened_at = new Date().toISOString()
       await recordActivationEvent(admin, {
         eventType: 'activation_entered',
         activationId: activation.id,
