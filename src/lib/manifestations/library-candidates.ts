@@ -171,6 +171,7 @@ export async function findLibraryCandidates(
         .order('created_at', { ascending: false })
         .limit(40)
       for (const row of data || []) {
+        if (opts.kitId && row.id === opts.kitId) continue
         if (!includeItem({
           wanted: categories,
           query,

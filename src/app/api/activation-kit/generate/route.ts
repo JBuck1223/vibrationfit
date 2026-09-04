@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { runActivationKit, type KitRunRow, type KitSettings } from '@/lib/activation-kit/orchestrator'
+import { runActivationKit, sanitizeBoardSuggestions, type KitRunRow, type KitSettings } from '@/lib/activation-kit/orchestrator'
 import { kitToSettings } from '@/lib/activation-kit/kits'
 
 // Voice TTS for a full vision + images can take a while
@@ -73,6 +73,9 @@ export async function POST(request: NextRequest) {
         ...(baseSettings || kitToSettings({})),
         ...(inlineSettings || {}),
       }
+      if (inlineSettings && 'board_suggestions' in inlineSettings) {
+        settings.board_suggestions = sanitizeBoardSuggestions(inlineSettings.board_suggestions)
+      }
       if (!settings.include_voice && !settings.include_mix && !settings.include_board) {
         return NextResponse.json({ error: 'Select at least one asset to generate' }, { status: 400 })
       }
@@ -88,7 +91,17 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .maybeSingle()
 
-      if (existing) {
+      const incomingPicks = Array.isArray(inlineSettings?.board_suggestions)
+        ? sanitizeBoardSuggestions(inlineSettings?.board_suggestions)
+        : null
+      const existingPicks = (existing as KitRunRow | null)?.settings?.board_suggestions
+      const boardPicksDiffer = Boolean(
+        existing
+        && incomingPicks
+        && JSON.stringify(incomingPicks) !== JSON.stringify(existingPicks || []),
+      )
+
+      if (existing && !boardPicksDiffer) {
         run = existing as KitRunRow
       } else {
         const { data: created, error: createErr } = await supabase

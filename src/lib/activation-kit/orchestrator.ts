@@ -11,8 +11,10 @@
  *            concatenated via Lambda afterwards.
  *   mix    — voice tracks + background/binaural per the kit's saved preset,
  *            mixed by the audio-mixer Lambda (async; sync via syncKitRunStatus).
- *   board  — one manifestation (title/description/image) distilled per refined
- *            life category, landing on the member's board at /manifestations.
+ *   board  — manifestations the member picked from VIVA's scene list in the
+ *            kit dialog (title/description/image). Lands on /manifestations.
+ *            Older runs without board_suggestions still distill one scene per
+ *            refined (or first few) life category.
  *
  * Per-asset state lives in activation_kit_runs.asset_status:
  *   { [voice|mix|board]: { state: 'pending'|'generating'|'ready'|'failed',
@@ -58,11 +60,40 @@ export interface KitSettings {
   /** OpenAI voice or composite "voice__vibe" (see voice-vibes.ts) */
   voice_id: string
   background_track_id: string | null
+  /** Additional background tracks — each becomes its own mix in the same run. */
+  extra_background_track_ids: string[]
   voice_volume: number
   bg_volume: number
   binaural_track_id: string | null
   binaural_volume: number
   mix_output_format: 'individual' | 'combined' | 'both'
+  /** Scenes the member picked in the kit dialog. Empty = skip board. */
+  board_suggestions?: KitBoardSuggestion[]
+}
+
+export interface KitBoardSuggestion {
+  id: string
+  category: string
+  title: string
+  description: string
+  image_prompt?: string
+}
+
+export interface MixBatchRef {
+  batch_id: string
+  audio_set_id?: string | null
+  background_track_id: string
+}
+
+/** Unique background tracks to mix: primary first, then extras. */
+export function mixBackgroundTrackIds(settings: KitSettings): string[] {
+  const extras = Array.isArray(settings.extra_background_track_ids)
+    ? settings.extra_background_track_ids
+    : []
+  const ids = [settings.background_track_id, ...extras].filter(
+    (id): id is string => typeof id === 'string' && id.length > 0,
+  )
+  return [...new Set(ids)]
 }
 
 export interface KitAssetState {
@@ -287,9 +318,30 @@ export async function runActivationKit(
     !isActivelyGenerating(run, 'mix') &&
     isReady(run, 'voice')
   ) {
-    await patchAssetStatus(supabase, run, 'mix', { state: 'generating', started_at: now() })
+    await patchAssetStatus(supabase, run, 'mix', { state: 'generating', started_at: now(), batches: [] })
     try {
-      await startMixGeneration(supabase, run, sections)
+      const trackIds = mixBackgroundTrackIds(settings)
+      if (trackIds.length === 0) throw new Error('No background track selected for this kit')
+
+      const startErrors: string[] = []
+      for (const trackId of trackIds) {
+        try {
+          await startMixGeneration(supabase, run, sections, trackId)
+        } catch (err) {
+          startErrors.push(err instanceof Error ? err.message : String(err))
+        }
+      }
+
+      const batches = (run.asset_status?.mix?.batches as MixBatchRef[] | undefined) || []
+      if (batches.length === 0) {
+        throw new Error(startErrors[0] || 'Failed to start any mixes')
+      }
+      if (startErrors.length > 0) {
+        errors.push(...startErrors.map((msg) => `mix: ${msg}`))
+        await patchAssetStatus(supabase, run, 'mix', {
+          error_message: `${startErrors.length} of ${trackIds.length} mix(es) failed to start`,
+        })
+      }
       // Stays 'generating' — the audio-mixer Lambda finishes async;
       // syncKitRunStatus flips this to 'ready' from the batch/track state.
     } catch (err) {
@@ -327,17 +379,14 @@ async function startMixGeneration(
   supabase: SupabaseClient,
   run: KitRunRow,
   sections: Array<{ sectionKey: string; text: string }>,
+  backgroundTrackId: string,
 ): Promise<void> {
   const settings = run.settings
-
-  if (!settings.background_track_id) {
-    throw new Error('No background track selected for this kit')
-  }
 
   const { data: bgTrack } = await supabase
     .from('audio_background_tracks')
     .select('id, display_name, file_url')
-    .eq('id', settings.background_track_id)
+    .eq('id', backgroundTrackId)
     .single()
   if (!bgTrack?.file_url) throw new Error('Background track not found')
 
@@ -396,9 +445,15 @@ async function startMixGeneration(
     .single()
   if (batchError || !batch) throw batchError || new Error('Failed to create mix batch')
 
-  run.mix_batch_id = batch.id
-  await supabase.from('activation_kit_runs').update({ mix_batch_id: batch.id }).eq('id', run.id)
-  await patchAssetStatus(supabase, run, 'mix', { batch_id: batch.id })
+  if (!run.mix_batch_id) {
+    run.mix_batch_id = batch.id
+    await supabase.from('activation_kit_runs').update({ mix_batch_id: batch.id }).eq('id', run.id)
+  }
+  const startedBatches: MixBatchRef[] = [
+    ...(((run.asset_status?.mix?.batches as MixBatchRef[] | undefined) || [])),
+    { batch_id: batch.id, background_track_id: bgTrack.id },
+  ]
+  await patchAssetStatus(supabase, run, 'mix', { batches: startedBatches, batch_id: run.mix_batch_id })
 
   // Descriptive set name (mirrors generate-custom-mix)
   const parsedVoice = parseVoiceId(settings.voice_id)
@@ -448,11 +503,18 @@ async function startMixGeneration(
     .single()
   if (!audioSetData?.id) throw new Error('Mix audio set not found after generation')
 
-  run.mix_audio_set_id = audioSetData.id
-  await supabase
-    .from('activation_kit_runs')
-    .update({ mix_audio_set_id: audioSetData.id })
-    .eq('id', run.id)
+  if (!run.mix_audio_set_id) {
+    run.mix_audio_set_id = audioSetData.id
+    await supabase
+      .from('activation_kit_runs')
+      .update({ mix_audio_set_id: audioSetData.id })
+      .eq('id', run.id)
+  }
+
+  const batches: MixBatchRef[] = ((run.asset_status?.mix?.batches as MixBatchRef[] | undefined) || []).map((ref) =>
+    ref.batch_id === batch.id ? { ...ref, audio_set_id: audioSetData.id } : ref,
+  )
+  await patchAssetStatus(supabase, run, 'mix', { batches, batch_id: run.mix_batch_id })
 
   // Collect completed tracks for the Lambda
   const lambdaSections: Array<{ trackId: string; voiceUrl: string; outputKey: string; sectionKey: string }> = []
@@ -568,7 +630,29 @@ async function startMixGeneration(
 // Board — one manifestation per refined life category
 // ---------------------------------------------------------------------------
 
-const MAX_BOARD_MANIFESTATIONS = 4
+export const MAX_BOARD_MANIFESTATIONS = 8
+
+export function sanitizeBoardSuggestions(raw: unknown, max = MAX_BOARD_MANIFESTATIONS): KitBoardSuggestion[] {
+  if (!Array.isArray(raw)) return []
+  const life = new Set(LIFE_CATEGORY_KEYS as readonly string[])
+  const out: KitBoardSuggestion[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const s = item as Record<string, unknown>
+    const title = typeof s.title === 'string' ? s.title.trim() : ''
+    if (!title) continue
+    const category = typeof s.category === 'string' && life.has(s.category) ? s.category : 'work'
+    out.push({
+      id: typeof s.id === 'string' && s.id.trim() ? s.id.trim() : `${category}-${out.length}`,
+      category,
+      title: title.slice(0, 120),
+      description: typeof s.description === 'string' ? s.description.trim().slice(0, 800) : '',
+      image_prompt: typeof s.image_prompt === 'string' ? s.image_prompt.trim().slice(0, 1200) : undefined,
+    })
+    if (out.length >= max) break
+  }
+  return out
+}
 
 async function loadKitToolConfig(): Promise<AIToolConfig> {
   try {
@@ -599,21 +683,27 @@ async function generateBoardManifestations(
   run: KitRunRow,
   vision: VisionRow,
 ): Promise<number> {
-  // Refined life categories first; for a first vision (no refinements) take
-  // the first few life categories with text.
+  const picked = (run.settings.board_suggestions || []).filter((s) => s?.title?.trim())
+  if (Array.isArray(run.settings.board_suggestions)) {
+    if (picked.length === 0) return 0
+    return createBoardItemsFromSuggestions(
+      supabase,
+      run,
+      picked.slice(0, MAX_BOARD_MANIFESTATIONS),
+    )
+  }
+
+  // Legacy runs: one distillation per refined (or first few) life category
   const lifeKeys = LIFE_CATEGORY_KEYS as readonly string[]
   const refined = (vision.refined_categories || []).filter(
     (key) => lifeKeys.includes(key) && (vision[key] || '').trim(),
   )
   const fallback = lifeKeys.filter((key) => (vision[key] || '').trim()).slice(0, 3)
   const categories = (refined.length > 0 ? refined : fallback).slice(0, MAX_BOARD_MANIFESTATIONS)
-
   if (categories.length === 0) return 0
 
   const toolConfig = await loadKitToolConfig()
-  let created = 0
-  let failures = 0
-
+  const distilled: KitBoardSuggestion[] = []
   for (const categoryKey of categories) {
     try {
       const label = getVisionCategoryLabel(categoryKey as VisionCategoryKey)
@@ -643,13 +733,38 @@ async function generateBoardManifestations(
 
       const parsed = parseJsonBlock<{ title?: string; description?: string; image_prompt?: string }>(result.text || '')
       if (!parsed?.title?.trim()) throw new Error('Manifestation distillation returned an unexpected format')
+      distilled.push({
+        id: categoryKey,
+        category: categoryKey,
+        title: parsed.title.trim(),
+        description: (parsed.description || '').trim(),
+        image_prompt: parsed.image_prompt?.trim(),
+      })
+    } catch (err) {
+      console.error(`[activation-kit] board distillation failed (${categoryKey}):`, err)
+    }
+  }
 
+  return createBoardItemsFromSuggestions(supabase, run, distilled)
+}
+
+async function createBoardItemsFromSuggestions(
+  supabase: SupabaseClient,
+  run: KitRunRow,
+  suggestions: KitBoardSuggestion[],
+): Promise<number> {
+  let created = 0
+  let failures = 0
+
+  for (const suggestion of suggestions) {
+    try {
+      const categoryKey = suggestion.category || 'work'
       const { data: item, error: insertErr } = await supabase
         .from('manifestations')
         .insert({
           user_id: run.user_id,
-          name: parsed.title.trim(),
-          description: (parsed.description || '').trim() || null,
+          name: suggestion.title.trim(),
+          description: (suggestion.description || '').trim() || null,
           categories: [categoryKey],
           status: 'active',
         })
@@ -665,7 +780,7 @@ async function generateBoardManifestations(
 
       const image = await generateImage({
         userId: run.user_id,
-        prompt: parsed.image_prompt?.trim() || `${parsed.title}. ${parsed.description || ''}`,
+        prompt: suggestion.image_prompt?.trim() || `${suggestion.title}. ${suggestion.description || ''}`,
         dimension: 'landscape_4_3',
         quality: 'standard',
         style: 'vivid',
@@ -681,7 +796,7 @@ async function generateBoardManifestations(
       created++
     } catch (err) {
       failures++
-      console.error(`[activation-kit] board manifestation failed (${categoryKey}):`, err)
+      console.error(`[activation-kit] board manifestation failed (${suggestion.title}):`, err)
     }
   }
 
@@ -701,25 +816,52 @@ export async function syncKitRunStatus(
 ): Promise<KitRunRow> {
   const mixState = run.asset_status?.mix?.state
 
-  if (mixState === 'generating' && run.mix_batch_id) {
-    const { data: batch } = await supabase
-      .from('audio_generation_batches')
-      .select('status, error_message')
-      .eq('id', run.mix_batch_id)
-      .maybeSingle()
+  if (mixState === 'generating') {
+    const recorded = (run.asset_status?.mix?.batches as MixBatchRef[] | undefined) || []
+    const batchIds = [
+      ...recorded.map((b) => b.batch_id),
+      ...(run.mix_batch_id ? [run.mix_batch_id] : []),
+    ].filter((id, i, all) => id && all.indexOf(id) === i)
 
-    if (batch?.status === 'completed' || batch?.status === 'partial_success') {
-      await patchAssetStatus(supabase, run, 'mix', {
-        state: 'ready',
-        error_message: batch.status === 'partial_success' ? 'Some sections failed to mix' : null,
-        finished_at: new Date().toISOString(),
-      })
-      await updateOverallStatus(supabase, run)
-    } else if (batch?.status === 'failed') {
-      await patchAssetStatus(
-        supabase, run, 'mix',
-        markFailure(run.asset_status?.mix, new Error(batch.error_message || 'Mix failed')),
-      )
+    if (batchIds.length === 0) {
+      if (!isActivelyGenerating(run, 'mix')) {
+        await patchAssetStatus(
+          supabase, run, 'mix',
+          markFailure(run.asset_status?.mix, new Error('Mix timed out')),
+        )
+        await updateOverallStatus(supabase, run)
+      }
+      return run
+    }
+
+    const { data: batchRows } = await supabase
+      .from('audio_generation_batches')
+      .select('id, status, error_message')
+      .in('id', batchIds)
+
+    const rows = batchRows || []
+    const terminal = (status: string | null | undefined) =>
+      status === 'completed' || status === 'partial_success' || status === 'failed'
+    const allTerminal = batchIds.every((id) => terminal(rows.find((r) => r.id === id)?.status))
+
+    if (allTerminal) {
+      const failed = rows.filter((r) => r.status === 'failed')
+      const partial = rows.filter((r) => r.status === 'partial_success')
+      if (failed.length === rows.length) {
+        await patchAssetStatus(
+          supabase, run, 'mix',
+          markFailure(run.asset_status?.mix, new Error(failed[0]?.error_message || 'Mix failed')),
+        )
+      } else {
+        const notes: string[] = []
+        if (failed.length > 0) notes.push(`${failed.length} of ${rows.length} mix(es) failed`)
+        if (partial.length > 0) notes.push('Some sections failed to mix')
+        await patchAssetStatus(supabase, run, 'mix', {
+          state: 'ready',
+          error_message: notes.join(' — ') || null,
+          finished_at: new Date().toISOString(),
+        })
+      }
       await updateOverallStatus(supabase, run)
     } else if (!isActivelyGenerating(run, 'mix')) {
       // Stale: Lambda never reported back

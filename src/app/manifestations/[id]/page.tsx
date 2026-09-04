@@ -19,12 +19,21 @@ import Link from 'next/link'
 import { colors } from '@/lib/design-system/tokens'
 import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 import { AddExistingToKitModal } from '@/components/manifestations-studio/AddExistingToKitModal'
-import { GatherFromLibrary } from '@/components/manifestations-studio/GatherFromLibrary'
+import { GatherFromLibrary, type GatherPinResult } from '@/components/manifestations-studio/GatherFromLibrary'
 import { EssenceSection, type EssenceVersion } from '@/components/manifestations-studio/EssenceSection'
 import { BrainDumpOrganizer } from '@/components/manifestations-studio/BrainDumpOrganizer'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
 import { keys } from '@/lib/query/keys'
-import { SLOT_LABELS, assetLink, type KitSlot, type Manifestation, type ManifestationAsset } from '@/lib/manifestations/types'
+import { toast } from 'sonner'
+import {
+  DESTINATION_META,
+  SLOT_DESTINATIONS,
+  SLOT_LABELS,
+  assetLink,
+  type KitSlot,
+  type Manifestation,
+  type ManifestationAsset,
+} from '@/lib/manifestations/types'
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -57,6 +66,14 @@ interface JournalEntryRow {
   journal_tag: string | null
 }
 
+interface AbundanceEventRow {
+  id: string
+  note: string | null
+  date: string
+  vision_category: string | null
+  amount: number | null
+}
+
 interface AssetRowData extends ManifestationAsset {
   label?: string | null
 }
@@ -65,6 +82,7 @@ interface ManifestationDetail {
   manifestation: Manifestation
   assets: AssetRowData[]
   journal_entries: JournalEntryRow[]
+  abundance_events: AbundanceEventRow[]
   activations_this_week: number
   activations_since_opened: number
   projects: ActionGroup[]
@@ -143,6 +161,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
   const [stepDrafts, setStepDrafts] = useState<Record<string, string>>({})
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [showGather, setShowGather] = useState(false)
+  const [distillSignal, setDistillSignal] = useState(0)
   const editParamAppliedRef = useRef(false)
 
   // Hydrate the edit form whenever fresh data lands and we're not mid-edit
@@ -169,10 +188,38 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     router.replace(`/manifestations/${item.id}`, { scroll: false })
   }, [item, router])
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: keys.manifestationKit(id) })
-    queryClient.invalidateQueries({ queryKey: keys.manifestationKits })
-    queryClient.invalidateQueries({ queryKey: keys.visionBoardCount })
+  const refresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.manifestationKit(id) }),
+      queryClient.invalidateQueries({ queryKey: keys.manifestationKits }),
+      queryClient.invalidateQueries({ queryKey: keys.visionBoardCount }),
+    ])
+  }
+
+  const handleGathered = async (result: GatherPinResult) => {
+    setShowGather(false)
+    const destTitles = result.destinations.map(d => DESTINATION_META[d].title)
+    const uniqueTitles = Array.from(new Set(destTitles))
+    const extra = result.failed > 0 ? ` (${result.failed} skipped)` : ''
+    toast.success(
+      uniqueTitles.length > 0
+        ? `Added ${result.pinned} to ${uniqueTitles.join(', ')}${extra}`
+        : `Added ${result.pinned} to this manifestation${extra}`,
+    )
+    await refresh()
+    if (result.destinations.includes('essence') || result.destinations.includes('journey')) {
+      setDistillSignal(n => n + 1)
+    }
+    const scrollTo = result.destinations.includes('journey')
+      ? 'the-journey'
+      : result.destinations.includes('living')
+        ? 'living-it'
+        : result.destinations.includes('action')
+          ? 'inspired-action'
+          : 'the-essence'
+    requestAnimationFrame(() => {
+      document.getElementById(scrollTo)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }
 
   const journalAssetByEntryId = useMemo(() => {
@@ -183,8 +230,72 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     return map
   }, [data])
 
-  const otherAssets = useMemo(
-    () => (data?.assets || []).filter(a => a.slot !== 'journal' && a.slot !== 'project'),
+  const abundanceAssetByEventId = useMemo(() => {
+    const map = new Map<string, AssetRowData>()
+    for (const asset of data?.assets || []) {
+      if (asset.slot === 'abundance' && asset.entity_id) map.set(asset.entity_id, asset)
+    }
+    return map
+  }, [data])
+
+  const journeyItems = useMemo(() => {
+    const items: Array<{
+      key: string
+      date: string
+      kind: 'journal' | 'abundance' | 'asset'
+      title: string
+      body?: string | null
+      meta?: string
+      href: string
+      asset?: AssetRowData
+    }> = []
+
+    for (const entry of data?.journal_entries || []) {
+      const asset = journalAssetByEntryId.get(entry.id)
+      items.push({
+        key: `journal-${entry.id}`,
+        date: entry.date,
+        kind: 'journal',
+        title: entry.title || 'Untitled entry',
+        body: entry.content,
+        meta: entry.journal_tag || 'Journal',
+        href: `/journal/${entry.id}`,
+        asset,
+      })
+    }
+
+    for (const event of data?.abundance_events || []) {
+      const asset = abundanceAssetByEventId.get(event.id)
+      items.push({
+        key: `abundance-${event.id}`,
+        date: event.date,
+        kind: 'abundance',
+        title: event.note || 'Abundance',
+        meta: event.amount != null ? `Abundance · ${event.amount}` : 'Abundance',
+        href: '/abundance-tracker',
+        asset,
+      })
+    }
+
+    for (const asset of data?.assets || []) {
+      if (SLOT_DESTINATIONS[asset.slot as KitSlot] !== 'journey') continue
+      if (asset.slot === 'journal' || asset.slot === 'abundance') continue
+      items.push({
+        key: `asset-${asset.id}`,
+        date: asset.created_at,
+        kind: 'asset',
+        title: asset.label || SLOT_LABELS[asset.slot as KitSlot] || asset.slot,
+        meta: SLOT_LABELS[asset.slot as KitSlot],
+        href: assetLink(asset.slot as KitSlot, asset.entity_id, asset.handoff_path),
+        asset,
+      })
+    }
+
+    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [data, journalAssetByEntryId, abundanceAssetByEventId])
+
+  const livingAssets = useMemo(
+    () => (data?.assets || []).filter(a => SLOT_DESTINATIONS[a.slot as KitSlot] === 'living'),
     [data],
   )
 
@@ -991,14 +1102,13 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                 const groups = data?.projects || []
                 const totalSteps = groups.reduce((n, g) => n + (g.project_tasks?.length || 0), 0)
                 const doneSteps = groups.reduce((n, g) => n + (g.project_tasks || []).filter(t => t.is_complete).length, 0)
-                const journeyCount = data?.journal_entries?.length || 0
                 const days = Math.max(1, Math.round((Date.now() - new Date(item.created_at).getTime()) / 86400000))
                 const stats: Array<{ label: string; value: string; accent?: string }> = [
                   item.status === 'actualized' && item.actualized_at
                     ? { label: 'Actualized', value: new Date(item.actualized_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }), accent: 'text-purple-400' }
                     : { label: 'Days manifesting', value: String(days) },
                   { label: 'Inspired actions', value: totalSteps > 0 ? `${doneSteps}/${totalSteps}` : '—', accent: doneSteps > 0 ? 'text-[#39FF14]' : undefined },
-                  { label: 'Journey entries', value: journeyCount > 0 ? String(journeyCount) : '—' },
+                  { label: 'Journey entries', value: journeyItems.length > 0 ? String(journeyItems.length) : '—' },
                   { label: 'Showed up this week', value: String(data?.activations_this_week ?? 0), accent: (data?.activations_this_week ?? 0) > 0 ? 'text-[#39FF14]' : undefined },
                 ]
                 return (
@@ -1022,7 +1132,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                     </div>
                     <div>
                       <h3 className="text-base font-semibold text-white">Work this with VIVA</h3>
-                      <p className="text-xs text-neutral-400">Seed it from what you already have, or keep building it in conversation</p>
+                      <p className="text-xs text-neutral-400">Bring in what you already made — it lands on The Journey, Living it, and The Essence</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1043,7 +1153,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                     kitId={item.id}
                     categories={item.categories || []}
                     query={item.name}
-                    onPinned={() => { setShowGather(false); refresh() }}
+                    onPinned={handleGathered}
                   />
                 )}
               </section>
@@ -1056,11 +1166,45 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                 versions={data?.essence_versions || []}
                 onSaved={refresh}
                 onEdit={() => setIsEditing(true)}
+                distillSignal={distillSignal}
               />
 
+              {livingAssets.length > 0 && (
+                <section id="living-it" className="space-y-4">
+                  <SectionHeader
+                    icon={Layers}
+                    title="Living it"
+                    subtitle="Stories, songs, and related desires already woven into this reality"
+                  />
+                  <div className="space-y-2">
+                    {livingAssets.map(asset => {
+                      const href = assetLink(asset.slot as KitSlot, asset.entity_id, asset.handoff_path)
+                      return (
+                        <div key={asset.id} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#161616] px-4 py-3">
+                          <Link href={href} className="flex-1 min-w-0 hover:text-white">
+                            <p className="text-sm text-white truncate">{asset.label || SLOT_LABELS[asset.slot as KitSlot] || asset.slot}</p>
+                            <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-500">{SLOT_LABELS[asset.slot as KitSlot]}</p>
+                          </Link>
+                          <Link href={href} className="text-neutral-500 hover:text-white">
+                            <ArrowUpRight className="h-4 w-4" />
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => unlinkAsset(asset.id)}
+                            className="text-neutral-500 hover:text-white"
+                            title="Remove from this manifestation"
+                          >
+                            <Unlink className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
 
               {/* Inspired Action Steps */}
-              <section className="space-y-4">
+              <section id="inspired-action" className="space-y-4">
                 <SectionHeader
                   icon={ListChecks}
                   title="Inspired Action Steps"
@@ -1201,11 +1345,11 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
               </section>
 
               {/* The Journey */}
-              <section className="space-y-4">
+              <section id="the-journey" className="space-y-4">
                 <SectionHeader
                   icon={BookOpen}
                   title="The Journey"
-                  subtitle="Journal entries documenting clarity and steps toward this manifestation"
+                  subtitle="Journal, wins, and evidence of becoming this — gathered here or written along the way"
                   action={
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" size="sm" onClick={() => setShowAttachJournal(true)}>
@@ -1219,45 +1363,42 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                     </div>
                   }
                 />
-                {(data?.journal_entries || []).length === 0 ? (
-                  <p className="text-sm text-neutral-500">No entries yet. Document the journey — VIVA can capture clarity from your conversations here too.</p>
+                {journeyItems.length === 0 ? (
+                  <p className="text-sm text-neutral-500">Nothing on The Journey yet. Gather from what you have, or write an entry — VIVA can capture clarity from your conversations here too.</p>
                 ) : (
                   <div className="relative pl-5 space-y-4 before:absolute before:left-1.5 before:top-1 before:bottom-1 before:w-px before:bg-[#2A2A2A]">
-                    {(data?.journal_entries || []).map(entry => {
-                      const asset = journalAssetByEntryId.get(entry.id)
-                      return (
-                        <div key={entry.id} className="relative">
-                          <span className="absolute -left-5 top-1.5 w-3 h-3 rounded-full border-2 border-[#39FF14] bg-[#101010]" />
-                          <div className="rounded-xl border border-[#282828] bg-[#161616] px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <Link href={`/journal/${entry.id}`} className="flex-1 min-w-0 group">
-                                <p className="text-sm font-medium text-white truncate group-hover:text-[#39FF14]">{entry.title || 'Untitled entry'}</p>
-                                <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-500">
-                                  {new Date(entry.date).toLocaleDateString()}
-                                  {entry.journal_tag ? ` · ${entry.journal_tag}` : ''}
-                                </p>
-                              </Link>
-                              <Link href={`/journal/${entry.id}`} className="text-neutral-500 hover:text-white shrink-0">
-                                <ArrowUpRight className="h-4 w-4" />
-                              </Link>
-                              {asset && (
-                                <button
-                                  type="button"
-                                  onClick={() => unlinkAsset(asset.id)}
-                                  className="text-neutral-500 hover:text-white shrink-0"
-                                  title="Detach from this manifestation"
-                                >
-                                  <Unlink className="h-4 w-4" />
-                                </button>
-                              )}
-                            </div>
-                            {entry.content && (
-                              <p className="mt-1.5 text-sm text-neutral-400 line-clamp-2">{entry.content}</p>
+                    {journeyItems.map(itemRow => (
+                      <div key={itemRow.key} className="relative">
+                        <span className="absolute -left-5 top-1.5 w-3 h-3 rounded-full border-2 border-[#39FF14] bg-[#101010]" />
+                        <div className="rounded-xl border border-[#282828] bg-[#161616] px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <Link href={itemRow.href} className="flex-1 min-w-0 group">
+                              <p className="text-sm font-medium text-white truncate group-hover:text-[#39FF14]">{itemRow.title}</p>
+                              <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-500">
+                                {new Date(itemRow.date).toLocaleDateString()}
+                                {itemRow.meta ? ` · ${itemRow.meta}` : ''}
+                              </p>
+                            </Link>
+                            <Link href={itemRow.href} className="text-neutral-500 hover:text-white shrink-0">
+                              <ArrowUpRight className="h-4 w-4" />
+                            </Link>
+                            {itemRow.asset && (
+                              <button
+                                type="button"
+                                onClick={() => unlinkAsset(itemRow.asset!.id)}
+                                className="text-neutral-500 hover:text-white shrink-0"
+                                title="Detach from this manifestation"
+                              >
+                                <Unlink className="h-4 w-4" />
+                              </button>
                             )}
                           </div>
+                          {itemRow.body && (
+                            <p className="mt-1.5 text-sm text-neutral-400 line-clamp-2">{itemRow.body}</p>
+                          )}
                         </div>
-                      )
-                    })}
+                      </div>
+                    ))}
                   </div>
                 )}
               </section>
@@ -1273,37 +1414,6 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                   ) : (
                     <p className="text-sm text-neutral-500">Add the story of how this became real — edit this manifestation to capture it.</p>
                   )}
-                </section>
-              )}
-
-              {/* Other pinned assets */}
-              {otherAssets.length > 0 && (
-                <section className="space-y-4">
-                  <SectionHeader icon={Layers} title="Pinned" subtitle="Stories, songs, and other pieces of this reality" />
-                  <div className="space-y-2">
-                    {otherAssets.map(asset => {
-                      const href = assetLink(asset.slot as KitSlot, asset.entity_id, asset.handoff_path)
-                      return (
-                        <div key={asset.id} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#161616] px-4 py-3">
-                          <Link href={href} className="flex-1 min-w-0 hover:text-white">
-                            <p className="text-sm text-white truncate">{asset.label || SLOT_LABELS[asset.slot as KitSlot] || asset.slot}</p>
-                            <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-500">{SLOT_LABELS[asset.slot as KitSlot]}</p>
-                          </Link>
-                          <Link href={href} className="text-neutral-500 hover:text-white">
-                            <ArrowUpRight className="h-4 w-4" />
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => unlinkAsset(asset.id)}
-                            className="text-neutral-500 hover:text-white"
-                            title="Remove from this manifestation"
-                          >
-                            <Unlink className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
                 </section>
               )}
 

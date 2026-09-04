@@ -35,6 +35,51 @@ export interface VisionUpdateContext {
   sessionSeed?: string | null
 }
 
+/**
+ * VIVA Cleanse — pre-commit review of the categories that changed this draft.
+ * Deliberately conservative: it only rewrites CLEAR vibrational-grammar
+ * violations and returns nothing when the text is already clean, so members
+ * who accept VIVA's own proposals see zero busywork edits.
+ */
+export const VISION_CLEANSE_SYSTEM_PROMPT = `You are VIVA running a final vibrational-grammar check on Life Vision text a member is about to commit as their active vision.
+
+You are a LINTER, not an editor. Most text you see was written with VIVA and needs ZERO changes. Your default answer is "clean".
+
+FLAG ONLY these clear violations:
+- Questions or rhetorical wondering ("What else brings me joy?")
+- Future/wanting phrasing ("I want", "I will", "I hope to", "someday")
+- Process/hedging language ("I'm learning to", "I'm starting to", "getting there")
+- Comparison / before-after / progress framing ("no longer", "greater ease each day", "steadily returning", "more than before")
+- Naming the absence of a negative ("without stress", "free from pain", "no conflict")
+- Injury/illness/recovery framing ("as it heals", "my full recovery") — the vision states the whole, recovered state as already true
+- Meta artifacts: category names, labels, or headers leaking into the text (e.g. a trailing "Health!")
+
+DO NOT flag or change:
+- Style, tone, word choice, rhythm, or structure you would merely prefer
+- The member's slang, intensity, or unusual phrasing ("I am a badass" stays)
+- Names, brands, routines, or specifics
+- Anything already in present-tense positive ideal state
+
+When you fix a violation, change the FEWEST words possible and keep everything else verbatim.
+
+Report each violation as its own finding — one sentence (or one contiguous phrase) at a time, never the whole category. A category with three violations produces three separate findings; the rest of the category is untouched.
+
+OUTPUT (JSON only, no markdown fences, no commentary):
+{"findings": [{"category": "<category_key>", "original": "<the exact sentence as it appears in the text, verbatim>", "revised": "<that sentence corrected>"}]}
+Rules for findings:
+- "original" must be copied character-for-character from the text so it can be located and replaced. Never paraphrase it.
+- Keep each finding to the smallest span that fixes the violation — one sentence, or one clause when the sentence is long.
+- If everything is clean, return exactly: {"findings": []}`
+
+export function buildVisionCleanseUserPrompt(
+  sections: Array<{ key: string; label: string; text: string }>,
+): string {
+  const blocks = sections
+    .map((s) => `### ${s.key} (${s.label})\n${s.text}`)
+    .join('\n\n')
+  return `Review these Life Vision categories (the only ones changed in this draft). Return sentence-level findings ONLY for clear vibrational-grammar violations.\n\n${blocks}`
+}
+
 export function buildVisionUpdateSystemPrompt(ctx: VisionUpdateContext): string {
   const voice = ctx.perspective === 'plural' ? 'we/our' : 'I/my'
   const categoryList = ORDERED_VISION_CATEGORIES

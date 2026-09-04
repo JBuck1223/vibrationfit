@@ -32,10 +32,15 @@ export interface AudioSetOption {
 }
 
 /** Optional page-level copy merged into `LifeVisionAreaBar` (replaces former PageHero).
- * The area title itself never changes — pages may only adjust the eyebrow/context text. */
+ * The area title itself never changes — pages may only adjust the eyebrow/context text
+ * and (on Update) the Walkthrough toggle. */
 export interface LifeVisionStudioAreaChrome {
   contextEyebrow?: string
   contextText?: string
+  walkthrough?: {
+    active: boolean
+    onToggle: () => void
+  }
 }
 
 interface LifeVisionStudioContextValue {

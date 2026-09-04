@@ -52,6 +52,46 @@ const STATUS_OPTIONS = [
   { value: 'inactive', label: 'Inactive', color: 'neutral' },
 ]
 
+const BOARD_FILTERS_STORAGE_KEY = 'vf-manifestations-board-filters'
+const VALID_BOARD_STATUSES = new Set(['all', 'active', 'actualized', 'inactive'])
+
+type PersistedBoardFilters = {
+  categories: string[]
+  statuses: string[]
+  showFilters: boolean
+  snapshotDate: string | null
+}
+
+function readPersistedBoardFilters(): PersistedBoardFilters | null {
+  try {
+    const raw = sessionStorage.getItem(BOARD_FILTERS_STORAGE_KEY)
+    if (!raw) return null
+    const saved = JSON.parse(raw) as Partial<PersistedBoardFilters>
+    if (!Array.isArray(saved.categories) || !saved.categories.every((c) => typeof c === 'string')) {
+      return null
+    }
+    if (
+      !Array.isArray(saved.statuses) ||
+      !saved.statuses.every((s) => typeof s === 'string' && VALID_BOARD_STATUSES.has(s))
+    ) {
+      return null
+    }
+    const snapshotDate =
+      saved.snapshotDate === null ||
+      (typeof saved.snapshotDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(saved.snapshotDate))
+        ? saved.snapshotDate ?? null
+        : null
+    return {
+      categories: saved.categories,
+      statuses: saved.statuses,
+      showFilters: saved.showFilters === true,
+      snapshotDate,
+    }
+  } catch {
+    return null
+  }
+}
+
 function VisionBoardPracticeStatsRow({
   practiceStats,
   statsExpanded,
@@ -243,7 +283,34 @@ export default function VisionBoardPage() {
   const [statusEvents, setStatusEvents] = useState<VisionBoardStatusEvent[]>([])
   const [snapshotLoading, setSnapshotLoading] = useState(false)
   const isSnapshotMode = snapshotDate !== null
-  
+  const [boardFiltersReady, setBoardFiltersReady] = useState(false)
+
+  useEffect(() => {
+    const saved = readPersistedBoardFilters()
+    if (saved) {
+      setSelectedCategories(saved.categories)
+      setSelectedStatuses(saved.statuses)
+      setShowFilters(saved.showFilters)
+      setSnapshotDate(saved.snapshotDate)
+    }
+    setBoardFiltersReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!boardFiltersReady) return
+    try {
+      const payload: PersistedBoardFilters = {
+        categories: selectedCategories,
+        statuses: selectedStatuses,
+        showFilters,
+        snapshotDate,
+      }
+      sessionStorage.setItem(BOARD_FILTERS_STORAGE_KEY, JSON.stringify(payload))
+    } catch {
+      // Ignore quota / private-mode failures
+    }
+  }, [boardFiltersReady, selectedCategories, selectedStatuses, showFilters, snapshotDate])
+
   // Use standardized delete functionality
   const {
     showDeleteConfirm,
