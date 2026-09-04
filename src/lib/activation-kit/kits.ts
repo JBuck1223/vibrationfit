@@ -20,9 +20,15 @@ export interface ActivationKitRow extends KitSettings {
 
 export const KIT_SETTINGS_FIELDS: Array<keyof KitSettings> = [
   'include_voice', 'include_mix', 'include_board', 'voice_id',
-  'background_track_id', 'voice_volume', 'bg_volume',
+  'background_track_id', 'extra_background_track_ids', 'voice_volume', 'bg_volume',
   'binaural_track_id', 'binaural_volume', 'mix_output_format',
 ]
+
+function extraBackgroundTrackIds(kit: Record<string, unknown>): string[] {
+  const raw = kit.extra_background_track_ids
+  if (!Array.isArray(raw)) return []
+  return [...new Set(raw.filter((id): id is string => typeof id === 'string' && id.length > 0))]
+}
 
 export function kitToSettings(kit: ActivationKitRow | Record<string, unknown>): KitSettings {
   return {
@@ -31,6 +37,7 @@ export function kitToSettings(kit: ActivationKitRow | Record<string, unknown>): 
     include_board: Boolean(kit.include_board),
     voice_id: String(kit.voice_id || 'nova'),
     background_track_id: (kit.background_track_id as string | null) || null,
+    extra_background_track_ids: extraBackgroundTrackIds(kit as Record<string, unknown>),
     voice_volume: Number(kit.voice_volume ?? 70),
     bg_volume: Number(kit.bg_volume ?? 30),
     binaural_track_id: (kit.binaural_track_id as string | null) || null,
@@ -74,7 +81,7 @@ export async function getOrSeedKits(
       .from('audio_background_tracks')
       .select('id')
       .eq('is_active', true)
-      .not('category', 'in', '("binaural","solfeggio_binaural")')
+      .not('category', 'in', '("binaural","solfeggio","solfeggio_binaural")')
       .order('sort_order', { ascending: true })
       .limit(1)
       .maybeSingle()

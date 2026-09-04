@@ -104,6 +104,51 @@ export const SLOT_LABELS: Record<KitSlot, string> = {
   project: 'Action group',
 }
 
+/** Where a gathered/pinned item lands on the manifestation page. */
+export type SlotDestination = 'essence' | 'journey' | 'living' | 'action'
+
+export const SLOT_DESTINATIONS: Record<KitSlot, SlotDestination> = {
+  vision_draft: 'essence',
+  journal: 'journey',
+  daily_paper: 'journey',
+  abundance: 'journey',
+  story: 'living',
+  incantation: 'living',
+  spark_query: 'living',
+  song: 'living',
+  voice: 'living',
+  mix: 'living',
+  vision_board: 'living',
+  dream_destination: 'living',
+  trip: 'living',
+  map_target: 'living',
+  map_commitment: 'living',
+  project: 'action',
+}
+
+export const DESTINATION_META: Record<SlotDestination, { title: string; hint: string; anchor: string }> = {
+  essence: {
+    title: 'The Essence',
+    hint: 'VIVA uses this language to name why you want it and what living it feels like.',
+    anchor: 'the-essence',
+  },
+  journey: {
+    title: 'The Journey',
+    hint: 'Evidence you are becoming this — journal, wins, Daily Papers.',
+    anchor: 'the-journey',
+  },
+  living: {
+    title: 'Living it',
+    hint: 'Stories, songs, and related desires that already belong to this reality.',
+    anchor: 'living-it',
+  },
+  action: {
+    title: 'Inspired Action',
+    hint: 'Projects become action groups with steps on this manifestation.',
+    anchor: 'inspired-action',
+  },
+}
+
 export const HANDOFF_SLOTS: Partial<Record<KitSlot, string>> = {
   voice: '/audio',
   mix: '/audio/mix',

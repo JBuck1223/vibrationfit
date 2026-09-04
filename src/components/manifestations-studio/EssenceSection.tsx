@@ -21,6 +21,8 @@ interface EssenceSectionProps {
   versions: EssenceVersion[]
   onSaved: () => void
   onEdit: () => void
+  /** Increment to ask VIVA to distill a new draft (e.g. after gathering). */
+  distillSignal?: number
 }
 
 interface Draft {
@@ -42,6 +44,7 @@ export function EssenceSection({
   versions,
   onSaved,
   onEdit,
+  distillSignal = 0,
 }: EssenceSectionProps) {
   const [distilling, setDistilling] = useState(false)
   const [autoDistilling, setAutoDistilling] = useState(false)
@@ -118,6 +121,14 @@ export function EssenceSection({
     }
   }
 
+  const lastDistillSignal = useRef(0)
+  useEffect(() => {
+    if (!distillSignal || distillSignal === lastDistillSignal.current) return
+    lastDistillSignal.current = distillSignal
+    void handleRefresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [distillSignal])
+
   const handleAccept = async () => {
     if (!draft || saving) return
     setSaving(true)
@@ -176,7 +187,7 @@ export function EssenceSection({
   )
 
   return (
-    <section className="space-y-4">
+    <section id="the-essence" className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#BF00FF]/15 shrink-0">
