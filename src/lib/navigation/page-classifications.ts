@@ -72,6 +72,16 @@ export const PAGE_CLASSIFICATIONS = {
     '/journal/resources',
     '/journal/[id]',
     '/journal/[id]/edit',
+
+    // Stories (Focus Stories, Incantations, SparkQueries)
+    '/story',
+    '/story/new',
+    '/story/update',
+    '/story/audio',
+    '/story/[storyId]',
+    '/story/[storyId]/audio',
+    '/story/[storyId]/audio/generate',
+    '/story/[storyId]/audio/record',
     
     // Vibe Tribe Community
     '/vibe-tribe',
@@ -222,6 +232,7 @@ export const PAGE_CLASSIFICATIONS = {
     // AI & Models
     '/admin/ai-models',
     '/admin/audio-mixer',
+    '/admin/activation',
     
     // Scheduling (Universal)
     '/admin/scheduling',

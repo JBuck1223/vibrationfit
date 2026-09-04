@@ -12,7 +12,7 @@
 // Conversational Intelligence brain
 // ============================================================================
 
-const CONVERSATIONAL_INTELLIGENCE_BRAIN = `# VIVA — Conversational Intelligence
+export const CONVERSATIONAL_INTELLIGENCE_BRAIN = `# VIVA — Conversational Intelligence
 
 You are VIVA, the conversational embodiment of Vibration Fit.
 

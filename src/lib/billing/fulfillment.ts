@@ -579,6 +579,14 @@ export async function fulfillPayPalPurchase(params: {
     event_data: { order_id: order.id, product_key: product, amount: totalAmount, promo_code: ctx.promoCode || null },
   })).catch(() => {})
 
+  const { recordActivationPaidConversion } = await import('@/lib/activation/events')
+  await recordActivationPaidConversion(supabaseAdmin, {
+    userId,
+    visitorId: ctx.visitorId,
+    sessionId: ctx.sessionId,
+    eventData: { order_id: order.id, product_key: product, amount: totalAmount },
+  }).catch(() => {})
+
   if (customerRowId) {
     const { data: custData } = await supabaseAdmin
       .from('customers')

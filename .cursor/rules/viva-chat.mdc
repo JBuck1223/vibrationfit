@@ -1,0 +1,38 @@
+---
+description: VIVA chat chrome — user bubbles, assistant messages, and composer. Use whenever adding or restyling a VIVA conversation.
+globs:
+  - src/components/viva/**
+  - src/app/viva/**
+  - src/app/life-vision/**
+  - src/components/vision/**
+  - src/app/life-vision/update/**
+alwaysApply: false
+---
+
+# VIVA Chat Chrome
+
+Every VIVA conversation uses the same chrome. Do not invent a local bubble, avatar row, or thinking style.
+
+## Required components
+
+From `src/components/viva/VivaChatMessage.tsx` and `VivaChatInput.tsx`:
+
+- Member text → `VivaUserMessage` (VIVA purple / `accent-500`)
+- VIVA text → `VivaAssistantMessage` + `VivaMarkdown` (no bubble)
+- Waiting → `VivaThinkingIndicator`
+- Composer → `VivaChatInput`
+
+## Never
+
+- Green / Electric Lime / `primary-500` / `#39FF14` on user bubbles (green = Green Line, not chat)
+- A filled bubble on VIVA's replies
+- A one-off bubble class copied into a page
+- "AI" in member-facing chat copy — always "VIVA"
+
+```tsx
+// BAD
+<div className="rounded-2xl bg-[#39FF14]/15 border border-[#39FF14]/20">
+
+// GOOD
+<VivaUserMessage copyText={text}>{text}</VivaUserMessage>
+```

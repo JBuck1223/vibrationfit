@@ -509,6 +509,7 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'VIVA Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure VIVA model settings' },
       { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across models' },
+      { name: 'Activation Inspector', href: '/admin/activation', icon: Sparkles, description: 'Preview and edit each Activation funnel step' },
     ]
   },
 

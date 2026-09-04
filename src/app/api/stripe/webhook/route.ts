@@ -2438,6 +2438,14 @@ export async function POST(request: NextRequest) {
           event_data: { order_id: order.id, product_key: product, amount: totalAmount, promo_code: promoCode },
         })).catch(() => {})
 
+        const { recordActivationPaidConversion } = await import('@/lib/activation/events')
+        await recordActivationPaidConversion(supabaseAdmin, {
+          userId,
+          visitorId,
+          sessionId,
+          eventData: { order_id: order.id, product_key: product, amount: totalAmount },
+        }).catch(() => {})
+
         if (customerRowId) {
           const { data: custData } = await supabaseAdmin.from('customers').select('total_orders, total_spent').eq('id', customerRowId).single()
           await Promise.resolve(supabaseAdmin
