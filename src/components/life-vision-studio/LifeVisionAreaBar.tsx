@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Info, Copy } from 'lucide-react'
+import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Info, Copy, Map } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
@@ -234,13 +234,7 @@ export function LifeVisionAreaBar() {
       }
     }
   } else if (isUpdatePage) {
-    // VIVA-led update page — manual wizard stays as the secondary path
-    contextNav = [
-      { label: 'Update Myself', path: '/life-vision/new/fun', icon: PenLine, isActive: false },
-      ...(draftId
-        ? [{ label: 'Review and Commit', path: `/life-vision/${draftId}/draft`, icon: CheckCircle, isActive: false }]
-        : []),
-    ]
+    // VIVA-led update page — chat + draft live on the page itself, no tabs
   } else if (isHousehold) {
     // Household workshop (convert/merge + empty state). Download PDF targets
     // the active household vision (else newest, else the personal active).
@@ -504,6 +498,22 @@ export function LifeVisionAreaBar() {
 
   const mergedContextEyebrow = studioAreaChrome?.contextEyebrow
   const mergedContextText = studioAreaChrome?.contextText ?? contextText
+  const walkthrough = studioAreaChrome?.walkthrough
+  const menuItems = walkthrough ? (
+    <button
+      type="button"
+      onClick={walkthrough.onToggle}
+      aria-pressed={walkthrough.active}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+        walkthrough.active
+          ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
+          : 'border-white/10 bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+      }`}
+    >
+      <Map className={`h-3.5 w-3.5 shrink-0 ${walkthrough.active ? 'text-primary-400' : ''}`} strokeWidth={2.25} />
+      Walkthrough
+    </button>
+  ) : undefined
 
   return (
     <AreaBar
@@ -514,6 +524,7 @@ export function LifeVisionAreaBar() {
       contextEyebrow={mergedContextEyebrow}
       contextText={mergedContextText}
       versionSelectors={versionSelectors}
+      menuItems={menuItems}
       keepTabActive={!isOnCreateSubPage}
       activeParentPath={isOnCreateSubPage ? '/life-vision/update' : undefined}
       variant="default"

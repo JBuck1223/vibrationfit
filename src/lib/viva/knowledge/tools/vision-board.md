@@ -23,7 +23,7 @@ One `manifestations` row per desire:
 
 - **Why you want it / What it feels like** — editable text owned by the manifestation, with a "Pull from my Life Vision" affordance that copies matching category language at that moment
 - **Inspired Action Steps** — action groups (projects) with nested steps (tasks), absorbed from the old Project Hub
-- **The Journey** — journal entries attached via `manifestation_assets` (slot `journal`); one entry can attach to many manifestations
+- **The Journey** — evidence of becoming this: journal entries, abundance wins, and Daily Papers attached via `manifestation_assets`. Stories, songs, Life Vision, and related desires land under **Living it**. One journal entry can attach to many manifestations. **Gather from what I have** finds matching library items and pins them into these sections.
 - **How It Manifested** — actualization story + evidence photo, shown when actualized
 
 ## Access Points

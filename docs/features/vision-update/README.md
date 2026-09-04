@@ -14,7 +14,13 @@ Two panes (side by side on desktop, tabbed on mobile):
 
 VIVA proposes full replacement text for a category and streams it into that category's editor as a highlighted proposal. The member can **accept** (saves to draft), **edit inline** before accepting, or **discard**. Nothing saves without an accept.
 
-A persistent **Commit as Active** button runs the existing commit flow and then opens the Activation Kit confirmation (see `docs/features/activation-kit/README.md`).
+A persistent **Commit as Active** button first offers an optional **VIVA Cleanse** — "Would you like VIVA to run a cleanse to ensure your Life Vision is written in vibrational grammar?" The cleanse (`POST /api/viva/vision-cleanse`) reviews only the categories changed from the active vision and acts as a strict linter: it returns corrections only for clear violations (questions, future/wanting, absence-naming, recovery framing, leaked labels) and returns nothing when the text is clean, so members who accepted VIVA's own proposals see zero busywork edits. Findings appear as a checklist in the dialog — each recommended change with its word diff and a checkbox (all checked by default); applying the selected ones saves them to the draft and continues straight into the commit flow and Activation Kit confirmation (see `docs/features/activation-kit/README.md`). A clean result or Skip proceeds there directly, and once a cleanse has run, Commit as Active skips the ask for the rest of the session.
+
+## Walkthrough
+
+A five-step spotlight tour auto-starts **once** on first visit (empty thread, `localStorage` key `vf-vision-update-tour` not yet `seen`). Later visits stay quiet. Skip, Finish, Escape, or turning the AreaBar **Walkthrough** pill off marks it seen. The same pill replays the tour anytime without clearing `seen`.
+
+Steps: chat pane → draft pane (purple = proposal, yellow = already updated in the draft) → an Example proposal (Accept/Discard advance the tour and do not save) → Edits / Draft / Active toggles → Commit as Active. Component: `src/components/life-vision/VisionUpdateTour.tsx`.
 
 ## Harmony recommendations
 
@@ -26,9 +32,11 @@ Because the endpoint sees the whole draft, the prompt instructs VIVA to flag rip
 |---|---|
 | Page | `src/app/life-vision/update/page.tsx` |
 | Streaming endpoint | `src/app/api/viva/vision-update/route.ts` |
+| Cleanse endpoint | `src/app/api/viva/vision-cleanse/route.ts` |
 | System prompt | `src/lib/viva/prompts/vision-update-prompts.ts` |
 | Stream parser | `src/lib/life-vision/vision-update-stream.ts` |
 | Entry point | `LifeVisionAreaBar` Update tab → `/life-vision/update` |
+| Walkthrough | `src/components/life-vision/VisionUpdateTour.tsx`; AreaBar Walkthrough pill via studio chrome |
 
 ### Stream protocol
 

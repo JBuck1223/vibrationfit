@@ -58,7 +58,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
         <div
           ref={ref}
           className={cn(
-            'bg-[#1F1F1F] border-2 border-[#333] rounded-2xl w-full relative',
+            'bg-[#1F1F1F] border-2 border-[#333] rounded-2xl w-full relative max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden',
             sizeClasses[size],
             className
           )}
@@ -67,7 +67,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
         >
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-6 border-b border-[#333]">
+            <div className="flex items-center justify-between p-6 border-b border-[#333] shrink-0">
               {title && (
                 <h2 className="text-xl font-semibold text-white">{title}</h2>
               )}
@@ -83,13 +83,13 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           )}
 
           {/* Content */}
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto min-h-0 flex-1">
             {children}
           </div>
 
           {/* Footer */}
           {footer && (
-            <div className="p-6 border-t border-[#333]">
+            <div className="p-6 border-t border-[#333] shrink-0">
               {footer}
             </div>
           )}

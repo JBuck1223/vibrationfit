@@ -66,19 +66,29 @@ export async function GET(
     const assets = assetsResult.data || []
     const labels = await resolveAssetLabels(supabase, assets)
 
-    // Journal entries linked to this manifestation, hydrated for The Journey
+    // Journal + abundance linked to this manifestation, hydrated for The Journey
     const journalIds = assets
       .filter(a => a.slot === 'journal' && a.entity_id)
       .map(a => a.entity_id as string)
-    let journalEntries: Array<Record<string, unknown>> = []
-    if (journalIds.length > 0) {
-      const { data: entries } = await supabase
-        .from('journal_entries')
-        .select('id, title, content, date, journal_tag, categories')
-        .in('id', journalIds)
-        .order('date', { ascending: false })
-      journalEntries = entries || []
-    }
+    const abundanceIds = assets
+      .filter(a => a.slot === 'abundance' && a.entity_id)
+      .map(a => a.entity_id as string)
+    const [journalResult, abundanceResult] = await Promise.all([
+      journalIds.length > 0
+        ? supabase
+            .from('journal_entries')
+            .select('id, title, content, date, journal_tag, categories')
+            .in('id', journalIds)
+            .order('date', { ascending: false })
+        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+      abundanceIds.length > 0
+        ? supabase
+            .from('abundance_events')
+            .select('id, note, date, vision_category, amount')
+            .in('id', abundanceIds)
+            .order('date', { ascending: false })
+        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+    ])
 
     return NextResponse.json({
       manifestation,
@@ -86,7 +96,8 @@ export async function GET(
         ...asset,
         label: (asset.entity_id && labels[asset.entity_id]) || null,
       })),
-      journal_entries: journalEntries,
+      journal_entries: journalResult.data || [],
+      abundance_events: abundanceResult.data || [],
       activations,
       activations_this_week: activations.filter(a => a.activation_date >= weekAgoStr).length,
       activations_since_opened: activations.length,

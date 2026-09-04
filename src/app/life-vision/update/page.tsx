@@ -17,7 +17,7 @@ import {
   Sparkles, CheckCircle, ChevronDown, ChevronUp, X, Check,
   MessageCircle, FileText, Loader2,
 } from 'lucide-react'
-import { Button, Card, Spinner, Container, AutoResizeTextarea, Badge } from '@/lib/design-system/components'
+import { Button, Card, Spinner, Container, AutoResizeTextarea, Badge, Modal, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 import { useLifeVisionStudioAreaChrome } from '@/components/life-vision-studio/useLifeVisionStudioAreaChrome'
@@ -40,6 +40,13 @@ import {
   type VisionCategoryKey,
 } from '@/lib/design-system/vision-categories'
 import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
+import {
+  VisionUpdateTour,
+  hasSeenVisionUpdateTour,
+  markVisionUpdateTourSeen,
+  type VisionUpdateTourHandle,
+  type VisionUpdateTourStepId,
+} from '@/components/life-vision/VisionUpdateTour'
 
 const CATEGORY_KEYS = ORDERED_VISION_CATEGORIES.map((c) => c.key)
 
@@ -87,12 +94,29 @@ function DiffText({ oldText, newText }: { oldText: string; newText: string }) {
   )
 }
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/** Serialize contentEditable back to plain text, skipping removed-word spans. */
+function editableToText(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent || ''
+  if (!(node instanceof HTMLElement)) return ''
+  if (node.hasAttribute('data-removed')) return ''
+  if (node.tagName === 'BR') return '\n'
+  let inner = ''
+  node.childNodes.forEach((child) => {
+    inner += editableToText(child)
+  })
+  // contentEditable wraps new lines in block elements
+  if (node.tagName === 'DIV' || node.tagName === 'P') return '\n' + inner
+  return inner
+}
+
 /**
- * Editable text with a live word-diff vs a base text. At rest it shows the
- * full inline diff — green added, red strikethrough removed, right in the
- * text. Click into it to type (removed words step aside while the caret is
- * active, since they aren't part of the editable text) and the strikethroughs
- * drop back in place on blur.
+ * Editable text with the word-diff living right in the box: green = added,
+ * red strikethrough = removed. The strikethroughs stay visible while typing
+ * (they're non-editable inline spans); highlights recompute when focus leaves
+ * the field.
  */
 function EditableDiffField({
   oldText,
@@ -107,66 +131,61 @@ function EditableDiffField({
   minHeight?: number
   placeholder?: string
 }) {
-  const [editing, setEditing] = useState(false)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const parts = useMemo(() => Diff.diffWords(oldText, value), [oldText, value])
-  const visibleParts = useMemo(() => parts.filter((p) => !p.removed), [parts])
+  const editorRef = useRef<HTMLDivElement>(null)
+  const focusedRef = useRef(false)
 
-  const startEditing = () => {
-    setEditing(true)
-    requestAnimationFrame(() => {
-      const el = textareaRef.current
-      if (!el) return
-      el.focus()
-      el.setSelectionRange(el.value.length, el.value.length)
-    })
-  }
+  const seed = useCallback(() => {
+    const el = editorRef.current
+    if (!el) return
+    const parts = Diff.diffWords(oldText, value)
+    el.innerHTML = parts
+      .map((part) => {
+        const text = escapeHtml(part.value)
+        if (part.added) {
+          return `<span class="rounded bg-[#39FF14]/20 px-0.5 text-[#a4ff8a]">${text}</span>`
+        }
+        if (part.removed) {
+          return `<span data-removed contenteditable="false" class="rounded bg-[#FF0040]/20 px-0.5 text-[#ff8ba7] line-through">${text}</span>`
+        }
+        return text
+      })
+      .join('')
+  }, [oldText, value])
 
-  if (!editing) {
-    return (
-      <div
-        role="textbox"
-        tabIndex={0}
-        onClick={startEditing}
-        onFocus={startEditing}
-        title="Click to edit"
-        className="cursor-text rounded-xl border border-[#333] bg-[#0A0A0A] p-3 transition-colors hover:border-[#444]"
-        style={{ minHeight }}
-      >
-        {value || oldText ? (
-          <DiffText oldText={oldText} newText={value} />
-        ) : (
-          <span className="text-sm text-neutral-600">{placeholder || 'Start writing…'}</span>
-        )}
-      </div>
-    )
-  }
+  // Render the diff whenever the value changes from outside (VIVA restream,
+  // revert, accept). While the member is typing, leave the DOM alone so the
+  // caret never jumps.
+  useEffect(() => {
+    if (!focusedRef.current) seed()
+  }, [seed])
+
+  const showPlaceholder = !value.trim() && !oldText.trim()
 
   return (
-    <div className="relative rounded-xl border border-[#555] bg-[#0A0A0A]">
+    <div className="relative">
+      {showPlaceholder && (
+        <span className="pointer-events-none absolute left-3 top-3 text-sm text-neutral-600">
+          {placeholder || 'Start writing…'}
+        </span>
+      )}
       <div
-        aria-hidden
-        className="pointer-events-none p-3 text-sm leading-relaxed whitespace-pre-wrap break-words text-neutral-300"
-        style={{ minHeight }}
-      >
-        {visibleParts.map((part, i) =>
-          part.added ? (
-            <span key={i} className="rounded bg-[#39FF14]/20 px-0.5 text-[#a4ff8a]">
-              {part.value}
-            </span>
-          ) : (
-            <span key={i}>{part.value}</span>
-          ),
-        )}
-        {'\n'}
-      </div>
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={() => setEditing(false)}
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
         spellCheck
-        className="absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent p-3 text-sm leading-relaxed text-transparent caret-white outline-none selection:bg-[#39FF14]/30"
+        onFocus={() => {
+          focusedRef.current = true
+        }}
+        onInput={() => {
+          const el = editorRef.current
+          if (el) onChange(editableToText(el).replace(/^\n/, ''))
+        }}
+        onBlur={() => {
+          focusedRef.current = false
+          seed()
+        }}
+        className="w-full cursor-text rounded-xl border border-[#333] bg-[#0A0A0A] p-3 text-sm leading-relaxed whitespace-pre-wrap break-words text-neutral-300 outline-none transition-colors focus:border-[#555] selection:bg-[#39FF14]/30"
+        style={{ minHeight }}
       />
     </div>
   )
@@ -198,14 +217,84 @@ export default function VisionUpdatePage() {
 
   const [mobilePane, setMobilePane] = useState<'chat' | 'draft'>('chat')
   const [showCommitDialog, setShowCommitDialog] = useState(false)
+  // Pre-commit VIVA cleanse: ask → running → clean | found (checklist) | error
+  // Each item is one sentence-level finding; a category can carry several.
+  const [cleanse, setCleanse] = useState<
+    { step: 'closed' } | { step: 'ask' } | { step: 'running' } | { step: 'clean' } |
+    { step: 'found'; items: Array<{ id: string; category: string; label: string; original: string; revised: string }> } |
+    { step: 'error'; message: string }
+  >({ step: 'closed' })
+  // Which cleanse recommendations are checked to apply
+  const [cleanseSelected, setCleanseSelected] = useState<Record<string, boolean>>({})
+  const [cleanseApplying, setCleanseApplying] = useState(false)
+  // Once a cleanse has run for this session, Commit as Active skips the ask
+  const [hasCleansed, setHasCleansed] = useState(false)
 
   const chatScrollRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const tourRef = useRef<VisionUpdateTourHandle>(null)
+  const restoredThreadRef = useRef(false)
+
+  const [tourActive, setTourActive] = useState(false)
+  const [tourDemoKey, setTourDemoKey] = useState<string | null>(null)
+  const [tourShowViews, setTourShowViews] = useState(false)
+
+  const closeTour = useCallback(() => {
+    markVisionUpdateTourSeen()
+    setTourActive(false)
+    setTourDemoKey(null)
+    setTourShowViews(false)
+  }, [])
+
+  const toggleWalkthrough = useCallback(() => {
+    setTourActive((prev) => {
+      if (prev) {
+        markVisionUpdateTourSeen()
+        setTourDemoKey(null)
+        setTourShowViews(false)
+        return false
+      }
+      return true
+    })
+  }, [])
+
+  const pickTourCategory = useCallback((prev: string | null) => {
+    if (prev) return prev
+    if (!draft) return 'fun'
+    const withText = CATEGORY_KEYS.find(
+      (k) => !proposals[k] && getVisionCategoryText(draft, k).trim(),
+    )
+    const free = CATEGORY_KEYS.find((k) => !proposals[k])
+    return withText || free || 'fun'
+  }, [draft, proposals])
+
+  const handleTourStepChange = useCallback((id: VisionUpdateTourStepId | null) => {
+    if (id === 'chat') setMobilePane('chat')
+    else if (id) setMobilePane('draft')
+
+    if (id === 'proposal' || id === 'views') {
+      setTourDemoKey(pickTourCategory)
+      setTourShowViews(id === 'views')
+    } else {
+      setTourDemoKey(null)
+      setTourShowViews(false)
+    }
+  }, [pickTourCategory])
+
+  useEffect(() => {
+    if (!tourShowViews || !tourDemoKey) return
+    setExpanded((prev) => ({ ...prev, [tourDemoKey]: true }))
+    setViewMode((prev) => ({ ...prev, [tourDemoKey]: 'edits' }))
+  }, [tourShowViews, tourDemoKey])
 
   useLifeVisionStudioAreaChrome(
     useMemo(() => ({
       contextText: 'Tell VIVA what has changed. Review each update, Accept to save it into your draft, then edit there if you want — then commit when it feels right.',
-    }), []),
+      walkthrough: {
+        active: tourActive,
+        onToggle: toggleWalkthrough,
+      },
+    }), [tourActive, toggleWalkthrough]),
   )
 
   // ------------------------------------------------------------------
@@ -280,6 +369,7 @@ export default function VisionUpdatePage() {
                 }))
 
               if (restored.length > 0 && !cancelled) {
+                restoredThreadRef.current = true
                 setConversationId(session.id)
                 setMessages([{ role: 'assistant', content: OPENING_MESSAGE }, ...restored])
 
@@ -316,6 +406,14 @@ export default function VisionUpdatePage() {
     return () => { cancelled = true }
   }, [studioLoading, activeVisionId, draftId, supabase, router, refreshVisions])
 
+  useEffect(() => {
+    if (loading || !draft) return
+    if (hasSeenVisionUpdateTour()) return
+    if (restoredThreadRef.current) return
+    const id = window.setTimeout(() => setTourActive(true), 400)
+    return () => window.clearTimeout(id)
+  }, [loading, draft])
+
   // Auto-scroll chat
   useEffect(() => {
     const el = chatScrollRef.current
@@ -326,6 +424,13 @@ export default function VisionUpdatePage() {
     () => getCategoriesChangedFromActive(active, draft, CATEGORY_KEYS),
     [active, draft],
   )
+
+  const tourDemoText = useMemo(() => {
+    if (!draft || !tourDemoKey) return ''
+    const existing = getVisionCategoryText(draft, tourDemoKey).trim()
+    const addition = 'I live this chapter fully, with joy already here.'
+    return existing ? `${existing}\n${addition}` : addition
+  }, [draft, tourDemoKey])
 
   const pendingProposalCount = Object.keys(proposals).length
 
@@ -440,6 +545,84 @@ export default function VisionUpdatePage() {
   }, [])
 
   // ------------------------------------------------------------------
+  // Pre-commit VIVA cleanse
+  // ------------------------------------------------------------------
+  const runCleanse = useCallback(async () => {
+    if (!draft) return
+    setCleanse({ step: 'running' })
+    try {
+      const res = await fetch('/api/viva/vision-cleanse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId: draft.id }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'The cleanse could not run — try again')
+      }
+      const { findings } = (await res.json()) as {
+        findings: Array<{ category: string; original: string; revised: string }>
+      }
+
+      setHasCleansed(true)
+
+      if (!findings || findings.length === 0) {
+        setCleanse({ step: 'clean' })
+        return
+      }
+
+      // Checklist of sentence-level findings in category order — all checked
+      // by default. A category can carry several.
+      const items = ORDERED_VISION_CATEGORIES.flatMap((c) =>
+        findings
+          .filter((f) => f.category === c.key)
+          .map((f, i) => ({
+            id: `${c.key}-${i}`,
+            category: c.key,
+            label: c.label,
+            original: f.original,
+            revised: f.revised,
+          })),
+      )
+      setCleanseSelected(Object.fromEntries(items.map((i) => [i.id, true])))
+      setCleanse({ step: 'found', items })
+    } catch (err) {
+      setCleanse({ step: 'error', message: err instanceof Error ? err.message : 'Something went wrong' })
+    }
+  }, [draft])
+
+  // Apply the checked sentence-level findings (replace each original sentence
+  // in its category's draft text), then continue to commit + kit
+  const applyCleanse = useCallback(async () => {
+    if (!draft || cleanse.step !== 'found') return
+    const chosen = cleanse.items.filter((i) => cleanseSelected[i.id])
+    setCleanseApplying(true)
+    try {
+      let updated: VisionData | null = null
+      const byCategory = new Map<string, typeof chosen>()
+      for (const item of chosen) {
+        const list = byCategory.get(item.category) || []
+        list.push(item)
+        byCategory.set(item.category, list)
+      }
+      for (const [category, items] of byCategory) {
+        let text = getVisionCategoryText(updated ?? draft, category)
+        for (const item of items) {
+          text = text.replace(item.original, item.revised)
+        }
+        updated = await updateDraftCategory(draft.id, category, text)
+      }
+      if (updated) setDraft(updated)
+      setCleanse({ step: 'closed' })
+      setShowCommitDialog(true)
+    } catch {
+      setCleanse({ step: 'error', message: 'Failed to save the selected changes — try again' })
+    } finally {
+      setCleanseApplying(false)
+    }
+  }, [draft, cleanse, cleanseSelected])
+
+  // ------------------------------------------------------------------
   // Render
   // ------------------------------------------------------------------
   if (loading) {
@@ -470,7 +653,7 @@ export default function VisionUpdatePage() {
     '[&::-webkit-scrollbar-thumb]:bg-[#2c2c2c] [&::-webkit-scrollbar-thumb]:rounded-full'
 
   const chatPane = (
-    <div className={`rounded-3xl p-px bg-gradient-to-b from-[#BF00FF]/50 via-[#2a2a2a] to-[#00FFFF]/30 h-[70vh] ${paneHeight}`}>
+    <div data-tour="chat" className={`rounded-3xl p-px bg-gradient-to-b from-[#BF00FF]/50 via-[#2a2a2a] to-[#00FFFF]/30 h-[70vh] ${paneHeight}`}>
       <div className="flex h-full flex-col overflow-hidden rounded-[calc(1.5rem-1px)] bg-[#0D0D0D]">
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur">
@@ -559,7 +742,7 @@ export default function VisionUpdatePage() {
   )
 
   const draftPane = (
-    <div className={`flex flex-col lg:overflow-hidden lg:rounded-3xl lg:border lg:border-[#262626] lg:bg-[#0D0D0D] ${paneHeight}`}>
+    <div data-tour="draft" className={`flex flex-col lg:overflow-hidden lg:rounded-3xl lg:border lg:border-[#262626] lg:bg-[#0D0D0D] ${paneHeight}`}>
       {/* Header — fixed above the scrolling category list */}
       <div className="flex items-center justify-between gap-3 pb-3 lg:border-b lg:border-white/5 lg:bg-white/[0.03] lg:px-5 lg:py-3.5 lg:pb-3.5">
         <div className="min-w-0">
@@ -571,10 +754,18 @@ export default function VisionUpdatePage() {
           </div>
         </div>
         <Button
+          data-tour="commit"
           variant="primary"
           size="sm"
-          disabled={changedCategories.length === 0}
-          onClick={() => setShowCommitDialog(true)}
+          disabled={changedCategories.length === 0 && !tourActive}
+          onClick={() => {
+            if (tourActive) {
+              tourRef.current?.next()
+              return
+            }
+            if (hasCleansed) setShowCommitDialog(true)
+            else setCleanse({ step: 'ask' })
+          }}
         >
           <CheckCircle className="w-4 h-4 mr-1.5" />Commit as Active
         </Button>
@@ -588,20 +779,42 @@ export default function VisionUpdatePage() {
         const editorText = manualEdits[key] ?? savedText
         const isChanged = changedCategories.includes(key)
         const isDirty = key in manualEdits && manualEdits[key] !== savedText
-        const proposal = proposals[key]
-        const isExpanded = expanded[key] ?? Boolean(proposal)
+        const isTourDemo = tourDemoKey === key && !tourShowViews
+        const isTourViews = tourShowViews && tourDemoKey === key
+        const realProposal = proposals[key]
+        const proposal: ProposalState | undefined = isTourDemo
+          ? { category: key, text: tourDemoText, editedText: tourDemoText, complete: true }
+          : realProposal
+        const isExpanded = isTourDemo || isTourViews || (expanded[key] ?? Boolean(realProposal))
         const activeText = active ? getVisionCategoryText(active, key) : ''
         const hasEdits = Boolean(active) && normText(editorText) !== normText(activeText)
-        const requestedView = viewMode[key] ?? 'draft'
+        // Edits is the default view; falls back to Draft when nothing differs
+        const requestedView = viewMode[key] ?? 'edits'
         const view: CategoryView =
-          (requestedView === 'edits' && !hasEdits) || (requestedView === 'active' && !active)
+          (requestedView === 'edits' && !hasEdits && !isTourViews) || (requestedView === 'active' && !active)
             ? 'draft'
             : requestedView
+
+        const onAccept = () => {
+          if (isTourDemo) {
+            tourRef.current?.next()
+            return
+          }
+          acceptProposal(key)
+        }
+        const onDiscard = () => {
+          if (isTourDemo) {
+            tourRef.current?.next()
+            return
+          }
+          discardProposal(key)
+        }
 
         return (
           <div
             key={key}
             id={`vision-cat-${key}`}
+            data-tour={isTourDemo ? 'proposal' : undefined}
             className={`rounded-2xl border bg-[#161616] transition-all ${
               proposal
                 ? 'border-[#BF00FF]/60 shadow-[0_0_20px_rgba(191,0,255,0.12)]'
@@ -626,9 +839,9 @@ export default function VisionUpdatePage() {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
-                    onClick={() => acceptProposal(key)}
+                    onClick={onAccept}
                     disabled={!proposal.complete || savingCategory === key}
-                    title="Accept & Save to Draft"
+                    title={isTourDemo ? 'Continue walkthrough' : 'Accept & Save to Draft'}
                     className="inline-flex items-center gap-1 rounded-full bg-[#39FF14] px-2 sm:px-3 py-1 text-[11px] font-semibold text-black shadow-[0_0_12px_rgba(57,255,20,0.25)] transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {savingCategory === key
@@ -638,16 +851,16 @@ export default function VisionUpdatePage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => discardProposal(key)}
+                    onClick={onDiscard}
                     disabled={savingCategory === key}
-                    title="Discard"
+                    title={isTourDemo ? 'Continue walkthrough' : 'Discard'}
                     className="inline-flex items-center gap-1 rounded-full border border-[#333] px-1.5 sm:px-2.5 py-1 text-[11px] text-neutral-300 transition-colors hover:border-[#555] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <X className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Discard</span>
                   </button>
                   <Badge variant="info" className="border-[#BF00FF]/50 text-[#BF00FF] bg-[#BF00FF]/10">
-                    VIVA update
+                    {isTourDemo ? 'Example' : 'VIVA update'}
                   </Badge>
                 </div>
               )}
@@ -678,9 +891,9 @@ export default function VisionUpdatePage() {
                     <div className="flex items-center justify-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => acceptProposal(key)}
+                        onClick={onAccept}
                         disabled={busy}
-                        title="Accept & Save to Draft"
+                        title={isTourDemo ? 'Continue walkthrough' : 'Accept & Save to Draft'}
                         className="inline-flex items-center gap-1 rounded-full bg-[#39FF14] px-2 sm:px-3 py-1 text-[11px] font-semibold text-black shadow-[0_0_12px_rgba(57,255,20,0.25)] transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {savingCategory === key
@@ -690,9 +903,9 @@ export default function VisionUpdatePage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => discardProposal(key)}
+                        onClick={onDiscard}
                         disabled={savingCategory === key}
-                        title="Discard"
+                        title={isTourDemo ? 'Continue walkthrough' : 'Discard'}
                         className="inline-flex items-center gap-1 rounded-full border border-[#333] px-1.5 sm:px-2.5 py-1 text-[11px] text-neutral-300 transition-colors hover:border-[#555] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -706,7 +919,9 @@ export default function VisionUpdatePage() {
                       {proposal.complete ? (
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-[11px] text-neutral-500">
-                            Accept to save into your draft — edit anytime after.
+                            {isTourDemo
+                              ? 'Example only — Accept or Discard here just continues the walkthrough.'
+                              : 'Accept to save into your draft — edit anytime after.'}
                           </p>
                           <span className="text-[10px] text-neutral-500 shrink-0">
                             <span className="rounded bg-[#39FF14]/20 px-1 text-[#a4ff8a]">added</span>
@@ -731,13 +946,16 @@ export default function VisionUpdatePage() {
                 })()}
 
                 {/* Draft view chrome — hidden while a VIVA update is pending */}
-                {!proposal && active && (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                {!proposal && (active || isTourViews) && (
+                  <div
+                    data-tour={isTourViews ? 'views' : undefined}
+                    className="flex flex-wrap items-center justify-between gap-2"
+                  >
                     <div className="inline-flex rounded-lg border border-[#2a2a2a] bg-[#0A0A0A] p-0.5">
                       {([
-                        ...(hasEdits ? [['edits', 'Edits'] as const] : []),
+                        ...(hasEdits || isTourViews ? [['edits', 'Edits'] as const] : []),
                         ['draft', 'Draft'] as const,
-                        ['active', 'Active'] as const,
+                        ...(active ? [['active', 'Active'] as const] : []),
                       ]).map(([value, label]) => (
                         <button
                           key={value}
@@ -877,6 +1095,204 @@ export default function VisionUpdatePage() {
         <div className={mobilePane === 'chat' ? '' : 'hidden lg:block'}>{chatPane}</div>
         <div className={mobilePane === 'draft' ? '' : 'hidden lg:block'}>{draftPane}</div>
       </div>
+
+      <VisionUpdateTour
+        ref={tourRef}
+        active={tourActive && !loading && !!draft}
+        onClose={closeTour}
+        onStepChange={handleTourStepChange}
+      />
+
+      <VIVALoadingOverlay
+        isVisible={cleanse.step === 'running'}
+        messages={[
+          'VIVA is reading through your updates…',
+          'Checking vibrational grammar…',
+          'Looking for clear misses only…',
+          'Almost ready…',
+        ]}
+        cycleDuration={2500}
+        estimatedTime="Usually takes a few seconds"
+        estimatedDuration={8000}
+        size="md"
+        className="fixed inset-0 z-50 rounded-none"
+      />
+
+      {/* Pre-commit VIVA cleanse */}
+      <Modal
+        isOpen={cleanse.step !== 'closed' && cleanse.step !== 'running'}
+        onClose={() => setCleanse({ step: 'closed' })}
+        size={cleanse.step === 'found' ? 'lg' : 'sm'}
+        showCloseButton={false}
+      >
+        <button
+          type="button"
+          onClick={() => setCleanse({ step: 'closed' })}
+          className="absolute right-4 top-4 text-neutral-400 transition-colors hover:text-white"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        {cleanse.step === 'ask' && (
+          <div className="space-y-4 text-center">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#BF00FF] to-[#00FFFF]">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">Run a VIVA Cleanse?</h3>
+            <p className="text-sm text-neutral-400">
+              Would you like VIVA to run a cleanse to ensure your Life Vision is written in
+              vibrational grammar? She only flags clear misses — a clean vision comes back untouched.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="primary" size="sm" onClick={runCleanse}>
+                <Sparkles className="mr-1.5 h-4 w-4" />Yes, run the cleanse
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCleanse({ step: 'closed' })
+                  setShowCommitDialog(true)
+                }}
+              >
+                Skip &amp; commit
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {cleanse.step === 'clean' && (
+          <div className="space-y-4 text-center">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#39FF14]/15">
+              <CheckCircle className="h-5 w-5 text-[#39FF14]" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">Your vision reads clean</h3>
+            <p className="text-sm text-neutral-400">
+              Everything is already in vibrational grammar — nothing to change.
+            </p>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setCleanse({ step: 'closed' })
+                setShowCommitDialog(true)
+              }}
+            >
+              <CheckCircle className="mr-1.5 h-4 w-4" />Continue to Commit
+            </Button>
+          </div>
+        )}
+
+        {cleanse.step === 'found' && (() => {
+          const selectedCount = cleanse.items.filter((i) => cleanseSelected[i.id]).length
+          return (
+            <div className="space-y-4">
+              <div className="text-center space-y-2">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#BF00FF]/15">
+                  <Sparkles className="h-5 w-5 text-[#BF00FF]" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">
+                  {cleanse.items.length === 1
+                    ? '1 recommended change'
+                    : `${cleanse.items.length} recommended changes`}
+                </h3>
+                <p className="text-sm text-neutral-400">
+                  Check the ones you want, then apply and commit.{' '}
+                  <span className="rounded bg-[#39FF14]/20 px-1 text-[#a4ff8a]">added</span>
+                  {' · '}
+                  <span className="rounded bg-[#FF0040]/20 px-1 text-[#ff8ba7] line-through">removed</span>
+                </p>
+              </div>
+
+              <div className={`max-h-[50vh] space-y-3 overflow-y-auto ${thinScrollbar}`}>
+                {cleanse.items.map((item, idx) => {
+                  const checked = Boolean(cleanseSelected[item.id])
+                  const isNewCategory = idx === 0 || cleanse.items[idx - 1].category !== item.category
+                  const CategoryIcon = getVisionCategoryIcon(item.category as VisionCategoryKey)
+                  return (
+                    <div key={item.id}>
+                      {isNewCategory && (
+                        <div className={`mb-1.5 flex items-center gap-2 ${idx === 0 ? '' : 'mt-1'}`}>
+                          <CategoryIcon className="h-3.5 w-3.5 text-neutral-500" />
+                          <span className="text-xs font-medium uppercase tracking-wider text-neutral-400">
+                            {item.label}
+                          </span>
+                        </div>
+                      )}
+                      <div
+                        className={`rounded-xl border p-3 transition-colors ${
+                          checked ? 'border-[#39FF14]/40 bg-[#39FF14]/[0.04]' : 'border-[#2a2a2a] bg-[#0A0A0A]'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCleanseSelected((prev) => ({ ...prev, [item.id]: !checked }))
+                          }
+                          className="flex w-full items-start gap-2.5 text-left"
+                        >
+                          <span
+                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
+                              checked
+                                ? 'border-[#39FF14] bg-[#39FF14] text-black'
+                                : 'border-[#444] bg-transparent'
+                            }`}
+                          >
+                            {checked && <Check className="h-3.5 w-3.5" />}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <DiffText oldText={item.original} newText={item.revised} />
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="flex items-center justify-center gap-2">
+                <Button variant="primary" size="sm" onClick={applyCleanse} disabled={cleanseApplying}>
+                  {cleanseApplying ? (
+                    <><Spinner size="sm" className="mr-1.5" />Applying…</>
+                  ) : selectedCount > 0 ? (
+                    <><Check className="mr-1.5 h-4 w-4" />Apply {selectedCount} &amp; Continue</>
+                  ) : (
+                    'Continue without changes'
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCleanse({ step: 'closed' })}
+                  disabled={cleanseApplying}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )
+        })()}
+
+        {cleanse.step === 'error' && (
+          <div className="space-y-4 text-center">
+            <h3 className="text-lg font-semibold text-white">The cleanse didn&apos;t finish</h3>
+            <p className="text-sm text-neutral-400">{cleanse.message}</p>
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="primary" size="sm" onClick={runCleanse}>Try again</Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCleanse({ step: 'closed' })
+                  setShowCommitDialog(true)
+                }}
+              >
+                Skip &amp; commit
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <CommitVisionDialog
         isOpen={showCommitDialog}

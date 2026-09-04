@@ -1,15 +1,37 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Button, Checkbox, Spinner } from '@/lib/design-system'
-import { SLOT_LABELS } from '@/lib/manifestations/types'
+import {
+  DESTINATION_META,
+  SLOT_DESTINATIONS,
+  SLOT_LABELS,
+  type KitSlot,
+  type SlotDestination,
+} from '@/lib/manifestations/types'
 import type { LibraryCandidate } from '@/lib/manifestations/library-candidates'
+
+export interface GatherPinResult {
+  pinned: number
+  failed: number
+  destinations: SlotDestination[]
+}
 
 interface GatherFromLibraryProps {
   kitId: string
   categories: string[]
   query?: string
-  onPinned: () => void
+  onPinned: (result: GatherPinResult) => void
+}
+
+const DESTINATION_ORDER: SlotDestination[] = ['essence', 'journey', 'living', 'action']
+
+function formatDate(value: string | null) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export function GatherFromLibrary({ kitId, categories, query = '', onPinned }: GatherFromLibraryProps) {
@@ -41,13 +63,15 @@ export function GatherFromLibrary({ kitId, categories, query = '', onPinned }: G
   }, [kitId, categories, query])
 
   const grouped = useMemo(() => {
-    const map = new Map<string, LibraryCandidate[]>()
+    const map = new Map<SlotDestination, LibraryCandidate[]>()
+    for (const dest of DESTINATION_ORDER) map.set(dest, [])
     for (const c of candidates) {
-      const list = map.get(c.slot) || []
-      list.push(c)
-      map.set(c.slot, list)
+      const dest = SLOT_DESTINATIONS[c.slot as KitSlot] || 'living'
+      map.get(dest)?.push(c)
     }
-    return map
+    return DESTINATION_ORDER
+      .map(dest => ({ dest, items: map.get(dest) || [] }))
+      .filter(group => group.items.length > 0)
   }, [candidates])
 
   const toggle = (id: string) => {
@@ -63,20 +87,42 @@ export function GatherFromLibrary({ kitId, categories, query = '', onPinned }: G
     const chosen = candidates.filter(c => selected.has(c.entity_id))
     if (chosen.length === 0) return
     setSaving(true)
-    for (const c of chosen) {
-      await fetch(`/api/manifestations/${kitId}/assets`, {
+    try {
+      const res = await fetch(`/api/manifestations/${kitId}/assets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          slot: c.slot,
-          entity_type: c.entity_type,
-          entity_id: c.entity_id,
-          layer: c.layer,
+          items: chosen.map(c => ({
+            slot: c.slot,
+            entity_type: c.entity_type,
+            entity_id: c.entity_id,
+            layer: c.layer,
+          })),
         }),
       })
+      const data = await res.json().catch(() => ({}))
+      const pinnedCount = Array.isArray(data.pinned) ? data.pinned.length : (res.ok ? chosen.length : 0)
+      const failedRows = Array.isArray(data.failed) ? data.failed as Array<{ entity_id: string }> : []
+      const failedCount = failedRows.length || (res.ok ? 0 : chosen.length)
+
+      if (pinnedCount === 0) {
+        toast.error(data.error || 'Could not add those to this manifestation. Try again.')
+        return
+      }
+
+      const failedIds = new Set(failedRows.map(f => f.entity_id))
+      const destinations = Array.from(new Set(
+        chosen
+          .filter(c => !failedIds.has(c.entity_id))
+          .map(c => SLOT_DESTINATIONS[c.slot as KitSlot] || 'living'),
+      )) as SlotDestination[]
+
+      onPinned({ pinned: pinnedCount, failed: failedCount, destinations })
+    } catch {
+      toast.error('Could not add those to this manifestation. Try again.')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
-    onPinned()
   }
 
   if (loading) {
@@ -86,39 +132,60 @@ export function GatherFromLibrary({ kitId, categories, query = '', onPinned }: G
   if (candidates.length === 0) {
     return (
       <p className="text-sm text-neutral-500 text-center">
-        No journal, stories, or board items in these categories yet. You can still add from the manifestation, or keep building in those studios.
+        Nothing in your library matches this desire yet. Write a journal entry, a story, or keep building in VIVA — then gather again.
       </p>
     )
   }
 
   return (
     <div className="space-y-5">
-      {Array.from(grouped.entries()).map(([slot, items]) => (
-        <div key={slot} className="space-y-2">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500 text-center">
-            {SLOT_LABELS[slot as keyof typeof SLOT_LABELS] || slot}
-          </p>
-          <div className="space-y-2">
-            {items.map(c => (
-              <div
-                key={c.entity_id}
-                className="rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3"
-              >
-                <Checkbox
-                  checked={selected.has(c.entity_id)}
-                  onCheckedChange={() => toggle(c.entity_id)}
-                  label={c.label}
-                  labelClassName="truncate"
-                />
-              </div>
-            ))}
+      <p className="text-sm text-neutral-300 text-center max-w-xl mx-auto">
+        These already live in your world and belong to this desire. Add them and they land on this page — not in a hidden pile.
+      </p>
+      {grouped.map(({ dest, items }) => {
+        const meta = DESTINATION_META[dest]
+        return (
+          <div key={dest} className="space-y-2">
+            <div className="text-center space-y-0.5">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-[#D46BFF]">
+                Goes to {meta.title}
+              </p>
+              <p className="text-xs text-neutral-500">{meta.hint}</p>
+            </div>
+            <div className="space-y-2">
+              {items.map(c => {
+                const dateLabel = formatDate(c.date)
+                return (
+                  <div
+                    key={`${c.slot}-${c.entity_id}`}
+                    className="rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3"
+                  >
+                    <Checkbox
+                      checked={selected.has(c.entity_id)}
+                      onCheckedChange={() => toggle(c.entity_id)}
+                      label={c.label}
+                      labelClassName="truncate"
+                    />
+                    <p className="pl-9 text-[11px] uppercase tracking-[0.16em] text-neutral-500">
+                      {SLOT_LABELS[c.slot as KitSlot] || c.slot}
+                      {dateLabel ? ` · ${dateLabel}` : ''}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
-      <div className="flex justify-center">
-        <Button variant="primary" onClick={pinSelected} disabled={saving || selected.size === 0}>
-          {saving ? 'Pinning…' : `Pin ${selected.size} to this manifestation`}
+        )
+      })}
+      <div className="flex flex-col items-center gap-2">
+        <Button variant="primary" type="button" onClick={pinSelected} disabled={saving || selected.size === 0}>
+          {saving
+            ? 'Adding…'
+            : `Add ${selected.size} to this manifestation`}
         </Button>
+        <p className="text-xs text-neutral-500 text-center">
+          Journal and wins go to The Journey. Stories and songs show under Living it. Life Vision feeds The Essence.
+        </p>
       </div>
     </div>
   )
