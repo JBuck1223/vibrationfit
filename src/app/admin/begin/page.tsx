@@ -22,7 +22,7 @@ const PREVIEW_PHASES: Array<{ id: LifeActivationSidebarMode; label: string; note
     note: 'That tab becomes Tools Training. Each tool walk-through checks off as they finish it.',
   },
   {
-    id: 'complete',
+    id: 'hidden',
     label: 'Training complete',
     note: 'When every walk-through is done, the tab leaves the sidebar.',
   },
