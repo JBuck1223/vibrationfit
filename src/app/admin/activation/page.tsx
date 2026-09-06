@@ -65,7 +65,7 @@ const STEPS: InspectorStep[] = [
     label: 'Orientation',
     group: 'Experience',
     source: ACTIVATION_COPY.orientation.source,
-    notes: 'No model cost. I am ready records oriented + activation_oriented.',
+    notes: 'No model cost. Start My Activation records oriented + activation_oriented.',
   },
   {
     id: 'category',
@@ -86,28 +86,28 @@ const STEPS: InspectorStep[] = [
     label: 'Generating',
     group: 'Experience',
     source: ACTIVATION_COPY.generating.source,
-    notes: 'Shown while core written assets generate. Never auto-starts.',
+    notes: 'VIVA loading overlay. Messages follow the written assets being created.',
   },
   {
     id: 'preview',
     label: 'Preview',
     group: 'Delivery',
     source: ACTIVATION_COPY.preview.source,
-    notes: 'Checklist only — no text. Enter My Activation → opened, then Immersion shows the writing.',
+    notes: 'Ready checklist plus voice and genre pick. Enter My Activation starts audio, song recording, and images.',
   },
   {
     id: 'immersion',
     label: 'Immersion',
     group: 'Delivery',
     source: ACTIVATION_COPY.immersion.source,
-    notes: 'Start Here. I\'ve Entered This Reality → entered (north-star).',
+    notes: 'Simple header + how-to video slot, activation map, assets with audio in each container. No offer yet.',
   },
   {
     id: 'offer',
     label: 'Offer',
     group: 'Delivery',
     source: ACTIVATION_COPY.immersion.source,
-    notes: 'Only after entered. Video slot, sticky CTA, downloads, optional inspired step.',
+    notes: 'Same Immersion page after I\'ve Entered This Reality. Offer and sticky CTA appear at the bottom only.',
   },
 ]
 
@@ -122,7 +122,7 @@ const SAMPLE_ASSETS = {
     content: ACTIVATION_SAMPLE.sparkQuestions.join('\n'),
     metadata: { questions: [...ACTIVATION_SAMPLE.sparkQuestions] },
   },
-  song: { id: 'song1', title: 'Song', lyrics: null, status: 'generating', tracks: [] },
+  song: { id: 'song1', title: 'Song', lyrics: ACTIVATION_SAMPLE.songLyrics, status: 'lyrics_complete', tracks: [] },
   audioTracks: [],
   manifestations: [],
 }
@@ -131,7 +131,9 @@ const SAMPLE_ACTIVATION = {
   id: 'preview',
   status: 'ready',
   category: ACTIVATION_SAMPLE.category,
+  first_name: ACTIVATION_SAMPLE.firstName,
   current_state: ACTIVATION_SAMPLE.currentState,
+  dream_response: { ...ACTIVATION_SAMPLE.dream },
   reflection: ACTIVATION_SAMPLE.reflection,
   vision_statement: ACTIVATION_SAMPLE.visionStatement,
   essence: ACTIVATION_SAMPLE.essence,
@@ -218,13 +220,13 @@ export default function AdminActivationInspectorPage() {
               )}
 
               {stepId === 'orientation' && (
-                <div className="mx-auto max-w-xl px-4 py-6 md:py-10">
+                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
                   <ActivationOrientation onReady={() => {}} />
                 </div>
               )}
 
               {stepId === 'category' && (
-                <div className="mx-auto max-w-xl px-4 py-6 md:py-10">
+                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
                   <ActivationCategoryPick
                     selected={sample.category}
                     onSelect={() => {}}
@@ -234,7 +236,7 @@ export default function AdminActivationInspectorPage() {
               )}
 
               {stepId === 'chat' && (
-                <div className="mx-auto max-w-xl px-4 py-6 md:py-10">
+                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
                   <ActivationIntakeChat
                     activationId="preview"
                     initialMessages={[...sample.conversation]}
@@ -250,12 +252,12 @@ export default function AdminActivationInspectorPage() {
 
               {stepId === 'generating' && (
                 <div className="px-4 py-6">
-                  <GeneratingStep />
+                  <GeneratingStep category={sample.category} contained />
                 </div>
               )}
 
               {stepId === 'preview' && (
-                <div className="px-4 py-6 md:px-8 md:py-10">
+                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
                   <ActivationDelivery
                     phase="preview"
                     activation={SAMPLE_ACTIVATION}
@@ -267,7 +269,7 @@ export default function AdminActivationInspectorPage() {
               )}
 
               {stepId === 'immersion' && (
-                <div className="px-4 py-6 md:px-8 md:py-10">
+                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
                   <ActivationDelivery
                     phase="immersion"
                     activation={{
@@ -283,7 +285,7 @@ export default function AdminActivationInspectorPage() {
               )}
 
               {stepId === 'offer' && (
-                <div className="px-4 py-6 md:px-8 md:py-10">
+                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
                   <ActivationDelivery
                     phase="offer"
                     activation={{
@@ -320,14 +322,24 @@ function LandingInspector() {
               Layout and long-form copy still live on the landing page file. Open it live to review.
             </p>
           </div>
-          <Link
-            href={landing.route}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 text-sm text-[#39FF14] hover:underline"
-          >
-            Open {landing.route}
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Link>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <Link
+              href={landing.route}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-sm text-[#39FF14] hover:underline"
+            >
+              Open {landing.route}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              href={ACTIVATION_COPY.landingHome.route}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white hover:underline"
+            >
+              Front door {ACTIVATION_COPY.landingHome.route}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
         <ol className="space-y-2">
           {landing.sections.map((section, i) => (

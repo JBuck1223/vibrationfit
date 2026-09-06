@@ -1,0 +1,16 @@
+@keyframes vf-proof-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-25%); }
+}
+
+.vf-proof-track {
+  display: flex;
+  gap: 1.25rem;
+  width: max-content;
+  will-change: transform;
+  animation: vf-proof-scroll 120s linear infinite;
+}
+
+.vf-proof-track.is-paused {
+  animation-play-state: paused;
+}

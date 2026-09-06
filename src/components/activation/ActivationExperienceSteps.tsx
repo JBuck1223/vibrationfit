@@ -14,6 +14,7 @@ import {
   Stack,
   Text,
   Textarea,
+  VIVALoadingOverlay,
 } from '@/lib/design-system/components'
 import {
   ArrowLeft,
@@ -316,19 +317,34 @@ export function CategoryStep({
   )
 }
 
-export function GeneratingStep() {
+export function GeneratingStep({
+  category,
+  contained,
+}: {
+  category?: string | null
+  contained?: boolean
+}) {
   const copy = ACTIVATION_COPY.generating
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <Stack gap="md" className="text-center max-w-sm">
-        <div className="flex justify-center">
-          <Spinner size="lg" />
-        </div>
-        <h2 className="text-lg md:text-xl font-semibold text-white">{copy.title}</h2>
-        <p className="text-sm text-neutral-400 leading-relaxed">{copy.body}</p>
-      </Stack>
-    </div>
+  const categoryLabel = category
+    ? getVisionCategoryLabel(category as VisionCategoryKey)
+    : undefined
+
+  const overlay = (
+    <VIVALoadingOverlay
+      isVisible
+      messages={copy.messages(categoryLabel)}
+      cycleDuration={copy.cycleDuration}
+      estimatedTime={copy.estimatedTime}
+      estimatedDuration={copy.estimatedDuration}
+      className={contained ? undefined : '!fixed !inset-0 !rounded-none'}
+    />
   )
+
+  if (contained) {
+    return <div className="relative min-h-[28rem]">{overlay}</div>
+  }
+
+  return overlay
 }
 
 export function PreviewStep({

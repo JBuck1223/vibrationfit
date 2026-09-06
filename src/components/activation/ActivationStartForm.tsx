@@ -17,9 +17,11 @@ import { ACTIVATION_COPY } from '@/lib/activation/copy'
 export function ActivationStartForm({
   previewState,
   previewEmail,
+  landingPage = '/activation',
 }: {
   previewState?: 'form' | 'check-email'
   previewEmail?: string
+  landingPage?: string
 } = {}) {
   const router = useRouter()
   const { visitorId, sessionId } = useTracking()
@@ -46,7 +48,7 @@ export function ActivationStartForm({
           firstName,
           visitor_id: visitorId || undefined,
           session_id: sessionId || undefined,
-          landing_page: '/activation',
+          landing_page: landingPage,
           referrer: typeof document !== 'undefined' ? document.referrer || undefined : undefined,
         }),
       })

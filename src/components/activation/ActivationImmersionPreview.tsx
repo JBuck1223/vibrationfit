@@ -11,10 +11,10 @@ import {
   ArrowRight,
   BookOpen,
   CheckCircle,
-  Compass,
   Download,
   HelpCircle,
   Images,
+  Map,
   Mic,
   Music,
   Sparkles,
@@ -33,119 +33,160 @@ export function ActivationImmersionPreview({
 
   return (
     <Stack gap="lg">
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="h-4 w-4 text-[#39FF14]" />
-          <Text size="sm" className="text-[#39FF14] font-semibold uppercase tracking-wider">
-            {copy.categoryTitle(categoryLabel)}
-          </Text>
+      <div className="text-center">
+        <p className="text-sm font-semibold uppercase tracking-wider text-[#39FF14]">
+          {copy.categoryTitle(categoryLabel)}
+        </p>
+        <h1 className="mt-4 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
+          {copy.headline}
+        </h1>
+        <div className="mx-auto mt-8 w-full max-w-3xl">
+          <div className="flex aspect-video w-full items-center justify-center rounded-2xl border border-[#222] bg-[#0D0D0D] px-6">
+            <p className="text-sm leading-relaxed text-neutral-500">{copy.heroVideoPlaceholder}</p>
+          </div>
+          <p className="mt-2 text-center text-[11px] uppercase tracking-wider text-neutral-600">
+            {copy.heroVideoLabel}
+          </p>
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white">{copy.headline}</h1>
       </div>
 
-      <Card variant="outlined" className="bg-[#101010] border-[#BF00FF]/30 p-5 md:p-8">
-        <Stack gap="md">
-          <div className="flex items-center gap-2">
-            <Compass className="h-5 w-5 text-[#BF00FF]" />
-            <Text size="sm" className="text-white font-semibold">{copy.guideTitle}</Text>
+      <Card variant="outlined" className="bg-[#101010] border-[#BF00FF]/30 p-6 md:p-10">
+        <Stack gap="lg">
+          <div className="flex items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#BF00FF]/10 text-[#BF00FF]">
+              <Map className="h-7 w-7" />
+            </span>
+            <div>
+              <h2 className="text-2xl font-bold text-white md:text-3xl">{copy.mapTitle}</h2>
+              <p className="mt-2 text-base text-neutral-400">{copy.mapLead}</p>
+            </div>
           </div>
-          <ol className="space-y-2">
-            {copy.guideSteps.map((step, i) => (
-              <li key={i} className="flex gap-3 text-sm text-neutral-300 leading-relaxed">
-                <span className="text-[#BF00FF] font-semibold flex-shrink-0">{i + 1}.</span>
-                {step}
-              </li>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {copy.mapStops.map((stop, i) => (
+              <div
+                key={stop.id}
+                className="rounded-2xl border-2 border-[#222] bg-[#0D0D0D] p-5"
+              >
+                <span className="text-sm font-semibold text-[#39FF14]">{i + 1}</span>
+                <p className="mt-2 text-lg font-semibold text-white">{stop.title}</p>
+                <p className="mt-1 text-sm text-neutral-400">{stop.use}</p>
+              </div>
             ))}
-          </ol>
+          </div>
           {!showOffer && (
-            <Button variant="secondary" size="sm" className="w-full sm:w-auto">
-              <CheckCircle className="mr-2 h-4 w-4" />
-              {copy.guideDone}
-            </Button>
+            <div>
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto">
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {copy.guideDone}
+              </Button>
+            </div>
           )}
         </Stack>
       </Card>
 
-      <Card variant="outlined" className="bg-[#101010] border-[#39FF14]/20 p-5 md:p-8">
-        <Stack gap="md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[#39FF14]" />
-              <Text size="sm" className="text-white font-semibold">{copy.lifeIChoose}</Text>
+      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+        <Stack gap="lg">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#39FF14]/10 text-[#39FF14]">
+                <Sparkles className="h-7 w-7" />
+              </span>
+              <div>
+                <h2 className="text-2xl font-bold text-white md:text-3xl">{copy.lifeIChoose}</h2>
+                <p className="mt-2 text-base text-neutral-400">{copy.lifeIChooseHint}</p>
+              </div>
             </div>
-            <span className="px-3 py-1 rounded-full bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] text-xs font-medium">
+            <span className="rounded-full border border-[#39FF14]/30 bg-[#39FF14]/10 px-3 py-1 text-xs font-medium text-[#39FF14]">
               {sample.essence}
             </span>
           </div>
-          <p className="text-base md:text-lg text-neutral-100 leading-relaxed whitespace-pre-line">
+          <p className="text-base leading-relaxed whitespace-pre-line text-neutral-100 md:text-lg">
             {sample.visionStatement}
           </p>
-          <div>
-            <Button variant="ghost" size="sm">
-              <Download className="mr-1.5 h-4 w-4" />
-              {copy.download}
-            </Button>
-          </div>
         </Stack>
       </Card>
 
-      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-5 md:p-8">
-        <Stack gap="md">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-[#00FFFF]" />
-            <Text size="sm" className="text-white font-semibold">{copy.story}</Text>
+      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+        <Stack gap="lg">
+          <div className="flex items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#00FFFF]/10 text-[#00FFFF]">
+              <BookOpen className="h-7 w-7" />
+            </span>
+            <div>
+              <h2 className="text-2xl font-bold text-white md:text-3xl">{copy.story}</h2>
+              <p className="mt-2 text-base text-neutral-400">{copy.storyHint}</p>
+            </div>
           </div>
-          <p className="text-sm md:text-base text-neutral-200 leading-relaxed whitespace-pre-line">
+          <p className="text-base leading-relaxed whitespace-pre-line text-neutral-200 md:text-lg">
             {sample.story}
           </p>
         </Stack>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-5 md:p-8">
-          <Stack gap="md">
-            <div className="flex items-center gap-2">
-              <Mic className="h-5 w-5 text-[#FFB701]" />
-              <Text size="sm" className="text-white font-semibold">{copy.incantation}</Text>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+          <Stack gap="lg">
+            <div className="flex items-start gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FFB701]/10 text-[#FFB701]">
+                <Mic className="h-7 w-7" />
+              </span>
+              <div>
+                <h2 className="text-2xl font-bold text-white md:text-3xl">{copy.incantation}</h2>
+                <p className="mt-2 text-base text-neutral-400">{copy.incantationHint}</p>
+              </div>
             </div>
-            <p className="text-xs text-neutral-500">{copy.incantationHint}</p>
-            <p className="text-sm md:text-base text-neutral-100 leading-relaxed whitespace-pre-line italic">
+            <p className="text-base italic leading-relaxed whitespace-pre-line text-neutral-100 md:text-lg">
               {sample.incantation}
             </p>
           </Stack>
         </Card>
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-5 md:p-8">
-          <Stack gap="md">
-            <div className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-[#BF00FF]" />
-              <Text size="sm" className="text-white font-semibold">{copy.sparkQuery}</Text>
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+          <Stack gap="lg">
+            <div className="flex items-start gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#BF00FF]/10 text-[#BF00FF]">
+                <HelpCircle className="h-7 w-7" />
+              </span>
+              <div>
+                <h2 className="text-2xl font-bold text-white md:text-3xl">{copy.sparkQuery}</h2>
+                <p className="mt-2 text-base text-neutral-400">{copy.sparkHint}</p>
+              </div>
             </div>
-            <p className="text-xs text-neutral-500">{copy.sparkHint}</p>
             <Stack gap="sm">
               {sample.sparkQuestions.map((q) => (
-                <p key={q} className="text-sm md:text-base text-neutral-100 leading-relaxed">{q}</p>
+                <p key={q} className="text-base leading-relaxed text-neutral-100 md:text-lg">{q}</p>
               ))}
             </Stack>
           </Stack>
         </Card>
       </div>
 
-      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-5 md:p-8">
+      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
         <Stack gap="md">
-          <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
-            {copy.arriving}
-          </Text>
-          <div className="flex items-center gap-3">
-            <Music className="h-5 w-5 text-neutral-500" />
-            <Text size="sm" className="text-white font-medium">{copy.song}</Text>
-            <span className="ml-auto text-xs text-neutral-400">{copy.creating}</span>
+          <div className="flex items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#FF4D8D]/10 text-[#FF4D8D]">
+              <Music className="h-7 w-7" />
+            </span>
+            <div>
+              <h2 className="text-2xl font-bold text-white md:text-3xl">{copy.song}</h2>
+              <p className="mt-2 text-base text-neutral-400">{copy.songHint}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Images className="h-5 w-5 text-neutral-500" />
-            <Text size="sm" className="text-white font-medium">{copy.images}</Text>
-            <span className="ml-auto text-xs text-neutral-400">{copy.creating}</span>
+          <p className="text-sm text-neutral-500">{copy.creating}</p>
+        </Stack>
+      </Card>
+
+      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+        <Stack gap="md">
+          <div className="flex items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#00FFFF]/10 text-[#00FFFF]">
+              <Images className="h-7 w-7" />
+            </span>
+            <div>
+              <h2 className="text-2xl font-bold text-white md:text-3xl">{copy.images}</h2>
+              <p className="mt-2 text-base text-neutral-400">{copy.imagesHint}</p>
+            </div>
           </div>
-          <p className="text-xs text-neutral-500">{copy.keepNote}</p>
+          <p className="text-sm text-neutral-500">{copy.creating}</p>
         </Stack>
       </Card>
 
@@ -154,8 +195,8 @@ export function ActivationImmersionPreview({
           <Card variant="outlined" className="bg-[#101010] border-[#39FF14]/30 p-5 md:p-8">
             <div className="text-center">
               <Stack gap="md">
-                <h3 className="text-lg md:text-2xl font-bold text-white">{copy.offerTitle}</h3>
-                <p className="text-sm md:text-base text-neutral-400 max-w-xl mx-auto leading-relaxed">
+                <h3 className="text-lg font-bold text-white md:text-2xl">{copy.offerTitle}</h3>
+                <p className="mx-auto max-w-4xl text-base leading-relaxed text-neutral-400 md:text-lg">
                   {copy.offerBody}
                 </p>
                 <div className="flex justify-center">
@@ -172,8 +213,8 @@ export function ActivationImmersionPreview({
           <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-5 md:p-8">
             <Stack gap="md">
               <div>
-                <Text size="sm" className="text-white font-semibold">{copy.inspiredTitle}</Text>
-                <p className="text-xs text-neutral-500 mt-1">{copy.inspiredHint}</p>
+                <Text size="sm" className="font-semibold text-white">{copy.inspiredTitle}</Text>
+                <p className="mt-1 text-xs text-neutral-500">{copy.inspiredHint}</p>
               </div>
               <Textarea
                 value={sample.inspiredStep}

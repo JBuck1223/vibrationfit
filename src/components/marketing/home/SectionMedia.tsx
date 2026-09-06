@@ -8,6 +8,8 @@ export function SectionMedia({
   photos,
   graphic,
   side = 'right',
+  align = 'start',
+  cta,
   children,
 }: {
   src?: string
@@ -15,14 +17,19 @@ export function SectionMedia({
   photos?: Photo[]
   graphic?: React.ReactNode
   side?: 'left' | 'right'
+  align?: 'start' | 'center'
+  cta?: React.ReactNode
   children: React.ReactNode
 }) {
   const items = photos ?? (src && alt ? [{ src, alt }] : [])
   const isCollage = items.length > 1
 
   return (
-    <div className={`hp-with-photo ${side === 'left' ? 'is-flip' : ''} ${isCollage ? 'has-collage' : ''}`}>
-      <div className="hp-with-photo-copy">{children}</div>
+    <div className={`hp-with-photo ${side === 'left' ? 'is-flip' : ''} ${isCollage ? 'has-collage' : ''} ${align === 'center' ? 'is-centered' : ''}`}>
+      <div className="hp-with-photo-copy">
+        {children}
+        {cta ? <div className="hidden lg:block">{cta}</div> : null}
+      </div>
       <div className="hp-with-photo-media">
         <div className="hp-with-photo-sticky">
           {graphic ? (
@@ -40,6 +47,7 @@ export function SectionMedia({
               <MarketingImage src={items[0].src} alt={items[0].alt} width={1200} height={800} className="h-auto w-full" loading="eager" />
             </div>
           ) : null}
+          {cta ? <div className="hp-with-photo-cta lg:hidden">{cta}</div> : null}
         </div>
       </div>
     </div>

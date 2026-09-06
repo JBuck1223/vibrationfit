@@ -61,6 +61,14 @@ export const PAGE_CLASSIFICATIONS = {
     '/life-vision/[id]/print',        // PDF preview page (with sidebar)
     '/life-vision/new/assembly',
     '/life-vision/new/[category]',
+    '/life-vision/begin',
+    '/life-vision/update',
+    '/begin',
+    '/begin/welcome',
+    '/begin/complete',
+    '/begin/training',
+    '/begin/training/complete',
+    '/begin/intake',
     
     // Legacy Vision Board routes (redirect to /manifestations)
     '/vision-board',
@@ -233,6 +241,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/ai-models',
     '/admin/audio-mixer',
     '/admin/activation',
+    '/admin/begin',
     
     // Scheduling (Universal)
     '/admin/scheduling',
@@ -268,6 +277,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/home-preview-4',                 // Layout experiment of the merged draft
     '/home-preview-5',                 // Redirects to / (promoted front door)
     '/home-preview-original',          // Retired live homepage, kept for reference
+    '/home-preview-9-6-26',            // Archived / from 2026-09-06, before Activation front door
     '/privacy-policy',
     '/terms-of-service',
     '/100k',                           // From $100K in Debt to $100K in the Bank (free guide)
@@ -275,6 +285,7 @@ export const PAGE_CLASSIFICATIONS = {
     // Activation Experience (public lead magnet; wizard + immersion require the
     // free session created at email capture)
     '/activation',
+    '/activation/home',              // Redirects to / (promoted front door)
     '/activation/experience',
     '/activation/[id]',
     

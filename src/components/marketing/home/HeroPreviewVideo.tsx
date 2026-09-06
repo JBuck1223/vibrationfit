@@ -3,16 +3,24 @@
 import { useRef, useState } from 'react'
 import { reportVideoStart, reportVideoMilestone, reportVideoComplete } from '@/lib/tracking/engagement'
 
-const SRC = 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-5-13-26-1080p.mp4'
-const POSTER = 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-5-13-26-thumb.0000000.jpg'
+const HOME_SRC = 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-5-13-26-1080p.mp4'
+const HOME_POSTER = 'https://media.vibrationfit.com/site-assets/video/marketing/offer/offer-video-5-13-26-thumb.0000000.jpg'
 
 // Same tracking id as HeroLayout's split-variant player so the preview page
 // reports one video regardless of layout variant.
-const TRACKING_ID = 'home-preview-hero-video'
+const HOME_TRACKING_ID = 'home-preview-hero-video'
 
 const MILESTONES = [25, 50, 75, 95] as const
 
-export function HeroPreviewVideo() {
+export function HeroPreviewVideo({
+  src = HOME_SRC,
+  poster = HOME_POSTER,
+  trackingId = HOME_TRACKING_ID,
+}: {
+  src?: string
+  poster?: string
+  trackingId?: string
+}) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const withSoundRef = useRef(false)
   const [withSound, setWithSound] = useState(false)
@@ -26,7 +34,7 @@ export function HeroPreviewVideo() {
     video.currentTime = 0
     withSoundRef.current = true
     setWithSound(true)
-    reportVideoStart(TRACKING_ID)
+    reportVideoStart(trackingId)
     void video.play().catch(() => {})
   }
 
@@ -39,14 +47,14 @@ export function HeroPreviewVideo() {
     for (const milestone of MILESTONES) {
       if (percentage >= milestone && !milestonesReached.current.has(milestone)) {
         milestonesReached.current.add(milestone)
-        reportVideoMilestone(TRACKING_ID, milestone, video.currentTime)
+        reportVideoMilestone(trackingId, milestone, video.currentTime)
       }
     }
   }
 
   const handleEnded = () => {
     if (withSound) {
-      reportVideoComplete(TRACKING_ID)
+      reportVideoComplete(trackingId)
     }
   }
 
@@ -55,8 +63,8 @@ export function HeroPreviewVideo() {
       <div className="relative overflow-hidden rounded-2xl bg-black">
         <video
           ref={videoRef}
-          src={SRC}
-          poster={POSTER}
+          src={src}
+          poster={poster}
           autoPlay
           muted
           loop={!withSound}
@@ -82,9 +90,6 @@ export function HeroPreviewVideo() {
           </button>
         )}
       </div>
-      <p className="mt-2 text-center text-sm tracking-wide text-neutral-400">
-        {withSound ? 'Five minute overview video' : 'Autoplaying muted. Click to watch with sound.'}
-      </p>
     </div>
   )
 }

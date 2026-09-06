@@ -26,29 +26,21 @@ export const ACTIVATION_COPY = {
   orientation: {
     source: 'src/components/activation/ActivationOrientation.tsx',
     eyebrow: 'Your Activation',
-    title: 'Tell the truth. Then say what you want.',
-    intro:
-      'This is a conversation, not a form. You do not need the polished version. You need the real one.',
-    youWillTitle: 'What you will do',
-    youWill:
-      'Tell VIVA what is true right now — the frustration, the weight, the stuck place — then say what you actually want instead.',
-    vivaWillTitle: 'What VIVA will do',
-    vivaWill:
-      'Listen. Ask only what she still needs. Then write your Activation from your own words.',
-    leaveWithTitle: 'What you leave with',
-    leaveWith:
-      'Your Life I Choose, Future-Self Story, Incantation, and SparkQuery. Audio, song, and images arrive as you enter.',
+    title: 'Welcome to your Activation!',
+    lead: 'Here\'s how it works:',
+    body:
+      'You\'ll have a conversation with VIVA about the current state of your life and where your imagination takes you when you allow yourself to dream big! She will then craft your vision from your words using vibrational grammar that is harmonious with universal law. From this vision, she will build your Activation so you can begin activating your new vision immediately.',
+    close:
+      'You can read it, speak it, listen to it, and look at it. Everything is yours to keep.',
     time: 'About 10 to 15 minutes.',
-    cta: 'I am ready',
-    committing: 'Opening...',
+    cta: 'Start My Activation',
+    committing: 'Starting...',
   },
 
   categoryPick: {
     source: 'src/components/activation/ActivationCategoryPick.tsx',
     eyebrow: 'One area',
-    title: 'Which part of your life wants your attention?',
-    subtitle:
-      'Pick the area you want to sit with. VIVA will stay there with you — not try to name it for you.',
+    title: 'Which life category would you like to activate?',
     continue: 'Talk with VIVA',
     continuing: 'Opening...',
   },
@@ -58,11 +50,13 @@ export const ACTIVATION_COPY = {
     promptFile: 'src/lib/viva/prompts/activation-chat-prompts.ts',
     opening: (firstName: string | null | undefined, categoryLabel: string) => {
       const name = firstName?.trim()
-      const hello = name ? `I'm glad you're here, ${name}.` : "I'm glad you're here."
-      return `${hello}\n\nYou chose ${categoryLabel}. That's the place we'll sit together — not to fix it from the outside, but to hear what's true there, and what you actually want instead.\n\nWhenever you're ready, start wherever it is. The weight. The want. A moment. I'm listening.`
+      const hello = name
+        ? `Hi, I'm VIVA. And I'm glad you're here, ${name}.`
+        : "Hi, I'm VIVA. And I'm glad you're here."
+      return `${hello}\n\nIn this chat, I'll be collecting the information I need to help you craft your Life Vision in this area.\n\nPlease begin by telling me about the current state of ${categoryLabel} in your life. Be as raw and as real as you can. After current state, we'll move on to what's in your imagination, and what clarity you already have about what you want. If you flow into what you want while describing current state, that's cool too.`
     },
     placeholder: 'Talk to VIVA...',
-    readinessTitle: 'What VIVA is holding',
+    readinessTitle: 'So far',
     readinessCurrent: 'Current state',
     readinessDesire: 'Desire',
     create: 'Create My Activation',
@@ -75,14 +69,14 @@ export const ACTIVATION_COPY = {
     source: 'src/app/activation/page.tsx',
     metaTitle: 'Create Your Free Activation | Vibration Fit',
     metaDescription:
-      'Tell VIVA where you are. Experience the reality you want next. A personalized Activation you can read, hear, feel, and keep — free, in 10 to 15 minutes.',
+      'A personalized Activation you can read, hear, feel, and keep — free, in 10 to 15 minutes.',
     cta: 'Create My Free Activation',
     noCard: 'No credit card required. Takes 10–15 minutes.',
     sections: [
       {
         id: 'hero',
         heading: 'Thoughts Become Things. So Why Isn\'t It Working?',
-        notes: 'Hero headline + video + "Tell VIVA where you are."',
+        notes: 'Hero headline + offer video + CTA.',
       },
       {
         id: 'how-it-works',
@@ -90,19 +84,24 @@ export const ACTIVATION_COPY = {
         notes: 'Short version of the Conscious Creation System.',
       },
       {
+        id: 'proof',
+        heading: 'Real People. Real Results.',
+        notes: 'SocialProofSection testimonials, directly under How Vibration Fit Works.',
+      },
+      {
+        id: 'what-you-keep',
+        heading: 'Your personalized Activation includes',
+        notes: 'Words / sound and image — not a delivery timeline. Directly under Real People. Real Results.',
+      },
+      {
         id: 'meet-viva',
         heading: 'What VIVA Does',
         notes: 'Contrast → Life I Choose → blacksmith tools.',
       },
       {
-        id: 'what-you-keep',
-        heading: 'Your personalized Activation includes',
-        notes: 'Seven assets (written + enrichment).',
-      },
-      {
         id: 'practice',
         heading: 'You Know the Law. Now Live It.',
-        notes: 'Vibrational Fitness framing.',
+        notes: 'Vibrational Fitness framing. Graphic on the right; CTA under the graphic on mobile.',
       },
       {
         id: 'loop',
@@ -110,16 +109,18 @@ export const ACTIVATION_COPY = {
         notes: 'Five-stage conscious creation loop.',
       },
       {
-        id: 'proof',
-        heading: 'This is not another generic manifestation exercise.',
-        notes: 'SocialProofSection testimonials.',
-      },
-      {
         id: 'final-cta',
         heading: 'Your vision is waiting to take shape.',
         notes: 'Email capture form.',
       },
     ],
+  },
+
+  landingHome: {
+    route: '/',
+    source: 'src/app/page.tsx',
+    notes:
+      'Live front door. Activation landing is the spine; homepage-only containers (orbit, founders, fit check) are grafted in. FAQ is free Activation → $99/28-day membership, cancel anytime. `/activation/home` redirects here.',
   },
 
   startForm: {
@@ -187,77 +188,110 @@ export const ACTIVATION_COPY = {
   },
 
   generating: {
-    source: 'src/app/activation/experience/page.tsx',
-    title: 'VIVA is creating your Activation',
-    body: 'Your Life I Choose vision, Future-Self Story, Incantation, and SparkQuery are being written from your own words. This usually takes under a minute.',
+    source: 'src/components/activation/ActivationExperienceSteps.tsx',
+    messages: (categoryLabel?: string) => [
+      categoryLabel
+        ? `VIVA is writing your Life I Choose in ${categoryLabel}...`
+        : 'VIVA is writing your Life I Choose from your words...',
+      'Writing your Future-Self Story...',
+      'Forging your Incantation...',
+      'Crafting your SparkQuery...',
+      'Writing your song...',
+    ],
+    estimatedTime: 'This usually takes under a minute.',
+    cycleDuration: 8000,
+    estimatedDuration: 50000,
   },
 
   preview: {
     source: 'src/app/activation/[id]/page.tsx',
     eyebrow: 'Ready',
-    headline: 'Your Activation is ready',
+    headline: (firstName?: string | null, categoryLabel?: string | null) => {
+      if (firstName && categoryLabel) return `${firstName}, your ${categoryLabel} Activation is ready`
+      if (categoryLabel) return `Your ${categoryLabel} Activation is ready`
+      if (firstName) return `${firstName}, your Activation is ready`
+      return 'Your Activation is ready'
+    },
     supporting:
-      'The written pieces are in. Enter to step into them. Audio, song, and images begin the moment you do.',
+      'The words are ready. Pick a voice for your audios and a genre for your song, then step in.',
     enter: 'Enter My Activation',
     entering: 'Opening...',
-    arrivingNext: 'Arrives when you enter',
+    readyLabel: 'Ready',
     assets: [
       { key: 'vision', label: 'Life I Choose' },
       { key: 'story', label: 'Future-Self Story' },
       { key: 'incantation', label: 'Incantation' },
       { key: 'spark_query', label: 'SparkQuery' },
-    ],
-    queued: [
-      { key: 'audio', label: 'Spoken audio' },
       { key: 'song', label: 'Your song' },
-      { key: 'board', label: 'Vision images' },
     ],
+  },
+
+  mediaPick: {
+    source: 'src/components/activation/ActivationMediaPick.tsx',
+    voiceTitle: 'Choose the voice for your vision audios',
+    genreTitle: 'Choose a genre for your song',
+    previewHint: 'Click play to preview.',
   },
 
   immersion: {
     source: 'src/app/activation/[id]/page.tsx',
-    headline: 'Step Into Your Chosen Reality',
+    headline: 'Your Activation',
     categoryFallback: 'Your Activation',
     categoryTitle: (label: string) => `${label} Activation`,
-    guideTitle: 'Start Here — your first Activation takes about 3 minutes',
-    guideDone: "I've Entered This Reality",
-    seeHow: 'See How Vibration Fit Continues This',
-    guideSteps: [
-      'Read your Life I Choose.',
-      'Experience your Future-Self Story.',
-      'Repeat your Incantation.',
-      'Ask your SparkQuery.',
-      'Notice what possibility opens.',
+    heroVideoLabel: 'How to enter',
+    heroVideoPlaceholder:
+      'A short film on how to use this Activation is coming to this spot.',
+    mapTitle: 'How to activate',
+    mapLead: 'Every piece on this page is a way in. Use them in any order — this is the map.',
+    mapStops: [
+      { id: 'life-i-choose', title: 'Life I Choose', use: 'Read it. Then play the audio.' },
+      { id: 'future-self-story', title: 'Future-Self Story', use: 'Read yourself into the day. Then listen.' },
+      { id: 'incantation', title: 'Incantation', use: 'Say it out loud.' },
+      { id: 'spark-query', title: 'SparkQuery', use: 'Ask it. Notice what opens.' },
+      { id: 'song', title: 'Your Song', use: 'Play it while you read and look.' },
+      { id: 'vision-board', title: 'Vision Board', use: 'Look at the pictures of this life.' },
     ],
+    guideDone: "I've Entered This Reality",
     lifeIChoose: 'Life I Choose',
+    lifeIChooseHint: 'Read it. Then play the audio.',
     story: 'Future-Self Story',
-    readStory: 'Read your story',
+    storyHint: 'Read yourself into the day. Then listen.',
     incantation: 'Incantation',
-    incantationHint: 'Speak it out loud. Rhythm builds identity.',
+    incantationHint: 'Say it out loud.',
     sparkQuery: 'SparkQuery',
-    sparkHint: 'A question you ask the universe to open yourself to new mental possibilities.',
+    sparkHint: 'Ask it. Notice what opens.',
+    copyLabel: 'Copy',
+    copied: 'Copied',
     download: 'Download',
-    downloadEverything: 'Download Everything',
-    arriving: 'Arriving for you now',
+    saved: 'Saved',
+    listen: 'Listen',
+    lyrics: 'Read the lyrics',
+    visionAudio: 'Vision Audio',
     song: 'Your Song',
-    images: 'Vision Images',
-    creating: 'creating',
-    didntComeThrough: "didn't come through",
+    songHint: 'Play it while you read and look.',
+    images: 'Vision Board',
+    imagesHint: 'Look at the pictures of this life.',
+    creating: 'Creating',
+    ready: 'Ready',
+    failedLabel: 'Failed',
+    failed: 'This piece needs another moment. Try again.',
     retry: 'Try again',
     retrying: 'Trying again...',
-    keepNote:
-      'Everything here is yours to keep — download any of it, any time. No need to wait on this page; your Activation stays saved in your account.',
-    offerTitle: 'One Activation is powerful. A system makes it a way of life.',
-    offerBody:
-      'What you just received is yours. Vibration Fit is how you repeat this with VIVA — Manifestations, the Loop (Capture, Choose, Immerse, Plan, Connect), Alignment Gym, and Vibe Tribe — so one chosen reality becomes a way of life.',
-    offerCta: 'Continue With Vibration Fit',
-    offerVideoLabel: 'Offer video',
-    offerVideoPlaceholder: 'A short film of what VIVA just created — and what continues from here — is coming to this spot.',
+    keepTitle: 'Keep Your Activation',
+    keepBody: 'Everything created here is yours to download, revisit, and keep.',
+    downloadEverything: 'Download Everything',
     inspiredTitle: 'What feels inspired now?',
     inspiredHint:
-      'Totally optional. If an action is calling you from inside this new reality, capture it here.',
-    inspiredPlaceholder: 'One thing I feel inspired to do...',
-    inspiredSave: 'Save my inspired step',
+      'One thought, action, or possibility that feels alive after experiencing your Activation.',
+    inspiredPlaceholder: 'One thought, action, or possibility...',
+    inspiredSave: 'Save Inspired Thought',
+    offerTitle: 'One area is chosen. Now write the rest of this life.',
+    offerBody:
+      'You just entered one reality. Vibration Fit is where VIVA writes your full Life Vision as one life, then takes you to Vibe Tribe and Alignment Gym — your people, your room. The rest of the tools wait until you want them.',
+    offerCta: 'Activate the Rest of This Life',
+    offerVideoLabel: 'Offer video',
+    offerVideoPlaceholder:
+      'A short film of what VIVA just created — and how Vibration Fit continues from here — is coming to this spot.',
   },
 } as const
 
@@ -268,7 +302,7 @@ export const ACTIVATION_SAMPLE = {
     {
       role: 'assistant' as const,
       content:
-        "I'm glad you're here, Jordan.\n\nYou chose Money. That's the place we'll sit together — not to fix it from the outside, but to hear what's true there, and what you actually want instead.\n\nWhenever you're ready, start wherever it is. The weight. The want. A moment. I'm listening.",
+        "Hi, I'm VIVA. And I'm glad you're here, Jordan.\n\nIn this chat, I'll be collecting the information I need to help you craft your Life Vision in this area.\n\nPlease begin by telling me about the current state of Money in your life. Be as raw and as real as you can. After current state, we'll move on to what's in your imagination, and what clarity you already have about what you want. If you flow into what you want while describing current state, that's cool too.",
     },
     {
       role: 'user' as const,
@@ -296,14 +330,17 @@ export const ACTIVATION_SAMPLE = {
     'This sounds primarily connected to money and the pressure of providing — the hours, the fear of one bad month, the version of success that doesn\'t feel like yours. Is that right?',
   essence: 'Steady Presence',
   visionStatement:
-    'I work from a calm home office three days a week. Fridays belong to my kids. The work I do matters — it is not just keeping the lights on. I am proud of this life. I lead with presence instead of panic. I am a parent and a builder who is actually in the room. My house feels like I can breathe in it. I am light. I am steady. This is the life I choose.',
+    'I work from a calm home office three days a week. Fridays belong to my kids. The work I do matters. I am proud of this life. I lead with presence. I am a parent and a builder who is actually in the room. My house feels like I can breathe in it. I am light. I am steady. This is the life I choose.',
   story:
-    'I close the laptop at three on a Thursday and the house is already warm. My daughter is at the table with markers. I sit down next to her — not the tired version, the one who is actually here. Friday is already ours. The work I did this week mattered. I can feel it in my chest: pride, not performance.',
+    'I close the laptop at three on a Thursday and the house is already warm. My daughter is at the table with markers. I sit down next to her — the one who is actually here. Friday is already ours. The work I did this week mattered. I can feel it in my chest: pride.',
   incantation:
-    'I am present. I am proud. I build a life that feels like mine. I lead with steadiness. I am in the room.',
+    'I am in the room!\nPresence fills this house, Friday already ours, the work I love landing with ease!\nI am present, I am proud, I am the builder who is here — for this is who I am!',
   sparkQuestions: [
-    'What becomes possible when my work and my presence stop competing?',
-    'Who do I get to be when Friday already belongs to us?',
+    'Why does my work flow so naturally from a calm home office three days a week?',
+    'Why do Fridays already belong to my kids so easily?',
+    'Why am I the kind of person who leads with presence and feels proud of this life?',
   ],
   inspiredStep: 'Block Friday mornings on the calendar starting next week — no meetings.',
+  songLyrics:
+    'I close the laptop and the house is already warm\nFriday already belongs to us\nI lead with presence\nThis is the life I choose',
 }

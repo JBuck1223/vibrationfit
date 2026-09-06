@@ -20,6 +20,7 @@ const CREATE_AREA_ROUTES = [
   '/life-vision/create',
   '/life-vision/new',
   '/life-vision/refine',
+  '/life-vision/begin',
 ]
 
 export function LifeVisionAreaBar() {

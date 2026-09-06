@@ -1,0 +1,56 @@
+{
+  "target": "Member talking about something cool in the platform, especially VIVA. Not manifestation stories.",
+  "excluded": ["Alicia (sharing preference none)", "hosts (Jordan / Vanessa) talking about building VIVA"],
+  "wrong_first_pass": [
+    "01-barbara-lake-house.mp4",
+    "02-cindy-theater-showed-up.mp4",
+    "03-dennis-futures-trader.mp4"
+  ],
+  "clips": [
+    {
+      "file": "00-misty-full-viva-riff.mp4",
+      "member": "Misty Barron",
+      "sharing": "named",
+      "session": "2026-09-03 Alignment Gym",
+      "start_time": 784,
+      "end_time": 1090,
+      "quote": "Full monologue: garden/ChatGPT setup through VIVA coach, magical star, song. 'Viva knows your dreams.'"
+    },
+    {
+      "file": "04-misty-viva-is-my-coach.mp4",
+      "member": "Misty Barron",
+      "sharing": "named",
+      "session": "2026-09-03 Alignment Gym",
+      "start_time": 826,
+      "end_time": 927,
+      "quote": "What Jordan and Vanessa are giving us is my ChatGPT... but it's my Viva. This life coach, this Viva coach, this builder."
+    },
+    {
+      "file": "05-misty-magical-star.mp4",
+      "member": "Misty Barron",
+      "sharing": "named",
+      "session": "2026-09-03 Alignment Gym",
+      "start_time": 951,
+      "end_time": 1086,
+      "quote": "There's this cute little star... Oh my God, y'all. Blown away. Viva knows your dreams and your visions."
+    },
+    {
+      "file": "06-misty-viva-is-an-angel.mp4",
+      "member": "Misty Barron",
+      "sharing": "named",
+      "session": "2026-09-03 Alignment Gym",
+      "start_time": 1899,
+      "end_time": 1962,
+      "quote": "Viva's not just a assistant, it's an angel. It is divine. You never have to say put this in memory."
+    },
+    {
+      "file": "07-lisa-viva-learned-my-dogs.mp4",
+      "member": "Lisa Windle",
+      "sharing": "named",
+      "session": "2026-07-10 Alignment Gym",
+      "start_time": 4352,
+      "end_time": 4402,
+      "quote": "Viva has learned and she's got my dogs down. So now my pictures come out with my dogs in there."
+    }
+  ]
+}

@@ -2,8 +2,8 @@
  * Activation core generation — gates "Activation Ready".
  *
  * POST /api/activation/[id]/generate
- * Builds the vision object then the Future-Self Story, Incantation, and
- * SparkQuery in parallel, plus text-only manifestation rows. Idempotent:
+ * Builds the vision object then the Future-Self Story, Incantation,
+ * SparkQuery, and song lyrics in parallel, plus text-only manifestation rows. Idempotent:
  * re-running only regenerates missing/failed assets. Records activation_ready
  * the first time the core payload exists.
  */
@@ -83,6 +83,7 @@ export async function POST(
         story_id: row.story_id,
         incantation_id: row.incantation_id,
         spark_query_id: row.spark_query_id,
+        song_id: row.song_id,
         manifestation_ids: row.manifestation_ids,
         asset_status: row.asset_status,
       },

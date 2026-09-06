@@ -29,6 +29,7 @@ import { ConstraintsPanel } from '@/components/viva/ConstraintsPanel'
 import { cn } from '@/lib/utils'
 import { parseVivaMode, type VivaMode } from '@/lib/viva/modes'
 import { CoachStreamError, readCoachStream } from '@/lib/viva/coach-stream'
+import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
 
 interface Message {
   id: string
@@ -340,7 +341,11 @@ export default function VivaPage() {
   )
 
   return (
-    <div className="flex-1 min-h-0 bg-black flex overflow-hidden">
+    <div className="flex-1 min-h-0 bg-black flex flex-col overflow-hidden">
+    <div className="px-4 pt-3 shrink-0">
+      <StudioLifeActivationBanner />
+    </div>
+    <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* ---- Thread sidebar ---- */}
       <aside
         className={cn(
@@ -515,6 +520,7 @@ export default function VivaPage() {
           </aside>
         </>
       )}
+    </div>
     </div>
   )
 }

@@ -15,10 +15,12 @@ import {
 } from '@/components/marketing/home/primitives'
 import { SectionMedia } from '@/components/marketing/home/SectionMedia'
 import { HeroPreviewVideo } from '@/components/marketing/home/HeroPreviewVideo'
+import { ACTIVATION_OFFER_VIDEO } from '@/lib/activation/offer-video'
 import { PlatformScreens } from '@/components/marketing/home/PlatformScreens'
 import { InstallRunEvolve, VibrationalFitness } from '@/components/marketing/home/graphics'
 import { ActivationOfferCard } from '@/components/marketing/home/ActivationOfferCard'
 import { ActivationStartForm } from '@/components/activation/ActivationStartForm'
+import { ActivationIncludes } from '@/components/activation/ActivationIncludes'
 import '@/components/marketing/home/marketing.css'
 
 const display = Indie_Flower({
@@ -31,13 +33,13 @@ const display = Indie_Flower({
 export const metadata: Metadata = {
   title: 'Create Your Free Activation | Vibration Fit',
   description:
-    'Tell VIVA where you are. Experience the reality you want next. A personalized Activation you can read, hear, feel, and keep — free, in 10 to 15 minutes.',
+    'A personalized Activation you can read, hear, feel, and keep — free, in 10 to 15 minutes.',
 }
 
 /** Anchor-scroll CTA — the landing page sells one click: start the Activation. */
 function StartCta({ className = '' }: { className?: string }) {
   return (
-    <div className={`mt-10 flex justify-center ${className}`}>
+    <div className={`flex justify-center ${className}`}>
       <a
         href="#start"
         className="inline-flex w-full items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-4 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:w-auto md:whitespace-nowrap md:px-7"
@@ -48,16 +50,6 @@ function StartCta({ className = '' }: { className?: string }) {
     </div>
   )
 }
-
-const ACTIVATION_ASSETS: Array<{ name: string; description: string }> = [
-  { name: 'Life I Choose', description: 'your desired reality in your language' },
-  { name: 'Future-Self Story', description: 'a narrative written from inside that reality' },
-  { name: 'Incantation', description: 'words to reinforce the identity you\u2019re practicing' },
-  { name: 'SparkQuery', description: 'a question for the universe that opens you to new mental possibilities' },
-  { name: 'Vision Audio', description: 'your vision brought to life through sound' },
-  { name: 'Personalized Song', description: 'an original song created from your vision' },
-  { name: 'Vision Board', description: 'visual anchors for the reality you\u2019re choosing' },
-]
 
 const LOOP_STAGES: Array<{ stage: string; description: string }> = [
   { stage: 'Current State', description: 'You tell the truth about where you are — no polishing required.' },
@@ -71,7 +63,7 @@ export default function ActivationLandingPage() {
   return (
     <div className={`${display.variable} -mx-4 -mt-6 overflow-x-clip sm:-mx-6 md:-mx-6 md:-my-12 md:overflow-x-visible lg:-mx-8 lg:-mt-8`} data-home="activation">
       {/* 1. Hero */}
-      <header className="hp-hero-glow">
+      <header className="hp-hero-glow" data-hero="activation-offer">
         <Container size="xl" className="px-4 py-12 md:px-10 md:pb-20 md:pt-14">
           <Display as="h1" className="hp-hero-headline">
             <span className="hp-hero-headline-line">Thoughts Become Things.</span>
@@ -79,19 +71,13 @@ export default function ActivationLandingPage() {
             <Accent>So Why Isn&rsquo;t It Working?</Accent>
           </Display>
           <div className="mx-auto mt-10 max-w-3xl">
-            <HeroPreviewVideo />
+            <HeroPreviewVideo
+              src={ACTIVATION_OFFER_VIDEO.src}
+              poster={ACTIVATION_OFFER_VIDEO.poster}
+              trackingId="activation-landing-hero-video"
+            />
           </div>
-          <h2 className="mx-auto mt-14 max-w-3xl text-center text-2xl font-semibold leading-relaxed text-white md:mt-16 md:text-3xl">
-            Tell VIVA where you are.
-            <br />
-            Experience the reality you want next.
-          </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-[1.85] text-neutral-300 md:text-xl">
-            VIVA transforms what&rsquo;s happening now, what you desire, and who
-            you&rsquo;re becoming into a personalized Activation you can read, hear,
-            feel, download, and keep.
-          </p>
-          <StartCta />
+          <StartCta className="mt-10" />
           <p className="mt-4 text-center text-sm text-neutral-500">
             No credit card required. Takes 10&ndash;15 minutes.
           </p>
@@ -127,13 +113,77 @@ export default function ActivationLandingPage() {
               around you, in one area of your life, in the next 10 to 15 minutes.
             </p>
           </Body>
-          <StartCta className="lg:justify-start" />
         </SectionMedia>
       </Section>
 
-      {/* 3. Meet VIVA — clarity + the blacksmith */}
+      {/* 3. Real People. Real Results. */}
       <Section>
-        <SectionMedia graphic={<PlatformScreens />}>
+        <div className="rounded-2xl bg-black/40 p-4 md:p-6 lg:p-8" data-proof="after-how">
+          <SocialProofSection
+            eyebrow="Vibration Fit Member Results"
+            title="Real People. Real Results."
+            subtitle="This is what happens when the system is built around you."
+            microcopy="All videos and messages are from real Vibration Fit members, shared with permission. Screenshots are unedited."
+            videos={[
+              {
+                id: 'v1',
+                src: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541.webm',
+                poster: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541-thumb.jpg',
+                label: 'Testimonial',
+              },
+              {
+                id: 'v2',
+                src: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-1080p.mp4',
+                poster: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-thumb.0000000.jpg',
+                label: 'Michele',
+              },
+              {
+                id: 'v3',
+                src: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695.webm',
+                poster: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695-thumb.jpg',
+                label: 'Activation',
+              },
+            ]}
+            screenshots={[
+              { id: 's1', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0002-4.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's2', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0003-5.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's3', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0004-7.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's4', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0005-8.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's5', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0006-9.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's6', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0007-13.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's7', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0008-jeanie.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's8', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0009-11.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's9', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0010-12.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's10', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0011-14.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's11', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0012-15.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's12', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0013-16.jpg', alt: 'Vibration Fit member testimonial' },
+              { id: 's13', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0014-17.jpg', alt: 'Vibration Fit member testimonial' },
+            ]}
+          />
+        </div>
+      </Section>
+
+      {/* 4. What they receive */}
+      <Section>
+        <div className="mx-auto max-w-4xl">
+          <Eyebrow>What You Keep</Eyebrow>
+          <Display as="h2">Your personalized Activation includes</Display>
+          <div className="mt-10">
+            <ActivationIncludes />
+          </div>
+          <Body>
+            <p>
+              You can read it, speak it, listen to it, and look at it.
+              Everything is yours to download and keep.
+            </p>
+          </Body>
+          <StartCta className="mt-8" />
+        </div>
+      </Section>
+
+      {/* 5. Meet VIVA — clarity + the blacksmith */}
+      <Section>
+        <SectionMedia graphic={<PlatformScreens />} cta={<StartCta className="mt-8 lg:mt-10 lg:justify-start" />}>
           <Eyebrow className="lg:text-left">Meet VIVA</Eyebrow>
           <Display className="lg:text-left">
             What VIVA
@@ -172,41 +222,13 @@ export default function ActivationLandingPage() {
               board. Every tool hammered out of your own words.
             </p>
           </Body>
-          <StartCta className="lg:justify-start" />
         </SectionMedia>
       </Section>
 
-      {/* 4. What they receive */}
+      {/* 6. The Practice — You Know the Law. Now Live It. */}
       <Section>
-        <div className="mx-auto max-w-3xl">
-          <Eyebrow tone="purple">What You Keep</Eyebrow>
-          <Display as="h2">Your personalized Activation includes</Display>
-          <div className="mt-10 space-y-3.5">
-            {ACTIVATION_ASSETS.map((asset) => (
-              <div
-                key={asset.name}
-                className="flex flex-col gap-1 rounded-2xl border-2 border-[#1F1F1F] bg-[#101010] px-5 py-4 sm:flex-row sm:items-baseline sm:gap-3"
-              >
-                <span className="shrink-0 font-semibold text-white">{asset.name}:</span>
-                <span className="text-neutral-300">{asset.description}</span>
-              </div>
-            ))}
-          </div>
-          <Body>
-            <p>
-              Your written assets appear right away. The audio, song, and images are
-              created for you in the background while you take it all in. Everything
-              is yours to download and keep.
-            </p>
-          </Body>
-          <StartCta />
-        </div>
-      </Section>
-
-      {/* 5. The Practice — You Know the Law. Now Live It. */}
-      <Section>
-        <SectionMedia side="left" graphic={<VibrationalFitness />}>
-          <Eyebrow tone="cyan" className="lg:text-left">The Practice</Eyebrow>
+        <SectionMedia align="center" graphic={<VibrationalFitness />} cta={<StartCta className="mt-8 lg:mt-10 lg:justify-start" />}>
+          <Eyebrow className="lg:text-left">The Practice</Eyebrow>
           <Display className="lg:text-left">
             You Know the Law.
             <br />
@@ -227,14 +249,13 @@ export default function ActivationLandingPage() {
               your vision down with it.
             </Hit>
           </Body>
-          <StartCta className="lg:justify-start" />
         </SectionMedia>
       </Section>
 
-      {/* 6. Your Conscious Creation System — the loop */}
+      {/* 7. Your Conscious Creation System — the loop */}
       <Section>
-        <SectionMedia side="left" graphic={<InstallRunEvolve />}>
-          <Eyebrow tone="yellow" className="lg:text-left">Your Conscious Creation System</Eyebrow>
+        <SectionMedia side="left" graphic={<InstallRunEvolve />} cta={<StartCta className="mt-8 lg:mt-10 lg:justify-start" />}>
+          <Eyebrow className="lg:text-left">Your Conscious Creation System</Eyebrow>
           <Display className="lg:text-left">
             Install It Once.
             <br />
@@ -277,45 +298,7 @@ export default function ActivationLandingPage() {
               your chosen realities over time.
             </p>
           </Body>
-          <StartCta className="lg:justify-start" />
         </SectionMedia>
-      </Section>
-
-      {/* 7. Proof — short, three testimonials */}
-      <Section>
-        <div className="rounded-2xl bg-black/40 p-4 md:p-6 lg:p-8">
-          <SocialProofSection
-            eyebrow="Member Results"
-            title="This is not another generic manifestation exercise."
-            subtitle="This is what happens when the system is built around you."
-            microcopy="All videos and messages are from real Vibration Fit members, shared with permission. Screenshots are unedited."
-            videos={[
-              {
-                id: 'v1',
-                src: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541.webm',
-                poster: 'https://media.vibrationfit.com/user-uploads/5c49b204-0c1b-4c5e-bb33-118f9d251259/intensive/testimonials/1773515176961-susxm5ps05e-intensive-c8f87e55-24af-4eed-8520-025cc3547a12-testimonial-recording-1773515176541-thumb.jpg',
-                label: 'Testimonial',
-              },
-              {
-                id: 'v2',
-                src: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-1080p.mp4',
-                poster: 'https://media.vibrationfit.com/site-assets/video/proof-wall/michele-testimonial-thumb.0000000.jpg',
-                label: 'Michele',
-              },
-              {
-                id: 'v3',
-                src: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695.webm',
-                poster: 'https://media.vibrationfit.com/user-uploads/4ed2a268-9df0-44da-8a0b-641238f92378/intensive/testimonials/1774242947302-jc0ui5mokj9-intensive-cae9652b-0556-4372-960c-431ea8b7eb3e-testimonial-recording-1774242946695-thumb.jpg',
-                label: 'Activation',
-              },
-            ]}
-            screenshots={[
-              { id: 's1', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0002-4.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's2', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0003-5.jpg', alt: 'Vibration Fit member testimonial' },
-              { id: 's3', src: 'https://media.vibrationfit.com/site-assets/proof-wall/testimonial-screenshots/testimonial-screenshots/4-6-26/vfit-messages-0000s-0008-jeanie.jpg', alt: 'Vibration Fit member testimonial' },
-            ]}
-          />
-        </div>
       </Section>
 
       {/* 8. Final CTA + email capture */}
