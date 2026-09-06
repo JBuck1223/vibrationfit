@@ -34,7 +34,7 @@ export async function POST(
       const slot = item.slot as KitSlot
       const entityId = typeof item.entity_id === 'string' ? item.entity_id : null
       const entityType = typeof item.entity_type === 'string' ? item.entity_type : null
-      const layer = (['suite', 'project', 'evidence', 'milestone'] as const).includes(item.layer as string)
+      const layer = ['suite', 'project', 'evidence', 'milestone'].includes(item.layer as string)
         ? (item.layer as KitLayer)
         : slot && KIT_SLOTS.includes(slot) ? defaultLayerForSlot(slot) : null
       return { slot, entityId, entityType, layer }

@@ -91,7 +91,7 @@ export function MemberSidebarPreview({
         </div>
       )}
 
-      {mode === 'complete' && (
+      {mode === 'hidden' && (
         <div className="border-t border-[#1A1A1A] px-4 py-4">
           <p className="text-sm text-neutral-400">
             Every tool walk-through is done, so the sidebar tab is gone. The regular
