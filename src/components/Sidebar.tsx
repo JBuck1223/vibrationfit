@@ -22,6 +22,7 @@ import { userNavigationPrimary, userNavigationGroups, adminNavigation, mobileNav
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
+import { LifeActivationSidebarCard } from '@/components/life-activation/LifeActivationSidebarCard'
 
 interface SidebarProps {
   className?: string
@@ -319,6 +320,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       <nav className="flex-1 min-h-0 px-4 pt-1 pb-4 space-y-1 overflow-y-auto">
         {primaryNavigation.length > 0 && (
           <div className="mb-3 space-y-1">
+            {!isAdmin && <LifeActivationSidebarCard collapsed={isCollapsed} />}
             {primaryNavigation.map((item) => {
               const Icon = item.icon
               const isActive = itemIsActive(item)

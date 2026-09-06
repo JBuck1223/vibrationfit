@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import React from 'react'
 import { ManifestationsStudioProvider } from '@/components/manifestations-studio/ManifestationsStudioContext'
 import { ManifestationsAreaBar } from '@/components/manifestations-studio/ManifestationsAreaBar'
+import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
 
 export const metadata: Metadata = {
   title: {
@@ -18,6 +19,7 @@ export default function ManifestationsLayout({ children }: { children: React.Rea
         className="min-w-0 flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
         style={{ '--content-px': '1rem' } as React.CSSProperties}
       >
+        <StudioLifeActivationBanner />
         {children}
       </main>
     </ManifestationsStudioProvider>

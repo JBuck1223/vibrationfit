@@ -15,6 +15,7 @@ import { gateway } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance } from '@/lib/tokens/tracking'
 import { buildVisionUpdateSystemPrompt } from '@/lib/viva/prompts/vision-update-prompts'
+import { buildVisionCreateSystemPrompt } from '@/lib/viva/prompts/vision-create-prompts'
 import { ORDERED_VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import {
   COACH_STREAM_META_MARKER,
@@ -38,7 +39,8 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
     }
 
-    const { messages, draftId, sessionSeed, conversationId } = await req.json()
+    const { messages, draftId, sessionSeed, conversationId, mode } = await req.json()
+    const isCreate = mode === 'create'
     if (!draftId) {
       return new Response(JSON.stringify({ error: 'Missing draftId' }), { status: 400 })
     }
@@ -100,13 +102,23 @@ export async function POST(req: Request) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    const system = buildVisionUpdateSystemPrompt({
-      firstName: profile?.first_name || null,
-      draft: draftText,
-      changedCategories,
-      perspective: draft.perspective === 'plural' ? 'plural' : 'singular',
-      sessionSeed: typeof sessionSeed === 'string' ? sessionSeed : null,
-    })
+    const seededCategory = CATEGORY_KEYS.find((key) => draftText[key]) || null
+    const system = isCreate
+      ? buildVisionCreateSystemPrompt({
+          firstName: profile?.first_name || null,
+          draft: draftText,
+          perspective: draft.perspective === 'plural' ? 'plural' : 'singular',
+          seededCategory,
+          sessionSeed: typeof sessionSeed === 'string' ? sessionSeed : null,
+        })
+      : buildVisionUpdateSystemPrompt({
+          firstName: profile?.first_name || null,
+          draft: draftText,
+          changedCategories,
+          perspective: draft.perspective === 'plural' ? 'plural' : 'singular',
+          sessionSeed: typeof sessionSeed === 'string' ? sessionSeed : null,
+        })
+    const sessionMode = isCreate ? 'vision_create' : 'vision_update'
 
     // ------------------------------------------------------------------
     // Thread persistence (same tables as VIVA coach) so a refresh of
@@ -123,10 +135,10 @@ export async function POST(req: Request) {
         .from('conversation_sessions')
         .insert({
           user_id: user.id,
-          mode: 'vision_update',
+          mode: sessionMode,
           vision_id: draftId,
-          title: 'Vision Update',
-          preview_message: lastUserMessage?.content?.slice(0, 100) || 'Vision update session',
+          title: isCreate ? 'Life Vision' : 'Vision Update',
+          preview_message: lastUserMessage?.content?.slice(0, 100) || (isCreate ? 'Life Vision session' : 'Vision update session'),
           message_count: 0,
           last_message_at: new Date().toISOString(),
         })
@@ -143,7 +155,7 @@ export async function POST(req: Request) {
           conversation_id: currentConversationId,
           role: 'user',
           message: lastUserMessage.content,
-          context: { mode: 'vision_update', draft_id: draftId },
+          context: { mode: sessionMode, draft_id: draftId },
         })
         .then(({ error }) => {
           if (error) console.error('[VIVA VISION UPDATE] Error saving user message:', error)
@@ -184,7 +196,7 @@ export async function POST(req: Request) {
             conversation_id: currentConversationId,
             role: 'assistant',
             message: assistantText,
-            context: { mode: 'vision_update', draft_id: draftId },
+            context: { mode: sessionMode, draft_id: draftId },
           })
           if (saveError) console.error('[VIVA VISION UPDATE] Error saving assistant message:', saveError)
 
@@ -216,7 +228,7 @@ export async function POST(req: Request) {
             actual_cost_cents: 0,
             provider: 'vercel_gateway',
             success: true,
-            metadata: { feature: 'vision_update', draft_id: draftId },
+            metadata: { feature: isCreate ? 'vision_create' : 'vision_update', draft_id: draftId },
           }).catch(() => {})
         }
       } catch (error) {

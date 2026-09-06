@@ -17,6 +17,7 @@ import { recordActivationEvent } from '@/lib/activation/events'
 import type { ActivationChatMessage, ActivationRow, AssetState } from '@/lib/activation/orchestrator'
 import { LIFE_CATEGORY_KEYS, getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 import { ACTIVATION_COPY } from '@/lib/activation/copy'
+import { isActivationGenreId, isActivationVoiceId } from '@/lib/activation/media-options'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +46,11 @@ export async function GET(
     const { id } = await params
     const loaded = await loadOwnedActivation(id)
     if ('error' in loaded) return loaded.error
-    const { supabase, activation } = loaded
+    const { supabase, user, activation } = loaded
+    const firstName =
+      (user.user_metadata?.first_name as string | undefined) ||
+      (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ||
+      null
 
     // ---- Joined assets ----
     const storyIds = [activation.story_id, activation.incantation_id, activation.spark_query_id]
@@ -125,7 +130,7 @@ export async function GET(
     }
 
     return NextResponse.json({
-      activation: { ...activation, asset_status: assetStatus },
+      activation: { ...activation, asset_status: assetStatus, first_name: firstName },
       assets: {
         story: stories.find((s) => s.id === activation.story_id) || null,
         incantation: stories.find((s) => s.id === activation.incantation_id) || null,
@@ -240,15 +245,21 @@ export async function PATCH(
       }
     }
 
-    // Enter My Activation — Preview → Immersion. Not the north-star.
+    // Enter My Activation — voice + genre, then Immersion. Not the north-star.
     if (body.action === 'open' && !activation.opened_at && ['ready', 'opened'].includes(activation.status)) {
       updates.status = 'opened'
       updates.opened_at = new Date().toISOString()
+      updates.voice_id = isActivationVoiceId(body.voice_id) ? body.voice_id : 'nova'
+      updates.song_genre = isActivationGenreId(body.song_genre) ? body.song_genre : 'unstoppable'
       await recordActivationEvent(admin, {
         eventType: 'activation_opened',
         activationId: activation.id,
         userId: activation.user_id,
-        eventData: { category: activation.category },
+        eventData: {
+          category: activation.category,
+          voice_id: updates.voice_id,
+          song_genre: updates.song_genre,
+        },
       })
     }
 

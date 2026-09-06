@@ -13,6 +13,7 @@ import {
   type DeliveryActivation,
   type DeliveryPhase,
 } from '@/components/activation/ActivationDelivery'
+import type { ActivationGenreId, ActivationVoiceId } from '@/lib/activation/media-options'
 
 interface Payload {
   activation: DeliveryActivation
@@ -105,13 +106,17 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.activation.id, enrichmentPending, assetStatus.song?.state])
 
-  async function handleOpen() {
+  async function handleOpen(choices: { voiceId: ActivationVoiceId; genreId: ActivationGenreId }) {
     setEntering(true)
     try {
       await fetch(`/api/activation/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'open' }),
+        body: JSON.stringify({
+          action: 'open',
+          voice_id: choices.voiceId,
+          song_genre: choices.genreId,
+        }),
       })
       const next = await load()
       if (next && !enrichFired.current) {
@@ -132,9 +137,6 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
       body: JSON.stringify({ action: 'enter' }),
     })
     await load()
-    requestAnimationFrame(() => {
-      document.getElementById('continue')?.scrollIntoView({ behavior: 'smooth' })
-    })
   }
 
   async function saveInspiredStep() {
@@ -180,8 +182,8 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
   const phase = phaseFor(data.activation)
 
   return (
-    <Container size="xl">
-      <div className={phase === 'offer' ? 'pb-24' : undefined}>
+    <Container size="default">
+      <div className={phase === 'offer' ? 'pb-24 py-10 md:py-16' : 'py-10 md:py-16'}>
         <ActivationDelivery
           phase={phase}
           activation={data.activation}

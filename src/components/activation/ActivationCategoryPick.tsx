@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Stack, Text } from '@/lib/design-system/components'
+import { Button, Stack } from '@/lib/design-system/components'
 import { CheckCircle, Heart } from 'lucide-react'
 import {
   LIFE_CATEGORY_KEYS,
@@ -25,15 +25,16 @@ export function ActivationCategoryPick({
 
   return (
     <Stack gap="lg">
-      <div>
-        <Text size="sm" className="text-[#BF00FF] font-semibold uppercase tracking-wider">
+      <div className="text-center">
+        <p className="text-sm font-semibold uppercase tracking-wider text-[#39FF14]">
           {copy.eyebrow}
-        </Text>
-        <h1 className="mt-2 text-2xl md:text-3xl font-bold text-white leading-tight">{copy.title}</h1>
-        <p className="mt-3 text-sm md:text-base text-neutral-400 leading-relaxed">{copy.subtitle}</p>
+        </p>
+        <h1 className="mt-4 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
+          {copy.title}
+        </h1>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
         {LIFE_CATEGORY_KEYS.map((key) => {
           const def = VISION_CATEGORIES.find((c) => c.key === key)
           const Icon = def?.icon || Heart
@@ -43,23 +44,23 @@ export function ActivationCategoryPick({
               key={key}
               type="button"
               onClick={() => onSelect(key)}
-              className={`flex items-center gap-2 px-3 py-3 rounded-xl border-2 transition-all duration-200 text-left ${
+              className={`flex items-center gap-3 rounded-2xl border-2 px-5 py-5 text-left transition-all duration-200 ${
                 isSelected
                   ? 'border-[#BF00FF] bg-[#BF00FF]/10 text-white'
                   : 'border-[#222] bg-[#0D0D0D] text-neutral-300 hover:border-[#333]'
               }`}
             >
-              <Icon className={`h-4 w-4 flex-shrink-0 ${isSelected ? 'text-[#BF00FF]' : 'text-neutral-500'}`} />
-              <span className="text-sm">{def?.label || key}</span>
-              {isSelected && <CheckCircle className="h-4 w-4 text-[#BF00FF] ml-auto" />}
+              <Icon className={`h-5 w-5 flex-shrink-0 ${isSelected ? 'text-[#BF00FF]' : 'text-neutral-500'}`} />
+              <span className="text-base font-medium">{def?.label || key}</span>
+              {isSelected && <CheckCircle className="ml-auto h-5 w-5 text-[#BF00FF]" />}
             </button>
           )
         })}
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-center text-sm text-red-400">{error}</p>}
 
-      <div>
+      <div className="flex justify-center">
         <Button
           variant="primary"
           size="sm"

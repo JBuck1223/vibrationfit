@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AlignmentGymHub } from '@/components/alignment-gym/AlignmentGymHub'
+import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
 import { createClient } from '@/lib/supabase/client'
 import { isAlignmentGymSessionsLocked } from '@/lib/intensive/alignment-gym-access'
 import { Container, Spinner } from '@/lib/design-system/components'
@@ -32,5 +33,12 @@ export default function AlignmentGymPage() {
     )
   }
 
-  return <AlignmentGymHub statsUntilGraduation={sessionsLocked} />
+  return (
+    <>
+      <Container size="xl">
+        <StudioLifeActivationBanner />
+      </Container>
+      <AlignmentGymHub statsUntilGraduation={sessionsLocked} />
+    </>
+  )
 }

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Spinner, Container } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VibeTribeFeedLayout } from '@/components/vibe-tribe/VibeTribeFeedLayout'
+import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 
 interface UserProfile {
@@ -88,6 +89,9 @@ export default function VibeTribePage() {
 
   return (
     <>
+      <div className="px-4 pt-4">
+        <StudioLifeActivationBanner />
+      </div>
       <VibeTribeFeedLayout 
         userId={user.id} 
         isAdmin={isAdmin} 

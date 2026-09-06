@@ -199,8 +199,8 @@ function ActivationExperience() {
         </Container>
       </div>
 
-      <Container size="sm">
-        <div className="py-6 md:py-10">
+      <Container size={step === 'generating' ? 'sm' : 'default'}>
+        <div className={step === 'generating' ? 'py-6 md:py-10' : 'py-10 md:py-16'}>
           {step === 'orientation' && (
             <ActivationOrientation onReady={handleOrient} busy={busy} error={error} />
           )}
@@ -240,7 +240,7 @@ function ActivationExperience() {
             </>
           )}
 
-          {step === 'generating' && <GeneratingStep />}
+          {step === 'generating' && <GeneratingStep category={category} />}
         </div>
       </Container>
     </>

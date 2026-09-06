@@ -11,7 +11,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import * as Diff from 'diff'
 import {
   Sparkles, CheckCircle, ChevronDown, ChevronUp, X, Check,
@@ -194,6 +195,8 @@ function EditableDiffField({
 
 export default function VisionUpdatePage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const isCreateMode = pathname.startsWith('/life-vision/begin')
   const supabase = useMemo(() => createClient(), [])
   const { activeVisionId, draftId, loading: studioLoading, refreshVisions } = useLifeVisionStudio()
 
@@ -205,6 +208,7 @@ export default function VisionUpdatePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: OPENING_MESSAGE },
   ])
+  const openingRef = useRef(OPENING_MESSAGE)
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [chatError, setChatError] = useState<string | null>(null)
@@ -290,12 +294,16 @@ export default function VisionUpdatePage() {
 
   useLifeVisionStudioAreaChrome(
     useMemo(() => ({
-      contextText: 'Tell VIVA what has changed. Review each update, Accept to save it into your draft, then edit there if you want — then commit when it feels right.',
-      walkthrough: {
-        active: tourActive,
-        onToggle: toggleWalkthrough,
-      },
-    }), [tourActive, toggleWalkthrough]),
+      contextText: isCreateMode
+        ? LIFE_ACTIVATION_COPY.vision.chrome
+        : 'Tell VIVA what has changed. Review each update, Accept to save it into your draft, then edit there if you want — then commit when it feels right.',
+      walkthrough: isCreateMode
+        ? undefined
+        : {
+            active: tourActive,
+            onToggle: toggleWalkthrough,
+          },
+    }), [isCreateMode, tourActive, toggleWalkthrough]),
   )
 
   // ------------------------------------------------------------------
@@ -306,22 +314,37 @@ export default function VisionUpdatePage() {
     let cancelled = false
     ;(async () => {
       try {
-        if (!activeVisionId && !draftId) {
-          router.replace('/life-vision/create')
-          return
-        }
-
         let resolvedDraftId = draftId
-        if (!resolvedDraftId) {
-          const res = await fetch('/api/vision/draft/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ visionId: activeVisionId }),
-          })
-          if (!res.ok) throw new Error('Failed to create a draft from your active vision')
-          const { draft: newDraft } = await res.json()
-          resolvedDraftId = newDraft.id
+        if (isCreateMode) {
+          const res = await fetch('/api/vision/draft/create-from-activation', { method: 'POST' })
+          if (!res.ok) throw new Error('Failed to start your Life Vision draft')
+          const created = await res.json()
+          resolvedDraftId = created.draft.id
+          const firstName = created.seed?.firstName || null
+          const categoryLabel = created.seed?.categoryLabel || null
+          const opening = created.seed?.visionStatement && categoryLabel
+            ? LIFE_ACTIVATION_COPY.vision.openingWithActivation(firstName, categoryLabel)
+            : LIFE_ACTIVATION_COPY.vision.openingFresh(firstName)
+          openingRef.current = opening
+          if (!cancelled) setMessages([{ role: 'assistant', content: opening }])
           refreshVisions().catch(() => {})
+        } else {
+          if (!activeVisionId && !draftId) {
+            router.replace('/life-vision/create')
+            return
+          }
+
+          if (!resolvedDraftId) {
+            const res = await fetch('/api/vision/draft/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ visionId: activeVisionId }),
+            })
+            if (!res.ok) throw new Error('Failed to create a draft from your active vision')
+            const { draft: newDraft } = await res.json()
+            resolvedDraftId = newDraft.id
+            refreshVisions().catch(() => {})
+          }
         }
 
         const { data: draftRow } = await supabase
@@ -351,7 +374,7 @@ export default function VisionUpdatePage() {
           const { data: session } = await supabase
             .from('conversation_sessions')
             .select('id')
-            .eq('mode', 'vision_update')
+            .eq('mode', isCreateMode ? 'vision_create' : 'vision_update')
             .eq('vision_id', resolvedDraftId!)
             .order('last_message_at', { ascending: false })
             .limit(1)
@@ -372,7 +395,7 @@ export default function VisionUpdatePage() {
               if (restored.length > 0 && !cancelled) {
                 restoredThreadRef.current = true
                 setConversationId(session.id)
-                setMessages([{ role: 'assistant', content: OPENING_MESSAGE }, ...restored])
+                setMessages([{ role: 'assistant', content: openingRef.current }, ...restored])
 
                 // Re-surface still-pending proposals from the last VIVA reply:
                 // skip any whose text already matches the draft (accepted).
@@ -405,15 +428,16 @@ export default function VisionUpdatePage() {
       }
     })()
     return () => { cancelled = true }
-  }, [studioLoading, activeVisionId, draftId, supabase, router, refreshVisions])
+  }, [studioLoading, activeVisionId, draftId, supabase, router, refreshVisions, isCreateMode])
 
   useEffect(() => {
     if (loading || !draft) return
+    if (isCreateMode) return
     if (hasSeenVisionUpdateTour()) return
     if (restoredThreadRef.current) return
     const id = window.setTimeout(() => setTourActive(true), 400)
     return () => window.clearTimeout(id)
-  }, [loading, draft])
+  }, [loading, draft, isCreateMode])
 
   // Auto-scroll chat
   useEffect(() => {
@@ -480,7 +504,7 @@ export default function VisionUpdatePage() {
     try {
       await readCoachStream({
         url: '/api/viva/vision-update',
-        body: { messages: history, draftId: draft.id, conversationId },
+        body: { messages: history, draftId: draft.id, conversationId, mode: isCreateMode ? 'create' : 'update' },
         signal: controller.signal,
         onHeaders: ({ conversationId: id }) => {
           if (id) setConversationId(id)
@@ -500,7 +524,7 @@ export default function VisionUpdatePage() {
       setIsStreaming(false)
       abortRef.current = null
     }
-  }, [input, isStreaming, draft, messages, conversationId])
+  }, [input, isStreaming, draft, messages, conversationId, isCreateMode])
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
@@ -1292,6 +1316,20 @@ export default function VisionUpdatePage() {
         draftId={draft.id}
         onCommitted={async (visionId) => {
           await refreshVisions()
+          if (isCreateMode) {
+            await fetch('/api/life-activation', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'complete_onboarding_step',
+                step: 'vision',
+                active_vision_id: visionId,
+                draft_vision_id: draft.id,
+              }),
+            }).catch(() => {})
+            router.push('/begin?step=kit')
+            return
+          }
           router.push(`/life-vision/${visionId}`)
         }}
       />

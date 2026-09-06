@@ -631,6 +631,23 @@ html:has([data-home]) body {
     order: -1;
   }
 
+  /* Short copy next to a tall graphic: keep both columns in the
+     vertical middle so top and bottom padding match other sections. */
+  .hp-with-photo.is-centered {
+    align-items: center;
+  }
+
+  .hp-with-photo.is-centered .hp-with-photo-copy,
+  .hp-with-photo.is-centered .hp-with-photo-media {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .hp-with-photo.is-centered .hp-with-photo-sticky {
+    position: static;
+  }
+
   .hp-with-photo-sticky {
     position: sticky;
     top: 6.5rem;
@@ -789,6 +806,10 @@ html:has([data-home]) body {
   display: grid;
   gap: 1rem;
   margin-top: 3.5rem;
+}
+
+.hp-featured.is-stacked {
+  margin-top: 1.25rem;
 }
 
 .hp-more-misty {
@@ -974,6 +995,10 @@ html:has([data-home]) body {
   .hp-featured {
     grid-template-columns: 1fr 1fr;
     gap: 1.15rem;
+  }
+
+  .hp-featured.is-three {
+    grid-template-columns: 1fr 1fr 1fr;
   }
 
   .hp-more-misty {
@@ -1547,5 +1572,3 @@ html:has([data-home]) body {
   font-size: 1rem;
   line-height: 1.7;
 }
-
-

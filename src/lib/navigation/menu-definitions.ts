@@ -77,7 +77,6 @@ import {
   Music2,
   Mic,
   FolderKanban,
-  Flame,
   Presentation,
   Sparkles,
   Lightbulb,
@@ -175,12 +174,6 @@ export const userNavigationGroups: NavGroup[] = [
         icon: Image,
         description: 'My Manifestations',
       },
-      {
-        name: 'Assessment',
-        href: '/assessment',
-        icon: Brain,
-        description: 'Vibrational assessment and results',
-      },
     ],
   },
   {
@@ -236,12 +229,6 @@ export const userNavigationGroups: NavGroup[] = [
         href: '/tracking',
         icon: TrendingUp,
         description: 'Streaks, badges, and performance metrics',
-      },
-      {
-        name: 'Reset',
-        href: '/reset',
-        icon: Flame,
-        description: 'Hit the reset button - recommit, phoenix style',
       },
     ],
   },
@@ -418,6 +405,24 @@ export const adminNavigation: NavItem[] = [
   },
 
   // ============================================================================
+  // ACTIVATION INSPECTOR
+  // ============================================================================
+  {
+    name: 'Activation Inspector',
+    href: '/admin/activation',
+    icon: Sparkles,
+    requiresAdmin: true,
+    description: 'Preview and edit each Activation funnel step',
+  },
+  {
+    name: 'Life Activation',
+    href: '/admin/begin',
+    icon: Rocket,
+    requiresAdmin: true,
+    description: 'Life Activation onboarding and Platform Training inspector',
+  },
+
+  // ============================================================================
   // SESSIONS (availability, bookings, calendar)
   // ============================================================================
   {
@@ -509,7 +514,6 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'VIVA Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure VIVA model settings' },
       { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across models' },
-      { name: 'Activation Inspector', href: '/admin/activation', icon: Sparkles, description: 'Preview and edit each Activation funnel step' },
     ]
   },
 

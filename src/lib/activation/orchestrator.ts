@@ -4,12 +4,13 @@
  * Two phases, both idempotent and failure-tolerant:
  *
  *  generateCoreAssets  (fast, synchronous — gates "Activation Ready")
- *    vision object → Future-Self Story + Incantation + SparkQuery (parallel)
+ *    vision object → Future-Self Story + Incantation + SparkQuery + lyrics
  *    + manifestation rows (text only, images arrive in enrichment)
  *
- *  runEnrichment  (slow, called by the Immersion screen — never blocks entry)
+ *  runEnrichment  (slow, called after voice + genre pick — never blocks entry)
  *    spoken audio (separate Life I Choose + Future-Self Story TTS tracks)
- *    + personalized song (lyrics → Mureka submit) + manifestation images
+ *    + song recording (Mureka, using the chosen genre reference)
+ *    + manifestation images
  *
  * Per-asset state lives in activations.asset_status:
  *   { [asset]: { state: 'pending'|'generating'|'ready'|'failed',
@@ -45,6 +46,13 @@ import {
   buildSparkQueryPrompt,
 } from '@/lib/viva/prompts/spark-query-prompt'
 import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
+import { getActivationGenre, getActivationVoice } from '@/lib/activation/media-options'
+import {
+  ACTIVATION_INCANTATION_CLEANSE_SYSTEM,
+  ACTIVATION_SPARK_CLEANSE_SYSTEM,
+  buildIncantationCleansePrompt,
+  buildSparkCleansePrompt,
+} from '@/lib/viva/prompts/activation-asset-cleanse'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -85,6 +93,8 @@ export type ActivationRow = {
   song_id: string | null
   audio_set_id: string | null
   audio_track_id: string | null
+  voice_id?: string | null
+  song_genre?: string | null
   manifestation_ids: string[]
   asset_status: Record<string, AssetState>
   ready_at: string | null
@@ -232,6 +242,92 @@ function buildSourceContent(activation: ActivationRow): string {
   return parts.join('\n\n')
 }
 
+async function writeActivationLyrics(activation: ActivationRow): Promise<string> {
+  const songIdea = [
+    activation.vision_statement,
+    activation.essence ? `The feeling at the center: ${activation.essence}` : '',
+    activation.desired_emotional_state || '',
+  ].filter(Boolean).join('\n')
+
+  const { buildSimpleSongPrompt, MASTER_SONGWRITER_SYSTEM_PROMPT } =
+    await import('@/lib/viva/prompts/song-lyrics-prompt')
+
+  const result = await generateText({
+    model: gateway('claude-opus-4-5'),
+    system: MASTER_SONGWRITER_SYSTEM_PROMPT,
+    prompt: buildSimpleSongPrompt(songIdea),
+    temperature: 0.85,
+  })
+  const lyrics = stripLyricsTitleHeader(result.text || '')
+  if (!lyrics.trim()) throw new Error('Lyrics generation returned empty text')
+
+  await trackTokenUsage({
+    user_id: activation.user_id,
+    action_type: 'song_lyrics_generation',
+    model_used: result.response?.modelId || 'claude-opus-4-5',
+    tokens_used: result.usage?.totalTokens || 0,
+    input_tokens: result.usage?.inputTokens || 0,
+    output_tokens: result.usage?.outputTokens || 0,
+    actual_cost_cents: 0,
+    provider: 'vercel_gateway',
+    provider_request_id: gatewayGenerationId(result),
+    success: true,
+    metadata: { feature: 'activation', activation_id: activation.id },
+  }).catch(() => {})
+
+  return lyrics
+}
+
+async function cleanseSparkQuestions(
+  activation: ActivationRow,
+  questions: string[],
+  sourceContent: string,
+): Promise<string[]> {
+  try {
+    const raw = await runTextGeneration({
+      userId: activation.user_id,
+      activationId: activation.id,
+      actionType: 'spark_query_generation',
+      toolKey: 'spark_query_generation',
+      system: ACTIVATION_SPARK_CLEANSE_SYSTEM,
+      prompt: buildSparkCleansePrompt(questions, sourceContent),
+      promptVersion: activation.prompt_version,
+    })
+    const parsed = parseJsonBlock<{ questions?: string[] }>(raw)
+    const next = (parsed?.questions || [])
+      .filter((q): q is string => typeof q === 'string' && !!q.trim())
+      .map((q) => (q.trim().endsWith('?') ? q.trim() : `${q.trim()}?`))
+    return next.length > 0 ? next : questions
+  } catch (err) {
+    console.error('[activation] spark cleanse failed:', err)
+    return questions
+  }
+}
+
+async function cleanseIncantationText(
+  activation: ActivationRow,
+  text: string,
+  sourceContent: string,
+): Promise<string> {
+  try {
+    const raw = await runTextGeneration({
+      userId: activation.user_id,
+      activationId: activation.id,
+      actionType: 'incantation_generation',
+      toolKey: 'vision_refinement',
+      system: ACTIVATION_INCANTATION_CLEANSE_SYSTEM,
+      prompt: buildIncantationCleansePrompt(text, sourceContent),
+      promptVersion: activation.prompt_version,
+    })
+    const parsed = parseJsonBlock<{ text?: string }>(raw)
+    const next = (parsed?.text || '').trim()
+    return next || text
+  } catch (err) {
+    console.error('[activation] incantation cleanse failed:', err)
+    return text
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Phase 1 — core written assets (gates "Activation Ready")
 // ---------------------------------------------------------------------------
@@ -349,7 +445,7 @@ export async function generateCoreAssets(
   const sourceContent = buildSourceContent(activation)
   const categoryLabel = getVisionCategoryLabel(activation.category as VisionCategoryKey) || activation.category
 
-  // ---- 2. Story + Incantation + SparkQuery in parallel ----
+  // ---- 2. Story + Incantation + SparkQuery + lyrics in parallel ----
   const tasks: Array<Promise<void>> = []
 
   if (!activation.story_id || !isReady(activation, 'story')) {
@@ -416,8 +512,9 @@ export async function generateCoreAssets(
           promptVersion: activation.prompt_version,
         })
         const parsed = parseJsonBlock<{ text?: string; title?: string; variants?: Array<{ text: string }> }>(raw)
-        const text = (parsed?.text || parsed?.variants?.[0]?.text || '').trim()
-        if (!text) throw new Error('Incantation generation returned an unexpected format')
+        const draft = (parsed?.text || parsed?.variants?.[0]?.text || '').trim()
+        if (!draft) throw new Error('Incantation generation returned an unexpected format')
+        const text = await cleanseIncantationText(activation, draft, sourceContent)
         const story = await createFreshStoryRecord(supabase, {
           userId,
           entityType: 'custom',
@@ -458,10 +555,11 @@ export async function generateCoreAssets(
           promptVersion: activation.prompt_version,
         })
         const parsed = parseJsonBlock<{ title?: string; questions?: string[] }>(raw)
-        const questions = (parsed?.questions || [])
+        const drafted = (parsed?.questions || [])
           .filter((q): q is string => typeof q === 'string' && !!q.trim())
           .map((q) => (q.trim().endsWith('?') ? q.trim() : `${q.trim()}?`))
-        if (questions.length === 0) throw new Error('SparkQuery generation returned an unexpected format')
+        if (drafted.length === 0) throw new Error('SparkQuery generation returned an unexpected format')
+        const questions = await cleanseSparkQuestions(activation, drafted, sourceContent)
         const story = await createFreshStoryRecord(supabase, {
           userId,
           entityType: 'custom',
@@ -487,6 +585,62 @@ export async function generateCoreAssets(
       }
     })())
   }
+
+  tasks.push((async () => {
+    try {
+      let existingLyrics: string | null = null
+      if (activation.song_id) {
+        const { data: existing } = await supabase
+          .from('songs')
+          .select('lyrics')
+          .eq('id', activation.song_id)
+          .maybeSingle()
+        existingLyrics = existing?.lyrics || null
+      }
+      if (existingLyrics?.trim()) {
+        await patchAssetStatus(supabase, activation, 'song', {
+          state: activation.asset_status?.song?.state === 'ready' ? 'ready' : 'pending',
+          error_message: null,
+          lyrics_ready: true,
+        })
+        return
+      }
+
+      const lyrics = await writeActivationLyrics(activation)
+      if (activation.song_id) {
+        await supabase.from('songs').update({ lyrics, status: 'lyrics_complete' }).eq('id', activation.song_id)
+      } else {
+        const { data: newSong, error: songErr } = await supabase
+          .from('songs')
+          .insert({
+            user_id: userId,
+            entity_type: 'custom',
+            entity_id: activation.id,
+            title: 'My Activation Song',
+            lyrics,
+            style_prompt: `uplifting, emotional, cinematic, modern${activation.essence ? `, evoking ${activation.essence}` : ''}`,
+            source: 'ai_generated',
+            status: 'lyrics_complete',
+            metadata: { feature: 'activation', activation_id: activation.id, lyrics_only: true },
+            generation_count: 1,
+            life_categories: activation.category ? [activation.category] : [],
+          })
+          .select('id')
+          .single()
+        if (songErr || !newSong) throw songErr || new Error('Failed to create song record')
+        activation.song_id = newSong.id
+        await supabase.from('activations').update({ song_id: newSong.id }).eq('id', activation.id)
+      }
+      await patchAssetStatus(supabase, activation, 'song', {
+        state: 'pending',
+        error_message: null,
+        lyrics_ready: true,
+      })
+    } catch (err) {
+      errors.push(`lyrics: ${err instanceof Error ? err.message : err}`)
+      await patchAssetStatus(supabase, activation, 'song', markFailure(activation.asset_status?.song, err))
+    }
+  })())
 
   await Promise.all(tasks)
 
@@ -578,7 +732,7 @@ export async function runEnrichment(
               name: 'Activation Audio',
               description: 'Spoken Life I Choose and Future-Self Story as separate tracks',
               variant: 'standard',
-              voice_id: 'nova',
+              voice_id: getActivationVoice(activation.voice_id).id,
               is_active: true,
             })
             .select('id')
@@ -594,7 +748,7 @@ export async function runEnrichment(
           contentType: story?.id ? 'story' : 'custom',
           contentId,
           sections: missingSections,
-          voice: 'nova',
+          voice: getActivationVoice(activation.voice_id).id,
           format: 'mp3',
           audioSetId: audioSetId ?? undefined,
           audioSetName: 'Activation Audio',
@@ -634,14 +788,12 @@ export async function runEnrichment(
     })())
   }
 
-  // ---- Personalized song (lyrics → Mureka submit; client polls completion) ----
+  // ---- Song recording (lyrics already written; Mureka uses the chosen genre) ----
   if (!isReady(activation, 'song') && !isActivelyGenerating(activation, 'song') && activation.vision_statement) {
     tasks.push((async () => {
       await patchAssetStatus(supabase, activation, 'song', { state: 'generating', started_at: now() })
       try {
         let songId = activation.song_id
-
-        // Reuse an existing lyrics-complete song row when retrying
         let lyrics: string | null = null
         if (songId) {
           const { data: existing } = await supabase
@@ -660,40 +812,11 @@ export async function runEnrichment(
         }
 
         if (!lyrics) {
-          const songIdea = [
-            activation.vision_statement,
-            activation.essence ? `The feeling at the center: ${activation.essence}` : '',
-            activation.desired_emotional_state || '',
-          ].filter(Boolean).join('\n')
-
-          const { buildSimpleSongPrompt, MASTER_SONGWRITER_SYSTEM_PROMPT } =
-            await import('@/lib/viva/prompts/song-lyrics-prompt')
-
-          const result = await generateText({
-            model: gateway('claude-opus-4-5'),
-            system: MASTER_SONGWRITER_SYSTEM_PROMPT,
-            prompt: buildSimpleSongPrompt(songIdea),
-            temperature: 0.85,
-          })
-          lyrics = stripLyricsTitleHeader(result.text || '')
-          if (!lyrics.trim()) throw new Error('Lyrics generation returned empty text')
-
-          await trackTokenUsage({
-            user_id: userId,
-            action_type: 'song_lyrics_generation',
-            model_used: result.response?.modelId || 'claude-opus-4-5',
-            tokens_used: result.usage?.totalTokens || 0,
-            input_tokens: result.usage?.inputTokens || 0,
-            output_tokens: result.usage?.outputTokens || 0,
-            actual_cost_cents: 0,
-            provider: 'vercel_gateway',
-            provider_request_id: gatewayGenerationId(result),
-            success: true,
-            metadata: { feature: 'activation', activation_id: activation.id },
-          }).catch(() => {})
+          lyrics = await writeActivationLyrics(activation)
         }
 
-        const stylePrompt = `uplifting, emotional, cinematic, modern${activation.essence ? `, evoking ${activation.essence}` : ''}`
+        const genre = getActivationGenre(activation.song_genre)
+        const stylePrompt = `${genre.stylePrompt}${activation.essence ? `, evoking ${activation.essence}` : ''}`
 
         if (!songId) {
           const { data: newSong, error: songErr } = await supabase
@@ -702,12 +825,16 @@ export async function runEnrichment(
               user_id: userId,
               entity_type: 'custom',
               entity_id: activation.id,
-              title: `My Activation Song`,
+              title: 'My Activation Song',
               lyrics,
               style_prompt: stylePrompt,
               source: 'ai_generated',
               status: 'lyrics_complete',
-              metadata: { feature: 'activation', activation_id: activation.id },
+              metadata: {
+                feature: 'activation',
+                activation_id: activation.id,
+                song_genre: genre.id,
+              },
               generation_count: 1,
               life_categories: activation.category ? [activation.category] : [],
             })
@@ -717,11 +844,28 @@ export async function runEnrichment(
           songId = newSong.id
           activation.song_id = songId
           await supabase.from('activations').update({ song_id: songId }).eq('id', activation.id)
+        } else {
+          await supabase
+            .from('songs')
+            .update({ style_prompt: stylePrompt, lyrics, updated_at: now() })
+            .eq('id', songId)
+        }
+
+        let referenceId: string | undefined
+        try {
+          const uploaded = await mureka.uploadFile({
+            url: genre.previewUrl,
+            purpose: 'reference',
+          })
+          referenceId = uploaded.id
+        } catch (err) {
+          console.error('[activation] genre reference upload failed:', err)
         }
 
         const murekaResponse = await mureka.generateSong({
           lyrics: stripLyricsTitleHeader(lyrics),
-          prompt: stylePrompt,
+          prompt: referenceId ? undefined : stylePrompt,
+          reference_id: referenceId,
           model: 'auto',
         })
 
@@ -732,16 +876,16 @@ export async function runEnrichment(
             metadata: {
               feature: 'activation',
               activation_id: activation.id,
+              song_genre: genre.id,
               mureka_task_id: murekaResponse.id,
               mureka_model: murekaResponse.model,
               mureka_trace_id: murekaResponse.trace_id,
+              mureka_reference_id: referenceId || null,
             },
             updated_at: now(),
           })
           .eq('id', songId)
 
-        // Stays 'generating' — the Immersion screen polls /api/songs/poll/[taskId]
-        // and GET /api/activation/[id] flips this to 'ready' when the song lands.
         await patchAssetStatus(supabase, activation, 'song', {
           state: 'generating', mureka_task_id: murekaResponse.id, error_message: null,
         })

@@ -89,15 +89,25 @@ VIVA flows: `add_manifestation` (desire detection + optional image, offer first)
 - Do NOT hook Daily Paper, MAP, or Travel in this slice
 
 ### 🚧 Activation Experience (public lead magnet)
-Public funnel: email capture creates a free account (`signup_source: 'activation'`, 100k trial-token grant) → orientation + **I am ready** → member picks one life category → bounded VIVA chat tailored to that area (same Conversational Intelligence brain as `/viva`, `gpt-5.6-terra`, no member history) → **Create My Activation** → Preview checklist (no text) → **Enter My Activation** (`opened`) → Immersion shows the writing; audio / song / images queue there → **I've Entered This Reality** (`entered`, north-star) → Offer + downloads. Doc: `docs/features/activation/README.md`.
-Schema: `activations` (owner-only RLS, `conversation` jsonb, `opened_at`, eval columns). API: `/api/activation/start`, `/api/activation/latest`, `/api/activation/track`, `/api/activation/[id]` (+ `/chat`, `/generate`, `/enrich`; `/reflect` and `/category` retired from the member path). Lib: `src/lib/activation/*`. Prompts: `src/lib/viva/prompts/activation-chat-prompts.ts` + `activation-experience-prompts.ts`. UI: `/activation`, `/activation/experience`, `/activation/[id]`. Admin inspector: `/admin/activation`.
+Public funnel: email capture creates a free account (`signup_source: 'activation'`, 100k trial-token grant) → orientation + **Start My Activation** → member picks one life category → bounded VIVA chat tailored to that area (same Conversational Intelligence brain as `/viva`, `gpt-5.6-terra`, no member history) → **Create My Activation** → Preview checklist (written assets + song lyrics, status Ready) with voice + genre pick → **Enter My Activation** (`opened`) → Immersion (how-to-activate map, written assets with audio in each container, downloads, optional inspired thought) → **I've Entered This Reality** (`entered`, north-star) → offer at the bottom. Doc: `docs/features/activation/README.md`.
+Schema: `activations` (owner-only RLS, `conversation` jsonb, `opened_at`, `voice_id`, `song_genre`, eval columns). API: `/api/activation/start`, `/api/activation/latest`, `/api/activation/track`, `/api/activation/[id]` (+ `/chat`, `/generate`, `/enrich`; `/reflect` and `/category` retired from the member path). Lib: `src/lib/activation/*`. Prompts: `src/lib/viva/prompts/activation-chat-prompts.ts` + `activation-experience-prompts.ts`. UI: `/` (front door), `/activation`, `/activation/experience`, `/activation/[id]`. `/activation/home` redirects to `/`. Admin inspector: `/admin/activation`.
 
-- North-star: `activation_entered ÷ activation_started` where entered = Start Here complete, not the first Enter click
+- North-star: `activation_entered ÷ activation_started` where entered = **I've Entered This Reality**, not Preview Enter or the activation map
+- Incantation and SparkQuery get a second-pass VIVA cleanse after generate (`activation-asset-cleanse.ts`) so coaching questions and contrast language do not ship
 - Never block Preview / Immersion / Offer on audio/song/images — enrichment is per-asset (`asset_status` jsonb) and failure-tolerant
 - No offer until `entered`. No commitment / 72-hour / MAP language; `inspired_next_step` is optional
 - Existing-member emails must NOT be auto-logged-in at `/api/activation/start` — branded magic-link only (account-takeover guard). `/auth/callback` must honor `/activation` `returnTo`
 - Assets live in the shared tables (`stories` entity_type `custom`, `songs`, `audio_sets`, `manifestations`) with `metadata.feature = 'activation'`
 - Funnel events go through `journey_events` with first-class `activation_id`; do not emit a journey event per chat turn
+
+### 🚧 Life Activation (`/begin`)
+Additive paid continuation of Activation at `/begin`. Short onboarding (Life Vision conversation → Activation Kit → Vibe Tribe → Alignment Gym) plus optional Tools Training (page walk-throughs, same idea as Life Vision). Member sidebar shows **Getting Started** until onboarding is done; that tab becomes **Tools Training** after, then disappears when every walk-through is checked off. Tools Training is not on the live sidebar yet (`LIFE_ACTIVATION_TRAINING_NAV_ENABLED`). Intensive stays live and untouched: do not redirect `/intensive/*`, do not disable `hasActiveIntensive`, and do not migrate `intensive_checklist` rows. Doc: `docs/features/life-activation/README.md`.
+Schema: `life_activation_progress` (owner-only RLS). API: `/api/life-activation`, `/api/vision/draft/create-from-activation`. UI: `/begin`, `/begin/complete`, `/begin/training`, `/life-vision/begin`. Admin: `/admin/begin`.
+Create-mode vision chat reuses `/life-vision/update` and `POST /api/viva/vision-update` with `mode: 'create'`. Prompts: `src/lib/viva/prompts/vision-create-prompts.ts`. Saves still go through existing draft/commit APIs (Life Vision Generation stays LOCKED).
+
+- Do not reuse `intensive_checklist` as the source of truth for Life Activation
+- Do not change Intensive routes, lock, checkout, auth, or gym access from this feature
+- Do not change `commit_vision_draft_as_active` or category keys
 
 ### 🚧 VIVA Vision Update (`/life-vision/update`)
 Two-pane VIVA-led Life Vision update: chat/speak about what changed (left), live editable draft with all categories (right). VIVA streams full-replacement category proposals inside `<<<VISION key>>> … <<<END VISION>>>` markers; the client routes them into that category's editor as accept/edit/discard proposals. Includes harmony ripple-effect suggestions across categories (ask first, propose on yes) and a per-category compare-to-active toggle. Doc: `docs/features/vision-update/README.md`.

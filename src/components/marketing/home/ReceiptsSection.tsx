@@ -71,26 +71,44 @@ function StoryHead({
   )
 }
 
-export function ReceiptsSection() {
+export function ReceiptsSection({
+  showHeader = true,
+  showMoreMisty = true,
+  columns = 2,
+}: {
+  showHeader?: boolean
+  showMoreMisty?: boolean
+  columns?: 2 | 3
+} = {}) {
   return (
     <div className="hp-receipts">
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#39FF14]">
-          Proof
+      {!showHeader && (
+        <p className="mt-10 text-center text-xs font-bold uppercase tracking-[0.2em] text-[#39FF14]">
+          Receipts
         </p>
-        <h2 className="text-[2rem] font-extrabold leading-[1.1] text-white md:text-[2.75rem]">
-          The <span className="hp-display text-[#39FF14]">Receipts</span>
-        </h2>
-        <div className="mt-5 space-y-3 text-lg leading-[1.6] text-neutral-300">
-          <p>We can talk about conscious creation all day. We&rsquo;d rather show you.</p>
-          <p>Different people. Different desires. Different categories.</p>
-          <p className="hp-display text-[1.65rem] leading-tight text-[#39FF14] md:text-[2rem]">
-            One system.
-          </p>
-        </div>
-      </div>
+      )}
 
-      <div className="hp-featured">
+      {showHeader && (
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#39FF14]">
+            Proof
+          </p>
+          <h2 className="text-[2rem] font-extrabold leading-[1.1] text-white md:text-[2.75rem]">
+            The <span className="hp-display text-[#39FF14]">Receipts</span>
+          </h2>
+          <div className="mt-5 space-y-3 text-lg leading-[1.6] text-neutral-300">
+            <p>We can talk about conscious creation all day. We&rsquo;d rather show you.</p>
+            <p>Different people. Different desires. Different categories.</p>
+            <p className="hp-display text-[1.65rem] leading-tight text-[#39FF14] md:text-[2rem]">
+              One system.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div
+        className={`hp-featured${columns === 3 ? ' is-three' : ''}${showHeader ? '' : ' is-stacked'}`}
+      >
         <article className="hp-story">
           <StoryHead name="Misty" label="Family" photo={PHOTOS.misty} />
           <p className="hp-proof-punch">Six days later, her son texted.</p>
@@ -204,6 +222,7 @@ export function ReceiptsSection() {
         </article>
       </div>
 
+      {showMoreMisty && (
       <article className="hp-more-misty">
         <div className="hp-more-misty-copy">
           <StoryHead name="More From Misty" label="Money" photo={PHOTOS.misty} />
@@ -243,6 +262,7 @@ export function ReceiptsSection() {
           />
         </div>
       </article>
+      )}
     </div>
   )
 }

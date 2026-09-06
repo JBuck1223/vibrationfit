@@ -151,7 +151,7 @@ export function ActivationIntakeChat({
             )}
           </div>
         ))}
-        {thinking && <VivaThinkingIndicator />}
+        {thinking && <VivaThinkingIndicator label="" />}
         <div ref={endRef} />
       </div>
 

@@ -4,17 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, X, Star } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Video } from '../media/Video'
-
-// ============================================================================
-// SOCIAL PROOF SECTION — Cinematic Video + Scrolling Testimonial Strip
-// ============================================================================
-
-const MARQUEE_CSS = `
-@keyframes vf-scroll-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-`
+import './SocialProofSection.css'
 
 export interface SocialProofVideo {
   id: string
@@ -77,17 +67,6 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
 
     const totalVideos = videos.length
 
-    useEffect(() => {
-      if (typeof document === 'undefined') return
-      const id = 'vf-social-proof-scroll-css'
-      if (document.getElementById(id)) return
-      const style = document.createElement('style')
-      style.id = id
-      style.textContent = MARQUEE_CSS
-      document.head.appendChild(style)
-      return () => { document.getElementById(id)?.remove() }
-    }, [])
-
     const goToVideo = useCallback(
       (index: number) => {
         if (isVideoAnimating || totalVideos <= 1) return
@@ -142,7 +121,7 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
 
     if (videos.length === 0 && screenshots.length === 0) return null
 
-    const duplicatedScreenshots = [...screenshots, ...screenshots]
+    const duplicatedScreenshots = Array.from({ length: 4 }, () => screenshots).flat()
 
     return (
       <>
@@ -292,13 +271,7 @@ export const SocialProofSection = React.forwardRef<HTMLDivElement, SocialProofSe
                   onMouseEnter={() => setIsScrollPaused(true)}
                   onMouseLeave={() => setIsScrollPaused(false)}
                 >
-                  <div
-                    className="flex gap-5 w-max will-change-transform"
-                    style={{
-                      animation: 'vf-scroll-left 60s linear infinite',
-                      animationPlayState: isScrollPaused ? 'paused' : 'running',
-                    }}
-                  >
+                  <div className={cn('vf-proof-track', isScrollPaused && 'is-paused')}>
                     {duplicatedScreenshots.map((screenshot, i) => (
                       <button
                         key={`${screenshot.id}-${i}`}

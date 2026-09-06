@@ -12,4 +12,3 @@ export default function IntensiveLayout({
 }) {
   return <IntensiveStepProvider>{children}</IntensiveStepProvider>;
 }
-

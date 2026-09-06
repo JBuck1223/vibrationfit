@@ -130,7 +130,21 @@ const ITEMS: Array<{
   },
 ]
 
-export function FaqSection() {
+export type FaqItem = {
+  id: string
+  title: string
+  description: React.ReactNode
+}
+
+export function FaqSection({
+  items,
+  extraItems = [],
+}: {
+  items?: FaqItem[]
+  extraItems?: FaqItem[]
+} = {}) {
+  const list = items ?? [...extraItems, ...ITEMS]
+
   return (
     <div id="full-faq" className="scroll-mt-28">
       <Eyebrow>FAQ</Eyebrow>
@@ -141,7 +155,7 @@ export function FaqSection() {
       </Display>
 
       <div className="hp-faq">
-        {ITEMS.map((item) => (
+        {list.map((item) => (
           <details key={item.id} className="hp-faq-item">
             <summary>
               <span>{item.title}</span>

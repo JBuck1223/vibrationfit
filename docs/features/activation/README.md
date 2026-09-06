@@ -10,16 +10,17 @@ Never external results or guaranteed manifestation.
 
 Admin step inspector: `/admin/activation`. Member-facing copy lives in
 `src/lib/activation/copy.ts`. Landing-page long-form copy still lives in
-`src/app/activation/page.tsx`.
+`src/app/activation/page.tsx`. The live front door is `/` (activation spine +
+homepage containers). `/activation/home` redirects there.
 
 ## User flow
 
 ```
 /activation            Welcome → email capture (free account + branded resume email)
-/activation/experience Orientation (I am ready) → pick one life category
+/activation/experience Orientation (Start My Activation) → pick one life category
                        → bounded VIVA chat in that area → Create My Activation
 /activation/[id]       Preview (checklist only) → Enter My Activation (opened)
-                       → Immersion shows the writing; audio / song / images queue
+                       → Immersion map + assets (audio lives in each container)
                        → I've Entered This Reality (entered)
                        → Offer #continue + Download Everything + optional inspired step
 ```
@@ -39,7 +40,7 @@ to setup-password, Intensive, or dashboard.
 | `activation_intake_ready` | `current_state` + `dream.want` + category exist | chat route, on finish |
 | `activation_ready` | Core written assets exist | `/api/activation/[id]/generate` |
 | `activation_opened` | **Enter My Activation** from Preview | `PATCH { action: 'open' }` |
-| `activation_entered` | **I've Entered This Reality** after Start Here — north-star | `PATCH { action: 'enter' }` |
+| `activation_entered` | **I've Entered This Reality** after the activation map — north-star | `PATCH { action: 'enter' }` |
 | `activation_enriched` | Audio, song, and board all terminal (secondary) | lazy, on `GET /api/activation/[id]` |
 | `offer_video_viewed` | Offer section entered the viewport once | client track |
 | `converted_to_paid` | Checkout fulfillment when the user has an Activation | Stripe webhook / fulfillment |
@@ -89,7 +90,7 @@ Token spend uses `trackTokenUsage` with
 `{ feature: 'activation', activation_id, prompt_version }`.
 
 **North-star metric:** `activation_entered ÷ activation_started` where entered
-means they completed Start Here.
+means they used the activation map and entered.
 
 ## Guardrails
 
