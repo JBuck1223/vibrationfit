@@ -7,7 +7,8 @@
  * into that category's editor as an accept/edit/discard proposal.
  *
  * This endpoint never writes to the draft — accepted proposals save through
- * the existing PATCH /api/vision/draft/update.
+ * the existing PATCH /api/vision/draft/update. Create mode does persist
+ * Draft Session contrast/clarity notes parsed from SEED markers.
  */
 
 import { streamText, type ModelMessage } from 'ai'
@@ -21,6 +22,12 @@ import {
   COACH_STREAM_META_MARKER,
   COACH_STREAM_PADDING,
 } from '@/lib/viva/coach-stream'
+import { parseVisionUpdateMessage } from '@/lib/life-vision/vision-update-stream'
+import {
+  ensureDraftSession,
+  markDraftSessionComposed,
+  persistVivaSeeds,
+} from '@/lib/life-vision/draft-session'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -103,6 +110,14 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     const seededCategory = CATEGORY_KEYS.find((key) => draftText[key]) || null
+    const draftSession = isCreate
+      ? await ensureDraftSession(supabase, user.id, draftId, {
+          draftHasText: CATEGORY_KEYS.some((key) => Boolean(draftText[key])),
+        }).catch((err) => {
+          console.error('[VIVA VISION UPDATE] Draft session', err)
+          return null
+        })
+      : null
     const system = isCreate
       ? buildVisionCreateSystemPrompt({
           firstName: profile?.first_name || null,
@@ -110,6 +125,8 @@ export async function POST(req: Request) {
           perspective: draft.perspective === 'plural' ? 'plural' : 'singular',
           seededCategory,
           sessionSeed: typeof sessionSeed === 'string' ? sessionSeed : null,
+          sessionStatus: draftSession?.status,
+          sessionNotes: draftSession?.notes,
         })
       : buildVisionUpdateSystemPrompt({
           firstName: profile?.first_name || null,
@@ -204,11 +221,19 @@ export async function POST(req: Request) {
             .from('conversation_sessions')
             .update({
               message_count: chatTurns.length + 1,
-              preview_message: lastUserMessage?.content?.slice(0, 100) || 'Vision update session',
+              preview_message: lastUserMessage?.content?.slice(0, 100) || (isCreate ? 'Life Vision session' : 'Vision update session'),
               last_message_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })
             .eq('id', currentConversationId)
+        }
+
+        if (isCreate && draftSession && assistantText.trim()) {
+          const parsed = parseVisionUpdateMessage(assistantText)
+          await persistVivaSeeds(supabase, draftSession.id, parsed.seeds)
+          if (parsed.proposals.some((p) => p.complete)) {
+            await markDraftSessionComposed(supabase, draftSession.id)
+          }
         }
 
         let usage: { totalTokens?: number; inputTokens?: number; outputTokens?: number } | null = null

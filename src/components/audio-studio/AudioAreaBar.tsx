@@ -7,11 +7,12 @@ import {
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
+import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useAudioStudio } from './AudioStudioContext'
 
 const TABS = [
-  { label: 'Listen', path: '/audio', icon: Headphones },
-  { label: 'Create', path: '/audio/create', icon: Wand2 },
+  { label: 'Listen', path: '/audio', icon: Headphones, dataTour: 'studio-tab-audio-listen' },
+  { label: 'Create', path: '/audio/create', icon: Wand2, dataTour: 'studio-tab-audio-create' },
 ]
 
 const CREATE_AREA_ROUTES = ['/audio/create', '/audio/songwriter', '/audio/generate', '/audio/mix', '/audio/record', '/audio/queue']
@@ -72,6 +73,7 @@ export function AudioAreaBar() {
     storiesWithAudio,
     activeBatchCount,
   } = useAudioStudio()
+  const walkthroughMenu = useAreaBarWalkthrough()
 
   const isListen = LISTEN_AREA_ROUTES.some(r => pathname === r || pathname === r + '/')
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
@@ -87,6 +89,12 @@ export function AudioAreaBar() {
       icon: ct.icon,
       path: ct.path,
       isActive: listenContentType === ct.value,
+      dataTour:
+        ct.value === 'life-vision'
+          ? 'audio-listen-vision'
+          : ct.value === 'songs'
+            ? 'audio-listen-songs'
+            : undefined,
     }))
 
     contextText = LISTEN_CONTENT_SUBTEXT[listenContentType] ?? LISTEN_CONTENT_SUBTEXT['life-vision']
@@ -112,6 +120,7 @@ export function AudioAreaBar() {
       versionSelectors = [{
         id: 'listen-vision',
         label: 'Vision version',
+        dataTour: 'studio-versions',
         position: 'contextRow',
         options: [
           ...mine.map(v => toOption(v, hasGroups ? 'Life I Choose' : undefined)),
@@ -185,6 +194,7 @@ export function AudioAreaBar() {
       versionSelectors={versionSelectors}
       keepTabActive={!isOnSecondaryPage}
       activeParentPath={isOnSecondaryPage ? '/audio/create' : isListenSubPage ? '/audio' : undefined}
+      menuItems={walkthroughMenu}
       variant="default"
       appLikePrimaryTabs
     />

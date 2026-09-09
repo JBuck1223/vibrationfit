@@ -269,7 +269,10 @@ export default function ProfileCreatePage() {
     <Container size="xl" className="pt-2 pb-6 sm:pb-8">
       <Stack gap="md">
         <h1 className="sr-only">Update profile</h1>
-        <div className="rounded-2xl border border-[#BF00FF]/20 bg-gradient-to-br from-[#BF00FF]/[0.04] to-transparent p-5 md:p-6">
+        <div
+          className="rounded-2xl border border-[#BF00FF]/20 bg-gradient-to-br from-[#BF00FF]/[0.04] to-transparent p-5 md:p-6"
+          data-tour="profile-create-reco"
+        >
           <div className="flex items-center justify-center gap-2.5 mb-3">
             <Sparkles className="w-4 h-4 text-[#BF00FF]" />
             <h2 className="text-sm font-semibold uppercase tracking-wider text-[#BF00FF]">
@@ -289,7 +292,7 @@ export default function ProfileCreatePage() {
         )}
 
         {hasDraft ? (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3" data-tour="profile-create-paths">
             <button
               type="button"
               onClick={handleContinueDraft}
@@ -363,7 +366,7 @@ export default function ProfileCreatePage() {
             </button>
           </div>
         ) : hasActiveProfile ? (
-          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3" data-tour="profile-create-paths">
             <button
               type="button"
               onClick={cloneActiveAndEdit}
@@ -412,7 +415,11 @@ export default function ProfileCreatePage() {
             </button>
           </div>
         ) : (
-          <Link href="/profile/new" className="group mx-auto block min-w-0 max-w-lg touch-manipulation">
+          <Link
+            href="/profile/new"
+            className="group mx-auto block min-w-0 max-w-lg touch-manipulation"
+            data-tour="profile-create-paths"
+          >
             <Card variant="glass" className={`${optionCardClass} hover:bg-[#39FF14]/[0.11]`}>
               <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#39FF14]/15">
                 <Sparkles className="h-5 w-5 text-[#39FF14]" aria-hidden />

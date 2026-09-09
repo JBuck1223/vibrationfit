@@ -411,6 +411,7 @@ export default function JournalPage() {
                 onClick={() => router.push('/journal/new')}
                 className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
                 aria-label="Add Entry"
+                data-tour="journal-new"
               >
                 <Plus className="w-6 h-6 text-[#39FF14]" />
               </button>
@@ -521,7 +522,10 @@ export default function JournalPage() {
             </Button>
           </Card>
         ) : filteredEntries && filteredEntries.length > 0 ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
+          <div
+            className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]"
+            data-tour="journal-entries"
+          >
             {filteredEntries.map((entry) => {
               const isExpanded = expandedId === entry.id
               const dateStr = getEntryDate(entry)
@@ -703,7 +707,7 @@ export default function JournalPage() {
           </div>
         ) : (
           entries.length === 0 ? (
-            <Card className="text-center py-16 max-w-2xl mx-auto">
+            <Card className="text-center py-16 max-w-2xl mx-auto" data-tour="journal-entries">
               <FileText className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">No journal entries yet</h3>
               <p className="text-neutral-400 mb-6">

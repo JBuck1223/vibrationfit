@@ -655,7 +655,7 @@ export default function ProfileDetailPage() {
         {showReviewCommitChrome ? (
           <>
             <Container size="xl">
-              <div className="flex flex-wrap items-center justify-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2" data-tour="profile-save">
                 <VersionActionToolbar
                   versionId={profileId}
                   versionNumber={versionInfo.version_number ?? 1}
@@ -692,6 +692,7 @@ export default function ProfileDetailPage() {
             </Container>
           </>
         ) : (
+          <div data-tour="profile-save">
           <PageHero
             title={profile.first_name && profile.last_name
               ? `${profile.first_name} ${profile.last_name}`
@@ -716,10 +717,11 @@ export default function ProfileDetailPage() {
               </ProfilePictureClickable>
             </div>
           </PageHero>
+          </div>
         )}
 
         {/* Personal Information Card */}
-        <Card className="transition-all duration-300 hover:shadow-lg">
+        <Card className="transition-all duration-300 hover:shadow-lg" data-tour="profile-snapshot">
           <div className="px-1 py-2 md:px-0 md:py-0">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-500">
@@ -802,6 +804,7 @@ export default function ProfileDetailPage() {
         )}
 
         {/* Life Category Cards */}
+        <div className="space-y-4 md:space-y-6">
         {getOrderedProfileCategories().map((category) => {
           const IconComponent = category.icon
           const fields = renderCategoryFields(category.id)
@@ -828,6 +831,7 @@ export default function ProfileDetailPage() {
             </Card>
           )
         })}
+        </div>
 
         {showReviewCommitChrome && versionInfo && (
           <Container size="xl">

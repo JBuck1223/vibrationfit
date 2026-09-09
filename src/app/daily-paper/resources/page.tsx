@@ -111,7 +111,7 @@ export default function DailyPaperResourcesPage() {
           </Stack>
         </Card>
 
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]" data-tour="daily-paper-resources-print">
           <Stack gap="md">
             <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
               Print-ready PDFs

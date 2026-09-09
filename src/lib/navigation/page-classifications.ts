@@ -242,6 +242,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/audio-mixer',
     '/admin/activation',
     '/admin/begin',
+    '/admin/walkthroughs',
     
     // Scheduling (Universal)
     '/admin/scheduling',

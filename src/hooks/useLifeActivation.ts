@@ -3,7 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { keys } from '@/lib/query/keys'
 import type { LifeActivationPayload } from '@/lib/life-activation/types'
-import type { OnboardingStepId, TrainingStepId } from '@/lib/life-activation/steps'
+import type { OnboardingStepId } from '@/lib/life-activation/steps'
+import type { TrainingCompletionId } from '@/lib/life-activation/walkthroughs'
 
 async function fetchLifeActivation(): Promise<LifeActivationPayload> {
   const res = await fetch('/api/life-activation')
@@ -42,7 +43,7 @@ export function useLifeActivation() {
     seed: query.data?.seed ?? null,
     completeOnboardingStep: (step: OnboardingStepId, extra?: Record<string, unknown>) =>
       mutate.mutateAsync({ action: 'complete_onboarding_step', step, ...extra }),
-    completeTrainingStep: (step: TrainingStepId) =>
+    completeTrainingStep: (step: TrainingCompletionId) =>
       mutate.mutateAsync({ action: 'complete_training_step', step }),
     startTraining: () => mutate.mutateAsync({ action: 'start_training' }),
     dismissTraining: () => mutate.mutateAsync({ action: 'dismiss_training' }),

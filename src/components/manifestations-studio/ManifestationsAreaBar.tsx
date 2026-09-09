@@ -3,11 +3,12 @@
 import { Clock, PenLine, Plus, Sparkles, Wand2 } from 'lucide-react'
 import { usePathname, useRouter, useSelectedLayoutSegment } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
+import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useManifestationsStudio } from './ManifestationsStudioContext'
 
 const TABS = [
-  { label: 'My Board', path: '/manifestations', icon: Wand2 },
-  { label: 'Create', path: '/manifestations/create', icon: PenLine },
+  { label: 'My Board', path: '/manifestations', icon: Wand2, dataTour: 'studio-tab-manifestations-view' },
+  { label: 'Create', path: '/manifestations/create', icon: PenLine, dataTour: 'studio-tab-manifestations-create' },
 ]
 
 const CREATE_AREA_ROUTES = ['/manifestations/create', '/manifestations/new', '/manifestations/ideas', '/manifestations/queue']
@@ -31,6 +32,7 @@ export function ManifestationsAreaBar() {
   const router = useRouter()
   const segment = useSelectedLayoutSegment()
   const { manifestations } = useManifestationsStudio()
+  const walkthroughMenu = useAreaBarWalkthrough()
 
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
   const isOnSecondaryPage = SECONDARY_TABS.some(t => pathname === t.path || pathname.startsWith(t.path + '/'))
@@ -84,6 +86,7 @@ export function ManifestationsAreaBar() {
       versionSelectors={versionSelectors}
       keepTabActive={!isOnSecondaryPage}
       activeParentPath={isOnSecondaryPage ? '/manifestations/create' : isDetail ? '/manifestations' : undefined}
+      menuItems={walkthroughMenu}
       variant="default"
       appLikePrimaryTabs
     />

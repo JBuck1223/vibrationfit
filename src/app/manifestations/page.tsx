@@ -2017,6 +2017,7 @@ export default function VisionBoardPage() {
                 }}
                 className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
                 aria-label="Add Creation"
+                data-tour="manifestations-open"
               >
                 <Plus className="w-6 h-6 text-[#39FF14]" />
               </button>
@@ -2241,7 +2242,7 @@ export default function VisionBoardPage() {
         )}
 
         {/* Vision Board Content */}
-        <div id="content" className="overflow-hidden">
+        <div id="content" className="overflow-hidden" data-tour="manifestations-board">
         {loading || (isSnapshotMode && snapshotLoading) ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <Spinner size="lg" />

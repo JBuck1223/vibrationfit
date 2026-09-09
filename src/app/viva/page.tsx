@@ -39,6 +39,8 @@ import {
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { ensureJpegCompatible } from '@/lib/life-explorer/ensure-jpeg'
 import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
+import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
+import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
 
 interface Message {
   id: string
@@ -72,6 +74,7 @@ async function fetchThreads(): Promise<Thread[]> {
 
 export default function VivaPage() {
   const queryClient = useQueryClient()
+  const walkthrough = useToolWalkthrough('viva')
 
   // --- Thread state ---
   const [threadId, setThreadId] = useState<string | null>(null)
@@ -404,9 +407,6 @@ export default function VivaPage() {
 
   return (
     <div className="flex-1 min-h-0 bg-black flex flex-col overflow-hidden">
-    <div className="px-4 pt-3 shrink-0">
-      <StudioLifeActivationBanner />
-    </div>
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* ---- Thread sidebar ---- */}
       <aside
@@ -480,6 +480,11 @@ export default function VivaPage() {
               </span>
             )}
           </div>
+          <WalkthroughToggle
+            active={walkthrough.active}
+            onToggle={walkthrough.toggle}
+            pending={walkthrough.pending}
+          />
           <button
             onClick={() => setConstraintsOpen(true)}
             className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
@@ -497,7 +502,7 @@ export default function VivaPage() {
         </header>
 
         {/* Thread */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" data-tour="viva-thread">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-8">
             {messages.length === 0 && !isThinking && (
               <div className="pt-24 text-center space-y-2">
@@ -575,7 +580,7 @@ export default function VivaPage() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]">
+        <div className="border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]" data-tour="viva-composer">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
             <div className="mb-3">
               <VivaModeSwitcher value={vivaMode} onChange={handleModeChange} disabled={isStreaming} />
@@ -618,6 +623,12 @@ export default function VivaPage() {
         </>
       )}
     </div>
+    <ToolWalkthrough
+      active={walkthrough.active}
+      steps={walkthrough.steps}
+      onClose={walkthrough.close}
+      onComplete={walkthrough.complete}
+    />
     </div>
   )
 }

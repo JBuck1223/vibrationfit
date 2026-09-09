@@ -51,11 +51,27 @@ export default function VisionBoardCreatePage() {
       <Stack gap="md">
         <h1 className="sr-only">Create Manifestations</h1>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 lg:gap-3">
+        <div
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 lg:gap-3"
+          data-tour="manifestations-create-tiles"
+        >
           {CREATE_TILES.map(tile => {
             const TileIcon = tile.icon
+            const tourId =
+              tile.href === '/manifestations/new'
+                ? 'manifestations-create-add'
+                : tile.href === '/manifestations/ideas'
+                  ? 'manifestations-create-viva'
+                  : tile.href === '/manifestations/queue'
+                    ? 'manifestations-create-queue'
+                    : undefined
             return (
-              <Link key={tile.title} href={tile.href} className="group block min-w-0 touch-manipulation">
+              <Link
+                key={tile.title}
+                href={tile.href}
+                className="group block min-w-0 touch-manipulation"
+                data-tour={tourId}
+              >
                 <Card
                   variant="glass"
                   className={`flex h-full min-h-[5.5rem] items-center gap-3 p-3.5 shadow-none transition-[border-color,background-color,transform] duration-200 sm:min-h-0 sm:p-4 md:p-4 lg:p-4 hover:border-neutral-500 ${tile.hoverBg} active:scale-[0.99]`}

@@ -73,14 +73,30 @@ export default function CreatePage() {
       <Stack gap="md">
         <h1 className="sr-only">Create Audio</h1>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5 lg:gap-3">
+        <div
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-5 lg:gap-3"
+          data-tour="audio-create-tiles"
+        >
           {CREATE_TILES.map(tile => {
             const TileIcon = tile.icon
+            const tourId =
+              tile.path === '/audio/record'
+                ? 'audio-create-record'
+                : tile.path === '/audio/songwriter'
+                  ? 'audio-create-songwriter'
+                  : tile.path === '/audio/generate'
+                    ? 'audio-create-generate'
+                    : tile.path === '/audio/mix'
+                      ? 'audio-create-mix'
+                      : tile.path === '/audio/queue'
+                        ? 'audio-create-queue'
+                        : undefined
             return (
               <Link
                 key={tile.title}
                 href={`${pathPrefix}${tile.path}`}
                 className="group block min-w-0 touch-manipulation"
+                data-tour={tourId}
               >
                 <Card
                   variant="glass"

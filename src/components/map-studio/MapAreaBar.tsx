@@ -3,16 +3,18 @@
 import { usePathname } from 'next/navigation'
 import { Map, Eye, PenLine, Calendar, CalendarDays, LayoutGrid } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem } from '@/lib/design-system/components'
+import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useMapStudio } from './MapStudioContext'
 
 const TABS = [
-  { label: 'View', path: '/map', icon: Eye },
-  { label: 'Update', path: '/map/update', icon: PenLine },
+  { label: 'View', path: '/map', icon: Eye, dataTour: 'studio-tab-map-view' },
+  { label: 'Update', path: '/map/update', icon: PenLine, dataTour: 'studio-tab-map-update' },
 ]
 
 export function MapAreaBar() {
   const pathname = usePathname()
   const { viewMode, setViewMode } = useMapStudio()
+  const walkthroughMenu = useAreaBarWalkthrough()
   const isMapTab = pathname === '/map' || pathname === '/map/'
   const isUpdateArea = pathname.startsWith('/map/update')
 
@@ -26,18 +28,21 @@ export function MapAreaBar() {
         onClick: () => setViewMode('day'),
         icon: Calendar,
         isActive: viewMode === 'day',
+        dataTour: 'map-view-day',
       },
       {
         label: 'Week',
         onClick: () => setViewMode('week'),
         icon: CalendarDays,
         isActive: viewMode === 'week',
+        dataTour: 'map-view-week',
       },
       {
         label: 'Month',
         onClick: () => setViewMode('month'),
         icon: LayoutGrid,
         isActive: viewMode === 'month',
+        dataTour: 'map-view-month',
       },
     ]
     contextText = 'Running your Conscious Creation System. Run the reps. Future you will thank you.'
@@ -52,6 +57,7 @@ export function MapAreaBar() {
       tabs={TABS}
       contextNav={contextNav}
       contextText={contextText}
+      menuItems={walkthroughMenu}
       variant="default"
       appLikePrimaryTabs
       keepTabActive={isMapTab || isUpdateArea}

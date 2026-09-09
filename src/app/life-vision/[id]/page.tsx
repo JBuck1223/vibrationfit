@@ -904,7 +904,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
   )
 
   return (
-    <div className="pb-6">
+    <div className="pb-6" data-tour="vision-read">
       <Stack gap="md">
         {isSharedWithMe && (
           <Container size="xl">

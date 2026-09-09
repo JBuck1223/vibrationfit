@@ -2,12 +2,20 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 import { ensureProgress, loadSeed, markOnboardingStep } from '@/lib/life-activation/progress'
+import { ensureDraftSession } from '@/lib/life-vision/draft-session'
 
 const CATEGORY_COLUMNS = [
   'forward',
   ...LIFE_CATEGORY_KEYS,
   'conclusion',
 ] as const
+
+function rowHasVisionText(row: Record<string, unknown>): boolean {
+  return CATEGORY_COLUMNS.some((key) => {
+    const value = row[key]
+    return typeof value === 'string' && value.trim().length > 0
+  })
+}
 
 export async function POST() {
   try {
@@ -20,6 +28,14 @@ export async function POST() {
     const progress = await ensureProgress(supabase, user.id)
     const seed = await loadSeed(supabase, user.id)
 
+    const attachSession = async (draft: Record<string, unknown>, existed: boolean) => {
+      const session = await ensureDraftSession(supabase, user.id, String(draft.id), {
+        seed,
+        draftHasText: rowHasVisionText(draft),
+      })
+      return NextResponse.json({ draft, existed, seed, session })
+    }
+
     if (progress.draft_vision_id) {
       const { data: existing } = await supabase
         .from('vision_versions')
@@ -28,7 +44,7 @@ export async function POST() {
         .eq('is_draft', true)
         .maybeSingle()
       if (existing) {
-        return NextResponse.json({ draft: existing, existed: true, seed })
+        return attachSession(existing as Record<string, unknown>, true)
       }
     }
 
@@ -57,32 +73,12 @@ export async function POST() {
           })
           .eq('id', progress.id)
       }
-      return NextResponse.json({ draft: openDraft, existed: true, seed })
+      return attachSession(openDraft as Record<string, unknown>, true)
     }
 
     const visionData: Record<string, string> = {}
     for (const key of CATEGORY_COLUMNS) {
       visionData[key] = ''
-    }
-
-    if (seed.category && seed.visionStatement && LIFE_CATEGORY_KEYS.includes(seed.category as typeof LIFE_CATEGORY_KEYS[number])) {
-      visionData[seed.category] = seed.visionStatement
-    }
-
-    const { data: categoryState } = await supabase
-      .from('vision_new_category_state')
-      .select('category, category_vision_text')
-      .eq('user_id', user.id)
-
-    for (const row of categoryState || []) {
-      const key = row.category as string
-      if (
-        CATEGORY_COLUMNS.includes(key as typeof CATEGORY_COLUMNS[number]) &&
-        row.category_vision_text &&
-        !visionData[key]
-      ) {
-        visionData[key] = row.category_vision_text
-      }
     }
 
     const { data: draft, error } = await supabase
@@ -122,7 +118,7 @@ export async function POST() {
         .eq('id', progress.id)
     }
 
-    return NextResponse.json({ draft, existed: false, seed })
+    return attachSession(draft as Record<string, unknown>, false)
   } catch (error) {
     console.error('[create-from-activation]', error)
     return NextResponse.json({ error: 'Failed to create draft' }, { status: 500 })

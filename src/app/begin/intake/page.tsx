@@ -3,14 +3,16 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Card, Container, PageHero, Spinner, Stack, Textarea } from '@/lib/design-system/components'
-import { LifeActivationBanner } from '@/components/life-activation/LifeActivationBanner'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
+import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
+import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { getQuestionsForPhase } from '@/lib/constants/intensive-intake-questions'
 import { createClient } from '@/lib/supabase/client'
 
 export default function BeginIntakePage() {
   const router = useRouter()
   const { progress, completeTrainingStep, isUpdating } = useLifeActivation()
+  const walkthrough = useToolWalkthrough('intake')
   const questions = useMemo(() => getQuestionsForPhase('pre_intensive'), [])
   const [answers, setAnswers] = useState<Record<string, string | number>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -56,18 +58,19 @@ export default function BeginIntakePage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <PageHero
-          eyebrow="Platform Training"
-          title="Baseline Intake"
-          subtitle="A snapshot of where you are now. There are no wrong numbers."
-        />
-        <LifeActivationBanner
-          trainingStep="intake"
-          title="Baseline Intake"
-          body="Answer what you can, then mark this step done."
-          doneLabel="Save and continue"
-        />
-        <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <PageHero
+            eyebrow="Tools Training"
+            title="Baseline Intake"
+            subtitle="A snapshot of where you are now. There are no wrong numbers."
+          />
+          <WalkthroughToggle
+            active={walkthrough.active}
+            onToggle={walkthrough.toggle}
+            pending={walkthrough.pending}
+          />
+        </div>
+        <div className="space-y-4" data-tour="intake-survey">
           {questions.map((question) => (
             <Card key={question.id} className="p-5">
               <p className="text-sm font-medium text-white">{question.questionPre}</p>
@@ -105,10 +108,18 @@ export default function BeginIntakePage() {
           ))}
         </div>
         {error && <p className="text-sm text-contrast-400">{error}</p>}
-        <Button variant="primary" onClick={handleSubmit} disabled={submitting || isUpdating}>
-          Save intake
-        </Button>
+        <div data-tour="intake-submit" className="w-fit">
+          <Button variant="primary" onClick={handleSubmit} disabled={submitting || isUpdating}>
+            Save intake
+          </Button>
+        </div>
       </Stack>
+      <ToolWalkthrough
+        active={walkthrough.active}
+        steps={walkthrough.steps}
+        onClose={walkthrough.close}
+        onComplete={walkthrough.complete}
+      />
     </Container>
   )
 }

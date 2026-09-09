@@ -1230,7 +1230,7 @@ export default function AudioListenPage() {
 
         {/* ── Life Vision Player ── */}
         {contentType === 'life-vision' && (audioSets.length > 0 ? (
-          <>
+          <div data-tour="voice-record">
             {selectedAudioSetId && selectedSet ? (
               <div className="max-w-2xl mx-auto w-full">
                 {incompleteAudioInfo && !loadingTracks && (
@@ -1425,9 +1425,9 @@ export default function AudioListenPage() {
                 <p className="text-neutral-400 text-sm">Select an audio set to play</p>
               </div>
             )}
-          </>
+          </div>
         ) : !audioSetsLoading ? (
-          <Card variant="elevated" className="p-8 md:p-12 text-center">
+          <Card variant="elevated" className="p-8 md:p-12 text-center" data-tour="voice-record">
             <Headphones className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Vision Audio Yet</h3>
             <p className="text-neutral-400 mb-6">Create your first audio set to bring your vision to life through sound.</p>
@@ -1645,7 +1645,7 @@ export default function AudioListenPage() {
 
         {/* ── Songs ── */}
         {contentType === 'songs' && (
-          <section>
+          <section data-tour="songs-library">
             {/* Complete / Drafts toggle */}
             <div className="mb-5 flex items-center justify-center gap-2">
               <button
@@ -1674,7 +1674,7 @@ export default function AudioListenPage() {
                   <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
                   <p className="text-neutral-400 mb-4">No drafts yet. Start a song and tap &ldquo;Save for later.&rdquo;</p>
                   <Button variant="primary" size="sm" asChild>
-                    <Link href="/audio/songwriter"><Plus className="w-4 h-4 mr-2" />Create Song</Link>
+                    <Link href="/audio/songwriter" data-tour="songs-create"><Plus className="w-4 h-4 mr-2" />Create Song</Link>
                   </Button>
                 </Card>
               ) : (
@@ -1682,7 +1682,7 @@ export default function AudioListenPage() {
                   <div className="rounded-2xl border border-neutral-800 bg-embedded-panel p-4">
                     <div className="mb-3 flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-white">Drafts & in-progress</h3>
-                      <Link href="/audio/songwriter" className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-white">
+                      <Link href="/audio/songwriter" className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-white" data-tour="songs-create">
                         <Plus className="h-3.5 w-3.5" /> New
                       </Link>
                     </div>
@@ -1721,7 +1721,7 @@ export default function AudioListenPage() {
                 <Music2 className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
                 <p className="text-neutral-400 mb-4">No finished songs yet. Create one with the Songwriter.</p>
                 <Button variant="primary" size="sm" asChild>
-                  <Link href="/audio/songwriter"><Plus className="w-4 h-4 mr-2" />Create Song</Link>
+                  <Link href="/audio/songwriter" data-tour="songs-create"><Plus className="w-4 h-4 mr-2" />Create Song</Link>
                 </Button>
               </Card>
             ) : (
@@ -1732,6 +1732,7 @@ export default function AudioListenPage() {
                   <div className="rounded-2xl bg-embedded-panel border border-neutral-800 flex items-center justify-center py-12"><Spinner size="lg" /></div>
                 ) : selectedSongId && songTracks.length > 0 ? (
                   <>
+                  <div data-tour="songs-play">
                   <EmbeddedPlayer
                     tracks={songTracks}
                     mapActivityType="song_listen"
@@ -1854,6 +1855,7 @@ export default function AudioListenPage() {
                       </div>
                     }
                   />
+                  </div>
                   {/* Mobile: synced lyrics below player */}
                   {(() => {
                     const activeTrack = songTracks.find((_, i) => {
@@ -1876,7 +1878,7 @@ export default function AudioListenPage() {
                   })()}
                   </>
                 ) : (
-                  <Card variant="glass" className="p-6 text-center">
+                  <Card variant="glass" className="p-6 text-center" data-tour="songs-play">
                     <Music2 className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
                     <p className="text-sm text-neutral-400">Select a song to play</p>
                   </Card>

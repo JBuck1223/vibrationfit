@@ -143,7 +143,7 @@ export default function HomePage() {
 
       {/* 3. Real People. Real Results. — videos, messages, then six receipts */}
       <Section>
-        <div className="min-w-0 max-w-full overflow-x-clip rounded-2xl bg-black/40 p-4 md:p-6 lg:p-8">
+        <div className="hp-proof-card min-w-0 max-w-full overflow-x-clip rounded-2xl bg-black/40 p-4 md:p-6 lg:p-8">
           <SocialProofSection
             eyebrow="Vibration Fit Member Results"
             title="Real People. Real Results."
@@ -421,7 +421,7 @@ export default function HomePage() {
             </p>
             <Hit>This was how we lived. Now we know.</Hit>
             <p>
-              We believe this system is designed for anyone who trusts Universal Law and is willing to
+              We believe this system is for anyone who trusts Universal Law and is willing to
               practice it. Your life is yours to choose.
             </p>
             <p className="text-[1.65rem] font-extrabold leading-tight text-white md:text-[2rem]">

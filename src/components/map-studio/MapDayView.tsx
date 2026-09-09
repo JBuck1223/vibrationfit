@@ -278,7 +278,7 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
 
   if (planCommitments.length === 0) {
     return (
-      <div className="text-center py-16 px-4">
+      <div className="text-center py-16 px-4" data-tour="map-plan">
         <MapIcon className="w-10 h-10 text-neutral-600 mx-auto mb-4" strokeWidth={1.5} />
         <h2 className="text-xl font-bold text-white mb-2">No commitments yet</h2>
         <p className="text-sm text-neutral-500 mb-6 max-w-md mx-auto">
@@ -287,9 +287,11 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
             : 'Update your MAP commitments, then track them here daily.'}
         </p>
         {!readOnly && (
-          <Button variant="primary" asChild>
-            <Link href="/map/update">Go to Update</Link>
-          </Button>
+          <div data-tour="map-actions">
+            <Button variant="primary" asChild>
+              <Link href="/map/update">Go to Update</Link>
+            </Button>
+          </div>
         )}
       </div>
     )
@@ -336,7 +338,7 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
       )}
 
       {!readOnly && (
-      <div className="flex justify-center">
+      <div className="flex justify-center" data-tour="map-plan">
           <div className="inline-flex items-center gap-0.5 sm:gap-1">
             <button
               type="button"
@@ -388,7 +390,7 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
 
       {/* System pillars */}
       {systemCommitments.length > 0 && (
-        <section className="rounded-xl bg-neutral-900/40 overflow-hidden">
+        <section className="rounded-xl bg-neutral-900/40 overflow-hidden" data-tour="map-actions">
           <div className="relative px-3 pt-3 pb-3">
             <p className="absolute right-3 top-3 text-sm tabular-nums shrink-0">
               <span style={{ color: mapTodayStyles.primaryHex }}>{systemDone}</span>
@@ -488,7 +490,10 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
 
       {/* Custom */}
       {customCommitments.length > 0 && (
-        <section className="rounded-xl bg-neutral-900/40 overflow-hidden">
+        <section
+          className="rounded-xl bg-neutral-900/40 overflow-hidden"
+          data-tour={systemCommitments.length === 0 ? 'map-actions' : undefined}
+        >
           <div className="relative px-3 pt-3 pb-2">
             <p className="absolute right-3 top-3 text-sm tabular-nums shrink-0">
               <span className="text-white">{customLogged}</span>

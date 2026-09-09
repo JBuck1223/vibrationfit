@@ -318,7 +318,10 @@ export function NewJournalEntryForm({
         >
           <Stack gap="lg">
             <div className="flex justify-end">
-              <div className="[&_input]:!w-auto [&_input]:!min-w-[170px] [&_input]:!bg-transparent [&_input]:!border-0 [&_input]:!rounded-none [&_input]:!px-0 [&_input]:!py-0 [&_input]:!pr-10 [&_input]:!text-right [&_input]:!text-[11px] [&_input]:!font-medium [&_input]:!uppercase [&_input]:!tracking-[0.2em] [&_input]:!text-neutral-500 [&_input]:placeholder:!text-neutral-500 [&_input]:focus:!ring-0 [&_svg]:!text-neutral-400">
+              <div
+                data-tour="journal-create-date"
+                className="[&_input]:!w-auto [&_input]:!min-w-[170px] [&_input]:!bg-transparent [&_input]:!border-0 [&_input]:!rounded-none [&_input]:!px-0 [&_input]:!py-0 [&_input]:!pr-10 [&_input]:!text-right [&_input]:!text-[11px] [&_input]:!font-medium [&_input]:!uppercase [&_input]:!tracking-[0.2em] [&_input]:!text-neutral-500 [&_input]:placeholder:!text-neutral-500 [&_input]:focus:!ring-0 [&_svg]:!text-neutral-400"
+              >
                 <DatePicker
                   value={formData.date}
                   onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
@@ -328,7 +331,7 @@ export function NewJournalEntryForm({
               </div>
             </div>
 
-            <section className="space-y-3 text-center">
+            <section className="space-y-3 text-center" data-tour="journal-create-title">
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-[#2A2A2A]" />
                 <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Entry title</p>
@@ -343,7 +346,7 @@ export function NewJournalEntryForm({
               />
             </section>
 
-            <section className="space-y-2">
+            <section className="space-y-2" data-tour="journal-create-type">
               <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
                 Entry type{' '}
                 <span className="normal-case tracking-normal text-neutral-600">-- optional</span>
@@ -379,7 +382,7 @@ export function NewJournalEntryForm({
               <RecoverableTranscriptsBanner onRestore={applyRestoredTranscript} />
             ) : null}
 
-            <div className={categoryGridBleedClass}>
+            <div className={categoryGridBleedClass} data-tour="journal-create-categories">
               <CategoryGrid
                 title="Tag life categories"
                 categories={VISION_CATEGORIES.filter(
@@ -393,7 +396,7 @@ export function NewJournalEntryForm({
               />
             </div>
 
-            <section className="space-y-3">
+            <section className="space-y-3" data-tour="journal-create-entry">
               <p
                 className={`text-[11px] uppercase tracking-[0.2em] text-center ${fieldErrors.content ? 'text-red-400' : 'text-neutral-500'}`}
               >
@@ -434,7 +437,7 @@ export function NewJournalEntryForm({
               ) : null}
             </section>
 
-            <section className="space-y-3">
+            <section className="space-y-3" data-tour="journal-create-evidence">
               <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
                 Evidence / images
               </p>
@@ -528,6 +531,7 @@ export function NewJournalEntryForm({
                 loading={loading}
                 disabled={loading}
                 className="flex-1 sm:flex-none sm:w-auto"
+                data-tour="journal-create-save"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {loading ? 'Saving...' : 'Save'}

@@ -4,17 +4,19 @@ import { useRouter } from 'next/navigation'
 import { BookOpen, PenLine, Calendar } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarVersionSelector } from '@/lib/design-system/components'
+import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useJournalStudio } from './JournalStudioContext'
 
 const TABS = [
-  { label: 'My Journal', path: '/journal', icon: BookOpen },
-  { label: 'Create', path: '/journal/new', icon: PenLine },
+  { label: 'My Journal', path: '/journal', icon: BookOpen, dataTour: 'studio-tab-journal-view' },
+  { label: 'Create', path: '/journal/new', icon: PenLine, dataTour: 'studio-tab-journal-create' },
 ]
 
 export function JournalAreaBar() {
   const pathname = usePathname()
   const router = useRouter()
   const { entries } = useJournalStudio()
+  const walkthroughMenu = useAreaBarWalkthrough()
 
   const isJournalList = pathname === '/journal' || pathname === '/journal/'
   const isJournalDetail = !isJournalList
@@ -36,6 +38,7 @@ export function JournalAreaBar() {
     versionSelectors = [{
       id: 'journal-entry',
       label: 'Journal entry',
+      dataTour: 'studio-versions',
       icon: Calendar,
       position: 'contextRow',
       searchable: true,
@@ -57,6 +60,7 @@ export function JournalAreaBar() {
       area={{ name: 'My Journal', icon: BookOpen }}
       tabs={TABS}
       versionSelectors={versionSelectors}
+      menuItems={walkthroughMenu}
       variant="default"
       appLikePrimaryTabs
     />

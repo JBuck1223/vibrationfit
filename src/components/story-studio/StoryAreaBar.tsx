@@ -4,14 +4,15 @@ import { useRouter } from 'next/navigation'
 import { Library, PenLine, RefreshCw, Target, Image, BookOpen, Lightbulb, FileText } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarVersionSelector } from '@/lib/design-system/components'
+import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useStoryStudio } from './StoryStudioContext'
 import type { Story } from '@/lib/stories/types'
 import { useState, useEffect } from 'react'
 
 const TABS = [
-  { label: 'All Stories', path: '/story', icon: Library },
-  { label: 'Create', path: '/story/new', icon: PenLine },
-  { label: 'Update', path: '/story/update', icon: RefreshCw },
+  { label: 'All Stories', path: '/story', icon: Library, dataTour: 'studio-tab-stories-view' },
+  { label: 'Create', path: '/story/new', icon: PenLine, dataTour: 'studio-tab-stories-create' },
+  { label: 'Update', path: '/story/update', icon: RefreshCw, dataTour: 'studio-tab-stories-update' },
 ]
 
 const SOURCE_FILTERS = [
@@ -33,6 +34,7 @@ export function StoryAreaBar() {
   const pathname = usePathname()
   const router = useRouter()
   const { stories, updateTargetId, setUpdateTargetId } = useStoryStudio()
+  const walkthroughMenu = useAreaBarWalkthrough()
 
   const isStoryList = pathname === '/story' || pathname === '/story/'
   const isStoryDetail = !isStoryList && pathname !== '/story/new' && pathname !== '/story/update' && /^\/story\/[^/]+$/.test(pathname)
@@ -87,6 +89,7 @@ export function StoryAreaBar() {
       {
         id: 'story-selector',
         label: 'Story',
+        dataTour: 'studio-versions',
         icon: selectorStory ? (ENTITY_ICONS[selectorStory.entity_type] || FileText) : FileText,
         position: 'contextRow',
         searchable: true,
@@ -115,6 +118,7 @@ export function StoryAreaBar() {
       area={{ name: 'My Stories', icon: Library }}
       tabs={TABS}
       versionSelectors={versionSelectors}
+      menuItems={walkthroughMenu}
       variant="default"
       appLikePrimaryTabs
     />

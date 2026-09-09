@@ -49,7 +49,7 @@ export const LIFE_ACTIVATION_COPY = {
     onboardingLine: (pct: number) =>
       `You're ${pct}% through getting started. One conversation. Then your people.`,
     trainingLine: (pct: number) =>
-      `You're ${pct}% through Platform Training. Nothing is locked.`,
+      `You're ${pct}% through Tools Training. Nothing is locked.`,
     stepsCount: (done: number, total: number) => `${done} of ${total} steps`,
     currentPhase: (phase: string, step: number, total: number) =>
       `Current Phase: ${phase} · Step ${step} of ${total}`,
@@ -57,12 +57,16 @@ export const LIFE_ACTIVATION_COPY = {
     view: 'View',
   },
   vision: {
-    openingWithActivation: (firstName: string | null, categoryLabel: string) =>
-      `I'm glad you're here${firstName ? `, ${firstName}` : ''}. ${categoryLabel} is already written beside us — that stays. Now we write the rest of this life as one life, not eleven more pieces.\n\nTell me about the life you choose. Talk across home, work, love, body, spirit — however it wants to come out. When I have enough, I'll write the whole Life Vision in one pass. You accept, edit, or discard every section.`,
-    openingFresh: (firstName: string | null) =>
-      `I'm glad you're here${firstName ? `, ${firstName}` : ''}. We're going to write your Life Vision as one life — all of it, in harmony — from this conversation.\n\nTell me about now, and where your imagination goes when you let yourself want what you want. When I have enough, I'll compose the whole document. You accept, edit, or discard every section.`,
+    openingFirstVision: (hasActivation: boolean) =>
+      `Let's build your first full life vision!
+
+A great vision is built on two basic ideas — contrast and clarity. I can expand your vision from both! In this vision building exercise, I will ask you a few questions to gather the information I need to build the first draft of your life vision.
+
+Feel free to share from points of clarity (above the Green Line) and points of contrast (below the Green Line). I will parse your responses and capture information on each category of your document until I have what I need to build a robust initial draft.
+
+Ready to get started?${hasActivation ? '\n\n*Because you completed the free activation before joining, I already have some of the information.*' : ''}`,
     chrome:
-      'Talk with VIVA about the life you choose. She writes the whole vision as one piece. Accept what lands, edit what needs your voice, then commit.',
+      'I will ask you a few questions, catch contrast and clarity across your life, then write the first draft as one piece. Accept what lands, edit what needs your voice, then commit.',
   },
   kit: {
     title: 'Hear your vision',
@@ -84,15 +88,15 @@ export const LIFE_ACTIVATION_COPY = {
   complete: {
     eyebrow: "You're started",
     title: 'Your life is written. Your people are here.',
-    body: 'The platform is already open. When you want a walk through the rest of the tools — profile, stories, journal, MAP — Platform Training is waiting. Or just live.',
+    body: 'The platform is already open. When you want a walk through the rest of the tools — profile, stories, journal, MAP — Tools Training is waiting. Or just live.',
     trainingCta: 'Learn the tools',
     dashboardCta: 'Go to Dashboard',
     visionCta: 'Open my Life Vision',
   },
   training: {
-    eyebrow: 'Platform Training',
+    eyebrow: 'Tools Training',
     title: 'Learn the tools when you want them',
-    body: 'A recommended path through the studios. Nothing is locked. Mark a step when you have seen it.',
+    body: 'A recommended path through the studios. Open a tool, click Walkthrough in the upper right, and finish it. That first finish is the checkmark. You can replay anytime.',
     start: 'Start Training',
     continue: 'Continue Training',
     dismiss: 'Not now',

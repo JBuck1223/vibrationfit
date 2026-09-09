@@ -40,7 +40,11 @@ export default function AdminBeginPage() {
           <h1 className="mt-1 text-2xl font-semibold text-white">Life Activation</h1>
           <p className="mt-2 text-sm text-neutral-400">
             Copy source: {LIFE_ACTIVATION_COPY.source}. Member home is /begin. Training is
-            /begin/training.
+            /begin/training. Walk-through text is edited at{' '}
+            <a href="/admin/walkthroughs" className="text-[#00FFFF] hover:underline">
+              /admin/walkthroughs
+            </a>
+            .
           </p>
         </div>
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import React from 'react'
 import { ProfileStudioProvider } from '@/components/profile-studio/ProfileStudioContext'
 import { ProfileAreaBar } from '@/components/profile-studio/ProfileAreaBar'
-import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
+import { StudioWalkthroughHost } from '@/components/tool-walkthrough'
 
 export const metadata: Metadata = {
   title: {
@@ -14,14 +14,15 @@ export const metadata: Metadata = {
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
   return (
     <ProfileStudioProvider>
-      <ProfileAreaBar />
-      <main
-        className="flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
-        style={{ '--content-px': '1rem' } as React.CSSProperties}
-      >
-        <StudioLifeActivationBanner />
-        {children}
-      </main>
+      <StudioWalkthroughHost>
+        <ProfileAreaBar />
+        <main
+          className="flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
+          style={{ '--content-px': '1rem' } as React.CSSProperties}
+        >
+          {children}
+        </main>
+      </StudioWalkthroughHost>
     </ProfileStudioProvider>
   )
 }

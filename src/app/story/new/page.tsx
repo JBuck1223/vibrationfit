@@ -1100,7 +1100,7 @@ export default function NewStoryWizardPage() {
             <div className="space-y-6">
 
               {/* Output Type Toggle */}
-              <div className="flex flex-col items-center pt-2">
+              <div className="flex flex-col items-center pt-2" data-tour="stories-create-type">
                 <Toggle
                   value={outputType}
                   onChange={value => {
@@ -1153,7 +1153,7 @@ export default function NewStoryWizardPage() {
               </div>
 
               {/* Step 1: Select Source (shared for story and incantation) */}
-              <div className="py-4">
+              <div className="py-4" data-tour="stories-create-source">
                 <div className="flex flex-col items-center mb-4">
                   {stepNumber(1)}
                   <h3 className="text-lg md:text-xl font-semibold text-white">Select Source</h3>
@@ -1643,7 +1643,7 @@ export default function NewStoryWizardPage() {
                         )}
 
                         {/* Generate Button */}
-                        <div className="flex justify-center">
+                        <div className="flex justify-center" data-tour="stories-create-generate">
                           <Button
                             onClick={handleGenerate}
                             variant="primary"
@@ -1701,6 +1701,7 @@ export default function NewStoryWizardPage() {
                             onClick={handleCreateManual}
                             variant="primary"
                             disabled={!storyTitle.trim() || !storyContent.trim()}
+                            data-tour="stories-create-generate"
                           >
                             <FileText className="w-4 h-4 mr-2" />
                             Create Story
@@ -2059,7 +2060,7 @@ export default function NewStoryWizardPage() {
                       </div>
 
                       {/* Generate button */}
-                      <div className="flex justify-center pt-2">
+                      <div className="flex justify-center pt-2" data-tour="stories-create-generate">
                         <Button
                           onClick={handleGenerateIncantation}
                           variant="primary"
@@ -2313,7 +2314,7 @@ export default function NewStoryWizardPage() {
                       </div>
 
                       {/* Generate button */}
-                      <div className="flex justify-center pt-2">
+                      <div className="flex justify-center pt-2" data-tour="stories-create-generate">
                         <Button
                           onClick={handleGenerateSparkQuery}
                           variant="primary"

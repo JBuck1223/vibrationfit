@@ -451,7 +451,7 @@ export default function RecordVisionAudioPage() {
 
   return (
     <Container size="xl">
-      <Stack gap="lg" className="overflow-visible">
+      <Stack gap="lg" className="overflow-visible" data-tour="voice-record">
         <h1 className="sr-only">Record Audio</h1>
 
         <QueueStatusBanner />

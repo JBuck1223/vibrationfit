@@ -6,6 +6,8 @@ export interface LifeActivationSeed {
   categoryLabel: string | null
   visionStatement: string | null
   essence: string | null
+  currentState: string | null
+  dreamResponse: Record<string, string> | null
   firstName: string | null
   needsFirstName: boolean
 }
