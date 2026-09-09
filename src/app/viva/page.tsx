@@ -21,20 +21,30 @@ import {
   Check,
   X,
   Waypoints,
+  FileText,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { keys } from '@/lib/query/keys'
-import { VivaChatInput } from '@/components/viva/VivaChatInput'
+import { VivaChatInput, type ChatAttachment } from '@/components/viva/VivaChatInput'
 import { VivaModeSwitcher } from '@/components/viva/VivaModeSwitcher'
 import { ConstraintsPanel } from '@/components/viva/ConstraintsPanel'
 import { cn } from '@/lib/utils'
 import { parseVivaMode, type VivaMode } from '@/lib/viva/modes'
 import { CoachStreamError, readCoachStream } from '@/lib/viva/coach-stream'
+import {
+  describeAttachments,
+  parseVivaAttachments,
+  type VivaPersistedAttachment,
+} from '@/lib/viva/coach-attachments'
+import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
+import { ensureJpegCompatible } from '@/lib/life-explorer/ensure-jpeg'
 import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  attachments?: VivaPersistedAttachment[]
 }
 
 interface Thread {
@@ -146,10 +156,16 @@ export default function VivaPage() {
       if (res.ok) {
         const data = await res.json()
         setMessages(
-          (data.messages || []).map((m: { id: string; role: 'user' | 'assistant'; message: string }) => ({
+          (data.messages || []).map((m: {
+            id: string
+            role: 'user' | 'assistant'
+            message: string
+            context?: { attachments?: unknown }
+          }) => ({
             id: m.id,
             role: m.role,
             content: m.message,
+            attachments: parseVivaAttachments(m.context?.attachments),
           }))
         )
       }
@@ -191,23 +207,68 @@ export default function VivaPage() {
   }
 
   // --- Chat ---
-  const sendMessage = async (overrideContent?: string) => {
-    const content = (overrideContent || currentMessage).trim()
-    if (!content || isStreaming) return
+  const sendMessage = async (incomingAttachments?: ChatAttachment[], overrideContent?: string) => {
+    const content = (overrideContent ?? currentMessage).trim()
+    const picked = incomingAttachments || []
+    if ((!content && picked.length === 0) || isStreaming) return
+
+    const localAttachments: VivaPersistedAttachment[] = picked.map((att) => ({
+      url: att.preview || '',
+      name: att.file.name || (att.type === 'image' ? 'photo.jpg' : 'file'),
+      type: att.type,
+      mimeType: att.file.type || undefined,
+    }))
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content,
+      content: content || describeAttachments(localAttachments.filter((a) => a.type === 'image' || a.url)),
+      attachments: localAttachments,
     }
     setMessages(prev => [...prev, userMessage])
     setCurrentMessage('')
     setIsStreaming(true)
     setIsThinking(true)
-    setIndicators([])
+    setIndicators(picked.length > 0 ? [{ source: 'upload', detail: 'Adding what you shared' }] : [])
 
     try {
-      const messagesForAPI = [...messages, userMessage].map(m => ({
+      let persisted: VivaPersistedAttachment[] = []
+      if (picked.length > 0) {
+        const readyFiles = await Promise.all(
+          picked.map(async (att) => {
+            if (att.type !== 'image') return att.file
+            try {
+              return await ensureJpegCompatible(att.file)
+            } catch {
+              return att.file
+            }
+          })
+        )
+        const results = await uploadMultipleUserFiles('viva', readyFiles)
+        persisted = results.flatMap((result, index) => {
+          if (!result.url) {
+            toast.error(result.error || getUploadErrorMessage(new Error('Upload failed')))
+            return []
+          }
+          const source = picked[index]
+          const uploadedFile = readyFiles[index]
+          return [{
+            url: result.url,
+            name: uploadedFile.name || source.file.name || 'file',
+            type: source.type,
+            mimeType: uploadedFile.type || source.file.type || undefined,
+          }]
+        })
+        if (persisted.length === 0 && !content) {
+          throw new CoachStreamError('That file did not attach. Try choosing it again?')
+        }
+        setMessages(prev =>
+          prev.map((m) => (m.id === userMessage.id ? { ...m, attachments: persisted } : m))
+        )
+      }
+
+      const textForApi = content || describeAttachments(persisted)
+      const messagesForAPI = [...messages, { ...userMessage, content: textForApi }].map(m => ({
         role: m.role,
         content: m.content,
       }))
@@ -222,6 +283,7 @@ export default function VivaPage() {
           conversationId: threadId,
           isNewSession: !threadId,
           modeHint: vivaMode,
+          ...(persisted.length > 0 ? { attachments: persisted } : {}),
           ...(modelOverride ? { modelOverride } : {}),
         },
         onHeaders: ({ conversationId }) => {
@@ -309,7 +371,7 @@ export default function VivaPage() {
           <span className="flex-1 min-w-0 truncate text-sm">
             {thread.title || thread.preview_message || 'New thread'}
           </span>
-          <div className="hidden group-hover:flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-1 shrink-0 md:hidden group-hover:md:flex" onClick={e => e.stopPropagation()}>
             <button
               onClick={() => { setRenamingId(thread.id); setRenameValue(thread.title || '') }}
               className="text-neutral-500 hover:text-white transition-colors"
@@ -333,7 +395,7 @@ export default function VivaPage() {
             </button>
           </div>
           {thread.pinned && (
-            <Pin className="w-3 h-3 text-neutral-600 group-hover:hidden shrink-0" />
+            <Pin className="hidden md:block w-3 h-3 text-neutral-600 group-hover:hidden shrink-0" />
           )}
         </>
       )}
@@ -349,8 +411,10 @@ export default function VivaPage() {
       {/* ---- Thread sidebar ---- */}
       <aside
         className={cn(
-          'w-72 shrink-0 border-r border-neutral-900 bg-black flex-col transition-all duration-300',
-          sidebarOpen ? 'flex fixed inset-y-0 left-0 z-40 md:static' : 'hidden md:flex'
+          'w-72 max-w-[85vw] shrink-0 border-r border-neutral-900 bg-black flex-col transition-all duration-300',
+          sidebarOpen
+            ? 'flex fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top)] md:static md:z-auto md:pt-0'
+            : 'hidden md:flex'
         )}
       >
         <div className="flex items-center justify-between px-4 py-4">
@@ -392,16 +456,17 @@ export default function VivaPage() {
         </div>
       </aside>
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/60 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/60 z-[55] md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* ---- Main column ---- */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-neutral-900">
+        <header className="flex items-center gap-3 pl-16 pr-4 py-3 border-b border-neutral-900 md:px-4">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
+            aria-label="Open threads"
           >
             <PanelLeft className="w-4 h-4" />
           </button>
@@ -424,7 +489,7 @@ export default function VivaPage() {
           </button>
           <button
             onClick={startNewThread}
-            className="hidden md:block p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
             title="New thread"
           >
             <Plus className="w-4 h-4" />
@@ -449,6 +514,38 @@ export default function VivaPage() {
                 <div key={message.id}>
                   {message.role === 'user' ? (
                     <VivaUserMessage copyText={message.content} hideCopy={hideCopy}>
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="mb-2 flex flex-wrap justify-end gap-2">
+                          {message.attachments.map((att) =>
+                            att.type === 'image' && att.url ? (
+                              <a
+                                key={att.url + att.name}
+                                href={att.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block"
+                              >
+                                <img
+                                  src={att.url}
+                                  alt={att.name}
+                                  className="max-h-40 max-w-[220px] rounded-lg object-cover"
+                                />
+                              </a>
+                            ) : (
+                              <a
+                                key={att.url + att.name}
+                                href={att.url || undefined}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-accent-500/30 bg-black/20 px-2 py-1 text-xs text-neutral-200"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                                <span className="max-w-[160px] truncate">{att.name}</span>
+                              </a>
+                            )
+                          )}
+                        </div>
+                      )}
                       {message.content}
                     </VivaUserMessage>
                   ) : (
@@ -486,10 +583,10 @@ export default function VivaPage() {
             <VivaChatInput
               value={currentMessage}
               onChange={setCurrentMessage}
-              onSend={(_attachments, text) => sendMessage(text)}
+              onSend={(attachments, text) => sendMessage(attachments, text)}
               disabled={isStreaming}
               placeholder="Talk to VIVA..."
-              canSend={!!currentMessage.trim() && !isStreaming}
+              canSend={!isStreaming}
             />
           </div>
         </div>

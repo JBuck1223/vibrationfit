@@ -34,6 +34,12 @@ import {
   COACH_STREAM_META_MARKER,
   COACH_STREAM_PADDING,
 } from '@/lib/viva/coach-stream'
+import {
+  buildUserMessageContent,
+  describeAttachments,
+  parseVivaAttachments,
+  type VivaPersistedAttachment,
+} from '@/lib/viva/coach-attachments'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -86,9 +92,11 @@ export async function POST(req: Request) {
       userIntent,
       modeHint,
       modelOverride,
+      attachments: rawAttachments,
     } = await req.json()
 
     const selectedMode = parseVivaMode(modeHint)
+    const attachments = parseVivaAttachments(rawAttachments)
     const chatTurns: CoachChatMessage[] = Array.isArray(messages)
       ? messages
           .filter((m: { role?: string; content?: string }) => typeof m?.content === 'string')
@@ -109,7 +117,7 @@ export async function POST(req: Request) {
           mode: 'coach',
           viva_mode: selectedMode,
           category: selectedCategories?.[0] || null,
-          preview_message: userIntent || chatTurns[chatTurns.length - 1]?.content?.slice(0, 100) || 'Coaching session',
+          preview_message: userIntent || chatTurns[chatTurns.length - 1]?.content?.slice(0, 100) || describeAttachments(attachments) || 'Coaching session',
           message_count: 0,
           last_message_at: new Date().toISOString(),
         })
@@ -128,9 +136,15 @@ export async function POST(req: Request) {
       supabase.from('ai_conversations').insert({
         user_id: user.id,
         conversation_id: currentConversationId || null,
-        message: lastUserMessage.content,
+        message: lastUserMessage.content || describeAttachments(attachments),
         role: 'user',
-        context: { mode: 'coach', selected_mode: selectedMode, selectedCategories, userIntent },
+        context: {
+          mode: 'coach',
+          selected_mode: selectedMode,
+          selectedCategories,
+          userIntent,
+          ...(attachments.length > 0 ? { attachments } : {}),
+        },
         created_at: new Date().toISOString(),
       }).then(({ error }) => {
         if (error) console.error('[VIVA COACH] Error saving user message:', error)
@@ -162,6 +176,7 @@ export async function POST(req: Request) {
           modelOverride,
           currentConversationId,
           lastUserMessage,
+          attachments,
         })
       } catch (error) {
         console.error('[VIVA COACH] Stream error:', error)
@@ -207,6 +222,7 @@ async function runCoachTurn({
   modelOverride,
   currentConversationId,
   lastUserMessage,
+  attachments,
 }: {
   write: (text: string) => Promise<void>
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -218,13 +234,14 @@ async function runCoachTurn({
   modelOverride?: unknown
   currentConversationId: string | null
   lastUserMessage: CoachChatMessage | null
+  attachments: VivaPersistedAttachment[]
 }) {
     // =========================================================================
     // LAYER 1: RETRIEVE — Load everything in parallel (interpretation follows)
     // =========================================================================
 
     const userName = user.user_metadata?.full_name?.split(' ')[0] || 'friend'
-    const latestContent = lastUserMessage?.content || ''
+    const latestContent = lastUserMessage?.content || describeAttachments(attachments)
 
     // Household lens first (fast) — it scopes memory/constraint/recall loads
     const householdLens = await getVivaHouseholdLens(supabase, user.id)
@@ -438,6 +455,21 @@ async function runCoachTurn({
       return
     }
 
+    let lastUserIndex = -1
+    for (let i = chatMessages.length - 1; i >= 0; i--) {
+      if (chatMessages[i].role === 'user') {
+        lastUserIndex = i
+        break
+      }
+    }
+    const modelMessages = chatMessages.map((message, index) => {
+      if (index !== lastUserIndex || attachments.length === 0) return message
+      return {
+        role: 'user' as const,
+        content: buildUserMessageContent(message.content, attachments),
+      }
+    })
+
     const activeKit = await findOpenKitForConversation(
       supabase,
       user.id,
@@ -468,7 +500,7 @@ async function runCoachTurn({
       // Routed through the Vercel AI Gateway for exact per-request billing
       model: gateway(gatewayModelId),
       system: systemPrompt,
-      messages: chatMessages as ModelMessage[],
+      messages: modelMessages as ModelMessage[],
       ...(supportsTemperature ? { temperature: overlay === 'crisis' ? 0.4 : 0.8 } : {}),
       tools,
       // Allow tool call -> result -> narration (and one follow-up action)
@@ -500,7 +532,7 @@ async function runCoachTurn({
               .update({
                 last_message_at: new Date().toISOString(),
                 message_count: (conversationHistory.length || 0) + 2,
-                preview_message: messages[messages.length - 1]?.content?.slice(0, 100) || '',
+                preview_message: messages[messages.length - 1]?.content?.slice(0, 100) || describeAttachments(attachments) || '',
                 viva_mode: selectedMode,
               })
               .eq('id', currentConversationId)

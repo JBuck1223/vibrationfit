@@ -50,6 +50,8 @@ export const USER_FOLDERS = {
   travel: 'travel/uploads',
   // Life Explorer homeschool portfolio (activity log photos/videos)
   lifeExplorer: 'homeschool/life-explorer',
+  // VIVA conversation attachments (photos and files shared in /viva)
+  viva: 'viva/uploads',
 } as const
 
 type UserFolder = keyof typeof USER_FOLDERS
@@ -876,6 +878,15 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
         'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
       ],
     },
+    viva: {
+      maxSize: 50 * 1024 * 1024,
+      types: [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
+        'application/pdf',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+      ],
+    },
   }
 
   const folderRules = (rules as Record<string, { maxSize: number; types: string[] }>)[folder]
@@ -917,6 +928,10 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
     'mp3': ['audio/mpeg', 'audio/mp3'],
     'wav': ['audio/wav'],
     'ogg': ['audio/ogg'],
+    'pdf': ['application/pdf'],
+    'doc': ['application/msword'],
+    'docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    'txt': ['text/plain'],
   }
 
   const possibleTypes = extensionToMimeMap[extension] || []

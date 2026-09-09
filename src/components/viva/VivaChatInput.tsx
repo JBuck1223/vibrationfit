@@ -14,6 +14,21 @@ const AUDIO_MIME_CANDIDATES = [
   'audio/ogg;codecs=opus',
 ]
 
+const IMAGE_NAME = /\.(heic|heif|jpe?g|png|gif|webp|bmp|tif?f)$/i
+
+function isImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true
+  return IMAGE_NAME.test(file.name)
+}
+
+function clonePickedFile(file: File): File {
+  const type = file.type || (IMAGE_NAME.test(file.name) ? 'image/jpeg' : file.type)
+  return new File([file], file.name || 'photo.jpg', {
+    type,
+    lastModified: file.lastModified,
+  })
+}
+
 function pickAudioMimeType(): { mimeType: string; filename: string } {
   const mimeType =
     AUDIO_MIME_CANDIDATES.find(
@@ -116,22 +131,31 @@ export function VivaChatInput({
   }, [value])
 
   // --- Attachments ---
+  const openFilePicker = () => {
+    const input = fileInputRef.current
+    if (!input) return
+    // Reset just before opening. Clearing after select can invalidate File
+    // objects on iOS WebKit, so the preview stays and the send payload is empty.
+    input.value = ''
+    input.click()
+  }
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
 
     const newAttachments: ChatAttachment[] = Array.from(files).map(file => {
-      const isImage = file.type.startsWith('image/')
+      const cloned = clonePickedFile(file)
+      const isImage = isImageFile(cloned)
       return {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        file,
-        preview: isImage ? URL.createObjectURL(file) : undefined,
+        file: cloned,
+        preview: isImage ? URL.createObjectURL(cloned) : undefined,
         type: isImage ? 'image' : 'document',
       }
     })
 
     setAttachments(prev => [...prev, ...newAttachments])
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removeAttachment = (id: string) => {
@@ -314,7 +338,8 @@ export function VivaChatInput({
               <button
                 type="button"
                 onClick={() => removeAttachment(att.id)}
-                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-neutral-900 border border-neutral-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-neutral-900 border border-neutral-600 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                aria-label="Remove attachment"
               >
                 <X className="w-3 h-3 text-neutral-300" />
               </button>
@@ -350,7 +375,7 @@ export function VivaChatInput({
               {/* Attach */}
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={openFilePicker}
                 disabled={disabled || isTranscribing}
                 className="w-8 h-8 rounded-full bg-accent-500 hover:bg-accent-500/80 flex items-center justify-center transition-colors disabled:opacity-40"
                 title="Attach file"
@@ -451,14 +476,14 @@ export function VivaChatInput({
         size="sm"
       />
 
-      {/* Hidden file input */}
+      {/* Visually hidden — display:none file inputs drop the change event on some iOS versions */}
       <input
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,.pdf,.doc,.docx,.txt"
+        accept="image/*,.heic,.heif,.pdf,.doc,.docx,.txt"
         onChange={handleFileSelect}
-        className="hidden"
+        className="absolute h-px w-px overflow-hidden opacity-0 pointer-events-none"
       />
     </div>
   )
