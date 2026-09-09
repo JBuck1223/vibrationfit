@@ -1,9 +1,9 @@
 # VIVA Vision Update
 
-**Last Updated:** September 3, 2026
+**Last Updated:** September 9, 2026
 **Status:** Active
 
-A VIVA-led flow for updating the Life Vision at `/life-vision/update`, replacing the category-by-category wizard as the primary update path (the wizard remains available as "Update Myself").
+A VIVA-led flow for updating the Life Vision at `/life-vision/update`, replacing the category-by-category wizard as the primary update path (the wizard remains available as "Update Myself"). `/life-vision/begin` reuses this page in create mode for the first Life Vision.
 
 ## Experience
 
@@ -48,7 +48,21 @@ The endpoint reuses the coach stream transport (`src/lib/viva/coach-stream.ts`: 
 <<<END VISION>>>
 ```
 
-`parseVisionUpdateMessage()` splits a (possibly partial) assistant message into chat text and per-category proposals, hiding partially streamed markers. Assistant history keeps the raw markers so the model sees its own prior proposals.
+`parseVisionUpdateMessage()` splits a (possibly partial) assistant message into chat text, per-category proposals, and (create mode) SEED notes, hiding partially streamed markers. Assistant history keeps the raw markers so the model sees its own prior proposals.
+
+Create-mode gathering also streams:
+
+```
+<<<SEED fun contrast>>>
+(a contrast or clarity note)
+<<<END SEED>>>
+```
+
+Those notes persist on `vision_draft_session_notes`. VIVA leads with questions until she has enough, then composes with VISION markers.
+
+### First vision (`/life-vision/begin`)
+
+Create mode shows a contrast/clarity Draft Session board until the compose pass. Activation `current_state` / dream / vision statement seed notes, not draft body. After compose, the same accept/edit/discard editors appear. Commit as Active is unchanged.
 
 ### Thread persistence
 
@@ -56,8 +70,8 @@ Each session is saved with the same tables as VIVA coach: a `conversation_sessio
 
 ### Constraints honored
 
-- Life Vision Generation System is LOCKED: no schema changes, no changes to `commit_vision_draft_as_active` or draft semantics.
-- The endpoint is read-only against the draft. Accepted proposals save through the existing `PATCH /api/vision/draft/update`; commits go through the existing commit route.
+- Life Vision Generation System is LOCKED: no schema changes to `vision_versions` / `commit_vision_draft_as_active` or draft semantics. First-vision notes live on additive `vision_draft_sessions` tables.
+- The endpoint is read-only against the draft body. Accepted proposals save through the existing `PATCH /api/vision/draft/update`; commits go through the existing commit route. Create mode may write Draft Session notes.
 - Token usage is tracked per turn (`action_type: 'vision_refinement'`) with a balance check up front.
 
 ## Follow-on (not built)

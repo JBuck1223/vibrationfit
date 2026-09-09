@@ -8,8 +8,9 @@ import {
   normalizeProgress,
 } from '@/lib/life-activation/progress'
 import { recordLifeActivationEvent } from '@/lib/life-activation/events'
-import type { OnboardingStepId, TrainingStepId } from '@/lib/life-activation/steps'
-import { firstIncompleteTraining, ONBOARDING_STEP_IDS, TRAINING_STEP_IDS } from '@/lib/life-activation/steps'
+import type { OnboardingStepId } from '@/lib/life-activation/steps'
+import { firstIncompleteTraining, ONBOARDING_STEP_IDS } from '@/lib/life-activation/steps'
+import { isTrainingCompletionId } from '@/lib/life-activation/walkthroughs'
 
 export async function GET() {
   try {
@@ -69,8 +70,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === 'complete_training_step') {
-      const step = body.step as TrainingStepId
-      if (!TRAINING_STEP_IDS.includes(step)) {
+      const step = typeof body.step === 'string' ? body.step : ''
+      if (!isTrainingCompletionId(step)) {
         return NextResponse.json({ error: 'Invalid step' }, { status: 400 })
       }
       const progress = await markTrainingStep(supabase, user.id, step)

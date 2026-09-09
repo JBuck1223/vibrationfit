@@ -1,8 +1,9 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Info, Copy, Map } from 'lucide-react'
+import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Info, Copy } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
+import { useAreaBarWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 
 const VOICE_DISPLAY_NAMES: Record<string, string> = {
@@ -11,9 +12,9 @@ const VOICE_DISPLAY_NAMES: Record<string, string> = {
 }
 
 const TABS = [
-  { label: 'View', path: '/life-vision', icon: Eye },
-  { label: 'About', path: '/life-vision/about', icon: Info },
-  { label: 'Update', path: '/life-vision/update', icon: PenLine },
+  { label: 'View', path: '/life-vision', icon: Eye, dataTour: 'studio-tab-vision-view' },
+  { label: 'About', path: '/life-vision/about', icon: Info, dataTour: 'studio-tab-vision-about' },
+  { label: 'Update', path: '/life-vision/update', icon: PenLine, dataTour: 'studio-tab-vision-update' },
 ]
 
 const CREATE_AREA_ROUTES = [
@@ -499,22 +500,16 @@ export function LifeVisionAreaBar() {
 
   const mergedContextEyebrow = studioAreaChrome?.contextEyebrow
   const mergedContextText = studioAreaChrome?.contextText ?? contextText
-  const walkthrough = studioAreaChrome?.walkthrough
-  const menuItems = walkthrough ? (
-    <button
-      type="button"
-      onClick={walkthrough.onToggle}
-      aria-pressed={walkthrough.active}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-        walkthrough.active
-          ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
-          : 'border-white/10 bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
-      }`}
-    >
-      <Map className={`h-3.5 w-3.5 shrink-0 ${walkthrough.active ? 'text-primary-400' : ''}`} strokeWidth={2.25} />
-      Walkthrough
-    </button>
-  ) : undefined
+  const pageWalkthrough = studioAreaChrome?.walkthrough
+  const studioToggle = useAreaBarWalkthrough()
+  const menuItems = pageWalkthrough ? (
+    <WalkthroughToggle active={pageWalkthrough.active} onToggle={pageWalkthrough.onToggle} />
+  ) : studioToggle
+  if (versionSelectors) {
+    versionSelectors = versionSelectors.map((sel) =>
+      sel.id === 'vision-version' ? { ...sel, dataTour: sel.dataTour ?? 'studio-versions' } : sel,
+    )
+  }
 
   return (
     <AreaBar

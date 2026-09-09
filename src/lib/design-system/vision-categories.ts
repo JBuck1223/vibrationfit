@@ -214,6 +214,11 @@ export function isValidVisionCategory(key: string): key is VisionCategoryKey {
   return VISION_CATEGORIES.some(category => category.key === key)
 }
 
+/** Type guard: the 12 life categories (excludes forward / conclusion). */
+export function isLifeCategoryKey(key: string): key is LifeCategoryKey {
+  return (LIFE_CATEGORY_KEYS as readonly string[]).includes(key)
+}
+
 // ============================================================================
 // FIELD NAME MAPPING HELPERS (Type-safe, life categories only)
 // ============================================================================

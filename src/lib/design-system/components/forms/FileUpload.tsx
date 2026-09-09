@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useId } from 'react'
 import { Upload, X, Check } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Button } from './Button'
@@ -81,7 +81,7 @@ export const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
     const [error, setError] = useState<string>('')
     const [isDragging, setIsDragging] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
-    const [inputId] = useState(() => `file-upload-${Math.random().toString(36).slice(2, 9)}`)
+    const inputId = `file-upload-${useId()}`
     
     // Use controlled or uncontrolled mode
     const selectedFiles = value !== undefined ? value : internalFiles

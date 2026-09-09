@@ -443,6 +443,7 @@ export function MapCustomUpdate({
         color="#FF0080"
         className="lg:col-span-2"
         headerAction={addButton}
+        dataTour="map-create-custom"
       >
         <div className="px-3 pb-3">{content}</div>
       </ToggleSection>

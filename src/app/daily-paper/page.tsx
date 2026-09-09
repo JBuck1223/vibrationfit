@@ -234,6 +234,7 @@ export default function DailyPaperIndexPage() {
                 onClick={() => router.push('/daily-paper/new')}
                 className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
                 aria-label="Add Entry"
+                data-tour="daily-paper-write"
               >
                 <Plus className="w-6 h-6 text-[#39FF14]" />
               </button>
@@ -372,22 +373,24 @@ export default function DailyPaperIndexPage() {
             </Inline>
           </Card>
         ) : entries.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No Daily Papers yet"
-            description="Start with gratitude, set three aligned actions, and add one fun promise."
-            action={{
-              label: "Add Entry",
-              href: "/daily-paper/new",
-              icon: Plus,
-            }}
-            secondaryAction={{
-              label: "Resources",
-              href: "/daily-paper/resources",
-              variant: "outline",
-              icon: HelpCircle,
-            }}
-          />
+          <div data-tour="daily-paper-today">
+            <EmptyState
+              icon={FileText}
+              title="No Daily Papers yet"
+              description="Start with gratitude, set three aligned actions, and add one fun promise."
+              action={{
+                label: "Add Entry",
+                href: "/daily-paper/new",
+                icon: Plus,
+              }}
+              secondaryAction={{
+                label: "Resources",
+                href: "/daily-paper/resources",
+                variant: "outline",
+                icon: HelpCircle,
+              }}
+            />
+          </div>
         ) : filteredEntries.length === 0 ? (
           <Card className="text-center py-16 max-w-2xl mx-auto">
             <FileText className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
@@ -406,7 +409,10 @@ export default function DailyPaperIndexPage() {
           </Card>
         ) : (
           /* List View */
-          <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
+          <div
+            className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]"
+            data-tour="daily-paper-today"
+          >
             {filteredEntries.map((entry) => {
               const showImage = isImageEntry(entry)
               const isExpanded = expandedId === entry.id

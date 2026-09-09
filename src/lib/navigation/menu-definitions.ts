@@ -421,6 +421,13 @@ export const adminNavigation: NavItem[] = [
     requiresAdmin: true,
     description: 'Life Activation onboarding and Platform Training inspector',
   },
+  {
+    name: 'Walkthroughs',
+    href: '/admin/walkthroughs',
+    icon: BookOpen,
+    requiresAdmin: true,
+    description: 'Edit tool walk-through copy',
+  },
 
   // ============================================================================
   // SESSIONS (availability, bookings, calendar)

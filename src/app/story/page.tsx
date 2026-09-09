@@ -156,6 +156,7 @@ export default function StoryHubPage() {
                 onClick={() => router.push('/story/new')}
                 className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
                 aria-label="New Story"
+                data-tour="stories-new"
               >
                 <Plus className="w-6 h-6 text-[#39FF14]" />
               </button>
@@ -253,6 +254,13 @@ export default function StoryHubPage() {
                       key={opt.value}
                       type="button"
                       onClick={() => setKindFilter(opt.value)}
+                      data-tour={
+                        opt.value === 'incantation'
+                          ? 'spoken-incantations'
+                          : opt.value === 'spark_query'
+                            ? 'spoken-spark'
+                            : undefined
+                      }
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         kindFilter === opt.value
                           ? 'bg-[#39FF14]/20 text-white border border-[#39FF14]/30'
@@ -301,7 +309,10 @@ export default function StoryHubPage() {
 
         {/* Stories List */}
         {filtered.length === 0 ? (
-          <Card className="p-8 md:p-12 text-center">
+          <Card
+            className="p-8 md:p-12 text-center"
+            data-tour={kindFilter === 'incantation' || kindFilter === 'spark_query' ? 'spoken-open' : 'stories-list'}
+          >
             <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-neutral-500" />
             </div>
@@ -332,7 +343,10 @@ export default function StoryHubPage() {
             )}
           </Card>
         ) : (
-          <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
+          <div
+            className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]"
+            data-tour={kindFilter === 'incantation' || kindFilter === 'spark_query' ? 'spoken-open' : 'stories-list'}
+          >
             {filtered.map(story => {
               const meta = ENTITY_TYPE_META[story.entity_type] || ENTITY_TYPE_META.custom
               const hasAiAudio = !!story.audio_set_id

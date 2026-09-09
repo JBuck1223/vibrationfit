@@ -347,6 +347,7 @@ export function MapSystemBuilder({
               label={meta.verb}
               color={meta.color}
               count={selections[pillar].length}
+              dataTour={`map-create-${pillar}`}
             >
               {picker}
             </ToggleSection>
@@ -356,7 +357,7 @@ export function MapSystemBuilder({
       </div>
 
       <div className="border-t border-neutral-800 pt-6">
-      <div className="rounded-2xl border border-[#1A1A1A] bg-[#0A0A0A] overflow-hidden p-4 text-center">
+      <div className="rounded-2xl border border-[#1A1A1A] bg-[#0A0A0A] overflow-hidden p-4 text-center" data-tour="map-create-digest">
         <div className="flex items-center justify-center gap-2 mb-1">
           <Bell className="w-4 h-4 text-neutral-400" />
           <span className="text-sm font-semibold text-white">Weekly MAP digest</span>
@@ -416,6 +417,7 @@ export function MapSystemBuilder({
               className="w-full md:w-auto"
               onClick={handleActivate}
               disabled={!canActivate || saving}
+              data-tour="map-create-save"
             >
               {saving ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
@@ -430,7 +432,7 @@ export function MapSystemBuilder({
         </div>
       ) : (
         <div className="text-center pb-4">
-          <Button variant="primary" size="lg" onClick={handleActivate} disabled={!canActivate || saving}>
+          <Button variant="primary" size="lg" onClick={handleActivate} disabled={!canActivate || saving} data-tour="map-create-save">
             {saving ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" />{isIntensive ? 'Activating...' : 'Saving...'}</>
             ) : (
@@ -456,6 +458,7 @@ export function ToggleSection({
   children,
   className,
   headerAction,
+  dataTour,
 }: {
   label: string
   color: string
@@ -464,6 +467,7 @@ export function ToggleSection({
   children: React.ReactNode
   className?: string
   headerAction?: React.ReactNode
+  dataTour?: string
 }) {
   const [open, setOpen] = useState(defaultOpen)
 
@@ -485,6 +489,7 @@ export function ToggleSection({
   return (
     <div
       className={`rounded-2xl overflow-hidden bg-[#0A0A0A] border border-neutral-800/60 ${className ?? ''}`}
+      data-tour={dataTour}
     >
       {/* Mobile: collapsible header */}
       <div className="flex lg:hidden items-center gap-2 px-4 py-3.5">

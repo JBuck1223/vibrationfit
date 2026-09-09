@@ -115,12 +115,14 @@ export default function NewJournalEntryPage() {
             This entry will be added to the journey of <span className="text-[#D46BFF] font-medium">{manifestationName}</span>.
           </p>
         )}
-        <NewJournalEntryForm
-          key={formKey}
-          onCancel={() => router.back()}
-          onSuccess={handleSuccess}
-          showRecoverableBanner
-        />
+        <div data-tour="journal-create-form">
+          <NewJournalEntryForm
+            key={formKey}
+            onCancel={() => router.back()}
+            onSuccess={handleSuccess}
+            showRecoverableBanner
+          />
+        </div>
       </Stack>
 
       <IntensiveStepCompleteModal

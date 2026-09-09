@@ -13,6 +13,34 @@ html:has([data-home]) body {
   letter-spacing: 0;
 }
 
+.hp-proof-card {
+  position: relative;
+  isolation: isolate;
+}
+
+.hp-proof-card::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 11rem;
+  z-index: 0;
+  width: min(46rem, 78%);
+  height: 22rem;
+  transform: translate(-50%, -20%);
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(57, 255, 20, 0.14), transparent 72%);
+  pointer-events: none;
+}
+
+.hp-proof-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hp-proof-card .absolute.inset-0.pointer-events-none {
+  display: none;
+}
+
 .hp-hero-glow {
   background:
     radial-gradient(ellipse 140% 90% at 50% 40%, rgba(57, 255, 20, 0.14), transparent 72%),

@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation'
 import { User, PenLine, Eye, HelpCircle, Sparkles, CheckCircle } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
+import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useProfileStudio } from './ProfileStudioContext'
 
 const TABS = [
-  { label: 'View', path: '/profile', icon: Eye },
-  { label: 'Update', path: '/profile/create', icon: PenLine },
+  { label: 'View', path: '/profile', icon: Eye, dataTour: 'studio-tab-profile-view' },
+  { label: 'Update', path: '/profile/create', icon: PenLine, dataTour: 'studio-tab-profile-update' },
 ]
 
 const CREATE_AREA_ROUTES = ['/profile/create', '/profile/new']
@@ -17,6 +18,7 @@ export function ProfileAreaBar() {
   const pathname = usePathname()
   const router = useRouter()
   const { versions, draftId } = useProfileStudio()
+  const walkthroughMenu = useAreaBarWalkthrough()
 
   const isProfileDashboard = pathname === '/profile' || pathname === '/profile/'
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
@@ -53,6 +55,7 @@ export function ProfileAreaBar() {
     return [{
       id: 'profile-version',
       label: 'Profile',
+      dataTour: 'studio-versions',
       position: 'contextRow' as const,
       options: filtered.map(v => {
         if (v.is_draft) {
@@ -147,6 +150,7 @@ export function ProfileAreaBar() {
       versionSelectors={versionSelectors}
       keepTabActive={!isOnCreateSubPage}
       activeParentPath={isOnCreateSubPage ? '/profile/create' : undefined}
+      menuItems={walkthroughMenu}
       variant="default"
       appLikePrimaryTabs
     />

@@ -17,6 +17,10 @@ export interface AreaBarTab {
   exactPath?: boolean
   /** When set, overrides pathname-based active detection (e.g. query-param tabs). */
   isActive?: boolean
+  /** Spotlight target for tool walk-throughs. */
+  dataTour?: string
+  /** Info cyan (#00FFFF) — this tab still has an unfinished walk-through. */
+  walkthroughPending?: boolean
 }
 
 export interface AreaBarPill {
@@ -45,6 +49,10 @@ export interface AreaBarContextNavItem {
   isActive?: boolean
   onClick?: () => void
   badge?: React.ReactNode
+  /** Spotlight target for tool walk-throughs. */
+  dataTour?: string
+  /** Info cyan (#00FFFF) — this tab still has an unfinished walk-through. */
+  walkthroughPending?: boolean
 }
 
 export interface VersionOption {
@@ -70,6 +78,8 @@ export interface AreaBarVersionSelector {
   onSelect: (id: string) => void
   position?: 'topRight' | 'contextRow'
   searchable?: boolean
+  /** Spotlight target for tool walk-throughs. */
+  dataTour?: string
 }
 
 export interface AreaBarProps {
@@ -142,27 +152,35 @@ const APP_LIKE_TAB_NAV_DEFAULT =
 const APP_LIKE_TAB_NAV_FLUID =
   'w-full min-w-0 grid gap-0 overflow-x-auto overflow-y-hidden rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]'
 
-function appLikePrimaryLinkClassName(isSelected: boolean, size: 'compact' | 'default' = 'compact', denseNav = false) {
+function appLikeStateClass(isSelected: boolean, walkthroughPending = false) {
+  if (walkthroughPending) {
+    return isSelected
+      ? 'border-[#00FFFF] bg-zinc-900/85 font-semibold text-[#00FFFF]'
+      : 'border-[#00FFFF]/50 text-[#00FFFF] hover:bg-[#00FFFF]/10 hover:text-[#00FFFF] active:text-[#00FFFF]'
+  }
+  return isSelected
+    ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
+    : 'border-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200 active:text-zinc-300'
+}
+
+function appLikePrimaryLinkClassName(
+  isSelected: boolean,
+  size: 'compact' | 'default' = 'compact',
+  denseNav = false,
+  walkthroughPending = false,
+) {
   if (!denseNav) {
     const sizeCls =
       size === 'compact'
         ? 'min-h-[2.75rem] flex-col items-center justify-center gap-0.5 px-1.5 py-2 text-xs sm:min-h-11 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm'
         : 'min-h-10 flex-row items-center justify-center gap-1.5 px-2.5 py-2.5 text-sm'
-    return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${
-      isSelected
-        ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
-        : 'border-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200 active:text-zinc-300'
-    }`
+    return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${appLikeStateClass(isSelected, walkthroughPending)}`
   }
   const sizeCls =
     size === 'compact'
       ? 'min-h-[2.75rem] flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] leading-tight sm:min-h-11 sm:flex-row sm:gap-1 sm:px-1.5 sm:text-xs'
       : 'min-h-10 flex-row items-center justify-center gap-1 px-1.5 py-2 text-xs'
-  return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${
-    isSelected
-      ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
-      : 'border-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200 active:text-zinc-300'
-  }`
+  return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${appLikeStateClass(isSelected, walkthroughPending)}`
 }
 
 function useClickOutside(ref: React.RefObject<HTMLDivElement | null>, onClose: () => void, active: boolean) {
@@ -182,10 +200,16 @@ function useClickOutside(ref: React.RefObject<HTMLDivElement | null>, onClose: (
 
 // ─── Context Nav Strip ───
 
-const CONTEXT_NAV_LINK_CLASS_ACTIVE =
-  'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
-const CONTEXT_NAV_LINK_CLASS_INACTIVE =
-  'border-transparent bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200 active:text-zinc-300'
+function contextNavStateClass(isActive: boolean, walkthroughPending = false) {
+  if (walkthroughPending) {
+    return isActive
+      ? 'border-[#00FFFF] bg-zinc-900/85 font-semibold text-[#00FFFF]'
+      : 'border-[#00FFFF]/50 bg-transparent text-[#00FFFF] hover:bg-[#00FFFF]/10 hover:text-[#00FFFF] active:text-[#00FFFF]'
+  }
+  return isActive
+    ? 'border-primary-500 bg-zinc-900/85 font-semibold text-primary-400'
+    : 'border-transparent bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200 active:text-zinc-300'
+}
 const CONTEXT_NAV_LINK_BASE =
   'flex min-h-[2.75rem] w-full min-w-0 flex-col items-center justify-center gap-0.5 border-b-2 px-0.5 py-2 sm:min-h-11 sm:flex-row sm:gap-1 sm:px-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40'
 
@@ -198,19 +222,21 @@ function ContextNavStrip({ items, maxWidthClass = 'sm:max-w-2xl' }: { items: Are
         <nav className={`grid w-full ${gridCols}`}>
           {items.map((item, idx) => {
             const Icon = item.icon
-            const cls = `${CONTEXT_NAV_LINK_BASE} ${item.isActive ? CONTEXT_NAV_LINK_CLASS_ACTIVE : CONTEXT_NAV_LINK_CLASS_INACTIVE}`
+            const pending = Boolean(item.walkthroughPending)
+            const cls = `${CONTEXT_NAV_LINK_BASE} ${contextNavStateClass(Boolean(item.isActive), pending)}`
+            const iconLit = item.isActive || pending
             if (item.path) {
               return (
-                <Link key={item.path} href={item.path} className={cls} aria-current={item.isActive ? 'page' : undefined}>
-                  {Icon && <Icon className={`h-3.5 w-3.5 shrink-0 ${item.isActive ? 'text-primary-400' : ''}`} strokeWidth={2.25} aria-hidden />}
+                <Link key={item.path} href={item.path} className={cls} aria-current={item.isActive ? 'page' : undefined} data-tour={item.dataTour}>
+                  {Icon && <Icon className={`h-3.5 w-3.5 shrink-0 ${pending ? 'text-[#00FFFF]' : iconLit ? 'text-primary-400' : ''}`} strokeWidth={2.25} aria-hidden />}
                   <span className="min-w-0 text-center text-[10px] font-medium leading-tight sm:text-xs">{item.label}</span>
                   {item.badge}
                 </Link>
               )
             }
             return (
-              <button key={item.label + idx} type="button" onClick={item.onClick} className={cls} aria-pressed={item.isActive}>
-                {Icon && <Icon className={`h-3.5 w-3.5 shrink-0 ${item.isActive ? 'text-primary-400' : ''}`} strokeWidth={2.25} aria-hidden />}
+              <button key={item.label + idx} type="button" onClick={item.onClick} className={cls} aria-pressed={item.isActive} data-tour={item.dataTour}>
+                {Icon && <Icon className={`h-3.5 w-3.5 shrink-0 ${pending ? 'text-[#00FFFF]' : iconLit ? 'text-primary-400' : ''}`} strokeWidth={2.25} aria-hidden />}
                 <span className="min-w-0 text-center text-[10px] font-medium leading-tight sm:text-xs">{item.label}</span>
                 {item.badge}
               </button>
@@ -255,7 +281,7 @@ function VersionSelectorDropdown({
     : 'w-full px-3 py-2 md:py-1.5 min-h-[38px] md:min-h-[34px] rounded-xl md:rounded-lg bg-neutral-900/80 md:bg-black/40 border border-neutral-700/50 hover:border-neutral-600 active:bg-neutral-800 transition-colors flex items-center gap-2.5 text-left'
 
   return (
-    <div className={`relative ${compact ? '' : 'w-full min-w-0'}`} ref={ref}>
+    <div className={`relative ${compact ? '' : 'w-full min-w-0'}`} ref={ref} data-tour={selector.dataTour}>
       <button type="button" onClick={() => { setIsOpen(p => !p); setSearch('') }} className={triggerCls}>
         {SelectorIcon && (
           <SelectorIcon className={`${compact ? 'w-3.5 h-3.5' : 'w-4 h-4 md:w-3.5 md:h-3.5'} text-[#39FF14] flex-shrink-0`} />
@@ -684,6 +710,7 @@ export function AreaBar({
         key={sel.id}
         type="button"
         onClick={() => setOpenSheetId(sel.id)}
+        data-tour={sel.dataTour}
         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${
           isHero
             ? 'bg-black/30 border border-white/[0.06] active:bg-black/50'
@@ -738,26 +765,30 @@ export function AreaBar({
       const isParent = activeParentPath === tab.path
       const isSelected = appLikePrimaryTabs ? active || isParent : active
       const showParentCaret = isParent && !appLikePrimaryTabs
+      const pending = Boolean(tab.walkthroughPending)
       return (
         <Link
           key={tab.path}
           href={tab.path}
           aria-current={isSelected && appLikePrimaryTabs ? 'page' : undefined}
+          data-tour={tab.dataTour}
           className={
             appLikePrimaryTabs
-              ? `relative ${appLikePrimaryLinkClassName(isSelected, size, denseAppTabs)}`
+              ? `relative ${appLikePrimaryLinkClassName(isSelected, size, denseAppTabs, pending)}`
               : `relative flex items-center ${size === 'compact' ? 'justify-center gap-1.5 py-2 text-xs' : 'gap-1.5 px-4 py-2 text-sm whitespace-nowrap'} font-medium rounded-lg transition-all ${
-                  active
-                    ? 'bg-primary-500/20 text-primary-500'
-                    : isParent
-                      ? isHero ? 'text-neutral-200' : 'text-neutral-300'
-                      : isHero
-                        ? 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5 active:text-neutral-200 active:bg-white/5'
-                        : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5 active:text-neutral-300 active:bg-white/5'
+                  pending
+                    ? 'bg-[#00FFFF]/15 text-[#00FFFF]'
+                    : active
+                      ? 'bg-primary-500/20 text-primary-500'
+                      : isParent
+                        ? isHero ? 'text-neutral-200' : 'text-neutral-300'
+                        : isHero
+                          ? 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5 active:text-neutral-200 active:bg-white/5'
+                          : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5 active:text-neutral-300 active:bg-white/5'
                 }`
           }
         >
-          {TabIcon && <TabIcon className={size === 'compact' ? 'w-3.5 h-3.5 shrink-0' : 'w-4 h-4 shrink-0'} />}
+          {TabIcon && <TabIcon className={`${size === 'compact' ? 'w-3.5 h-3.5 shrink-0' : 'w-4 h-4 shrink-0'} ${pending ? 'text-[#00FFFF]' : ''}`} />}
           <span className={`min-w-0 text-center font-medium leading-tight ${denseAppTabs ? 'line-clamp-2 sm:line-clamp-none' : ''}`}>{tab.label}</span>
           {showParentCaret && (
             <ChevronDown className={`absolute ${size === 'compact' ? '-bottom-1 w-3 h-3' : '-bottom-1.5 w-3.5 h-3.5'} left-1/2 -translate-x-1/2 text-primary-500/60`} />

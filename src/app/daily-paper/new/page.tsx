@@ -292,7 +292,7 @@ export default function NewDailyPaperPage() {
           <Card variant="outlined" className="!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]">
             <Stack gap="lg">
               <div className="flex justify-end">
-                <div>
+                <div data-tour="daily-paper-create-date">
                   <div className="[&_input]:!w-auto [&_input]:!min-w-[170px] [&_input]:!bg-transparent [&_input]:!border-0 [&_input]:!rounded-none [&_input]:!px-0 [&_input]:!py-0 [&_input]:!pr-10 [&_input]:!text-right [&_input]:!text-[11px] [&_input]:!font-medium [&_input]:!uppercase [&_input]:!tracking-[0.2em] [&_input]:!text-neutral-500 [&_input]:placeholder:!text-neutral-500 [&_input]:focus:!ring-0 [&_svg]:!text-neutral-400">
                     <DatePicker
                       value={entryDate}
@@ -304,7 +304,7 @@ export default function NewDailyPaperPage() {
                 </div>
               </div>
 
-              <section className="space-y-3">
+              <section className="space-y-3" data-tour="daily-paper-create-gratitude">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-[#2A2A2A]" />
                   <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Gratitude</p>
@@ -331,7 +331,7 @@ export default function NewDailyPaperPage() {
                 </div>
               </section>
 
-              <section className="space-y-3">
+              <section className="space-y-3" data-tour="daily-paper-create-actions">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-[#2A2A2A]" />
                   <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Aligned actions</p>
@@ -367,7 +367,7 @@ export default function NewDailyPaperPage() {
                 </div>
               </section>
 
-              <section className="space-y-3">
+              <section className="space-y-3" data-tour="daily-paper-create-fun">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-[#2A2A2A]" />
                   <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Fun promise</p>
@@ -401,7 +401,7 @@ export default function NewDailyPaperPage() {
                 />
               )}
 
-              <section className="space-y-3">
+              <section className="space-y-3" data-tour="daily-paper-create-scan">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
                   Printed Daily Paper scan <span className="normal-case tracking-normal text-neutral-600">-- optional</span>
                 </p>
@@ -441,7 +441,7 @@ export default function NewDailyPaperPage() {
                 <UploadProgress {...attachmentUpload} />
               </section>
 
-              <section className="space-y-3">
+              <section className="space-y-3" data-tour="daily-paper-create-evidence">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">
                   Evidence / images <span className="normal-case tracking-normal text-neutral-600">-- optional</span>
                 </p>
@@ -553,6 +553,7 @@ export default function NewDailyPaperPage() {
                   loading={isSubmitting || isSaving}
                   disabled={isSubmitting || isSaving}
                   className="flex-1 sm:flex-none sm:w-auto"
+                  data-tour="daily-paper-create-save"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {isSubmitting || isSaving ? 'Saving...' : 'Save'}
@@ -561,7 +562,7 @@ export default function NewDailyPaperPage() {
             </Stack>
           </Card>
 
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]" data-tour="daily-paper-create-resources">
             <Stack gap="sm" className="text-center">
               <p className="text-sm text-neutral-400 uppercase tracking-[0.3em]">
                 Need a refresher?

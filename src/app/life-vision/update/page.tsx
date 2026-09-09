@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import * as Diff from 'diff'
 import {
@@ -29,6 +30,7 @@ import { readCoachStream, CoachStreamError } from '@/lib/viva/coach-stream'
 import {
   parseVisionUpdateMessage,
   type VisionUpdateProposal,
+  type VisionUpdateSeed,
 } from '@/lib/life-vision/vision-update-stream'
 import {
   updateDraftCategory,
@@ -36,12 +38,16 @@ import {
   getCategoriesChangedFromActive,
   type VisionData,
 } from '@/lib/life-vision/draft-helpers'
+import { draftHasAnyVisionText } from '@/lib/life-vision/draft-session'
 import {
   ORDERED_VISION_CATEGORIES,
   getVisionCategoryIcon,
   type VisionCategoryKey,
 } from '@/lib/design-system/vision-categories'
 import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
+import { VisionDraftSessionBoard } from '@/components/life-vision/VisionDraftSessionBoard'
+import { useVisionDraftSession } from '@/hooks/useVisionDraftSession'
+import { keys } from '@/lib/query/keys'
 import {
   VisionUpdateTour,
   hasSeenVisionUpdateTour,
@@ -53,7 +59,7 @@ import {
 const CATEGORY_KEYS = ORDERED_VISION_CATEGORIES.map((c) => c.key)
 
 const OPENING_MESSAGE =
-  "I'm here with your whole vision open beside us. Tell me what's changed in your life — something new that's arrived, a dream that's grown, a chapter that's complete. Speak it or type it, and I'll propose the updates. You accept, edit, or discard every one before it touches your draft."
+  "Anytime you choose, I'll be here with your whole vision open beside us. Tell me what's changed in your life — something new that's arrived, a dream that's grown, a chapter that's complete, or contrast that you're experiencing. Speak it or type it, and I'll propose the updates. You accept, edit, or discard every one before it touches your draft."
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -198,6 +204,7 @@ export default function VisionUpdatePage() {
   const pathname = usePathname()
   const isCreateMode = pathname.startsWith('/life-vision/begin')
   const supabase = useMemo(() => createClient(), [])
+  const queryClient = useQueryClient()
   const { activeVisionId, draftId, loading: studioLoading, refreshVisions } = useLifeVisionStudio()
 
   const [loading, setLoading] = useState(true)
@@ -215,6 +222,7 @@ export default function VisionUpdatePage() {
   const [conversationId, setConversationId] = useState<string | null>(null)
 
   const [proposals, setProposals] = useState<Record<string, ProposalState>>({})
+  const [liveSeeds, setLiveSeeds] = useState<VisionUpdateSeed[]>([])
   const [savingCategory, setSavingCategory] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [viewMode, setViewMode] = useState<Record<string, CategoryView>>({})
@@ -320,13 +328,17 @@ export default function VisionUpdatePage() {
           if (!res.ok) throw new Error('Failed to start your Life Vision draft')
           const created = await res.json()
           resolvedDraftId = created.draft.id
-          const firstName = created.seed?.firstName || null
-          const categoryLabel = created.seed?.categoryLabel || null
-          const opening = created.seed?.visionStatement && categoryLabel
-            ? LIFE_ACTIVATION_COPY.vision.openingWithActivation(firstName, categoryLabel)
-            : LIFE_ACTIVATION_COPY.vision.openingFresh(firstName)
+          const opening = LIFE_ACTIVATION_COPY.vision.openingFirstVision(
+            Boolean(created.seed?.activationId),
+          )
           openingRef.current = opening
           if (!cancelled) setMessages([{ role: 'assistant', content: opening }])
+          if (created.session && created.draft?.id) {
+            queryClient.setQueryData(
+              [...keys.visionDraftSession, created.draft.id],
+              created.session,
+            )
+          }
           refreshVisions().catch(() => {})
         } else {
           if (!activeVisionId && !draftId) {
@@ -428,7 +440,7 @@ export default function VisionUpdatePage() {
       }
     })()
     return () => { cancelled = true }
-  }, [studioLoading, activeVisionId, draftId, supabase, router, refreshVisions, isCreateMode])
+  }, [studioLoading, activeVisionId, draftId, supabase, router, refreshVisions, isCreateMode, queryClient])
 
   useEffect(() => {
     if (loading || !draft) return
@@ -445,10 +457,21 @@ export default function VisionUpdatePage() {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, isStreaming])
 
+  const { data: draftSession } = useVisionDraftSession(draft?.id, isCreateMode)
+
   const changedCategories = useMemo(
     () => getCategoriesChangedFromActive(active, draft, CATEGORY_KEYS),
     [active, draft],
   )
+
+  const draftHasText = Boolean(draft && draftHasAnyVisionText(draft))
+  const pendingProposalCount = Object.keys(proposals).length
+  const showGatheringBoard =
+    isCreateMode &&
+    !draftHasText &&
+    pendingProposalCount === 0 &&
+    draftSession?.status !== 'composed'
+  const canCommit = isCreateMode ? draftHasText : changedCategories.length > 0
 
   const tourDemoText = useMemo(() => {
     if (!draft || !tourDemoKey) return ''
@@ -456,8 +479,6 @@ export default function VisionUpdatePage() {
     const addition = 'I live this chapter fully, with joy already here.'
     return existing ? `${existing}\n${addition}` : addition
   }, [draft, tourDemoKey])
-
-  const pendingProposalCount = Object.keys(proposals).length
 
   // ------------------------------------------------------------------
   // Chat send + stream
@@ -499,6 +520,9 @@ export default function VisionUpdatePage() {
           return next
         })
       }
+      if (isCreateMode) {
+        setLiveSeeds(parsed.seeds.filter((s) => s.complete && s.text.trim()))
+      }
     }
 
     try {
@@ -523,8 +547,12 @@ export default function VisionUpdatePage() {
     } finally {
       setIsStreaming(false)
       abortRef.current = null
+      setLiveSeeds([])
+      if (isCreateMode && draft?.id) {
+        queryClient.invalidateQueries({ queryKey: [...keys.visionDraftSession, draft.id] })
+      }
     }
-  }, [input, isStreaming, draft, messages, conversationId, isCreateMode])
+  }, [input, isStreaming, draft, messages, conversationId, isCreateMode, queryClient])
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
@@ -691,7 +719,11 @@ export default function VisionUpdatePage() {
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold leading-tight text-white">VIVA</div>
             <div className="text-[11px] leading-tight text-neutral-500">
-              {isStreaming ? 'Writing with you…' : 'Vision Update'}
+              {isStreaming
+                ? (showGatheringBoard ? 'Listening…' : 'Writing with you…')
+                : isCreateMode
+                  ? (showGatheringBoard ? 'Building your first vision' : 'Editing your first draft')
+                  : 'Vision Update'}
             </div>
           </div>
           {isStreaming && <Loader2 className="h-4 w-4 animate-spin text-[#BF00FF]" />}
@@ -750,7 +782,13 @@ export default function VisionUpdatePage() {
             onChange={setInput}
             onSend={(_attachments, text) => handleSend(_attachments, text)}
             disabled={isStreaming}
-            placeholder="What's changed in your life?"
+            placeholder={
+              isCreateMode
+                ? (showGatheringBoard
+                  ? 'Answer VIVA — from contrast or from clarity'
+                  : 'Tell VIVA what to refine')
+                : "What's changed in your life?"
+            }
           />
         </div>
       </div>
@@ -762,18 +800,27 @@ export default function VisionUpdatePage() {
       {/* Header — fixed above the scrolling category list */}
       <div className="flex items-center justify-between gap-3 pb-3 lg:border-b lg:border-white/5 lg:bg-white/[0.03] lg:px-5 lg:py-3.5 lg:pb-3.5">
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-white">Your Draft</div>
+          <div className="text-sm font-semibold text-white">
+            {showGatheringBoard ? 'Draft Session' : 'Your Draft'}
+          </div>
           <div className="text-xs text-neutral-500">
-            {changedCategories.length > 0
-              ? `${changedCategories.length} ${changedCategories.length === 1 ? 'category' : 'categories'} updated from active`
-              : 'No changes from your active vision yet'}
+            {showGatheringBoard
+              ? 'VIVA asks. Your answers become contrast and clarity beside us.'
+              : isCreateMode
+                ? (draftHasText
+                  ? 'Review your first draft — accept, edit, or discard every section'
+                  : 'No draft text yet')
+                : changedCategories.length > 0
+                  ? `${changedCategories.length} ${changedCategories.length === 1 ? 'category' : 'categories'} updated from active`
+                  : 'No changes from your active vision yet'}
           </div>
         </div>
+        {!showGatheringBoard && (
         <Button
           data-tour="commit"
           variant="primary"
           size="sm"
-          disabled={changedCategories.length === 0 && !tourActive}
+          disabled={!canCommit && !tourActive}
           onClick={() => {
             if (tourActive) {
               tourRef.current?.next()
@@ -785,9 +832,14 @@ export default function VisionUpdatePage() {
         >
           <CheckCircle className="w-4 h-4 mr-1.5" />Commit as Active
         </Button>
+        )}
       </div>
 
       <div className={`space-y-3 lg:flex-1 lg:overflow-y-auto lg:p-4 ${thinScrollbar}`}>
+      {showGatheringBoard ? (
+        <VisionDraftSessionBoard notes={draftSession?.notes || []} liveSeeds={liveSeeds} />
+      ) : (
+      <>
       {ORDERED_VISION_CATEGORIES.map((category) => {
         const key = category.key
         const Icon = getVisionCategoryIcon(key as VisionCategoryKey)
@@ -1080,6 +1132,8 @@ export default function VisionUpdatePage() {
           </div>
         )
       })}
+      </>
+      )}
       </div>
     </div>
   )
@@ -1098,7 +1152,7 @@ export default function VisionUpdatePage() {
           onClick={() => setMobilePane('draft')}
           className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm transition-colors ${mobilePane === 'draft' ? 'bg-[#333] text-white' : 'text-neutral-400'}`}
         >
-          <FileText className="w-4 h-4" />Draft
+          <FileText className="w-4 h-4" />{showGatheringBoard ? 'Session' : 'Draft'}
           {pendingProposalCount > 0 && (
             <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-[#BF00FF] text-white text-xs px-1">
               {pendingProposalCount}

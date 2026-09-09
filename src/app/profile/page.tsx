@@ -39,7 +39,7 @@ export default function ProfileListPage() {
   return (
     <Container size="xl" className="py-12">
       <div className="text-center">
-        <Card className="max-w-md mx-auto">
+        <Card className="max-w-md mx-auto" data-tour="profile-snapshot">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center">
               <User className="w-8 h-8 text-primary-500" />
@@ -49,7 +49,7 @@ export default function ProfileListPage() {
           <p className="text-neutral-400 mb-8">
             Start by creating your first profile. Define your personal information and preferences.
           </p>
-          <Button asChild size="lg">
+          <Button asChild size="lg" data-tour="profile-save">
             <Link href="/profile/new">
               <Plus className="w-5 h-5 mr-2" />
               Create Your First Profile

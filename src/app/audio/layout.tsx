@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import React, { Suspense } from 'react'
 import { AudioStudioProvider } from '@/components/audio-studio/AudioStudioContext'
 import { AudioAreaBar } from '@/components/audio-studio/AudioAreaBar'
-import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
+import { StudioWalkthroughHost } from '@/components/tool-walkthrough'
 
 export const metadata: Metadata = {
   title: {
@@ -15,14 +15,15 @@ export default function AudioStudioLayout({ children }: { children: React.ReactN
   return (
     <Suspense fallback={null}>
       <AudioStudioProvider>
-        <AudioAreaBar />
-        <main
-          className="flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
-          style={{ '--content-px': '1rem' } as React.CSSProperties}
-        >
-          <StudioLifeActivationBanner />
-          {children}
-        </main>
+        <StudioWalkthroughHost>
+          <AudioAreaBar />
+          <main
+            className="flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
+            style={{ '--content-px': '1rem' } as React.CSSProperties}
+          >
+            {children}
+          </main>
+        </StudioWalkthroughHost>
       </AudioStudioProvider>
     </Suspense>
   )

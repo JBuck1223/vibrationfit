@@ -1,0 +1,12 @@
+{
+  "stories": {
+    "studio-tab-stories-create": {
+      "title": "This is your Create tab.",
+      "body": "Come here to create new Activations."
+    },
+    "stories-create-type": {
+      "title": "Choose your Activation tool.",
+      "body": "Story, Incantation, or SparkQuery. For a story you also pick A Day in the Life (morning to evening story) or Essence (focused more on overall experience)."
+    }
+  }
+}

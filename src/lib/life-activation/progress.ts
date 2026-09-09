@@ -10,6 +10,7 @@ import {
 import { recordLifeActivationEvent } from './events'
 import type { LifeActivationProgress, LifeActivationSeed } from './types'
 import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
+import { getWalkthrough, type TrainingCompletionId } from './walkthroughs'
 
 type JsonMap = Record<string, string>
 
@@ -57,7 +58,7 @@ export async function loadSeed(
       .maybeSingle(),
     supabase
       .from('activations')
-      .select('id, category, vision_statement, essence, entered_at, ready_at, created_at')
+      .select('id, category, vision_statement, essence, current_state, dream_response, entered_at, ready_at, created_at')
       .eq('user_id', userId)
       .order('entered_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
@@ -76,6 +77,11 @@ export async function loadSeed(
       : null,
     visionStatement: activation?.vision_statement || null,
     essence: activation?.essence || null,
+    currentState: activation?.current_state || null,
+    dreamResponse:
+      activation?.dream_response && typeof activation.dream_response === 'object'
+        ? (activation.dream_response as Record<string, string>)
+        : null,
     firstName,
     needsFirstName: !firstName,
   }
@@ -281,11 +287,19 @@ export async function markOnboardingStep(
 export async function markTrainingStep(
   supabase: SupabaseClient,
   userId: string,
-  step: TrainingStepId,
+  step: TrainingCompletionId,
 ): Promise<LifeActivationProgress> {
   const progress = await ensureProgress(supabase, userId)
   const now = new Date().toISOString()
   const training = { ...progress.training, [step]: progress.training[step] || now }
+  const walkthrough = step === 'complete' ? undefined : getWalkthrough(step)
+  const parent = walkthrough?.checksOff ?? null
+  if (parent && parent !== step) {
+    training[parent] = training[parent] || now
+  }
+  for (const extra of walkthrough?.alsoCompletes ?? []) {
+    training[extra] = training[extra] || now
+  }
   const training_step = firstIncompleteTraining(training)
   const completed = Boolean(training.complete) || TRAINING_STEP_IDS.every((id) => training[id] || id === 'complete')
   if (completed && !training.complete) training.complete = now

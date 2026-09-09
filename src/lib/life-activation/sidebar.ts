@@ -3,11 +3,10 @@ import { LIFE_ACTIVATION_COPY } from './copy'
 import type { LifeActivationProgress } from './types'
 
 /**
- * Tools Training is the post-begin sidebar tab. Keep it off the live member
- * sidebar until every tool has a walk-through like Life Vision.
- * Admin/begin can preview the conversion regardless of this flag.
+ * Tools Training is the post-begin sidebar tab. Getting Started converts
+ * here after onboarding; the tab hides when every walk-through is done.
  */
-export const LIFE_ACTIVATION_TRAINING_NAV_ENABLED = false
+export const LIFE_ACTIVATION_TRAINING_NAV_ENABLED = true
 
 export type LifeActivationSidebarMode = 'getting-started' | 'tools-training' | 'hidden'
 

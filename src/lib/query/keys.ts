@@ -57,6 +57,7 @@ export const keys = {
   manifestationKit: (id: string) => ['manifestation-kits', id] as const,
 
   lifeActivation: ['life-activation'] as const,
+  visionDraftSession: ['vision-draft-session'] as const,
 
   // Activation Experience
   activations: ['activations'] as const,
@@ -104,6 +105,8 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   manifestation_activations: [keys.manifestationKits],
   projects: [keys.manifestationKits],
   life_activation_progress: [keys.lifeActivation],
+  vision_draft_sessions: [keys.visionDraftSession],
+  vision_draft_session_notes: [keys.visionDraftSession],
   activations: [keys.activations],
   activation_kits: [keys.activationKits],
   activation_kit_runs: [keys.activationKitRuns, keys.audioSets],
