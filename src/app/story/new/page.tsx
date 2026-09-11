@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Sparkles,
@@ -46,7 +46,7 @@ import {
   LIFE_CATEGORY_KEYS,
   type LifeCategoryKey,
 } from '@/lib/design-system/vision-categories'
-import type { StoryEntityType } from '@/lib/stories/types'
+import { parseStoryCreateKind, storyKindQueryValue, type StoryEntityType } from '@/lib/stories/types'
 import {
   INCANTATION_EXAMPLES,
   type IncantationFramework,
@@ -144,11 +144,13 @@ const LIFE_CATEGORIES = VISION_CATEGORIES.filter(
 
 export default function NewStoryWizardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const storyRef = useRef<HTMLDivElement>(null)
+  const initialKind = parseStoryCreateKind(searchParams.get('kind'))
 
-  const [outputType, setOutputType] = useState<OutputType>('story')
-  const [storyFormat, setStoryFormat] = useState<StoryFormat>('day_in_the_life')
+  const [outputType, setOutputType] = useState<OutputType>(initialKind?.outputType ?? 'story')
+  const [storyFormat, setStoryFormat] = useState<StoryFormat>(initialKind?.storyFormat ?? 'day_in_the_life')
   const [step, setStep] = useState<WizardStep>('source')
   const [selectedSource, setSelectedSource] = useState<SourceType | null>(null)
   const [createMode, setCreateMode] = useState<CreateMode>('viva')
@@ -212,6 +214,14 @@ export default function NewStoryWizardPage() {
 
   // Redirect story ID (set after generation)
   const [createdStoryId, setCreatedStoryId] = useState<string | null>(null)
+  const kindParam = searchParams.get('kind')
+
+  useEffect(() => {
+    const parsed = parseStoryCreateKind(kindParam)
+    if (!parsed) return
+    setOutputType(parsed.outputType)
+    if (parsed.outputType === 'story') setStoryFormat(parsed.storyFormat)
+  }, [kindParam])
 
   // Progress animation for generation
   useEffect(() => {
@@ -509,10 +519,20 @@ export default function NewStoryWizardPage() {
 
   // ── Manual create ──
 
+  function syncKindInUrl(nextType: OutputType, nextFormat: StoryFormat) {
+    const params = new URLSearchParams(searchParams.toString())
+    const kind = storyKindQueryValue(nextType, nextFormat)
+    if (kind) params.set('kind', kind)
+    else params.delete('kind')
+    const query = params.toString()
+    router.replace(query ? `/story/new?${query}` : '/story/new', { scroll: false })
+  }
+
   async function handleEnhanceWithViva() {
     if (!storyContent.trim() || enhancing) return
     setEnhancing(true)
     setError(null)
+    const original = storyContent
 
     try {
       const response = await fetch('/api/viva/chat', {
@@ -522,15 +542,36 @@ export default function NewStoryWizardPage() {
           messages: [{ role: 'user', content: storyFormat === 'essence'
             ? `You are enhancing a user's raw notes/thoughts into a short, feeling-first essence story.\n\nTheir raw input:\n"""\n${storyContent}\n"""\n\nTransform this into a short, feeling-first story that:\n- Keeps the essence of what they wrote\n- Is written in first person, present tense\n- Focuses on feelings over facts — what this life feels like from the inside\n- Skips day structure, scene logistics, and factual inventories\n- Closes on ease and appreciation\n- Is 150-350 words\n\nWrite the enhanced story directly without any preamble.`
             : `You are enhancing a user's raw notes/thoughts into a polished, immersive story.\n\nTheir raw input:\n"""\n${storyContent}\n"""\n\nTransform this into an immersive, first-person story that:\n- Keeps the essence of what they wrote\n- Is written in first person, present tense\n- Adds sensory details\n- Conveys emotions and gratitude\n- Flows naturally as a narrative\n- Is 300-500 words\n\nWrite the enhanced story directly without any preamble.` }],
-          stream: false,
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to enhance story')
-      const data = await response.json()
-      const enhanced = data.content || data.message || ''
-      if (enhanced) setStoryContent(enhanced)
+      const raw = await response.text()
+      if (!response.ok) {
+        let message = 'Failed to enhance story'
+        try {
+          const data = JSON.parse(raw)
+          if (typeof data?.error === 'string' && data.error.trim()) message = data.error
+        } catch {
+          // non-JSON error body
+        }
+        throw new Error(message)
+      }
+
+      const trimmed = raw.trim()
+      let enhanced = trimmed
+      if (trimmed.startsWith('{')) {
+        try {
+          const data = JSON.parse(trimmed)
+          enhanced = String(data.content || data.message || '').trim()
+        } catch {
+          // Chat returns a plain-text story stream, not JSON.
+        }
+      }
+
+      if (!enhanced) throw new Error('VIVA returned an empty enhancement. Please try again.')
+      setStoryContent(enhanced)
     } catch (err) {
+      setStoryContent(original)
       setError(err instanceof Error ? err.message : 'Failed to enhance story')
     } finally {
       setEnhancing(false)
@@ -1104,8 +1145,10 @@ export default function NewStoryWizardPage() {
                 <Toggle
                   value={outputType}
                   onChange={value => {
-                    setOutputType(value as OutputType)
+                    const next = value as OutputType
+                    setOutputType(next)
                     setError(null)
+                    syncKindInUrl(next, storyFormat)
                   }}
                   options={[
                     { value: 'story', label: 'Story' },
@@ -1119,8 +1162,10 @@ export default function NewStoryWizardPage() {
                       variant="segmented"
                       value={storyFormat}
                       onChange={value => {
-                        setStoryFormat(value as StoryFormat)
+                        const next = value as StoryFormat
+                        setStoryFormat(next)
                         setError(null)
+                        syncKindInUrl(outputType, next)
                       }}
                       options={[
                         { value: 'day_in_the_life', label: 'A Day in the Life' },
@@ -1172,7 +1217,13 @@ export default function NewStoryWizardPage() {
                         <span>{selectedSource.label}</span>
                       </div>
                     ) : (
-                      <span className="text-neutral-400">Choose a story source...</span>
+                      <span className="text-neutral-400">
+                        {outputType === 'spark_query'
+                          ? 'Choose a SparkQuery™ source...'
+                          : outputType === 'incantation'
+                            ? 'Choose an incantation source...'
+                            : 'Choose a story source...'}
+                      </span>
                     )}
                   </button>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
