@@ -30,7 +30,7 @@ import {
 } from '@/lib/design-system/components'
 import { useStoryStudio } from '@/components/story-studio'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { getStoryKind, getStoryKindLabel, type StoryKind, type StoryMetadata } from '@/lib/stories/types'
+import { getStoryKind, getStoryKindLabel, storyCreateHref, type StoryKind, type StoryMetadata } from '@/lib/stories/types'
 
 const ENTITY_TYPE_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
   life_vision: { label: 'Life Vision', badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30', icon: Target },
@@ -153,9 +153,15 @@ export default function StoryHubPage() {
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-start gap-2">
               <button
-                onClick={() => router.push('/story/new')}
+                onClick={() => router.push(storyCreateHref(kindFilter))}
                 className="w-12 h-12 bg-[#39FF14]/20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer hover:bg-[#39FF14]/30 transition-all duration-200"
-                aria-label="New Story"
+                aria-label={
+                  kindFilter === 'spark_query'
+                    ? 'New SparkQuery'
+                    : kindFilter === 'incantation'
+                      ? 'New Incantation'
+                      : 'New Story'
+                }
                 data-tour="stories-new"
               >
                 <Plus className="w-6 h-6 text-[#39FF14]" />
@@ -335,9 +341,13 @@ export default function StoryHubPage() {
               </Button>
             ) : (
               <Button asChild variant="primary">
-                <Link href="/story/new">
+                <Link href={storyCreateHref(kindFilter)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Story
+                  {kindFilter === 'spark_query'
+                    ? 'Create SparkQuery™'
+                    : kindFilter === 'incantation'
+                      ? 'Create Incantation'
+                      : 'Create Story'}
                 </Link>
               </Button>
             )}

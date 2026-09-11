@@ -73,6 +73,41 @@ export function getStoryKindLabel(metadata?: StoryMetadata | null): string {
   }
 }
 
+export type StoryCreateOutputType = 'story' | 'incantation' | 'spark_query'
+
+/** Create-wizard URL. Keeps SparkQuery / Incantation / Essence when arriving from a filtered list. */
+export function storyCreateHref(kind?: 'all' | StoryKind | string | null): string {
+  if (
+    kind === 'spark_query' ||
+    kind === 'incantation' ||
+    kind === 'essence' ||
+    kind === 'day_in_the_life'
+  ) {
+    return `/story/new?kind=${kind}`
+  }
+  return '/story/new'
+}
+
+export function parseStoryCreateKind(
+  kind: string | null,
+): { outputType: StoryCreateOutputType; storyFormat: StoryFormat } | null {
+  if (kind === 'spark_query' || kind === 'incantation') {
+    return { outputType: kind, storyFormat: 'day_in_the_life' }
+  }
+  if (kind === 'essence') return { outputType: 'story', storyFormat: 'essence' }
+  if (kind === 'day_in_the_life') return { outputType: 'story', storyFormat: 'day_in_the_life' }
+  return null
+}
+
+export function storyKindQueryValue(
+  outputType: StoryCreateOutputType,
+  storyFormat: StoryFormat,
+): StoryKind | null {
+  if (outputType === 'spark_query' || outputType === 'incantation') return outputType
+  if (storyFormat === 'essence') return 'essence'
+  return null
+}
+
 export interface Story {
   id: string
   user_id: string
