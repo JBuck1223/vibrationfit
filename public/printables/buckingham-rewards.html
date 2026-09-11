@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=816" />
     <title>Buckingham Rewards — Oliver &amp; Adeline</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,7 +25,9 @@
 
       html,
       body {
-        margin: 0;
+        width: 8.5in;
+        max-width: 8.5in;
+        margin: 0 auto;
         background: #c9b8a4;
         color: var(--ink);
         font-family: Nunito, "Trebuchet MS", sans-serif;
@@ -39,8 +41,9 @@
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 10px 16px;
-        padding: 14px 20px;
+        gap: 8px 12px;
+        width: 8.5in;
+        padding: 10px 12px;
         background: #3b2a1e;
         color: #fff7ea;
       }
@@ -85,7 +88,8 @@
       }
 
       .stage {
-        padding: 28px 16px 48px;
+        width: 8.5in;
+        padding: 0;
       }
 
       .sheet {
@@ -93,37 +97,16 @@
         display: flex;
         flex-direction: column;
         width: 8.5in;
+        height: 11in;
         min-height: 11in;
-        margin: 0 auto 28px;
-        padding: 0.28in 0.34in 0.26in;
+        max-height: 11in;
+        margin: 0;
+        padding: 0.14in 0.2in 0.12in;
+        overflow: hidden;
         background: var(--paper);
         color: var(--ink);
-        border: 10px solid var(--kid);
-        outline: 4px dotted #ffe08a;
-        outline-offset: -16px;
+        border: 8px solid var(--kid);
       }
-
-      .doodle {
-        position: absolute;
-        width: 22px;
-        height: 22px;
-        color: var(--gold-deep);
-        opacity: 0.85;
-        pointer-events: none;
-      }
-
-      .doodle svg {
-        width: 100%;
-        height: 100%;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.8;
-      }
-
-      .doodle.tl { top: 10px; left: 12px; }
-      .doodle.tr { top: 10px; right: 12px; }
-      .doodle.bl { bottom: 10px; left: 12px; }
-      .doodle.br { bottom: 10px; right: 12px; }
 
       .sheet.oliver {
         --paper: #fff1f0;
@@ -147,37 +130,30 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        margin: 10px 6px 12px;
-        padding: 10px 14px 14px;
-        border-radius: 28px 28px 18px 18px;
+        gap: 10px;
+        margin: 0 0 8px;
+        padding: 6px 10px;
+        border-radius: 14px;
         background: var(--kid);
         color: #fffdf8;
-        box-shadow: 0 6px 0 var(--kid-deep);
       }
 
       .banner-copy small {
-        display: block;
-        font-family: "Baloo 2", Nunito, sans-serif;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        opacity: 0.88;
+        display: none;
       }
 
       h1 {
         margin: 0;
         font-family: "Baloo 2", Nunito, sans-serif;
-        font-size: 42px;
+        font-size: 26px;
         font-weight: 800;
-        line-height: 0.9;
+        line-height: 1;
       }
 
       .week-chip {
         flex: 0 0 auto;
-        padding: 8px 12px;
-        border-radius: 16px;
+        padding: 4px 8px;
+        border-radius: 10px;
         background: #fffdf8;
         color: var(--kid-deep);
         text-align: right;
@@ -192,8 +168,10 @@
 
       .week-value {
         display: inline-block;
-        min-width: 140px;
+        min-width: 168px;
+        min-height: 1.1em;
         font-weight: 800;
+        border-bottom: 2px solid var(--kid-deep);
       }
 
       .path-wrap {
@@ -264,16 +242,20 @@
       }
 
       .grid-wrap {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
+        flex: 0 1 auto;
         margin: 0 6px;
+      }
+
+      .bottom,
+      .banner,
+      .path-wrap,
+      .rules {
+        flex-shrink: 0;
       }
 
       table {
         width: 100%;
-        height: 100%;
+        height: auto;
         border-collapse: separate;
         border-spacing: 0 3px;
         table-layout: fixed;
@@ -371,6 +353,8 @@
       .icon.science { background: #d8f5a2; color: #5c940d; }
       .icon.art { background: #ffc0eb; color: #a61e4d; }
       .icon.abc { background: #ffd6a5; color: #d9480f; }
+      .icon.sibs { background: #ffd8a8; color: #d9480f; }
+      .icon.journal { background: #ffc9c9; color: #c92a2a; }
 
       .icon svg {
         width: 18px;
@@ -588,161 +572,66 @@
         color: var(--kid-deep);
       }
 
-      @media print {
-        @page {
-          size: letter portrait;
-          margin: 0.25in;
+      @media screen {
+        .sheet + .sheet {
+          margin-top: 20px;
         }
+      }
+    </style>
+    <style media="print">
+      @page {
+        size: 8.5in 11in;
+        margin: 0;
+      }
 
-        html,
-        body {
-          width: 100%;
-          height: 100%;
-          margin: 0;
-          background: white !important;
-        }
+      html,
+      body,
+      .stage {
+        width: 8.5in !important;
+        max-width: 8.5in !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+      }
 
-        .toolbar,
-        .no-print,
-        .doodle {
-          display: none !important;
-        }
+      .toolbar,
+      .no-print {
+        display: none !important;
+      }
 
-        .stage {
-          padding: 0;
-          height: 100%;
-        }
+      .sheet {
+        width: 8.5in !important;
+        height: 11in !important;
+        min-height: 11in !important;
+        max-height: 11in !important;
+        margin: 0 !important;
+        page-break-after: always;
+        page-break-inside: avoid;
+        break-after: page;
+        break-inside: avoid;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
 
-        .sheet {
-          width: 100%;
-          max-width: 100%;
-          height: 10.5in;
-          min-height: 10.5in;
-          max-height: 10.5in;
-          margin: 0;
-          padding: 0.16in 0.18in 0.14in;
-          border-width: 8px;
-          outline: 3px dotted #ffe08a;
-          outline-offset: -14px;
-          overflow: hidden;
-          page-break-after: always;
-          page-break-inside: avoid;
-          break-after: page;
-          break-inside: avoid;
-          box-shadow: none;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-
-        .sheet:last-child {
-          page-break-after: auto;
-          break-after: auto;
-        }
-
-        .banner {
-          margin: 2px 2px 10px;
-          padding: 10px 14px 12px;
-          box-shadow: none;
-        }
-
-        h1 {
-          font-size: 40px;
-        }
-
-        .path-wrap {
-          margin: 0 2px 10px;
-        }
-
-        .path-label {
-          font-size: 14px;
-        }
-
-        .stone {
-          height: 34px;
-          font-size: 13px;
-        }
-
-        .chest {
-          flex-basis: 72px;
-          height: 42px;
-          font-size: 14px;
-        }
-
-        .grid-wrap {
-          margin: 0 2px;
-        }
-
-        th {
-          font-size: 12px;
-        }
-
-        td {
-          padding: 6px 3px;
-        }
-
-        .section td {
-          padding: 10px 6px 3px;
-          font-size: 16px;
-        }
-
-        .task-name {
-          font-size: 13px;
-        }
-
-        .icon {
-          flex-basis: 30px;
-          width: 30px;
-          height: 30px;
-        }
-
-        .box {
-          width: 22px;
-          height: 22px;
-        }
-
-        .coin {
-          width: 26px;
-          height: 26px;
-          font-size: 13px;
-        }
-
-        .bottom {
-          margin: 10px 2px 0;
-          gap: 10px;
-        }
-
-        .panel {
-          padding: 10px 12px 12px;
-        }
-
-        .panel h2 {
-          font-size: 16px;
-        }
-
-        .rules {
-          margin: 10px 2px 0;
-          padding: 8px 12px;
-          font-size: 11px;
-        }
-
-        .total-line {
-          font-size: 28px;
-        }
+      .sheet:last-child {
+        page-break-after: auto;
+        break-after: auto;
       }
     </style>
   </head>
   <body>
     <div class="toolbar no-print">
       <p>
-        Two letter pages. In Safari or Chrome, press Command-P. Turn on
-        Background graphics so the colors print.
+        Each chart is one US Letter page. Press Command-P. Paper: US Letter.
+        Layout: Portrait. Scale: 100%. Turn on Background graphics.
       </p>
       <label>
         Week of
         <input
           id="week-input"
           type="text"
-          value="September 1–5, 2026"
+          value=""
+          placeholder="Leave blank to write in"
           autocomplete="off"
         />
       </label>
@@ -801,14 +690,20 @@
       <symbol id="i-star" viewBox="0 0 24 24">
         <path d="M12 3.4l2.3 6.6h7l-5.6 4.1 2.1 6.5L12 16.7 6.2 20.6l2.1-6.5L2.7 10h7z" />
       </symbol>
+      <symbol id="i-sibs" viewBox="0 0 24 24">
+        <circle cx="8" cy="8" r="2.4" />
+        <path d="M4.2 17c.4-2.4 2-3.8 3.8-3.8S11.4 14.6 11.8 17" />
+        <circle cx="16" cy="8" r="2.4" />
+        <path d="M12.2 17c.4-2.4 2-3.8 3.8-3.8S19.4 14.6 19.8 17" />
+      </symbol>
+      <symbol id="i-journal" viewBox="0 0 24 24">
+        <path d="M7 4h10a2 2 0 0 1 2 2v14H9a2 2 0 0 0-2 2V4z" />
+        <path d="M10 8h6M10 12h6M10 16h4" />
+      </symbol>
     </svg>
 
     <div class="stage">
       <article class="sheet oliver">
-        <span class="doodle tl"><svg><use href="#i-star"></use></svg></span>
-        <span class="doodle tr"><svg><use href="#i-chest"></use></svg></span>
-        <span class="doodle bl"><svg><use href="#i-chest"></use></svg></span>
-        <span class="doodle br"><svg><use href="#i-star"></use></svg></span>
         <div class="banner">
           <div class="banner-copy">
             <small>Buckingham Reward Quest</small>
@@ -816,14 +711,14 @@
           </div>
           <div class="week-chip">
             <b>Week of</b>
-            <span class="week-value">September 1–5, 2026</span>
+            <span class="week-value"></span>
           </div>
         </div>
 
         <div class="path-wrap">
           <div class="path-label">
             <span>Treasure path — color a stone every 10 points</span>
-            <span>About 125 coins this week. Chest opens at 100.</span>
+            <span>About 135 coins this week. Chest opens at 100.</span>
           </div>
           <div class="path" aria-label="Progress toward 100 points">
             <span class="stone">10</span>
@@ -943,6 +838,21 @@
               <td><div class="box"></div></td>
               <td><div class="write"></div></td>
             </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon sibs"><svg><use href="#i-sibs"></use></svg></span>
+                  <span>Get along with siblings</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">2</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
             <tr class="section"><td colspan="8">School jobs</td></tr>
             <tr>
               <td>
@@ -951,7 +861,7 @@
                   <span>Language Arts lesson</span>
                 </div>
               </td>
-              <td class="pts"><span class="coin">4</span></td>
+              <td class="pts"><span class="coin">3</span></td>
               <td><div class="box"></div></td>
               <td><div class="box"></div></td>
               <td><div class="box"></div></td>
@@ -966,7 +876,7 @@
                   <span>Math lesson</span>
                 </div>
               </td>
-              <td class="pts"><span class="coin">4</span></td>
+              <td class="pts"><span class="coin">3</span></td>
               <td><div class="box"></div></td>
               <td><div class="box"></div></td>
               <td><div class="box"></div></td>
@@ -981,7 +891,22 @@
                   <span>Read for 20 minutes</span>
                 </div>
               </td>
-              <td class="pts"><span class="coin">4</span></td>
+              <td class="pts"><span class="coin">3</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon journal screen" title="Needed for screens"><svg><use href="#i-journal"></use></svg></span>
+                  <span>Appreciation Journal</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">3</span></td>
               <td><div class="box"></div></td>
               <td><div class="box"></div></td>
               <td><div class="box"></div></td>
@@ -1077,10 +1002,6 @@
       </article>
 
       <article class="sheet adeline">
-        <span class="doodle tl"><svg><use href="#i-star"></use></svg></span>
-        <span class="doodle tr"><svg><use href="#i-chest"></use></svg></span>
-        <span class="doodle bl"><svg><use href="#i-chest"></use></svg></span>
-        <span class="doodle br"><svg><use href="#i-star"></use></svg></span>
         <div class="banner">
           <div class="banner-copy">
             <small>Buckingham Reward Quest</small>
@@ -1088,14 +1009,14 @@
           </div>
           <div class="week-chip">
             <b>Week of</b>
-            <span class="week-value">September 1–5, 2026</span>
+            <span class="week-value"></span>
           </div>
         </div>
 
         <div class="path-wrap">
           <div class="path-label">
             <span>Treasure path — color a stone every 10 points</span>
-            <span>About 125 coins this week. Chest opens at 100.</span>
+            <span>About 135 coins this week. Chest opens at 100.</span>
           </div>
           <div class="path" aria-label="Progress toward 100 points">
             <span class="stone">10</span>
@@ -1205,6 +1126,21 @@
                 <div class="task-name">
                   <span class="icon tidy screen" title="Needed for screens"><svg><use href="#i-tidy"></use></svg></span>
                   <span>Keep your spaces tidy through the day</span>
+                </div>
+              </td>
+              <td class="pts"><span class="coin">2</span></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="box"></div></td>
+              <td><div class="write"></div></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="task-name">
+                  <span class="icon sibs"><svg><use href="#i-sibs"></use></svg></span>
+                  <span>Get along with siblings</span>
                 </div>
               </td>
               <td class="pts"><span class="coin">2</span></td>
@@ -1338,7 +1274,7 @@
       const input = document.getElementById("week-input");
       const targets = document.querySelectorAll(".week-value");
       function syncWeek() {
-        const value = input.value.trim() || "_______________";
+        const value = input.value.trim();
         targets.forEach((el) => {
           el.textContent = value;
         });
