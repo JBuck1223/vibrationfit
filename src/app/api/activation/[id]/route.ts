@@ -77,11 +77,18 @@ export async function GET(
     }>
     const manifestations = boardRes.data || []
 
-    let songTracks: Array<{ id: string; audio_url: string; cover_url: string | null; title: string | null }> = []
+    let songTracks: Array<{
+      id: string
+      audio_url: string
+      cover_url: string | null
+      title: string | null
+      duration_ms: number | null
+      metadata: Record<string, unknown> | null
+    }> = []
     if (song && (song.status === 'completed' || song.status === 'generating_music')) {
       const { data } = await supabase
         .from('song_tracks')
-        .select('id, mp3_url, cover_url, title')
+        .select('id, mp3_url, cover_url, title, duration_ms, metadata')
         .eq('song_id', song.id)
         .not('mp3_url', 'is', null)
         .order('created_at', { ascending: true })
@@ -92,6 +99,8 @@ export async function GET(
           audio_url: t.mp3_url,
           cover_url: t.cover_url,
           title: t.title,
+          duration_ms: t.duration_ms,
+          metadata: (t.metadata as Record<string, unknown> | null) || null,
         }))
     }
 

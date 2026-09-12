@@ -12,6 +12,7 @@
  */
 
 import { streamText, type ModelMessage } from 'ai'
+import { after } from 'next/server'
 import { gateway } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance } from '@/lib/tokens/tracking'
@@ -28,6 +29,9 @@ import {
   markDraftSessionComposed,
   persistVivaSeeds,
 } from '@/lib/life-vision/draft-session'
+import { loadRoster, loadPersona } from '@/lib/roster/store'
+import { renderRosterForPrompt, renderPersonaForPrompt } from '@/lib/roster/render'
+import { runGetToKnowYouExtraction } from '@/lib/roster/get-to-know-you-extractor'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -109,6 +113,18 @@ export async function POST(req: Request) {
       .eq('user_id', user.id)
       .maybeSingle()
 
+    // Get to Know You context: account prefill + whatever the roster/persona
+    // already hold, so VIVA never re-asks what we know (both modes).
+    const [{ data: account }, roster, persona] = await Promise.all([
+      supabase.from('user_accounts').select('first_name, date_of_birth').eq('id', user.id).maybeSingle(),
+      loadRoster(supabase, user.id),
+      loadPersona(supabase, user.id),
+    ])
+    const accountFirstName = account?.first_name || null
+    const dateOfBirth = account?.date_of_birth || null
+    const rosterBlock = renderRosterForPrompt(roster) || null
+    const personaBlock = renderPersonaForPrompt(persona) || null
+
     const seededCategory = CATEGORY_KEYS.find((key) => draftText[key]) || null
     const draftSession = isCreate
       ? await ensureDraftSession(supabase, user.id, draftId, {
@@ -120,20 +136,25 @@ export async function POST(req: Request) {
       : null
     const system = isCreate
       ? buildVisionCreateSystemPrompt({
-          firstName: profile?.first_name || null,
+          firstName: profile?.first_name || accountFirstName,
           draft: draftText,
           perspective: draft.perspective === 'plural' ? 'plural' : 'singular',
           seededCategory,
           sessionSeed: typeof sessionSeed === 'string' ? sessionSeed : null,
           sessionStatus: draftSession?.status,
           sessionNotes: draftSession?.notes,
+          dateOfBirth,
+          rosterBlock,
+          personaBlock,
         })
       : buildVisionUpdateSystemPrompt({
-          firstName: profile?.first_name || null,
+          firstName: profile?.first_name || accountFirstName,
           draft: draftText,
           changedCategories,
           perspective: draft.perspective === 'plural' ? 'plural' : 'singular',
           sessionSeed: typeof sessionSeed === 'string' ? sessionSeed : null,
+          rosterBlock,
+          personaBlock,
         })
     const sessionMode = isCreate ? 'vision_create' : 'vision_update'
 
@@ -234,6 +255,22 @@ export async function POST(req: Request) {
           if (parsed.proposals.some((p) => p.complete)) {
             await markDraftSessionComposed(supabase, draftSession.id)
           }
+
+          // Get to Know You: background roster/persona extraction from the
+          // latest exchange. In-process via after() — never an HTTP self-call,
+          // never blocks the stream, never deducts member tokens.
+          const recentExchange = [
+            ...chatTurns.slice(-4),
+            { role: 'assistant', content: assistantText },
+          ]
+          const knownContext = [rosterBlock, personaBlock].filter(Boolean).join('\n')
+          after(async () => {
+            try {
+              await runGetToKnowYouExtraction(supabase, user.id, recentExchange, knownContext)
+            } catch (err) {
+              console.error('[VIVA VISION UPDATE] Get to Know You extraction:', err)
+            }
+          })
         }
 
         let usage: { totalTokens?: number; inputTokens?: number; outputTokens?: number } | null = null

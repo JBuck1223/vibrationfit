@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/client'
 import { clearAllProfileCache } from '@/lib/supabase/profile-client'
 import { User } from '@supabase/supabase-js'
 import { ChevronDown, LogOut } from 'lucide-react'
-import { getPageType, headerAccountMenu } from '@/lib/navigation'
+import { getPageType, headerAccountMenu, isActivationFunnelPath } from '@/lib/navigation'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 
 export function Header() {
@@ -29,6 +29,7 @@ export function Header() {
 
   // Page classification using centralized system
   const pageType = getPageType(pathname)
+  const lockToActivation = isActivationFunnelPath(pathname)
 
   // Only show header on PUBLIC pages
   if (pageType !== 'PUBLIC') {
@@ -102,9 +103,11 @@ export function Header() {
               <div className="w-20 h-8 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
               <div className="relative flex items-center gap-3">
-                <Button asChild variant="primary" size="sm">
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button>
+                {!lockToActivation && (
+                  <Button asChild variant="primary" size="sm">
+                    <Link href="/dashboard">Dashboard</Link>
+                  </Button>
+                )}
                 <div
                   ref={accountMenuRef}
                   className="flex items-center gap-3 rounded-full px-3 py-2 hover:bg-neutral-800 transition-colors"
@@ -166,25 +169,27 @@ export function Header() {
                     }}
                   >
                     {/* Menu Items */}
-                    <div className="py-1">
-                      {headerAccountMenu.map((item) => {
-                        const Icon = item.icon
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
-                            onClick={() => setOpenDropdown(null)}
-                          >
-                            <Icon className="w-4 h-4" />
-                            <span className="font-medium">{item.name}</span>
-                          </Link>
-                        )
-                      })}
-                    </div>
+                    {!lockToActivation && (
+                      <div className="py-1">
+                        {headerAccountMenu.map((item) => {
+                          const Icon = item.icon
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-800 transition-colors text-neutral-300 hover:text-white"
+                              onClick={() => setOpenDropdown(null)}
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span className="font-medium">{item.name}</span>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
 
                     {/* Logout */}
-                    <div className="border-t border-neutral-800 py-1 mt-1">
+                    <div className={cn(!lockToActivation && 'border-t border-neutral-800 mt-1', 'py-1')}>
                       <button
                         onClick={() => {
                           setOpenDropdown(null)
@@ -213,9 +218,11 @@ export function Header() {
               <div className="w-16 h-6 bg-neutral-800 rounded animate-pulse" />
             ) : user ? (
               <>
-                <Button asChild variant="primary" size="sm">
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button>
+                {!lockToActivation && (
+                  <Button asChild variant="primary" size="sm">
+                    <Link href="/dashboard">Dashboard</Link>
+                  </Button>
+                )}
                 <Button onClick={handleLogout} variant="ghost" size="sm">
                   Logout
                 </Button>

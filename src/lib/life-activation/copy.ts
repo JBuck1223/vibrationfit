@@ -58,15 +58,15 @@ export const LIFE_ACTIVATION_COPY = {
   },
   vision: {
     openingFirstVision: (hasActivation: boolean) =>
-      `Let's build your first full life vision!
+      `Before we write anything, I want to actually know you.
 
-A great vision is built on two basic ideas — contrast and clarity. I can expand your vision from both! In this vision building exercise, I will ask you a few questions to gather the information I need to build the first draft of your life vision.
+Not the polished bio — the real life. Who you love, what matters to you, what this season actually feels like. Come as you are: the good, the heavy, the stuff you'd only say out loud to someone who's really listening.
 
-Feel free to share from points of clarity (above the Green Line) and points of contrast (below the Green Line). I will parse your responses and capture information on each category of your document until I have what I need to build a robust initial draft.
+I'll ask, you answer however you want — as much or as little as feels right. Along the way I'll catch what you share as contrast and clarity on the board beside us. Then when we write your Life I Choose, it will sound like you instead of a template.${hasActivation ? '\n\n*You already activated one area of life before joining — I have those words, and they count. We build from there.*' : ''}
 
-Ready to get started?${hasActivation ? '\n\n*Because you completed the free activation before joining, I already have some of the information.*' : ''}`,
+So let's start easy. Where does life have you right now — and who's in it with you?`,
     chrome:
-      'I will ask you a few questions, catch contrast and clarity across your life, then write the first draft as one piece. Accept what lands, edit what needs your voice, then commit.',
+      'VIVA gets to know you first — your people, your season, what you actually want — then writes the first draft as one life. Accept what lands, edit what needs your voice, then commit.',
   },
   kit: {
     title: 'Hear your vision',

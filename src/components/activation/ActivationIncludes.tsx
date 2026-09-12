@@ -1,12 +1,16 @@
 import { ACTIVATION_ASSET_GROUPS } from '@/lib/activation/assets'
 
-export function ActivationIncludes() {
+export function ActivationIncludes({
+  stacked = false,
+}: {
+  stacked?: boolean
+} = {}) {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className={stacked ? 'grid gap-4' : 'grid gap-4 md:grid-cols-2'}>
       {ACTIVATION_ASSET_GROUPS.map((group) => (
         <div
           key={group.heading}
-          className="rounded-2xl border bg-[#0A0A0A] p-5 md:p-6"
+          className="h-full rounded-2xl border bg-[#0A0A0A] p-5 md:p-6"
           style={{
             borderColor: `${group.color}40`,
             boxShadow: `0 0 32px ${group.color}14`,

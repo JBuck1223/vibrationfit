@@ -75,10 +75,10 @@ export function ActivationMediaPick({
             return (
               <div
                 key={voice.id}
-                className={`flex items-center gap-2 rounded-xl border-2 px-3 py-3 transition-all duration-200 ${
+                className={`flex items-center gap-2 rounded-xl border px-3 py-3 transition-all duration-200 ${
                   selected
-                    ? 'border-[#BF00FF] bg-[#BF00FF]/10'
-                    : 'border-[#222] bg-[#0D0D0D]'
+                    ? 'border-[#BF00FF]/60 bg-[#BF00FF]/10'
+                    : 'border-white/10 bg-black/40 hover:border-white/30'
                 }`}
               >
                 <button
@@ -93,7 +93,7 @@ export function ActivationMediaPick({
                   type="button"
                   aria-label={playing ? `Pause ${voice.label}` : `Play ${voice.label}`}
                   onClick={() => togglePreview(`voice:${voice.id}`, voice.previewUrl)}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[#333] text-neutral-300 hover:border-white hover:text-white"
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-white/10 text-neutral-300 hover:border-white hover:text-white"
                 >
                   {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                 </button>
@@ -113,10 +113,10 @@ export function ActivationMediaPick({
             return (
               <div
                 key={genre.id}
-                className={`flex items-center gap-2 rounded-xl border-2 px-3 py-3 transition-all duration-200 ${
+                className={`flex items-center gap-2 rounded-xl border px-3 py-3 transition-all duration-200 ${
                   selected
-                    ? 'border-[#39FF14] bg-[#39FF14]/10'
-                    : 'border-[#222] bg-[#0D0D0D]'
+                    ? 'border-[#39FF14]/60 bg-[#39FF14]/10'
+                    : 'border-white/10 bg-black/40 hover:border-white/30'
                 }`}
               >
                 <button
@@ -131,7 +131,7 @@ export function ActivationMediaPick({
                   type="button"
                   aria-label={playing ? `Pause ${genre.label}` : `Play ${genre.label}`}
                   onClick={() => togglePreview(`genre:${genre.id}`, genre.previewUrl)}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[#333] text-neutral-300 hover:border-white hover:text-white"
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-white/10 text-neutral-300 hover:border-white hover:text-white"
                 >
                   {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                 </button>

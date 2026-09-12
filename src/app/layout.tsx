@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Indie_Flower, Poppins } from "next/font/google";
 import "./globals.css";
 import '@/styles/brand.css'
 import { GlobalLayoutShell } from '@/components/GlobalLayoutShell'
@@ -19,6 +19,13 @@ const poppins = Poppins({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-poppins',
+})
+
+const display = Indie_Flower({
+  subsets: ['latin'],
+  weight: '400',
+  display: 'swap',
+  variable: '--font-display',
 })
 
 export const viewport: Viewport = {
@@ -60,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={poppins.variable} suppressHydrationWarning>
+    <html lang="en" className={`${poppins.variable} ${display.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://media.vibrationfit.com" />
       </head>

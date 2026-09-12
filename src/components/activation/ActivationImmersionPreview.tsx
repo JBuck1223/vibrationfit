@@ -58,7 +58,11 @@ export function ActivationImmersionPreview({
             </span>
             <div>
               <h2 className="text-2xl font-bold text-white md:text-3xl">{copy.mapTitle}</h2>
-              <p className="mt-2 text-base text-neutral-400">{copy.mapLead}</p>
+              <div className="mt-2 space-y-3 text-base leading-relaxed text-neutral-400">
+                {copy.mapLead.map((para) => (
+                  <p key={para}>{para}</p>
+                ))}
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

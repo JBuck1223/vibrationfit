@@ -7,13 +7,11 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Container, Spinner, Text } from '@/lib/design-system/components'
-import { Sparkles } from 'lucide-react'
+import { Container, Spinner } from '@/lib/design-system/components'
 import { ActivationOrientation } from '@/components/activation/ActivationOrientation'
 import { ActivationCategoryPick } from '@/components/activation/ActivationCategoryPick'
 import { ActivationIntakeChat } from '@/components/activation/ActivationIntakeChat'
 import { GeneratingStep } from '@/components/activation/ActivationExperienceSteps'
-import { ACTIVATION_COPY } from '@/lib/activation/copy'
 import { isIntakeReady } from '@/lib/activation/intake-markers'
 import type { ActivationChatMessage } from '@/lib/activation/orchestrator'
 
@@ -179,71 +177,67 @@ function ActivationExperience() {
 
   if (step === 'loading') {
     return (
-      <Container size="xl">
-        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          {error ? <p className="text-sm text-red-400">{error}</p> : <Spinner size="lg" />}
-        </div>
-      </Container>
+      <div className="flex flex-1 items-center justify-center">
+        {error ? <p className="text-sm text-red-400">{error}</p> : <Spinner size="lg" />}
+      </div>
+    )
+  }
+
+  if (step === 'orientation') {
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <ActivationOrientation onReady={handleOrient} busy={busy} error={error} />
+      </div>
+    )
+  }
+
+  if (step === 'category') {
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <Container size="xl" className="px-4 py-10 md:px-10">
+          <ActivationCategoryPick
+            selected={category}
+            onSelect={setCategory}
+            onContinue={handleChooseCategory}
+            busy={busy}
+            error={error}
+          />
+        </Container>
+      </div>
+    )
+  }
+
+  if (step === 'chat' && activationId) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        {error && (
+          <p className="px-4 pt-4 text-sm text-red-400 md:px-6">{error}</p>
+        )}
+        <ActivationIntakeChat
+          activationId={activationId}
+          initialMessages={conversation}
+          currentState={currentState}
+          dreamWant={dreamWant}
+          category={category}
+          intakeReady={intakeReady}
+          onFieldsChange={(next) => {
+            setCurrentState(next.current_state || null)
+            setDreamWant(next.dream_want || null)
+            setCategory(next.category || null)
+            setIntakeReady(!!next.intake_ready)
+            setConversation(next.conversation)
+          }}
+          onCreate={() => runGenerate()}
+          creating={false}
+        />
+      </div>
     )
   }
 
   return (
-    <>
-      <div className="sticky top-0 z-50 bg-neutral-850/95 backdrop-blur-sm border-b border-[#1A1A1A]">
-        <Container size="xl">
-          <div className="py-3 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#BF00FF]" />
-            <Text size="sm" className="text-white font-medium">{ACTIVATION_COPY.chrome.title}</Text>
-            <span className="text-xs text-neutral-500">{ACTIVATION_COPY.chrome.withViva}</span>
-          </div>
-        </Container>
-      </div>
-
-      <Container size={step === 'generating' ? 'sm' : 'default'}>
-        <div className={step === 'generating' ? 'py-6 md:py-10' : 'py-10 md:py-16'}>
-          {step === 'orientation' && (
-            <ActivationOrientation onReady={handleOrient} busy={busy} error={error} />
-          )}
-
-          {step === 'category' && (
-            <ActivationCategoryPick
-              selected={category}
-              onSelect={setCategory}
-              onContinue={handleChooseCategory}
-              busy={busy}
-              error={error}
-            />
-          )}
-
-          {step === 'chat' && activationId && (
-            <>
-              {error && step === 'chat' && (
-                <p className="text-sm text-red-400 mb-4">{error}</p>
-              )}
-              <ActivationIntakeChat
-                activationId={activationId}
-                initialMessages={conversation}
-                currentState={currentState}
-                dreamWant={dreamWant}
-                category={category}
-                intakeReady={intakeReady}
-                onFieldsChange={(next) => {
-                  setCurrentState(next.current_state || null)
-                  setDreamWant(next.dream_want || null)
-                  setCategory(next.category || null)
-                  setIntakeReady(!!next.intake_ready)
-                  setConversation(next.conversation)
-                }}
-                onCreate={() => runGenerate()}
-                creating={false}
-              />
-            </>
-          )}
-
-          {step === 'generating' && <GeneratingStep category={category} />}
-        </div>
-      </Container>
-    </>
+    <div className="flex flex-1 items-center justify-center px-4">
+      <GeneratingStep category={category} />
+    </div>
   )
 }
 
@@ -251,11 +245,9 @@ export default function ActivationExperiencePage() {
   return (
     <Suspense
       fallback={
-        <Container size="xl">
-          <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-            <Spinner size="lg" />
-          </div>
-        </Container>
+        <div className="flex flex-1 items-center justify-center">
+          <Spinner size="lg" />
+        </div>
       }
     >
       <ActivationExperience />

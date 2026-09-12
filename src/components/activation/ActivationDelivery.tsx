@@ -3,12 +3,17 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Button,
-  Card,
   Stack,
   Text,
   Textarea,
   Spinner,
+  AudioPlayer,
+  EmbeddedPlayer,
 } from '@/lib/design-system/components'
+import type { AudioTrack } from '@/lib/design-system/components/media/types'
+import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
+import { PlainLyricsDisplay, SyncedLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
+import { convertMurekaLyrics, type MurekaLyricsSection, type SyncedLyrics } from '@/lib/utils/lyrics-alignment'
 import {
   ArrowRight,
   BookOpen,
@@ -29,6 +34,39 @@ import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-sys
 import { ACTIVATION_COPY } from '@/lib/activation/copy'
 import { ActivationMediaPick } from '@/components/activation/ActivationMediaPick'
 import type { ActivationGenreId, ActivationVoiceId } from '@/lib/activation/media-options'
+
+function deliveryGlow(color: string): { borderColor: string; boxShadow: string } {
+  return {
+    borderColor: `${color}40`,
+    boxShadow: `0 0 40px ${color}24, 0 18px 40px rgba(0, 0, 0, 0.45)`,
+  }
+}
+
+function DeliverySurface({
+  id,
+  glow,
+  padded = 'lg',
+  className = '',
+  children,
+}: {
+  id?: string
+  glow?: string
+  padded?: 'lg' | 'md'
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <div
+      id={id}
+      className={`scroll-mt-6 rounded-2xl border border-white/10 bg-[#0A0A0A] ${
+        padded === 'md' ? 'p-5 md:p-6' : 'p-5 md:p-8'
+      } ${className}`}
+      style={glow ? deliveryGlow(glow) : undefined}
+    >
+      {children}
+    </div>
+  )
+}
 
 export type DeliveryPhase = 'preview' | 'immersion' | 'offer'
 
@@ -58,51 +96,76 @@ export interface DeliveryAssets {
     title: string
     lyrics: string | null
     status: string
-    tracks: Array<{ id: string; audio_url: string; cover_url: string | null; title: string | null }>
+    tracks: Array<{
+      id: string
+      audio_url: string
+      cover_url: string | null
+      title: string | null
+      duration_ms?: number | null
+      metadata?: Record<string, unknown> | null
+    }>
   } | null
   audioTracks: Array<{ id: string; audio_url: string; duration_seconds: number; section_key: string }>
   manifestations: Array<{ id: string; name: string; description: string | null; image_url: string | null }>
 }
 
-function SpokenTrack({
-  label,
+function ActivationPlayBeacon({
+  trackIds,
+  eventType,
+  onTrack,
+}: {
+  trackIds: string[]
+  eventType: string
+  onTrack?: (eventType: string, eventData?: Record<string, unknown>) => void
+}) {
+  const storeTracks = useGlobalAudioStore((s) => s.tracks)
+  const isPlaying = useGlobalAudioStore((s) => s.isPlaying)
+  const fired = useRef(false)
+
+  useEffect(() => {
+    if (fired.current || !isPlaying || trackIds.length === 0) return
+    if (storeTracks.some((t) => trackIds.includes(t.id))) {
+      fired.current = true
+      onTrack?.(eventType)
+    }
+  }, [isPlaying, storeTracks, trackIds, eventType, onTrack])
+
+  return null
+}
+
+function SpokenAudio({
   track,
+  title,
   generating,
   failed,
-  downloadName,
-  onPlay,
-  onDownload,
   onRetry,
   retrying,
+  mapActivityType,
 }: {
-  label?: string
-  track?: { audio_url: string }
+  track?: { id: string; audio_url: string; duration_seconds: number; section_key: string }
+  title: string
   generating: boolean
   failed: boolean
-  downloadName: string
-  onPlay: () => void
-  onDownload: () => void
   onRetry?: () => void
   retrying?: boolean
+  mapActivityType: 'vision_audio' | 'story_audio'
 }) {
   const copy = ACTIVATION_COPY.immersion
   if (track) {
     return (
-      <div className="flex flex-col gap-2">
-        {label && (
-          <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{label}</p>
-        )}
-        <audio controls src={track.audio_url} className="w-full" onPlay={onPlay} />
-        <div>
-          <a
-            href={track.audio_url}
-            download={downloadName}
-            onClick={onDownload}
-            className="inline-flex items-center text-xs text-neutral-400 hover:text-white"
-          >
-            <Download className="mr-1 h-3.5 w-3.5" /> Download audio
-          </a>
-        </div>
+      <div className="w-full md:w-72 mx-auto">
+        <AudioPlayer
+          track={{
+            id: track.id,
+            title,
+            artist: '',
+            duration: track.duration_seconds || 0,
+            url: track.audio_url,
+          }}
+          compact
+          showInfo={false}
+          mapActivityType={mapActivityType}
+        />
       </div>
     )
   }
@@ -134,8 +197,6 @@ export function ActivationDelivery({
   phase,
   activation,
   assets,
-  guideDone,
-  onGuideDone,
   onEnter,
   entering,
   inspiredStep,
@@ -150,8 +211,6 @@ export function ActivationDelivery({
   phase: DeliveryPhase
   activation: DeliveryActivation
   assets: DeliveryAssets
-  guideDone?: boolean
-  onGuideDone?: () => void
   onEnter?: (choices: { voiceId: ActivationVoiceId; genreId: ActivationGenreId }) => void
   entering?: boolean
   inspiredStep?: string
@@ -182,7 +241,7 @@ export function ActivationDelivery({
   const visionAudio = audioTracks.find((t) => t.section_key === 'life_i_choose')
   const storyAudio = audioTracks.find((t) => t.section_key === 'future_self_story')
   const assetStatus = activation.asset_status || {}
-  const showOffer = phase === 'offer'
+  const showOffer = phase !== 'preview'
 
   useEffect(() => {
     if (!showOffer || !offerRef.current) return
@@ -264,12 +323,6 @@ export function ActivationDelivery({
     return (
       <Stack gap="lg">
         <div className="pt-2 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-[#39FF14]" />
-            <Text size="sm" className="text-[#39FF14] font-semibold uppercase tracking-wider">
-              {categoryLabel ? copy.categoryTitle(categoryLabel) : preview.eyebrow}
-            </Text>
-          </div>
           <h1 className="text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
             {preview.headline(firstName, categoryLabel)}
           </h1>
@@ -278,14 +331,14 @@ export function ActivationDelivery({
           </p>
         </div>
 
-        <Card variant="outlined" className="bg-[#101010] border-[#39FF14]/20 p-5 md:p-8">
+        <DeliverySurface glow="#39FF14" padded="md">
           <Stack gap="sm">
             {preview.assets.map((item) => {
               const ready = writtenReady[item.key as keyof typeof writtenReady]
               return (
                 <div
                   key={item.key}
-                  className="flex items-center gap-3 rounded-xl border border-[#1F1F1F] bg-[#0D0D0D] px-4 py-3"
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 px-4 py-3"
                 >
                   <CheckCircle className={`h-5 w-5 flex-shrink-0 ${ready ? 'text-[#39FF14]' : 'text-neutral-600'}`} />
                   <Text size="sm" className="text-white font-medium">{item.label}</Text>
@@ -296,9 +349,9 @@ export function ActivationDelivery({
               )
             })}
           </Stack>
-        </Card>
+        </DeliverySurface>
 
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-5 md:p-8">
+        <DeliverySurface padded="md">
           <ActivationMediaPick
             voiceId={voiceId}
             genreId={genreId}
@@ -307,7 +360,7 @@ export function ActivationDelivery({
               setGenreId(choices.genreId)
             }}
           />
-        </Card>
+        </DeliverySurface>
 
         {onEnter && (
           <div className="flex justify-center pb-4">
@@ -354,20 +407,19 @@ export function ActivationDelivery({
   return (
     <Stack gap="lg">
       <div className="pt-2 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wider text-[#39FF14]">
-          {categoryLabel ? copy.categoryTitle(categoryLabel) : copy.categoryFallback}
-        </p>
-        <h1 className="mt-4 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
-          {copy.headline}
+        <h1 className="text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">
+          Your{' '}
+          {categoryLabel ? (
+            <>
+              <span className="hp-display text-[#39FF14]">{categoryLabel}</span>{' '}
+            </>
+          ) : null}
+          Activation
         </h1>
         <VideoSlot label={copy.heroVideoLabel} placeholder={copy.heroVideoPlaceholder} />
       </div>
 
-      <ActivationMap
-        copy={copy}
-        showDone={phase === 'immersion' && !!onGuideDone}
-        onGuideDone={onGuideDone}
-      />
+      <ActivationMap copy={copy} />
 
       <AssetSection
         id="life-i-choose"
@@ -375,22 +427,19 @@ export function ActivationDelivery({
         color="#39FF14"
         title={copy.lifeIChoose}
         hint={copy.lifeIChooseHint}
-        badge={activation.essence}
         text={activation.vision_statement || ''}
         downloadName="life-i-choose.txt"
         onDownload={downloadText}
         copy={copy}
         media={
-          <SpokenTrack
-            label={copy.listen}
+          <SpokenAudio
             track={visionAudio}
+            title={copy.lifeIChoose}
             generating={!visionAudio && !audioFailed}
             failed={audioFailed && !visionAudio}
-            downloadName="life-i-choose.mp3"
-            onPlay={() => onTrack?.('audio_played', { section: 'life_i_choose' })}
-            onDownload={() => onTrack?.('assets_downloaded', { file: 'life-i-choose.mp3' })}
             onRetry={onRetryEnrich}
             retrying={retrying}
+            mapActivityType="vision_audio"
           />
         }
       >
@@ -411,16 +460,14 @@ export function ActivationDelivery({
           onDownload={downloadText}
           copy={copy}
           media={
-            <SpokenTrack
-              label={copy.listen}
+            <SpokenAudio
               track={storyAudio}
+              title={copy.story}
               generating={!storyAudio && !audioFailed}
               failed={audioFailed && !storyAudio}
-              downloadName="future-self-story.mp3"
-              onPlay={() => onTrack?.('audio_played', { section: 'future_self_story' })}
-              onDownload={() => onTrack?.('assets_downloaded', { file: 'future-self-story.mp3' })}
               onRetry={onRetryEnrich}
               retrying={retrying}
+              mapActivityType="story_audio"
             />
           }
         >
@@ -471,13 +518,14 @@ export function ActivationDelivery({
       <SongSection
         copy={copy}
         lyrics={assets.song?.lyrics || null}
+        songTitle={assets.song?.title || copy.song}
+        categoryLabel={categoryLabel}
         tracks={songTracks}
         ready={songReady}
         failed={songFailed}
         onTrack={onTrack}
         onRetry={onRetryEnrich}
         retrying={retrying}
-        onDownloadUrl={downloadUrl}
       />
 
       <BoardSection
@@ -490,19 +538,19 @@ export function ActivationDelivery({
         onDownloadUrl={downloadUrl}
       />
 
-      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+      <DeliverySurface>
         <Stack gap="lg">
           <SectionHeading icon={Download} color="#39FF14" title={copy.keepTitle} hint={copy.keepBody} />
-          <div>
+          <div className="flex justify-center">
             <Button variant="secondary" size="sm" onClick={downloadEverything}>
               <Download className="mr-2 h-4 w-4" />
               {copy.downloadEverything}
             </Button>
           </div>
         </Stack>
-      </Card>
+      </DeliverySurface>
 
-      <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+      <DeliverySurface>
         <Stack gap="lg">
           <SectionHeading icon={Lightbulb} color="#FFB701" title={copy.inspiredTitle} hint={copy.inspiredHint} />
           {inspiredSaved ? (
@@ -518,7 +566,7 @@ export function ActivationDelivery({
                 placeholder={copy.inspiredPlaceholder}
                 rows={3}
               />
-              <div>
+              <div className="flex justify-center">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -531,11 +579,11 @@ export function ActivationDelivery({
             </>
           )}
         </Stack>
-      </Card>
+      </DeliverySurface>
 
       {showOffer && (
         <div id="continue" ref={offerRef}>
-          <Card variant="outlined" className="bg-[#101010] border-[#39FF14]/30 p-5 md:p-8">
+          <DeliverySurface glow="#39FF14" padded="md">
             <div className="text-center">
               <Stack gap="md">
                 <h3 className="text-lg md:text-2xl font-bold text-white">{copy.offerTitle}</h3>
@@ -552,13 +600,13 @@ export function ActivationDelivery({
                 </div>
               </Stack>
             </div>
-          </Card>
+          </DeliverySurface>
         </div>
       )}
 
       {showOffer && !hideStickyCta && (
-        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-[#1A1A1A] bg-neutral-850/95 backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="mx-auto max-w-7xl px-4 py-3 flex justify-end">
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-white/10 bg-black/80 backdrop-blur-sm pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto max-w-7xl px-4 py-3 flex justify-center">
             <Button variant="primary" size="sm" onClick={paidCta}>
               {copy.offerCta}
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -617,7 +665,7 @@ function VideoSlot({
 }) {
   return (
     <div className={`mx-auto w-full ${compact ? 'max-w-xl' : 'mt-8 max-w-3xl'}`}>
-      <div className="flex aspect-video w-full items-center justify-center rounded-2xl border border-[#222] bg-[#0D0D0D] px-6">
+      <div className="flex aspect-video w-full items-center justify-center rounded-2xl border border-white/10 bg-black/40 px-6">
         <p className="text-sm leading-relaxed text-neutral-500">{placeholder}</p>
       </div>
       <p className="mt-2 text-center text-[11px] uppercase tracking-wider text-neutral-600">{label}</p>
@@ -636,17 +684,24 @@ const MAP_STOP_COLORS: Record<string, string> = {
 
 function ActivationMap({
   copy,
-  showDone,
-  onGuideDone,
 }: {
   copy: typeof ACTIVATION_COPY.immersion
-  showDone?: boolean
-  onGuideDone?: () => void
 }) {
   return (
-    <Card id="activation-map" variant="outlined" className="scroll-mt-6 bg-[#101010] border-[#BF00FF]/30 p-6 md:p-10">
+    <DeliverySurface id="activation-map" glow="#BF00FF">
       <Stack gap="lg">
-        <SectionHeading icon={Map} color="#BF00FF" title={copy.mapTitle} hint={copy.mapLead} />
+        <SectionHeading
+          icon={Map}
+          color="#BF00FF"
+          title={copy.mapTitle}
+          hint={
+            <>
+              {copy.mapLead.map((para) => (
+                <p key={para}>{para}</p>
+              ))}
+            </>
+          }
+        />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {copy.mapStops.map((stop, i) => {
             const color = MAP_STOP_COLORS[stop.id] || '#BF00FF'
@@ -655,7 +710,7 @@ function ActivationMap({
                 key={stop.id}
                 type="button"
                 onClick={() => document.getElementById(stop.id)?.scrollIntoView({ behavior: 'smooth' })}
-                className="rounded-2xl border-2 border-[#222] bg-[#0D0D0D] p-5 text-left transition-all duration-200 hover:border-[#333]"
+                className="rounded-xl border border-white/10 bg-black/40 p-5 text-left transition-all duration-200 hover:border-white/30 hover:bg-black/60"
               >
                 <span className="text-sm font-semibold" style={{ color }}>
                   {i + 1}
@@ -666,16 +721,8 @@ function ActivationMap({
             )
           })}
         </div>
-        {showDone && onGuideDone && (
-          <div>
-            <Button variant="secondary" size="sm" onClick={onGuideDone} className="w-full sm:w-auto">
-              <CheckCircle className="mr-2 h-4 w-4" />
-              {copy.guideDone}
-            </Button>
-          </div>
-        )}
       </Stack>
-    </Card>
+    </DeliverySurface>
   )
 }
 
@@ -684,38 +731,31 @@ function SectionHeading({
   color,
   title,
   hint,
-  badge,
   status,
 }: {
   icon: typeof Sparkles
   color: string
   title: string
-  hint?: string
-  badge?: string | null
+  hint?: ReactNode
   status?: ReactNode
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex min-w-0 items-start gap-4">
+    <div className="flex flex-col items-center text-center">
+      <div className="flex items-center justify-center gap-3">
         <span
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
           style={{ backgroundColor: `${color}1A`, color }}
         >
-          <Icon className="h-7 w-7" />
+          <Icon className="h-4 w-4" />
         </span>
-        <div className="min-w-0">
-          <h2 className="text-2xl font-bold leading-tight text-white md:text-3xl">{title}</h2>
-          {hint && <p className="mt-2 text-base leading-relaxed text-neutral-400">{hint}</p>}
+        <h2 className="text-xl font-bold leading-tight text-white md:text-2xl">{title}</h2>
+      </div>
+      {status && <div className="mt-2">{status}</div>}
+      {hint && (
+        <div className="mt-2 max-w-3xl space-y-3 text-base leading-relaxed text-neutral-400">
+          {typeof hint === 'string' ? <p>{hint}</p> : hint}
         </div>
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-2">
-        {badge && (
-          <span className="rounded-full border border-[#39FF14]/30 bg-[#39FF14]/10 px-3 py-1 text-xs font-medium text-[#39FF14]">
-            {badge}
-          </span>
-        )}
-        {status}
-      </div>
+      )}
     </div>
   )
 }
@@ -754,7 +794,6 @@ function AssetSection({
   color,
   title,
   hint,
-  badge,
   text,
   downloadName,
   onDownload,
@@ -767,7 +806,6 @@ function AssetSection({
   color: string
   title: string
   hint: string
-  badge?: string | null
   text: string
   downloadName: string
   onDownload: (filename: string, content: string) => void
@@ -776,50 +814,84 @@ function AssetSection({
   children: ReactNode
 }) {
   return (
-    <Card id={id} variant="outlined" className="scroll-mt-6 bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+    <DeliverySurface id={id} glow={color}>
       <Stack gap="lg">
-        <SectionHeading icon={icon} color={color} title={title} hint={hint} badge={badge} />
-        {children}
+        <SectionHeading icon={icon} color={color} title={title} hint={hint} />
         {media}
-        <div className="flex flex-wrap items-center gap-2">
+        {children}
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <CopyControl text={text} copy={copy} />
           <Button variant="ghost" size="sm" onClick={() => onDownload(downloadName, text)}>
             <Download className="mr-1.5 h-4 w-4" />
             {copy.download}
           </Button>
-          <span className="inline-flex items-center gap-1 text-xs text-[#39FF14]">
-            <CheckCircle className="h-3.5 w-3.5" />
-            {copy.saved}
-          </span>
         </div>
       </Stack>
-    </Card>
+    </DeliverySurface>
   )
 }
 
 function SongSection({
   copy,
   lyrics,
+  songTitle,
+  categoryLabel,
   tracks,
   ready,
   failed,
   onTrack,
   onRetry,
   retrying,
-  onDownloadUrl,
 }: {
   copy: typeof ACTIVATION_COPY.immersion
   lyrics: string | null
-  tracks: Array<{ id: string; audio_url: string; cover_url: string | null; title: string | null }>
+  songTitle: string
+  categoryLabel: string | null
+  tracks: Array<{
+    id: string
+    audio_url: string
+    cover_url: string | null
+    title: string | null
+    duration_ms?: number | null
+    metadata?: Record<string, unknown> | null
+  }>
   ready: boolean
   failed: boolean
   onTrack?: (eventType: string, eventData?: Record<string, unknown>) => void
   onRetry?: () => void
   retrying?: boolean
-  onDownloadUrl: (url: string, filename: string) => void
 }) {
+  const playerTracks: AudioTrack[] = tracks.map((t, i) => {
+    const lyricsSections = t.metadata?.lyrics_sections
+    const synced = Array.isArray(lyricsSections) && lyricsSections.length
+      ? convertMurekaLyrics(lyricsSections as MurekaLyricsSection[])
+      : undefined
+    return {
+      id: t.id,
+      title: songTitle,
+      artist: categoryLabel || '',
+      duration: t.duration_ms ? t.duration_ms / 1000 : 0,
+      url: t.audio_url,
+      thumbnail: t.cover_url || undefined,
+      versionLabel: tracks.length > 1 ? (t.title || `Version ${i + 1}`) : undefined,
+      syncedLyrics: synced,
+      plainLyrics: lyrics || undefined,
+    }
+  })
+
+  const storeTracks = useGlobalAudioStore((s) => s.tracks)
+  const storeIndex = useGlobalAudioStore((s) => s.currentIndex)
+  const isThisSet =
+    storeTracks.length === playerTracks.length &&
+    playerTracks.length > 0 &&
+    storeTracks[0]?.id === playerTracks[0]?.id
+  const activeTrack = isThisSet ? storeTracks[storeIndex] : playerTracks[0]
+  const syncedLyrics = activeTrack?.syncedLyrics as SyncedLyrics | undefined
+  const plainLyrics = lyrics || undefined
+  const hasCover = playerTracks.some((t) => t.thumbnail)
+
   return (
-    <Card id="song" variant="outlined" className="scroll-mt-6 bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+    <DeliverySurface id="song" glow="#FF4D8D">
       <Stack gap="lg">
         <SectionHeading
           icon={Music}
@@ -828,39 +900,36 @@ function SongSection({
           hint={copy.songHint}
           status={<EnrichmentStatus ready={ready} failed={failed} copy={copy} />}
         />
-        {lyrics && (
-          <details>
-            <summary className="cursor-pointer select-none text-sm text-neutral-400 hover:text-white">
-              {copy.lyrics}
-            </summary>
-            <p className="mt-3 text-base leading-relaxed whitespace-pre-line text-neutral-200">
-              {lyrics}
-            </p>
-          </details>
-        )}
-        {tracks.map((songTrack, i) => (
-          <div key={songTrack.id} className="flex flex-col gap-2">
-            {tracks.length > 1 && <p className="text-xs text-neutral-500">Version {i + 1}</p>}
-            <audio
-              controls
-              src={songTrack.audio_url}
-              className="w-full"
-              onPlay={() => onTrack?.('song_played', { version: i + 1 })}
+        {playerTracks.length > 0 && (
+          <>
+            <ActivationPlayBeacon
+              trackIds={playerTracks.map((t) => t.id)}
+              eventType="song_played"
+              onTrack={onTrack}
             />
-            <button
-              type="button"
-              onClick={() => onDownloadUrl(
-                songTrack.audio_url,
-                `my-activation-song${tracks.length > 1 ? `-v${i + 1}` : ''}.mp3`,
-              )}
-              className="inline-flex items-center text-xs text-neutral-400 hover:text-white"
-            >
-              <Download className="mr-1 h-3.5 w-3.5" /> {copy.download}
-            </button>
-          </div>
-        ))}
+            <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+              <EmbeddedPlayer
+                tracks={playerTracks}
+                setName={songTitle}
+                contentCategory="music"
+                mapActivityType="song_listen"
+                trackCount={playerTracks.length}
+                enableArtworkLightbox={hasCover}
+                hideArtwork={!hasCover}
+              />
+              {syncedLyrics ? (
+                <SyncedLyricsDisplay syncedLyrics={syncedLyrics} plainText={plainLyrics} />
+              ) : plainLyrics ? (
+                <PlainLyricsDisplay lyrics={plainLyrics} />
+              ) : null}
+            </div>
+          </>
+        )}
+        {playerTracks.length === 0 && plainLyrics && (
+          <PlainLyricsDisplay lyrics={plainLyrics} />
+        )}
         {failed && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col items-center gap-2 text-center">
             <p className="text-sm text-[#FF0040]">{copy.failed}</p>
             {onRetry && (
               <Button variant="ghost" size="sm" onClick={onRetry} disabled={retrying}>
@@ -869,14 +938,8 @@ function SongSection({
             )}
           </div>
         )}
-        {ready && (
-          <span className="inline-flex items-center gap-1 text-xs text-[#39FF14]">
-            <CheckCircle className="h-3.5 w-3.5" />
-            {copy.saved}
-          </span>
-        )}
       </Stack>
-    </Card>
+    </DeliverySurface>
   )
 }
 
@@ -898,7 +961,7 @@ function BoardSection({
   onDownloadUrl: (url: string, filename: string) => void
 }) {
   return (
-    <Card id="vision-board" variant="outlined" className="scroll-mt-6 bg-[#101010] border-[#1F1F1F] p-6 md:p-10">
+    <DeliverySurface id="vision-board" glow="#00FFFF">
       <Stack gap="lg">
         <SectionHeading
           icon={Images}
@@ -910,7 +973,7 @@ function BoardSection({
         {ready && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {manifestations.filter((m) => m.image_url).map((m) => (
-              <div key={m.id} className="overflow-hidden rounded-xl border border-[#222] bg-[#0D0D0D]">
+              <div key={m.id} className="overflow-hidden rounded-xl border border-white/10 bg-black/40">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={m.image_url!} alt={m.name} className="aspect-[4/3] w-full object-cover" />
                 <div className="p-2.5">
@@ -928,7 +991,7 @@ function BoardSection({
           </div>
         )}
         {failed && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col items-center gap-2 text-center">
             <p className="text-sm text-[#FF0040]">{copy.failed}</p>
             {onRetry && (
               <Button variant="ghost" size="sm" onClick={onRetry} disabled={retrying}>
@@ -937,14 +1000,8 @@ function BoardSection({
             )}
           </div>
         )}
-        {ready && (
-          <span className="inline-flex items-center gap-1 text-xs text-[#39FF14]">
-            <CheckCircle className="h-3.5 w-3.5" />
-            {copy.saved}
-          </span>
-        )}
       </Stack>
-    </Card>
+    </DeliverySurface>
   )
 }
 

@@ -33,6 +33,10 @@ export interface VisionUpdateContext {
   perspective: 'singular' | 'plural'
   /** Optional seed for guided sessions (e.g. quarterly review). */
   sessionSeed?: string | null
+  /** Rendered member_roster block — names and dates on every update. */
+  rosterBlock?: string | null
+  /** Rendered member_persona block ([hypothesis] items are inferred). */
+  personaBlock?: string | null
 }
 
 /**
@@ -99,6 +103,10 @@ export function buildVisionUpdateSystemPrompt(ctx: VisionUpdateContext): string 
 You are guiding ${ctx.firstName || 'the member'} through updating their Life Vision — the living document of the life they choose, written across these categories:
 
 ${categoryList}
+${ctx.rosterBlock?.trim() || ctx.personaBlock?.trim() ? `
+WHAT YOU KNOW ABOUT THEM (use names naturally; never re-ask; [hypothesis] items are your inferred read — never assert them as fact):
+${[ctx.rosterBlock?.trim(), ctx.personaBlock?.trim()].filter(Boolean).join('\n')}
+` : ''}
 
 They talk (or speak aloud) about what has changed, expanded, or come true in their life. You listen, reflect briefly, and propose updated category text. Their voice is ${voice}.
 

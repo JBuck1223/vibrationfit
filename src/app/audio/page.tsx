@@ -13,7 +13,7 @@ import {
   Clock, ChevronRight, Library, AlertTriangle, RefreshCw,
   Users, ArrowLeft, Search, Share2,
 } from 'lucide-react'
-import { useAudioStudio, type AudioSetItem } from '@/components/audio-studio'
+import { useAudioStudio, type AudioSetItem, QueueStatusBanner } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
 import {
   VISION_CATEGORIES,
@@ -317,6 +317,7 @@ export default function AudioListenPage() {
     listenContentType: contentType,
     listenStoryFilter,
     storiesWithAudio: stories, storiesWithAudioLoading: storiesLoading,
+    activeKitRun,
   } = useAudioStudio()
 
   // Vision state
@@ -443,6 +444,14 @@ export default function AudioListenPage() {
   }, [audioSets, audioSetsLoading, visionId])
 
   useEffect(() => { setIsEditingAudioSetName(false) }, [selectedAudioSetId])
+
+  useEffect(() => {
+    if (!selectedAudioSetId || !activeKitRun) return
+    const id = window.setInterval(() => {
+      void loadAudioTracks(selectedAudioSetId, { silent: true })
+    }, 5000)
+    return () => window.clearInterval(id)
+  }, [selectedAudioSetId, activeKitRun?.id])
 
   const VOICE_NAMES: Record<string, string> = { alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage' }
 
@@ -917,8 +926,8 @@ export default function AudioListenPage() {
     setTotalPlays(playsData ?? 0)
   }
 
-  async function loadAudioTracks(audioSetId: string) {
-    setLoadingTracks(true)
+  async function loadAudioTracks(audioSetId: string, opts?: { silent?: boolean }) {
+    if (!opts?.silent) setLoadingTracks(true)
     const supabase = createClient()
     const { data: audioSet } = await supabase.from('audio_sets').select('variant, metadata').eq('id', audioSetId).single()
     const isCombinedOnly = (audioSet?.metadata as any)?.output_format === 'combined'
@@ -951,7 +960,7 @@ export default function AudioListenPage() {
         return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib)
       })
     setAudioTracks(formatted)
-    setLoadingTracks(false)
+    if (!opts?.silent) setLoadingTracks(false)
   }
 
   const handleSelectSet = async (setId: string) => {
@@ -1231,27 +1240,30 @@ export default function AudioListenPage() {
         {/* ── Life Vision Player ── */}
         {contentType === 'life-vision' && (audioSets.length > 0 ? (
           <div data-tour="voice-record">
+            <div className="max-w-2xl mx-auto w-full empty:hidden mb-3">
+              <QueueStatusBanner />
+            </div>
             {selectedAudioSetId && selectedSet ? (
               <div className="max-w-2xl mx-auto w-full">
-                {incompleteAudioInfo && !loadingTracks && (
-                  <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                {incompleteAudioInfo && !loadingTracks && !activeKitRun && (
+                  <div className="mb-3 rounded-xl border border-neutral-700 bg-white/[0.03] px-4 py-3">
                     <div className="flex gap-3">
-                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+                      <RefreshCw className="mt-0.5 h-5 w-5 shrink-0 text-neutral-400" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-amber-100">
-                          This audio set is incomplete
+                        <p className="text-sm font-medium text-white">
+                          This set is missing some categories
                         </p>
-                        <p className="mt-1 text-sm text-amber-100/80">
-                          Your vision has {incompleteAudioInfo.expected} categories, but this set only has {incompleteAudioInfo.present}
+                        <p className="mt-1 text-sm text-neutral-400">
+                          Your vision has {incompleteAudioInfo.expected} categories, and this set has {incompleteAudioInfo.present}
                           {incompleteAudioInfo.missing.length <= 6
-                            ? ` (missing ${incompleteAudioInfo.missing.map(getVisionCategoryLabel).join(', ')})`
+                            ? ` (not yet included: ${incompleteAudioInfo.missing.map(getVisionCategoryLabel).join(', ')})`
                             : ''}.
-                          After refining categories, regenerate audio to play your full vision.
+                          Generate the missing tracks to play your full vision.
                         </p>
                         <Button variant="secondary" size="sm" className="mt-3" asChild>
                           <Link href="/audio/generate">
                             <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                            Regenerate Vision Audio
+                            Generate missing tracks
                           </Link>
                         </Button>
                       </div>
@@ -1427,14 +1439,17 @@ export default function AudioListenPage() {
             )}
           </div>
         ) : !audioSetsLoading ? (
-          <Card variant="elevated" className="p-8 md:p-12 text-center" data-tour="voice-record">
+          <div className="max-w-2xl mx-auto w-full space-y-4" data-tour="voice-record">
+            <QueueStatusBanner />
+            <Card variant="elevated" className="p-8 md:p-12 text-center">
             <Headphones className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Vision Audio Yet</h3>
             <p className="text-neutral-400 mb-6">Create your first audio set to bring your vision to life through sound.</p>
             <Button variant="primary" asChild>
               <Link href="/audio/create"><Plus className="w-4 h-4 mr-2" />Create Vision Audio</Link>
             </Button>
-          </Card>
+            </Card>
+          </div>
         ) : null)}
 
         {/* ── Stories ── */}
