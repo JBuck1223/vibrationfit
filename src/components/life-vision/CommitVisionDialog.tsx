@@ -8,8 +8,8 @@
  * Step 2: "Generate your Activation Kit?" — default kit prefilled, saved-kit
  *         selector, every setting editable inline, optional save-back, Skip.
  *
- * Nothing generates until the member confirms; generation fires in the
- * background and the vision page's progress card takes over.
+ * Nothing generates until the member confirms; generation is queued immediately
+ * and continues in the background (Listen and the audio queue show progress).
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -287,6 +287,7 @@ export function CommitVisionDialog({
   const [saveToKit, setSaveToKit] = useState(true)
   const [kitName, setKitName] = useState('')
   const [launching, setLaunching] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
   const [openMixIndex, setOpenMixIndex] = useState(0)
   const [selectedBoardIds, setSelectedBoardIds] = useState<string[]>([])
 
@@ -329,6 +330,7 @@ export function CommitVisionDialog({
         setCommittedVisionId(null)
       }
       setCommitError(null)
+      setGenerateError(null)
       setSaveToKit(true)
       setKitName('')
       setLaunching(false)
@@ -488,8 +490,8 @@ export function CommitVisionDialog({
   async function handleGenerate() {
     if (!committedVisionId || !settings) return
     setLaunching(true)
+    setGenerateError(null)
 
-    // Persist settings back to the kit when asked
     const selectedSuggestions = settings.include_board
       ? boardSuggestions.filter((s) => selectedBoardIds.includes(s.id)).slice(0, MAX_BOARD_PICKS)
       : []
@@ -527,17 +529,29 @@ export function CommitVisionDialog({
       }
     }
 
-    // Fire the kit run; the vision page progress card tracks it from here
-    fetch('/api/activation-kit/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visionId: committedVisionId, kitId: selectedKitId, settings: payloadSettings }),
-    })
-      .then(() => queryClient.invalidateQueries({ queryKey: keys.activationKitRuns }))
-      .catch((err) => console.error('Activation Kit generation failed to start:', err))
-
-    setLaunching(false)
-    setStep('started')
+    try {
+      const res = await fetch('/api/activation-kit/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visionId: committedVisionId, kitId: selectedKitId, settings: payloadSettings }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setGenerateError(
+          typeof data.error === 'string'
+            ? data.error
+            : 'Could not start your Activation Kit. Check your connection and try again.',
+        )
+        return
+      }
+      queryClient.invalidateQueries({ queryKey: keys.activationKitRuns })
+      queryClient.invalidateQueries({ queryKey: keys.audioBatches })
+      setStep('started')
+    } catch {
+      setGenerateError('Could not start your Activation Kit. Check your connection and try again.')
+    } finally {
+      setLaunching(false)
+    }
   }
 
   const anyAssetSelected = settings
@@ -631,18 +645,18 @@ export function CommitVisionDialog({
           <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
             <Button
               variant="ghost"
+              onClick={() => committedVisionId && finish(committedVisionId)}
+            >
+              View my vision
+            </Button>
+            <Button
+              variant="primary"
               onClick={() => {
                 onClose()
                 router.push('/audio/queue')
               }}
             >
               View audio queue
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => committedVisionId && finish(committedVisionId)}
-            >
-              View my vision
             </Button>
           </div>
         }
@@ -653,8 +667,8 @@ export function CommitVisionDialog({
           </div>
           <p className="text-neutral-300 text-sm leading-relaxed">
             VIVA is building your voice tracks first, then mixes and board images.
-            This keeps going if you leave. Watch progress on your Life Vision page,
-            or the audio queue once mixes start.
+            This keeps going if you leave or lose connection. Watch progress on
+            Audio Studio Listen, or in the audio queue.
           </p>
         </div>
       </Modal>
@@ -697,6 +711,9 @@ export function CommitVisionDialog({
         <p className="text-neutral-300 text-sm text-center">
           Let VIVA generate fresh assets to activate your Life Vision.
         </p>
+        {generateError && (
+          <p className="text-sm text-[#FF0040] text-center">{generateError}</p>
+        )}
 
         {!settings ? (
           <div className="flex justify-center py-8"><Spinner size="md" /></div>

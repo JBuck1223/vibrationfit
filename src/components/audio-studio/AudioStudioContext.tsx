@@ -58,6 +58,26 @@ interface QueueBatch {
   content_id?: string
 }
 
+interface KitRunSummary {
+  id: string
+  vision_id: string
+  status: 'running' | 'completed' | 'partial' | 'failed'
+  settings: {
+    include_voice: boolean
+    include_mix: boolean
+    include_board: boolean
+  }
+  asset_status: Record<string, {
+    state?: 'pending' | 'generating' | 'ready' | 'failed'
+    batch_id?: string
+    sections_total?: number
+    batches?: Array<{ batch_id: string }>
+  }>
+  mix_batch_id: string | null
+  created_at: string
+  completed_at: string | null
+}
+
 interface PlayerState {
   tracks: AudioTrack[]
   currentIndex: number
@@ -112,6 +132,8 @@ interface AudioStudioContextValue {
   allBatches: QueueBatch[]
   allBatchesLoading: boolean
   refreshAllBatches: () => Promise<void>
+  activeKitRun: KitRunSummary | null
+  activeKitRuns: KitRunSummary[]
 }
 
 const LISTEN_PATH_MAP: Record<string, string> = {
@@ -141,6 +163,7 @@ const visionBatchesKey = (visionId: string) => [...keys.audioBatches, 'vision', 
 const allBatchesKey = [...keys.audioBatches, 'all'] as const
 
 const BATCH_POLL_FALLBACK_MS = 15_000
+const KIT_POLL_MS = 5_000
 
 function hasPendingBatches(batches: QueueBatch[] | undefined): boolean {
   return (batches ?? []).some(b => ['pending', 'processing'].includes(b.status))
@@ -272,6 +295,49 @@ async function fetchVisionBatches(visionId: string): Promise<QueueBatch[]> {
     .order('created_at', { ascending: false })
     .limit(20)
   return batches ?? []
+}
+
+function kitBatchIdsFromRun(run: KitRunSummary): string[] {
+  const ids: string[] = []
+  const voiceId = run.asset_status?.voice?.batch_id
+  if (typeof voiceId === 'string' && voiceId) ids.push(voiceId)
+  if (run.mix_batch_id) ids.push(run.mix_batch_id)
+  const mixBatches = run.asset_status?.mix?.batches
+  if (Array.isArray(mixBatches)) {
+    for (const batch of mixBatches) {
+      if (batch?.batch_id) ids.push(batch.batch_id)
+    }
+  }
+  return ids
+}
+
+async function fetchRunningKitRuns(): Promise<KitRunSummary[]> {
+  const supabase = createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('activation_kit_runs')
+    .select('id, vision_id, status, settings, asset_status, mix_batch_id, created_at, completed_at')
+    .eq('user_id', user.id)
+    .eq('status', 'running')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  const runs = (data ?? []) as KitRunSummary[]
+  return Promise.all(runs.map(async (run) => {
+    try {
+      const res = await fetch(`/api/activation-kit/runs/${run.id}`)
+      if (res.ok) {
+        const { run: synced } = await res.json()
+        return synced as KitRunSummary
+      }
+    } catch {
+      // fall through to the raw row
+    }
+    return run
+  }))
 }
 
 async function fetchAllBatches(): Promise<QueueBatch[]> {
@@ -406,12 +472,24 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     queryFn: fetchHasFocusStoryWithAudio,
   })
 
+  const { data: activeKitRuns = [] } = useQuery({
+    queryKey: keys.activationKitRuns,
+    queryFn: fetchRunningKitRuns,
+    refetchInterval: query => (query.state.data?.some(r => r.status === 'running') ? KIT_POLL_MS : false),
+  })
+
+  const activeKitRun = useMemo(
+    () => activeKitRuns.find(r => r.status === 'running' && (!visionId || r.vision_id === visionId)) ?? null,
+    [activeKitRuns, visionId],
+  )
+
   // isPending (not isLoading) so this stays true until the first load,
   // matching the previous behavior while the vision itself is still loading.
   const { data: audioSets = [], isPending: audioSetsLoading } = useQuery({
     queryKey: visionAudioSetsKey(visionId ?? 'none'),
     queryFn: () => fetchAudioSets(visionId!),
     enabled: !!visionId,
+    refetchInterval: activeKitRun ? KIT_POLL_MS : false,
   })
 
   const checklist = useMemo<ActivationChecklist>(() => ({
@@ -426,13 +504,19 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     queryKey: visionBatchesKey(visionId ?? 'none'),
     queryFn: () => fetchVisionBatches(visionId!),
     enabled: !!visionId,
-    refetchInterval: query => (hasPendingBatches(query.state.data) ? BATCH_POLL_FALLBACK_MS : false),
+    refetchInterval: query => {
+      if (activeKitRun) return KIT_POLL_MS
+      return hasPendingBatches(query.state.data) ? BATCH_POLL_FALLBACK_MS : false
+    },
   })
 
   const { data: allBatches = [], isLoading: allBatchesLoading } = useQuery({
     queryKey: allBatchesKey,
     queryFn: fetchAllBatches,
-    refetchInterval: query => (hasPendingBatches(query.state.data) ? BATCH_POLL_FALLBACK_MS : false),
+    refetchInterval: query => {
+      if (activeKitRuns.some(r => r.status === 'running')) return KIT_POLL_MS
+      return hasPendingBatches(query.state.data) ? BATCH_POLL_FALLBACK_MS : false
+    },
   })
 
   const { data: storiesWithAudio = [], isLoading: storiesWithAudioLoading } = useQuery({
@@ -576,7 +660,18 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     }
   }, [player.currentIndex, player.tracks])
 
-  const activeBatchCount = activeBatches.filter(b => ['pending', 'processing'].includes(b.status)).length
+  const kitBatchIdSet = useMemo(() => {
+    const ids = new Set<string>()
+    for (const run of activeKitRuns) {
+      for (const id of kitBatchIdsFromRun(run)) ids.add(id)
+    }
+    return ids
+  }, [activeKitRuns])
+
+  const pendingOutsideKit = activeBatches.filter(
+    b => ['pending', 'processing'].includes(b.status) && !kitBatchIdSet.has(b.id),
+  ).length
+  const activeBatchCount = pendingOutsideKit + (activeKitRun ? 1 : 0)
 
   return (
     <AudioStudioContext.Provider
@@ -620,6 +715,8 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
         allBatches,
         allBatchesLoading,
         refreshAllBatches,
+        activeKitRun,
+        activeKitRuns,
       }}
     >
       {children}
@@ -627,4 +724,4 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
   )
 }
 
-export type { VisionData, AudioSetItem, QueueBatch, PlayerState, ActivationChecklist, AudioSourceType }
+export type { VisionData, AudioSetItem, QueueBatch, KitRunSummary, PlayerState, ActivationChecklist, AudioSourceType }

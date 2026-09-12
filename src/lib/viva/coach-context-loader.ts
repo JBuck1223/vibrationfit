@@ -11,6 +11,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { CoachContextInput } from './prompts/coach-system-prompt'
 import { loadOpenKitsSummary } from '@/lib/manifestations/kit-helpers'
+import { loadRoster, loadPersona } from '@/lib/roster/store'
 
 export interface LoadCoachContextParams {
   supabase: SupabaseClient
@@ -60,6 +61,8 @@ export async function loadCoachContext({
     draftResult,
     kitsResult,
     storiesResult,
+    rosterResult,
+    personaResult,
   ] = await Promise.all([
     // 1. User profile (profiles are versioned — load the active, non-draft one)
     supabase
@@ -127,6 +130,12 @@ export async function loadCoachContext({
 
     // 16. Activation stories
     loadStories(supabase, userId),
+
+    // 17. Get to Know You roster (WORLD facts: people, dates, place)
+    loadRoster(supabase, userId),
+
+    // 18. Get to Know You persona (living understanding)
+    loadPersona(supabase, userId),
   ])
 
   const context: CoachContextInput = {
@@ -147,6 +156,8 @@ export async function loadCoachContext({
     openVisionDraft: draftResult,
     openKits: kitsResult,
     stories: storiesResult,
+    roster: rosterResult,
+    persona: personaResult,
     selectedCategories,
     userIntent,
   }

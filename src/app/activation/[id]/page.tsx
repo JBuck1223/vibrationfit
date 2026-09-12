@@ -38,6 +38,17 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
   const [retrying, setRetrying] = useState(false)
   const enrichFired = useRef(false)
 
+  // Preview vs delivery. Immersion and offer are the same page now, so we
+  // don't reset scroll when enter is recorded in the background.
+  const currentPhase = data
+    ? (phaseFor(data.activation) === 'preview' ? 'preview' : 'delivery')
+    : null
+  useEffect(() => {
+    if (currentPhase) window.scrollTo(0, 0)
+  }, [currentPhase])
+
+  const enterFired = useRef(false)
+
   const track = useCallback((eventType: string, eventData?: Record<string, unknown>) => {
     fetch('/api/activation/track', {
       method: 'POST',
@@ -88,6 +99,19 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
     return () => { cancelled = true }
   }, [id, load, router])
 
+  useEffect(() => {
+    if (!data || enterFired.current) return
+    if (phaseFor(data.activation) !== 'immersion') return
+    enterFired.current = true
+    fetch(`/api/activation/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'enter' }),
+    })
+      .then(() => load())
+      .catch(() => {})
+  }, [data, id, load])
+
   const assetStatus = data?.activation.asset_status || {}
   const enrichmentPending = (['audio', 'song', 'board'] as const).some(
     (k) => !assetStatus[k] || ['pending', 'generating'].includes(String(assetStatus[k]?.state)),
@@ -128,15 +152,6 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
     } finally {
       setEntering(false)
     }
-  }
-
-  async function handleEnter() {
-    await fetch(`/api/activation/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'enter' }),
-    })
-    await load()
   }
 
   async function saveInspiredStep() {
@@ -183,14 +198,15 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
 
   return (
     <Container size="default">
-      <div className={phase === 'offer' ? 'pb-24 py-10 md:py-16' : 'py-10 md:py-16'}>
+      {/* PageLayout (GlobalLayout) already provides page padding; only the
+          offer phase needs extra bottom room for the sticky offer bar. */}
+      <div className={phase !== 'preview' ? 'pb-24' : undefined}>
         <ActivationDelivery
           phase={phase}
           activation={data.activation}
           assets={data.assets}
           onEnter={handleOpen}
           entering={entering}
-          onGuideDone={handleEnter}
           inspiredStep={inspiredStep}
           inspiredSaved={inspiredSaved}
           onInspiredChange={setInspiredStep}

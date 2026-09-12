@@ -393,6 +393,17 @@ function matchesRoute(pathname: string, route: string): boolean {
 }
 
 /**
+ * Wizard + delivery routes for the public Activation funnel.
+ * These stay on the marketing chrome, but must not leak into the member app.
+ */
+export function isActivationFunnelPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false
+  const path = pathname.split('?')[0]
+  if (path === '/activation/experience' || path.startsWith('/activation/experience/')) return true
+  return /^\/activation\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path)
+}
+
+/**
  * Check if a page requires authentication
  */
 export function requiresAuth(pathname: string): boolean {

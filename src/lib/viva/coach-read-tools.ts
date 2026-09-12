@@ -17,6 +17,8 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { searchMemberContext } from '@/lib/viva/embeddings'
+import { loadRoster, loadPersona } from '@/lib/roster/store'
+import { renderRosterForPrompt, renderPersonaForPrompt } from '@/lib/roster/render'
 
 const LIFE_CATEGORIES = [
   'fun', 'health', 'travel', 'love', 'family', 'social',
@@ -208,6 +210,22 @@ export function buildCoachReadTools(ctx: CoachReadToolsContext) {
             }
 
             case 'profile': {
+              // Get to Know You roster + persona come first; the legacy
+              // profile fills in behind them.
+              const [roster, persona] = await Promise.all([
+                loadRoster(supabase, userId),
+                loadPersona(supabase, userId),
+              ])
+              const rosterText = renderRosterForPrompt(roster)
+              const personaText = renderPersonaForPrompt(persona)
+              const worldSections: string[] = []
+              if (rosterText) worldSections.push(`### Their world (facts)\n${rosterText}`)
+              if (personaText) {
+                worldSections.push(
+                  `### Your understanding of them ([hypothesis] = inferred — never assert it to them)\n${personaText}`,
+                )
+              }
+
               const { data: profile } = await supabase
                 .from('user_profiles')
                 .select('*')
@@ -218,7 +236,12 @@ export function buildCoachReadTools(ctx: CoachReadToolsContext) {
                 .limit(1)
                 .maybeSingle()
 
-              if (!profile) return { success: true, content: 'No profile yet.' }
+              if (!profile && worldSections.length === 0) {
+                return { success: true, content: 'No profile yet.' }
+              }
+              if (!profile) {
+                return { success: true, content: cap(worldSections.join('\n\n')) }
+              }
 
               const facts: string[] = []
               if (profile.relationship_status) {
@@ -253,7 +276,11 @@ export function buildCoachReadTools(ctx: CoachReadToolsContext) {
 
               return {
                 success: true,
-                content: cap([facts.join(' | '), snapshots.join('\n\n')].filter(Boolean).join('\n\n')),
+                content: cap(
+                  [...worldSections, facts.join(' | '), snapshots.join('\n\n')]
+                    .filter(Boolean)
+                    .join('\n\n'),
+                ),
               }
             }
 

@@ -7,6 +7,7 @@
 
 import { streamText, type ModelMessage } from 'ai'
 import { NextRequest } from 'next/server'
+import { after } from 'next/server'
 import { gateway } from '@/lib/ai/gateway'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import { createClient } from '@/lib/supabase/server'
@@ -26,6 +27,9 @@ import {
 } from '@/lib/activation/intake-markers'
 import { recordActivationEvent } from '@/lib/activation/events'
 import type { ActivationChatMessage, ActivationRow } from '@/lib/activation/orchestrator'
+import { loadRoster, loadPersona } from '@/lib/roster/store'
+import { renderRosterForPrompt, renderPersonaForPrompt } from '@/lib/roster/render'
+import { runGetToKnowYouExtraction } from '@/lib/roster/get-to-know-you-extractor'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -101,6 +105,16 @@ export async function POST(
       ? (toolConfig.model_name.includes('/') ? toolConfig.model_name : `openai/${toolConfig.model_name}`)
       : FALLBACK_MODEL
 
+    // Get to Know You: whatever VIVA already holds about their world feeds
+    // this conversation, and this conversation feeds it back (extraction
+    // below) — so by the time they join, she already knows them.
+    const [roster, persona] = await Promise.all([
+      loadRoster(supabase, user.id),
+      loadPersona(supabase, user.id),
+    ])
+    const rosterBlock = renderRosterForPrompt(roster) || null
+    const personaBlock = renderPersonaForPrompt(persona) || null
+
     const systemPrompt = buildActivationChatSystemPrompt({
       firstName,
       turnCount,
@@ -109,6 +123,8 @@ export async function POST(
       currentState: row.current_state,
       dreamResponse: row.dream_response,
       category: row.category,
+      rosterBlock,
+      personaBlock,
     })
 
     const estimatedTokens = estimateTokensForText(
@@ -177,6 +193,21 @@ export async function POST(
 
             const { error } = await supabase.from('activations').update(updates).eq('id', row.id)
             if (error) console.error('[activation/chat] persist failed:', error)
+
+            // Background roster/persona extraction from the latest exchange —
+            // in-process, never blocks the stream, never bills the member.
+            const recentExchange = [
+              ...conversation.slice(-4),
+              { role: 'assistant', content: visible },
+            ]
+            const knownContext = [rosterBlock, personaBlock].filter(Boolean).join('\n')
+            after(async () => {
+              try {
+                await runGetToKnowYouExtraction(supabase, user.id, recentExchange, knownContext)
+              } catch (err) {
+                console.error('[activation/chat] Get to Know You extraction:', err)
+              }
+            })
 
             if (ready && !row.intake_ready_at) {
               const fieldsFilled = [

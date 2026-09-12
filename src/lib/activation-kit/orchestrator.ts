@@ -179,6 +179,70 @@ function enabledAssets(settings: KitSettings): KitAssetKey[] {
   return keys
 }
 
+function kitVoiceBatchId(run: KitRunRow): string | undefined {
+  const id = run.asset_status?.voice?.batch_id
+  return typeof id === 'string' && id.length > 0 ? id : undefined
+}
+
+/**
+ * Create the visible queue job (and pending asset rows) before TTS starts,
+ * so Listen / Queue light up even if the member loses connection.
+ */
+export async function enqueueActivationKit(
+  supabase: SupabaseClient,
+  run: KitRunRow,
+): Promise<KitRunRow> {
+  const vision = await loadVision(supabase, run.vision_id)
+  const sections = visionSections(vision)
+  if (sections.length === 0) throw new Error('This vision has no written categories yet')
+
+  const settings = run.settings
+  const now = new Date().toISOString()
+  const voiceNeeded = settings.include_voice || settings.include_mix
+
+  if (voiceNeeded && !isReady(run, 'voice') && !kitVoiceBatchId(run)) {
+    const { data: batch, error } = await supabase
+      .from('audio_generation_batches')
+      .insert({
+        user_id: run.user_id,
+        vision_id: run.vision_id,
+        variant_ids: ['standard'],
+        voice_id: settings.voice_id,
+        sections_requested: sections,
+        total_tracks_expected: sections.length,
+        tracks_pending: sections.length,
+        status: 'processing',
+        started_at: now,
+        content_type: 'life_vision',
+        metadata: {
+          source_type: 'life_vision',
+          activation_kit_run_id: run.id,
+          audio_set_name: 'Activation Kit — Voice tracks',
+          generate_all_sections: true,
+        },
+      })
+      .select('id')
+      .single()
+    if (error || !batch) {
+      throw new Error(error?.message || 'Failed to queue voice generation')
+    }
+    await patchAssetStatus(supabase, run, 'voice', {
+      state: 'pending',
+      batch_id: batch.id,
+      sections_total: sections.length,
+    })
+  }
+
+  if (settings.include_mix && !run.asset_status?.mix?.state) {
+    await patchAssetStatus(supabase, run, 'mix', { state: 'pending' })
+  }
+  if (settings.include_board && !isReady(run, 'board') && !run.asset_status?.board?.state) {
+    await patchAssetStatus(supabase, run, 'board', { state: 'pending' })
+  }
+
+  return run
+}
+
 async function updateOverallStatus(supabase: SupabaseClient, run: KitRunRow): Promise<void> {
   const assets = enabledAssets(run.settings)
   const states = assets.map((k) => run.asset_status?.[k]?.state || 'pending')
@@ -265,6 +329,7 @@ export async function runActivationKit(
         sections,
         voice: settings.voice_id,
         variant: 'standard',
+        batchId: kitVoiceBatchId(run),
       })
 
       const succeeded = results.filter((r) => r.status !== 'failed')
@@ -413,6 +478,20 @@ async function startMixGeneration(
 
   const outputFormat = settings.mix_output_format
 
+  const parsedVoice = parseVoiceId(settings.voice_id)
+  const vibeLabel = parsedVoice.vibe ? getVoiceVibe(parsedVoice.vibe)?.label : undefined
+  const voiceNames: Record<string, string> = {
+    alloy: 'Alloy', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova',
+    shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', sage: 'Sage',
+  }
+  let audioSetName = voiceNames[parsedVoice.voice] || parsedVoice.voice
+  if (vibeLabel && vibeLabel !== 'Natural') audioSetName += ` (${vibeLabel})`
+  if (bgTrack.display_name) audioSetName += ` + ${bgTrack.display_name}`
+  if (binauralTrack && binauralVolume > 0) audioSetName += ` + ${binauralTrack.display_name}`
+  audioSetName += binauralVolume > 0
+    ? ` (${adjustedVoiceVol}/${adjustedBgVol}/${binauralVolume})`
+    : ` (${adjustedVoiceVol}/${adjustedBgVol})`
+
   // Batch row (same shape the mix studio creates client-side)
   const { data: batch, error: batchError } = await supabase
     .from('audio_generation_batches')
@@ -428,6 +507,7 @@ async function startMixGeneration(
       metadata: {
         custom_mix: true,
         activation_kit_run_id: run.id,
+        audio_set_name: `Activation Kit — ${audioSetName}`,
         output_format: outputFormat,
         source_type: 'life_vision',
         background_track_id: bgTrack.id,
@@ -454,21 +534,6 @@ async function startMixGeneration(
     { batch_id: batch.id, background_track_id: bgTrack.id },
   ]
   await patchAssetStatus(supabase, run, 'mix', { batches: startedBatches, batch_id: run.mix_batch_id })
-
-  // Descriptive set name (mirrors generate-custom-mix)
-  const parsedVoice = parseVoiceId(settings.voice_id)
-  const vibeLabel = parsedVoice.vibe ? getVoiceVibe(parsedVoice.vibe)?.label : undefined
-  const voiceNames: Record<string, string> = {
-    alloy: 'Alloy', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova',
-    shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', sage: 'Sage',
-  }
-  let audioSetName = voiceNames[parsedVoice.voice] || parsedVoice.voice
-  if (vibeLabel && vibeLabel !== 'Natural') audioSetName += ` (${vibeLabel})`
-  if (bgTrack.display_name) audioSetName += ` + ${bgTrack.display_name}`
-  if (binauralTrack && binauralVolume > 0) audioSetName += ` + ${binauralTrack.display_name}`
-  audioSetName += binauralVolume > 0
-    ? ` (${adjustedVoiceVol}/${adjustedBgVol}/${binauralVolume})`
-    : ` (${adjustedVoiceVol}/${adjustedBgVol})`
 
   const uniqueVariant = `custom-${batch.id.slice(0, 8)}`
 

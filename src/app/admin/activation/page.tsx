@@ -278,7 +278,6 @@ export default function AdminActivationInspectorPage() {
                       opened_at: new Date().toISOString(),
                     }}
                     assets={SAMPLE_ASSETS}
-                    onGuideDone={() => {}}
                     hideStickyCta
                   />
                 </div>

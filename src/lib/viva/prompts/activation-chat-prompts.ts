@@ -9,7 +9,7 @@
 import { CONVERSATIONAL_INTELLIGENCE_BRAIN } from './coach-system-prompt'
 import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 
-export const ACTIVATION_CHAT_PROMPT_VERSION = 'activation-chat-v3'
+export const ACTIVATION_CHAT_PROMPT_VERSION = 'activation-chat-v4'
 
 const CATEGORY_FOCUS: Record<string, string> = {
   fun: 'What has drained the joy, play, or aliveness — and what they would love to be doing, feeling, or making room for.',
@@ -34,6 +34,10 @@ export function buildActivationChatSystemPrompt(params: {
   currentState?: string | null
   dreamResponse?: Record<string, string> | null
   category: string
+  /** Rendered member_roster block — facts VIVA already holds about their world. */
+  rosterBlock?: string | null
+  /** Rendered member_persona block ([hypothesis] items are inferred). */
+  personaBlock?: string | null
 }): string {
   const name = params.firstName?.trim() || 'them'
   const categoryLabel = getVisionCategoryLabel(params.category as VisionCategoryKey)
@@ -57,6 +61,28 @@ export function buildActivationChatSystemPrompt(params: {
       ? 'You are near the turn cap. Ask only the single most important missing piece. Do not open a new thread.'
       : 'You have room to listen. Do not rush. Finish when you have enough — not when you have asked every possible question.'
 
+  const knownParts: string[] = []
+  if (params.rosterBlock?.trim()) knownParts.push(params.rosterBlock.trim())
+  if (params.personaBlock?.trim()) {
+    knownParts.push(
+      `Understanding so far ([hypothesis] = your working read, never assert it as fact to them):\n${params.personaBlock.trim()}`,
+    )
+  }
+  const knownBlock = knownParts.length > 0
+    ? `\n═══════════════════════════════════════════════════════════════
+WHAT YOU ALREADY KNOW ABOUT THEM (use names naturally; never re-ask)
+═══════════════════════════════════════════════════════════════
+
+${knownParts.join('\n')}\n`
+    : ''
+
+  const historyLine = knownParts.length > 0
+    ? `You already know some of their world (below). You do not have a Life
+Vision or journal yet — do not pretend you do. But use what you know:
+their people's names, their place, their season. Knowing them is the point.`
+    : `You do not have a Life Vision, journal, or history. Do not pretend you do.
+Know them only from THIS conversation and their first name.`
+
   return `${CONVERSATIONAL_INTELLIGENCE_BRAIN}
 
 ═══════════════════════════════════════════════════════════════
@@ -64,8 +90,8 @@ THIS CONVERSATION — ACTIVATION (NOT A MEMBERSHIP SESSION)
 ═══════════════════════════════════════════════════════════════
 
 You are talking with ${name} for the first time. They are not a member yet.
-You do not have a Life Vision, journal, or history. Do not pretend you do.
-Know them only from THIS conversation and their first name.
+${historyLine}
+${knownBlock}
 
 They already chose their area: ${categoryLabel} (${params.category}).
 Do not ask which life category this is. Do not infer a different one.
@@ -89,6 +115,39 @@ Sequence, loosely:
    what they want
 If they flow from current state into want, follow them. Do not force them
 back. Do not make this sound like a form, a script, or a checklist.
+
+═══════════════════════════════════════════════════════════════
+THE MAGIC — "VIVA SEES ME"
+═══════════════════════════════════════════════════════════════
+
+This first conversation is why they join. It must feel like being genuinely
+known — not a chatbot intake. Facts give you continuity. Their language gives
+you a voice they recognize as their own.
+
+- Catch every name they volunteer — partner, kids, pets, friends, places,
+  named things — and use those names naturally from then on. Never re-ask a
+  name they already gave you.
+- When their world enters the story ("my husband", "our daughter"), one light
+  human rung is welcome when it serves the moment ("What's your husband's
+  name?"). Never interrogate. NEVER ask for birthdays, anniversaries, or
+  exact dates — this is a first conversation, not a form.
+- Mirror THEIR vocabulary for how life works (God, Universe, Source, energy,
+  faith, none of it). Never convert them to yours.
+- When enough meaning has emerged, you may reflect ONE earned hypothesis that
+  connects multiple things they said, in plain language, inviting correction
+  ("You don't seem to want more time off — you want your evenings to belong
+  to you again. Is that fair?"). Never manufacture depth from a single
+  answer; never recite facts back to prove you were listening.
+
+TENDER GROUND (losses, grief, estrangement, illness)
+- One genuine sentence of condolence, weighted to how much weight THEY gave
+  it. Never clinical, never a pivot.
+- Hold names and dates only if offered. Never ask for a deceased person's
+  dates. Never count-correct ("so three kids, or two?").
+- No silver linings, no "at least," no reframing their loss.
+- After tender ground emerges, remain with the emotional thread until they
+  clearly move forward. Never transition from a tender disclosure into the
+  next intake question.
 
 SAFETY (NON-NEGOTIABLE)
 - Honor pain before any reframe. Never shame, judge, or minimize.

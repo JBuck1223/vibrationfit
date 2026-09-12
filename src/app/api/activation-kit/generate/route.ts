@@ -1,7 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { runActivationKit, sanitizeBoardSuggestions, type KitRunRow, type KitSettings } from '@/lib/activation-kit/orchestrator'
+import {
+  enqueueActivationKit,
+  runActivationKit,
+  sanitizeBoardSuggestions,
+  type KitRunRow,
+  type KitSettings,
+} from '@/lib/activation-kit/orchestrator'
 import { kitToSettings } from '@/lib/activation-kit/kits'
+import { validateTokenBalance } from '@/lib/tokens/tracking'
 
 // Voice TTS for a full vision + images can take a while
 export const maxDuration = 800
@@ -14,6 +21,9 @@ export const maxDuration = 800
  *  - kitId: saved preset to run (settings snapshot taken from it)
  *  - settings: inline overrides (from the commit dialog); merged over the kit
  *  - runId: retry an existing run (idempotent — only missing/failed assets rerun)
+ *
+ * Returns as soon as the run (and voice queue job) exist. TTS/mix/board
+ * continue via after() so a dropped connection does not look like a failure.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -102,30 +112,59 @@ export async function POST(request: NextRequest) {
       )
 
       if (existing && !boardPicksDiffer) {
-        run = existing as KitRunRow
-      } else {
-        const { data: created, error: createErr } = await supabase
-          .from('activation_kit_runs')
-          .insert({
-            user_id: user.id,
-            vision_id: visionId,
-            kit_id: kitId || null,
-            settings,
-            status: 'running',
-            asset_status: {},
-          })
-          .select('*')
-          .single()
-        if (createErr || !created) {
-          return NextResponse.json({ error: createErr?.message || 'Failed to create run' }, { status: 500 })
-        }
-        run = created as KitRunRow
+        return NextResponse.json({ run: existing as KitRunRow })
       }
+
+      const { data: created, error: createErr } = await supabase
+        .from('activation_kit_runs')
+        .insert({
+          user_id: user.id,
+          vision_id: visionId,
+          kit_id: kitId || null,
+          settings,
+          status: 'running',
+          asset_status: {},
+        })
+        .select('*')
+        .single()
+      if (createErr || !created) {
+        return NextResponse.json({ error: createErr?.message || 'Failed to create run' }, { status: 500 })
+      }
+      run = created as KitRunRow
     }
 
-    const { errors } = await runActivationKit(supabase, run)
+    if (!run) return NextResponse.json({ error: 'Failed to create run' }, { status: 500 })
 
-    return NextResponse.json({ run, errors })
+    const balanceCheck = await validateTokenBalance(user.id, 10_000, supabase)
+    if (balanceCheck) {
+      if (run.status === 'running' && !runId) {
+        await supabase
+          .from('activation_kit_runs')
+          .update({ status: 'failed', completed_at: new Date().toISOString() })
+          .eq('id', run.id)
+      }
+      return NextResponse.json(
+        { error: balanceCheck.error, insufficientTokens: true },
+        { status: balanceCheck.status || 402 },
+      )
+    }
+
+    const queued = await enqueueActivationKit(supabase, run)
+
+    after(async () => {
+      try {
+        await runActivationKit(supabase, queued)
+      } catch (error) {
+        console.error('[activation-kit] generate failed:', error)
+        await supabase
+          .from('activation_kit_runs')
+          .update({ status: 'failed', completed_at: new Date().toISOString() })
+          .eq('id', queued.id)
+          .eq('status', 'running')
+      }
+    })
+
+    return NextResponse.json({ run: queued })
   } catch (error) {
     const err = error as Error & { insufficientTokens?: boolean; status?: number }
     if (err.insufficientTokens) {

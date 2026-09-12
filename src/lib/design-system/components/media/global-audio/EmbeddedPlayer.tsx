@@ -108,6 +108,8 @@ interface EmbeddedPlayerProps {
   mapActivityType?: 'vision_audio' | 'story_audio' | 'music_listen' | 'song_listen'
   /** When true, clicking now-playing artwork opens a full-size lightbox (requires thumbnail) */
   enableArtworkLightbox?: boolean
+  /** Hide cover / icon art in now playing and the track list. */
+  hideArtwork?: boolean
 }
 
 function formatTime(seconds: number): string {
@@ -188,6 +190,7 @@ export function EmbeddedPlayer({
   onShareTrack,
   mapActivityType: mapActivityTypeProp,
   enableArtworkLightbox = false,
+  hideArtwork = false,
 }: EmbeddedPlayerProps) {
   const storeTracks = useGlobalAudioStore(s => s.tracks)
   const storeIndex = useGlobalAudioStore(s => s.currentIndex)
@@ -588,7 +591,7 @@ export function EmbeddedPlayer({
 
       {/* ── Now Playing section (explicit panel so it never diverges from header / list) ── */}
       <div className={cn(panelBg, 'flex flex-col items-center px-6 pt-6 pb-4')}>
-        {(() => {
+        {!hideArtwork && (() => {
           const displayTrack = activeTrack || tracks[0]
 
           if (enableArtworkLightbox && displayTrack?.thumbnail) {
@@ -800,12 +803,14 @@ export function EmbeddedPlayer({
                     isActive ? 'text-primary-500' : 'text-neutral-300 hover:bg-white/5'
                   )}
                 >
-                  <TrackArtwork
-                    track={track}
-                    iconKey={setIconKey}
-                    size={36}
-                    className="rounded-md overflow-hidden flex-shrink-0"
-                  />
+                  {!hideArtwork && (
+                    <TrackArtwork
+                      track={track}
+                      iconKey={setIconKey}
+                      size={36}
+                      className="rounded-md overflow-hidden flex-shrink-0"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-sm font-medium">{track.title}</p>
                     <div className="flex items-center gap-1.5 min-w-0">

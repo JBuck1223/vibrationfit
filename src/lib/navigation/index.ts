@@ -11,6 +11,7 @@ export {
   STUDIO_ROUTE_PREFIXES,
   getPageType,
   isStudioRoute,
+  isActivationFunnelPath,
   requiresAuth,
   requiresAdmin,
   getPagesByType,

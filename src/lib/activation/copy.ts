@@ -25,14 +25,15 @@ export const ACTIVATION_COPY = {
 
   orientation: {
     source: 'src/components/activation/ActivationOrientation.tsx',
-    eyebrow: 'Your Activation',
     title: 'Welcome to your Activation!',
     lead: 'Here\'s how it works:',
-    body:
-      'You\'ll have a conversation with VIVA about the current state of your life and where your imagination takes you when you allow yourself to dream big! She will then craft your vision from your words using vibrational grammar that is harmonious with universal law. From this vision, she will build your Activation so you can begin activating your new vision immediately.',
-    close:
-      'You can read it, speak it, listen to it, and look at it. Everything is yours to keep.',
-    time: 'About 10 to 15 minutes.',
+    paragraphs: [
+      'You\'ll have a real conversation with VIVA — about what\'s true in your life right now, and what you\'d love it to become when you let yourself dream without editing.',
+      'She listens. She remembers. She gets to know you.',
+      'Then she crafts your vision from your own words, so it sounds like you, not a template.',
+      'From there, VIVA builds your Activation around that vision, so you can start living into it immediately.',
+      'There\'s nothing to get right. Just be yourself, dream big, and have fun with it.',
+    ],
     cta: 'Start My Activation',
     committing: 'Starting...',
   },
@@ -50,10 +51,8 @@ export const ACTIVATION_COPY = {
     promptFile: 'src/lib/viva/prompts/activation-chat-prompts.ts',
     opening: (firstName: string | null | undefined, categoryLabel: string) => {
       const name = firstName?.trim()
-      const hello = name
-        ? `Hi, I'm VIVA. And I'm glad you're here, ${name}.`
-        : "Hi, I'm VIVA. And I'm glad you're here."
-      return `${hello}\n\nIn this chat, I'll be collecting the information I need to help you craft your Life Vision in this area.\n\nPlease begin by telling me about the current state of ${categoryLabel} in your life. Be as raw and as real as you can. After current state, we'll move on to what's in your imagination, and what clarity you already have about what you want. If you flow into what you want while describing current state, that's cool too.`
+      const hello = name ? `Hi ${name} — I'm VIVA.` : "Hi — I'm VIVA."
+      return `${hello}\n\nBefore anything else: come as you are. Not the polished version — the real one. This works best when you talk to me like someone who's actually listening, because I am.\n\nYou chose ${categoryLabel}. So tell me — what's actually true there right now? The good, the heavy, the stuff you don't usually say out loud. And if you drift into what you want instead, follow that. I'm with you.`
     },
     placeholder: 'Talk to VIVA...',
     readinessTitle: 'So far',
@@ -70,7 +69,7 @@ export const ACTIVATION_COPY = {
     metaTitle: 'Create Your Free Activation | Vibration Fit',
     metaDescription:
       'A personalized Activation you can read, hear, feel, and keep — free, in 10 to 15 minutes.',
-    cta: 'Create My Free Activation',
+    cta: 'Claim My Free Activation',
     noCard: 'No credit card required. Takes 10–15 minutes.',
     sections: [
       {
@@ -127,7 +126,7 @@ export const ACTIVATION_COPY = {
     source: 'src/components/activation/ActivationStartForm.tsx',
     firstNamePlaceholder: 'First name',
     emailPlaceholder: 'you@example.com',
-    submit: 'Create My Free Activation',
+    submit: 'Claim My Free Activation',
     submitting: 'Setting up your space...',
     footer: 'No credit card required. Takes 10–15 minutes. Your information stays private.',
     checkEmailTitle: 'Check your email',
@@ -241,36 +240,38 @@ export const ACTIVATION_COPY = {
     heroVideoLabel: 'How to enter',
     heroVideoPlaceholder:
       'A short film on how to use this Activation is coming to this spot.',
-    mapTitle: 'How to activate',
-    mapLead: 'Every piece on this page is a way in. Use them in any order — this is the map.',
+    mapTitle: 'How to Activate',
+    mapLead: [
+      "This isn't a checklist. It's your vision in different forms — designed to help you see it, hear it, feel it, speak it, and begin living from it.",
+      'Use these in any order. Come back as often as you want.',
+    ],
     mapStops: [
       { id: 'life-i-choose', title: 'Life I Choose', use: 'Read it. Then play the audio.' },
-      { id: 'future-self-story', title: 'Future-Self Story', use: 'Read yourself into the day. Then listen.' },
-      { id: 'incantation', title: 'Incantation', use: 'Say it out loud.' },
+      { id: 'future-self-story', title: 'Future-Self Story', use: 'Step into a day in this life. Read it, then listen.' },
+      { id: 'incantation', title: 'Incantation', use: 'Say it out loud. Let yourself mean it.' },
       { id: 'spark-query', title: 'SparkQuery', use: 'Ask it. Notice what opens.' },
-      { id: 'song', title: 'Your Song', use: 'Play it while you read and look.' },
-      { id: 'vision-board', title: 'Vision Board', use: 'Look at the pictures of this life.' },
+      { id: 'song', title: 'Your Song', use: 'Groove to your new life.' },
+      { id: 'vision-board', title: 'Vision Board', use: 'Look at the pictures. Let this life become familiar.' },
     ],
-    guideDone: "I've Entered This Reality",
+    guideDone: "I've Activated My Vision",
     lifeIChoose: 'Life I Choose',
     lifeIChooseHint: 'Read it. Then play the audio.',
     story: 'Future-Self Story',
-    storyHint: 'Read yourself into the day. Then listen.',
+    storyHint: 'Step into a day in this life. Read it, then listen.',
     incantation: 'Incantation',
-    incantationHint: 'Say it out loud.',
+    incantationHint: 'Say it out loud. Let yourself mean it.',
     sparkQuery: 'SparkQuery',
     sparkHint: 'Ask it. Notice what opens.',
     copyLabel: 'Copy',
     copied: 'Copied',
     download: 'Download',
-    saved: 'Saved',
     listen: 'Listen',
     lyrics: 'Read the lyrics',
     visionAudio: 'Vision Audio',
     song: 'Your Song',
-    songHint: 'Play it while you read and look.',
+    songHint: 'Groove to your new life.',
     images: 'Vision Board',
-    imagesHint: 'Look at the pictures of this life.',
+    imagesHint: 'Look at the pictures. Let this life become familiar.',
     creating: 'Creating',
     ready: 'Ready',
     failedLabel: 'Failed',
@@ -302,7 +303,7 @@ export const ACTIVATION_SAMPLE = {
     {
       role: 'assistant' as const,
       content:
-        "Hi, I'm VIVA. And I'm glad you're here, Jordan.\n\nIn this chat, I'll be collecting the information I need to help you craft your Life Vision in this area.\n\nPlease begin by telling me about the current state of Money in your life. Be as raw and as real as you can. After current state, we'll move on to what's in your imagination, and what clarity you already have about what you want. If you flow into what you want while describing current state, that's cool too.",
+        "Hi Jordan — I'm VIVA.\n\nBefore anything else: come as you are. Not the polished version — the real one. This works best when you talk to me like someone who's actually listening, because I am.\n\nYou chose Money. So tell me — what's actually true there right now? The good, the heavy, the stuff you don't usually say out loud. And if you drift into what you want instead, follow that. I'm with you.",
     },
     {
       role: 'user' as const,

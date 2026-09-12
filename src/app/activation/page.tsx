@@ -44,7 +44,7 @@ function StartCta({ className = '' }: { className?: string }) {
         href="#start"
         className="inline-flex w-full items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-4 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:w-auto md:whitespace-nowrap md:px-7"
       >
-        Create My Free Activation
+        Claim My Free Activation
         <ArrowRight className="h-4 w-4" />
       </a>
     </div>

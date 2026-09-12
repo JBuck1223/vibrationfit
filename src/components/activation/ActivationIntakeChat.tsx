@@ -140,62 +140,63 @@ export function ActivationIntakeChat({
     : null
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-10rem)]">
-      <div className="flex-1 space-y-8 pb-6">
-        {messages.map((message, i) => (
-          <div key={`${message.role}-${i}`}>
-            {message.role === 'user' ? (
-              <VivaUserMessage copyText={message.content}>{message.content}</VivaUserMessage>
-            ) : (
-              <VivaAssistantMessage markdown={message.content} copyText={message.content} />
-            )}
-          </div>
-        ))}
-        {thinking && <VivaThinkingIndicator label="" />}
-        <div ref={endRef} />
+    <div className="flex min-h-0 flex-1 flex-col bg-black">
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 md:px-6">
+          {messages.map((message, i) => (
+            <div key={`${message.role}-${i}`}>
+              {message.role === 'user' ? (
+                <VivaUserMessage copyText={message.content}>{message.content}</VivaUserMessage>
+              ) : (
+                <VivaAssistantMessage markdown={message.content} copyText={message.content} />
+              )}
+            </div>
+          ))}
+          {thinking && <VivaThinkingIndicator />}
+          <div ref={endRef} />
+        </div>
       </div>
 
-      <div className="sticky bottom-0 bg-neutral-850/95 backdrop-blur-sm border-t border-[#1A1A1A] -mx-4 px-4 py-4 md:-mx-0 md:px-0">
-        <p className="text-[11px] uppercase tracking-wider text-neutral-600 mb-2">{copy.readinessTitle}</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {categoryLabel && (
-            <ReadinessPill label={categoryLabel} filled />
-          )}
-          <ReadinessPill label={copy.readinessCurrent} filled={!!currentState?.trim()} />
-          <ReadinessPill label={copy.readinessDesire} filled={!!dreamWant?.trim()} />
-        </div>
-
-        {ready && onCreate && (
-          <div className="mb-4">
-            <p className="text-sm text-neutral-400 mb-3">{copy.readyLine}</p>
-            <Button variant="primary" size="sm" onClick={onCreate} disabled={creating || streaming}>
-              {creating ? (
-                <>
-                  <Spinner variant="primary" size="sm" className="mr-2" />
-                  {copy.creating}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {copy.create}
-                </>
-              )}
-            </Button>
+      <div className="border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]">
+        <div className="mx-auto max-w-3xl px-4 py-4 md:px-6">
+          <div className="mb-3 flex flex-wrap gap-2">
+            {categoryLabel && <ReadinessPill label={categoryLabel} filled />}
+            <ReadinessPill label={copy.readinessCurrent} filled={!!currentState?.trim()} />
+            <ReadinessPill label={copy.readinessDesire} filled={!!dreamWant?.trim()} />
           </div>
-        )}
 
-        {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
+          {ready && onCreate && (
+            <div className="mb-4">
+              <p className="mb-3 text-sm text-neutral-500">{copy.readyLine}</p>
+              <Button variant="primary" size="sm" onClick={onCreate} disabled={creating || streaming}>
+                {creating ? (
+                  <>
+                    <Spinner variant="primary" size="sm" className="mr-2" />
+                    {copy.creating}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {copy.create}
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
 
-        {!readOnly && (
-          <VivaChatInput
-            value={draft}
-            onChange={setDraft}
-            onSend={(_attachments, text) => send(text)}
-            disabled={streaming || !!creating}
-            placeholder={copy.placeholder}
-            canSend={!!draft.trim() && !streaming && !creating}
-          />
-        )}
+          {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+
+          {!readOnly && (
+            <VivaChatInput
+              value={draft}
+              onChange={setDraft}
+              onSend={(_attachments, text) => send(text)}
+              disabled={streaming || !!creating}
+              placeholder={copy.placeholder}
+              canSend={!!draft.trim() && !streaming && !creating}
+            />
+          )}
+        </div>
       </div>
     </div>
   )
@@ -204,10 +205,10 @@ export function ActivationIntakeChat({
 function ReadinessPill({ label, filled }: { label: string; filled: boolean }) {
   return (
     <span
-      className={`px-2.5 py-1 rounded-full text-xs border ${
+      className={`rounded-full border px-2.5 py-1 text-xs ${
         filled
-          ? 'border-[#39FF14]/40 bg-[#39FF14]/10 text-[#39FF14]'
-          : 'border-[#222] bg-[#0D0D0D] text-neutral-500'
+          ? 'border-accent-500/40 bg-accent-500/10 text-accent-400'
+          : 'border-neutral-800 bg-black text-neutral-500'
       }`}
     >
       {label}

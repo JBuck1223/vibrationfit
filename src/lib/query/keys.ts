@@ -58,6 +58,8 @@ export const keys = {
 
   lifeActivation: ['life-activation'] as const,
   visionDraftSession: ['vision-draft-session'] as const,
+  memberRoster: ['member-roster'] as const,
+  memberPersona: ['member-persona'] as const,
 
   // Activation Experience
   activations: ['activations'] as const,
@@ -107,6 +109,8 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   life_activation_progress: [keys.lifeActivation],
   vision_draft_sessions: [keys.visionDraftSession],
   vision_draft_session_notes: [keys.visionDraftSession],
+  member_roster: [keys.memberRoster],
+  member_persona: [keys.memberPersona],
   activations: [keys.activations],
   activation_kits: [keys.activationKits],
   activation_kit_runs: [keys.activationKitRuns, keys.audioSets],

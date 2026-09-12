@@ -4,9 +4,20 @@ import React from 'react'
 import { Clock, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useAudioStudio } from './AudioStudioContext'
+import { KitGenerationBanner } from './KitGenerationBanner'
 
 export function QueueStatusBanner() {
-  const { activeBatches, visionId } = useAudioStudio()
+  const { activeBatches, visionId, activeKitRun } = useAudioStudio()
+
+  if (activeKitRun) {
+    return (
+      <KitGenerationBanner
+        run={activeKitRun}
+        batches={activeBatches}
+        href="/audio/queue"
+      />
+    )
+  }
 
   const active = activeBatches.filter(b => ['pending', 'processing'].includes(b.status))
   if (active.length === 0) return null
@@ -29,7 +40,6 @@ export function QueueStatusBanner() {
             <p className="text-xs text-neutral-400 mt-0.5">
               {totalCompleted} of {totalExpected} tracks complete ({overallProgress}%)
             </p>
-            {/* Progress bar */}
             <div className="w-full max-w-xs bg-neutral-800 rounded-full h-1.5 mt-2">
               <div
                 className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
@@ -39,9 +49,9 @@ export function QueueStatusBanner() {
           </div>
         </div>
 
-        {active.length === 1 && visionId && (
+        {active.length === 1 && (
           <Link
-            href={`/life-vision/${visionId}/audio/queue/${active[0].id}`}
+            href={`/audio/queue/${active[0].id}`}
             className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0"
           >
             <span>Details</span>

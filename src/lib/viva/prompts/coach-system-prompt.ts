@@ -8,6 +8,14 @@
  * Used by: /api/viva/chat (mode='coach')
  */
 
+import type { MemberPersona, MemberRoster } from '@/lib/roster/types'
+import {
+  renderPersonaForPrompt,
+  renderRosterForPrompt,
+  renderUpcomingDatesForPrompt,
+  upcomingRosterDates,
+} from '@/lib/roster/render'
+
 // ============================================================================
 // Conversational Intelligence brain
 // ============================================================================
@@ -201,6 +209,8 @@ export interface CoachContextInput {
     slots: Array<{ slot: string; status: string }>
   }>
   stories?: any[]
+  roster?: MemberRoster | null
+  persona?: MemberPersona | null
   constraints?: any[]
   semanticRecall?: any[]
   householdLens?: { householdName: string; sharedMemberNames: string[] } | null
@@ -349,7 +359,28 @@ export function buildCoachSystemPrompt(input: CoachContextInput): string {
     selectedCategories,
   } = input
 
-  // --- Profile Summary ---
+  // --- Get to Know You: roster (WORLD facts) + persona (living understanding) ---
+  // When these exist they are the primary personal knowledge; the legacy
+  // profile summary below remains as fallback for members who predate them.
+  const rosterBlock = renderRosterForPrompt(input.roster || null)
+  const personaBlock = renderPersonaForPrompt(input.persona || null)
+  const upcomingBlock = renderUpcomingDatesForPrompt(upcomingRosterDates(input.roster || null))
+  let worldContext = ''
+  if (rosterBlock) {
+    worldContext += `\n\n**THEIR WORLD (facts — hold these like a close friend would; never re-ask):**\n${rosterBlock}`
+  }
+  if (upcomingBlock) {
+    worldContext += `\n\n**DATES COMING UP:**\n${upcomingBlock}`
+  }
+  if (personaBlock) {
+    worldContext += `\n\n**YOUR UNDERSTANDING OF THEM (living persona):**\n${personaBlock}
+
+Provenance rule: unmarked items were stated by the member — you know them. Items marked [hypothesis] are inferred working hypotheses: let them shape your questions and framing, but NEVER tell the member they believe, value, fear, or want something solely because it was inferred.
+
+Language mirroring: their spiritual vocabulary above is THEIR language for how life works — use it, never convert them to yours, and stay away from anything listed under "Language to avoid."`
+  }
+
+  // --- Profile Summary (legacy fallback + current-state essays) ---
   let profileContext = ''
   if (profileData) {
     const parts: string[] = []
@@ -663,8 +694,8 @@ export function buildCoachSystemPrompt(input: CoachContextInput): string {
 
 ## ABOUT ${userName.toUpperCase()}
 
-${profileContext || 'Profile not yet complete.'}
-${visionContext}
+${worldContext.trim() || profileContext || 'Profile not yet complete.'}
+${worldContext.trim() && profileContext ? `\nLegacy profile details: ${profileContext}\n` : ''}${visionContext}
 ${assessmentContext}
 ${journalContext}
 ${historyContext}

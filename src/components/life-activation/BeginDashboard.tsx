@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button, Card } from '@/lib/design-system/components'
 import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
 import { JourneyDashboard, type DashboardStep } from '@/components/life-activation/JourneyDashboard'
+import { RosterConfirmCard } from '@/components/roster/RosterConfirmCard'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import {
@@ -82,20 +83,23 @@ export function BeginDashboard() {
         continueDisabled={isUpdating}
         onContinue={handleContinue}
         extra={
-          currentId === 'kit' && kitReady ? (
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold text-white">{LIFE_ACTIVATION_COPY.kit.title}</h2>
-              <p className="mt-2 text-sm text-neutral-300">{LIFE_ACTIVATION_COPY.kit.body}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="primary" onClick={() => setKitOpen(true)}>
-                  {LIFE_ACTIVATION_COPY.kit.cta}
-                </Button>
-                <Button variant="ghost" onClick={handleSkipKit} disabled={isUpdating}>
-                  {LIFE_ACTIVATION_COPY.kit.skip}
-                </Button>
-              </div>
-            </Card>
-          ) : null
+          <>
+            {currentId === 'kit' && kitReady ? (
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold text-white">{LIFE_ACTIVATION_COPY.kit.title}</h2>
+                <p className="mt-2 text-sm text-neutral-300">{LIFE_ACTIVATION_COPY.kit.body}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="primary" onClick={() => setKitOpen(true)}>
+                    {LIFE_ACTIVATION_COPY.kit.cta}
+                  </Button>
+                  <Button variant="ghost" onClick={handleSkipKit} disabled={isUpdating}>
+                    {LIFE_ACTIVATION_COPY.kit.skip}
+                  </Button>
+                </div>
+              </Card>
+            ) : null}
+            {progress?.onboarding.vision ? <RosterConfirmCard /> : null}
+          </>
         }
       />
 

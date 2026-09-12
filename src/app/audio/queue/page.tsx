@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react'
 import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog } from '@/lib/design-system/components'
-import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen } from 'lucide-react'
+import { Clock, CheckCircle, AlertCircle, Loader2, ListMusic, Trash2, Target, BookOpen, Package } from 'lucide-react'
 import Link from 'next/link'
 import { useAudioStudio } from '@/components/audio-studio'
+import { KitGenerationBanner } from '@/components/audio-studio/KitGenerationBanner'
 import { createClient } from '@/lib/supabase/client'
 import { getVisionCategoryLabel, isValidVisionCategory } from '@/lib/design-system/vision-categories'
 import { IntensiveAudioStepCompletionWatcher } from '@/components/intensive/IntensiveAudioStepCompletionWatcher'
@@ -158,7 +159,7 @@ function formatCustomMixDetailLine(
 }
 
 export default function AudioQueuePage() {
-  const { allBatches, allBatchesLoading, refreshAllBatches, allVisions } = useAudioStudio()
+  const { allBatches, allBatchesLoading, refreshAllBatches, allVisions, activeKitRun } = useAudioStudio()
   const [voices, setVoices] = useState<Voice[]>([])
   const [mixTrackNames, setMixTrackNames] = useState<{
     backgrounds: Record<string, string>
@@ -282,7 +283,11 @@ export default function AudioQueuePage() {
       <Stack gap="lg">
         <h1 className="sr-only">Generation Queue</h1>
 
-        {allBatches.length === 0 ? (
+        {activeKitRun && (
+          <KitGenerationBanner run={activeKitRun} batches={allBatches} showQueueLink={false} />
+        )}
+
+        {allBatches.length === 0 && !activeKitRun ? (
           <Card variant="glass" className="text-center px-4 py-12 sm:px-6 md:px-6 lg:px-8">
             <ListMusic className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
             <p className="text-neutral-400 text-sm">No generation jobs yet.</p>
@@ -447,6 +452,12 @@ function BatchCard({
                 })()}
               </span>
             )}
+            {batch.metadata?.activation_kit_run_id ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[#BF00FF]">
+                <Package className="w-2.5 h-2.5" />
+                Activation Kit
+              </span>
+            ) : null}
           </div>
           {customMixDetail ? (
             <p className="text-xs text-neutral-400 mt-1 leading-relaxed line-clamp-3">{customMixDetail}</p>
