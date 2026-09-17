@@ -119,7 +119,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
   return {
     add_manifestation: tool({
       description:
-        'Add an active desire to the member\'s Manifestations (their vision board is the visualizer). Use when a clear specific want surfaces in conversation ("I want to take the kids to Japan"). Offer first — e.g. "This sounds like an active desire. Let\'s add it to Manifestations. Want me to generate an image for this?" — and act only on their yes. Never create a duplicate for the same reality.',
+        'Add an active desire to the member\'s Manifestations (the board image is only the visualizer — also hold why they want it, what it feels like, action, and the journaled journey). Use when a clear want surfaces, or when they asked you to create one. Offer first unless they already said create / make it. Fill why_it_matters and what_it_feels_like from the conversation. If they also asked for a journal on it, create this first, then save_journal_entry with manifestation_ids. Never create a duplicate for the same reality.',
       inputSchema: z.object({
         name: z.string().describe('The desire, short and specific — this is the manifestation title'),
         description: z.string().nullable().describe('One or two sentences of detail, in their words'),
@@ -145,6 +145,10 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
           return {
             success: true,
             continued: true,
+            kind: 'manifestation',
+            title: existing.name,
+            why: existing.why_it_matters || why_it_matters?.trim() || null,
+            feel: existing.what_it_feels_like || what_it_feels_like?.trim() || null,
             manifestation_id: existing.id,
             message: `"${existing.name}" is already on your Manifestations — continuing with it.`,
             link: `/manifestations/${existing.id}`,
@@ -194,12 +198,17 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
         return {
           success: true,
           continued: false,
+          kind: 'manifestation',
+          title: data.name,
+          why: why_it_matters?.trim() || null,
+          feel: what_it_feels_like?.trim() || null,
           manifestation_id: data.id,
           image_generated: Boolean(imageUrl),
           message: imageUrl
             ? `Added "${data.name}" to your Manifestations with a generated image.`
             : `Added "${data.name}" to your Manifestations.`,
           link: `/manifestations/${data.id}`,
+          next: 'If they also asked for a journal on this manifestation, call save_journal_entry now with manifestation_ids set to this id. Then tell them, in your coaching voice, what you understood and what you made.',
         }
       },
     }),
@@ -640,7 +649,7 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
 
     find_asset: tool({
       description:
-        'Find an existing story, journal entry, manifestation, song, or action group and return a link. Do not generate anything new.',
+        'Look up an existing story, journal, manifestation, song, or action group. Lookup only. If they asked you to create, make, or attach something new, do not use this — create it. A miss is not the end of the turn: offer to create it.',
       inputSchema: z.object({
         query: z.string(),
         kind: z.enum(['story', 'journal', 'manifestation', 'song', 'vision_board', 'project', 'any']).nullable(),
@@ -715,7 +724,12 @@ export function buildKitCoachTools(ctx: KitToolsContext) {
         }
 
         if (hits.length === 0) {
-          return { success: false, message: `I could not find anything matching "${q}".` }
+          return {
+            success: false,
+            not_found: true,
+            query: q,
+            message: `Nothing on the platform matches "${q}" yet.`,
+          }
         }
 
         const first = hits[0]
@@ -822,8 +836,9 @@ A manifestation is one desire on the member's board: image, Active/Actualized st
 When Builder (or Auto, if they are ready) and a destination is live:
 - find_kit_candidates — read-only search of what they already have. Say what you found. Do not pin yet.
 - add_manifestation — when a clear active desire surfaces, offer: "This sounds like an active desire. Let's add it to Manifestations. Want me to generate an image for this?" Create only after yes; set generate_image true only if they said yes to the image. Never create a second one for the same reality.
-- draft_vision_categories — write the previewed edit into a draft; never the active vision
-- commit_vision_draft — only after a second, explicit yes
+- seed_vision_update — after yes, seed pending Life Vision Update proposals; they accept / edit / discard. Never write the draft from chat.
+- draft_vision_categories — Builder manifestation suite only: write a previewed edit into a draft; never the active vision
+- commit_vision_draft — only after a second, explicit yes on Life Vision Update or Builder
 - queue_kit_asset — next suite slot; voice/mix/new song are handoffs
 - pin_kit_evidence — attach an existing win / paper / abundance item after yes
 - add_kit_project — inspired action (an action group with steps) on this manifestation
@@ -831,8 +846,9 @@ When Builder (or Auto, if they are ready) and a destination is live:
 - draft_vibe_post — ONLY after showing the exact draft and getting an explicit yes
 
 If they already have stories, journal, or manifestations and the desire is new, offer to gather what they have. Call find_kit_candidates, name a few, then on yes: add_manifestation, pin_kit_evidence for wins/abundance/dreams, queue_kit_asset with the existing entity_id for stories/songs, add_kit_project only when they want new action. Never silent-attach. Never dump the whole library. Never say "kit" to the member.
+If they said create / make it / I don't want you to find it — create it. find_asset is lookup only. A miss is not a finished reply.
 
-Coach mode may also: flip_constraint, save_journal_entry, save_daily_paper_gratitude, add_daily_paper_task.
+Coach mode may also: flip_constraint, save_journal_entry, seed_vision_update, save_daily_paper_gratitude, add_daily_paper_task.
 Assistant mode may only: find_asset.
 Friend mode: no tools.
 

@@ -844,6 +844,12 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
         body: 'Type or speak here. One honest sentence is enough to know you can come back.',
         target: 'data-tour="viva-composer" on the composer',
       },
+      {
+        id: 'viva-suggest-tools',
+        title: 'Suggest tools',
+        body: 'After you have talked, press this and VIVA will review the thread and name a few next experiences that fit — journal, manifestation, Life Vision, and the rest. She offers. You choose.',
+        target: 'data-tour="viva-suggest-tools" on Suggest tools',
+      },
     ],
   },
   {

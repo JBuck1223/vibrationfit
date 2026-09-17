@@ -21,6 +21,8 @@ import { SPARK_QUERY_SYSTEM_PROMPT, buildSparkQueryPrompt } from '@/lib/viva/pro
 import { MODE_TOOL_ALLOWLIST, type VivaMode } from '@/lib/viva/modes'
 import { attachAssetToManifestations, attachCreatedAssetToKit, buildKitCoachTools, KIT_TOOLS_PROMPT } from '@/lib/viva/coach-kit-tools'
 import { buildCoachReadTools, READ_TOOLS_PROMPT } from '@/lib/viva/coach-read-tools'
+import { composeVivaJournalContent } from '@/lib/journal/compose-viva-entry'
+import { seedVisionUpdateProposals } from '@/lib/life-vision/seed-vision-update'
 import type { KitSlot } from '@/lib/manifestations/types'
 
 /** Extracts the first JSON object from a model response (handles code fences). */
@@ -175,25 +177,53 @@ export function buildCoachTools(ctx: CoachToolsContext) {
 
     save_journal_entry: tool({
       description:
-        'Save a journal entry for the member — the Journal is their documentation engine for clarity gained in conversation and steps taken toward manifestations. Use when they express or realize something meaningful, land a decision, or take a step toward a desire. Always confirm with the member before saving, and write it in their voice (first person). Propose which manifestation(s) it relates to; one entry can attach to several.',
+        'Save a journal entry after the member says yes. Classify from why they asked / why the conversation exists, not from mood. Contrast they came in with — even if clarity landed — is wobble. Evidence that something they have been creating showed up is win. A chosen reality they want to keep is vision. For a wobble, pass wobble_summary (their contrast), clarity (what you noticed — not forced first person), and chosen_truth (their sentence if they have one). Do not also write a Win from the same wobble turn.',
       inputSchema: z.object({
         title: z.string().describe('Short evocative title'),
-        content: z.string().describe("The entry, in the member's first-person voice, drawn from what they actually said"),
+        content: z.string().describe('Win/vision body in their first-person voice. For a wobble, the contrast if wobble_summary is empty.'),
+        wobble_summary: z.string().nullable().describe('The wobble in their words — what they were experiencing'),
+        clarity: z.string().nullable().describe('The insight you noticed. Second person is fine. Do not force first person.'),
+        chosen_truth: z.string().nullable().describe('The sentence they chose, first person, if they landed one'),
+        recommended_tool: z.string().nullable().describe('Next experience you already offered this turn, if any: viva, vision_audio, activation_story, incantation, spark_query, song, manifestations, daily_paper, abundance, vibe_tribe, alignment_gym'),
         category: CATEGORY_ENUM.nullable().describe('Life category if clearly relevant'),
-        journal_tag: z.enum(['vision', 'win', 'wobble']).nullable().describe('vision = manifestation seed / chosen reality; win = becoming evidence; wobble = contrast'),
-        manifestation_ids: z.array(z.string().uuid()).nullable().describe('Manifestations this entry documents progress or clarity for — confirm the member agrees before attaching'),
+        journal_tag: z.enum(['vision', 'win', 'wobble']).nullable().describe('vision = chosen reality; win = becoming evidence; wobble = the journey through contrast'),
+        manifestation_ids: z.array(z.string().uuid()).nullable().describe('Manifestations this entry documents — confirm before attaching'),
         kit_id: z.string().uuid().nullable().describe('Legacy single-manifestation attach; prefer manifestation_ids'),
       }),
-      execute: async ({ title, content, category, journal_tag, manifestation_ids, kit_id }) => {
+      execute: async ({
+        title,
+        content,
+        wobble_summary,
+        clarity,
+        chosen_truth,
+        recommended_tool,
+        category,
+        journal_tag,
+        manifestation_ids,
+        kit_id,
+      }) => {
+        const composed = composeVivaJournalContent({
+          journalTag: journal_tag || null,
+          content,
+          wobbleSummary: wobble_summary,
+          clarity,
+          chosenTruth: chosen_truth,
+          conversationId,
+        })
         const { data, error } = await supabase
           .from('journal_entries')
           .insert({
             user_id: userId,
             date: new Date().toISOString().slice(0, 10),
             title,
-            content,
+            content: composed,
             categories: category ? [category] : null,
             journal_tag: journal_tag || null,
+            conversation_id: conversationId,
+            wobble_summary: journal_tag === 'wobble' ? (wobble_summary || content || null) : null,
+            clarity: journal_tag === 'wobble' ? (clarity || null) : null,
+            chosen_truth: journal_tag === 'wobble' ? (chosen_truth || null) : null,
+            recommended_tool: recommended_tool || null,
           })
           .select('id')
           .single()
@@ -201,32 +231,65 @@ export function buildCoachTools(ctx: CoachToolsContext) {
         if (error || !data) return { success: false, message: 'Could not save the journal entry.' }
 
         const ids = [...new Set([...(manifestation_ids || []), ...(kit_id ? [kit_id] : [])])]
-        let attachedCount = 0
+        let attachedIds: string[] = []
         if (ids.length > 0) {
-          const attached = await attachAssetToManifestations(kitCtx, {
+          attachedIds = await attachAssetToManifestations(kitCtx, {
             manifestationIds: ids,
             slot: 'journal',
             entityType: 'journal_entries',
             entityId: data.id,
           })
-          attachedCount = attached.length
         } else {
           await attach('journal', 'journal_entries', data.id, null)
         }
 
+        let attachedNames: string[] = []
+        if (attachedIds.length > 0) {
+          const { data: named } = await supabase
+            .from('manifestations')
+            .select('id, name')
+            .in('id', attachedIds)
+            .eq('user_id', userId)
+          attachedNames = (named || []).map((row) => row.name).filter(Boolean)
+        }
+
         return {
           success: true,
-          message: attachedCount > 0
-            ? `Saved "${title}" to your journal and attached it to ${attachedCount} manifestation${attachedCount === 1 ? '' : 's'}.`
+          kind: 'journal',
+          title,
+          chosen_truth: chosen_truth || null,
+          attached_names: attachedNames,
+          message: attachedNames.length > 0
+            ? `Saved "${title}" to your journal and attached it to ${attachedNames.join(', ')}.`
             : `Saved "${title}" to your journal.`,
           link: `/journal/${data.id}`,
         }
       },
     }),
 
+    seed_vision_update: tool({
+      description:
+        'After they say yes, seed pending Life Vision Update proposals they can accept, edit, or discard. Does not write the draft or the active vision. Pass the full replacement text for each affected category in their voice, present tense — incorporate the new language into the existing category, do not send a lone sentence unless that category was empty.',
+      inputSchema: z.object({
+        proposals: z.array(z.object({
+          category: CATEGORY_ENUM,
+          content: z.string().describe('Full replacement category text in their voice, present tense'),
+        })).min(1),
+      }),
+      execute: async ({ proposals }) => {
+        const result = await seedVisionUpdateProposals(supabase, userId, proposals)
+        if (!result.success) return result
+        return {
+          success: true,
+          message: `Proposed ${proposals.length} Life Vision update${proposals.length === 1 ? '' : 's'} for you to review.`,
+          link: result.link,
+        }
+      },
+    }),
+
     log_abundance_event: tool({
       description:
-        'Log an abundance event (money or value received) the member just mentioned. Use when they share income, a gift, savings, or value they received. Confirm amount before logging.',
+        'Log an abundance event (money or value received) the member just mentioned. Use only when they named income, a gift, savings, or value that actually arrived — not after a money wobble with no receipt. Confirm amount before logging.',
       inputSchema: z.object({
         amount: z.number().describe('Dollar amount'),
         value_type: z.enum(['money', 'value']).describe('money = actual dollars received; value = non-cash value received'),
@@ -532,21 +595,36 @@ export const COACH_TOOLS_PROMPT = `${READ_TOOLS_PROMPT}
 
 You can take real actions in the member's VibrationFit account, right from this conversation — only the tools available in this thread's mode will work.
 
-- **Queue a song** (queue_song): when one of THEIR songs fits this moment, offer to queue it
-- **Save a journal entry** (save_journal_entry): the Journal is their documentation engine. When clarity lands, a decision is made, or a step is taken toward a desire, offer "Want me to capture this in your Journal?" and propose which manifestation(s) it relates to (manifestation_ids — one entry can attach to several). Use journal_tag vision for a manifestation seed, win for becoming evidence.
-- **Add a manifestation** (add_manifestation): when a clear active desire surfaces
-- **Log abundance** (log_abundance_event): when they mention money or value received
-- **Add a Daily Paper task** (add_daily_paper_task): when a concrete next step emerges
-- **Create an activation story** (create_activation_story): when a real shift lands, offer to actualize it into a story they can rehearse
-- **Create an incantation** (create_incantation): when a new belief crystallizes and they want charged, repeatable language to encode it — ask whether they want it self-powered or sealed with a divine name (God, the Universe, Source) unless you already know
-- **Create a SparkQuery set** (create_spark_query): when a limiting belief has been flipped or a new self-concept is emerging — three "Why am I...?" questions that presuppose the new reality for daily practice
+Recognition does not equal recommendation. You may see several useful opportunities in one conversation. Handle the immediate intent first. Surface only the next relevant action. Other recognitions wait — or never get said. If clarity landed and they are good, let it land. Do not end every meaningful turn with a CTA.
+
+Four distinct recognitions:
+1. Contrast worth capturing → save_journal_entry with journal_tag wobble. The entry is the journey (wobble + what became clear + chosen truth), not a Win. Classify from why they asked and why the conversation exists, not from mood. A resolved wobble is still a wobble. A Win is evidence that something they have been creating showed up.
+2. Their vision just evolved → offer, then seed_vision_update. Never write the draft or the active vision from this chat. They review accept / edit / discard on Life Vision Update.
+3. They need something next → one experience whose job creates that shift. You are Flip the Frequency in this conversation — do not send them to flip again. After the coaching, prescribe embodiment if it would actually help: Vision / Vision Audio, Activation Story, Incantation, SparkQuery, Song, a Manifestation (the living hub — not just the image), Vibe Tribe / Alignment Gym, or stay here.
+4. They don't need another thing → do nothing.
+
+Journal = where they have been. Abundance = what is arriving (money or value received — never after a money wobble with no receipt). Life Vision = what they choose. Manifestations = one chosen reality they are living into (why they want it, what it feels like, inspired action, and the journaled journey — the image is only the visualizer). Activation = what they want to focus on and feel now. Daily Paper = how they live today (gratitude, Top 3, fun) — orientation after a shift, not a wobble intervention.
+
+- **Save a journal entry** (save_journal_entry): after yes. Wobble = contrast they came in with. Win = becoming evidence. Vision = a chosen reality to keep. For a wobble pass wobble_summary, clarity, and chosen_truth.
+- **Propose Life Vision updates** (seed_vision_update): after yes, seed pending category proposals. Link them to [Life Vision Update](/life-vision/update). They accept, edit, or discard. Do not call draft_vision_categories for this.
+- **Log abundance** (log_abundance_event): only when they named money or value that arrived. Confirm the amount.
+- **Queue a song** (queue_song): one of THEIR songs, after yes
+- **Add a Daily Paper task / gratitude**: after a shift, to orient today or tomorrow — not to pull them through a wobble
+- **Create an activation story** (create_activation_story): after a real shift, so they can rehearse the new reality
+- **Create an incantation** (create_incantation): embody and charge a chosen belief
+- **Create a SparkQuery set** (create_spark_query): questions that point the mind at evidence
+- **Add or continue a manifestation** (add_manifestation): when a clear active desire surfaces, or when they asked you to create one. Fill why_it_matters and what_it_feels_like from this conversation. A manifestation is the hub — why it matters, what it feels like, inspired action, and the journaled journey — not only a board image. Continue an existing one; never open a second for the same reality.
+- **When they ask you to create a manifestation AND a journal and attach them:** that is one request. In this turn: add_manifestation (or continue the existing one), then save_journal_entry with manifestation_ids set to that id. Do not call find_asset or find_kit_candidates when they said create / make it. Do not stop after only one of the two.
 
 ${KIT_TOOLS_PROMPT}
 
 Rules for actions:
+- Stay with them first. Do not prescribe in the opening turns of a wobble.
 - OFFER, then act on their yes. Never act on ambiguous consent.
-- After a tool runs, confirm in one short natural sentence and include the returned link as a markdown link. Don't narrate the mechanics.
+- One *unsolicited* offer at a time. Never dump extra CTAs they did not ask for. If they already asked you to do two things together (journal + manifestation, attach them), finish that whole request in this turn. If they pressed Suggest tools or asked what you could do from here, name a small fitting set (2–4) and wait for yes — that is not an unsolicited dump.
+- After tools run, speak in your coaching voice: what you understood, what you made, and the links. Do not reply with only the raw tool line ("Added X." / "I could not find anything").
+- Never end a turn with only a tool call. Always speak after the tool result. If you stay silent, the member thinks nothing happened.
 - If a tool fails, say so simply and move on — never fake success.
-- Actions serve the conversation, not the other way around. Most conversations need zero actions.
+- Most conversations need zero actions. Permission to do nothing is part of the job.
 - For anything you can't do directly, point them to the right page as a markdown link (e.g. [your Life Vision](/life-vision) or [My Manifestations](/manifestations)).
-- To turn this conversation's shift into a NEW song, send them to the [Songwriter](/audio/songwriter) — you can suggest the emotional arc and core message to use. Queue the manifestation slot as a handoff; do not fake success.`
+- To turn this conversation's shift into a NEW song, send them to the [Songwriter](/audio/songwriter). Queue the manifestation slot as a handoff; do not fake success.`

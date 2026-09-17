@@ -74,8 +74,9 @@ Schema: `conversation_sessions`, `ai_conversations`, `viva_memory_items`, `vibra
 - Do NOT reintroduce the five-mode detector or mandatory A.U.R.A. sequencing
 - Do NOT inject `vibrational_events` / `emotional_snapshots` into coach context (deprecated lens)
 - Preserve crisis safety behavior and no-medical/legal/financial-advice guardrails
-- Friend = tools off; Coach = journal/flip only; Builder = manifestation + create tools + `find_kit_candidates`; Assistant = `find_asset` only
+- Friend = tools off; Coach = journal, `seed_vision_update`, flip, Daily Paper; Builder = manifestation + create tools + `find_kit_candidates`; Assistant = `find_asset` only
 - Never say "kit" to the member — the object is a manifestation
+- Unsolicited turns stay at one offer or none. Suggest tools on `/viva` is an explicit review: name 2–4 fitting next experiences, offer, wait for yes (`src/lib/viva/prompts/suggest-tools.ts`)
 
 ### 🚧 Manifestations (Vision Board merged in)
 One record per desire: the `manifestations` table (renamed from `vision_board_items`; a compat view keeps the old name queryable until the rename ships) holds the manifestation (image + Active/Actualized state) with depth spokes — why you want it / what it feels like (owned text, Life Vision only seeds a copy), Inspired Action Steps (nested `projects` + `project_tasks`), The Journey (journal entries via `manifestation_assets`, many-to-many), and the Actualization Story. The board grid at `/manifestations` is the visualizer. The old hub table is archived as `manifestations_legacy_hub` — do not use it.
@@ -118,6 +119,7 @@ API: `/api/viva/vision-update` (coach stream protocol). Prompts: `src/lib/viva/p
 - Uses the existing draft model unchanged (Life Vision Generation System stays LOCKED)
 - Chat chrome must use `VivaChatMessage` / `VivaChatInput` — same as `/viva`
 - Follow-on (not built yet): 90-day review cron + nudge card seeding this page with VIVA's observations
+- Coach `seed_vision_update` writes a framed assistant message on the vision_update thread so pending accept/edit/discard cards restore on load. It does not write the draft.
 
 ### 🚧 Activation Kit on Commit
 After a Life Vision commit, the shared `CommitVisionDialog` offers "Generate Activation Kit" — default kit prefilled, saved-kit selector, inline setting edits (including extra background tracks so one run can produce sleep / meditation / workout mixes), save-back, Skip. Board Images loads VIVA scene suggestions; the member checks which to generate. Generates voice tracks (content-hash dedupe means only changed sections cost TTS), audio mixes (audio-mixer Lambda), and the selected board manifestations. Progress card on `/life-vision/[id]` polls the run. Doc: `docs/features/activation-kit/README.md`.

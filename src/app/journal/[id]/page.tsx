@@ -7,7 +7,7 @@ import { OptimizedImage } from '@/components/OptimizedImage'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
-import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen, Layers, Wand2 } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, X, Download, Play, Volume2, Edit, Trash2, ChevronLeft, ChevronRight, BookOpen, Layers, Wand2, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -27,6 +27,7 @@ interface JournalEntry {
   created_at: string
   updated_at: string
   journal_tag?: string | null
+  conversation_id?: string | null
 }
 
 export default function JournalEntryPage({ params }: { params: Promise<{ id: string }> }) {
@@ -450,6 +451,15 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                 Entry title
               </Text>
               <h2 className="text-xl font-semibold text-white">{entry.title || 'Untitled'}</h2>
+              {entry.conversation_id && (
+                <Link
+                  href={`/viva?thread=${entry.conversation_id}`}
+                  className="inline-flex items-center gap-2 text-sm text-accent-400 hover:text-accent-300"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  From VIVA chat
+                </Link>
+              )}
             </section>
 
             {/* Media - Videos Full Width, Images 2x2 Grid */}

@@ -11,7 +11,7 @@ Be with them. Witness, banter, warmth. Stay at the human thing they just said. D
 
   coach: `## THIS THREAD'S MODE: Coach
 
-Go for the aha. Both/And, Green Line, their own evidence. Land the insight whole. You may offer one save — a journal entry, a Daily Paper gratitude, or flipping a constraint — after they say yes. Do not open a manifestation or queue a suite unless they switch to Builder. No six CTAs.`,
+Go for the aha. Both/And, Green Line, their own evidence. Land the insight whole. Stay with a wobble before prescribing. You may offer one next action after yes — a wobble journal, Life Vision Update proposals, or one embodiment experience. Recognition is not a recommendation. If they are good, let it land. Do not open a manifestation or queue a suite unless they switch to Builder. No six CTAs.`,
 
   builder: `## THIS THREAD'S MODE: Builder
 
