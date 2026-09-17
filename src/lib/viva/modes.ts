@@ -28,6 +28,7 @@ export const MODE_TOOL_ALLOWLIST: Record<VivaMode, readonly string[]> = {
     ...READ_TOOLS,
     'queue_song',
     'save_journal_entry',
+    'seed_vision_update',
     'log_abundance_event',
     'add_daily_paper_task',
     'save_daily_paper_gratitude',
@@ -50,6 +51,7 @@ export const MODE_TOOL_ALLOWLIST: Record<VivaMode, readonly string[]> = {
   coach: [
     ...READ_TOOLS,
     'save_journal_entry',
+    'seed_vision_update',
     'flip_constraint',
     'save_daily_paper_gratitude',
     'add_daily_paper_task',
@@ -58,6 +60,7 @@ export const MODE_TOOL_ALLOWLIST: Record<VivaMode, readonly string[]> = {
     ...READ_TOOLS,
     'queue_song',
     'save_journal_entry',
+    'seed_vision_update',
     'log_abundance_event',
     'add_daily_paper_task',
     'save_daily_paper_gratitude',

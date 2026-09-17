@@ -9,6 +9,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { VivaAssistantMessage, VivaThinkingIndicator, VivaUserMessage } from '@/components/viva/VivaChatMessage'
 import {
@@ -30,6 +31,7 @@ import { VivaModeSwitcher } from '@/components/viva/VivaModeSwitcher'
 import { ConstraintsPanel } from '@/components/viva/ConstraintsPanel'
 import { cn } from '@/lib/utils'
 import { parseVivaMode, type VivaMode } from '@/lib/viva/modes'
+import { SUGGEST_TOOLS_USER_MESSAGE } from '@/lib/viva/prompts/suggest-tools'
 import { CoachStreamError, readCoachStream } from '@/lib/viva/coach-stream'
 import {
   describeAttachments,
@@ -41,6 +43,19 @@ import { ensureJpegCompatible } from '@/lib/life-explorer/ensure-jpeg'
 import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
 import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
+
+function vivaQuery(): URLSearchParams {
+  if (typeof window === 'undefined') return new URLSearchParams()
+  return new URLSearchParams(window.location.search)
+}
+
+function replaceVivaUrl(router: { replace: (href: string) => void }, thread: string | null) {
+  const next = vivaQuery()
+  if (thread) next.set('thread', thread)
+  else next.delete('thread')
+  const q = next.toString()
+  router.replace(q ? `/viva?${q}` : '/viva')
+}
 
 interface Message {
   id: string
@@ -74,6 +89,7 @@ async function fetchThreads(): Promise<Thread[]> {
 
 export default function VivaPage() {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const walkthrough = useToolWalkthrough('viva')
 
   // --- Thread state ---
@@ -147,6 +163,7 @@ export default function VivaPage() {
     setIndicators([])
     setVivaMode('auto')
     messageCountRef.current = 0
+    replaceVivaUrl(router, null)
   }
 
   const openThread = async (id: string) => {
@@ -154,6 +171,7 @@ export default function VivaPage() {
     setMessages([])
     setIndicators([])
     setSidebarOpen(false)
+    if (vivaQuery().get('thread') !== id) replaceVivaUrl(router, id)
     try {
       const res = await fetch(`/api/viva/conversations/${id}/messages`)
       if (res.ok) {
@@ -180,6 +198,14 @@ export default function VivaPage() {
       console.error('Error loading thread:', err)
     }
   }
+
+  useEffect(() => {
+    const thread = vivaQuery().get('thread')
+    if (!thread || !/^[0-9a-f-]{36}$/i.test(thread)) return
+    void openThread(thread)
+    // Deep-link open on first paint only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const deleteThread = async (id: string) => {
     if (!confirm('Delete this thread?')) return
@@ -210,7 +236,11 @@ export default function VivaPage() {
   }
 
   // --- Chat ---
-  const sendMessage = async (incomingAttachments?: ChatAttachment[], overrideContent?: string) => {
+  const sendMessage = async (
+    incomingAttachments?: ChatAttachment[],
+    overrideContent?: string,
+    options?: { suggestTools?: boolean },
+  ) => {
     const content = (overrideContent ?? currentMessage).trim()
     const picked = incomingAttachments || []
     if ((!content && picked.length === 0) || isStreaming) return
@@ -232,7 +262,13 @@ export default function VivaPage() {
     setCurrentMessage('')
     setIsStreaming(true)
     setIsThinking(true)
-    setIndicators(picked.length > 0 ? [{ source: 'upload', detail: 'Adding what you shared' }] : [])
+    setIndicators(
+      options?.suggestTools
+        ? [{ source: 'suggest', detail: 'Looking at what we could do from here' }]
+        : picked.length > 0
+          ? [{ source: 'upload', detail: 'Adding what you shared' }]
+          : []
+    )
 
     try {
       let persisted: VivaPersistedAttachment[] = []
@@ -288,9 +324,14 @@ export default function VivaPage() {
           modeHint: vivaMode,
           ...(persisted.length > 0 ? { attachments: persisted } : {}),
           ...(modelOverride ? { modelOverride } : {}),
+          ...(options?.suggestTools ? { suggestTools: true } : {}),
         },
         onHeaders: ({ conversationId }) => {
-          if (conversationId) setThreadId(conversationId)
+          if (!conversationId) return
+          setThreadId(conversationId)
+          if (vivaQuery().get('thread') !== conversationId) {
+            replaceVivaUrl(router, conversationId)
+          }
         },
         onUpdate: (next) => {
           if (next.indicators?.length) setIndicators(next.indicators)
@@ -582,8 +623,29 @@ export default function VivaPage() {
         {/* Input */}
         <div className="border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]" data-tour="viva-composer">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
-            <div className="mb-3">
-              <VivaModeSwitcher value={vivaMode} onChange={handleModeChange} disabled={isStreaming} />
+            <div className="mb-3 flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <VivaModeSwitcher value={vivaMode} onChange={handleModeChange} disabled={isStreaming} />
+              </div>
+              <button
+                type="button"
+                data-tour="viva-suggest-tools"
+                disabled={isStreaming || messages.length === 0}
+                onClick={() => sendMessage(undefined, SUGGEST_TOOLS_USER_MESSAGE, { suggestTools: true })}
+                title={
+                  messages.length === 0
+                    ? 'Talk first, then I can suggest from this conversation'
+                    : 'Review this conversation and suggest what we could do'
+                }
+                className={cn(
+                  'shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  isStreaming || messages.length === 0
+                    ? 'border-neutral-800 text-neutral-600 cursor-not-allowed'
+                    : 'border-neutral-700 text-neutral-300 hover:text-white hover:border-neutral-500',
+                )}
+              >
+                Suggest tools
+              </button>
             </div>
             <VivaChatInput
               value={currentMessage}

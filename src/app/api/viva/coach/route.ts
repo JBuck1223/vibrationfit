@@ -24,11 +24,13 @@ import {
 import { loadMemories, extractMemories, saveMemories, saveConstraints, loadConstraints } from '@/lib/viva/memory-extractor'
 import { searchMemberContext, syncMemberEmbeddings } from '@/lib/viva/embeddings'
 import { buildCoachTools, COACH_TOOLS_PROMPT } from '@/lib/viva/coach-tools'
+import { buildCoachSpokenReply } from '@/lib/viva/coach-action-reply'
 import { getVivaHouseholdLens } from '@/lib/viva/household-lens'
 import { checkIsAdmin } from '@/middleware/admin'
 import { parseVivaMode } from '@/lib/viva/modes'
 import { buildModeContract } from '@/lib/viva/prompts/mode-contracts'
 import { PLATFORM_MAP_PROMPT } from '@/lib/viva/prompts/platform-map'
+import { isSuggestToolsRequest, SUGGEST_TOOLS_PROMPT } from '@/lib/viva/prompts/suggest-tools'
 import { findOpenKitForConversation } from '@/lib/manifestations/kit-helpers'
 import {
   COACH_STREAM_META_MARKER,
@@ -93,6 +95,7 @@ export async function POST(req: Request) {
       modeHint,
       modelOverride,
       attachments: rawAttachments,
+      suggestTools,
     } = await req.json()
 
     const selectedMode = parseVivaMode(modeHint)
@@ -177,6 +180,7 @@ export async function POST(req: Request) {
           currentConversationId,
           lastUserMessage,
           attachments,
+          suggestTools: Boolean(suggestTools),
         })
       } catch (error) {
         console.error('[VIVA COACH] Stream error:', error)
@@ -223,6 +227,7 @@ async function runCoachTurn({
   currentConversationId,
   lastUserMessage,
   attachments,
+  suggestTools,
 }: {
   write: (text: string) => Promise<void>
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -235,6 +240,7 @@ async function runCoachTurn({
   currentConversationId: string | null
   lastUserMessage: CoachChatMessage | null
   attachments: VivaPersistedAttachment[]
+  suggestTools: boolean
 }) {
     // =========================================================================
     // LAYER 1: RETRIEVE — Load everything in parallel (interpretation follows)
@@ -391,11 +397,13 @@ async function runCoachTurn({
     const basePrompt = buildCoachSystemPrompt(coachContext)
     const interpretationSection = buildInterpretationSection(interpretation)
     const overlaySection = buildOverlaySection(overlay)
+    const suggestToolsTurn = Boolean(suggestTools) || isSuggestToolsRequest(lastUserMessage?.content)
     const systemPrompt = [
       basePrompt,
       buildModeContract(selectedMode),
       PLATFORM_MAP_PROMPT,
       COACH_TOOLS_PROMPT,
+      suggestToolsTurn ? SUGGEST_TOOLS_PROMPT : '',
       overlaySection,
       interpretationSection,
     ]
@@ -506,20 +514,27 @@ async function runCoachTurn({
       // Allow tool call -> result -> narration (and one follow-up action)
       // Room for read → (read|write) → narrate chains
       stopWhen: stepCountIs(6),
-      async onFinish({ text, usage: stepUsage, totalUsage, response: aiResponse }: {
+      async onFinish({ text, steps, usage: stepUsage, totalUsage, response: aiResponse }: {
         text: string
+        steps?: Array<{ text?: string; toolResults?: Array<{ output?: unknown }> }>
         usage?: { totalTokens?: number; inputTokens?: number; outputTokens?: number }
         totalUsage?: { totalTokens?: number; inputTokens?: number; outputTokens?: number }
         response?: { id?: string; modelId?: string }
       }) {
         try {
+          // Last-step `text` is empty when the model calls a tool and then
+          // stops without narrating. Use every step, then the tool result.
+          const spoken = buildCoachSpokenReply(steps || [{ text }])
+          if (!text.trim() && spoken) {
+            console.log('[VIVA COACH] Silent after tools; confirming from action result')
+          }
           // With tool calling the response spans multiple steps; bill for all of them
           const usage = totalUsage?.totalTokens ? totalUsage : stepUsage
           // Save assistant message
           await supabase.from('ai_conversations').insert({
             user_id: user.id,
             conversation_id: currentConversationId || null,
-            message: text,
+            message: spoken,
             role: 'assistant',
             context: { mode: 'coach', selected_mode: selectedMode, vivaMode: mode, responseDesign, overlay, emotional_state, selectedCategories, userIntent },
             created_at: new Date().toISOString(),
@@ -559,7 +574,7 @@ async function runCoachTurn({
                 overlay,
                 emotional_state,
                 selectedCategories,
-                message_length: text.length,
+                message_length: spoken.length,
                 context_load_time_ms: loadTimeMs,
                 memories_loaded: memoriesResult.length,
               },
@@ -574,7 +589,7 @@ async function runCoachTurn({
           // every request as unauthenticated and no memories were ever saved.
           const recentExchange = [
             ...chatMessages.slice(-4),
-            { role: 'assistant', content: text },
+            { role: 'assistant', content: spoken },
           ]
 
           after(async () => {
@@ -591,7 +606,7 @@ async function runCoachTurn({
                   try {
                     const titleResult = await generateText({
                       model: gateway('openai/gpt-4o-mini'),
-                      prompt: `Write a short title (3-6 words, no quotes, no punctuation at the end) for this conversation. Capture the emotional topic, not generic words like "chat" or "conversation".\n\nMEMBER: ${lastUserMessage?.content?.slice(0, 500) || ''}\n\nVIVA: ${text.slice(0, 300)}`,
+                      prompt: `Write a short title (3-6 words, no quotes, no punctuation at the end) for this conversation. Capture the emotional topic, not generic words like "chat" or "conversation".\n\nMEMBER: ${lastUserMessage?.content?.slice(0, 500) || ''}\n\nVIVA: ${spoken.slice(0, 300)}`,
                       temperature: 0.3,
                     })
                     const title = titleResult.text.trim().replace(/^["']|["']$/g, '').slice(0, 80)
@@ -653,7 +668,13 @@ async function runCoachTurn({
 
     await write(`${COACH_STREAM_META_MARKER}${JSON.stringify({ indicators: retrievalIndicators })}\n`)
 
+    let streamedText = ''
     for await (const chunk of result.textStream) {
+      streamedText += chunk
       await write(chunk)
+    }
+    if (!streamedText.trim()) {
+      const fallback = buildCoachSpokenReply(await result.steps)
+      if (fallback) await write(fallback)
     }
 }
