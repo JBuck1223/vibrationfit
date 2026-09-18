@@ -144,14 +144,15 @@ function narrateCoachActions(facts: CoachActionFact[]): string {
   return lines.join('\n\n')
 }
 
-function parseKind(raw: unknown, message: string): CoachActionKind {
+function parseKind(raw: unknown, message?: string): CoachActionKind {
   if (raw === 'journal' || raw === 'manifestation') return raw
-  if (/journal/i.test(message)) return 'journal'
-  if (/manifestation/i.test(message)) return 'manifestation'
+  if (message && /journal/i.test(message)) return 'journal'
+  if (message && /manifestation/i.test(message)) return 'manifestation'
   return 'other'
 }
 
-function titleFromMessage(message: string): string | undefined {
+function titleFromMessage(message?: string): string | undefined {
+  if (!message) return undefined
   const quoted = message.match(/"([^"]+)"/)
   return quoted?.[1]
 }
