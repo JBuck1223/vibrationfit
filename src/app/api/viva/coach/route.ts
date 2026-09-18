@@ -514,17 +514,12 @@ async function runCoachTurn({
       // Allow tool call -> result -> narration (and one follow-up action)
       // Room for read → (read|write) → narrate chains
       stopWhen: stepCountIs(6),
-      async onFinish({ text, steps, usage: stepUsage, totalUsage, response: aiResponse }: {
-        text: string
-        steps?: Array<{ text?: string; toolResults?: Array<{ output?: unknown }> }>
-        usage?: { totalTokens?: number; inputTokens?: number; outputTokens?: number }
-        totalUsage?: { totalTokens?: number; inputTokens?: number; outputTokens?: number }
-        response?: { id?: string; modelId?: string }
-      }) {
+      async onFinish(event) {
+        const { text, steps, usage: stepUsage, totalUsage, response: aiResponse } = event
         try {
           // Last-step `text` is empty when the model calls a tool and then
           // stops without narrating. Use every step, then the tool result.
-          const spoken = buildCoachSpokenReply(steps || [{ text }])
+          const spoken = buildCoachSpokenReply(steps ?? [{ text }])
           if (!text.trim() && spoken) {
             console.log('[VIVA COACH] Silent after tools; confirming from action result')
           }
