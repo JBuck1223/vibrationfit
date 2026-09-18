@@ -11,7 +11,7 @@ export type CoachToolResultLike = {
 
 export type CoachStepLike = {
   text?: string
-  toolResults?: CoachToolResultLike[]
+  toolResults?: Array<CoachToolResultLike | undefined>
 }
 
 type CoachActionKind =
@@ -52,6 +52,7 @@ function collectCoachActionFacts(steps: CoachStepLike[]): CoachActionFact[] {
   const facts: CoachActionFact[] = []
   for (const step of steps) {
     for (const result of step.toolResults || []) {
+      if (!result) continue
       const fact = factFromToolOutput(result.output)
       if (fact) facts.push(fact)
     }
