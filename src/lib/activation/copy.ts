@@ -279,8 +279,12 @@ export const ACTIVATION_COPY = {
     retry: 'Try again',
     retrying: 'Trying again...',
     keepTitle: 'Keep Your Activation',
-    keepBody: 'Everything created here is yours to download, revisit, and keep.',
+    keepBody:
+      'Download a branded PDF of this Activation plus every audio and image, together in one zip.',
     downloadEverything: 'Download Everything',
+    downloadingEverything: 'Preparing your pack...',
+    downloadFailed: 'Could not prepare your Activation pack. Try again.',
+    downloadPreviewUnavailable: 'This preview cannot be downloaded.',
     inspiredTitle: 'What feels inspired now?',
     inspiredHint:
       'One thought, action, or possibility that feels alive after experiencing your Activation.',
@@ -289,7 +293,7 @@ export const ACTIVATION_COPY = {
     offerTitle: 'One area is chosen. Now write the rest of this life.',
     offerBody:
       'You just entered one reality. Vibration Fit is where VIVA writes your full Life Vision as one life, then takes you to Vibe Tribe and Alignment Gym — your people, your room. The rest of the tools wait until you want them.',
-    offerCta: 'Activate the Rest of This Life',
+    offerCta: 'Join Vibration Fit',
     offerVideoLabel: 'Offer video',
     offerVideoPlaceholder:
       'A short film of what VIVA just created — and how Vibration Fit continues from here — is coming to this spot.',

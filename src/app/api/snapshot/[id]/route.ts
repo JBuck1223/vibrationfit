@@ -68,7 +68,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: rawId } = await params
     const supabase = await createClient()
     
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -76,6 +76,8 @@ export async function PATCH(
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const id = rawId === 'me' ? user.id : rawId
 
     if (user.id !== id) {
       return NextResponse.json({ error: 'You can only edit your own profile' }, { status: 403 })

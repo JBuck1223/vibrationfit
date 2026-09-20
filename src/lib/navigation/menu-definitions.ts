@@ -521,6 +521,7 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'VIVA Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure VIVA model settings' },
       { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across models' },
+      { name: 'Script Studio', href: '/admin/scripts', icon: FileText, description: 'Version, compare, and refine scripts with VIVA' },
     ]
   },
 

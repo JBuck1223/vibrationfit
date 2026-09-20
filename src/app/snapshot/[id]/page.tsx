@@ -8,7 +8,7 @@ import { BadgeDisplay } from '@/components/badges'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
-import { User, Calendar, ArrowLeft, Award, Pencil, Check, X, Quote, UsersRound, Flame, Shield, ChevronDown } from 'lucide-react'
+import { User, Calendar, ArrowLeft, Award, Pencil, Check, X, Quote, UsersRound, Flame, Shield, ChevronDown, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
@@ -35,9 +35,12 @@ export default function SnapshotPage() {
   const [editingAbout, setEditingAbout] = useState(false)
   const [aboutDraft, setAboutDraft] = useState('')
   const [savingAbout, setSavingAbout] = useState(false)
+  const [generatingAbout, setGeneratingAbout] = useState(false)
+  const [aboutError, setAboutError] = useState<string | null>(null)
   const [editingQuote, setEditingQuote] = useState(false)
   const [quoteDraft, setQuoteDraft] = useState('')
   const [savingQuote, setSavingQuote] = useState(false)
+  const [quoteError, setQuoteError] = useState<string | null>(null)
   const [vibeStats, setVibeStats] = useState({ posts: 0, comments: 0, hearts: 0 })
   const [statsExpanded, setStatsExpanded] = useState(false)
   const [freezeOpen, setFreezeOpen] = useState(false)
@@ -140,6 +143,7 @@ export default function SnapshotPage() {
 
   const handleEditAbout = () => {
     setAboutDraft(member?.about_me || '')
+    setAboutError(null)
     setEditingAbout(true)
   }
 
@@ -148,23 +152,62 @@ export default function SnapshotPage() {
     setAboutDraft('')
   }
 
+  const handleGenerateAbout = async () => {
+    if (!member) return
+    if (!editingAbout) {
+      setAboutDraft(member.about_me || '')
+      setEditingAbout(true)
+    }
+    setGeneratingAbout(true)
+    setAboutError(null)
+    try {
+      const response = await fetch('/api/viva/snapshot-about', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          existingAbout: aboutDraft || member.about_me || '',
+        }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to generate About')
+      }
+
+      const generated = typeof data.about_me === 'string' ? data.about_me.slice(0, 500) : ''
+      if (!generated) {
+        throw new Error('VIVA did not return an About. Try again.')
+      }
+
+      setAboutDraft(generated)
+    } catch (err) {
+      console.error('Error generating about me:', err)
+      setAboutError(err instanceof Error ? err.message : 'Failed to generate About')
+    } finally {
+      setGeneratingAbout(false)
+    }
+  }
+
   const handleSaveAbout = async () => {
     if (!member) return
     setSavingAbout(true)
+    setAboutError(null)
     try {
-      const response = await fetch(`/api/snapshot/${userId}`, {
+      const response = await fetch(`/api/snapshot/${member.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ about_me: aboutDraft }),
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setMember(prev => prev ? { ...prev, about_me: data.about_me } : prev)
-        setEditingAbout(false)
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to save')
       }
+      setMember(prev => prev ? { ...prev, about_me: data.about_me } : prev)
+      setEditingAbout(false)
     } catch (err) {
       console.error('Error saving about me:', err)
+      setAboutError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
       setSavingAbout(false)
     }
@@ -172,6 +215,7 @@ export default function SnapshotPage() {
 
   const handleEditQuote = () => {
     setQuoteDraft(member?.favorite_quote || '')
+    setQuoteError(null)
     setEditingQuote(true)
   }
 
@@ -183,20 +227,23 @@ export default function SnapshotPage() {
   const handleSaveQuote = async () => {
     if (!member) return
     setSavingQuote(true)
+    setQuoteError(null)
     try {
-      const response = await fetch(`/api/snapshot/${userId}`, {
+      const response = await fetch(`/api/snapshot/${member.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ favorite_quote: quoteDraft }),
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setMember(prev => prev ? { ...prev, favorite_quote: data.favorite_quote } : prev)
-        setEditingQuote(false)
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to save')
       }
+      setMember(prev => prev ? { ...prev, favorite_quote: data.favorite_quote } : prev)
+      setEditingQuote(false)
     } catch (err) {
       console.error('Error saving favorite quote:', err)
+      setQuoteError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
       setSavingQuote(false)
     }
@@ -368,19 +415,35 @@ export default function SnapshotPage() {
 
         {/* About Me Section */}
         <Card className="p-4 md:p-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-[#39FF14]" />
               <h2 className="text-lg font-semibold text-white">About</h2>
             </div>
-            {member.isOwner && !editingAbout && (
-              <button
-                onClick={handleEditAbout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                {member.about_me ? 'Edit' : 'Add'}
-              </button>
+            {member.isOwner && (
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleGenerateAbout}
+                  disabled={generatingAbout || savingAbout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#BF00FF] hover:text-white hover:bg-[#BF00FF]/20 transition-colors disabled:opacity-50"
+                >
+                  {generatingAbout ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  Generate with VIVA
+                </button>
+                {!editingAbout && (
+                  <button
+                    onClick={handleEditAbout}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    {member.about_me ? 'Edit' : 'Add'}
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -390,16 +453,20 @@ export default function SnapshotPage() {
                 ref={textareaRef}
                 value={aboutDraft}
                 onChange={(e) => setAboutDraft(e.target.value.slice(0, 500))}
-                placeholder={"Tell the Tribe a little about yourself...\n\n📍 Living in Sarasota, FL (raised in TX)\n🥰 Wife and mom of 3\n💻 Working at Vibration Fit"}
+                placeholder={"Tell the Tribe a little about yourself...\n\nLiving in Sarasota, FL (raised in TX)\nWife and mom of 3\nWorking at Vibration Fit"}
                 className="w-full bg-neutral-800 border border-neutral-600 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]/50 resize-none transition-colors"
                 rows={6}
+                disabled={generatingAbout}
               />
+              <p className="text-xs text-neutral-500">
+                VIVA writes this from your profile and life vision. Edit anything before you save.
+              </p>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-neutral-500">{aboutDraft.length}/500</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCancelAbout}
-                    disabled={savingAbout}
+                    disabled={savingAbout || generatingAbout}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -407,7 +474,7 @@ export default function SnapshotPage() {
                   </button>
                   <button
                     onClick={handleSaveAbout}
-                    disabled={savingAbout}
+                    disabled={savingAbout || generatingAbout || !aboutDraft.trim()}
                     className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-[#39FF14] text-black hover:bg-[#39FF14]/90 transition-colors disabled:opacity-50"
                   >
                     {savingAbout ? (
@@ -421,6 +488,9 @@ export default function SnapshotPage() {
                   </button>
                 </div>
               </div>
+              {aboutError && (
+                <p className="text-xs text-red-400">{aboutError}</p>
+              )}
             </div>
           ) : member.about_me ? (
             <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">{member.about_me}</p>
@@ -486,6 +556,9 @@ export default function SnapshotPage() {
                   </button>
                 </div>
               </div>
+              {quoteError && (
+                <p className="text-xs text-red-400">{quoteError}</p>
+              )}
             </div>
           ) : member.favorite_quote ? (
             <blockquote className="border-l-2 border-[#00FFFF]/40 pl-4 py-1">
@@ -507,7 +580,7 @@ export default function SnapshotPage() {
             <h2 className="text-lg font-semibold text-white">Activity Snapshot</h2>
           </div>
           
-          <RetentionDashboard userId={userId} readonly />
+          <RetentionDashboard userId={member.id} readonly />
         </Card>
 
         {/* Badges Section */}
@@ -516,7 +589,7 @@ export default function SnapshotPage() {
             <Award className="w-5 h-5 text-purple-400" />
             <h2 className="text-lg font-semibold text-white">Earned Badges</h2>
           </div>
-          <BadgeDisplay userId={userId} compact={false} hideEmpty={false} lockUntilEarned={true} variant="engraved" />
+          <BadgeDisplay userId={member.id} compact={false} hideEmpty={false} lockUntilEarned={true} variant="engraved" />
         </Card>
       </Stack>
     </Container>

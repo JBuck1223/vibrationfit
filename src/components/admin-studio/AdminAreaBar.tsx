@@ -66,6 +66,8 @@ export function AdminAreaBar() {
       area={{ name: title, icon }}
       areaHeadline={title}
       tabs={tabs}
+      versionSelectors={chrome?.versionSelectors}
+      contextText={chrome?.contextText}
       variant="default"
       appLikePrimaryTabs={tabs.length > 0}
     />

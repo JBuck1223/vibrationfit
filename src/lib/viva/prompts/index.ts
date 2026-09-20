@@ -160,6 +160,12 @@ export {
   buildTravelParserPrompt,
 } from './travel-parser-prompt'
 
+// Snapshot About (Vibe Tribe bio from profile + life vision)
+export {
+  SNAPSHOT_ABOUT_SYSTEM_PROMPT,
+  buildSnapshotAboutPrompt,
+} from './snapshot-about-prompt'
+
 export {
   LIFE_EXPLORER_SIDEKICK_SYSTEM_PROMPT,
   buildLifeExplorerSidekickPrompt,
