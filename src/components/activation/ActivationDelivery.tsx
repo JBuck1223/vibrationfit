@@ -9,6 +9,7 @@ import {
   Spinner,
   AudioPlayer,
   EmbeddedPlayer,
+  Video,
 } from '@/lib/design-system/components'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
@@ -32,6 +33,8 @@ import {
 } from 'lucide-react'
 import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 import { ACTIVATION_COPY } from '@/lib/activation/copy'
+import { ACTIVATION_HOW_TO_VIDEO, ACTIVATION_IMMERSION_OFFER_VIDEO } from '@/lib/activation/videos'
+import { toast } from 'sonner'
 import { ActivationMediaPick } from '@/components/activation/ActivationMediaPick'
 import type { ActivationGenreId, ActivationVoiceId } from '@/lib/activation/media-options'
 
@@ -228,6 +231,7 @@ export function ActivationDelivery({
   const offerViewed = useRef(false)
   const [voiceId, setVoiceId] = useState<ActivationVoiceId>('nova')
   const [genreId, setGenreId] = useState<ActivationGenreId>('unstoppable')
+  const [packing, setPacking] = useState(false)
 
   const categoryLabel = activation.category
     ? getVisionCategoryLabel(activation.category as VisionCategoryKey)
@@ -270,41 +274,32 @@ export function ActivationDelivery({
     onTrack?.('assets_downloaded', { file: filename })
   }
 
-  function downloadEverything() {
-    const html = buildSummaryHtml({ activation, assets, sparkQuestions, categoryLabel })
-    downloadText('activation-summary.html', html)
-    if (activation.vision_statement) downloadText('life-i-choose.txt', activation.vision_statement)
-    if (assets.story?.content) downloadText('future-self-story.txt', assets.story.content)
-    if (assets.incantation?.content) downloadText('incantation.txt', assets.incantation.content)
-    if (sparkQuestions.length) downloadText('spark-query.txt', sparkQuestions.join('\n\n'))
-    if (activation.reflection) downloadText('reflection.txt', activation.reflection)
-    if (visionAudio?.audio_url) {
-      const a = document.createElement('a')
-      a.href = visionAudio.audio_url
-      a.download = 'life-i-choose.mp3'
-      a.click()
+  async function downloadEverything() {
+    if (packing) return
+    if (activation.id === 'preview') {
+      toast.error(copy.downloadPreviewUnavailable)
+      return
     }
-    if (storyAudio?.audio_url) {
+    setPacking(true)
+    try {
+      const res = await fetch(`/api/activation/${activation.id}/download`, { method: 'POST' })
+      const data = (await res.json().catch(() => ({}))) as { url?: string; filename?: string; error?: string }
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || copy.downloadFailed)
+      }
       const a = document.createElement('a')
-      a.href = storyAudio.audio_url
-      a.download = 'future-self-story.mp3'
-      a.click()
-    }
-    songTracks.forEach((track, i) => {
-      const a = document.createElement('a')
-      a.href = track.audio_url
-      a.download = `my-activation-song${songTracks.length > 1 ? `-v${i + 1}` : ''}.mp3`
-      a.click()
-    })
-    assets.manifestations.filter((m) => m.image_url).forEach((m) => {
-      const a = document.createElement('a')
-      a.href = m.image_url!
-      a.download = `${m.name}.jpg`
-      a.target = '_blank'
+      a.href = data.url
+      a.download = data.filename || 'Activation.zip'
       a.rel = 'noreferrer'
+      document.body.appendChild(a)
       a.click()
-    })
-    onTrack?.('assets_downloaded', { file: 'everything' })
+      a.remove()
+      onTrack?.('assets_downloaded', { file: 'everything' })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : copy.downloadFailed)
+    } finally {
+      setPacking(false)
+    }
   }
 
   function paidCta() {
@@ -416,7 +411,12 @@ export function ActivationDelivery({
           ) : null}
           Activation
         </h1>
-        <VideoSlot label={copy.heroVideoLabel} placeholder={copy.heroVideoPlaceholder} />
+        <VideoSlot
+          label={copy.heroVideoLabel}
+          src={ACTIVATION_HOW_TO_VIDEO.src}
+          poster={ACTIVATION_HOW_TO_VIDEO.poster}
+          trackingId="activation-how-to-enter"
+        />
       </div>
 
       <ActivationMap copy={copy} />
@@ -542,9 +542,18 @@ export function ActivationDelivery({
         <Stack gap="lg">
           <SectionHeading icon={Download} color="#39FF14" title={copy.keepTitle} hint={copy.keepBody} />
           <div className="flex justify-center">
-            <Button variant="secondary" size="sm" onClick={downloadEverything}>
-              <Download className="mr-2 h-4 w-4" />
-              {copy.downloadEverything}
+            <Button variant="secondary" size="sm" onClick={downloadEverything} disabled={packing}>
+              {packing ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  {copy.downloadingEverything}
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  {copy.downloadEverything}
+                </>
+              )}
             </Button>
           </div>
         </Stack>
@@ -590,7 +599,13 @@ export function ActivationDelivery({
                 <p className="mx-auto max-w-4xl text-base leading-relaxed text-neutral-400 md:text-lg">
                   {copy.offerBody}
                 </p>
-                <VideoSlot label={copy.offerVideoLabel} placeholder={copy.offerVideoPlaceholder} compact />
+                <VideoSlot
+                  label={copy.offerVideoLabel}
+                  src={ACTIVATION_IMMERSION_OFFER_VIDEO.src}
+                  poster={ACTIVATION_IMMERSION_OFFER_VIDEO.poster}
+                  trackingId="activation-offer-video"
+                  compact
+                />
                 <div className="flex justify-center">
                   <Button variant="primary" size="sm" onClick={paidCta}>
                     <Sparkles className="mr-2 h-4 w-4" />
@@ -656,18 +671,27 @@ function CopyControl({
 
 function VideoSlot({
   label,
-  placeholder,
+  src,
+  poster,
+  trackingId,
   compact,
 }: {
   label: string
-  placeholder: string
+  src: string
+  poster: string
+  trackingId: string
   compact?: boolean
 }) {
   return (
     <div className={`mx-auto w-full ${compact ? 'max-w-xl' : 'mt-8 max-w-3xl'}`}>
-      <div className="flex aspect-video w-full items-center justify-center rounded-2xl border border-white/10 bg-black/40 px-6">
-        <p className="text-sm leading-relaxed text-neutral-500">{placeholder}</p>
-      </div>
+      <Video
+        src={src}
+        poster={poster}
+        trackingId={trackingId}
+        saveProgress={false}
+        variant="card"
+        className="border-white/10"
+      />
       <p className="mt-2 text-center text-[11px] uppercase tracking-wider text-neutral-600">{label}</p>
     </div>
   )
@@ -1005,26 +1029,3 @@ function BoardSection({
   )
 }
 
-function buildSummaryHtml(params: {
-  activation: DeliveryActivation
-  assets: DeliveryAssets
-  sparkQuestions: string[]
-  categoryLabel: string | null
-}): string {
-  const { activation, assets, sparkQuestions, categoryLabel } = params
-  const esc = (s: string) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  return `<!doctype html>
-<html><head><meta charset="utf-8"><title>My Activation</title>
-<style>body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.6;color:#111}
-h1,h2{font-family:system-ui,sans-serif} h2{margin-top:2em}</style></head>
-<body>
-<h1>${esc(categoryLabel ? `${categoryLabel} Activation` : 'My Activation')}</h1>
-${activation.essence ? `<p><em>${esc(activation.essence)}</em></p>` : ''}
-${activation.reflection || activation.current_state ? `<h2>What was true</h2><p>${esc(activation.reflection || activation.current_state || '')}</p>` : ''}
-<h2>Life I Choose</h2><p>${esc(activation.vision_statement || '')}</p>
-${assets.story?.content ? `<h2>Future-Self Story</h2><p>${esc(assets.story.content)}</p>` : ''}
-${assets.incantation?.content ? `<h2>Incantation</h2><p>${esc(assets.incantation.content)}</p>` : ''}
-${sparkQuestions.length ? `<h2>SparkQuery</h2>${sparkQuestions.map((q) => `<p>${esc(q)}</p>`).join('')}` : ''}
-</body></html>`
-}

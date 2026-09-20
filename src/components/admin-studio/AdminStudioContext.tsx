@@ -2,12 +2,14 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import type { AreaBarTab } from '@/lib/design-system/components'
+import type { AreaBarTab, AreaBarVersionSelector } from '@/lib/design-system/components'
 
 export type AdminStudioChrome = {
   title?: string
   icon?: LucideIcon
   tabs?: AreaBarTab[]
+  versionSelectors?: AreaBarVersionSelector[]
+  contextText?: string
 }
 
 type AdminStudioContextValue = {
@@ -46,5 +48,5 @@ export function useAdminStudioChrome(chrome: AdminStudioChrome | null) {
   useEffect(() => {
     setChrome(chrome)
     return () => setChrome(null)
-  }, [setChrome, chrome?.title, tabKey])
+  }, [setChrome, chrome?.title, chrome?.icon, chrome?.contextText, chrome?.versionSelectors, tabKey])
 }
