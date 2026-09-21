@@ -3,13 +3,13 @@
 import { useState, useEffect, useMemo, useRef, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Card, Input, Button, CategoryGrid, Container, Stack, Spinner, DeleteConfirmationDialog, Textarea } from '@/lib/design-system'
+import { Card, Input, Button, CategoryGrid, Container, Stack, Spinner, DeleteConfirmationDialog, Textarea, VIVAButton } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import {
-  ArrowLeft, ArrowUpRight, BookOpen, Brain, CheckCircle, ChevronDown, ChevronRight,
-  Edit3, Layers, ListChecks, Plus, Save, Sparkles, Trash2, Unlink, Upload, XCircle,
+  ArrowLeft, ArrowUpRight, Brain, CheckCircle, ChevronDown, ChevronRight,
+  Edit3, Plus, Save, Sparkles, Trash2, Unlink, Upload, XCircle,
 } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
@@ -17,16 +17,11 @@ import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { SavedRecordings } from '@/components/SavedRecordings'
 import Link from 'next/link'
 import { colors } from '@/lib/design-system/tokens'
-import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
-import { AddExistingToKitModal } from '@/components/manifestations-studio/AddExistingToKitModal'
-import { GatherFromLibrary, type GatherPinResult } from '@/components/manifestations-studio/GatherFromLibrary'
 import { EssenceSection, type EssenceVersion } from '@/components/manifestations-studio/EssenceSection'
 import { BrainDumpOrganizer } from '@/components/manifestations-studio/BrainDumpOrganizer'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
 import { keys } from '@/lib/query/keys'
-import { toast } from 'sonner'
 import {
-  DESTINATION_META,
   SLOT_DESTINATIONS,
   SLOT_LABELS,
   assetLink,
@@ -74,6 +69,15 @@ interface AbundanceEventRow {
   amount: number | null
 }
 
+interface ConversationRow {
+  id: string
+  title: string | null
+  preview_message: string | null
+  last_message_at: string | null
+  created_at: string
+  message_count: number
+}
+
 interface AssetRowData extends ManifestationAsset {
   label?: string | null
 }
@@ -83,6 +87,7 @@ interface ManifestationDetail {
   assets: AssetRowData[]
   journal_entries: JournalEntryRow[]
   abundance_events: AbundanceEventRow[]
+  conversations: ConversationRow[]
   activations_this_week: number
   activations_since_opened: number
   projects: ActionGroup[]
@@ -95,27 +100,9 @@ async function fetchDetail(id: string): Promise<ManifestationDetail> {
   return res.json()
 }
 
-function SectionHeader({ icon: Icon, title, subtitle, action }: {
-  icon: React.ComponentType<{ className?: string }>
-  title: string
-  subtitle?: string
-  action?: React.ReactNode
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#39FF14]/10 shrink-0">
-          <Icon className="h-4 w-4 text-[#39FF14]" />
-        </div>
-        <div>
-          <h3 className="text-base font-semibold text-white">{title}</h3>
-          {subtitle && <p className="text-xs text-neutral-500">{subtitle}</p>}
-        </div>
-      </div>
-      {action}
-    </div>
-  )
-}
+const HERO_FRAME_CLASS = 'relative overflow-hidden rounded-2xl border border-[#282828] bg-black w-full max-w-full'
+const HERO_MAX_H_CLASS = 'max-h-[min(52vh,340px)] md:max-h-[min(50vh,480px)]'
+const HERO_IMAGE_CLASS = `mx-auto block h-auto w-full object-contain ${HERO_MAX_H_CLASS}`
 
 export default function ManifestationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -133,8 +120,6 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showAddToKit, setShowAddToKit] = useState(false)
-  const [showAttachJournal, setShowAttachJournal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [actualizedFile, setActualizedFile] = useState<File | null>(null)
@@ -160,8 +145,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
   const [showAddGroup, setShowAddGroup] = useState(false)
   const [stepDrafts, setStepDrafts] = useState<Record<string, string>>({})
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
-  const [showGather, setShowGather] = useState(false)
-  const [distillSignal, setDistillSignal] = useState(0)
+  const [detailPane, setDetailPane] = useState<'essence' | 'action' | 'journey'>('essence')
   const editParamAppliedRef = useRef(false)
 
   // Hydrate the edit form whenever fresh data lands and we're not mid-edit
@@ -196,32 +180,6 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     ])
   }
 
-  const handleGathered = async (result: GatherPinResult) => {
-    setShowGather(false)
-    const destTitles = result.destinations.map(d => DESTINATION_META[d].title)
-    const uniqueTitles = Array.from(new Set(destTitles))
-    const extra = result.failed > 0 ? ` (${result.failed} skipped)` : ''
-    toast.success(
-      uniqueTitles.length > 0
-        ? `Added ${result.pinned} to ${uniqueTitles.join(', ')}${extra}`
-        : `Added ${result.pinned} to this manifestation${extra}`,
-    )
-    await refresh()
-    if (result.destinations.includes('essence') || result.destinations.includes('journey')) {
-      setDistillSignal(n => n + 1)
-    }
-    const scrollTo = result.destinations.includes('journey')
-      ? 'the-journey'
-      : result.destinations.includes('living')
-        ? 'living-it'
-        : result.destinations.includes('action')
-          ? 'inspired-action'
-          : 'the-essence'
-    requestAnimationFrame(() => {
-      document.getElementById(scrollTo)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
-  }
-
   const journalAssetByEntryId = useMemo(() => {
     const map = new Map<string, AssetRowData>()
     for (const asset of data?.assets || []) {
@@ -238,11 +196,19 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     return map
   }, [data])
 
+  const conversationAssetById = useMemo(() => {
+    const map = new Map<string, AssetRowData>()
+    for (const asset of data?.assets || []) {
+      if (asset.slot === 'conversation' && asset.entity_id) map.set(asset.entity_id, asset)
+    }
+    return map
+  }, [data])
+
   const journeyItems = useMemo(() => {
     const items: Array<{
       key: string
       date: string
-      kind: 'journal' | 'abundance' | 'asset'
+      kind: 'journal' | 'abundance' | 'conversation' | 'asset'
       title: string
       body?: string | null
       meta?: string
@@ -277,9 +243,22 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
       })
     }
 
+    for (const conversation of data?.conversations || []) {
+      items.push({
+        key: `conversation-${conversation.id}`,
+        date: conversation.last_message_at || conversation.created_at,
+        kind: 'conversation',
+        title: conversation.title || 'VIVA chat',
+        body: conversation.preview_message,
+        meta: 'VIVA',
+        href: `/viva?thread=${conversation.id}`,
+        asset: conversationAssetById.get(conversation.id),
+      })
+    }
+
     for (const asset of data?.assets || []) {
       if (SLOT_DESTINATIONS[asset.slot as KitSlot] !== 'journey') continue
-      if (asset.slot === 'journal' || asset.slot === 'abundance') continue
+      if (asset.slot === 'journal' || asset.slot === 'abundance' || asset.slot === 'conversation') continue
       items.push({
         key: `asset-${asset.id}`,
         date: asset.created_at,
@@ -292,12 +271,19 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     }
 
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  }, [data, journalAssetByEntryId, abundanceAssetByEventId])
+  }, [data, journalAssetByEntryId, abundanceAssetByEventId, conversationAssetById])
 
   const livingAssets = useMemo(
     () => (data?.assets || []).filter(a => SLOT_DESTINATIONS[a.slot as KitSlot] === 'living'),
     [data],
   )
+
+  const actionStats = useMemo(() => {
+    const groups = data?.projects || []
+    const totalSteps = groups.reduce((n, g) => n + (g.project_tasks?.length || 0), 0)
+    const doneSteps = groups.reduce((n, g) => n + (g.project_tasks || []).filter(t => t.is_complete).length, 0)
+    return { totalSteps, doneSteps }
+  }, [data])
 
   const handleCategoryToggle = (categoryLabel: string) => {
     setFormData(prev => ({
@@ -550,25 +536,25 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
   const getStatusBadge = (status: string) => {
     if (status === 'active') {
       return (
-        <div className="rounded-full px-4 py-2 flex items-center gap-2 bg-black/60 backdrop-blur border border-[#39FF14]/40 shadow-lg">
+        <div className="rounded-full px-3 py-1.5 flex items-center gap-2 bg-black/60 backdrop-blur border border-[#39FF14]/40 shadow-lg">
           <div className="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse"></div>
-          <span className="text-[#39FF14] text-sm font-semibold">Active</span>
+          <span className="text-[#39FF14] text-xs sm:text-sm font-semibold">Active</span>
         </div>
       )
     }
     if (status === 'actualized') {
       return (
-        <div className="rounded-full px-4 py-2 flex items-center gap-2 bg-black/60 backdrop-blur border border-[#BF00FF]/40 shadow-lg">
+        <div className="rounded-full px-3 py-1.5 flex items-center gap-2 bg-black/60 backdrop-blur border border-[#BF00FF]/40 shadow-lg">
           <CheckCircle className="w-4 h-4 text-[#D46BFF]" />
-          <span className="text-[#D46BFF] text-sm font-semibold">Actualized</span>
+          <span className="text-[#D46BFF] text-xs sm:text-sm font-semibold">Actualized</span>
         </div>
       )
     }
     if (status === 'inactive') {
       return (
-        <div className="rounded-full px-4 py-2 flex items-center gap-2 bg-black/60 backdrop-blur border border-neutral-600 shadow-lg">
+        <div className="rounded-full px-3 py-1.5 flex items-center gap-2 bg-black/60 backdrop-blur border border-neutral-600 shadow-lg">
           <XCircle className="w-4 h-4 text-neutral-400" />
-          <span className="text-neutral-400 text-sm font-semibold">Inactive</span>
+          <span className="text-neutral-400 text-xs sm:text-sm font-semibold">Inactive</span>
         </div>
       )
     }
@@ -605,28 +591,22 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <Container size="xl">
+    <Container size="xl" className="min-w-0">
       <Stack gap="lg">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Button variant="ghost" size="sm" onClick={() => router.push('/manifestations')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Manifestations
           </Button>
           {!isEditing && (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setShowAddToKit(true)}>
-                <Layers className="w-4 h-4 mr-2" />
-                Link
-              </Button>
-              <Button variant="primary" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit3 className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            </div>
+            <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+              <Edit3 className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
           )}
         </div>
 
-        <Card className="p-4 md:p-6 lg:p-8">
+        <Card className="p-4 md:p-6 lg:p-8 overflow-x-hidden min-w-0">
           {isEditing ? (
             <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
               <div>
@@ -995,231 +975,214 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                 />
               </div>
 
-              <div className="flex flex-row gap-2 sm:gap-3 sm:justify-end">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <Button
                   type="button"
                   variant="danger"
                   size="sm"
-                  onClick={() => {
-                    setShowVisionFileDrop(false)
-                    setShowEvidenceFileDrop(false)
-                    setIsEditing(false)
-                  }}
-                  className="flex-1 sm:flex-none sm:w-auto"
+                  onClick={() => setShowDeleteConfirm(true)}
                 >
-                  Cancel
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
                 </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  loading={saving}
-                  disabled={saving}
-                  className="flex-1 sm:flex-none sm:w-auto"
-                >
-                  {saving ? (
-                    'Saving...'
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Changes
-                    </>
-                  )}
-                </Button>
+                <div className="flex flex-row gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowVisionFileDrop(false)
+                      setShowEvidenceFileDrop(false)
+                      setIsEditing(false)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    loading={saving}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      'Saving...'
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           ) : (
             <div className="space-y-8">
-              {/* Hero — before/after slider when both photos exist */}
               {(() => {
                 const hasBoth = Boolean(item.image_url && item.actualized_image_url)
                 const displayImageUrl = (item.status === 'actualized' && item.actualized_image_url)
                   ? item.actualized_image_url
                   : item.image_url
-                if (hasBoth) {
-                  return (
-                    <div className="relative rounded-2xl overflow-hidden border border-[#282828] bg-black h-[45vh] md:h-[56vh]">
-                      <BeforeAfterSlider
-                        beforeSrc={item.image_url!}
-                        afterSrc={item.actualized_image_url!}
-                        fill
-                        className="w-full h-full"
-                      />
-                      <div className="absolute top-3 right-3 pointer-events-none">
-                        {getStatusBadge(item.status)}
-                      </div>
-                      <p className="absolute bottom-3 left-3 text-[10px] uppercase tracking-[0.2em] text-white/70 bg-black/40 rounded-full px-2.5 py-1 pointer-events-none">
-                        Vision ↔ Actualized — drag to compare
-                      </p>
+                const hasImage = hasBoth || Boolean(displayImageUrl)
+                const heroMedia = hasBoth ? (
+                  <div className={HERO_FRAME_CLASS}>
+                    <BeforeAfterSlider
+                      beforeSrc={item.image_url!}
+                      afterSrc={item.actualized_image_url!}
+                      contain
+                      className={`mx-auto w-full ${HERO_MAX_H_CLASS}`}
+                    />
+                    <div className="absolute top-3 right-3 pointer-events-none">
+                      {getStatusBadge(item.status)}
                     </div>
-                  )
-                }
-                return displayImageUrl ? (
-                  <div className="relative rounded-2xl overflow-hidden border border-[#282828]">
+                    <p className="absolute bottom-3 left-3 right-3 text-[10px] uppercase tracking-[0.2em] text-white/70 bg-black/40 rounded-full px-2.5 py-1 pointer-events-none w-fit max-w-[calc(100%-1.5rem)] truncate">
+                      Vision ↔ Actualized — drag to compare
+                    </p>
+                  </div>
+                ) : displayImageUrl ? (
+                  <div className={HERO_FRAME_CLASS}>
                     <img
                       src={displayImageUrl}
                       alt={item.name}
-                      className="w-full h-auto max-h-[45vh] md:max-h-[56vh] object-cover block"
+                      className={HERO_IMAGE_CLASS}
                     />
                     <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
                     <div className="absolute top-3 right-3">
                       {getStatusBadge(item.status)}
                     </div>
                   </div>
-                ) : (
-                  <div className="flex justify-end">{getStatusBadge(item.status)}</div>
+                ) : null
+
+                return (
+                  <div className={hasImage ? 'flex flex-col gap-5 md:flex-row md:items-start md:gap-8' : undefined}>
+                    {heroMedia && (
+                      <div className="w-full shrink-0 md:w-[min(48%,26rem)]">
+                        {heroMedia}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1 space-y-3">
+                      {!hasImage && getStatusBadge(item.status)}
+                      <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight break-words">{item.name}</h1>
+                      {item.description && (
+                        <p className="text-neutral-300 text-base md:text-lg">{item.description}</p>
+                      )}
+                      {item.categories && item.categories.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-neutral-500">Life Category:</span>
+                        {item.categories.map((categoryKey: string) => {
+                          const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
+                          const CategoryIcon = categoryInfo?.icon
+                          return (
+                            <span
+                              key={categoryKey}
+                              className="inline-flex items-center gap-1.5 text-xs bg-primary-500/15 text-primary-500 border border-primary-500/25 px-2.5 py-1 rounded-full"
+                            >
+                              {CategoryIcon && (
+                                <CategoryIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                              )}
+                              {categoryInfo ? categoryInfo.label : categoryKey}
+                            </span>
+                          )
+                        })}
+                      </div>
+                      )}
+                      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap pt-1">
+                        {item.status !== 'actualized' && (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="w-full sm:w-auto"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, status: 'actualized' }))
+                              setIsEditing(true)
+                            }}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Actualize
+                          </Button>
+                        )}
+                        <VIVAButton
+                          size="sm"
+                          className="w-full sm:w-auto"
+                          onClick={() => router.push(`/viva?manifestation=${item.id}&t=${Date.now()}`)}
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          Chat with VIVA about this
+                        </VIVAButton>
+                      </div>
+                    </div>
+                  </div>
                 )
               })()}
 
-              {/* Title + meta */}
-              <div className="space-y-3 -mt-2">
-                <h1 className="text-3xl md:text-4xl font-bold text-white leading-tight">{item.name}</h1>
-                {item.description && (
-                  <p className="text-neutral-300 text-base md:text-lg">{item.description}</p>
-                )}
-                {item.categories && item.categories.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {item.categories.map((categoryKey: string) => {
-                      const categoryInfo = VISION_CATEGORIES.find(c => c.key === categoryKey)
-                      const CategoryIcon = categoryInfo?.icon
-                      return (
-                        <span
-                          key={categoryKey}
-                          className="inline-flex items-center gap-1.5 text-xs bg-primary-500/15 text-primary-500 border border-primary-500/25 px-2.5 py-1 rounded-full"
-                        >
-                          {CategoryIcon && (
-                            <CategoryIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+              <div>
+                <nav className="grid w-full grid-cols-3 rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]">
+                  {([
+                    { id: 'essence' as const, label: 'Essence', count: null as string | null },
+                    {
+                      id: 'action' as const,
+                      label: 'Action',
+                      count: actionStats.totalSteps > 0
+                        ? `${actionStats.doneSteps}/${actionStats.totalSteps}`
+                        : null,
+                    },
+                    {
+                      id: 'journey' as const,
+                      label: 'Journey',
+                      count: journeyItems.length > 0 ? String(journeyItems.length) : null,
+                    },
+                  ]).map(pane => {
+                    const active = detailPane === pane.id
+                    return (
+                      <button
+                        key={pane.id}
+                        type="button"
+                        onClick={() => setDetailPane(pane.id)}
+                        className={`flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                          active
+                            ? 'bg-zinc-900 font-semibold text-white'
+                            : 'text-zinc-500 hover:text-zinc-200'
+                        }`}
+                      >
+                        <span className="inline-flex items-baseline justify-center gap-1.5">
+                          {pane.label}
+                          {pane.count && (
+                            <span className={`text-[11px] tabular-nums ${active ? 'text-zinc-400' : 'text-neutral-600'}`}>
+                              {pane.count}
+                            </span>
                           )}
-                          {categoryInfo ? categoryInfo.label : categoryKey}
                         </span>
-                      )
-                    })}
-                  </div>
-                )}
+                      </button>
+                    )
+                  })}
+                </nav>
               </div>
 
-              {/* Stats strip */}
-              {(() => {
-                const groups = data?.projects || []
-                const totalSteps = groups.reduce((n, g) => n + (g.project_tasks?.length || 0), 0)
-                const doneSteps = groups.reduce((n, g) => n + (g.project_tasks || []).filter(t => t.is_complete).length, 0)
-                const days = Math.max(1, Math.round((Date.now() - new Date(item.created_at).getTime()) / 86400000))
-                const stats: Array<{ label: string; value: string; accent?: string }> = [
-                  item.status === 'actualized' && item.actualized_at
-                    ? { label: 'Actualized', value: new Date(item.actualized_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }), accent: 'text-purple-400' }
-                    : { label: 'Days manifesting', value: String(days) },
-                  { label: 'Inspired actions', value: totalSteps > 0 ? `${doneSteps}/${totalSteps}` : '—', accent: doneSteps > 0 ? 'text-[#39FF14]' : undefined },
-                  { label: 'Journey entries', value: journeyItems.length > 0 ? String(journeyItems.length) : '—' },
-                  { label: 'Showed up this week', value: String(data?.activations_this_week ?? 0), accent: (data?.activations_this_week ?? 0) > 0 ? 'text-[#39FF14]' : undefined },
-                ]
-                return (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                    {stats.map(stat => (
-                      <div key={stat.label} className="rounded-xl border border-[#282828] bg-[#161616] px-4 py-3 text-center">
-                        <p className={`text-lg font-bold ${stat.accent || 'text-white'}`}>{stat.value}</p>
-                        <p className="text-[10px] uppercase tracking-[0.16em] text-neutral-500 mt-0.5">{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
-
-              {/* Work it with VIVA */}
-              <section className="rounded-2xl border border-[#BF00FF]/25 bg-[#BF00FF]/[0.06] p-4 md:p-5 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#BF00FF]/15 shrink-0">
-                      <Sparkles className="h-4 w-4 text-[#D46BFF]" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-white">Work this with VIVA</h3>
-                      <p className="text-xs text-neutral-400">Bring in what you already made — it lands on The Journey, Living it, and The Essence</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setShowGather(v => !v)}>
-                      <Layers className="w-4 h-4 mr-1.5" />
-                      Gather from what I have
-                    </Button>
-                    <Button variant="accent" size="sm" asChild>
-                      <Link href="/viva">
-                        <Sparkles className="w-4 h-4 mr-1.5" />
-                        Continue in VIVA
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-                {showGather && (
-                  <GatherFromLibrary
-                    kitId={item.id}
-                    categories={item.categories || []}
-                    query={item.name}
-                    onPinned={handleGathered}
-                  />
-                )}
-              </section>
-
-              {/* The Essence — why you want it / what it feels like */}
+              {detailPane === 'essence' && (
               <EssenceSection
                 manifestationId={item.id}
                 whyItMatters={item.why_it_matters}
                 whatItFeelsLike={item.what_it_feels_like}
                 versions={data?.essence_versions || []}
                 onSaved={refresh}
-                onEdit={() => setIsEditing(true)}
-                distillSignal={distillSignal}
+                showHeading={false}
               />
-
-              {livingAssets.length > 0 && (
-                <section id="living-it" className="space-y-4">
-                  <SectionHeader
-                    icon={Layers}
-                    title="Living it"
-                    subtitle="Stories, songs, and related desires already woven into this reality"
-                  />
-                  <div className="space-y-2">
-                    {livingAssets.map(asset => {
-                      const href = assetLink(asset.slot as KitSlot, asset.entity_id, asset.handoff_path)
-                      return (
-                        <div key={asset.id} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#161616] px-4 py-3">
-                          <Link href={href} className="flex-1 min-w-0 hover:text-white">
-                            <p className="text-sm text-white truncate">{asset.label || SLOT_LABELS[asset.slot as KitSlot] || asset.slot}</p>
-                            <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-500">{SLOT_LABELS[asset.slot as KitSlot]}</p>
-                          </Link>
-                          <Link href={href} className="text-neutral-500 hover:text-white">
-                            <ArrowUpRight className="h-4 w-4" />
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => unlinkAsset(asset.id)}
-                            className="text-neutral-500 hover:text-white"
-                            title="Remove from this manifestation"
-                          >
-                            <Unlink className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </section>
               )}
 
-              {/* Inspired Action Steps */}
+              {detailPane === 'action' && (
               <section id="inspired-action" className="space-y-4">
-                <SectionHeader
-                  icon={ListChecks}
-                  title="Inspired Action Steps"
-                  subtitle="Action groups with steps — brain dump it and VIVA organizes, or build by hand"
-                  action={
-                    <div className="flex items-center gap-1.5">
-                      <Button variant="ghost" size="sm" onClick={() => setShowBrainDump(v => !v)}>
-                        <Brain className="w-4 h-4 mr-1" /> Brain dump
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setShowAddGroup(v => !v)}>
-                        <Plus className="w-4 h-4 mr-1" /> Group
-                      </Button>
-                    </div>
-                  }
-                />
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddGroup(v => !v)}
+                    className="text-sm text-neutral-400 hover:text-white transition-colors"
+                  >
+                    Add group
+                  </button>
+                  <Button variant="ghost" size="sm" onClick={() => setShowBrainDump(v => !v)}>
+                    <Brain className="w-4 h-4 mr-1" /> Brain dump
+                  </Button>
+                </div>
                 {showBrainDump && (
                   <BrainDumpOrganizer
                     manifestationId={item.id}
@@ -1228,19 +1191,20 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                   />
                 )}
                 {showAddGroup && (
-                  <div className="flex gap-2 items-center">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Input
                       value={newGroupTitle}
                       onChange={e => setNewGroupTitle(e.target.value)}
                       placeholder="Action group title (e.g. Closet, Bedroom, Garage)"
+                      className="min-w-0"
                     />
-                    <Button variant="primary" size="sm" onClick={addActionGroup} disabled={addingGroup || !newGroupTitle.trim()}>
+                    <Button variant="primary" size="sm" onClick={addActionGroup} disabled={addingGroup || !newGroupTitle.trim()} className="w-full sm:w-auto">
                       {addingGroup ? 'Adding…' : 'Add'}
                     </Button>
                   </div>
                 )}
                 {(data?.projects || []).length === 0 && !showAddGroup && !showBrainDump ? (
-                  <p className="text-sm text-neutral-500">No inspired actions yet. Brain dump what&apos;s in your head and VIVA organizes it, or add a group by hand.</p>
+                  <p className="text-sm text-neutral-500 text-center">No actions yet. Brain dump or add a group.</p>
                 ) : (
                   <div className="space-y-3">
                     {(data?.projects || []).map(group => {
@@ -1343,28 +1307,19 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                   </div>
                 )}
               </section>
+              )}
 
-              {/* The Journey */}
-              <section id="the-journey" className="space-y-4">
-                <SectionHeader
-                  icon={BookOpen}
-                  title="The Journey"
-                  subtitle="Journal, wins, and evidence of becoming this — gathered here or written along the way"
-                  action={
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => setShowAttachJournal(true)}>
-                        <Layers className="w-4 h-4 mr-1" /> Attach
-                      </Button>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/journal/new?manifestation=${item.id}`}>
-                          <Plus className="w-4 h-4 mr-1" /> Entry
-                        </Link>
-                      </Button>
-                    </div>
-                  }
-                />
+              {detailPane === 'journey' && (
+              <section id="the-journey" className="space-y-5">
+                <div className="flex flex-wrap items-center justify-center">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/journal/new?manifestation=${item.id}`}>
+                      <Plus className="w-4 h-4 mr-1" /> Entry
+                    </Link>
+                  </Button>
+                </div>
                 {journeyItems.length === 0 ? (
-                  <p className="text-sm text-neutral-500">Nothing on The Journey yet. Gather from what you have, or write an entry — VIVA can capture clarity from your conversations here too.</p>
+                  <p className="text-sm text-neutral-500 text-center">Nothing here yet. Write an entry or chat with VIVA.</p>
                 ) : (
                   <div className="relative pl-5 space-y-4 before:absolute before:left-1.5 before:top-1 before:bottom-1 before:w-px before:bg-[#2A2A2A]">
                     {journeyItems.map(itemRow => (
@@ -1401,68 +1356,58 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                     ))}
                   </div>
                 )}
+
+                {livingAssets.length > 0 && (
+                  <div id="living-it" className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-neutral-500">Living it</p>
+                    {livingAssets.map(asset => {
+                      const href = assetLink(asset.slot as KitSlot, asset.entity_id, asset.handoff_path)
+                      return (
+                        <div key={asset.id} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#161616] px-4 py-3">
+                          <Link href={href} className="flex-1 min-w-0 hover:text-white">
+                            <p className="text-sm text-white truncate">{asset.label || SLOT_LABELS[asset.slot as KitSlot] || asset.slot}</p>
+                            <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-500">{SLOT_LABELS[asset.slot as KitSlot]}</p>
+                          </Link>
+                          <Link href={href} className="text-neutral-500 hover:text-white">
+                            <ArrowUpRight className="h-4 w-4" />
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => unlinkAsset(asset.id)}
+                            className="text-neutral-500 hover:text-white"
+                            title="Remove from this manifestation"
+                          >
+                            <Unlink className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {item.status === 'actualized' && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-neutral-500">How it manifested</p>
+                    {item.actualization_story ? (
+                      <p className="text-neutral-200 whitespace-pre-wrap rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">{item.actualization_story}</p>
+                    ) : (
+                      <p className="text-sm text-neutral-500">Add the story when you edit this manifestation.</p>
+                    )}
+                  </div>
+                )}
+
+                {audioRecordings.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-neutral-500">Recordings</p>
+                    <SavedRecordings
+                      recordings={audioRecordings}
+                      onDelete={() => {}}
+                    />
+                  </div>
+                )}
               </section>
-
-              {/* How It Manifested */}
-              {item.status === 'actualized' && (
-                <section className="space-y-4">
-                  <SectionHeader icon={CheckCircle} title="How It Manifested" subtitle="The actualization story" />
-                  {item.actualization_story ? (
-                    <div className="p-6 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                      <p className="text-neutral-200 whitespace-pre-wrap">{item.actualization_story}</p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-neutral-500">Add the story of how this became real — edit this manifestation to capture it.</p>
-                  )}
-                </section>
               )}
 
-              {item.status !== 'actualized' && (
-                <section className="pt-2 text-center space-y-3">
-                  <p className="text-sm text-neutral-500">Only you mark this. When this reality is real, Actualize it.</p>
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, status: 'actualized' }))
-                      setIsEditing(true)
-                    }}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Actualize
-                  </Button>
-                </section>
-              )}
-
-              {audioRecordings.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.2em]">Recordings</h3>
-                  <SavedRecordings
-                    recordings={audioRecordings}
-                    onDelete={() => {}}
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end border-t border-[#222] pt-5">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="flex-1 sm:flex-none sm:w-32"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="flex-1 sm:flex-none sm:w-32"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
             </div>
           )}
         </Card>
@@ -1478,25 +1423,6 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
           loadingText="Deleting..."
         />
 
-        {item && (
-          <AddToKitSheet
-            isOpen={showAddToKit}
-            onClose={() => setShowAddToKit(false)}
-            slot="vision_board"
-            entityType="manifestations"
-            entityId={item.id}
-            label={item.name}
-            excludeId={item.id}
-          />
-        )}
-
-        <AddExistingToKitModal
-          isOpen={showAttachJournal}
-          onClose={() => setShowAttachJournal(false)}
-          kitId={id}
-          defaultSlot="journal"
-          onPinned={refresh}
-        />
       </Stack>
     </Container>
   )

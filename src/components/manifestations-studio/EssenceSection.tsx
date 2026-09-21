@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button, Modal, Spinner, Textarea } from '@/lib/design-system'
-import { Check, Edit3, Flame, Heart, History, RefreshCw, Sparkles, X } from 'lucide-react'
+import { Check, Flame, Heart, History, RefreshCw, Sparkles, X } from 'lucide-react'
 
 export interface EssenceVersion {
   id: string
@@ -20,9 +20,10 @@ interface EssenceSectionProps {
   whatItFeelsLike: string | null
   versions: EssenceVersion[]
   onSaved: () => void
-  onEdit: () => void
   /** Increment to ask VIVA to distill a new draft (e.g. after gathering). */
   distillSignal?: number
+  /** Hide the section title when a parent already names this pane. */
+  showHeading?: boolean
 }
 
 interface Draft {
@@ -43,8 +44,8 @@ export function EssenceSection({
   whatItFeelsLike,
   versions,
   onSaved,
-  onEdit,
   distillSignal = 0,
+  showHeading = true,
 }: EssenceSectionProps) {
   const [distilling, setDistilling] = useState(false)
   const [autoDistilling, setAutoDistilling] = useState(false)
@@ -188,34 +189,41 @@ export function EssenceSection({
 
   return (
     <section id="the-essence" className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#BF00FF]/15 shrink-0">
-            <Sparkles className="h-4 w-4 text-[#D46BFF]" />
+      <div className={`flex flex-col gap-3 ${showHeading ? 'sm:flex-row sm:items-start sm:justify-between' : 'sm:flex-row sm:items-center sm:justify-center'}`}>
+        {showHeading && (
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#BF00FF]/15 shrink-0">
+              <Sparkles className="h-4 w-4 text-[#D46BFF]" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-base font-semibold text-white">The Essence</h3>
+              <p className="text-xs text-neutral-500">Why you want it, and what living it feels like</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-semibold text-white">The Essence</h3>
-            <p className="text-xs text-neutral-500">Why you want it, and what living it feels like — distilled by VIVA, owned by you</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
+        )}
+        <div className="flex flex-wrap items-center justify-center gap-3">
           {versions.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setShowHistory(true)}>
-              <History className="w-4 h-4 mr-1.5" />
+            <button
+              type="button"
+              onClick={() => setShowHistory(true)}
+              className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white transition-colors"
+            >
+              <History className="w-4 h-4" />
               History
-            </Button>
+            </button>
           )}
-          <Button variant="ghost" size="sm" onClick={onEdit}>
-            <Edit3 className="w-4 h-4" />
-          </Button>
           <button
             type="button"
             onClick={handleRefresh}
             disabled={distilling || autoDistilling}
-            className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#BF00FF] px-4 py-1.5 text-sm font-medium text-[#D46BFF] transition-all duration-300 hover:bg-[#BF00FF]/10 disabled:opacity-50"
+            className={
+              isEmpty
+                ? 'inline-flex items-center gap-1.5 rounded-full border-2 border-[#BF00FF] px-4 py-1.5 text-sm font-medium text-[#D46BFF] transition-all duration-300 hover:bg-[#BF00FF]/10 disabled:opacity-50'
+                : 'inline-flex items-center gap-1.5 text-sm text-[#D46BFF]/80 hover:text-[#D46BFF] transition-colors disabled:opacity-50'
+            }
           >
             <RefreshCw className={`w-4 h-4 ${distilling ? 'animate-spin' : ''}`} />
-            {distilling ? 'Distilling…' : 'Refresh with VIVA'}
+            {distilling ? 'Distilling…' : isEmpty ? 'Refresh with VIVA' : 'Refresh'}
           </button>
         </div>
       </div>

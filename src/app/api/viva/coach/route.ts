@@ -31,7 +31,7 @@ import { parseVivaMode } from '@/lib/viva/modes'
 import { buildModeContract } from '@/lib/viva/prompts/mode-contracts'
 import { PLATFORM_MAP_PROMPT } from '@/lib/viva/prompts/platform-map'
 import { isSuggestToolsRequest, SUGGEST_TOOLS_PROMPT } from '@/lib/viva/prompts/suggest-tools'
-import { findOpenKitForConversation } from '@/lib/manifestations/kit-helpers'
+import { findOpenKitForConversation, linkKitConversation } from '@/lib/manifestations/kit-helpers'
 import {
   COACH_STREAM_META_MARKER,
   COACH_STREAM_PADDING,
@@ -96,7 +96,12 @@ export async function POST(req: Request) {
       modelOverride,
       attachments: rawAttachments,
       suggestTools,
+      kitId: rawKitId,
     } = await req.json()
+
+    const kitId = typeof rawKitId === 'string' && /^[0-9a-f-]{36}$/i.test(rawKitId)
+      ? rawKitId
+      : null
 
     const selectedMode = parseVivaMode(modeHint)
     const attachments = parseVivaAttachments(rawAttachments)
@@ -129,6 +134,24 @@ export async function POST(req: Request) {
 
       if (!sessionError && newSession) {
         currentConversationId = newSession.id
+      }
+    }
+
+    let focusManifestation: {
+      id: string
+      name: string
+      why_it_matters: string | null
+      what_it_feels_like: string | null
+      categories: string[] | null
+    } | null = null
+    if (kitId) {
+      const { data: focused } = await supabase
+        .from('manifestations')
+        .select('id, name, why_it_matters, what_it_feels_like, categories')
+        .eq('id', kitId)
+        .maybeSingle()
+      if (focused) {
+        focusManifestation = focused
       }
     }
 
@@ -181,6 +204,7 @@ export async function POST(req: Request) {
           lastUserMessage,
           attachments,
           suggestTools: Boolean(suggestTools),
+          focusManifestation,
         })
       } catch (error) {
         console.error('[VIVA COACH] Stream error:', error)
@@ -228,6 +252,7 @@ async function runCoachTurn({
   lastUserMessage,
   attachments,
   suggestTools,
+  focusManifestation,
 }: {
   write: (text: string) => Promise<void>
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -241,6 +266,13 @@ async function runCoachTurn({
   lastUserMessage: CoachChatMessage | null
   attachments: VivaPersistedAttachment[]
   suggestTools: boolean
+  focusManifestation: {
+    id: string
+    name: string
+    why_it_matters: string | null
+    what_it_feels_like: string | null
+    categories: string[] | null
+  } | null
 }) {
     // =========================================================================
     // LAYER 1: RETRIEVE — Load everything in parallel (interpretation follows)
@@ -288,6 +320,9 @@ async function runCoachTurn({
     ])
 
     const { context: coachContext, loadTimeMs } = contextResult
+    if (focusManifestation) {
+      coachContext.focusManifestation = focusManifestation
+    }
 
     // =========================================================================
     // LAYER 2: INTERPRET — Read the moment, select the context that matters
@@ -491,7 +526,7 @@ async function runCoachTurn({
       conversationId: currentConversationId || null,
       selectedMode,
       overlay,
-      activeKitId: activeKit?.id || coachContext.openKits?.[0]?.id || null,
+      activeKitId: focusManifestation?.id || activeKit?.id || coachContext.openKits?.[0]?.id || null,
       householdId: householdLens?.householdId,
       getConversationText: () =>
         chatMessages
@@ -534,6 +569,10 @@ async function runCoachTurn({
             context: { mode: 'coach', selected_mode: selectedMode, vivaMode: mode, responseDesign, overlay, emotional_state, selectedCategories, userIntent },
             created_at: new Date().toISOString(),
           })
+
+          if (focusManifestation && currentConversationId && spoken.trim()) {
+            await linkKitConversation(supabase, user.id, focusManifestation.id, currentConversationId)
+          }
 
           // Update session metadata
           if (currentConversationId) {

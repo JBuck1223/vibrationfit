@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Song } from '../types'
 
 interface GenerateMusicOptions {
@@ -34,26 +34,31 @@ export function useSongGeneration({ song, onComplete }: UseSongGenerationOptions
   const [error, setError] = useState<string | null>(null)
 
   const songId = song?.id ?? null
+  const taskId = (song?.metadata as Record<string, string> | undefined)?.mureka_task_id ?? null
   const isGenerating = song?.status === 'generating_music' || polling || submitting
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
 
   useEffect(() => {
-    if (song?.status !== 'generating_music' || !songId) return
-
-    const taskId = (song.metadata as Record<string, string>)?.mureka_task_id
-    if (!taskId) return
+    if (song?.status !== 'generating_music' || !songId || !taskId) {
+      setPolling(false)
+      return
+    }
 
     setPolling(true)
     let inFlight = false
+    let stopped = false
     const interval = setInterval(async () => {
       // Skip if the previous poll hasn't resolved (S3 download can outlast the
       // interval) to avoid overlapping requests inserting duplicate tracks.
-      if (inFlight) return
+      if (inFlight || stopped) return
       inFlight = true
       try {
         const res = await fetch(`/api/songs/poll/${taskId}?song_id=${songId}`)
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
 
         if (data.status === 'completed' || data.status === 'succeeded' || data.status === 'failed') {
+          stopped = true
           clearInterval(interval)
           setPolling(false)
           if (data.status === 'failed') {
@@ -61,17 +66,20 @@ export function useSongGeneration({ song, onComplete }: UseSongGenerationOptions
           } else {
             setError(null)
           }
-          onComplete?.()
+          onCompleteRef.current?.()
         }
       } catch {
-        // Keep polling
+        // Keep polling until the server marks a stale task failed.
       } finally {
         inFlight = false
       }
     }, 5000)
 
-    return () => clearInterval(interval)
-  }, [song?.status, song?.metadata, songId, onComplete])
+    return () => {
+      stopped = true
+      clearInterval(interval)
+    }
+  }, [song?.status, songId, taskId])
 
   const generateMore = useCallback(async (options: GenerateMusicOptions = {}) => {
     if (!songId || isGenerating) return false

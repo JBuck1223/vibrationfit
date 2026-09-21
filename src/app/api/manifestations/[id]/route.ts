@@ -73,7 +73,15 @@ export async function GET(
     const abundanceIds = assets
       .filter(a => a.slot === 'abundance' && a.entity_id)
       .map(a => a.entity_id as string)
-    const [journalResult, abundanceResult] = await Promise.all([
+    const conversationIds = [
+      ...new Set(
+        [
+          ...assets.filter(a => a.slot === 'conversation' && a.entity_id).map(a => a.entity_id as string),
+          manifestation.conversation_id as string | null,
+        ].filter((id): id is string => Boolean(id)),
+      ),
+    ]
+    const [journalResult, abundanceResult, conversationsResult] = await Promise.all([
       journalIds.length > 0
         ? supabase
             .from('journal_entries')
@@ -88,6 +96,13 @@ export async function GET(
             .in('id', abundanceIds)
             .order('date', { ascending: false })
         : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+      conversationIds.length > 0
+        ? supabase
+            .from('conversation_sessions')
+            .select('id, title, preview_message, last_message_at, created_at, message_count')
+            .eq('user_id', user.id)
+            .in('id', conversationIds)
+        : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
     ])
 
     return NextResponse.json({
@@ -98,6 +113,7 @@ export async function GET(
       })),
       journal_entries: journalResult.data || [],
       abundance_events: abundanceResult.data || [],
+      conversations: conversationsResult.data || [],
       activations,
       activations_this_week: activations.filter(a => a.activation_date >= weekAgoStr).length,
       activations_since_opened: activations.length,

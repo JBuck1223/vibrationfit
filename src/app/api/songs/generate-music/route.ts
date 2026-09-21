@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     const { data: song, error: songError } = await supabase
       .from('songs')
-      .select('id, lyrics, style_prompt, status, generation_count, metadata')
+      .select('id, lyrics, style_prompt, status, generation_count, metadata, updated_at')
       .eq('id', song_id)
       .eq('user_id', user.id)
       .single()
@@ -60,7 +60,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (song.status === 'generating_music') {
-      return NextResponse.json({ error: 'Music generation already in progress' }, { status: 409 })
+      const startedAt = song.updated_at ? new Date(song.updated_at).getTime() : 0
+      const STALE_MS = 10 * 60 * 1000
+      if (Date.now() - startedAt < STALE_MS) {
+        return NextResponse.json({ error: 'Music generation already in progress' }, { status: 409 })
+      }
     }
 
     const rawLyrics = (overrideLyrics?.trim() || song.lyrics)?.trim()

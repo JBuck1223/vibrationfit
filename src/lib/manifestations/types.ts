@@ -29,6 +29,7 @@ export const KIT_SLOTS = [
   'map_target',
   'map_commitment',
   'project',
+  'conversation',
 ] as const
 export type KitSlot = (typeof KIT_SLOTS)[number]
 
@@ -102,6 +103,7 @@ export const SLOT_LABELS: Record<KitSlot, string> = {
   map_target: 'MAP target',
   map_commitment: 'MAP commitment',
   project: 'Action group',
+  conversation: 'VIVA chat',
 }
 
 /** Where a gathered/pinned item lands on the manifestation page. */
@@ -112,6 +114,7 @@ export const SLOT_DESTINATIONS: Record<KitSlot, SlotDestination> = {
   journal: 'journey',
   daily_paper: 'journey',
   abundance: 'journey',
+  conversation: 'journey',
   story: 'living',
   incantation: 'living',
   spark_query: 'living',
@@ -134,7 +137,7 @@ export const DESTINATION_META: Record<SlotDestination, { title: string; hint: st
   },
   journey: {
     title: 'The Journey',
-    hint: 'Evidence you are becoming this — journal, wins, Daily Papers.',
+    hint: 'Evidence you are becoming this — journal, wins, VIVA chats.',
     anchor: 'the-journey',
   },
   living: {
@@ -166,6 +169,8 @@ export function assetLink(slot: KitSlot, entityId: string | null, handoffPath: s
       return entityId ? `/story/${entityId}` : '/story'
     case 'journal':
       return entityId ? `/journal/${entityId}` : '/journal'
+    case 'conversation':
+      return entityId ? `/viva?thread=${entityId}` : '/viva'
     case 'vision_board':
       return entityId ? `/manifestations/${entityId}` : '/manifestations'
     case 'daily_paper':

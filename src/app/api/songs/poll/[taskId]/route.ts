@@ -43,6 +43,37 @@ async function uploadToS3(key: string, buffer: Buffer, contentType: string): Pro
   return `${CDN_URL}/${key}`
 }
 
+const FAILED_TASK_STATUSES = new Set([
+  'failed',
+  'error',
+  'timeout',
+  'timed_out',
+  'timeouted',
+  'cancelled',
+  'canceled',
+  'expired',
+])
+
+/** Keep a song that already has tracks in the library when a later attempt fails. */
+async function markGenerationFailed(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  songId: string,
+  userId: string,
+) {
+  const { count } = await supabase
+    .from('song_tracks')
+    .select('id', { count: 'exact', head: true })
+    .eq('song_id', songId)
+    .eq('status', 'completed')
+
+  const status = (count ?? 0) > 0 ? 'completed' : 'failed'
+  await supabase
+    .from('songs')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', songId)
+    .eq('user_id', userId)
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ taskId: string }> }
@@ -64,7 +95,7 @@ export async function GET(
 
     const { data: song } = await supabase
       .from('songs')
-      .select('id, user_id, metadata')
+      .select('id, user_id, metadata, updated_at')
       .eq('id', songId)
       .eq('user_id', user.id)
       .single()
@@ -80,30 +111,46 @@ export async function GET(
       : {}
     const songCoverUrl = typeof songMeta.custom_cover_url === 'string' ? songMeta.custom_cover_url : null
 
+    const startedAt = song.updated_at ? new Date(song.updated_at).getTime() : 0
+    const stale = Date.now() - startedAt > 10 * 60 * 1000
+
     console.log(`[SongPoll] Querying Mureka task: ${taskId}`)
-    const taskResult = await mureka.queryTask(taskId)
-    const songs = taskResult.songs || taskResult.choices || []
-    const isComplete = taskResult.status === 'completed' || taskResult.status === 'succeeded'
-    console.log(`[SongPoll] Task ${taskId} status: ${taskResult.status}, songs: ${songs.length}, keys: ${Object.keys(taskResult).join(',')}`)
-
-    if (taskResult.status === 'failed') {
-      await supabase
-        .from('songs')
-        .update({ status: 'failed', updated_at: new Date().toISOString() })
-        .eq('id', songId)
-        .eq('user_id', user.id)
-
+    let taskResult
+    try {
+      taskResult = await mureka.queryTask(taskId)
+    } catch (queryErr) {
+      if (!stale) throw queryErr
+      console.error(`[SongPoll] Stale task ${taskId} could not be queried:`, queryErr)
+      await markGenerationFailed(supabase, songId, user.id)
       return NextResponse.json({
         status: 'failed',
-        error: taskResult.error || 'Music generation failed',
+        error: 'Music generation did not finish. Try again.',
       })
     }
 
-    if (!isComplete || !songs.length) {
-      // Log the full response to debug missing songs
-      if (isComplete && !songs.length) {
-        console.log(`[SongPoll] Succeeded but no songs! Full response:`, JSON.stringify(taskResult).slice(0, 2000))
-      }
+    const songs = taskResult.songs || taskResult.choices || []
+    const taskStatus = String(taskResult.status || '').toLowerCase()
+    const isComplete = taskStatus === 'completed' || taskStatus === 'succeeded'
+    console.log(`[SongPoll] Task ${taskId} status: ${taskResult.status}, songs: ${songs.length}, keys: ${Object.keys(taskResult).join(',')}`)
+
+    if (FAILED_TASK_STATUSES.has(taskStatus) || (stale && !isComplete)) {
+      await markGenerationFailed(supabase, songId, user.id)
+      return NextResponse.json({
+        status: 'failed',
+        error: taskResult.error || 'Music generation did not finish. Try again.',
+      })
+    }
+
+    if (isComplete && !songs.length) {
+      console.log(`[SongPoll] Succeeded but no songs! Full response:`, JSON.stringify(taskResult).slice(0, 2000))
+      await markGenerationFailed(supabase, songId, user.id)
+      return NextResponse.json({
+        status: 'failed',
+        error: 'Music generation finished without any tracks',
+      })
+    }
+
+    if (!isComplete) {
       return NextResponse.json({
         status: taskResult.status,
         message: 'Still generating...',
