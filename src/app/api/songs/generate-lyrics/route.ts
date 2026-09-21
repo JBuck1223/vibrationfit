@@ -140,6 +140,10 @@ export async function POST(request: NextRequest) {
       songId = newSong.id
     }
 
+    if (!songId) {
+      throw new Error('Failed to resolve song record')
+    }
+
     console.log(`[SongLyrics] Song record: ${songId}, streaming with ${SONGWRITER_MODEL}`)
 
     const result = streamText({
