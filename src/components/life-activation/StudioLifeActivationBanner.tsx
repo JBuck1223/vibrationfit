@@ -23,6 +23,11 @@ export function StudioLifeActivationBanner() {
     title = LIFE_ACTIVATION_COPY.gym.title
     body = LIFE_ACTIVATION_COPY.gym.body
     doneLabel = LIFE_ACTIVATION_COPY.gym.cta
+  } else if (pathname.startsWith('/map')) {
+    onboardingStep = 'map'
+    title = LIFE_ACTIVATION_COPY.map.title
+    body = LIFE_ACTIVATION_COPY.map.body
+    doneLabel = LIFE_ACTIVATION_COPY.map.cta
   } else {
     return null
   }

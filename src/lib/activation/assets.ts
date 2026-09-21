@@ -31,7 +31,7 @@ export const ACTIVATION_ASSET_GROUPS: Array<{
       {
         icon: Quote,
         title: 'Incantation',
-        detail: 'words you speak until they feel like you',
+        detail: 'words you speak to reinforce your chosen direction',
       },
       {
         icon: Sparkles,

@@ -96,9 +96,15 @@ export default function CartCheckoutPage() {
     if (!cart?.items?.[0]?.resolved) return null
     const item = cart.items[0]
     const r = item.resolved!
+    const isMembership = item.product_key === 'membership' || r.key?.startsWith('membership-')
     const isIntensive = r.key?.startsWith('intensive-') || r.key?.startsWith('premium-intensive-')
     const metadata: Record<string, string> = {}
-    if (isIntensive) {
+    if (isMembership) {
+      metadata.purchase_type = 'membership'
+      metadata.product_type = 'vision_pro'
+      metadata.plan_type = item.plan_type || 'solo'
+      metadata.continuity_plan = item.continuity || '28day'
+    } else if (isIntensive) {
       if (item.plan) metadata.intensive_payment_plan = item.plan
       if (item.continuity) metadata.continuity_plan = item.continuity
       if (item.plan_type) metadata.plan_type = item.plan_type
@@ -114,7 +120,7 @@ export default function CartCheckoutPage() {
       amount: r.amount,
       currency: r.currency,
       features: r.features,
-      redirectAfterSuccess: '/intensive/start',
+      redirectAfterSuccess: isMembership ? '/begin' : '/intensive/start',
       getPriceEnvKey: () => undefined,
       metadata,
     }
@@ -411,6 +417,7 @@ export default function CartCheckoutPage() {
                 onApproved={handlePayPalApproved}
                 submitLabel={submitLabel}
                 submitLabelShort={submitLabelShort}
+                offerType={cart?.items?.[0]?.product_key === 'membership' ? 'membership' : 'intensive'}
                 continuity={(cart?.items?.[0]?.continuity as 'annual' | '28day') || undefined}
                 planType={(cart?.items?.[0]?.plan_type as 'solo' | 'household') || undefined}
                 paymentPlan={(cart?.items?.[0]?.plan as 'full' | '2pay') || undefined}
@@ -439,6 +446,7 @@ export default function CartCheckoutPage() {
                 isProcessing={isProcessing}
                 submitLabel={submitLabel}
                 submitLabelShort={submitLabelShort}
+                offerType={cart?.items?.[0]?.product_key === 'membership' ? 'membership' : 'intensive'}
                 continuity={(cart?.items?.[0]?.continuity as 'annual' | '28day') || undefined}
                 planType={(cart?.items?.[0]?.plan_type as 'solo' | 'household') || undefined}
                 paymentPlan={(cart?.items?.[0]?.plan as 'full' | '2pay') || undefined}

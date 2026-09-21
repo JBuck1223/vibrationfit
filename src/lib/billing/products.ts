@@ -67,11 +67,79 @@ export async function resolveProduct(
     )
   }
 
+  if (product === 'membership') {
+    return resolveMembershipProduct(supabase)
+  }
+
   if (product === 'token-pack' && packKey) {
     return resolveTokenPackProduct(packKey, supabase)
   }
 
   return null
+}
+
+async function resolveMembershipProduct(
+  supabase?: SupabaseClient,
+): Promise<CheckoutProduct | null> {
+  const sb = await getSupabase(supabase)
+  const { data: tier } = await sb
+    .from('membership_tiers')
+    .select('name, price_monthly, monthly_token_grant, features')
+    .eq('tier_type', 'vision_pro_28day')
+    .eq('is_active', true)
+    .maybeSingle()
+
+  const tokens = tier?.monthly_token_grant || 0
+  const amount = tier?.price_monthly || 9900
+  const features = (tier?.features as string[] | null)?.length
+    ? (tier!.features as string[]).slice(0, 6)
+    : [
+        'Your Life I Choose vision across all 12 life categories',
+        tokens > 0 ? `${formatTokensShort(tokens)} VIVA tokens each cycle` : 'VIVA tokens each cycle',
+        'Vibe Tribe and weekly Alignment Gym',
+        'Stories, audio, songs, and your board in one place',
+        'Cancel anytime',
+      ]
+
+  const { data: dbProduct } = await sb
+    .from('products')
+    .select('id')
+    .eq('key', 'vision_pro_28day')
+    .eq('is_active', true)
+    .maybeSingle()
+
+  let stripePriceId: string | null = null
+  if (dbProduct?.id) {
+    const { data: prices } = await sb
+      .from('product_prices')
+      .select('stripe_price_id, metadata')
+      .eq('product_id', dbProduct.id)
+      .eq('is_active', true)
+    stripePriceId = prices?.[0]?.stripe_price_id || null
+  }
+  if (!stripePriceId) {
+    stripePriceId = process.env.STRIPE_PRICE_28DAY || process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY || null
+  }
+
+  return {
+    key: 'membership-vision-pro',
+    name: 'Vision Pro',
+    description: '$99 every 28 days',
+    mode: 'payment',
+    amount,
+    currency: 'usd',
+    features,
+    redirectAfterSuccess: '/begin',
+    stripePriceId,
+    stripePriceEnvKey: 'STRIPE_PRICE_28DAY',
+    metadata: {
+      product_type: 'vision_pro',
+      purchase_type: 'membership',
+      plan_type: 'solo',
+      continuity_plan: '28day',
+      source: 'custom_checkout',
+    },
+  }
 }
 
 async function resolveIntensiveProduct(

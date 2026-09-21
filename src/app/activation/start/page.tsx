@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
-export default function ActivationRedirect() {
+export default function ActivationStartRedirect() {
   redirect('/free-activation')
 }

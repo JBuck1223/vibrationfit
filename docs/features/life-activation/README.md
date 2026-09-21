@@ -5,7 +5,7 @@
 
 Paid continuation of the public Activation. Two chosen journeys, neither locked.
 
-- **Onboarding** (`/begin`) — write the Life Vision, hear it, meet Vibe Tribe, find Alignment Gym
+- **Onboarding** (`/begin`) — write the Life Vision, hear it, meet Vibe Tribe, find Alignment Gym, open MAP
 - **Tools Training** (`/begin/training`) — optional studio walk-throughs. One tour per studio, tab by tab. The Walkthrough icon stays on every tool page. First Finish checks that tool off; later visits replay only.
 
 Admin inspector: `/admin/begin` (includes a member-sidebar preview). Copy: `src/lib/life-activation/copy.ts`. Walk-through text: `/admin/walkthroughs` writes `src/lib/life-activation/walkthrough-overrides.json` on top of defaults in `src/lib/life-activation/walkthroughs.ts`.
@@ -19,7 +19,8 @@ Sidebar: **Getting Started** → `/begin` while onboarding is open (including ac
 3. Hear it — Activation Kit
 4. Vibe Tribe
 5. Alignment Gym
-6. You're started
+6. MAP
+7. You're started
 
 Life Activation is additive. Intensive stays at `/intensive/*` and is not redirected or migrated. Members enter `/begin` by choice.
 

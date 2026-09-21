@@ -25,7 +25,7 @@ export default function SetupPasswordPage() {
   function getPostPasswordRedirect(hasActiveIntensive: boolean): string {
     if (hasActiveIntensive) return '/intensive/start'
     if (returnTo && returnTo.startsWith('/')) return returnTo
-    return '/dashboard'
+    return '/begin'
   }
 
   useEffect(() => {
@@ -141,7 +141,7 @@ export default function SetupPasswordPage() {
             </div>
             <h2 className="text-xl md:text-2xl font-bold mb-2">Password Set</h2>
             <p className="text-sm md:text-base text-neutral-300">
-              Redirecting{returnTo?.includes('/household/invite') ? ' to your invitation' : hasIntensive ? ' to your intensive' : ' to your dashboard'}...
+              Redirecting{returnTo?.includes('/household/invite') ? ' to your invitation' : hasIntensive ? ' to your intensive' : ' to Getting Started'}...
             </p>
           </div>
         ) : (

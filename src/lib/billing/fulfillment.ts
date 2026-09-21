@@ -3,7 +3,7 @@
 // but driven entirely by our database — used by the PayPal capture route (and the
 // PayPal webhook as an idempotent backup).
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
 import { toTitleCase } from '@/lib/utils'
 import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
@@ -100,6 +100,7 @@ export async function fulfillPayPalPurchase(params: {
   const plan = ctx.plan || 'full'
   const planType = ctx.planType || 'solo'
   const isIntensive = product === 'intensive' || product === 'intensive_premium'
+  const isMembership = product === 'membership'
   const isPremium = product === 'intensive_premium' || ctx.intensiveLevel === 'premium' || ctx.promoPackage === 'premium_promo'
 
   // -------------------------------------------------------------------------
@@ -195,7 +196,7 @@ export async function fulfillPayPalPurchase(params: {
   const { data: dbProduct } = await supabaseAdmin
     .from('products')
     .select('id')
-    .eq('key', product === 'intensive' ? 'intensive' : product)
+    .eq('key', product === 'membership' ? 'vision_pro_28day' : product === 'intensive' ? 'intensive' : product)
     .maybeSingle()
 
   let intensiveOrderItemId: string | null = null
@@ -209,7 +210,7 @@ export async function fulfillPayPalPurchase(params: {
         amount: totalAmount,
         currency: params.currency || 'usd',
         payment_plan: plan,
-        is_subscription: false,
+        is_subscription: isMembership,
         installments_total: plan === '2pay' ? 2 : 1,
         installments_paid: 1,
         promo_code: ctx.promoCode || null,
@@ -271,6 +272,21 @@ export async function fulfillPayPalPurchase(params: {
     } else {
       paymentMethodId = pm?.id || null
     }
+  }
+
+  if (isMembership) {
+    await activateVisionProMembership({
+      supabaseAdmin,
+      userId,
+      orderId: order.id,
+      orderItemId: intensiveOrderItemId,
+      amountCents: totalAmount,
+      paymentMethodId,
+      provider: 'paypal',
+      promoCode: ctx.promoCode || null,
+      referralSource: ctx.referralSource || null,
+      campaignName: ctx.campaignName || null,
+    })
   }
 
   // -------------------------------------------------------------------------
@@ -659,6 +675,94 @@ export async function fulfillPayPalPurchase(params: {
   }
 
   return { userId, orderId: order.id, alreadyFulfilled: false }
+}
+
+export async function activateVisionProMembership(params: {
+  supabaseAdmin: SupabaseClient
+  userId: string
+  orderId: string
+  orderItemId?: string | null
+  amountCents: number
+  paymentMethodId?: string | null
+  provider: 'paypal' | 'stripe'
+  stripeCustomerId?: string | null
+  stripeSubscriptionId?: string | null
+  stripePriceId?: string | null
+  promoCode?: string | null
+  referralSource?: string | null
+  campaignName?: string | null
+}): Promise<void> {
+  const {
+    supabaseAdmin,
+    userId,
+    orderId,
+    orderItemId,
+    amountCents,
+    paymentMethodId,
+    provider,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    stripePriceId,
+    promoCode,
+    referralSource,
+    campaignName,
+  } = params
+
+  const { data: tier } = await supabaseAdmin
+    .from('membership_tiers')
+    .select('id, price_monthly, monthly_token_grant')
+    .eq('tier_type', 'vision_pro_28day')
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (!tier) {
+    console.error('[fulfillment] vision_pro_28day tier not found')
+    return
+  }
+
+  const renewalAmount = tier.price_monthly || amountCents || 9900
+  const periodEnd = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000)
+
+  const { error: subErr } = await supabaseAdmin.from('customer_subscriptions').insert({
+    user_id: userId,
+    membership_tier_id: tier.id,
+    provider,
+    payment_method_id: paymentMethodId || null,
+    stripe_customer_id: stripeCustomerId || null,
+    stripe_subscription_id: stripeSubscriptionId || null,
+    stripe_price_id: stripePriceId || null,
+    amount_cents: renewalAmount,
+    billing_interval_days: 28,
+    next_billing_at: periodEnd.toISOString(),
+    status: 'active' as any,
+    current_period_start: new Date().toISOString(),
+    current_period_end: periodEnd.toISOString(),
+    order_id: orderId,
+    order_item_id: orderItemId || null,
+    promo_code: promoCode || null,
+    referral_source: referralSource || null,
+    campaign_name: campaignName || null,
+  })
+  if (subErr) {
+    console.error('[fulfillment] membership subscription insert failed', subErr)
+  }
+
+  await supabaseAdmin.from('user_accounts').update({
+    membership_tier_id: tier.id,
+  }).eq('id', userId)
+
+  const grant = tier.monthly_token_grant || 0
+  if (grant > 0) {
+    try {
+      const { grantTokens } = await import('@/lib/tokens/transactions')
+      await grantTokens(userId, grant, 'subscription', {
+        source: 'membership_purchase',
+        order_id: orderId,
+      }, supabaseAdmin)
+    } catch (err) {
+      console.error('[fulfillment] membership token grant failed', err)
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

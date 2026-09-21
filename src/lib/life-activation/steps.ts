@@ -4,6 +4,7 @@ export const ONBOARDING_STEP_IDS = [
   'kit',
   'tribe',
   'gym',
+  'map',
   'complete',
 ] as const
 
@@ -26,7 +27,7 @@ export const TRAINING_STEP_IDS = [
 
 export type TrainingStepId = (typeof TRAINING_STEP_IDS)[number]
 
-export const ONBOARDING_PHASES = ['Start', 'Vision', 'Community', 'Completion'] as const
+export const ONBOARDING_PHASES = ['Start', 'Vision', 'Community', 'Plan', 'Completion'] as const
 export const TRAINING_PHASES = ['Foundation', 'Expression', 'Practice', 'Coach', 'Completion'] as const
 
 export interface JourneyStep<T extends string = string> {
@@ -81,7 +82,7 @@ export const ONBOARDING_STEPS: JourneyStep<OnboardingStepId>[] = [
     id: 'tribe',
     number: 4,
     title: 'Meet Vibe Tribe',
-    description: 'Introduce yourself. One post is enough.',
+    description: 'Introduce yourself to the people practicing conscious creation right alongside you.',
     phase: 'Community',
     href: '/vibe-tribe',
     viewHref: '/vibe-tribe',
@@ -92,7 +93,7 @@ export const ONBOARDING_STEPS: JourneyStep<OnboardingStepId>[] = [
     id: 'gym',
     number: 5,
     title: 'Alignment Gym',
-    description: 'Find the room and the next live session.',
+    description: 'Take the tour so you know how to join the next live group coaching session.',
     phase: 'Community',
     href: '/alignment-gym',
     viewHref: '/alignment-gym',
@@ -100,9 +101,20 @@ export const ONBOARDING_STEPS: JourneyStep<OnboardingStepId>[] = [
     actionLabel: 'Open Alignment Gym',
   },
   {
-    id: 'complete',
+    id: 'map',
     number: 6,
-    title: "You're started",
+    title: 'MAP',
+    description: 'Review your plan and activate MAP so you know how the week runs.',
+    phase: 'Plan',
+    href: '/map',
+    viewHref: '/map',
+    doneWhen: 'You opened MAP and marked this step done',
+    actionLabel: 'Open MAP',
+  },
+  {
+    id: 'complete',
+    number: 7,
+    title: "What's next",
     description: 'The platform is open. Training can wait until you want it.',
     phase: 'Completion',
     href: '/begin/complete',
@@ -293,4 +305,13 @@ export function firstIncompleteTraining(
   completions: Record<string, string>,
 ): TrainingStepId {
   return TRAINING_STEP_IDS.find((id) => !completions[id]) || 'complete'
+}
+
+export function withSequentialLocks<T extends { completed: boolean }>(
+  steps: T[],
+): Array<T & { locked: boolean }> {
+  return steps.map((step, index) => ({
+    ...step,
+    locked: !step.completed && steps.slice(0, index).some((prior) => !prior.completed),
+  }))
 }

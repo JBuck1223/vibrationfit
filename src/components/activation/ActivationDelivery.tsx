@@ -304,7 +304,7 @@ export function ActivationDelivery({
 
   function paidCta() {
     onTrack?.('paid_offer_clicked')
-    window.location.href = '/#pricing'
+    window.location.href = '/checkout?product=membership&planType=solo'
   }
 
   if (phase === 'preview') {

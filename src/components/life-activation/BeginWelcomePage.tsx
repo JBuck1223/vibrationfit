@@ -9,6 +9,7 @@ import {
   Rocket,
   Sparkles,
   Users,
+  Waypoints,
 } from 'lucide-react'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { ActivationIncludes } from '@/components/activation/ActivationIncludes'
@@ -30,6 +31,7 @@ const PHASE_ICONS = {
   Start: Rocket,
   Vision: Sparkles,
   Community: Users,
+  Plan: Waypoints,
   Completion: CheckCircle,
 } as const
 
@@ -234,7 +236,7 @@ export function BeginWelcomePage() {
                 <div className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 text-[#2DD4BF]" />
                   <Text size="sm" className="font-semibold text-white">
-                    Nothing is locked
+                    {copy.howChooseHeading}
                   </Text>
                 </div>
                 <p className="text-sm leading-relaxed text-neutral-300">{copy.howChoose}</p>

@@ -13,7 +13,7 @@ export default function BeginCompletePage() {
 
   useEffect(() => {
     if (!progress || progress.onboarding_completed_at) return
-    if (progress.onboarding.gym) {
+    if (progress.onboarding.map) {
       void completeOnboardingStep('complete')
     }
   }, [progress, completeOnboardingStep])

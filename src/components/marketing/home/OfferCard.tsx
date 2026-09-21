@@ -71,14 +71,177 @@ const GUARANTEES: Array<{
   },
 ]
 
-function GuaranteeCards() {
+const FEATURE_GROUPS: Array<{
+  heading: string
+  color: string
+  items: Array<{ icon: LucideIcon; title: string; detail: string }>
+}> = [
+  {
+    heading: 'Your Identity',
+    color: '#39FF14',
+    items: [
+      {
+        icon: User,
+        title: 'Profile',
+        detail: 'who you are, feeding every tool you use',
+      },
+      {
+        icon: ScrollText,
+        title: 'Life I Choose\u2122 vision',
+        detail: '12 life categories, every version preserved',
+      },
+      {
+        icon: LayoutGrid,
+        title: 'Vision Board',
+        detail: 'upload your images or generate them with VIVA',
+      },
+      {
+        icon: BookOpen,
+        title: 'Focus Stories, Incantations + SparkQuery\u2122',
+        detail: 'your vision made speakable',
+      },
+    ],
+  },
+  {
+    heading: 'Your Creation Studio',
+    color: '#BF00FF',
+    items: [
+      {
+        icon: Headphones,
+        title: 'Vision Audio',
+        detail: '9 voices + delivery vibes, category by category',
+      },
+      {
+        icon: Mic,
+        title: 'Record it in your own voice',
+        detail: 'full recording suite with waveform editing',
+      },
+      {
+        icon: SlidersHorizontal,
+        title: 'Sleep, Meditation + Power mixes',
+        detail: 'ambient beds, solfeggio + binaural layers',
+      },
+      {
+        icon: Music,
+        title: 'Songwriter',
+        detail: 'original songs from your vision \u2014 lyrics, music, art',
+      },
+    ],
+  },
+  {
+    heading: 'Your Daily Practice',
+    color: '#00FFFF',
+    items: [
+      {
+        icon: Map,
+        title: 'MAP \u2014 My Alignment Plan',
+        detail: 'auto-verified from your actual practice',
+      },
+      {
+        icon: NotebookPen,
+        title: 'Journal + Daily Paper',
+        detail: 'write it, speak it, or film it \u2014 transcribed',
+      },
+      {
+        icon: Coins,
+        title: 'Abundance & Manifestation Tracker',
+        detail: 'log every win, watch the evidence stack',
+      },
+      {
+        icon: TrendingUp,
+        title: 'Streaks, badges + tracking',
+        detail: 'your alignment, measured',
+      },
+    ],
+  },
+  {
+    heading: 'In Your Corner',
+    color: '#FFFF00',
+    items: [
+      {
+        icon: Sparkles,
+        title: 'VIVA',
+        detail: 'your coach \u2014 remembers you, writes + creates with you',
+      },
+      {
+        icon: Video,
+        title: 'Alignment Gym',
+        detail: 'weekly live group coaching + replays',
+      },
+      {
+        icon: UsersRound,
+        title: 'Vibe Tribe',
+        detail: 'wins, wobbles + collaboration with the community',
+      },
+      {
+        icon: Headset,
+        title: 'Support',
+        detail: 'from the team behind Vibration Fit',
+      },
+    ],
+  },
+]
+
+export function FeatureGroups() {
+  return (
+    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+      {FEATURE_GROUPS.map((group) => (
+        <div
+          key={group.heading}
+          className="rounded-xl border border-white/10 bg-black/40 p-3 text-left"
+        >
+          <p
+            className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]"
+            style={{ color: group.color }}
+          >
+            {group.heading}
+          </p>
+          <div className="space-y-2">
+            {group.items.map(({ icon: Icon, title, detail }) => (
+              <div key={title} className="flex items-start gap-2">
+                <span
+                  className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-md"
+                  style={{ backgroundColor: `${group.color}1A`, color: group.color }}
+                >
+                  <Icon className="h-3 w-3" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold leading-tight text-white">
+                    {title}
+                  </span>
+                  <span className="block text-[11px] leading-tight text-neutral-400">
+                    {detail}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const VISION_PRO_MEMBERSHIP_GUARANTEE = {
+  ...GUARANTEES[1],
+  clockLine: 'Clock starts at checkout',
+  summary: 'Try Vibration Fit for your first 28 days.',
+  finePrint: [
+    'If you decide the membership is not right for you, contact us before your initial 28-day membership period ends. We\u2019ll refund your first membership payment and cancel all future renewals.',
+    'You can cancel your membership at any time from inside your account. Cancellation stops future charges but does not automatically refund the current billing period.',
+    'Your 28-day guarantee begins when your membership starts at checkout.',
+  ],
+}
+
+export function GuaranteeCards({ membershipOnly = false }: { membershipOnly?: boolean } = {}) {
   const [openKey, setOpenKey] = useState<GuaranteeKey | null>(null)
-  const open = GUARANTEES.find((g) => g.key === openKey)
+  const items = membershipOnly ? [VISION_PRO_MEMBERSHIP_GUARANTEE] : GUARANTEES
+  const open = items.find((g) => g.key === openKey)
 
   return (
     <>
-      <div className="grid w-full grid-cols-2 gap-2.5">
-        {GUARANTEES.map((guarantee) => (
+      <div className={`grid w-full gap-2.5 ${membershipOnly ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        {items.map((guarantee) => (
           <button
             key={guarantee.key}
             type="button"
@@ -160,117 +323,6 @@ export function OfferBuyBox() {
   const intensiveTotal = planType === 'solo' ? 499 : 699
   const membershipPrice = planType === 'solo' ? 99 : 149
   const todayAmount = hasPromo ? 1 : intensiveTotal
-
-  const featureGroups: Array<{
-    heading: string
-    color: string
-    items: Array<{ icon: LucideIcon; title: string; detail: string }>
-  }> = [
-    {
-      heading: 'Your Identity',
-      color: '#39FF14',
-      items: [
-        {
-          icon: User,
-          title: 'Profile',
-          detail: 'who you are, feeding every tool you use',
-        },
-        {
-          icon: ScrollText,
-          title: 'Life I Choose\u2122 vision',
-          detail: '12 life categories, every version preserved',
-        },
-        {
-          icon: LayoutGrid,
-          title: 'Vision Board',
-          detail: 'upload your images or generate them with VIVA',
-        },
-        {
-          icon: BookOpen,
-          title: 'Focus Stories, Incantations + SparkQuery\u2122',
-          detail: 'your vision made speakable',
-        },
-      ],
-    },
-    {
-      heading: 'Your Creation Studio',
-      color: '#BF00FF',
-      items: [
-        {
-          icon: Headphones,
-          title: 'Vision Audio',
-          detail: '9 voices + delivery vibes, category by category',
-        },
-        {
-          icon: Mic,
-          title: 'Record it in your own voice',
-          detail: 'full recording suite with waveform editing',
-        },
-        {
-          icon: SlidersHorizontal,
-          title: 'Sleep, Meditation + Power mixes',
-          detail: 'ambient beds, solfeggio + binaural layers',
-        },
-        {
-          icon: Music,
-          title: 'Songwriter',
-          detail: 'original songs from your vision \u2014 lyrics, music, art',
-        },
-      ],
-    },
-    {
-      heading: 'Your Daily Practice',
-      color: '#00FFFF',
-      items: [
-        {
-          icon: Map,
-          title: 'MAP \u2014 My Alignment Plan',
-          detail: 'auto-verified from your actual practice',
-        },
-        {
-          icon: NotebookPen,
-          title: 'Journal + Daily Paper',
-          detail: 'write it, speak it, or film it \u2014 transcribed',
-        },
-        {
-          icon: Coins,
-          title: 'Abundance & Manifestation Tracker',
-          detail: 'log every win, watch the evidence stack',
-        },
-        {
-          icon: TrendingUp,
-          title: 'Streaks, badges + tracking',
-          detail: 'your alignment, measured',
-        },
-      ],
-    },
-    {
-      heading: 'In Your Corner',
-      color: '#FFFF00',
-      items: [
-        {
-          icon: Sparkles,
-          title: 'VIVA',
-          detail: 'your coach \u2014 remembers you, writes + creates with you',
-        },
-        {
-          icon: Video,
-          title: 'Alignment Gym',
-          detail: 'weekly live group coaching + replays',
-        },
-        {
-          icon: UsersRound,
-          title: 'Vibe Tribe',
-          detail: 'wins, wobbles + collaboration with the community',
-        },
-        {
-          icon: Headset,
-          title: 'Support',
-          detail: 'from the team behind Vibration Fit',
-        },
-      ],
-    },
-  ]
 
   const handlePurchase = async () => {
     setIsLoading(true)
@@ -354,41 +406,7 @@ export function OfferBuyBox() {
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
           What&rsquo;s Inside
         </p>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          {featureGroups.map((group) => (
-            <div
-              key={group.heading}
-              className="rounded-xl border border-white/10 bg-black/40 p-3 text-left"
-            >
-              <p
-                className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]"
-                style={{ color: group.color }}
-              >
-                {group.heading}
-              </p>
-              <div className="space-y-2">
-                {group.items.map(({ icon: Icon, title, detail }) => (
-                  <div key={title} className="flex items-start gap-2">
-                    <span
-                      className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-md"
-                      style={{ backgroundColor: `${group.color}1A`, color: group.color }}
-                    >
-                      <Icon className="h-3 w-3" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-xs font-semibold leading-tight text-white">
-                        {title}
-                      </span>
-                      <span className="block text-[11px] leading-tight text-neutral-400">
-                        {detail}
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <FeatureGroups />
         {planType === 'household' ? (
           <p className="mt-2.5 flex items-center justify-center gap-1.5 rounded-full border border-[#00FFFF]/30 bg-[#00FFFF]/5 px-3 py-1.5 text-[11px] font-semibold text-[#00FFFF]">
             <Users className="h-3.5 w-3.5" />

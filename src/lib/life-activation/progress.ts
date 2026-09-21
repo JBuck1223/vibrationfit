@@ -24,6 +24,11 @@ function asMap(value: unknown): JsonMap {
 }
 
 export function normalizeProgress(row: Record<string, unknown>): LifeActivationProgress {
+  const onboarding = asMap(row.onboarding)
+  if ((onboarding.complete || row.onboarding_completed_at) && !onboarding.map) {
+    onboarding.map = onboarding.complete || String(row.onboarding_completed_at)
+  }
+
   return {
     id: String(row.id),
     user_id: String(row.user_id),
@@ -32,7 +37,7 @@ export function normalizeProgress(row: Record<string, unknown>): LifeActivationP
     active_vision_id: (row.active_vision_id as string) || null,
     kit_run_id: (row.kit_run_id as string) || null,
     onboarding_step: (row.onboarding_step as OnboardingStepId) || 'welcome',
-    onboarding: asMap(row.onboarding),
+    onboarding,
     onboarding_started_at: (row.onboarding_started_at as string) || null,
     onboarding_completed_at: (row.onboarding_completed_at as string) || null,
     training_step: (row.training_step as TrainingStepId) || null,
@@ -112,12 +117,14 @@ export function mapIntensiveToOnboarding(intensive: IntensiveRow): JsonMap {
   if (intensive.audio_generated || intensive.audios_generated) onboarding.kit = now
   if (intensive.first_vibe_post) onboarding.tribe = now
   if (intensive.alignment_gym_toured) onboarding.gym = now
+  if (intensive.activation_protocol_completed) onboarding.map = now
   if (intensive.unlock_completed) {
     onboarding.welcome = onboarding.welcome || now
     onboarding.vision = onboarding.vision || now
     onboarding.kit = onboarding.kit || now
     onboarding.tribe = onboarding.tribe || now
     onboarding.gym = onboarding.gym || now
+    onboarding.map = onboarding.map || now
     onboarding.complete = now
   }
   return onboarding

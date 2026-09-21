@@ -18,6 +18,8 @@ interface CheckoutFormProps {
   planType?: 'solo' | 'household' | null
   /** For intensive checkout: 'full' | '2pay' - shows the 2-payment schedule note */
   paymentPlan?: 'full' | '2pay' | null
+  /** Public Vision Pro checkout vs Intensive + continuity */
+  offerType?: 'intensive' | 'membership'
 }
 
 export interface AccountDetails {
@@ -36,19 +38,22 @@ function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 's
   return planType === 'solo' ? '$999 per year' : '$1,490 per year'
 }
 
-export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, submitLabelShort, continuity, planType, paymentPlan }: CheckoutFormProps) {
+export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, submitLabelShort, continuity, planType, paymentPlan, offerType = 'intensive' }: CheckoutFormProps) {
   const stripe = useStripe()
   const elements = useElements()
+  const isMembershipCheckout = offerType === 'membership'
 
   const membershipBillingPhrase =
     continuity && planType ? getMembershipBillingPhrase(continuity, planType) : null
-  const agreementLabel = membershipBillingPhrase
+  const agreementLabel = isMembershipCheckout
+    ? 'I understand and agree that Vision Pro is $99 every 28 days starting today, that I can cancel anytime, and that I am covered by the 28-day membership guarantee.'
+    : membershipBillingPhrase
     ? `I understand and agree to the charges shown, including that my Vision Pro membership will continue billing on Day 28 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
     : "I agree to the charges shown, including Vision Pro billing starting on Day 28 at my selected plan, covered by the 16‑week guarantee."
 
-  const isHousehold = planType === 'household'
+  const isHousehold = !isMembershipCheckout && planType === 'household'
   const isTwoPay = paymentPlan === '2pay'
-  const isIntensiveCheckout = Boolean(continuity && planType)
+  const isIntensiveCheckout = !isMembershipCheckout && Boolean(continuity && planType)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -248,6 +253,16 @@ export default function CheckoutForm({ onSubmit, isProcessing, submitLabel, subm
           onChange={(e) => setAgreedToTerms(e.target.checked)}
         />
       </div>
+
+      {isMembershipCheckout && (
+        <div className="text-xs text-neutral-400 border border-neutral-700 rounded-lg bg-neutral-900/50 p-4 space-y-2 leading-relaxed">
+          <p>
+            You are starting Vision Pro today for $99. It renews at $99 every 28 days on the same
+            payment method until you cancel. Cancel any time with one click in your account before
+            the next renewal.
+          </p>
+        </div>
+      )}
 
       {/* Enrollment & renewal disclosure */}
       {isIntensiveCheckout && (

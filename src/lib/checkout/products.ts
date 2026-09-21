@@ -112,6 +112,39 @@ const TOKEN_PACKS: Record<TokenPackKey, { name: string; tokens: number; amount: 
   ultra: { name: 'Ultra Pack', tokens: 12_000_000, amount: 39900, envKey: 'STRIPE_PRICE_TOKEN_ULTRA' },
 }
 
+function getMembershipProduct(tiers?: MembershipTier[]): CheckoutProduct {
+  const tier = tierLookup(tiers, TIER_TYPES.MONTHLY_28DAY)
+  const tokens = tier?.monthly_token_grant || 0
+  const features = (tier?.features as string[] | undefined)?.length
+    ? (tier!.features as string[]).slice(0, 6)
+    : [
+        'Your Life I Choose vision across all 12 life categories',
+        tokens > 0 ? `${formatTokensShort(tokens)} VIVA tokens each cycle` : 'VIVA tokens each cycle',
+        'Vibe Tribe and weekly Alignment Gym',
+        'Stories, audio, songs, and your board in one place',
+        'Cancel anytime',
+      ]
+
+  return {
+    key: 'membership-vision-pro',
+    name: 'Vision Pro',
+    description: '$99 every 28 days',
+    mode: 'payment',
+    amount: 9900,
+    currency: 'usd',
+    features,
+    redirectAfterSuccess: '/begin',
+    getPriceEnvKey: () => process.env.STRIPE_PRICE_28DAY || process.env.NEXT_PUBLIC_STRIPE_PRICE_28DAY,
+    metadata: {
+      product_type: 'vision_pro',
+      purchase_type: 'membership',
+      plan_type: 'solo',
+      continuity_plan: '28day',
+      source: 'custom_checkout',
+    },
+  }
+}
+
 function getTokenPackProduct(packKey: TokenPackKey): CheckoutProduct {
   const pack = TOKEN_PACKS[packKey]
   return {
@@ -169,6 +202,10 @@ export function resolveCheckoutProduct(
       tiers,
       product === 'intensive_premium',
     )
+  }
+
+  if (product === 'membership') {
+    return getMembershipProduct(tiers)
   }
 
   if (product === 'token-pack' && packKey) {
