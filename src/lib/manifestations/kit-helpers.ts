@@ -16,6 +16,47 @@ export function normalizeLifeCategories(values: unknown): string[] {
     .filter(v => (LIFE_CATEGORIES as readonly string[]).includes(v))
 }
 
+export async function linkKitConversation(
+  supabase: SupabaseClient,
+  userId: string,
+  kitId: string,
+  conversationId: string,
+): Promise<void> {
+  const { data: current } = await supabase
+    .from('manifestations')
+    .select('conversation_id')
+    .eq('id', kitId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  const previousId = current?.conversation_id
+  if (previousId && previousId !== conversationId) {
+    await attachKitAsset(supabase, {
+      kitId,
+      slot: 'conversation',
+      entityType: 'conversation_sessions',
+      entityId: previousId,
+      status: 'ready',
+      pinnedBy: 'viva',
+    })
+  }
+
+  await attachKitAsset(supabase, {
+    kitId,
+    slot: 'conversation',
+    entityType: 'conversation_sessions',
+    entityId: conversationId,
+    status: 'ready',
+    pinnedBy: 'viva',
+  })
+
+  await supabase
+    .from('manifestations')
+    .update({ conversation_id: conversationId, updated_at: new Date().toISOString() })
+    .eq('id', kitId)
+    .eq('user_id', userId)
+}
+
 export async function findOpenKitForConversation(
   supabase: SupabaseClient,
   userId: string,
@@ -31,7 +72,25 @@ export async function findOpenKitForConversation(
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  return (data as Manifestation | null) ?? null
+  if (data) return data as Manifestation
+
+  const { data: asset } = await supabase
+    .from('manifestation_assets')
+    .select('manifestation_id')
+    .eq('slot', 'conversation')
+    .eq('entity_id', conversationId)
+    .limit(1)
+    .maybeSingle()
+  if (!asset?.manifestation_id) return null
+
+  const { data: fromAsset } = await supabase
+    .from('manifestations')
+    .select('*')
+    .eq('id', asset.manifestation_id)
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle()
+  return (fromAsset as Manifestation | null) ?? null
 }
 
 export async function findSimilarOpenKit(
@@ -169,7 +228,7 @@ export async function attachKitAsset(
 
 export function defaultLayerForSlot(slot: KitSlot): KitLayer {
   if (slot === 'project') return 'project'
-  if (['journal', 'abundance', 'daily_paper', 'trip', 'dream_destination'].includes(slot)) {
+  if (['journal', 'abundance', 'daily_paper', 'trip', 'dream_destination', 'conversation'].includes(slot)) {
     return 'evidence'
   }
   return 'suite'

@@ -66,7 +66,7 @@ Source of truth: `supabase/COMPLETE_SCHEMA_DUMP.sql`. Auto-generated doc: `docs/
 
 ### 🚧 VIVA Conversational Coach
 Conversational brain: retrieve → Luna interpreter (theory of the moment + context selections) → Terra response → background memory/constraint extraction + embedding sync. Threads, compounding memory (`viva_memory_items`), semantic recall (pgvector `member_embeddings`), constraint ledger, in-app tool actions, opt-in household lens.
-In-thread modes (member-chosen, not a hidden classifier): Auto / Friend / Coach / Builder / Assistant. Mode shapes stance and tools. Persist `conversation_sessions.viva_mode`; log switches in `viva_mode_switches`; stamp `ai_conversations.context.selected_mode`. Stored mode key is `builder`.
+Composer no longer exposes mode picks — `/viva` runs Auto (full stance + tools). Backend still understands Friend / Coach / Builder / Assistant contracts. Persist `conversation_sessions.viva_mode`; stamp `ai_conversations.context.selected_mode`. Stored mode key is `builder`.
 Schema: `conversation_sessions`, `ai_conversations`, `viva_memory_items`, `vibrational_constraints`, `member_embeddings`, `viva_mode_switches`. API: `/api/viva/coach`, `/api/viva/conversations`, `/api/viva/mode`, `/api/viva/constraints`. Lib: `src/lib/viva/coach-*.ts`, `modes.ts`, `memory-extractor.ts`, `embeddings.ts`, `household-lens.ts`. UI: `/viva`. Chat chrome: `src/components/viva/VivaChatMessage.tsx` + `VivaChatInput.tsx`.
 
 - Memory extraction runs in-process via `after()` — do NOT reintroduce HTTP self-calls (the old empty-Cookie fetch silently failed every session)
@@ -83,7 +83,8 @@ One record per desire: the `manifestations` table (renamed from `vision_board_it
 Schema: `manifestations`, `manifestation_assets`, `manifestation_activations`, `projects` (+`project_tasks`, `manifestation_id` → `manifestations`). API: `/api/manifestations*`, `/api/vision-board/*` (items), `/api/projects*` (action groups). Lib: `src/lib/manifestations/*`. UI: `/manifestations`, `/manifestations/new`, `/manifestations/[id]`. Studio: `src/components/manifestations-studio/*`. Legacy `/vision-board/*` and member `/projects/*` routes redirect here.
 VIVA flows: `add_manifestation` (desire detection + optional image, offer first), `actualize_manifestation` → `draft_vibe_post` (explicit approval only, never auto-post), `save_journal_entry` with `manifestation_ids` (journal documentation engine).
 
-- Join-table assets only — do not add `manifestation_id` to journal / abundance / daily_papers
+- Join-table assets only — do not add `manifestation_id` to journal / abundance / daily_papers / conversation_sessions
+- "Chat with VIVA about this" always starts a new thread; prior threads attach as `conversation` assets and list under The Journey
 - Do NOT auto-declare Actualized from scores or event counts
 - Continue an existing manifestation for the same idea — never create a second one
 - Never silent-attach; never say Complete; no 0–100% bar; never say "kit" in member-facing copy

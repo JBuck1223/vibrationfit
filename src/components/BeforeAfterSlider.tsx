@@ -9,6 +9,8 @@ interface BeforeAfterSliderProps {
   className?: string
   /** When true, contains images within parent and constrains slider to image bounds */
   fill?: boolean
+  /** Show the full image (no crop). Pair with a max-height on className. */
+  contain?: boolean
 }
 
 export function BeforeAfterSlider({
@@ -16,6 +18,7 @@ export function BeforeAfterSlider({
   afterSrc,
   className = '',
   fill = false,
+  contain = false,
 }: BeforeAfterSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const afterImgRef = useRef<HTMLImageElement>(null)
@@ -24,8 +27,10 @@ export function BeforeAfterSlider({
   const didDrag = useRef(false)
   const [imgBounds, setImgBounds] = useState<{ left: number; width: number } | null>(null)
 
+  const constrainToImage = fill || contain
+
   const computeImgBounds = useCallback(() => {
-    if (!fill || !afterImgRef.current || !containerRef.current) {
+    if (!constrainToImage || !afterImgRef.current || !containerRef.current) {
       setImgBounds(null)
       return
     }
@@ -47,21 +52,21 @@ export function BeforeAfterSlider({
     }
     const offsetLeft = (containerW - renderedW) / 2
     setImgBounds({ left: offsetLeft, width: renderedW })
-  }, [fill])
+  }, [constrainToImage])
 
   useEffect(() => {
-    if (!fill) return
+    if (!constrainToImage) return
     computeImgBounds()
     window.addEventListener('resize', computeImgBounds)
     return () => window.removeEventListener('resize', computeImgBounds)
-  }, [fill, computeImgBounds])
+  }, [constrainToImage, computeImgBounds])
 
   const updatePosition = useCallback((clientX: number) => {
     const container = containerRef.current
     if (!container) return
     const rect = container.getBoundingClientRect()
 
-    if (fill && imgBounds) {
+    if (constrainToImage && imgBounds) {
       const x = clientX - rect.left - imgBounds.left
       const pct = Math.max(0, Math.min(100, (x / imgBounds.width) * 100))
       setPosition(pct)
@@ -70,7 +75,7 @@ export function BeforeAfterSlider({
       const pct = Math.max(0, Math.min(100, (x / rect.width) * 100))
       setPosition(pct)
     }
-  }, [fill, imgBounds])
+  }, [constrainToImage, imgBounds])
 
   const handleRef = useRef<HTMLDivElement>(null)
 
@@ -108,7 +113,7 @@ export function BeforeAfterSlider({
   let sliderLeftPx: number | null = null
   let clipRightPct = 100 - position
 
-  if (fill && imgBounds && containerWidth > 0) {
+  if (constrainToImage && imgBounds && containerWidth > 0) {
     sliderLeftPx = imgBounds.left + (position / 100) * imgBounds.width
     clipRightPct = ((containerWidth - sliderLeftPx) / containerWidth) * 100
   }
@@ -124,7 +129,13 @@ export function BeforeAfterSlider({
         ref={afterImgRef}
         src={afterSrc}
         alt=""
-        className={fill ? 'w-full h-full object-contain block' : 'w-full h-auto object-cover block'}
+        className={
+          fill
+            ? 'w-full h-full object-contain block'
+            : contain
+              ? 'mx-auto block h-auto w-auto max-w-full max-h-[inherit] object-contain'
+              : 'w-full h-auto object-cover block'
+        }
         draggable={false}
         onLoad={computeImgBounds}
       />
@@ -133,7 +144,7 @@ export function BeforeAfterSlider({
       <img
         src={beforeSrc}
         alt=""
-        className={fill ? 'absolute inset-0 w-full h-full object-contain' : 'absolute inset-0 w-full h-full object-cover'}
+        className={constrainToImage ? 'absolute inset-0 w-full h-full object-contain' : 'absolute inset-0 w-full h-full object-cover'}
         draggable={false}
         style={{ clipPath: `inset(0 ${clipRightPct}% 0 0)` }}
       />

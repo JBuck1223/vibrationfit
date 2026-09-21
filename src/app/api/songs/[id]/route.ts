@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { statusAfterLyricsEdit } from '@/lib/songs/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +43,15 @@ export async function PATCH(
         return NextResponse.json({ error: 'Lyrics cannot be empty' }, { status: 400 })
       }
       updates.lyrics = body.lyrics.trim()
-      updates.status = 'lyrics_complete'
+
+      const { data: current } = await supabase
+        .from('songs')
+        .select('status')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single()
+
+      updates.status = await statusAfterLyricsEdit(supabase, id, current?.status)
     }
 
     if (body.style_prompt !== undefined) {

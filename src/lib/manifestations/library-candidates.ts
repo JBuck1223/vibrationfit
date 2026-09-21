@@ -383,6 +383,7 @@ export async function resolveAssetLabels(
     { table: 'dream_destinations', labelCol: 'name' },
     { table: 'daily_papers', labelCol: 'gratitude' },
     { table: 'vision_versions', labelCol: 'title' },
+    { table: 'conversation_sessions', labelCol: 'title' },
   ]
 
   await Promise.all(lookups.map(async ({ table, labelCol }) => {

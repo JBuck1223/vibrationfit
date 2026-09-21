@@ -217,6 +217,13 @@ export interface CoachContextInput {
   selectedCategories?: string[]
   userIntent?: string
   selectedMode?: string
+  focusManifestation?: {
+    id: string
+    name: string
+    why_it_matters?: string | null
+    what_it_feels_like?: string | null
+    categories?: string[] | null
+  } | null
 }
 
 export interface RetrievalIndicator {
@@ -719,6 +726,7 @@ ${householdContext}
 ${selectedCategories && selectedCategories.length > 0 ? `Focus categories: ${selectedCategories.join(', ')}` : 'No specific category selected — let the conversation reveal what needs attention.'}
 ${input.userIntent ? `Their stated intent: "${input.userIntent}"` : ''}
 ${input.selectedMode ? `In-thread mode: ${input.selectedMode}` : ''}
+${input.focusManifestation ? `The member opened this thread from their manifestation "${input.focusManifestation.name}". They want to talk about this desire. Stay with it. Continue this manifestation — never open a second one for the same reality.${input.focusManifestation.why_it_matters ? ` Why they want it: ${input.focusManifestation.why_it_matters}` : ''}${input.focusManifestation.what_it_feels_like ? ` What it feels like: ${input.focusManifestation.what_it_feels_like}` : ''}` : ''}
 
 Remember: You know this person. Their vision, patterns, and history shape how you listen—not how many facts you mention. Read the current moment and choose the smallest useful move.`
 }

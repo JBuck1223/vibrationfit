@@ -22,6 +22,7 @@ import {
   buildSimpleSongPrompt,
 } from '@/lib/viva/prompts/song-lyrics-prompt'
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
+import { statusAfterLyricsEdit } from '@/lib/songs/status'
 import type { SongEssence, SongEntityType } from '@/lib/songs/types'
 
 export const maxDuration = 120
@@ -97,10 +98,18 @@ export async function POST(request: NextRequest) {
     let songId = body.song_id
 
     if (songId) {
+      const { data: existing } = await supabase
+        .from('songs')
+        .select('status')
+        .eq('id', songId)
+        .eq('user_id', user.id)
+        .single()
+
+      const keptStatus = await statusAfterLyricsEdit(supabase, songId, existing?.status)
       await supabase
         .from('songs')
         .update({
-          status: 'generating_lyrics',
+          status: keptStatus === 'lyrics_complete' ? 'generating_lyrics' : keptStatus,
           song_essence,
           style_prompt: buildStylePrompt(song_essence),
           updated_at: new Date().toISOString(),
@@ -143,14 +152,23 @@ export async function POST(request: NextRequest) {
         const elapsedMs = Date.now() - startTime
         console.log(`[SongLyrics] Completed in ${elapsedMs}ms`)
 
+        const { data: current } = await supabase
+          .from('songs')
+          .select('metadata, status')
+          .eq('id', songId)
+          .eq('user_id', user.id)
+          .single()
+
+        const nextStatus = await statusAfterLyricsEdit(supabase, songId, current?.status)
+
         await supabase
           .from('songs')
           .update({
             title,
             lyrics: stripLyricsTitleHeader(text),
-            status: 'lyrics_complete',
-            generation_count: 1,
+            status: nextStatus,
             metadata: {
+              ...(typeof current?.metadata === 'object' && current.metadata ? current.metadata : {}),
               prompt_version: 'songwriter-v2-no-coffee-opening',
               model_used: response?.modelId || SONGWRITER_MODEL,
             },

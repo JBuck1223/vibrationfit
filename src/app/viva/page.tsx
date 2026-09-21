@@ -27,10 +27,8 @@ import {
 import { toast } from 'sonner'
 import { keys } from '@/lib/query/keys'
 import { VivaChatInput, type ChatAttachment } from '@/components/viva/VivaChatInput'
-import { VivaModeSwitcher } from '@/components/viva/VivaModeSwitcher'
 import { ConstraintsPanel } from '@/components/viva/ConstraintsPanel'
 import { cn } from '@/lib/utils'
-import { parseVivaMode, type VivaMode } from '@/lib/viva/modes'
 import { SUGGEST_TOOLS_USER_MESSAGE } from '@/lib/viva/prompts/suggest-tools'
 import { CoachStreamError, readCoachStream } from '@/lib/viva/coach-stream'
 import {
@@ -51,8 +49,13 @@ function vivaQuery(): URLSearchParams {
 
 function replaceVivaUrl(router: { replace: (href: string) => void }, thread: string | null) {
   const next = vivaQuery()
-  if (thread) next.set('thread', thread)
-  else next.delete('thread')
+  if (thread) {
+    next.set('thread', thread)
+    next.delete('manifestation')
+    next.delete('t')
+  } else {
+    next.delete('thread')
+  }
   const q = next.toString()
   router.replace(q ? `/viva?${q}` : '/viva')
 }
@@ -72,7 +75,6 @@ interface Thread {
   pinned: boolean
   last_message_at: string | null
   updated_at: string
-  viva_mode?: VivaMode
 }
 
 interface RetrievalIndicator {
@@ -99,7 +101,6 @@ export default function VivaPage() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [indicators, setIndicators] = useState<RetrievalIndicator[]>([])
   const [isThinking, setIsThinking] = useState(false)
-  const [vivaMode, setVivaMode] = useState<VivaMode>('auto')
 
   // --- UI state ---
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -110,6 +111,8 @@ export default function VivaPage() {
   // Admin model testing: /viva?model=anthropic/claude-sonnet-4-5
   // The API only honors this override for admin accounts.
   const [modelOverride, setModelOverride] = useState<string | null>(null)
+  const [focusKitId, setFocusKitId] = useState<string | null>(null)
+  const focusStartedRef = useRef(false)
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get('model')
     if (m) setModelOverride(m)
@@ -138,30 +141,11 @@ export default function VivaPage() {
   }, [messages.length, isThinking])
 
   // --- Thread management ---
-  const persistMode = async (conversationId: string | null, toMode: VivaMode, source: 'composer' | 'restore') => {
-    if (!conversationId) return
-    try {
-      await fetch('/api/viva/mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId, toMode, source }),
-      })
-    } catch (err) {
-      console.error('Error saving VIVA mode:', err)
-    }
-  }
-
-  const handleModeChange = (next: VivaMode) => {
-    if (next === vivaMode) return
-    setVivaMode(next)
-    persistMode(threadId, next, 'composer')
-  }
-
   const startNewThread = () => {
     setThreadId(null)
     setMessages([])
     setIndicators([])
-    setVivaMode('auto')
+    setFocusKitId(null)
     messageCountRef.current = 0
     replaceVivaUrl(router, null)
   }
@@ -190,10 +174,6 @@ export default function VivaPage() {
           }))
         )
       }
-      const thread = threads.find(t => t.id === id)
-      const restored = parseVivaMode(thread?.viva_mode)
-      setVivaMode(restored)
-      persistMode(id, restored, 'restore')
     } catch (err) {
       console.error('Error loading thread:', err)
     }
@@ -239,7 +219,7 @@ export default function VivaPage() {
   const sendMessage = async (
     incomingAttachments?: ChatAttachment[],
     overrideContent?: string,
-    options?: { suggestTools?: boolean },
+    options?: { suggestTools?: boolean; kitId?: string },
   ) => {
     const content = (overrideContent ?? currentMessage).trim()
     const picked = incomingAttachments || []
@@ -321,10 +301,11 @@ export default function VivaPage() {
           messages: messagesForAPI,
           conversationId: threadId,
           isNewSession: !threadId,
-          modeHint: vivaMode,
+          modeHint: 'auto',
           ...(persisted.length > 0 ? { attachments: persisted } : {}),
           ...(modelOverride ? { modelOverride } : {}),
           ...(options?.suggestTools ? { suggestTools: true } : {}),
+          ...(options?.kitId || focusKitId ? { kitId: options?.kitId || focusKitId } : {}),
         },
         onHeaders: ({ conversationId }) => {
           if (!conversationId) return
@@ -377,6 +358,41 @@ export default function VivaPage() {
       setIsThinking(false)
     }
   }
+
+  useEffect(() => {
+    const kitId = vivaQuery().get('manifestation')
+    if (!kitId || !/^[0-9a-f-]{36}$/i.test(kitId)) return
+    if (vivaQuery().get('thread')) return
+    if (focusStartedRef.current) return
+    const bootStamp = vivaQuery().get('t')
+    const lockKey = bootStamp ? `viva-focus-boot:${kitId}:${bootStamp}` : `viva-focus-boot:${kitId}`
+    const lockedAt = Number(sessionStorage.getItem(lockKey) || 0)
+    if (!bootStamp && Date.now() - lockedAt < 2000) return
+    if (bootStamp && sessionStorage.getItem(lockKey)) return
+    focusStartedRef.current = true
+    sessionStorage.setItem(lockKey, String(Date.now()))
+    setFocusKitId(kitId)
+
+    setThreadId(null)
+    setMessages([])
+
+    void (async () => {
+      try {
+        const res = await fetch(`/api/manifestations/${kitId}`)
+        if (!res.ok) return
+        const data = await res.json()
+        const manifestation = data.manifestation as { name?: string } | undefined
+        const name = manifestation?.name?.trim() || 'this manifestation'
+        await sendMessage(undefined, `I want to talk about ${name}.`, { kitId })
+      } catch (err) {
+        console.error('Could not open this manifestation in VIVA:', err)
+        sessionStorage.removeItem(lockKey)
+        focusStartedRef.current = false
+      }
+    })()
+    // Deep-link focus on first paint only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const activeThread = threads.find(t => t.id === threadId)
   const pinnedThreads = threads.filter(t => t.pinned)
@@ -623,10 +639,7 @@ export default function VivaPage() {
         {/* Input */}
         <div className="border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]" data-tour="viva-composer">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
-            <div className="mb-3 flex items-center gap-2">
-              <div className="min-w-0 flex-1">
-                <VivaModeSwitcher value={vivaMode} onChange={handleModeChange} disabled={isStreaming} />
-              </div>
+            <div className="mb-3 flex items-center">
               <button
                 type="button"
                 data-tour="viva-suggest-tools"
