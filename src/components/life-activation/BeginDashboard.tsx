@@ -2,16 +2,15 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Button, Card } from '@/lib/design-system/components'
 import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
 import { JourneyDashboard, type DashboardStep } from '@/components/life-activation/JourneyDashboard'
 import { RosterConfirmCard } from '@/components/roster/RosterConfirmCard'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import {
-  firstIncompleteOnboarding,
   ONBOARDING_PHASES,
   ONBOARDING_STEPS,
+  withSequentialLocks,
   type OnboardingStepId,
 } from '@/lib/life-activation/steps'
 
@@ -26,26 +25,25 @@ export function BeginDashboard() {
   } = useLifeActivation()
   const [kitOpen, setKitOpen] = useState(searchParams.get('step') === 'kit')
 
-  const currentId = progress ? firstIncompleteOnboarding(progress.onboarding) : 'welcome'
   const kitReady = Boolean(progress?.onboarding.vision && progress?.active_vision_id)
 
-  const steps: DashboardStep[] = ONBOARDING_STEPS.map((step) => ({
-    id: step.id,
-    stepNumber: step.number,
-    title: step.title,
-    description: step.description,
-    phase: step.phase,
-    completed: Boolean(progress?.onboarding[step.id]),
-    completedAt: progress?.onboarding[step.id] || null,
-    href: step.href,
-    viewHref: step.viewHref,
-    actionLabel: step.actionLabel,
-    canSkip: step.canSkip,
-  }))
+  const steps: DashboardStep[] = withSequentialLocks(
+    ONBOARDING_STEPS.map((step) => ({
+      id: step.id,
+      stepNumber: step.number,
+      title: step.title,
+      description: step.description,
+      phase: step.phase,
+      completed: Boolean(progress?.onboarding[step.id]),
+      completedAt: progress?.onboarding[step.id] || null,
+      href: step.href,
+      viewHref: step.viewHref,
+      actionLabel: step.actionLabel,
+      canSkip: step.canSkip,
+    })),
+  )
 
-  const nextStep = steps.find((s) => s.id === currentId) || null
-  const doneCount = steps.filter((s) => s.completed).length
-  const progressPct = Math.round((doneCount / steps.length) * 100)
+  const nextStep = steps.find((s) => !s.completed && !s.locked) || null
 
   const handleSkipKit = async () => {
     await completeOnboardingStep('kit')
@@ -53,7 +51,7 @@ export function BeginDashboard() {
   }
 
   const handleContinue = async (step: DashboardStep) => {
-    if (isUpdating) return
+    if (isUpdating || step.locked) return
 
     try {
       if (step.id === 'kit') {
@@ -74,33 +72,16 @@ export function BeginDashboard() {
   return (
     <>
       <JourneyDashboard
-        title={LIFE_ACTIVATION_COPY.welcome.eyebrow}
+        title={LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}
         phases={ONBOARDING_PHASES}
         steps={steps}
         nextStep={nextStep}
-        progressCopy={LIFE_ACTIVATION_COPY.dashboard.onboardingLine(progressPct)}
+        progressCopy={LIFE_ACTIVATION_COPY.dashboard.onboardingLead(nextStep?.id ?? null)}
         loading={isLoading}
         continueDisabled={isUpdating}
         onContinue={handleContinue}
-        extra={
-          <>
-            {currentId === 'kit' && kitReady ? (
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold text-white">{LIFE_ACTIVATION_COPY.kit.title}</h2>
-                <p className="mt-2 text-sm text-neutral-300">{LIFE_ACTIVATION_COPY.kit.body}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="primary" onClick={() => setKitOpen(true)}>
-                    {LIFE_ACTIVATION_COPY.kit.cta}
-                  </Button>
-                  <Button variant="ghost" onClick={handleSkipKit} disabled={isUpdating}>
-                    {LIFE_ACTIVATION_COPY.kit.skip}
-                  </Button>
-                </div>
-              </Card>
-            ) : null}
-            {progress?.onboarding.vision ? <RosterConfirmCard /> : null}
-          </>
-        }
+        onSkip={nextStep?.id === 'kit' ? () => handleSkipKit() : undefined}
+        extra={progress?.onboarding.vision ? <RosterConfirmCard /> : null}
       />
 
       {progress?.active_vision_id && (

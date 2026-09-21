@@ -6,7 +6,6 @@ import { JourneyDashboard, type DashboardStep } from '@/components/life-activati
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import {
-  firstIncompleteTraining,
   TRAINING_PHASES,
   TRAINING_STEPS,
 } from '@/lib/life-activation/steps'
@@ -16,7 +15,6 @@ export default function BeginTrainingPage() {
   const { progress, isLoading, startTraining, dismissTraining, isUpdating } = useLifeActivation()
 
   const started = Boolean(progress?.training_started_at)
-  const currentId = progress ? firstIncompleteTraining(progress.training) : 'profile'
 
   const steps: DashboardStep[] = TRAINING_STEPS.map((step) => ({
     id: step.id,
@@ -32,9 +30,7 @@ export default function BeginTrainingPage() {
     canSkip: step.canSkip,
   }))
 
-  const nextStep = steps.find((s) => s.id === currentId) || null
-  const doneCount = steps.filter((s) => s.completed).length
-  const progressPct = Math.round((doneCount / steps.length) * 100)
+  const nextStep = steps.find((s) => !s.completed) || null
 
   const handleContinue = async (step: DashboardStep) => {
     if (isUpdating) return
@@ -50,7 +46,7 @@ export default function BeginTrainingPage() {
       phases={TRAINING_PHASES}
       steps={steps}
       nextStep={nextStep}
-      progressCopy={LIFE_ACTIVATION_COPY.dashboard.trainingLine(progressPct)}
+      progressCopy={LIFE_ACTIVATION_COPY.dashboard.trainingLead(nextStep?.title ?? null)}
       loading={isLoading}
       continueDisabled={isUpdating}
       onContinue={handleContinue}

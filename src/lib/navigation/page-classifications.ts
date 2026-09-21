@@ -287,8 +287,11 @@ export const PAGE_CLASSIFICATIONS = {
     // free session created at email capture)
     '/activation',
     '/activation/home',              // Redirects to / (promoted front door)
+    '/activation/start',             // Redirects to /free-activation
     '/activation/experience',
     '/activation/[id]',
+    '/free-activation',              // Social / attraction-offer opt-in
+    '/join',                         // Paid-only membership landing page
     
     // Authentication
     '/auth/login',

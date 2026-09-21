@@ -2031,6 +2031,7 @@ export async function POST(request: NextRequest) {
           break
         }
         const isIntensive = product === 'intensive' || product === 'intensive_premium' || productType === 'combined_intensive_continuity'
+        const isMembership = product === 'membership' || purchaseType === 'membership' || productType === 'vision_pro'
 
         const { data: existingOrder } = await supabaseAdmin
           .from('orders')
@@ -2130,7 +2131,7 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        const productKey = product === 'intensive' ? 'intensive' : product
+        const productKey = product === 'membership' ? 'vision_pro_28day' : product === 'intensive' ? 'intensive' : product
 
         const intensiveOrderItem = await createOrderItemByProductKey({
           orderId: order.id,
@@ -2150,6 +2151,23 @@ export async function POST(request: NextRequest) {
           metadata: { ...meta },
           supabaseAdmin,
         })
+
+        if (intensiveOrderItem && isMembership) {
+          const { activateVisionProMembership } = await import('@/lib/billing/fulfillment')
+          const customerId = typeof pi.customer === 'string' ? pi.customer : (pi.customer as Stripe.Customer)?.id
+          await activateVisionProMembership({
+            supabaseAdmin,
+            userId,
+            orderId: order.id,
+            orderItemId: intensiveOrderItem.id,
+            amountCents: totalAmount,
+            provider: 'stripe',
+            stripeCustomerId: customerId || null,
+            promoCode,
+            referralSource,
+            campaignName,
+          }).catch(err => console.error('membership activation failed:', err))
+        }
 
         if (intensiveOrderItem && isIntensive) {
           await supabaseAdmin.from('intensive_checklist').insert({

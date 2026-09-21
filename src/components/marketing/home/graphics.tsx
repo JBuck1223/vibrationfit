@@ -13,8 +13,10 @@ import {
   RadioTower,
   RefreshCw,
   Rocket,
+  SlidersHorizontal,
   Sparkles,
   Target,
+  Zap,
   Volume2,
 } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -336,6 +338,140 @@ const SYSTEM_REPS = [
   { icon: Heart, label: 'Connections' },
   { icon: CalendarDays, label: 'Sessions' },
 ] as const
+
+const CCS_ARC_R = 260
+
+const CCS_NODES = [
+  {
+    id: 'choose',
+    icon: Compass,
+    title: 'Choose',
+    hint: 'Get clear on\nwhat you want',
+    color: TONE.lime,
+    angle: -90,
+  },
+  {
+    id: 'activate',
+    icon: Zap,
+    title: 'Activate',
+    hint: 'Experience it now',
+    color: TONE.cyan,
+    angle: 30,
+  },
+  {
+    id: 'align',
+    icon: SlidersHorizontal,
+    title: 'Align',
+    hint: 'Thoughts \u00b7 Words \u00b7 Actions',
+    color: TONE.purple,
+    angle: 150,
+  },
+] as const
+
+const CCS_ARCS = [
+  { a1: -48, a2: -12, color: TONE.lime },
+  { a1: 72, a2: 108, color: TONE.cyan },
+  { a1: 192, a2: 228, color: TONE.purple },
+] as const
+
+function ccsPoint(angle: number, radius: number, origin = 500) {
+  const rad = (angle * Math.PI) / 180
+  return {
+    x: origin + radius * Math.cos(rad),
+    y: origin + radius * Math.sin(rad),
+  }
+}
+
+function ccsArc(a1: number, a2: number, radius: number) {
+  const start = ccsPoint(a1, radius)
+  const end = ccsPoint(a2, radius)
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 0 1 ${end.x} ${end.y}`
+}
+
+function ccsSpot(angle: number, radiusPct: number) {
+  const rad = (angle * Math.PI) / 180
+  return {
+    left: `${50 + radiusPct * Math.cos(rad)}%`,
+    top: `${50 + radiusPct * Math.sin(rad)}%`,
+  }
+}
+
+/** Canonical Conscious Creation diagram: Choose → Activate → Align, while life is happening. */
+export function ChooseActivateAlign() {
+  return (
+    <figure className="hp-ccs" aria-label="Choose, activate, and align while life is happening">
+      <div className="hp-ccs-stage">
+        <svg className="hp-ccs-svg" viewBox="0 0 1000 1000" aria-hidden="true">
+          <defs>
+            <marker
+              id="ccs-chevron"
+              markerUnits="userSpaceOnUse"
+              markerWidth="18"
+              markerHeight="18"
+              refX="14"
+              refY="9"
+              orient="auto"
+            >
+              <polyline
+                points="3,3 14,9 3,15"
+                fill="none"
+                stroke="context-stroke"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </marker>
+          </defs>
+          <circle cx="500" cy="500" r={CCS_ARC_R} className="hp-ccs-track" />
+          {CCS_ARCS.map((arc) => (
+            <path
+              key={arc.a1}
+              d={ccsArc(arc.a1, arc.a2, CCS_ARC_R)}
+              stroke={arc.color}
+              className="hp-ccs-arc"
+              markerEnd="url(#ccs-chevron)"
+            />
+          ))}
+          <circle cx="500" cy="500" r="96" className="hp-ccs-core-ring" />
+        </svg>
+
+        {CCS_NODES.map((node) => {
+          const Icon = node.icon
+          return (
+            <div
+              key={node.id}
+              className={`hp-ccs-node is-${node.id}`}
+              style={{ ...ccsSpot(node.angle, CCS_ARC_R / 10), color: node.color }}
+            >
+              <span className="hp-ccs-icon">
+                <Icon strokeWidth={1.7} aria-hidden="true" />
+              </span>
+              <span className="hp-ccs-copy">
+                <span className="hp-ccs-name">{node.title}</span>
+                <span className="hp-ccs-hint">
+                  {node.hint.split('\n').map((line) => (
+                    <span key={line} className="block">
+                      {line}
+                    </span>
+                  ))}
+                </span>
+              </span>
+            </div>
+          )
+        })}
+
+        <div className="hp-ccs-core">
+          <p>
+            The Life
+            <br />
+            You Choose
+          </p>
+        </div>
+      </div>
+      <figcaption className="hp-ccs-again">Again and again, while you live.</figcaption>
+    </figure>
+  )
+}
 
 export function InstallRunEvolve() {
   return (

@@ -303,6 +303,7 @@ function CheckoutContent() {
                 isProcessing={isProcessing}
                 submitLabel={submitLabel}
                 submitLabelShort={submitLabelShort}
+                offerType={searchParams.get('product') === 'membership' ? 'membership' : 'intensive'}
                 continuity={(searchParams.get('continuity') as 'annual' | '28day') || undefined}
                 planType={(searchParams.get('planType') as 'solo' | 'household') || undefined}
                 paymentPlan={(searchParams.get('plan') as 'full' | '2pay') || undefined}

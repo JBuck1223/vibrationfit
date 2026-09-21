@@ -9,20 +9,22 @@ the proof that VIVA can take someone from contrast to a chosen reality.
 Never external results or guaranteed manifestation.
 
 Admin step inspector: `/admin/activation`. Member-facing copy lives in
-`src/lib/activation/copy.ts`. Landing-page long-form copy still lives in
-`src/app/activation/page.tsx`. The live front door is `/` (activation spine +
-homepage containers). `/activation/home` redirects there.
+`src/lib/activation/copy.ts`. The free opt-in is `/free-activation` (one
+headline, one form, one CTA). `/activation` and `/activation/start` redirect
+there. Mixed-intent front door is `/` (paid primary, free secondary). Paid-only
+ad page is `/join`. `/activation/home` redirects to `/`.
 
 ## User flow
 
 ```
-/activation            Welcome → email capture (free account + branded resume email)
+/free-activation       Opt-in (first name + email) → free account + branded resume email
 /activation/experience Orientation (Start My Activation) → pick one life category
                        → bounded VIVA chat in that area → Create My Activation
 /activation/[id]       Preview (checklist only) → Enter My Activation (opened)
                        → Immersion map + assets (audio lives in each container)
                        → I've Entered This Reality (entered)
-                       → Offer #continue + Download Everything + optional inspired step
+                       → Unlock Vision Pro $99/28 days → /checkout?product=membership
+/begin                 Paid onboarding after purchase
 ```
 
 Resume: same user + incomplete Activation reopens that id. Already `entered`

@@ -1,17 +1,19 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { ArrowRight, CheckCircle, Eye } from 'lucide-react'
+import { ArrowRight, Check, ChevronRight, Lock } from 'lucide-react'
 import {
   Badge,
   Button,
   Card,
   Container,
+  PageHero,
   ProgressBar,
   Spinner,
   Stack,
 } from '@/lib/design-system/components'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
+import { cn } from '@/lib/utils'
 
 export type DashboardStep = {
   id: string
@@ -25,17 +27,43 @@ export type DashboardStep = {
   viewHref: string
   actionLabel: string
   canSkip?: boolean
+  locked?: boolean
 }
 
-function formatCompletedAt(value: string) {
-  const utc = value.endsWith('Z') || value.includes('+') ? value : `${value}Z`
-  return new Date(utc).toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+function StepStatus({
+  completed,
+  current,
+  locked,
+}: {
+  completed: boolean
+  current: boolean
+  locked?: boolean
+}) {
+  if (completed) {
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-500 text-black">
+        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+      </span>
+    )
+  }
+
+  if (current) {
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-primary-500 bg-primary-500/15">
+        <span className="h-2 w-2 rounded-full bg-primary-500" />
+      </span>
+    )
+  }
+
+  if (locked) {
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[#333] bg-[#1A1A1A] text-neutral-500">
+        <Lock className="h-3 w-3" />
+      </span>
+    )
+  }
+
+  return <span className="h-6 w-6 shrink-0 rounded-full border-2 border-[#333]" />
 }
 
 export function JourneyDashboard({
@@ -49,6 +77,7 @@ export function JourneyDashboard({
   footer,
   continueDisabled,
   onContinue,
+  onSkip,
 }: {
   title: string
   phases: readonly string[]
@@ -60,6 +89,7 @@ export function JourneyDashboard({
   footer?: ReactNode
   continueDisabled?: boolean
   onContinue: (step: DashboardStep) => void
+  onSkip?: (step: DashboardStep) => void
 }) {
   if (loading) {
     return (
@@ -71,275 +101,168 @@ export function JourneyDashboard({
 
   const doneCount = steps.filter((s) => s.completed).length
   const progress = steps.length ? Math.round((doneCount / steps.length) * 100) : 0
-  const currentPhase = nextStep?.phase || 'Completed'
-  const currentStepNumber = nextStep?.stepNumber || steps.length
 
   return (
     <Container size="xl">
-      <Stack gap="lg">
-        <div className="flex justify-center">
-          <Badge variant="premium" className="text-xs md:text-sm">
-            {LIFE_ACTIVATION_COPY.dashboard.currentPhase(
-              currentPhase,
-              currentStepNumber,
-              steps.length,
-            )}
-          </Badge>
-        </div>
-
-        <p className="text-center text-sm text-neutral-400">{progressCopy}</p>
-
-        <Card
-          variant="elevated"
-          className="border-primary-500/30 bg-gradient-to-br from-primary-500/10 to-secondary-500/10 p-4 md:p-6 lg:p-8"
-        >
-          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-            <div>
-              <h3 className="mb-2 text-base font-semibold md:text-lg">{title}</h3>
-              <p className="text-sm text-neutral-400 md:text-base">
-                {nextStep
-                  ? nextStep.description
-                  : LIFE_ACTIVATION_COPY.complete.body}
-              </p>
-            </div>
-            <div className="text-left sm:text-right">
-              <p className="mb-2 text-xs text-neutral-400 md:text-sm">
-                {LIFE_ACTIVATION_COPY.dashboard.overall}
-              </p>
-              <p className="text-3xl font-bold text-secondary-500 md:text-4xl">{progress}%</p>
-              <p className="mt-2 text-xs text-neutral-400 md:text-sm">
+      <div className="mx-auto w-full max-w-2xl">
+        <Stack gap="lg">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <PageHero title={title} subtitle={progressCopy} />
+              <span className="shrink-0 pt-1 text-sm tabular-nums text-neutral-500">
                 {LIFE_ACTIVATION_COPY.dashboard.stepsCount(doneCount, steps.length)}
+              </span>
+            </div>
+            <ProgressBar value={progress} variant="primary" size="sm" />
+          </div>
+
+          {extra}
+
+          {nextStep && (
+            <Card className="border-primary-500/25 bg-[#141414] p-5 md:p-6">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-primary-500">
+                {LIFE_ACTIVATION_COPY.dashboard.nextStep}
               </p>
-            </div>
-          </div>
-          <div className="mt-6">
-            <ProgressBar value={progress} variant="primary" className="h-3" />
-          </div>
-        </Card>
-
-        {extra}
-
-        {nextStep && (
-          <Card
-            variant="elevated"
-            role="button"
-            tabIndex={0}
-            onClick={() => !continueDisabled && onContinue(nextStep)}
-            onKeyDown={(e) => {
-              if ((e.key === 'Enter' || e.key === ' ') && !continueDisabled) {
-                e.preventDefault()
-                onContinue(nextStep)
-              }
-            }}
-            className="!overflow-hidden cursor-pointer border-accent-500/30 !p-0"
-          >
-            <div className="flex">
-              <div className="flex w-14 flex-shrink-0 items-center justify-center bg-accent-500 md:w-16">
-                <span className="text-lg font-bold text-black md:text-xl">
-                  {nextStep.stepNumber}
-                </span>
-              </div>
-              <div className="relative flex-1 bg-gradient-to-br from-accent-500/5 to-purple-500/5 p-4 md:p-5">
-                <div className="absolute right-3 top-3 md:hidden">
-                  <Badge variant="premium">{LIFE_ACTIVATION_COPY.dashboard.nextStep}</Badge>
+              <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold text-white">{nextStep.title}</h2>
+                  <p className="mt-1 text-sm leading-relaxed text-neutral-400">
+                    {nextStep.description}
+                  </p>
                 </div>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between md:gap-4">
-                  <div className="min-w-0 flex-1 pr-24 md:pr-0">
-                    <div className="md:flex md:items-center md:gap-2">
-                      <h3 className="text-base font-semibold md:text-lg">{nextStep.title}</h3>
-                      <span className="hidden md:block">
-                        <Badge variant="premium">{LIFE_ACTIVATION_COPY.dashboard.nextStep}</Badge>
-                      </span>
+                <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+                  <Button
+                    variant="primary"
+                    onClick={() => onContinue(nextStep)}
+                    disabled={continueDisabled}
+                    className="w-full justify-center sm:w-auto"
+                  >
+                    {nextStep.actionLabel}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  {nextStep.canSkip && onSkip ? (
+                    <Button
+                      variant="ghost"
+                      onClick={() => onSkip(nextStep)}
+                      disabled={continueDisabled}
+                      className="w-full justify-center sm:w-auto"
+                    >
+                      {LIFE_ACTIVATION_COPY.dashboard.skip}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <div>
+            <div className="mb-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
+                {LIFE_ACTIVATION_COPY.dashboard.pathHeading}
+              </p>
+              {steps.some((s) => s.locked) ? (
+                <p className="mt-1 text-xs text-neutral-500">
+                  {LIFE_ACTIVATION_COPY.dashboard.pathNote}
+                </p>
+              ) : null}
+            </div>
+            <div className="overflow-hidden rounded-2xl border-2 border-[#333] bg-[#141414]">
+              {phases.map((phase, phaseIndex) => {
+                const phaseSteps = steps.filter((s) => s.phase === phase)
+                if (!phaseSteps.length) return null
+
+                return (
+                  <div
+                    key={phase}
+                    className={phaseIndex > 0 ? 'border-t border-[#222]' : undefined}
+                  >
+                    <div className="bg-[#1F1F1F] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">
+                      {phase}
                     </div>
-                    <p className="mt-1 text-xs text-neutral-400 md:text-sm">
-                      {nextStep.description}
-                    </p>
-                  </div>
-                  <div className="mt-3 md:mt-0 md:hidden">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => onContinue(nextStep)}
-                      disabled={continueDisabled}
-                      className="w-full justify-center"
-                    >
-                      {nextStep.actionLabel}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="hidden flex-shrink-0 md:block">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      disabled={continueDisabled}
-                      onClick={() => onContinue(nextStep)}
-                    >
-                      {nextStep.actionLabel}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
+                    {phaseSteps.map((step) => {
+                      const isCurrent = nextStep?.id === step.id
+                      const isLocked = Boolean(step.locked)
+                      const busy = Boolean(continueDisabled && isCurrent && !step.completed)
+                      const inactive = isLocked || busy
 
-        <div className="space-y-8">
-          {phases.map((phase) => {
-            const phaseSteps = steps.filter((s) => s.phase === phase)
-            if (!phaseSteps.length) return null
-            const phaseCompleted = phaseSteps.filter((s) => s.completed).length
-            const phaseProgress = Math.round((phaseCompleted / phaseSteps.length) * 100)
-
-            return (
-              <div key={phase}>
-                <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-                  <h2 className="text-xl font-bold md:text-2xl">{phase}</h2>
-                  <Badge variant={phaseProgress === 100 ? 'success' : 'info'}>
-                    {phaseCompleted}/{phaseSteps.length} Complete
-                  </Badge>
-                </div>
-                <div className="grid gap-4">
-                  {phaseSteps.map((step) => {
-                    const isCurrent = nextStep?.id === step.id
-                    return (
-                      <Card
-                        key={step.id}
-                        variant={step.completed ? 'default' : 'outlined'}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          if (continueDisabled && isCurrent && !step.completed) return
-                          onContinue(step)
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Enter' && e.key !== ' ') return
-                          e.preventDefault()
-                          if (continueDisabled && isCurrent && !step.completed) return
-                          onContinue(step)
-                        }}
-                        className={`!overflow-hidden cursor-pointer !p-0 transition-all duration-300 hover:-translate-y-1 ${
-                          step.completed ? 'border-primary-500/50' : ''
-                        } ${isCurrent ? 'border-accent-500/30' : ''}`}
-                      >
-                        <div className="flex">
-                          <div
-                            className={`flex w-14 flex-shrink-0 items-center justify-center md:w-16 ${
-                              step.completed ? 'bg-primary-500' : 'bg-accent-500'
-                            }`}
-                          >
-                            <span className="text-lg font-bold text-black md:text-xl">
-                              {step.stepNumber}
+                      return (
+                        <div
+                          key={step.id}
+                          role={isLocked ? undefined : 'button'}
+                          tabIndex={inactive ? -1 : 0}
+                          aria-disabled={isLocked || undefined}
+                          onClick={() => {
+                            if (inactive) return
+                            onContinue(step)
+                          }}
+                          onKeyDown={(e) => {
+                            if (isLocked) return
+                            if (e.key !== 'Enter' && e.key !== ' ') return
+                            e.preventDefault()
+                            if (busy) return
+                            onContinue(step)
+                          }}
+                          className={cn(
+                            'flex items-center gap-3 px-4 py-3.5 transition-colors',
+                            isLocked && 'opacity-50',
+                            inactive ? 'cursor-default' : 'cursor-pointer',
+                            isCurrent && 'bg-primary-500/5',
+                            !isCurrent && !inactive && 'hover:bg-white/[0.03]',
+                          )}
+                        >
+                          <StepStatus
+                            completed={step.completed}
+                            current={isCurrent}
+                            locked={isLocked}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p
+                                className={cn(
+                                  'text-sm font-medium',
+                                  step.completed || isLocked ? 'text-neutral-400' : 'text-white',
+                                )}
+                              >
+                                {step.title}
+                              </p>
+                              {step.canSkip && !step.completed && !isLocked ? (
+                                <Badge variant="neutral" className="text-[10px]">
+                                  Optional
+                                </Badge>
+                              ) : null}
+                            </div>
+                            <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">
+                              {step.description}
+                            </p>
+                          </div>
+                          {isLocked ? (
+                            <span className="flex shrink-0 items-center gap-1 text-xs text-neutral-500">
+                              <Lock className="h-3.5 w-3.5" />
+                              {LIFE_ACTIVATION_COPY.dashboard.locked}
                             </span>
-                          </div>
-                          <div
-                            className={`relative flex-1 p-4 md:flex md:items-center md:p-5 ${
-                              step.completed ? 'bg-primary-500/5' : ''
-                            } ${
-                              isCurrent
-                                ? 'bg-gradient-to-br from-accent-500/5 to-purple-500/5'
-                                : ''
-                            }`}
-                          >
-                            <div className="absolute right-3 top-3 flex items-center gap-2 md:hidden">
-                              {step.completed && (
-                                <CheckCircle className="h-5 w-5 flex-shrink-0 text-primary-500" />
-                              )}
-                            </div>
-                            <div className="flex flex-1 flex-col md:flex-row md:items-center md:justify-between md:gap-4">
-                              <div className="min-w-0 flex-1">
-                                <div className="pr-20 md:pr-0">
-                                  <div className="md:flex md:items-center md:gap-2">
-                                    <h3 className="text-base font-semibold md:text-lg">
-                                      {step.title}
-                                    </h3>
-                                    {step.canSkip && !step.completed && (
-                                      <span className="hidden md:block">
-                                        <Badge variant="neutral" className="text-xs">
-                                          Optional
-                                        </Badge>
-                                      </span>
-                                    )}
-                                  </div>
-                                  {step.canSkip && !step.completed && (
-                                    <div className="mt-1 block md:hidden">
-                                      <Badge variant="neutral" className="text-xs">
-                                        Optional
-                                      </Badge>
-                                    </div>
-                                  )}
-                                </div>
-                                <p className="mt-1 text-xs text-neutral-400 md:text-sm">
-                                  {step.description}
-                                </p>
-                                {step.completedAt && (
-                                  <p className="mt-1 text-xs text-primary-500">
-                                    Completed {formatCompletedAt(step.completedAt)}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="mt-3 md:hidden">
-                                {!step.completed && (
-                                  <Button
-                                    variant="primary"
-                                    size="sm"
-                                    disabled={continueDisabled && isCurrent}
-                                    onClick={() => onContinue(step)}
-                                    className="w-full justify-center"
-                                  >
-                                    {isCurrent ? step.actionLabel : 'Start'}
-                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                  </Button>
-                                )}
-                                {step.completed && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onContinue(step)}
-                                    className="w-full justify-center"
-                                  >
-                                    <Eye className="mr-1 h-4 w-4" />
-                                    {LIFE_ACTIVATION_COPY.dashboard.view}
-                                  </Button>
-                                )}
-                              </div>
-                              <div className="hidden flex-shrink-0 items-center gap-2 md:flex">
-                                {!step.completed && (
-                                  <Button
-                                    variant="primary"
-                                    size="sm"
-                                    disabled={continueDisabled && isCurrent}
-                                    onClick={() => onContinue(step)}
-                                  >
-                                    {isCurrent ? step.actionLabel : 'Start'}
-                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                  </Button>
-                                )}
-                                {step.completed && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onContinue(step)}
-                                  >
-                                    <Eye className="mr-1 h-4 w-4" />
-                                    {LIFE_ACTIVATION_COPY.dashboard.view}
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                          ) : step.completed ? (
+                            <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-[#333] bg-[#1A1A1A] px-2.5 text-[11px] font-medium text-neutral-300">
+                              {LIFE_ACTIVATION_COPY.dashboard.view}
+                            </span>
+                          ) : isCurrent ? (
+                            <span className="shrink-0 text-xs font-medium text-primary-500">
+                              {LIFE_ACTIVATION_COPY.dashboard.now}
+                            </span>
+                          ) : (
+                            <ChevronRight className="h-4 w-4 shrink-0 text-neutral-600" />
+                          )}
                         </div>
-                      </Card>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
 
-        {footer}
-      </Stack>
+          {footer}
+        </Stack>
+      </div>
     </Container>
   )
 }

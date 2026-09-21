@@ -400,6 +400,8 @@ export async function POST(request: NextRequest) {
         ? 'intensive'
         : product === 'intensive_premium'
           ? 'intensive_premium'
+          : product === 'membership'
+            ? 'vision_pro_28day'
           : product === 'token-pack' ? 'tokens' : product
       const { data: dbProd } = await supabaseAdmin
         .from('products')

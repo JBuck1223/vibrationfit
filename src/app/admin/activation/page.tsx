@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { Container, Stack, Text } from '@/lib/design-system/components'
 import { ExternalLink, Sparkles } from 'lucide-react'
 import { ActivationStartForm } from '@/components/activation/ActivationStartForm'
+import { FreeActivationOptIn } from '@/components/activation/FreeActivationOptIn'
 import { ActivationOrientation } from '@/components/activation/ActivationOrientation'
 import { ActivationCategoryPick } from '@/components/activation/ActivationCategoryPick'
 import { ActivationIntakeChat } from '@/components/activation/ActivationIntakeChat'
@@ -41,10 +42,10 @@ interface InspectorStep {
 const STEPS: InspectorStep[] = [
   {
     id: 'landing',
-    label: 'Landing',
+    label: 'Opt-in',
     group: 'Public',
-    source: ACTIVATION_COPY.landing.source,
-    notes: 'Marketing page. Open the live URL to review layout; section headlines are listed here.',
+    source: ACTIVATION_COPY.optIn.source,
+    notes: 'Dedicated /free-activation page. One headline, one form, one CTA. /activation redirects here.',
   },
   {
     id: 'email-capture',
@@ -205,11 +206,16 @@ export default function AdminActivationInspectorPage() {
             </div>
 
             <div className="rounded-2xl border-2 border-[#1F1F1F] bg-[#0A0A0A] overflow-hidden">
-              {stepId === 'landing' && <LandingInspector />}
+              {stepId === 'landing' && (
+                <div className="px-4 py-4">
+                  <LandingInspector />
+                  <FreeActivationOptIn preview />
+                </div>
+              )}
 
               {stepId === 'email-capture' && (
                 <div className="px-4 py-8">
-                  <ActivationStartForm previewState="form" />
+                  <ActivationStartForm previewState="form" landingPage="/free-activation" />
                 </div>
               )}
 
@@ -316,9 +322,9 @@ function LandingInspector() {
       <Stack gap="md">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-sm text-white font-medium">Public landing</p>
+            <p className="text-sm text-white font-medium">Free Activation opt-in</p>
             <p className="text-xs text-neutral-500 mt-1">
-              Layout and long-form copy still live on the landing page file. Open it live to review.
+              Dedicated capture page. Open the live URL to review the chrome-stripped layout.
             </p>
           </div>
           <div className="flex flex-col items-start gap-2 sm:items-end">

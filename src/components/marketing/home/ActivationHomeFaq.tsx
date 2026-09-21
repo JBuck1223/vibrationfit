@@ -93,6 +93,81 @@ const ITEMS: FaqItem[] = [
   },
 ]
 
-export function ActivationHomeFaq() {
-  return <FaqSection items={ITEMS} />
+const JOIN_ITEMS: FaqItem[] = [
+  {
+    id: 'what-is-it',
+    title: 'What is Vision Pro?',
+    description:
+      'The complete Vibration Fit system. VIVA writes your Life I Choose vision across all 12 life categories, then forges the tools: Future-Self Story, Incantation, SparkQuery, Vision Audio, original songs, and your board. You get the daily practice, Vibe Tribe, and weekly Alignment Gym. $99 every 28 days. Cancel anytime.',
+  },
+  {
+    id: 'after',
+    title: 'What happens after I join?',
+    description:
+      'You go to checkout, then land in Life Activation. VIVA builds your full system around you — not a sample in one area. Instant access the day you start.',
+  },
+  {
+    id: 'community',
+    title: 'What are Vibe Tribe and Alignment Gym?',
+    description:
+      'Vibe Tribe is the member community — a place to share wins, wobbles, and the life you are choosing with people who actually practice this. Alignment Gym is weekly: we get together as conscious creators and practice the process of Conscious Creation together. Both come with Vision Pro. You do not have to run this loop alone.',
+  },
+  {
+    id: 'cost',
+    title: 'What does it cost?',
+    description:
+      '$99 every 28 days. Charged today. That is the whole offer. No initiation fee. No contract. Cancel anytime.',
+  },
+  {
+    id: 'billing',
+    title: 'When do you charge me?',
+    description:
+      'Today, then $99 every 28 days until you cancel.',
+  },
+  {
+    id: 'cancel',
+    title: 'Can I cancel anytime?',
+    description:
+      'Yes. One click in your account. Future charges stop. You keep everything you have already created.',
+  },
+  {
+    id: 'dont-know',
+    title: 'What if I don\'t know what I want?',
+    description:
+      'You do not need a finished vision to start. Tell VIVA what is not working — what feels frustrating, stuck, or calling you. She knows how to turn contrast into clarity, in your language, from your words.',
+  },
+  {
+    id: 'tried-loa',
+    title: 'What if I\'ve tried manifestation and it didn\'t stick?',
+    description:
+      'Knowing the law is not the same as living it. Vision Pro is the practice — so a shitty day does not take your vision down with it.',
+  },
+  {
+    id: 'doesnt-work',
+    title: 'What if it doesn\'t work for me?',
+    description:
+      'Try Vibration Fit for your first 28 days. If the membership is not right for you, contact us before that period ends. We\u2019ll refund your first membership payment and cancel all future renewals.',
+  },
+  {
+    id: 'guarantee',
+    title: 'What is the membership guarantee?',
+    description:
+      'Try Vibration Fit for your first 28 days. If you decide the membership is not right for you, contact us before your initial 28-day membership period ends. We\u2019ll refund your first membership payment and cancel all future renewals. You can cancel anytime from inside your account. Cancellation stops future charges but does not automatically refund the current billing period. Your 28-day guarantee begins when your membership starts at checkout.',
+  },
+  {
+    id: 'course',
+    title: 'Is this a course I have to finish?',
+    description:
+      'No. Conscious Creation is not information you collect. It is a loop you live. Vibration Fit is the software system that helps you run it.',
+  },
+  {
+    id: 'tax',
+    title: 'Do you charge sales tax?',
+    description:
+      'Not at checkout right now. The price you see is the price you pay, plus any bank or currency fees your bank may add. If that ever changes, we will show the tax clearly before you pay.',
+  },
+]
+
+export function ActivationHomeFaq({ paidOnly = false }: { paidOnly?: boolean } = {}) {
+  return <FaqSection items={paidOnly ? JOIN_ITEMS : ITEMS} />
 }

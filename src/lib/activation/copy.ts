@@ -63,54 +63,36 @@ export const ACTIVATION_COPY = {
     readyLine: 'I have what I need. When you are ready, I will write your Activation from your words.',
   },
 
-  landing: {
-    route: '/activation',
-    source: 'src/app/activation/page.tsx',
+  optIn: {
+    route: '/free-activation',
+    source: 'src/app/free-activation/page.tsx',
     metaTitle: 'Create Your Free Activation | Vibration Fit',
     metaDescription:
-      'A personalized Activation you can read, hear, feel, and keep — free, in 10 to 15 minutes.',
-    cta: 'Claim My Free Activation',
+      'Create a personalized Conscious Creation System for one area of your life in minutes and experience the first step of Vibration Fit free.',
+    headlineLead: 'Thoughts Become Things.',
+    headlineAccent: "So Why Isn't It Working?",
+    subhead:
+      'Create a personalized Conscious Creation System for one area of your life in minutes, and experience the first step of Vibration Fit free.',
+    limit: 'One personalized activation for one area of your life.',
+    includesLabel: 'What You\u2019ll Create',
+    reassurance: 'Download and keep everything you create.',
+    paidDistinction:
+      'Your free activation is one experience of the system. Membership gives you the complete Conscious Creation System across all 12 areas of life, with ongoing VIVA support, community, and weekly coaching.',
+  },
+
+  landing: {
+    route: '/free-activation',
+    source: 'src/app/free-activation/page.tsx',
+    metaTitle: 'Create Your Free Activation | Vibration Fit',
+    metaDescription:
+      'Create a personalized Conscious Creation System for one area of your life in minutes and experience the first step of Vibration Fit free.',
+    cta: 'Create My Free Activation',
     noCard: 'No credit card required. Takes 10–15 minutes.',
     sections: [
       {
-        id: 'hero',
+        id: 'opt-in',
         heading: 'Thoughts Become Things. So Why Isn\'t It Working?',
-        notes: 'Hero headline + offer video + CTA.',
-      },
-      {
-        id: 'how-it-works',
-        heading: 'How Vibration Fit Works',
-        notes: 'Short version of the Conscious Creation System.',
-      },
-      {
-        id: 'proof',
-        heading: 'Real People. Real Results.',
-        notes: 'SocialProofSection testimonials, directly under How Vibration Fit Works.',
-      },
-      {
-        id: 'what-you-keep',
-        heading: 'Your personalized Activation includes',
-        notes: 'Words / sound and image — not a delivery timeline. Directly under Real People. Real Results.',
-      },
-      {
-        id: 'meet-viva',
-        heading: 'What VIVA Does',
-        notes: 'Contrast → Life I Choose → blacksmith tools.',
-      },
-      {
-        id: 'practice',
-        heading: 'You Know the Law. Now Live It.',
-        notes: 'Vibrational Fitness framing. Graphic on the right; CTA under the graphic on mobile.',
-      },
-      {
-        id: 'loop',
-        heading: 'Install It Once. Run It Daily. Evolve As Life Changes.',
-        notes: 'Five-stage conscious creation loop.',
-      },
-      {
-        id: 'final-cta',
-        heading: 'Your vision is waiting to take shape.',
-        notes: 'Email capture form.',
+        notes: 'Dedicated opt-in. One headline, one form, one CTA. /activation redirects here.',
       },
     ],
   },
@@ -119,16 +101,16 @@ export const ACTIVATION_COPY = {
     route: '/',
     source: 'src/app/page.tsx',
     notes:
-      'Live front door. Activation landing is the spine; homepage-only containers (orbit, founders, fit check) are grafted in. FAQ is free Activation → $99/28-day membership, cancel anytime. `/activation/home` redirects here.',
+      'Mixed-intent front door. Paid primary (Vision Pro $99/28 days) and free secondary (Try a Free Activation → /free-activation). /join is paid-only. /activation/home redirects here.',
   },
 
   startForm: {
     source: 'src/components/activation/ActivationStartForm.tsx',
     firstNamePlaceholder: 'First name',
     emailPlaceholder: 'you@example.com',
-    submit: 'Claim My Free Activation',
+    submit: 'Create My Free Activation',
     submitting: 'Setting up your space...',
-    footer: 'No credit card required. Takes 10–15 minutes. Your information stays private.',
+    footer: 'No credit card required. One area of your life. About 10 minutes.',
     checkEmailTitle: 'Check your email',
     checkEmailBefore: 'You already have a Vibration Fit account, so we sent a secure sign-in link to',
     checkEmailAfter: 'Open it on this device to continue your Activation.',
@@ -290,10 +272,10 @@ export const ACTIVATION_COPY = {
       'One thought, action, or possibility that feels alive after experiencing your Activation.',
     inspiredPlaceholder: 'One thought, action, or possibility...',
     inspiredSave: 'Save Inspired Thought',
-    offerTitle: 'One area is chosen. Now write the rest of this life.',
+    offerTitle: 'Unlock the Complete Vibration Fit System for $99 Every 28 Days',
     offerBody:
-      'You just entered one reality. Vibration Fit is where VIVA writes your full Life Vision as one life, then takes you to Vibe Tribe and Alignment Gym — your people, your room. The rest of the tools wait until you want them.',
-    offerCta: 'Join Vibration Fit',
+      'You just entered one reality. Vision Pro is where VIVA writes your full Life Vision as one life, then takes you to Vibe Tribe and Alignment Gym — your people, your room. The rest of the tools wait until you want them.',
+    offerCta: 'Start My Membership',
     offerVideoLabel: 'Offer video',
     offerVideoPlaceholder:
       'A short film of what VIVA just created — and how Vibration Fit continues from here — is coming to this spot.',
