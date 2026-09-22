@@ -4,6 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Clock } from 'lucide-react'
 import { cn } from '../shared-utils'
+import { fieldControlClass, fieldErrorClass } from './field-styles'
 
 interface TimePickerProps {
   label?: string
@@ -196,9 +197,9 @@ export const TimePicker = React.forwardRef<HTMLInputElement, TimePickerProps>(
     }, [isOpen, normalizedValue])
 
     const sizeFieldClasses = {
-      sm: 'px-3 py-2 text-base pr-9',
-      md: 'px-4 py-3 text-base pr-10',
-      lg: 'px-5 py-4 text-lg pr-12',
+      sm: 'pr-9',
+      md: 'pr-10',
+      lg: 'pr-12',
     }
     const sizeIconRight = {
       sm: 'right-2.5',
@@ -232,21 +233,10 @@ export const TimePicker = React.forwardRef<HTMLInputElement, TimePickerProps>(
             placeholder={placeholder}
             onClick={() => !disabled && setIsOpen(!isOpen)}
             className={cn(
-              'w-full',
+              fieldControlClass,
               sizeFieldClasses[size],
-              'bg-[#404040]',
-              'border-2',
-              'rounded-xl',
-              'text-white',
-              'placeholder-[#9CA3AF]',
-              'focus:outline-none',
-              'transition-all duration-200',
               disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
-              error
-                ? 'border-[#FF0040]'
-                : isOpen
-                  ? 'border-[#39FF14]'
-                  : 'border-[#666666]',
+              error ? fieldErrorClass : isOpen && 'border-primary-500/50 ring-1 ring-primary-500/25',
             )}
           />
           <Clock

@@ -59,6 +59,7 @@ const CATEGORY_META: Record<string, { label: string; color: string }> = {
   alignment_gym: { label: 'Alignment Gym', color: '#39FF14' },
   sessions: { label: 'Sessions', color: '#14B8A6' },
   purchase: { label: 'Purchase', color: '#39FF14' },
+  activation: { label: 'Activation', color: '#39FF14' },
   general: { label: 'General', color: '#999' },
 }
 

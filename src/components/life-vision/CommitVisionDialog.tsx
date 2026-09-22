@@ -63,6 +63,8 @@ interface CommitVisionDialogProps {
   onCommitted?: (visionId: string) => void
   /** Skip the initial "commit?" confirmation (when the caller already confirmed). */
   skipCommitConfirmation?: boolean
+  /** Getting Started: voice, mix, and board are required. */
+  requireFullKit?: boolean
 }
 
 const OUTPUT_FORMAT_OPTIONS = [
@@ -132,6 +134,7 @@ function BoardSuggestionPicker({
   onToggle,
   onSelectAll,
   onClear,
+  required = false,
 }: {
   suggestions: BoardSuggestion[]
   selectedIds: string[]
@@ -141,6 +144,7 @@ function BoardSuggestionPicker({
   onToggle: (id: string) => void
   onSelectAll: () => void
   onClear: () => void
+  required?: boolean
 }) {
   const selectedSet = new Set(selectedIds)
   const atCap = selectedIds.length >= MAX_BOARD_PICKS
@@ -184,7 +188,9 @@ function BoardSuggestionPicker({
       {error && suggestions.length === 0 && (
         <div className="space-y-2 py-1">
           <p className="text-sm text-neutral-400">
-            VIVA could not load scenes. You can still generate voice or mixes, or try again.
+            {required
+              ? 'VIVA could not load scenes. The board is part of this step, so try again.'
+              : 'VIVA could not load scenes. You can still generate voice or mixes, or try again.'}
           </p>
           <button type="button" onClick={onRetry} className="text-sm font-medium text-[#00FFFF] hover:opacity-80">
             Try again
@@ -194,7 +200,9 @@ function BoardSuggestionPicker({
 
       {!loading && !error && suggestions.length === 0 && (
         <p className="text-sm text-neutral-400">
-          No board scenes yet. Add more specific moments to your vision, or generate voice and mixes now.
+          {required
+            ? 'No board scenes yet. Add more specific moments to your vision, then try again. The board is part of this step.'
+            : 'No board scenes yet. Add more specific moments to your vision, or generate voice and mixes now.'}
         </p>
       )}
 
@@ -245,17 +253,19 @@ function BoardSuggestionPicker({
         </div>
       ))}
 
-      {settingsHint(selectedIds.length, suggestions.length)}
+      {settingsHint(selectedIds.length, suggestions.length, required)}
     </div>
   )
 }
 
-function settingsHint(selectedCount: number, total: number) {
+function settingsHint(selectedCount: number, total: number, required: boolean) {
   if (total === 0) return null
   if (selectedCount === 0) {
     return (
       <p className="text-xs text-neutral-500">
-        No scenes selected — board images will be skipped.
+        {required
+          ? 'Pick at least one scene. The board is part of this step.'
+          : 'No scenes selected — board images will be skipped.'}
       </p>
     )
   }
@@ -273,6 +283,7 @@ export function CommitVisionDialog({
   kitOnlyVisionId,
   onCommitted,
   skipCommitConfirmation = false,
+  requireFullKit = false,
 }: CommitVisionDialogProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -445,9 +456,9 @@ export function CommitVisionDialog({
     setSelectedKitId(kit.id)
     setKitName(kit.name && kit.name !== 'My Activation Kit' ? kit.name : '')
     setSettings({
-      include_voice: kit.include_voice,
-      include_mix: kit.include_mix,
-      include_board: kit.include_board,
+      include_voice: requireFullKit ? true : kit.include_voice,
+      include_mix: requireFullKit ? true : kit.include_mix,
+      include_board: requireFullKit ? true : kit.include_board,
       voice_id: kit.voice_id,
       background_track_id: kit.background_track_id,
       extra_background_track_ids: Array.isArray(kit.extra_background_track_ids)
@@ -555,13 +566,17 @@ export function CommitVisionDialog({
   }
 
   const anyAssetSelected = settings
-    ? settings.include_voice || settings.include_mix || settings.include_board
+    ? requireFullKit
+      ? settings.include_voice && settings.include_mix && settings.include_board
+      : settings.include_voice || settings.include_mix || settings.include_board
     : false
   const mixReady = !settings?.include_mix || Boolean(settings.background_track_id)
   const boardOnly = Boolean(settings?.include_board && !settings.include_voice && !settings.include_mix)
-  const boardPicksReady = !settings?.include_board
-    || boardSuggestionsError
-    || (!boardSuggestionsLoading && (selectedBoardIds.length > 0 || !boardOnly))
+  const boardPicksReady = requireFullKit
+    ? !boardSuggestionsLoading && selectedBoardIds.length > 0
+    : !settings?.include_board
+      || boardSuggestionsError
+      || (!boardSuggestionsLoading && (selectedBoardIds.length > 0 || !boardOnly))
   const canGenerate = Boolean(settings && anyAssetSelected && mixReady && boardPicksReady && !launching)
 
   const backgroundTracks = tracks?.background || []
@@ -643,21 +658,32 @@ export function CommitVisionDialog({
         size="md"
         footer={
           <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-            <Button
-              variant="ghost"
-              onClick={() => committedVisionId && finish(committedVisionId)}
-            >
-              View my vision
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                onClose()
-                router.push('/audio/queue')
-              }}
-            >
-              View audio queue
-            </Button>
+            {requireFullKit ? (
+              <Button
+                variant="primary"
+                onClick={() => committedVisionId && finish(committedVisionId)}
+              >
+                Continue
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  onClick={() => committedVisionId && finish(committedVisionId)}
+                >
+                  View my vision
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    onClose()
+                    router.push('/audio/queue')
+                  }}
+                >
+                  View audio queue
+                </Button>
+              </>
+            )}
           </div>
         }
       >
@@ -679,11 +705,18 @@ export function CommitVisionDialog({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={() => committedVisionId && finish(committedVisionId)}
+      onClose={() => {
+        if (requireFullKit) {
+          onClose()
+          return
+        }
+        if (committedVisionId) finish(committedVisionId)
+      }}
       title="Generate Activation Kit"
       size="lg"
       footer={
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+          {!requireFullKit && (
           <Button
             variant="ghost"
             onClick={() => committedVisionId && finish(committedVisionId)}
@@ -691,6 +724,7 @@ export function CommitVisionDialog({
           >
             Skip for now
           </Button>
+          )}
           <Button
             variant="primary"
             onClick={handleGenerate}
@@ -746,10 +780,12 @@ export function CommitVisionDialog({
                   key={key}
                   type="button"
                   onClick={() => {
+                    if (requireFullKit) return
                     const next = !settings[key]
                     setSettings({ ...settings, [key]: next })
                     if (key === 'include_board' && !next) setSelectedBoardIds([])
                   }}
+                  disabled={requireFullKit}
                   className={`text-left rounded-xl border-2 p-4 transition-colors ${
                     settings[key]
                       ? 'border-[#39FF14] bg-[#39FF14]/5'
@@ -769,6 +805,7 @@ export function CommitVisionDialog({
                 selectedIds={selectedBoardIds}
                 loading={boardSuggestionsLoading}
                 error={boardSuggestionsError}
+                required={requireFullKit}
                 onRetry={() => refetchBoardSuggestions()}
                 onToggle={(id) => {
                   setSelectedBoardIds((prev) => {

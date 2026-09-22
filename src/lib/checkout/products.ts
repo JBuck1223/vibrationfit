@@ -90,7 +90,7 @@ function getIntensiveProduct(
           `First 28 days included — Vision Pro ${continuityPlan === 'annual' ? 'Annual' : '28-Day'} billing starts Day 28`,
           ...continuityFeatures.slice(0, 5),
         ],
-    redirectAfterSuccess: '/intensive/dashboard',
+    redirectAfterSuccess: '/begin',
     getPriceEnvKey: () => process.env[envKey],
     metadata: {
       product_type: 'combined_intensive_continuity',

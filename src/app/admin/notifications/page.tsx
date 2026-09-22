@@ -13,6 +13,7 @@ import {
   Trophy,
   UserPlus,
   MessageSquare,
+  Sparkles,
   ExternalLink,
   Filter,
   Settings,
@@ -41,6 +42,7 @@ const TYPE_CONFIG: Record<AdminNotificationType, { label: string; icon: typeof D
   intensive_completed: { label: 'Intensive Completed', icon: Trophy, color: '#FFFF00' },
   lead_created: { label: 'New Lead', icon: UserPlus, color: '#00FFFF' },
   support_ticket: { label: 'Support Ticket', icon: MessageSquare, color: '#BF00FF' },
+  activation_signup: { label: 'Free Activation', icon: Sparkles, color: '#39FF14' },
 }
 
 const FILTER_OPTIONS: { value: string; label: string }[] = [
@@ -50,6 +52,7 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'intensive_completed', label: 'Intensive Completed' },
   { value: 'lead_created', label: 'New Leads' },
   { value: 'support_ticket', label: 'Support Tickets' },
+  { value: 'activation_signup', label: 'Free Activations' },
 ]
 
 function timeAgo(dateStr: string): string {

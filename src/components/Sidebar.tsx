@@ -600,7 +600,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-3 left-4 z-40 w-10 h-10 flex items-center justify-center bg-neutral-800 rounded-lg border-2 border-neutral-700 hover:border-neutral-600"
+        className="md:hidden fixed top-[max(0.75rem,env(safe-area-inset-top))] left-4 z-40 w-10 h-10 flex items-center justify-center bg-neutral-800 rounded-lg border-2 border-neutral-700 hover:border-neutral-600"
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5 text-white" />

@@ -17,8 +17,8 @@ import {
 } from '@paypal/react-paypal-js'
 import { Input, Button, Checkbox } from '@/lib/design-system/components'
 import { Loader2, Home } from 'lucide-react'
-import { formatPhoneDisplay, parsePhoneInput, phoneToE164 } from '@/lib/phone-format'
-import type { AccountDetails } from '@/components/checkout/CheckoutForm'
+import { formatPhoneDisplay, parsePhoneInput, phoneToDigits, phoneToE164 } from '@/lib/phone-format'
+import type { AccountDetails, AccountLock } from '@/components/checkout/CheckoutForm'
 
 interface PayPalCheckoutFormProps {
   /** Create the PayPal order server-side; returns the PayPal order id */
@@ -33,6 +33,7 @@ interface PayPalCheckoutFormProps {
   /** Overrides the renewal billing phrase when a promo discounts renewals */
   renewalPhrase?: string | null
   offerType?: 'intensive' | 'membership'
+  accountLock?: AccountLock | null
 }
 
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
@@ -152,6 +153,7 @@ export default function PayPalCheckoutForm({
   paymentPlan,
   renewalPhrase,
   offerType = 'intensive',
+  accountLock = null,
 }: PayPalCheckoutFormProps) {
   const isMembershipCheckout = offerType === 'membership'
   const membershipBillingPhrase =
@@ -166,10 +168,12 @@ export default function PayPalCheckoutForm({
   const isTwoPay = paymentPlan === '2pay'
   const isIntensiveCheckout = !isMembershipCheckout && Boolean(continuity && planType)
 
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
+  const [firstName, setFirstName] = useState(accountLock?.firstName || '')
+  const [lastName, setLastName] = useState(accountLock?.lastName || '')
+  const [email, setEmail] = useState(accountLock?.email || '')
+  const [phone, setPhone] = useState(accountLock?.phone ? phoneToDigits(accountLock.phone) : '')
+  const showLastName = !accountLock?.lastName.trim()
+  const showPhone = !accountLock?.phone.trim()
   const [partnerFirstName, setPartnerFirstName] = useState('')
   const [partnerLastName, setPartnerLastName] = useState('')
   const [partnerEmail, setPartnerEmail] = useState('')
@@ -246,8 +250,10 @@ export default function PayPalCheckoutForm({
       }}
     >
       <div className="space-y-5 -mx-2 sm:mx-0">
-        <h2 className="text-xl font-bold text-white mb-1">Create your account</h2>
-        <p className="text-sm text-neutral-400 mb-4">You&apos;ll set your password right after payment.</p>
+        <h2 className="text-xl font-bold text-white mb-1">{accountLock ? 'Add your card' : 'Create your account'}</h2>
+        {!accountLock?.hasPassword && (
+          <p className="text-sm text-neutral-400 mb-4">You&apos;ll set your password right after payment.</p>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Input
@@ -258,6 +264,7 @@ export default function PayPalCheckoutForm({
             placeholder="First name"
             autoComplete="given-name"
           />
+          {showLastName && (
           <Input
             label="Last name"
             value={lastName}
@@ -266,6 +273,7 @@ export default function PayPalCheckoutForm({
             placeholder="Last name"
             autoComplete="family-name"
           />
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -273,11 +281,13 @@ export default function PayPalCheckoutForm({
             label="Email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { if (!accountLock) setEmail(e.target.value) }}
             error={errors.email}
             placeholder="you@example.com"
             autoComplete="email"
+            readOnly={!!accountLock}
           />
+          {showPhone && (
           <Input
             label="Phone (optional)"
             type="tel"
@@ -286,6 +296,7 @@ export default function PayPalCheckoutForm({
             placeholder="(555) 000-0000"
             autoComplete="tel"
           />
+          )}
         </div>
 
         {isHousehold && (

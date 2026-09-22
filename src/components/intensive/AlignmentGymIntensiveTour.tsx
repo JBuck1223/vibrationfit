@@ -48,10 +48,15 @@ export function AlignmentGymIntensiveTour({
   alreadyCompleted,
   onActiveAnchorChange,
   onRequestCoaching,
+  onFinish,
+  boundsClassName = INTENSIVE_MAIN_BOUNDS,
 }: {
   alreadyCompleted: boolean
   onActiveAnchorChange: (anchor: AlignmentGymTourAnchor | null) => void
   onRequestCoaching?: () => void
+  /** When set, finishing the tour calls this instead of the Intensive checklist. */
+  onFinish?: () => Promise<void>
+  boundsClassName?: string
 }) {
   const { isOpen, stepId, completeAndShowModal, closeModal } = useIntensiveStepCompleteModal()
   const [phase, setPhase] = useState<TourPhase>('intro')
@@ -64,6 +69,7 @@ export function AlignmentGymIntensiveTour({
   }
 
   if (tourDone) {
+    if (onFinish) return null
     return (
       <IntensiveStepCompleteModal
         isOpen={isOpen}
@@ -89,9 +95,16 @@ export function AlignmentGymIntensiveTour({
   const handleFinish = async () => {
     setCompleting(true)
     onActiveAnchorChange(null)
-    await completeAndShowModal('alignment_gym_toured')
-    setCompleting(false)
-    setTourDone(true)
+    try {
+      if (onFinish) {
+        await onFinish()
+      } else {
+        await completeAndShowModal('alignment_gym_toured')
+      }
+      setTourDone(true)
+    } finally {
+      setCompleting(false)
+    }
   }
 
   return (
@@ -102,7 +115,7 @@ export function AlignmentGymIntensiveTour({
         stepId={stepId || 'alignment_gym_tour'}
       />
       {phase === 'intro' && (
-        <div className={`${INTENSIVE_MAIN_BOUNDS} z-[100] flex items-center justify-center p-4`}>
+        <div className={`${boundsClassName} z-[100] flex items-center justify-center p-4`}>
           <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]" aria-hidden />
           <Card variant="elevated" className="relative z-10 w-full max-w-lg p-6 md:p-8">
             <div className="flex items-start gap-4 mb-4">
@@ -138,11 +151,11 @@ export function AlignmentGymIntensiveTour({
       {phase === 'walkthrough' && (
         <>
           <div
-            className={`${INTENSIVE_MAIN_BOUNDS} z-[90] bg-black/40 pointer-events-none`}
+            className={`${boundsClassName} z-[90] bg-black/40 pointer-events-none`}
             aria-hidden
           />
           <div
-            className={`${INTENSIVE_MAIN_BOUNDS} z-[100] flex flex-col justify-end p-4 pb-[max(1rem,env(safe-area-inset-bottom))]`}
+            className={`${boundsClassName} z-[100] flex flex-col justify-end p-4 pb-[max(1rem,env(safe-area-inset-bottom))]`}
           >
             <Card variant="elevated" className="w-full max-w-2xl mx-auto p-4 md:p-5 border border-[#00FFFF]/25">
               <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-[#00FFFF] mb-1">

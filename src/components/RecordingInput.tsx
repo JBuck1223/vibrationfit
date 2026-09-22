@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Mic, Loader2, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fieldControlClass, fieldErrorClass } from '@/lib/design-system/components/forms/field-styles'
 
 interface RecordingInputProps {
   label?: string
@@ -227,12 +228,10 @@ export function RecordingInput({
             disabled={disabled || isTranscribing}
             rows={rows}
             className={cn(
-              'w-full px-4 py-3 pr-14 text-base bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
-              'focus:outline-none focus:ring-2 transition-all duration-200 resize-none',
-              error || localError
-                ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
-                : 'border-[#666666] focus:ring-[#199D67] focus:border-[#199D67]',
-              disabled && 'opacity-60 cursor-not-allowed',
+              fieldControlClass,
+              'resize-none pr-14',
+              (error || localError) && fieldErrorClass,
+              (disabled || isTranscribing) && 'cursor-not-allowed opacity-60',
               className,
             )}
             {...rest}
@@ -245,12 +244,10 @@ export function RecordingInput({
             placeholder={placeholder}
             disabled={disabled || isTranscribing}
             className={cn(
-              'w-full px-4 py-3 pr-14 text-base bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
-              'focus:outline-none focus:ring-2 transition-all duration-200',
-              error || localError
-                ? 'border-[#FF0040] focus:ring-[#FF0040] focus:border-[#FF0040]'
-                : 'border-[#666666] focus:ring-[#199D67] focus:border-[#199D67]',
-              disabled && 'opacity-60 cursor-not-allowed',
+              fieldControlClass,
+              'pr-14',
+              (error || localError) && fieldErrorClass,
+              (disabled || isTranscribing) && 'cursor-not-allowed opacity-60',
               className,
             )}
             {...rest}

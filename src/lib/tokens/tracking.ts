@@ -179,42 +179,16 @@ async function calculateAccurateTokenCost(
 }
 
 /**
- * Check if user has sufficient tokens before allowing an AI action (server-side)
- * Returns null if user has enough tokens, or an error response object if insufficient.
- * Household members automatically resolve to the shared pool via get_user_token_balance.
+ * Token balances are tracked, not enforced. Callers still invoke this before
+ * an AI action, including the free Activation. It always allows the work.
+ * Cost is recorded afterward by trackTokenUsage.
  */
 export async function validateTokenBalance(
-  userId: string, 
-  estimatedTokens: number,
-  supabaseClient?: any
+  _userId: string,
+  _estimatedTokens: number,
+  _supabaseClient?: any
 ): Promise<{ error: string; tokensRemaining: number; status: number } | null> {
-  try {
-    const supabase = supabaseClient || await createServerClient()
-    
-    const { data: balanceData, error: balanceError } = await supabase
-      .rpc('get_user_token_balance', { p_user_id: userId })
-      .single()
-    
-    if (balanceError) {
-      console.error('Error getting token balance:', balanceError)
-      return null
-    }
-    
-    const tokensRemaining = (balanceData as any)?.total_active || 0
-
-    if (tokensRemaining >= estimatedTokens) {
-      return null
-    }
-
-    return {
-      error: 'Insufficient tokens remaining',
-      tokensRemaining,
-      status: 402
-    }
-  } catch (error) {
-    console.error('Error validating token balance:', error)
-    return null
-  }
+  return null
 }
 
 /**

@@ -2,42 +2,52 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button, Card, Container, PageHero, Spinner, Stack, Textarea } from '@/lib/design-system/components'
+import { Button, Container, PageHero, Spinner, Stack } from '@/lib/design-system/components'
+import { BeginTitle } from '@/components/life-activation/BeginTitle'
+import { IntakeSurveyFields } from '@/components/life-activation/IntakeSurveyFields'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
 import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { getQuestionsForPhase } from '@/lib/constants/intensive-intake-questions'
+import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
+import {
+  firstMissingSurveyAnswer,
+  savePhaseSurvey,
+  surveyPrompt,
+  type SurveyAnswers,
+} from '@/lib/life-activation/survey'
 import { createClient } from '@/lib/supabase/client'
 
 export default function BeginIntakePage() {
   const router = useRouter()
-  const { progress, completeTrainingStep, isUpdating } = useLifeActivation()
+  const { progress, completeOnboardingStep, isUpdating } = useLifeActivation()
   const walkthrough = useToolWalkthrough('intake')
   const questions = useMemo(() => getQuestionsForPhase('pre_intensive'), [])
-  const [answers, setAnswers] = useState<Record<string, string | number>>({})
+  const [answers, setAnswers] = useState<SurveyAnswers>({})
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const copy = LIFE_ACTIVATION_COPY.intake
 
   const handleSubmit = async () => {
+    const missing = firstMissingSurveyAnswer(questions, answers, 'pre_intensive')
+    if (missing) {
+      setError(missing)
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
-      if (progress?.intensive_checklist_id) {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const insertData: Record<string, unknown> = {
-            intensive_id: progress.intensive_checklist_id,
-            user_id: user.id,
-            phase: 'pre_intensive',
-            ...answers,
-          }
-          const { error: insertError } = await supabase.from('intensive_responses').insert(insertData)
-          if (insertError) console.error('[begin/intake]', insertError.message)
-        }
-      }
-      await completeTrainingStep('intake')
-      router.push('/story')
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Sign in to save this survey.')
+      await savePhaseSurvey(supabase, {
+        userId: user.id,
+        phase: 'pre_intensive',
+        intensiveId: progress?.intensive_checklist_id || null,
+        answers,
+      })
+      await completeOnboardingStep('intake')
+      router.push('/life-vision/begin')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save intake')
     } finally {
@@ -58,59 +68,28 @@ export default function BeginIntakePage() {
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <div className="flex items-start justify-between gap-4">
-          <PageHero
-            eyebrow="Tools Training"
-            title="Baseline Intake"
-            subtitle="A snapshot of where you are now. There are no wrong numbers."
-          />
-          <WalkthroughToggle
-            active={walkthrough.active}
-            onToggle={walkthrough.toggle}
-            pending={walkthrough.pending}
-          />
-        </div>
-        <div className="space-y-4" data-tour="intake-survey">
-          {questions.map((question) => (
-            <Card key={question.id} className="p-5">
-              <p className="text-sm font-medium text-white">{question.questionPre}</p>
-              {question.type === 'text' ? (
-                <div className="mt-3">
-                  <Textarea
-                    value={String(answers[question.id] ?? '')}
-                    onChange={(e) => setAnswers((prev) => ({ ...prev, [question.id]: e.target.value }))}
-                    rows={3}
-                  />
-                </div>
-              ) : (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {Array.from({ length: (question.max ?? 10) - (question.min ?? 0) + 1 }, (_, i) => {
-                    const value = (question.min ?? 0) + i
-                    const selected = answers[question.id] === value
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setAnswers((prev) => ({ ...prev, [question.id]: value }))}
-                        className={`h-9 min-w-9 rounded-full border px-2 text-sm ${
-                          selected
-                            ? 'border-primary-500 bg-primary-500/20 text-primary-300'
-                            : 'border-neutral-700 text-neutral-400 hover:border-neutral-500'
-                        }`}
-                      >
-                        {value}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
+        <PageHero
+          eyebrow={LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}
+          title={<BeginTitle text={copy.title} accent={copy.titleAccent} />}
+          subtitle={copy.body}
+          action={
+            <WalkthroughToggle
+              active={walkthrough.active}
+              onToggle={walkthrough.toggle}
+              pending={walkthrough.pending}
+            />
+          }
+        />
+        <IntakeSurveyFields
+          questions={questions}
+          answers={answers}
+          onChange={(id, value) => setAnswers((prev) => ({ ...prev, [id]: value }))}
+          prompt={(question) => surveyPrompt(question, 'pre_intensive')}
+        />
         {error && <p className="text-sm text-contrast-400">{error}</p>}
-        <div data-tour="intake-submit" className="w-fit">
-          <Button variant="primary" onClick={handleSubmit} disabled={submitting || isUpdating}>
-            Save intake
+        <div data-tour="intake-submit" className="flex justify-center pt-2">
+          <Button variant="primary" onClick={handleSubmit} disabled={submitting || isUpdating} className="min-w-[200px]">
+            {copy.cta}
           </Button>
         </div>
       </Stack>

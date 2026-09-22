@@ -75,7 +75,7 @@ function buildIntensiveInitialSelections(): Record<MapCategory, BuilderSelection
   return empty
 }
 
-export type MapSystemBuilderVariant = 'full' | 'intensive-first-cycle'
+export type MapSystemBuilderVariant = 'full' | 'intensive-first-cycle' | 'begin-starter'
 
 export function MapSystemBuilder({
   redirectTo = '/map',
@@ -95,10 +95,11 @@ export function MapSystemBuilder({
   customSlot?: React.ReactNode
 }) {
   const isIntensive = variant === 'intensive-first-cycle'
+  const isBeginStarter = variant === 'begin-starter'
   const router = useRouter()
   const { activeCommitments, loading: studioLoading, refreshAll } = useMapStudio()
   const [selections, setSelections] = useState<Record<MapCategory, BuilderSelection[]>>(() =>
-    isIntensive ? buildIntensiveInitialSelections() : {
+    isIntensive || isBeginStarter ? buildIntensiveInitialSelections() : {
       activations: [],
       creations: [],
       connections: [],
@@ -168,9 +169,11 @@ export function MapSystemBuilder({
     const { system } = partitionCommitments(activeCommitments)
     if (system.length > 0) {
       setSelections(builderSelectionsFromSystemCommitments(system))
+    } else if (isBeginStarter) {
+      setSelections(buildIntensiveInitialSelections())
     }
     setSelectionsHydrated(true)
-  }, [isIntensive, selectionsHydrated, studioLoading, activeCommitments])
+  }, [isIntensive, isBeginStarter, selectionsHydrated, studioLoading, activeCommitments])
 
   const toggleActivity = (pillar: MapCategory, activityType: string, defaultCadenceJson: string, activity: ActivityDefinition) => {
     setSelections(prev => {

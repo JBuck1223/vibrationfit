@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { cn } from '../shared-utils'
+import { ScriptTitle } from './ScriptTitle'
 
 // Slim page title row. Not a card, not a marketing hero.
 // Studio pages should use AreaBar instead — do not render this inside a studio layout.
@@ -10,6 +11,8 @@ export interface PageHeroProps extends Omit<React.HTMLAttributes<HTMLDivElement>
   eyebrow?: React.ReactNode
   title: React.ReactNode
   subtitle?: React.ReactNode
+  /** Sits on the title line, vertically centered with the heading. */
+  action?: React.ReactNode
   children?: React.ReactNode
 }
 
@@ -19,6 +22,7 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
       eyebrow,
       title,
       subtitle,
+      action,
       children,
       className = '',
       ...props
@@ -37,9 +41,12 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
               {eyebrow}
             </p>
           )}
-          <h1 className="text-lg font-semibold leading-tight text-white md:text-2xl">
-            {title}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="min-w-0 flex-1 py-0.5 text-lg font-semibold leading-normal text-white md:text-2xl">
+              {typeof title === 'string' ? <ScriptTitle text={title} /> : title}
+            </h1>
+            {action ? <div className="shrink-0">{action}</div> : null}
+          </div>
           {subtitle && (
             <p className="mt-1 max-w-2xl text-sm text-neutral-400">
               {subtitle}

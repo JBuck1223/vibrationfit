@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronDown, Check, X, Filter, Search } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { ScriptTitle } from '../typography/ScriptTitle'
 
 // ─── Types ───
 
@@ -535,6 +536,7 @@ export function AreaBar({
 
   const AreaIcon = area.icon
   const displayTitle = areaHeadline ?? area.name
+  const renderTitle = () => <ScriptTitle text={displayTitle} />
   const hasTabs = tabs.length > 0
   const tabGridCols = GRID_COLS[tabs.length] || 'grid-cols-3'
   const isHero = variant === 'hero'
@@ -733,7 +735,9 @@ export function AreaBar({
   const hasTopRight = topRightSelectors.length > 0
   const hasMobileTitleActions = hasTopRight || !!menuItems
 
-  const mobileTitlePaddingTop = { paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' } as const
+  const mobileTitlePaddingTop = { paddingTop: 'env(safe-area-inset-top, 0px)' } as const
+  const mobileTitleRowClass =
+    'flex min-h-[3.25rem] min-w-0 items-center gap-2.5 pb-2.5 pl-[4.75rem] pr-4'
 
   const denseAppTabs = useFluidAccountTabs && tabs.length > 4
 
@@ -745,7 +749,7 @@ export function AreaBar({
     ? 'flex items-center gap-3 py-3 pr-2'
     : 'flex items-center gap-3 py-3'
 
-  const desktopH1Class = 'text-xl font-bold text-white tracking-tight'
+  const desktopH1Class = 'py-1 text-xl font-bold leading-normal tracking-tight text-white'
 
   const desktopNavAppLikeClass = useFluidAccountTabs
     ? `${appLikeTabNavClass} ${tabGridCols} min-w-0 w-full max-w-lg`
@@ -805,10 +809,10 @@ export function AreaBar({
           <div className="sticky top-0 z-30 p-[2px] rounded-2xl bg-gradient-to-br from-[#39FF14]/40 via-[#14B8A6]/25 to-[#BF00FF]/40">
             <div className="rounded-2xl bg-gradient-to-br from-[#39FF14]/10 via-[#14B8A6]/5 to-transparent shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
               {/* Title row */}
-              <div className="relative flex items-center justify-center px-4 pt-4 pb-2">
-                <h1 className="text-2xl font-bold text-white leading-tight">{displayTitle}</h1>
+              <div className={mobileTitleRowClass} style={mobileTitlePaddingTop}>
+                <h1 className="min-w-0 flex-1 truncate py-1 text-xl font-bold leading-normal text-white">{renderTitle()}</h1>
                 {(hasTopRight || menuItems) && (
-                  <div className="absolute right-4 flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {topRightSelectors.map(sel => renderMobileTopRightTrigger(sel))}
                     {menuItems}
                   </div>
@@ -829,32 +833,20 @@ export function AreaBar({
         ) : (
           <div className="sticky top-0 z-30 w-full min-w-0 border-b border-neutral-800/60 bg-neutral-850">
             {/* Title row — centered when no right-side actions; split layout when selectors/menuItems exist */}
-            {hasMobileTitleActions ? (
-              <div className="flex min-w-0 items-center gap-2 px-4 pb-2.5" style={mobileTitlePaddingTop}>
-                <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
-                    <AreaIcon className="h-4 w-4 text-[#39FF14]" />
-                  </div>
-                  <span className="min-w-0 truncate text-base font-bold tracking-tight text-white">{displayTitle}</span>
-                </div>
+            <div className={mobileTitleRowClass} style={mobileTitlePaddingTop}>
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
+                <AreaIcon className="h-4 w-4 text-[#39FF14]" />
+              </div>
+              <span className="min-w-0 flex-1 truncate py-1 text-base font-bold leading-normal tracking-tight text-white">
+                {renderTitle()}
+              </span>
+              {hasMobileTitleActions ? (
                 <div className="flex shrink-0 items-center gap-2">
                   {topRightSelectors.map(sel => renderMobileTopRightTrigger(sel))}
                   {menuItems}
                 </div>
-              </div>
-            ) : (
-              <div
-                className="flex items-center justify-center gap-2.5 px-4 pb-2.5"
-                style={mobileTitlePaddingTop}
-              >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
-                  <AreaIcon className="h-4 w-4 text-[#39FF14]" />
-                </div>
-                <span className="max-w-[min(72vw,18rem)] truncate text-base font-bold tracking-tight text-white">
-                  {displayTitle}
-                </span>
-              </div>
-            )}
+              ) : null}
+            </div>
             {/* Tabs */}
             {hasTabs && (
               <div className={`w-full min-w-0 px-3 pb-2.5${useFluidAccountTabs ? ' flex justify-center' : ''}`}>
@@ -882,7 +874,7 @@ export function AreaBar({
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
                         <AreaIcon className="h-5 w-5 text-[#39FF14]" />
                       </div>
-                      <h1 className={`${desktopH1Class} min-w-0 truncate`}>{displayTitle}</h1>
+                      <h1 className={`${desktopH1Class} min-w-0 truncate`}>{renderTitle()}</h1>
                     </div>
                   </div>
                   <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex items-center justify-end">
@@ -911,7 +903,7 @@ export function AreaBar({
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
                       <AreaIcon className="h-5 w-5 text-[#39FF14]" />
                     </div>
-                    <h1 className={desktopH1Class}>{displayTitle}</h1>
+                    <h1 className={desktopH1Class}>{renderTitle()}</h1>
                   </div>
                   <nav
                     className={
@@ -945,7 +937,7 @@ export function AreaBar({
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
                     <AreaIcon className="h-5 w-5 text-[#39FF14]" />
                   </div>
-                  <h1 className={desktopH1Class}>{displayTitle}</h1>
+                  <h1 className={desktopH1Class}>{renderTitle()}</h1>
                 </div>
                 <div className={desktopRightColClass}>
                   {topRightSelectors.map(sel => (
@@ -961,7 +953,7 @@ export function AreaBar({
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
                       <AreaIcon className="h-5 w-5 text-[#39FF14]" />
                     </div>
-                    <h1 className={`${desktopH1Class} min-w-0 truncate`}>{displayTitle}</h1>
+                    <h1 className={`${desktopH1Class} min-w-0 truncate`}>{renderTitle()}</h1>
                   </div>
                 </div>
                 <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex items-center justify-end">
@@ -990,7 +982,7 @@ export function AreaBar({
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#39FF14]/10">
                     <AreaIcon className="h-5 w-5 text-[#39FF14]" />
                   </div>
-                  <h1 className={desktopH1Class}>{displayTitle}</h1>
+                  <h1 className={desktopH1Class}>{renderTitle()}</h1>
                 </div>
                 <nav
                   className={

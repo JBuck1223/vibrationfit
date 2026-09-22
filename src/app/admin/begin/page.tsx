@@ -14,7 +14,7 @@ const PREVIEW_PHASES: Array<{ id: LifeActivationSidebarMode; label: string; note
   {
     id: 'getting-started',
     label: 'Begin mode',
-    note: 'While they are getting started, the sidebar has one return tab: Getting Started.',
+    note: 'While they are getting started, the sidebar lists each step. They can still collapse it.',
   },
   {
     id: 'tools-training',

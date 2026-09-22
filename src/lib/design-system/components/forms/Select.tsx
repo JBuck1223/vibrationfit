@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '../shared-utils'
+import { fieldControlClass, fieldErrorClass } from './field-styles'
 
 interface SelectOption {
   value: string
@@ -97,14 +98,11 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
             onClick={() => !disabled && setIsOpen(!isOpen)}
             disabled={disabled}
             className={cn(
-              'w-full pl-4 pr-12 py-2.5 text-sm rounded-xl border border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left',
-              'bg-[#404040]',
-              disabled && 'opacity-50 cursor-not-allowed',
-              !selectedOption && 'text-[#9CA3AF]',
-              selectedOption && 'text-white',
-              error
-                ? 'border-[#FF0040] focus:border-[#FF0040]'
-                : 'border-[#666666] focus:border-[#39FF14]'
+              fieldControlClass,
+              'cursor-pointer pr-12 text-left',
+              disabled && 'cursor-not-allowed opacity-50',
+              !selectedOption && 'text-neutral-500',
+              error && fieldErrorClass,
             )}
           >
             {displayValue}

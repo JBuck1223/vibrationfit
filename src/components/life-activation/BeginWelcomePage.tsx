@@ -32,7 +32,6 @@ const PHASE_ICONS = {
   Vision: Sparkles,
   Community: Users,
   Plan: Waypoints,
-  Completion: CheckCircle,
 } as const
 
 export function BeginWelcomePage() {

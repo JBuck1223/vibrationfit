@@ -733,7 +733,7 @@ export function IntensiveSidebar() {
       {/* Mobile Menu Button */}
       <button
         onClick={openMobileSidebar}
-        className="md:hidden fixed top-4 left-4 z-40 bg-neutral-800 p-2 rounded-lg border-2 border-neutral-700 hover:border-neutral-600"
+        className="md:hidden fixed top-[max(0.75rem,env(safe-area-inset-top))] left-4 z-40 bg-neutral-800 p-2 rounded-lg border-2 border-neutral-700 hover:border-neutral-600"
         style={{ top: 'calc(1rem + env(safe-area-inset-top, 0px))' }}
         aria-label="Open menu"
       >

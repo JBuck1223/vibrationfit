@@ -22,7 +22,7 @@ export default async function DashboardPage() {
     .maybeSingle()
 
   if (activeIntensive) {
-    redirect(activeIntensive.started_at ? '/intensive/dashboard' : '/intensive/start')
+    redirect('/begin')
   }
 
   // Run all independent queries in parallel for speed

@@ -41,7 +41,8 @@ See `.cursor/rules/design-system.mdc` for components, colors, and patterns.
 ### 🔒 Token System (Creation Credits)
 Financial system. Schema: `token_transactions`, `token_usage`, `ai_model_pricing`. Doc: `docs/architecture/TOKEN_SYSTEM_SIMPLIFIED.md`.
 
-- Do NOT modify token calculations or pricing without approval; never allow negative balances
+- Do NOT modify token calculations or pricing without approval
+- Balances are tracked, not enforced. `validateTokenBalance` always allows the action, including the free Activation
 - Every AI call must go through `trackTokenUsage()`
 
 ### 🔒 Database Schema
@@ -98,12 +99,13 @@ Schema: `activations` (owner-only RLS, `conversation` jsonb, `opened_at`, `voice
 - Incantation and SparkQuery get a second-pass VIVA cleanse after generate (`activation-asset-cleanse.ts`) so coaching questions and contrast language do not ship
 - Never block Preview / Immersion / Offer on audio/song/images — enrichment is per-asset (`asset_status` jsonb) and failure-tolerant
 - No offer until `entered`. No commitment / 72-hour / MAP language; `inspired_next_step` is optional
-- Existing-member emails must NOT be auto-logged-in at `/api/activation/start` — branded magic-link only (account-takeover guard). `/auth/callback` must honor `/activation` `returnTo`
+- Existing-member emails must NOT be auto-logged-in at `/api/activation/start` — branded magic-link only (account-takeover guard). `/auth/callback` must honor `/activation` `returnTo` and `/checkout` `returnTo` from the paid handoff
+- Paid handoff (`?activation=`) attaches Vision Pro to that Activation account. Signed out: explain, then email an any-device link back into checkout. Signed in: locked email, card, then `/begin`. Homepage and `/join` stay the full account form
 - Assets live in the shared tables (`stories` entity_type `custom`, `songs`, `audio_sets`, `manifestations`) with `metadata.feature = 'activation'`
 - Funnel events go through `journey_events` with first-class `activation_id`; do not emit a journey event per chat turn
 
 ### 🚧 Life Activation (`/begin`)
-Paid onboarding after Vision Pro purchase (`product=membership`). Short onboarding (Life Vision conversation → Activation Kit → Vibe Tribe → Alignment Gym → MAP) plus optional Tools Training (shared `ToolWalkthrough` overlays; first Finish checks the tool off). Member sidebar shows **Getting Started** until onboarding is done; that tab becomes **Tools Training** after, then disappears when every walk-through is checked off. New membership buyers land on `/begin` after password setup. Intensive stays live and untouched: do not redirect `/intensive/*`, do not disable `hasActiveIntensive`, and do not migrate `intensive_checklist` rows. Doc: `docs/features/life-activation/README.md`.
+Paid onboarding after Vision Pro purchase (`product=membership`). Short onboarding (Account → Baseline Intake → Life Vision conversation → Activation Kit → Vibe Tribe → Alignment Gym → create and activate MAP → Unlock survey). While onboarding is open, the member sidebar lists those steps on every page. It can still be collapsed, same as the rest of the platform. Kit generation requires voice, a mix, and at least one board scene. Vibe Tribe completes from a real post. Alignment Gym completes from the guided tour. The first MAP opens with the four Intensive starter commitments and the full catalog still available. Finishing Unlock lands on `/map` with a congratulations modal, then the MAP walk-through (always available; last step sends them to Tools Training). Optional Tools Training uses shared `ToolWalkthrough` overlays; first Finish checks that tool off. After onboarding the sidebar tab becomes **Tools Training**, then disappears when every walk-through is checked off. New membership buyers, and members with an open Intensive checklist, land on `/begin`. `/intensive/start`, `/intensive/welcome`, and `/intensive/dashboard` redirect there. The locked Intensive shell is off. Do not migrate `intensive_checklist` rows. Doc: `docs/features/life-activation/README.md`.
 Schema: `life_activation_progress` (owner-only RLS), `vision_draft_sessions`, `vision_draft_session_notes`. API: `/api/life-activation`, `/api/vision/draft/create-from-activation`. UI: `/begin`, `/begin/complete`, `/begin/training`, `/life-vision/begin`. Admin: `/admin/begin`, `/admin/walkthroughs`. Walk-throughs: one tab-by-tab tour per studio (Create first, then View). Copy: `src/lib/life-activation/walkthroughs.ts` plus `walkthrough-overrides.json`.
 Create-mode vision chat reuses `/life-vision/update` and `POST /api/viva/vision-update` with `mode: 'create'`. VIVA leads with questions, seeds contrast/clarity notes each turn, then composes the whole document once she has enough. Prompts: `src/lib/viva/prompts/vision-create-prompts.ts`. Saves still go through existing draft/commit APIs (Life Vision Generation stays LOCKED).
 

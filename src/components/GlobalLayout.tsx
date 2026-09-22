@@ -245,7 +245,9 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     }
   }, [])
 
-  const intensiveMode = !!snapshot?.hasActiveIntensive
+  // The 14-step Intensive shell is legacy. Open checklists still exist, but
+  // members use Getting Started at /begin instead of the locked Intensive layout.
+  const intensiveMode = false && !!snapshot?.hasActiveIntensive
   const intensiveData: IntensiveData | null = snapshot?.intensive ?? null
   const settingsComplete = snapshot?.settingsComplete ?? false
   const isSuperAdmin = snapshot?.isSuperAdmin ?? false
@@ -318,7 +320,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
             <div className="min-h-screen bg-black text-white">
               <IntensiveSidebar />
               <div className="min-w-0 md:ml-[280px]">
-                <PageLayout className={cn(audioPageLayoutClass, fullBleedClass)}>
+                <PageLayout className={cn(audioPageLayoutClass, fullBleedClass, !studioRoute && 'mobile-menu-clearance')}>
                   {children}
                   <PlayerSpacer />
                 </PageLayout>
@@ -331,7 +333,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
 
       return (
         <SidebarLayout isAdmin={false}>
-          <PageLayout className={cn(audioPageLayoutClass, fullBleedClass)}>
+          <PageLayout className={cn(audioPageLayoutClass, fullBleedClass, !studioRoute && 'mobile-menu-clearance')}>
             {children}
             <PlayerSpacer />
           </PageLayout>
@@ -343,7 +345,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     if (pageType === 'ADMIN') {
       return (
         <SidebarLayout isAdmin={true}>
-          <PageLayout className={cn(audioPageLayoutClass, fullBleedClass)}>
+          <PageLayout className={cn(audioPageLayoutClass, fullBleedClass, !studioRoute && 'mobile-menu-clearance')}>
             {children}
             <PlayerSpacer />
           </PageLayout>

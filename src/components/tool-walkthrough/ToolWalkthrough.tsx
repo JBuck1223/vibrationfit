@@ -338,7 +338,20 @@ export const ToolWalkthrough = forwardRef<ToolWalkthroughHandle, ToolWalkthrough
                 />
               ))}
             </div>
-            {isLast ? (
+            {step.ctaHref ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const href = step.ctaHref
+                  finish()
+                  if (href) router.push(href)
+                }}
+                className="inline-flex items-center gap-1 rounded-full bg-[#00FFFF] px-2.5 py-1 text-[11px] font-semibold text-black transition-opacity hover:opacity-90"
+              >
+                {step.ctaLabel || 'Continue'}
+                <CheckCircle className="h-3.5 w-3.5" />
+              </button>
+            ) : isLast ? (
               <button
                 type="button"
                 onClick={finish}
@@ -358,13 +371,15 @@ export const ToolWalkthrough = forwardRef<ToolWalkthroughHandle, ToolWalkthrough
               </button>
             )}
           </div>
-          <button
-            type="button"
-            onClick={skip}
-            className="mt-3 w-full text-center text-[11px] text-neutral-500 transition-colors hover:text-neutral-300"
-          >
-            Skip
-          </button>
+          {!isLast ? (
+            <button
+              type="button"
+              onClick={skip}
+              className="mt-3 w-full text-center text-[11px] text-neutral-500 transition-colors hover:text-neutral-300"
+            >
+              Skip
+            </button>
+          ) : null}
         </div>
       </div>
     )

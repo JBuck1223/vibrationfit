@@ -8,7 +8,7 @@ import {
   getLifeActivationSidebarItem,
   type LifeActivationSidebarMode,
 } from '@/lib/life-activation/sidebar'
-import { TRAINING_STEPS } from '@/lib/life-activation/steps'
+import { ONBOARDING_PHASES, ONBOARDING_STEPS, TRAINING_STEPS } from '@/lib/life-activation/steps'
 
 const TOOL_WALKTHROUGHS = TRAINING_STEPS.filter((step) => step.id !== 'complete')
 
@@ -28,12 +28,40 @@ export function MemberSidebarPreview({
       </div>
       <div className="p-3">
         <div className="space-y-1">
-          {journey && JourneyIcon && (
-            <PreviewLink
-              icon={<JourneyIcon className="h-5 w-5 shrink-0" />}
-              label={journey.name}
-              active
-            />
+          {mode === 'getting-started' ? (
+            <div className="mb-3 space-y-3">
+              <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                Getting Started
+              </p>
+              {ONBOARDING_PHASES.map((phase) => {
+                const phaseSteps = ONBOARDING_STEPS.filter((step) => step.phase === phase)
+                if (phaseSteps.length === 0) return null
+                return (
+                  <div key={phase}>
+                    <p className="mb-1 px-1 text-[10px] uppercase tracking-wider text-neutral-600">{phase}</p>
+                    <div className="space-y-1">
+                      {phaseSteps.map((step) => (
+                        <PreviewLink
+                          key={step.id}
+                          icon={<span className="w-4 text-[10px] text-neutral-600">{step.number}</span>}
+                          label={step.title}
+                          muted={step.number > 1}
+                          active={step.number === 1}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            journey && JourneyIcon && (
+              <PreviewLink
+                icon={<JourneyIcon className="h-5 w-5 shrink-0" />}
+                label={journey.name}
+                active
+              />
+            )
           )}
           <PreviewLink icon={<Home className="h-5 w-5 shrink-0" />} label="Dashboard" />
           <PreviewLink icon={<Sparkles className="h-5 w-5 shrink-0" />} label="VIVA" />

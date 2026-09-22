@@ -16,7 +16,7 @@ export function WalkthroughToggle({
       onClick={onToggle}
       aria-pressed={active}
       aria-label="Walkthrough"
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
         active
           ? 'border-white/20 bg-white/[0.06] font-semibold text-white'
           : 'border-white/10 bg-transparent text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'

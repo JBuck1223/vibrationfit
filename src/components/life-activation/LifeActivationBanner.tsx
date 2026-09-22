@@ -16,11 +16,13 @@ export function LifeActivationBanner({
   title,
   body,
   doneLabel,
+  onBeforeDone,
 }: {
   onboardingStep?: OnboardingStepId
   title: string
   body: string
   doneLabel?: string
+  onBeforeDone?: () => boolean | Promise<boolean>
 }) {
   const router = useRouter()
   const { progress, completeOnboardingStep, isUpdating } = useLifeActivation()
@@ -38,9 +40,13 @@ export function LifeActivationBanner({
 
   const handleDone = async () => {
     if (!onboardingStep) return
+    if (onBeforeDone) {
+      const ok = await onBeforeDone()
+      if (!ok) return
+    }
     await completeOnboardingStep(onboardingStep)
     const next = nextOnboardingStep(onboardingStep)
-    if (next) router.push(getOnboardingStep(next).href)
+    if (next && next !== 'complete') router.push(getOnboardingStep(next).href)
   }
 
   return (

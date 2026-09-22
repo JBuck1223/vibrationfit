@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Spinner, Container } from '@/lib/design-system'
+import { Spinner } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VibeTribeFeedLayout } from '@/components/vibe-tribe/VibeTribeFeedLayout'
-import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
+import { useLifeActivation } from '@/hooks/useLifeActivation'
+import { firstIncompleteOnboarding } from '@/lib/life-activation/steps'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 
 interface UserProfile {
@@ -17,11 +18,13 @@ interface UserProfile {
 export default function VibeTribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { progress, completeOnboardingStep } = useLifeActivation()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [hasPostedBefore, setHasPostedBefore] = useState(true) // Default to true to avoid flash
+  const [postsChecked, setPostsChecked] = useState(false)
 
   // Get initial filter from URL
   const filterParam = searchParams.get('filter')
@@ -51,6 +54,7 @@ export default function VibeTribePage() {
       
       const userHasPosted = !!(posts && posts.length > 0)
       setHasPostedBefore(userHasPosted)
+      setPostsChecked(true)
 
       // If user hasn't posted, redirect to onboarding
       if (!userHasPosted) {
@@ -77,6 +81,14 @@ export default function VibeTribePage() {
     checkAuth()
   }, [router])
 
+  useEffect(() => {
+    if (!postsChecked || !hasPostedBefore || !progress || progress.onboarding_completed_at || progress.onboarding.tribe) return
+    const wasCurrent = firstIncompleteOnboarding(progress.onboarding) === 'tribe'
+    void completeOnboardingStep('tribe').then(() => {
+      if (wasCurrent) router.push('/alignment-gym')
+    })
+  }, [completeOnboardingStep, hasPostedBefore, postsChecked, progress, router])
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black">
@@ -89,9 +101,6 @@ export default function VibeTribePage() {
 
   return (
     <>
-      <div className="px-4 pt-4">
-        <StudioLifeActivationBanner />
-      </div>
       <VibeTribeFeedLayout 
         userId={user.id} 
         isAdmin={isAdmin} 

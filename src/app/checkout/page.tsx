@@ -65,7 +65,11 @@ function CheckoutContent() {
       .then(res => res.json())
       .then(data => {
         if (data.cartId) {
-          router.replace(`/checkout/${data.cartId}`)
+          const activation = searchParams.get('activation')
+          const next = activation
+            ? `/checkout/${data.cartId}?activation=${encodeURIComponent(activation)}`
+            : `/checkout/${data.cartId}`
+          router.replace(next)
         } else {
           setRedirecting(false)
         }

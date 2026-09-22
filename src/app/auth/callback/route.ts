@@ -27,6 +27,11 @@ export async function GET(request: Request) {
     ? `${origin}/auth/setup-password?returnTo=${encodeURIComponent(returnTo)}`
     : `${origin}/auth/setup-password`
 
+  function honorCheckoutReturn() {
+    if (!returnTo || !returnTo.startsWith('/checkout') || returnTo.startsWith('//')) return null
+    return NextResponse.redirect(`${origin}${returnTo}`)
+  }
+
   async function honorActivationReturn(userId?: string | null) {
     if (!isActivationReturn || !returnTo) return null
     if (userId) {
@@ -48,6 +53,8 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     const activationRedirect = await honorActivationReturn(user?.id)
     if (activationRedirect) return activationRedirect
+    const checkoutRedirect = honorCheckoutReturn()
+    if (checkoutRedirect) return checkoutRedirect
 
     if (user) {
       const needsPassword = user.user_metadata?.has_password !== true
@@ -67,7 +74,7 @@ export async function GET(request: Request) {
 
       if (checklist) {
         return NextResponse.redirect(
-          checklist.started_at ? `${origin}/intensive/dashboard` : `${origin}/intensive/start`
+          `${origin}/begin`
         )
       }
     }
@@ -89,6 +96,8 @@ export async function GET(request: Request) {
 
     const activationRedirect = await honorActivationReturn(data.user?.id)
     if (activationRedirect) return activationRedirect
+    const checkoutRedirect = honorCheckoutReturn()
+    if (checkoutRedirect) return checkoutRedirect
 
     if (data.user) {
       const needsPassword = data.user.user_metadata?.has_password !== true
@@ -107,7 +116,7 @@ export async function GET(request: Request) {
 
       if (checklist) {
         return NextResponse.redirect(
-          checklist.started_at ? `${origin}/intensive/dashboard` : `${origin}/intensive/start`
+          `${origin}/begin`
         )
       }
     }
