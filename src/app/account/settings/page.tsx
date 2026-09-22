@@ -8,6 +8,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Container, Stack, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, TimePicker } from '@/lib/design-system/components'
 import { Check, Globe } from 'lucide-react'
+import { ShippingStreetField } from '@/components/account/ShippingStreetField'
+import { LifeActivationBanner } from '@/components/life-activation/LifeActivationBanner'
+import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -33,6 +36,12 @@ export default function AccountSettingsPage() {
   const [phone, setPhone] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null)
+  const [shippingLine1, setShippingLine1] = useState('')
+  const [shippingLine2, setShippingLine2] = useState('')
+  const [shippingCity, setShippingCity] = useState('')
+  const [shippingState, setShippingState] = useState('')
+  const [shippingPostalCode, setShippingPostalCode] = useState('')
+  const [shippingCountry, setShippingCountry] = useState('')
   
   const [timezone, setTimezone] = useState('')
 
@@ -86,13 +95,19 @@ export default function AccountSettingsPage() {
       email !== (originalAccount.email || '') ||
       phone !== (originalAccount.phone || '') ||
       dateOfBirth !== (originalAccount.date_of_birth || '') ||
+      shippingLine1 !== (originalAccount.shipping_line1 || '') ||
+      shippingLine2 !== (originalAccount.shipping_line2 || '') ||
+      shippingCity !== (originalAccount.shipping_city || '') ||
+      shippingState !== (originalAccount.shipping_state || '') ||
+      shippingPostalCode !== (originalAccount.shipping_postal_code || '') ||
+      shippingCountry !== (originalAccount.shipping_country || '') ||
       timezone !== (originalAccount.timezone || '') ||
       smsOptIn !== (originalAccount.sms_opt_in ?? true) ||
       emailOptIn !== (originalAccount.email_opt_in ?? true) ||
       weeklyDirty
     
     setHasChanges(changed)
-  }, [firstName, lastName, email, phone, dateOfBirth, timezone, smsOptIn, emailOptIn, mapWeeklyEmail, mapWeeklySms, mapWeeklyTime, originalAccount, activeMapId, originalWeeklyPrefs])
+  }, [firstName, lastName, email, phone, dateOfBirth, shippingLine1, shippingLine2, shippingCity, shippingState, shippingPostalCode, shippingCountry, timezone, smsOptIn, emailOptIn, mapWeeklyEmail, mapWeeklySms, mapWeeklyTime, originalAccount, activeMapId, originalWeeklyPrefs])
 
   const fetchUserData = async () => {
     try {
@@ -103,7 +118,7 @@ export default function AccountSettingsPage() {
 
       const { data: accountData, error } = await supabase
         .from('user_accounts')
-        .select('first_name, last_name, full_name, email, phone, profile_picture_url, date_of_birth, sms_opt_in, sms_opt_in_date, timezone')
+        .select('first_name, last_name, full_name, email, phone, profile_picture_url, date_of_birth, sms_opt_in, sms_opt_in_date, timezone, shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_postal_code, shipping_country')
         .eq('id', user.id)
         .single()
 
@@ -136,6 +151,12 @@ export default function AccountSettingsPage() {
         setEmail(accountData.email || user.email || '')
         setPhone(formatPhoneNumber(accountData.phone || ''))
         setDateOfBirth(accountData.date_of_birth || '')
+        setShippingLine1(accountData.shipping_line1 || '')
+        setShippingLine2(accountData.shipping_line2 || '')
+        setShippingCity(accountData.shipping_city || '')
+        setShippingState(accountData.shipping_state || '')
+        setShippingPostalCode(accountData.shipping_postal_code || '')
+        setShippingCountry(accountData.shipping_country || '')
         setProfilePictureUrl(accountData.profile_picture_url)
         setTimezone(userTz)
         setSmsOptIn(accountData.sms_opt_in ?? true)
@@ -242,7 +263,7 @@ export default function AccountSettingsPage() {
   }
 
   const handleSaveAccount = async () => {
-    if (!user) return
+    if (!user) return false
     
     setSaving(true)
     try {
@@ -263,6 +284,12 @@ export default function AccountSettingsPage() {
         last_name: lastName || null,
         phone: phone || null,
         date_of_birth: dateOfBirth || null,
+        shipping_line1: shippingLine1.trim() || null,
+        shipping_line2: shippingLine2.trim() || null,
+        shipping_city: shippingCity.trim() || null,
+        shipping_state: shippingState.trim() || null,
+        shipping_postal_code: shippingPostalCode.trim() || null,
+        shipping_country: shippingCountry.trim() || null,
         timezone: timezone || null,
         sms_opt_in: phone ? smsOptIn : false,
       }
@@ -337,12 +364,28 @@ export default function AccountSettingsPage() {
       
       // Refresh data
       await fetchUserData()
+      return true
     } catch (error: any) {
       console.error('Error saving account:', error)
       toast.error(error.message || 'Failed to save changes')
+      return false
     } finally {
       setSaving(false)
     }
+  }
+
+  const continueFromAccount = async () => {
+    const missing: string[] = []
+    if (!firstName.trim()) missing.push('first name')
+    if (!lastName.trim()) missing.push('last name')
+    if (!dateOfBirth) missing.push('birthday')
+    if (phone.replace(/\D/g, '').length < 10) missing.push('phone')
+    if (missing.length > 0) {
+      toast.error(`Add your ${missing.join(', ')} before continuing.`)
+      return false
+    }
+    if (hasChanges) return handleSaveAccount()
+    return true
   }
 
   const handleProfilePictureChange = (url: string) => {
@@ -372,13 +415,20 @@ export default function AccountSettingsPage() {
     <Container size="xl" className="pt-2 pb-6 sm:pb-8">
       <Stack gap="md">
         <h1 className="sr-only">Personal information</h1>
+        <LifeActivationBanner
+          onboardingStep="account"
+          title={LIFE_ACTIVATION_COPY.account.title}
+          body={LIFE_ACTIVATION_COPY.account.body}
+          doneLabel={LIFE_ACTIVATION_COPY.account.cta}
+          onBeforeDone={continueFromAccount}
+        />
 
         <Card
           variant="glass"
           className="border border-white/[0.06] p-4 shadow-none sm:p-5"
         >
           <p className="mb-5 text-sm text-neutral-500">
-            Update your name, contact details, timezone, and how we reach you.
+            Update your name, contact details, shipping address, timezone, and how we reach you.
           </p>
 
           {/* Profile Picture */}
@@ -467,7 +517,7 @@ export default function AccountSettingsPage() {
               <select
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white transition-colors focus:border-primary-500/50 focus:outline-none focus:ring-1 focus:ring-primary-500/30"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white transition-colors focus:border-primary-500/50 focus:outline-none focus:ring-1 focus:ring-primary-500/25"
               >
                 <optgroup label="United States">
                   <option value="America/New_York">Eastern Time (ET)</option>
@@ -493,6 +543,97 @@ export default function AccountSettingsPage() {
               <p className="mt-1.5 text-xs text-neutral-500">
                 Used for scheduling and how times appear in the app
               </p>
+            </div>
+
+            <div className="md:col-span-2 border-t border-white/[0.06] pt-5">
+              <p className="text-sm font-medium text-white">Shipping address</p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Street address
+              </label>
+              <ShippingStreetField
+                value={shippingLine1}
+                onChange={setShippingLine1}
+                onSelect={(suggestion) => {
+                  setShippingLine1(suggestion.line1)
+                  if (suggestion.city) setShippingCity(suggestion.city)
+                  if (suggestion.state) setShippingState(suggestion.state)
+                  if (suggestion.postalCode) setShippingPostalCode(suggestion.postalCode)
+                  if (suggestion.country) setShippingCountry(suggestion.country)
+                }}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Apartment, suite, or unit
+              </label>
+              <Input
+                type="text"
+                value={shippingLine2}
+                onChange={(e) => setShippingLine2(e.target.value)}
+                placeholder="Apt 4B"
+                className="w-full"
+                autoComplete="shipping address-line2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                City
+              </label>
+              <Input
+                type="text"
+                value={shippingCity}
+                onChange={(e) => setShippingCity(e.target.value)}
+                placeholder="City"
+                className="w-full"
+                autoComplete="shipping address-level2"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                State / region
+              </label>
+              <Input
+                type="text"
+                value={shippingState}
+                onChange={(e) => setShippingState(e.target.value)}
+                placeholder="State"
+                className="w-full"
+                autoComplete="shipping address-level1"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Postal code
+              </label>
+              <Input
+                type="text"
+                value={shippingPostalCode}
+                onChange={(e) => setShippingPostalCode(e.target.value)}
+                placeholder="Postal code"
+                className="w-full"
+                autoComplete="shipping postal-code"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+                Country
+              </label>
+              <Input
+                type="text"
+                value={shippingCountry}
+                onChange={(e) => setShippingCountry(e.target.value)}
+                placeholder="United States"
+                className="w-full"
+                autoComplete="shipping country-name"
+              />
             </div>
 
             {/* Communication Opt-In */}

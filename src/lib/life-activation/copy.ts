@@ -2,7 +2,9 @@ export const LIFE_ACTIVATION_COPY = {
   source: 'src/lib/life-activation/copy.ts',
   sidebar: {
     onboardingTitle: 'Getting Started',
+    onboardingAccent: 'Started',
     trainingTitle: 'Tools Training',
+    trainingAccent: 'Training',
     trainingReady: "Learn the tools when you're ready",
     progress: (done: number, total: number) => `${done} of ${total}`,
     next: (title: string) => `Next: ${title}`,
@@ -40,7 +42,7 @@ export const LIFE_ACTIVATION_COPY = {
       howChoose:
         'Finish the current step to unlock the next. The sidebar stays open if you need to look around.',
       howNext:
-        'When you are ready, start. You will come back to your dashboard with Write your Life Vision as the next step.',
+        'When you are ready, start. You will come back to your dashboard with Account as the next step.',
       startCta: 'Start My Life Activation',
       continueCta: 'Go to Dashboard',
     },
@@ -57,19 +59,25 @@ export const LIFE_ACTIVATION_COPY = {
     onboardingLead: (stepId: string | null) => {
       switch (stepId) {
         case 'welcome':
-          return 'Start here. Watch the welcome, then write your Life Vision.'
+          return 'Start here. Watch the welcome, then save your account.'
+        case 'account':
+          return 'Complete your account information.'
+        case 'intake':
+          return 'A short baseline so you can see where you started. Then VIVA writes your Life Vision.'
         case 'vision':
           return 'One conversation with VIVA writes your Life Vision. Then you meet your people.'
         case 'kit':
-          return 'Your Life Vision is written. Hear it — or skip ahead to Vibe Tribe.'
+          return 'Your Life Vision is written. Generate the voice, the mix, and the board.'
         case 'tribe':
-          return 'Your vision is written. Now introduce yourself in Vibe Tribe.'
+          return 'Your vision is written. Publish your introduction in Vibe Tribe.'
         case 'gym':
-          return "You've met your people. Take the Alignment Gym tour, then open MAP."
+          return 'Take the Alignment Gym tour, then build your MAP.'
         case 'map':
-          return 'You know where your people are. Now open MAP and see how the week runs.'
+          return 'You know where your people are. Customize your plan and activate MAP so you know how the week runs. Then a short closing survey.'
+        case 'unlock':
+          return 'One last survey. Answer from today so you can see what shifted.'
         case 'complete':
-          return "You're almost there. One last look at what's next."
+          return 'Use your MAP to stay on track. At your own pace, go through Tools Training so you know your full power inside Vibration Fit.'
         default:
           return "You're started. The platform is open."
       }
@@ -78,6 +86,11 @@ export const LIFE_ACTIVATION_COPY = {
       stepTitle
         ? `Up next: ${stepTitle}. Nothing is locked.`
         : 'You know the rooms. Use them whenever something wants to be made.',
+  },
+  account: {
+    title: 'Your account',
+    body: 'Save your name, birthday, and phone. Add a shipping address if you want something sent to you later.',
+    cta: 'Save and continue',
   },
   vision: {
     openingFirstVision: (hasActivation: boolean) =>
@@ -92,32 +105,45 @@ So let's start easy. Where does life have you right now — and who's in it with
       'VIVA gets to know you first — your people, your season, what you actually want — then writes the first draft as one life. Accept what lands, edit what needs your voice, then commit.',
   },
   kit: {
-    title: 'Hear your vision',
-    body: 'VIVA can speak your Life Vision, mix it, and place images on your board. This takes a few minutes and uses tokens. You can skip and come back anytime.',
+    title: 'Create your Activation Kit',
+    body: 'VIVA speaks your Life Vision, mixes it with music, and places images on your board. Voice, a mix, and at least one image are part of this step.',
     cta: 'Generate My Activation Kit',
-    skip: 'Skip for now',
     generating: 'Your kit is creating. You can keep going.',
   },
   tribe: {
     title: 'Meet Vibe Tribe',
     body: 'Introduce yourself to the people practicing conscious creation right alongside you.',
-    cta: 'I introduced myself',
+    cta: 'Write your introduction',
   },
   gym: {
     title: 'Alignment Gym',
     body: 'Take the tour so you know how to join the next live group coaching session.',
-    cta: "I've seen the Gym",
+    cta: 'Take the tour',
   },
   map: {
     title: 'MAP',
-    body: 'Review your plan and activate MAP so you know how the week runs.',
-    cta: "I've seen MAP",
+    body: 'Pick at least one action in each area, tune the cadence, then save. That activates your MAP.',
+    cta: 'Create My MAP',
+  },
+  intake: {
+    title: 'Baseline Intake',
+    titleAccent: 'Intake',
+    body: 'A snapshot of where you are now. There are no wrong numbers.',
+    cta: 'Save Intake',
+  },
+  unlock: {
+    title: 'Platform Unlock',
+    titleAccent: 'Unlock',
+    body: 'Answer from today. This is how you see what shifted since you started.',
+    cta: 'Save and finish',
+    shiftQuestion: 'What shifted for you as you got started?',
   },
   complete: {
-    eyebrow: "You're started",
-    title: 'Your life is written. Your people are here.',
-    body: 'The platform is already open. When you want a walk through the rest of the tools — profile, stories, journal — Tools Training is waiting. Or just live.',
-    trainingCta: 'Learn the tools',
+    title: "You're started",
+    titleAccent: 'started',
+    body: 'Use your MAP to stay on track. At your own pace, go through Tools Training so you know your full power inside Vibration Fit.',
+    tourCta: 'Show me MAP',
+    trainingCta: 'Start Tools Training',
     dashboardCta: 'Go to Dashboard',
     visionCta: 'Open my Life Vision',
   },
@@ -131,6 +157,7 @@ So let's start easy. Where does life have you right now — and who's in it with
   },
   trainingComplete: {
     title: 'You know the rooms',
+    titleAccent: 'rooms',
     body: 'Stories, spoken tools, songs, manifestations, journal, Daily Paper, VIVA, and MAP are yours to use whenever something wants to be made.',
     dashboardCta: 'Go to Dashboard',
   },

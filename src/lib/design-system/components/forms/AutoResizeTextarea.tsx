@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { cn } from '../shared-utils'
+import { fieldControlClass, fieldErrorClass } from './field-styles'
 import { scrollSafeAutoResize } from './auto-resize-utils'
 
 interface AutoResizeTextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
@@ -78,11 +79,9 @@ export const AutoResizeTextarea = React.forwardRef<HTMLTextAreaElement, AutoResi
           value={value}
           onChange={handleChange}
             className={cn(
-              'w-full px-4 py-3 text-base bg-[#404040] border-2 rounded-xl text-white placeholder-[#9CA3AF]',
-              'focus:outline-none transition-all duration-200 resize-none',
-              error 
-                ? 'border-[#FF0040] focus:border-[#FF0040]' 
-                : 'border-[#666666] focus:border-[#39FF14]',
+              fieldControlClass,
+              'resize-none',
+              error && fieldErrorClass,
               className
             )}
           style={{ minHeight: `${minHeight}px` }}

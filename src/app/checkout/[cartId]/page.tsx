@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import { Container, Card } from '@/lib/design-system/components'
 import { Spinner } from '@/lib/design-system/components'
 import OrderSummary, { renewalBillingPhrase } from '@/components/checkout/OrderSummary'
-import CheckoutForm, { type AccountDetails } from '@/components/checkout/CheckoutForm'
+import CheckoutForm, { type AccountDetails, type AccountLock } from '@/components/checkout/CheckoutForm'
+import { ActivationSignInPanel } from '@/components/checkout/ActivationSignInPanel'
 import PayPalCheckoutForm from '@/components/checkout/PayPalCheckoutForm'
 import { toast } from 'sonner'
 import { getVisitorId, getSessionId } from '@/lib/tracking/client'
@@ -44,8 +45,15 @@ interface CartData {
   expiresAt: string
 }
 
+type HandoffState =
+  | { state: 'signed_in'; email: string; firstName: string; lastName: string; phone: string; hasPassword: boolean }
+  | { state: 'signed_out' | 'other_account' | 'invalid' }
+
 export default function CartCheckoutPage() {
   const { cartId } = useParams<{ cartId: string }>()
+  const searchParams = useSearchParams()
+  const activationId = searchParams.get('activation')
+  const [handoff, setHandoff] = useState<HandoffState | null>(null)
   const [cart, setCart] = useState<CartData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -81,6 +89,20 @@ export default function CartCheckoutPage() {
     }
     if (cartId) loadCart()
   }, [cartId])
+
+  useEffect(() => {
+    if (!activationId) return
+    let cancelled = false
+    fetch(`/api/checkout/activation-handoff?activation=${encodeURIComponent(activationId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setHandoff(data)
+      })
+      .catch(() => {
+        if (!cancelled) setHandoff({ state: 'invalid' })
+      })
+    return () => { cancelled = true }
+  }, [activationId])
 
   // Mark cart as checkout_started
   useEffect(() => {
@@ -120,7 +142,7 @@ export default function CartCheckoutPage() {
       amount: r.amount,
       currency: r.currency,
       features: r.features,
-      redirectAfterSuccess: isMembership ? '/begin' : '/intensive/start',
+      redirectAfterSuccess: '/begin',
       getPriceEnvKey: () => undefined,
       metadata,
     }
@@ -252,6 +274,7 @@ export default function CartCheckoutPage() {
           cartSessionId: cart.id,
           visitorId: getVisitorId() || undefined,
           sessionId: getSessionId() || undefined,
+          activationId: activationId || undefined,
         }),
       })
 
@@ -303,6 +326,7 @@ export default function CartCheckoutPage() {
         cartSessionId: cart.id,
         visitorId: getVisitorId() || undefined,
         sessionId: getSessionId() || undefined,
+        activationId: activationId || undefined,
       }),
     })
     const data = await res.json()
@@ -391,6 +415,39 @@ export default function CartCheckoutPage() {
     },
   }
 
+  const accountLock: AccountLock | null = handoff?.state === 'signed_in'
+    ? {
+        email: handoff.email,
+        firstName: handoff.firstName,
+        lastName: handoff.lastName,
+        phone: handoff.phone,
+        hasPassword: handoff.hasPassword,
+      }
+    : null
+
+  const handoffPanel = !activationId
+    ? null
+    : !handoff
+      ? (
+          <div className="flex justify-center py-16">
+            <Spinner size="lg" />
+          </div>
+        )
+      : handoff.state === 'invalid'
+        ? (
+            <p className="text-sm leading-relaxed text-neutral-300">
+              This Activation link is not valid. Open your Activation and choose Vision Pro from there.
+            </p>
+          )
+        : handoff.state === 'signed_in'
+          ? null
+          : (
+              <ActivationSignInPanel
+                activationId={activationId}
+                otherAccount={handoff.state === 'other_account'}
+              />
+            )
+
   const summaryColumn = (
     <div className="lg:col-span-2 order-1 lg:order-1">
       <OrderSummary
@@ -412,8 +469,10 @@ export default function CartCheckoutPage() {
           {summaryColumn}
           <div className="lg:col-span-3 order-2 lg:order-2">
             <Card className="p-6 md:p-8">
+              {handoffPanel || (
               <PayPalCheckoutForm
                 createOrder={handlePayPalCreateOrder}
+                accountLock={accountLock}
                 onApproved={handlePayPalApproved}
                 submitLabel={submitLabel}
                 submitLabelShort={submitLabelShort}
@@ -427,6 +486,7 @@ export default function CartCheckoutPage() {
                   promoDiscount?.renewal,
                 )}
               />
+              )}
             </Card>
           </div>
         </div>
@@ -441,8 +501,10 @@ export default function CartCheckoutPage() {
           {summaryColumn}
           <div className="lg:col-span-3 order-2 lg:order-2">
             <Card className="p-6 md:p-8">
+              {handoffPanel || (
               <CheckoutForm
                 onSubmit={handleFormSubmit}
+                accountLock={accountLock}
                 isProcessing={isProcessing}
                 submitLabel={submitLabel}
                 submitLabelShort={submitLabelShort}
@@ -451,6 +513,7 @@ export default function CartCheckoutPage() {
                 planType={(cart?.items?.[0]?.plan_type as 'solo' | 'household') || undefined}
                 paymentPlan={(cart?.items?.[0]?.plan as 'full' | '2pay') || undefined}
               />
+              )}
             </Card>
           </div>
         </div>

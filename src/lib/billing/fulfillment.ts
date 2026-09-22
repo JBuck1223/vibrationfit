@@ -42,6 +42,8 @@ export type PurchaseContext = {
   partnerEmail?: string
   intensiveLevel?: 'premium' | null
   promoPackage?: string | null
+  /** Set only after the server confirms the session owns this Activation. */
+  activationUserId?: string | null
 }
 
 export type VaultedCard = {
@@ -111,7 +113,7 @@ export async function fulfillPayPalPurchase(params: {
   const lastName = nameParts.length > 1 ? toTitleCase(nameParts.slice(1).join(' ')) : null
 
   let userId: string
-  const foundUserId = await getUserIdByEmail(supabaseAdmin, email)
+  const foundUserId = ctx.activationUserId || await getUserIdByEmail(supabaseAdmin, email)
   if (foundUserId) {
     userId = foundUserId
   } else {

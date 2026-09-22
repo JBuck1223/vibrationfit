@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,6 +51,25 @@ export async function GET(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
+
+    const sessionClient = await createServerClient()
+    const { data: { user: sessionUser } } = await sessionClient.auth.getUser()
+    if (sessionUser?.id === order.user_id) {
+      const needsPassword = sessionUser.user_metadata?.has_password !== true
+      const redirectUrl = needsPassword
+        ? `${appUrl}/auth/setup-password?returnTo=${encodeURIComponent('/begin')}`
+        : `${appUrl}/begin`
+      const productKey = (order.metadata as Record<string, unknown>)?.product_key as string | undefined
+      return NextResponse.json({
+        ready: true,
+        redirectUrl,
+        amount: order.total_amount != null ? order.total_amount / 100 : undefined,
+        currency: order.currency || 'usd',
+        product: productKey || 'membership',
+        orderId: order.id,
+        paymentIntentId: paymentIntentId || undefined,
+      })
+    }
 
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',

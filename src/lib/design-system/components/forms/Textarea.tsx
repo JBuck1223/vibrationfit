@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { cn } from '../shared-utils'
+import { fieldControlClass, fieldErrorClass } from './field-styles'
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string
@@ -21,11 +22,9 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           ref={ref}
           className={cn(
-            'w-full px-4 py-3 text-base bg-[#404040] border rounded-xl text-white placeholder-[#9CA3AF]',
-            'focus:outline-none transition-all duration-200',
-            error 
-              ? 'border-[#FF0040] focus:border-[#FF0040]' 
-              : 'border-[#666666] focus:border-[#39FF14]',
+            fieldControlClass,
+            'min-h-[5.5rem]',
+            error && fieldErrorClass,
             className
           )}
           {...props}

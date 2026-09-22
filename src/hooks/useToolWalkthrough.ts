@@ -70,6 +70,15 @@ export function useToolWalkthrough(stepId: WalkthroughId) {
     [stepId],
   )
 
+  const start = useCallback(() => {
+    const search = new URLSearchParams(window.location.search)
+    const here = buildYouAreHereStep(stepId, pathname, search)
+    setHereStep(here)
+    setStepIndex(0)
+    persist(true, 0, here)
+    setActive(true)
+  }, [pathname, persist, stepId])
+
   const toggle = useCallback(() => {
     setActive((prev) => {
       if (prev) {
@@ -114,6 +123,7 @@ export function useToolWalkthrough(stepId: WalkthroughId) {
 
   return {
     active,
+    start,
     toggle,
     close,
     complete,

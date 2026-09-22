@@ -8,6 +8,7 @@ import Stripe from 'stripe'
 import { toTitleCase } from '@/lib/utils'
 import { ensureCustomerWithAttribution } from '@/lib/tracking/customer-attribution'
 import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
+import { currentSessionUserId, isActivationId, loadActivationOwner } from '@/lib/checkout/activation-handoff'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       name,
-      email,
+      email: submittedEmail,
       phone,
       password,
       product,
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
       partnerLastName,
       partnerEmail,
       promoPackage,
+      activationId,
     } = body as {
       name: string
       email: string
@@ -62,6 +64,22 @@ export async function POST(request: NextRequest) {
       partnerFirstName?: string
       partnerLastName?: string
       partnerEmail?: string
+      activationId?: string
+    }
+
+    let email = submittedEmail
+    let lockedUserId: string | null = null
+    if (isActivationId(activationId)) {
+      const owner = await loadActivationOwner(activationId)
+      const sessionUserId = await currentSessionUserId()
+      if (!owner || sessionUserId !== owner.userId) {
+        return NextResponse.json(
+          { error: 'Sign in to the Activation account before adding a card.' },
+          { status: 403 },
+        )
+      }
+      email = owner.email
+      lockedUserId = owner.userId
     }
 
     if (!name || !email || !product) {
@@ -178,7 +196,7 @@ export async function POST(request: NextRequest) {
 
     let userId: string
     let redirectToSetupPassword = false
-    const foundUserId = await getUserIdByEmail(supabaseAdmin, email)
+    const foundUserId = lockedUserId || await getUserIdByEmail(supabaseAdmin, email)
     if (foundUserId) {
       userId = foundUserId
       if (hasPassword) {

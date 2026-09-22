@@ -38,7 +38,6 @@ import {
 } from '@/lib/viva/coach-attachments'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { ensureJpegCompatible } from '@/lib/life-explorer/ensure-jpeg'
-import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
 import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
 

@@ -58,7 +58,7 @@ function LoginForm() {
         .in('status', ['pending', 'in_progress'])
         .maybeSingle()
       if (intensiveChecklist) {
-        router.push(intensiveChecklist.started_at ? '/intensive/dashboard' : '/intensive/start')
+        router.push('/begin')
         return
       }
     }

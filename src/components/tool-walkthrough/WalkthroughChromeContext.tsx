@@ -9,6 +9,7 @@ import type { WalkthroughId } from '@/lib/life-activation/walkthroughs'
 interface WalkthroughChromeValue {
   active: boolean
   onToggle: () => void
+  start: () => void
   pending: boolean
   available: boolean
 }
@@ -16,6 +17,7 @@ interface WalkthroughChromeValue {
 const UNAVAILABLE: WalkthroughChromeValue = {
   active: false,
   onToggle: () => {},
+  start: () => {},
   pending: false,
   available: false,
 }
@@ -45,11 +47,12 @@ export function ToolWalkthroughHost({
   stepId: WalkthroughId
   children: ReactNode
 }) {
-  const { active, toggle, close, complete, steps, stepIndex, goToStep, pending } = useToolWalkthrough(stepId)
+  const { active, start, toggle, close, complete, steps, stepIndex, goToStep, pending } =
+    useToolWalkthrough(stepId)
 
   return (
     <WalkthroughChromeContext.Provider
-      value={{ active, onToggle: toggle, pending, available: steps.length > 0 }}
+      value={{ active, onToggle: toggle, start, pending, available: steps.length > 0 }}
     >
       {children}
       {steps.length > 0 && (

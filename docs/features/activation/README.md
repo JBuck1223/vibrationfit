@@ -23,7 +23,7 @@ ad page is `/join`. `/activation/home` redirects to `/`.
 /activation/[id]       Preview (checklist only) → Enter My Activation (opened)
                        → Immersion map + assets (audio lives in each container)
                        → I've Entered This Reality (entered)
-                       → Unlock Vision Pro $99/28 days → /checkout?product=membership
+                       → Unlock Vision Pro $99/28 days → /checkout?product=membership&activation={id}
 /begin                 Paid onboarding after purchase
 ```
 
@@ -33,6 +33,15 @@ returns to `/activation/[id]`. Signed-in visitors hitting experience without
 auto-logged-in; they get a branded magic link that includes the id.
 `/auth/callback` honors `/activation` `returnTo` and does not steal the funnel
 to setup-password, Intensive, or dashboard.
+
+Paid handoff keeps the same account. Signed in, checkout locks the email,
+asks only for a missing last name or phone, then the card. After payment,
+a password is collected only when `has_password` is not set, then `/begin`
+loads that Activation. Signed out, checkout explains why and emails a link.
+Open it on any device and it returns to checkout on that account.
+Homepage `/` and `/join` stay the full account form. `/auth/callback` also
+honors a `/checkout` `returnTo` so the link is not diverted to a password
+page before the card is added.
 
 ## Completion model
 
@@ -100,5 +109,5 @@ means they used the activation map and entered.
 - Never auto-generate; they confirm Create My Activation
 - No mental-health diagnosis; crisis language sets `needs_support`
 - No guaranteed-manifestation claims
-- Free users hold real token balances; every model call goes through
-  `validateTokenBalance` + `trackTokenUsage`
+- Free Activation is not limited by token balance. Every model call is still
+  recorded with `trackTokenUsage`. `validateTokenBalance` does not block it.

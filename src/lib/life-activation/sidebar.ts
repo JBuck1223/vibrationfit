@@ -50,7 +50,7 @@ export function isLifeActivationSidebarActive(
   pathname: string,
 ): boolean {
   if (mode === 'getting-started') {
-    if (pathname.startsWith('/begin/training') || pathname.startsWith('/begin/intake')) return false
+    if (pathname.startsWith('/begin/training')) return false
     return (
       pathname === '/begin' ||
       pathname.startsWith('/begin/') ||
@@ -58,7 +58,7 @@ export function isLifeActivationSidebarActive(
     )
   }
   if (mode === 'tools-training') {
-    return pathname.startsWith('/begin/training') || pathname.startsWith('/begin/intake')
+    return pathname.startsWith('/begin/training')
   }
   return false
 }

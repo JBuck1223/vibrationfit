@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Card, Container, Input } from '@/lib/design-system/components'
-import { Lock, CheckCircle, Eye, EyeOff, Clock, Loader2 } from 'lucide-react'
+import { Lock, CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function SetupPasswordPage() {
   const router = useRouter()
@@ -23,7 +23,7 @@ export default function SetupPasswordPage() {
   const [hasIntensive, setHasIntensive] = useState(false)
 
   function getPostPasswordRedirect(hasActiveIntensive: boolean): string {
-    if (hasActiveIntensive) return '/intensive/start'
+    if (hasActiveIntensive) return '/begin'
     if (returnTo && returnTo.startsWith('/')) return returnTo
     return '/begin'
   }
@@ -127,8 +127,6 @@ export default function SetupPasswordPage() {
         <p className="text-base md:text-lg text-neutral-300">
           {returnTo?.includes('/household/invite')
             ? 'Create your password to accept your household invitation.'
-            : hasIntensive
-            ? 'Create your password to start your 72-Hour Activation.'
             : 'Set your password to secure your account'}
         </p>
       </div>
@@ -141,7 +139,7 @@ export default function SetupPasswordPage() {
             </div>
             <h2 className="text-xl md:text-2xl font-bold mb-2">Password Set</h2>
             <p className="text-sm md:text-base text-neutral-300">
-              Redirecting{returnTo?.includes('/household/invite') ? ' to your invitation' : hasIntensive ? ' to your intensive' : ' to Getting Started'}...
+              Redirecting{returnTo?.includes('/household/invite') ? ' to your invitation' : ' to Getting Started'}...
             </p>
           </div>
         ) : (
@@ -218,14 +216,6 @@ export default function SetupPasswordPage() {
                 {loading ? 'Setting Password...' : 'Set Password & Continue'}
               </Button>
 
-              {hasIntensive && (
-                <div className="bg-primary-500/10 border-2 border-primary-500/30 px-4 py-3 rounded-xl flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-primary-500 text-xs md:text-sm">
-                    Your 72-hour activation window begins when you start your intensive on the next page.
-                  </p>
-                </div>
-              )}
             </form>
           </>
         )}

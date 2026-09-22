@@ -25,6 +25,8 @@ export interface ToolWalkthroughStep {
   room?: WalkthroughRoom
   /** Studio tab this step lives on. Next navigates here when the path does not match. */
   href?: string
+  ctaHref?: string
+  ctaLabel?: string
 }
 
 export interface ToolWalkthroughCatalog {
@@ -36,6 +38,8 @@ export const VISION_VIEW_WALKTHROUGH_ID = 'vision_view' as const
 
 export type WalkthroughId =
   | Exclude<TrainingStepId, 'complete'>
+  | 'profile'
+  | 'intake'
   | typeof VISION_WALKTHROUGH_ID
   | typeof VISION_VIEW_WALKTHROUGH_ID
 
@@ -224,11 +228,11 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
     id: 'profile',
     label: 'Profile',
     group: 'studio',
-    description: 'One studio tour: Update first, then View.',
+    description: 'Legacy studio tour for members who already keep a Life Profile. Not part of Tools Training.',
     route: '/profile/create',
     tabLabel: 'Update',
     sourceFile: WALKTHROUGH_SOURCE,
-    checksOff: 'profile',
+    checksOff: null,
     steps: [
       s(
         'studio-tab-profile-update',
@@ -284,11 +288,11 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
     id: 'intake',
     label: 'Intake',
     group: 'other',
-    description: 'The baseline survey at /begin/intake.',
+    description: 'The baseline survey at /begin/intake. Part of Getting Started, not Tools Training.',
     route: '/begin/intake',
     tabLabel: 'Intake',
     sourceFile: WALKTHROUGH_SOURCE,
-    checksOff: 'intake',
+    checksOff: null,
     steps: [
       {
         id: 'intake-survey',
@@ -299,7 +303,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       {
         id: 'intake-submit',
         title: 'Submit when you are ready',
-        body: 'Sending it in is what completes this step. You can also skip this overlay and finish the form on your own.',
+        body: 'Sending it in is what completes this step.',
         target: 'data-tour="intake-submit" on the submit control',
       },
     ],
@@ -856,7 +860,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
     id: 'map',
     label: 'MAP',
     group: 'studio',
-    description: 'One studio tour: Update the plan first, then View.',
+    description: 'Customize daily activation on MAP, then go through Tools Training.',
     route: '/map/update',
     tabLabel: 'Update',
     sourceFile: WALKTHROUGH_SOURCE,
@@ -974,6 +978,17 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
         '/map',
         'view',
       ),
+      {
+        id: 'map-tools-training',
+        title: 'Tools Training',
+        body: 'At your own pace, go through Tools Training so you know your full power inside Vibration Fit. Use MAP to stay on track while you learn the rest of the rooms.',
+        target: '',
+        href: '/map',
+        room: 'view' as const,
+        spotlight: false,
+        ctaHref: '/begin/training',
+        ctaLabel: 'Start Tools Training',
+      },
     ],
   },
   {
@@ -1154,6 +1169,8 @@ function mergeSteps(
       spotlight: step.spotlight,
       ...(step.room ? { room: step.room } : {}),
       ...(step.href ? { href: step.href } : {}),
+      ...(step.ctaHref ? { ctaHref: step.ctaHref } : {}),
+      ...(step.ctaLabel ? { ctaLabel: step.ctaLabel } : {}),
       ...(snapshot ? { snapshot } : {}),
     }
   })

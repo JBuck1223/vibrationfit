@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createCardOrder } from '@/lib/paypal/orders'
 import { isPayPalConfigured } from '@/lib/paypal/client'
 import { resolveProduct } from '@/lib/billing/products'
+import { currentSessionUserId, isActivationId, loadActivationOwner } from '@/lib/checkout/activation-handoff'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,9 +42,25 @@ export async function POST(request: NextRequest) {
       partnerFirstName,
       partnerLastName,
       partnerEmail,
+      activationId,
     } = body as Record<string, string | undefined>
 
-    if (!name || !email || !product) {
+    let lockedUserId: string | null = null
+    let checkoutEmail = email
+    if (isActivationId(activationId)) {
+      const owner = await loadActivationOwner(activationId)
+      const sessionUserId = await currentSessionUserId()
+      if (!owner || sessionUserId !== owner.userId) {
+        return NextResponse.json(
+          { error: 'Sign in to the Activation account before adding a card.' },
+          { status: 403 },
+        )
+      }
+      checkoutEmail = owner.email
+      lockedUserId = owner.userId
+    }
+
+    if (!name || !checkoutEmail || !product) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -103,8 +120,9 @@ export async function POST(request: NextRequest) {
       status: 'created',
       context: {
         name,
-        email,
+        email: checkoutEmail,
         phone: phone || '',
+        activationUserId: lockedUserId,
         product,
         plan: plan || 'full',
         planType: planType || 'solo',
@@ -132,7 +150,7 @@ export async function POST(request: NextRequest) {
     if (cartSessionId) {
       await supabaseAdmin
         .from('cart_sessions')
-        .update({ status: 'checkout_started', email, updated_at: new Date().toISOString() })
+        .update({ status: 'checkout_started', email: checkoutEmail, updated_at: new Date().toISOString() })
         .eq('id', cartSessionId)
     }
 

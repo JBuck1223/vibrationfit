@@ -139,13 +139,13 @@ export function IntensiveStepBar({ subtitle: subtitleOverride }: IntensiveStepBa
       {/* Mobile */}
       <div className="md:hidden w-full min-w-0 border-b border-neutral-800/60 bg-neutral-850">
         <div
-          className="flex items-center justify-center gap-2.5 px-4 pb-2.5"
-          style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
+          className="flex min-h-[3.25rem] min-w-0 items-center gap-2.5 pb-2.5 pl-[4.75rem] pr-4"
+          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
         >
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
             <AreaIcon className="h-4 w-4 text-[#39FF14]" />
           </div>
-          <span className="max-w-[min(72vw,18rem)] truncate text-base font-bold tracking-tight text-white">
+          <span className="min-w-0 flex-1 truncate text-base font-bold tracking-tight text-white">
             {displayTitle}
           </span>
         </div>

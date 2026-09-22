@@ -1,14 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
+import { BeginTitle } from '@/components/life-activation/BeginTitle'
 import { JourneyDashboard, type DashboardStep } from '@/components/life-activation/JourneyDashboard'
 import { RosterConfirmCard } from '@/components/roster/RosterConfirmCard'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
+import { signalBeginComplete } from '@/lib/life-activation/celebration'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import {
   ONBOARDING_PHASES,
+  ONBOARDING_STEP_IDS,
   ONBOARDING_STEPS,
   withSequentialLocks,
   type OnboardingStepId,
@@ -44,11 +47,15 @@ export function BeginDashboard() {
   )
 
   const nextStep = steps.find((s) => !s.completed && !s.locked) || null
+  const visibleDone = steps.length > 0 && steps.every((s) => s.completed)
 
-  const handleSkipKit = async () => {
-    await completeOnboardingStep('kit')
-    setKitOpen(false)
-  }
+  useEffect(() => {
+    if (!progress || progress.onboarding_completed_at || !visibleDone) return
+    void completeOnboardingStep('complete').then(() => {
+      signalBeginComplete()
+      router.replace('/map')
+    })
+  }, [completeOnboardingStep, progress, router, visibleDone])
 
   const handleContinue = async (step: DashboardStep) => {
     if (isUpdating || step.locked) return
@@ -72,7 +79,12 @@ export function BeginDashboard() {
   return (
     <>
       <JourneyDashboard
-        title={LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}
+        title={
+          <BeginTitle
+            text={LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}
+            accent={LIFE_ACTIVATION_COPY.sidebar.onboardingAccent}
+          />
+        }
         phases={ONBOARDING_PHASES}
         steps={steps}
         nextStep={nextStep}
@@ -80,7 +92,6 @@ export function BeginDashboard() {
         loading={isLoading}
         continueDisabled={isUpdating}
         onContinue={handleContinue}
-        onSkip={nextStep?.id === 'kit' ? () => handleSkipKit() : undefined}
         extra={progress?.onboarding.vision ? <RosterConfirmCard /> : null}
       />
 
@@ -89,6 +100,7 @@ export function BeginDashboard() {
           isOpen={kitOpen}
           onClose={() => setKitOpen(false)}
           kitOnlyVisionId={progress.active_vision_id}
+          requireFullKit
           onCommitted={async () => {
             await completeOnboardingStep('kit')
             setKitOpen(false)
@@ -101,5 +113,5 @@ export function BeginDashboard() {
 }
 
 export function isOnboardingStep(id: string): id is OnboardingStepId {
-  return ONBOARDING_STEPS.some((s) => s.id === id)
+  return ONBOARDING_STEP_IDS.some((stepId) => stepId === id)
 }

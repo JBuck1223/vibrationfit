@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { BeginTitle } from '@/components/life-activation/BeginTitle'
 import { Button, Card, Container, PageHero, Spinner, Stack } from '@/lib/design-system/components'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
@@ -28,7 +29,12 @@ export default function TrainingCompletePage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          title={LIFE_ACTIVATION_COPY.trainingComplete.title}
+          title={
+            <BeginTitle
+              text={LIFE_ACTIVATION_COPY.trainingComplete.title}
+              accent={LIFE_ACTIVATION_COPY.trainingComplete.titleAccent}
+            />
+          }
           subtitle={LIFE_ACTIVATION_COPY.trainingComplete.body}
         />
         <Card className="p-6">

@@ -9,6 +9,7 @@ export type AdminNotificationType =
   | 'intensive_completed'
   | 'lead_created'
   | 'support_ticket'
+  | 'activation_signup'
 
 interface CreateNotificationParams {
   type: AdminNotificationType

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Button } from '@/lib/design-system/components'
+import { BeginTitle } from '@/components/life-activation/BeginTitle'
 import { JourneyDashboard, type DashboardStep } from '@/components/life-activation/JourneyDashboard'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
@@ -42,7 +43,12 @@ export default function BeginTrainingPage() {
 
   return (
     <JourneyDashboard
-      title={LIFE_ACTIVATION_COPY.training.eyebrow}
+      title={
+        <BeginTitle
+          text={LIFE_ACTIVATION_COPY.sidebar.trainingTitle}
+          accent={LIFE_ACTIVATION_COPY.sidebar.trainingAccent}
+        />
+      }
       phases={TRAINING_PHASES}
       steps={steps}
       nextStep={nextStep}

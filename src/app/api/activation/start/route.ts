@@ -11,7 +11,7 @@
  *              then email a branded magic link that includes the activation id.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { randomBytes } from 'crypto'
@@ -20,6 +20,8 @@ import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
 import { grantTokens } from '@/lib/tokens/transactions'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { triggerEvent } from '@/lib/messaging/events'
+import { createAdminNotification } from '@/lib/admin/notifications'
+import { sendNotification } from '@/lib/notifications/config'
 import { recordActivationEvent } from '@/lib/activation/events'
 import { rateLimit } from '@/lib/rate-limit'
 import {
@@ -33,6 +35,37 @@ import {
 export const dynamic = 'force-dynamic'
 
 const ACTIVATION_TOKEN_GRANT = 100_000
+
+function notifyAdminActivationSignup(details: {
+  email: string
+  firstName: string | null
+  userId: string
+  activationId: string
+}) {
+  const name = details.firstName || details.email
+  after(() =>
+    Promise.all([
+      createAdminNotification({
+        type: 'activation_signup',
+        title: `Free Activation: ${name}`,
+        body: details.email,
+        metadata: {
+          email: details.email,
+          userId: details.userId,
+          activationId: details.activationId,
+        },
+        link: `/admin/crm/members/${details.userId}`,
+      }),
+      sendNotification({
+        slug: 'free_activation_signup',
+        variables: {
+          name,
+          email: details.email,
+        },
+      }),
+    ]).catch((err) => console.error('[activation/start] admin notification:', err))
+  )
+}
 
 async function createActivationRow(
   admin: ReturnType<typeof createAdminClient>,
@@ -131,6 +164,12 @@ export async function POST(request: NextRequest) {
             sessionId: body.session_id || null,
             eventData: { is_new_user: false, resumed: false },
           })
+          notifyAdminActivationSignup({
+            email,
+            firstName,
+            userId: existingUserId,
+            activationId: activation.id,
+          })
         }
         try {
           await sendActivationBegunEmail({
@@ -218,6 +257,12 @@ export async function POST(request: NextRequest) {
         visitorId: body.visitor_id || null,
         sessionId: body.session_id || null,
         eventData: { is_new_user: isNewUser },
+      })
+      notifyAdminActivationSignup({
+        email,
+        firstName,
+        userId,
+        activationId: activation.id,
       })
     }
 

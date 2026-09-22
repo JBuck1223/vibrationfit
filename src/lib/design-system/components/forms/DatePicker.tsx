@@ -4,6 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Check, CalendarDays } from 'lucide-react'
 import { cn } from '../shared-utils'
+import { fieldControlClass, fieldErrorClass } from './field-styles'
 
 interface DatePickerProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   label?: string
@@ -360,20 +361,9 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 placeholder="Select date..."
                 className={cn(
-                  'w-full px-4 py-3 pr-10 text-base',
-                  'bg-[#404040]',
-                  'border-2',
-                  'rounded-xl',
-                  'text-white',
-                  'placeholder-[#9CA3AF]',
-                  'focus:outline-none',
-                  'transition-all duration-200',
-                  'cursor-pointer',
-                  error
-                    ? 'border-[#FF0040]'
-                    : isOpen
-                    ? 'border-[#39FF14]'
-                    : 'border-[#666666]'
+                  fieldControlClass,
+                  'cursor-pointer pr-10',
+                  error ? fieldErrorClass : isOpen && 'border-primary-500/50 ring-1 ring-primary-500/25',
                 )}
                 {...props}
               />

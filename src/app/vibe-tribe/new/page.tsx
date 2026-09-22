@@ -27,6 +27,8 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useLifeActivation } from '@/hooks/useLifeActivation'
+import { firstIncompleteOnboarding } from '@/lib/life-activation/steps'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { FileUpload } from '@/components/FileUpload'
@@ -49,6 +51,7 @@ const TAG_DESCRIPTIONS: Record<VibeTag, string> = {
 
 export default function VibeTribeNewPage() {
   const router = useRouter()
+  const { progress, completeOnboardingStep } = useLifeActivation()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<{ id: string } | null>(null)
   const [hasPosted, setHasPosted] = useState(false)
@@ -210,7 +213,17 @@ export default function VibeTribeNewPage() {
       })
 
       if (response.ok) {
-        // Success! Redirect to main feed
+        const introducing =
+          progress &&
+          !progress.onboarding_completed_at &&
+          !progress.onboarding.tribe
+        if (introducing) {
+          await completeOnboardingStep('tribe')
+          if (firstIncompleteOnboarding(progress.onboarding) === 'tribe') {
+            router.push('/alignment-gym')
+            return
+          }
+        }
         router.push('/vibe-tribe')
       } else {
         const error = await response.json()
