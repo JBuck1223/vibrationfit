@@ -18,6 +18,7 @@ import {
   SOCIAL_REPLY_VOICES,
   buildSocialReplyUserMessage,
   extractSocialReplyDraft,
+  stripSocialReplyMarkers,
   parseSocialReplyIntakeJson,
   type SocialReplyIntake,
   type SocialReplyLength,
@@ -343,7 +344,7 @@ export default function SocialVivaPage() {
                       ) : message.content.trim() ? (
                         <VivaAssistantMessage
                           key={message.id}
-                          markdown={message.content}
+                          markdown={stripSocialReplyMarkers(message.content)}
                           copyText={extractSocialReplyDraft(message.content)}
                         />
                       ) : (

@@ -7,6 +7,7 @@ import {
   buildSocialReplySystemPrompt,
   buildSocialReplyUserMessage,
   extractSocialReplyDraft,
+  stripSocialReplyMarkers,
   parseSocialReplyIntake,
   parseSocialReplyIntakeJson,
 } from './social-reply-prompts'
@@ -36,6 +37,11 @@ ${SOCIAL_REPLY_END}
 
 test('falls back to the full text when markers are missing', () => {
   assert.equal(extractSocialReplyDraft('  Just post this.  '), 'Just post this.')
+})
+
+test('strips markers for chat display and keeps the admin note', () => {
+  const text = `Kept the pitch out.\n\n${SOCIAL_REPLY_START}\nHello.\n${SOCIAL_REPLY_END}`
+  assert.equal(stripSocialReplyMarkers(text), 'Kept the pitch out.\n\nHello.')
 })
 
 test('parses intake and rejects an empty message', () => {

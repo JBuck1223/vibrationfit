@@ -142,6 +142,7 @@ export {
   buildSocialReplySystemPrompt,
   buildSocialReplyUserMessage,
   extractSocialReplyDraft,
+  stripSocialReplyMarkers,
   parseSocialReplyIntake,
   parseSocialReplyIntakeJson,
   type SocialReplyIntake,

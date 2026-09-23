@@ -125,6 +125,15 @@ export function parseSocialReplyIntakeJson(raw: string | null | undefined): Soci
   }
 }
 
+/** Chat display: keep the admin note and the reply, hide the marker lines. */
+export function stripSocialReplyMarkers(text: string): string {
+  return (text ?? '')
+    .replace(SOCIAL_REPLY_START, '')
+    .replace(SOCIAL_REPLY_END, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 /** Pull the copy-paste reply out of a Social VIVA turn. Falls back to the full text. */
 export function extractSocialReplyDraft(text: string): string {
   const source = text ?? ''
