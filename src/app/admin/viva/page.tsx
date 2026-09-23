@@ -82,10 +82,16 @@ function VivaAdminGuideContent() {
         />
 
         <div className="flex flex-wrap gap-3">
-          <Link href="/viva">
+          <Link href="/admin/viva/social">
             <Button variant="primary" size="sm">
               <MessageCircle className="w-4 h-4 mr-2" />
-              Open VIVA
+              Social VIVA
+            </Button>
+          </Link>
+          <Link href="/viva">
+            <Button variant="outline" size="sm">
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Open your VIVA
             </Button>
           </Link>
           <Link href="/admin/ai-models">
@@ -95,6 +101,19 @@ function VivaAdminGuideContent() {
             </Button>
           </Link>
         </div>
+
+        <SectionCard icon={MessageCircle} title={"Social VIVA — other people's questions"}>
+          <p>
+            People write you on social media about their situation. Your personal VIVA at{' '}
+            <code className="text-neutral-100">/viva</code> would answer as if it were your life.
+            <Link href="/admin/viva/social" className="text-primary-500 hover:underline"> Social VIVA</Link>{' '}
+            is the same coaching brain, programmed without your Life Vision, journal, memories, or household.
+          </p>
+          <p>
+            Paste what they wrote, pick the channel and voice, and copy the draft. Threads stay off{' '}
+            <code className="text-neutral-100">/viva</code> and do not write into your personal memory.
+          </p>
+        </SectionCard>
 
         <SectionCard icon={Layers} title="How a coaching turn works">
           <p>
