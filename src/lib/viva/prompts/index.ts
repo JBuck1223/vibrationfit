@@ -135,6 +135,18 @@ export {
 // Shared Components
 export { VIVA_PERSONA, VIVA_PERSONA_WITH_GOLDEN_RULES } from './shared/viva-persona'
 
+// Admin Social VIVA (third-party reply drafts — no admin personal context)
+export {
+  ADMIN_SOCIAL_REPLY_MODE,
+  SOCIAL_REPLY_PROMPT_VERSION,
+  buildSocialReplySystemPrompt,
+  buildSocialReplyUserMessage,
+  extractSocialReplyDraft,
+  parseSocialReplyIntake,
+  parseSocialReplyIntakeJson,
+  type SocialReplyIntake,
+} from './social-reply-prompts'
+
 // Project Organize / Brain Dump
 export {
   PROJECT_ORGANIZE_SYSTEM_PROMPT,

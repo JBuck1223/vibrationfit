@@ -239,6 +239,8 @@ export const PAGE_CLASSIFICATIONS = {
     
     // AI & Models
     '/admin/ai-models',
+    '/admin/viva',
+    '/admin/viva/social',
     '/admin/audio-mixer',
     '/admin/activation',
     '/admin/begin',

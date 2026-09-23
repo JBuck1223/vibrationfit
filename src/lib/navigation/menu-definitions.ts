@@ -80,6 +80,7 @@ import {
   Presentation,
   Sparkles,
   Lightbulb,
+  MessageCircle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { SLIDE_DECKS } from '@/lib/slide-decks/catalog'
@@ -519,7 +520,9 @@ export const adminNavigation: NavItem[] = [
     hasDropdown: true,
     description: 'Configure VIVA models and pricing',
     children: [
+      { name: 'Social VIVA', href: '/admin/viva/social', icon: MessageCircle, description: "Draft VIVA replies to other people's social questions" },
       { name: 'VIVA Model Config', href: '/admin/ai-models', icon: Wand2, description: 'Configure VIVA model settings' },
+      { name: 'VIVA Coach Guide', href: '/admin/viva', icon: Sparkles, description: 'How the conversational coach works' },
       { name: 'Vision Tester', href: '/admin/vision-tester', icon: Target, description: 'Compare vision output across models' },
       { name: 'Script Studio', href: '/admin/scripts', icon: FileText, description: 'Version, compare, and refine scripts with VIVA' },
     ]
