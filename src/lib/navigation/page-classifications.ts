@@ -281,6 +281,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/home-preview-5',                 // Redirects to / (promoted front door)
     '/home-preview-original',          // Retired live homepage, kept for reference
     '/home-preview-9-6-26',            // Archived / from 2026-09-06, before Activation front door
+    '/viva-explainer',                 // Test marketing page — scripted VIVA product windows
     '/privacy-policy',
     '/terms-of-service',
     '/100k',                           // From $100K in Debt to $100K in the Bank (free guide)
