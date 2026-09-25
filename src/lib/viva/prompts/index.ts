@@ -141,6 +141,8 @@ export {
   SOCIAL_REPLY_PROMPT_VERSION,
   buildSocialReplySystemPrompt,
   buildSocialReplyUserMessage,
+  DEFAULT_SOCIAL_REPLY_PRECEDING,
+  composeSocialReplyShipment,
   extractSocialReplyDraft,
   stripSocialReplyMarkers,
   parseSocialReplyIntake,

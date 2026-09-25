@@ -6,6 +6,7 @@ import {
   SOCIAL_REPLY_START,
   buildSocialReplySystemPrompt,
   buildSocialReplyUserMessage,
+  composeSocialReplyShipment,
   extractSocialReplyDraft,
   stripSocialReplyMarkers,
   parseSocialReplyIntake,
@@ -52,12 +53,33 @@ test('parses intake and rejects an empty message', () => {
     length: 'medium',
     voice: 'vanessa_jordan',
     notes: null,
+    preceding: null,
   })
+  assert.equal(
+    parseSocialReplyIntake({ incomingMessage: 'Help', preceding: '  Custom opening.  ' })?.preceding,
+    'Custom opening.',
+  )
+  assert.equal(parseSocialReplyIntake({ incomingMessage: 'Help', preceding: '' })?.preceding, '')
+})
+
+test('joins the opening and the reply for shipping', () => {
+  assert.equal(
+    composeSocialReplyShipment('Hope this helps.', 'The real reply.'),
+    'Hope this helps.\n\nThe real reply.',
+  )
+  assert.equal(composeSocialReplyShipment('  ', 'Only the reply.'), 'Only the reply.')
+  assert.equal(composeSocialReplyShipment('Only the opening.', '  '), 'Only the opening.')
+})
+
+test('system prompt leaves the membership opening to the admin', () => {
+  const prompt = buildSocialReplySystemPrompt({ ...intake, preceding: 'SECRET OPENING LINE' })
+  assert.match(prompt, /Do not introduce VIVA/)
+  assert.doesNotMatch(prompt, /SECRET OPENING LINE/)
 })
 
 test('round-trips intake JSON stored on the session', () => {
   const parsed = parseSocialReplyIntakeJson(JSON.stringify(intake))
-  assert.deepEqual(parsed, { ...intake, notes: 'She commented on the Both/And reel.' })
+  assert.deepEqual(parsed, { ...intake, notes: 'She commented on the Both/And reel.', preceding: null })
 })
 
 test('system prompt keeps VIVA programmed and the admin out of the story', () => {

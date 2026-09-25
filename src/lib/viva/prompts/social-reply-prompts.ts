@@ -9,7 +9,12 @@
 import { CONVERSATIONAL_INTELLIGENCE_BRAIN } from './coach-system-prompt'
 
 export const ADMIN_SOCIAL_REPLY_MODE = 'admin_social_reply'
-export const SOCIAL_REPLY_PROMPT_VERSION = 'social-reply-v1'
+export const SOCIAL_REPLY_PROMPT_VERSION = 'social-reply-v2'
+
+/** Admin-authored opening pasted above VIVA's reply. Editable per comment. */
+export const DEFAULT_SOCIAL_REPLY_PRECEDING = `Here's what our vibrationally intelligent virtual assistant came back with on your question. Hopefully this helps in the meantime.
+
+She lives inside a Vibration Fit membership. With members, she has their Life Vision, journal, the manifestations they're working toward, and the struggles they're working through, so she can be much more specific than a comment allows. This is her answer from your words alone:`
 
 export const SOCIAL_REPLY_START = '<<<REPLY>>>'
 export const SOCIAL_REPLY_END = '<<<END REPLY>>>'
@@ -37,6 +42,8 @@ export type SocialReplyIntake = {
   length: SocialReplyLength
   voice: SocialReplyVoice
   notes?: string | null
+  /** Null means the desk default. Empty string means they cleared the opening. */
+  preceding?: string | null
 }
 
 export const SOCIAL_REPLY_PLATFORM_LABELS: Record<SocialReplyPlatform, string> = {
@@ -113,7 +120,16 @@ export function parseSocialReplyIntake(value: unknown): SocialReplyIntake | null
     length: isLength(raw.length) ? raw.length : 'medium',
     voice: isVoice(raw.voice) ? raw.voice : 'vanessa_jordan',
     notes: typeof raw.notes === 'string' && raw.notes.trim() ? raw.notes.trim() : null,
+    preceding: typeof raw.preceding === 'string' ? raw.preceding.trim() : null,
   }
+}
+
+/** Opening plus VIVA's reply, ready to paste into the comment. */
+export function composeSocialReplyShipment(preceding: string, draft: string): string {
+  const opening = preceding.trim()
+  const body = draft.trim()
+  if (opening && body) return `${opening}\n\n${body}`
+  return opening || body
 }
 
 export function parseSocialReplyIntakeJson(raw: string | null | undefined): SocialReplyIntake | null {
@@ -205,6 +221,7 @@ ${notes}
 - If the message shows self-harm, suicide, or acute danger: do not coach, reframe, or bright-side it. Admin note should say this is a crisis, not a content reply. The copy-paste reply (if any) is brief care plus the 988 Suicide & Crisis Lifeline, or the National Domestic Violence Hotline (1-800-799-7233) for abuse. Encourage real-world help.
 - Do not pitch Vibration Fit, the Activation, or a link unless the admin asked for a soft door, or their question is literally "how do I work with you / what is this?"
 - No emojis unless their message uses them and one would sound like Vanessa and Jordan, not a brand bot.
+- The admin pastes their own opening above this reply before it goes live. That opening is how people hear that a vibrationally intelligent virtual assistant, inside a Vibration Fit membership, answered them. Do not introduce VIVA, explain membership, or pitch inside the markers. Stay on their question.
 - Never write "As an AI," "As VIVA," or "I'm VIVA." Never use the word AI.
 - Do not speak as if this is the admin's situation ("your vision," "your journal," "last time we talked").
 

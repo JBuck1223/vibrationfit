@@ -41,7 +41,13 @@ const bodySchema = z.object({
   length: z.enum(SOCIAL_REPLY_LENGTHS).optional(),
   voice: z.enum(SOCIAL_REPLY_VOICES).optional(),
   notes: z.string().max(4000).optional(),
+  preceding: z.string().max(4000).optional(),
   instruction: z.string().max(4000).optional(),
+})
+
+const precedingPatchSchema = z.object({
+  conversationId: z.string().uuid(),
+  preceding: z.string().max(4000),
 })
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
@@ -60,7 +66,78 @@ function mergeIntake(base: SocialReplyIntake | null, patch: z.infer<typeof bodyS
     length: patch.length ?? base?.length ?? 'medium',
     voice: patch.voice ?? base?.voice ?? 'vanessa_jordan',
     notes: patch.notes !== undefined ? (patch.notes.trim() || null) : (base?.notes ?? null),
+    preceding: patch.preceding !== undefined ? patch.preceding.trim() : (base?.preceding ?? null),
   }
+}
+
+export async function PATCH(request: Request) {
+  const auth = await verifyAdminAccess()
+  if ('error' in auth) {
+    return new Response(JSON.stringify({ error: auth.error }), {
+      status: auth.status,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  let raw: unknown
+  try {
+    raw = await request.json()
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  const parsed = precedingPatchSchema.safeParse(raw)
+  if (!parsed.success) {
+    return new Response(JSON.stringify({ error: parsed.error.issues[0]?.message || 'Invalid request' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  const { user, supabase } = auth
+  const { conversationId, preceding } = parsed.data
+  const { data: session, error: sessionError } = await supabase
+    .from('conversation_sessions')
+    .select('id, mode, cached_system_prompt')
+    .eq('id', conversationId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (sessionError || !session || session.mode !== ADMIN_SOCIAL_REPLY_MODE) {
+    return new Response(JSON.stringify({ error: 'Conversation not found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  const stored = parseSocialReplyIntakeJson(session.cached_system_prompt)
+  if (!stored) {
+    return new Response(JSON.stringify({ error: 'This thread has no question yet.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  const { error: updateError } = await supabase
+    .from('conversation_sessions')
+    .update({ cached_system_prompt: JSON.stringify({ ...stored, preceding }) })
+    .eq('id', conversationId)
+    .eq('user_id', user.id)
+
+  if (updateError) {
+    console.error('[Social VIVA] Failed to save opening', updateError)
+    return new Response(JSON.stringify({ error: 'Could not save that opening.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 export async function POST(request: Request) {

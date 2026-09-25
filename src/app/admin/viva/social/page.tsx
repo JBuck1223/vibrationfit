@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Copy, MessageCircle, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, Card, Container, Select, Stack, Textarea } from '@/lib/design-system/components'
@@ -10,6 +10,7 @@ import { VivaAssistantMessage, VivaThinkingIndicator, VivaUserMessage } from '@/
 import { CoachStreamError, readCoachStream } from '@/lib/viva/coach-stream'
 import {
   ADMIN_SOCIAL_REPLY_MODE,
+  DEFAULT_SOCIAL_REPLY_PRECEDING,
   SOCIAL_REPLY_LENGTH_LABELS,
   SOCIAL_REPLY_LENGTHS,
   SOCIAL_REPLY_PLATFORM_LABELS,
@@ -17,6 +18,7 @@ import {
   SOCIAL_REPLY_VOICE_LABELS,
   SOCIAL_REPLY_VOICES,
   buildSocialReplyUserMessage,
+  composeSocialReplyShipment,
   extractSocialReplyDraft,
   stripSocialReplyMarkers,
   parseSocialReplyIntakeJson,
@@ -47,6 +49,7 @@ const emptyIntake: SocialReplyIntake = {
   length: 'medium',
   voice: 'vanessa_jordan',
   notes: '',
+  preceding: null,
 }
 
 function formatWhen(value: string | null) {
@@ -65,6 +68,8 @@ export default function SocialVivaPage() {
   const [loadingThreads, setLoadingThreads] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [streaming, setStreaming] = useState(false)
+  const precedingByThread = useRef<Record<string, string>>({})
+  const precedingSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useAdminStudioChrome({
     title: 'Social VIVA',
@@ -76,6 +81,33 @@ export default function SocialVivaPage() {
     const last = [...messages].reverse().find(message => message.role === 'assistant' && message.content.trim())
     return last ? extractSocialReplyDraft(last.content) : ''
   }, [messages])
+
+  const opening = intake.preceding ?? DEFAULT_SOCIAL_REPLY_PRECEDING
+  const shipment = useMemo(
+    () => composeSocialReplyShipment(opening, latestDraft),
+    [latestDraft, opening],
+  )
+
+  const persistPreceding = useCallback((id: string, preceding: string) => {
+    void fetch('/api/admin/viva/social-reply', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: id, preceding }),
+    })
+  }, [])
+
+  const setPreceding = useCallback((value: string) => {
+    setIntake(current => ({ ...current, preceding: value }))
+    if (!threadId) return
+    precedingByThread.current[threadId] = value
+    if (precedingSaveTimer.current) clearTimeout(precedingSaveTimer.current)
+    const id = threadId
+    precedingSaveTimer.current = setTimeout(() => persistPreceding(id, value), 400)
+  }, [persistPreceding, threadId])
+
+  useEffect(() => () => {
+    if (precedingSaveTimer.current) clearTimeout(precedingSaveTimer.current)
+  }, [])
 
   const loadThreads = useCallback(async () => {
     const res = await fetch(`/api/viva/conversations?mode=${ADMIN_SOCIAL_REPLY_MODE}`)
@@ -94,13 +126,26 @@ export default function SocialVivaPage() {
   }, [loadThreads])
 
   const applyThread = useCallback(async (id: string) => {
+    if (precedingSaveTimer.current) {
+      clearTimeout(precedingSaveTimer.current)
+      precedingSaveTimer.current = null
+      if (threadId && precedingByThread.current[threadId] !== undefined) {
+        persistPreceding(threadId, precedingByThread.current[threadId])
+      }
+    }
     setThreadId(id)
     setLoadingMessages(true)
     setComposer('')
     try {
       const thread = threads.find(item => item.id === id)
       const restored = parseSocialReplyIntakeJson(thread?.cached_system_prompt)
-      if (restored) setIntake({ ...restored, notes: restored.notes || '' })
+      if (restored) {
+        setIntake({
+          ...restored,
+          notes: restored.notes || '',
+          preceding: precedingByThread.current[id] ?? restored.preceding,
+        })
+      }
 
       const res = await fetch(`/api/viva/conversations/${id}/messages`)
       if (!res.ok) throw new Error('Failed to load thread')
@@ -117,7 +162,7 @@ export default function SocialVivaPage() {
     } finally {
       setLoadingMessages(false)
     }
-  }, [threads])
+  }, [persistPreceding, threadId, threads])
 
   const startNew = useCallback(() => {
     setThreadId(null)
@@ -157,12 +202,13 @@ export default function SocialVivaPage() {
           length: intake.length,
           voice: intake.voice,
           notes: intake.notes || undefined,
+          preceding: opening,
           instruction: note || undefined,
         },
         onHeaders: ({ conversationId }) => {
-          if (conversationId && conversationId !== threadId) {
-            setThreadId(conversationId)
-          }
+          if (!conversationId) return
+          precedingByThread.current[conversationId] = opening
+          if (conversationId !== threadId) setThreadId(conversationId)
         },
         onUpdate: parsed => {
           if (!parsed.ready) return
@@ -183,7 +229,7 @@ export default function SocialVivaPage() {
     } finally {
       setStreaming(false)
     }
-  }, [composer, intake, loadThreads, threadId])
+  }, [composer, intake, loadThreads, opening, threadId])
 
   const deleteThread = useCallback(async (id: string) => {
     const res = await fetch(`/api/viva/conversations?id=${id}`, { method: 'DELETE' })
@@ -196,19 +242,26 @@ export default function SocialVivaPage() {
   }, [loadThreads, startNew, threadId])
 
   const copyDraft = useCallback(async () => {
-    if (!latestDraft) return
+    if (!shipment) return
+    if (threadId && intake.preceding != null) {
+      if (precedingSaveTimer.current) {
+        clearTimeout(precedingSaveTimer.current)
+        precedingSaveTimer.current = null
+      }
+      persistPreceding(threadId, intake.preceding)
+    }
     try {
-      await navigator.clipboard.writeText(latestDraft)
-      toast.success('Reply copied')
+      await navigator.clipboard.writeText(shipment)
+      toast.success('Comment copied')
     } catch {
       toast.error('Could not copy that reply')
     }
-  }, [latestDraft])
+  }, [intake.preceding, persistPreceding, shipment, threadId])
 
   return (
     <Container size="xl">
       <Stack gap="lg">
-        <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)_20rem]">
+        <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)_24rem]">
           <Card className="p-5 h-fit">
             <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="text-sm font-semibold text-white">Threads</h2>
@@ -370,18 +423,39 @@ export default function SocialVivaPage() {
           <Card className="p-5 h-fit lg:sticky lg:top-4">
             <div className="flex items-center justify-between gap-2 mb-3">
               <h2 className="text-sm font-semibold text-white">Copy-paste reply</h2>
-              <Button size="sm" variant="outline" onClick={() => void copyDraft()} disabled={!latestDraft}>
+              <Button size="sm" variant="outline" onClick={() => void copyDraft()} disabled={!latestDraft.trim()}>
                 <Copy className="w-4 h-4 mr-1" />
                 Copy
               </Button>
             </div>
-            {latestDraft ? (
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-100">{latestDraft}</p>
-            ) : (
-              <p className="text-sm text-neutral-500">
-                VIVA will put the postable reply here. Chat stays for notes and revisions.
-              </p>
+            <p className="text-xs text-neutral-500 mb-3">
+              Edit the opening for this comment. Copy sends the opening and VIVA&apos;s reply together.
+            </p>
+            <Textarea
+              label="Opens with"
+              value={opening}
+              onChange={event => setPreceding(event.target.value)}
+              rows={8}
+            />
+            {opening.trim() !== DEFAULT_SOCIAL_REPLY_PRECEDING.trim() && (
+              <button
+                type="button"
+                className="mt-2 text-[11px] text-neutral-500 hover:text-white"
+                onClick={() => setPreceding(DEFAULT_SOCIAL_REPLY_PRECEDING)}
+              >
+                Use the default opening
+              </button>
             )}
+            <div className="mt-4 border-t border-neutral-800 pt-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500 mb-2">VIVA&apos;s reply</p>
+              {latestDraft ? (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-100">{latestDraft}</p>
+              ) : (
+                <p className="text-sm text-neutral-500">
+                  VIVA will put the reply here. The comment gets your opening plus this.
+                </p>
+              )}
+            </div>
           </Card>
         </div>
       </Stack>

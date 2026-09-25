@@ -167,6 +167,7 @@ Admin desk at `/admin/viva/social` for drafting replies to other people's social
 - Do not route this through `/api/viva/coach`
 - Do not load or mention the admin's personal context
 - Copy-paste reply lives inside `<<<REPLY>>>` markers
+- An editable opening precedes that reply. Default introduces VIVA and Vibration Fit membership; admins edit it per comment. Copy ships both. Stored as `preceding` on the intake. The model does not write it.
 
 ### 🚧 Slide Decks
 Static HTML teaching decks in `public/slide-decks/`. Catalog: `src/lib/slide-decks/catalog.ts`. Admin: `/admin/slide-decks` (sidebar under Slide Decks). Public URLs stay `/slide-decks/<slug>.html`. Add new decks to the catalog so they appear in the admin sidebar.
