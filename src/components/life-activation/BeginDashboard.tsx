@@ -93,6 +93,11 @@ export function BeginDashboard() {
         continueDisabled={isUpdating}
         onContinue={handleContinue}
         extra={progress?.onboarding.vision ? <RosterConfirmCard /> : null}
+        onSkip={async (step) => {
+          if (step.id !== 'voice' || isUpdating) return
+          await completeOnboardingStep('voice')
+          router.push('/vibe-tribe')
+        }}
       />
 
       {progress?.active_vision_id && (
@@ -104,7 +109,7 @@ export function BeginDashboard() {
           onCommitted={async () => {
             await completeOnboardingStep('kit')
             setKitOpen(false)
-            router.push('/vibe-tribe')
+            router.push('/audio/record')
           }}
         />
       )}

@@ -9,6 +9,7 @@ import {
   Headphones,
   Lock,
   Map,
+  Mic,
   MessageSquarePlus,
   Rocket,
   Settings,
@@ -39,6 +40,7 @@ const STEP_ICONS: Record<OnboardingStepId, LucideIcon> = {
   intake: FileText,
   vision: Target,
   kit: Headphones,
+  voice: Mic,
   tribe: MessageSquarePlus,
   gym: Video,
   map: Map,
@@ -97,6 +99,7 @@ export function LifeActivationSidebarCard({ collapsed }: { collapsed: boolean })
     if (id === 'tribe' && pathname.startsWith('/vibe-tribe')) return true
     if (id === 'gym' && pathname.startsWith('/alignment-gym')) return true
     if (id === 'map' && pathname.startsWith('/map')) return true
+    if (id === 'voice' && pathname.startsWith('/audio/record')) return true
     if (path === '/begin') return false
     return pathname === path || pathname.startsWith(`${path}/`)
   }

@@ -12,7 +12,9 @@ import { CompletedStepRow } from '@/components/CompletedStepRow'
 import { createClient } from '@/lib/supabase/client'
 import { invalidateIntensiveSnapshot } from '@/lib/intensive/intensive-snapshot'
 import { MediaRecorderComponent } from '@/components/MediaRecorder'
-import { CheckCircle, Headphones, Mic, Wand2, RefreshCw, Home, Library } from 'lucide-react'
+import { CheckCircle, Headphones, Mic, Wand2, RefreshCw, Home, Library, SkipForward } from 'lucide-react'
+import { useLifeActivation } from '@/hooks/useLifeActivation'
+import { firstIncompleteOnboarding } from '@/lib/life-activation/steps'
 import Link from 'next/link'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 
@@ -20,7 +22,15 @@ export default function RecordVisionAudioPage() {
   const router = useRouter()
   const pathname = usePathname()
   const pathPrefix = pathname.startsWith('/intensive/') ? '/intensive' : ''
-  const { sourceType, sourceId } = useAudioStudio()
+  const { sourceType, sourceId, allVisions } = useAudioStudio()
+  const { progress, completeOnboardingStep } = useLifeActivation()
+  const showBeginVoice = Boolean(
+    progress &&
+    !progress.onboarding_completed_at &&
+    firstIncompleteOnboarding(progress.onboarding) === 'voice',
+  )
+  const [skippingVoice, setSkippingVoice] = useState(false)
+  const autoSelectedVoice = useRef(false)
 
   // Source selection
   const [selectedSource, setSelectedSource] = useState<AudioSourceSelection | null>(null)
@@ -71,6 +81,14 @@ export default function RecordVisionAudioPage() {
     if (!selectedSource) return
     loadData()
   }, [selectedSource?.sourceId, sourceSelectionEpoch])
+
+  useEffect(() => {
+    if (!showBeginVoice || autoSelectedVoice.current || selectedSource) return
+    const vision = allVisions.find((item) => item.is_active) ?? allVisions[0]
+    if (!vision) return
+    autoSelectedVoice.current = true
+    handleSourceSelected({ sourceType: 'life_vision', sourceId: vision.id, vision })
+  }, [allVisions, selectedSource, showBeginVoice])
 
   async function loadData() {
     try {
@@ -345,6 +363,9 @@ export default function RecordVisionAudioPage() {
       if (trackError) throw trackError
 
       if (activeSourceType === 'life_vision') {
+        if (showBeginVoice && recordings.size === 0) {
+          void completeOnboardingStep('voice')
+        }
         if (intensiveId && recordings.size === 0) {
           await supabase
             .from('intensive_checklist')
@@ -437,6 +458,16 @@ export default function RecordVisionAudioPage() {
   const sectionsNeedingReRecord = refinedCategories.filter(key => !recordings.has(key))
   const activeNeedsReRecord = refinedCategories.includes(activeSection) && !isRecorded
 
+  async function skipBeginVoice() {
+    setSkippingVoice(true)
+    try {
+      await completeOnboardingStep('voice')
+      router.push('/vibe-tribe')
+    } finally {
+      setSkippingVoice(false)
+    }
+  }
+
   const sourceSummaryValue =
     activeSourceType === 'life_vision' && selectedVision
       ? (
@@ -453,6 +484,29 @@ export default function RecordVisionAudioPage() {
     <Container size="xl">
       <Stack gap="lg" className="overflow-visible" data-tour="voice-record">
         <h1 className="sr-only">Record Audio</h1>
+
+        {showBeginVoice && (
+          <Card variant="glass">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-center sm:text-left">
+                <h3 className="text-base font-semibold text-white">This step is optional</h3>
+                <p className="text-sm text-neutral-400 mt-1">
+                  Record your Life Vision aloud in your own voice, then save each recording. If you do not want to record, you can skip ahead.
+                </p>
+              </div>
+              <Button
+                onClick={skipBeginVoice}
+                disabled={skippingVoice}
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+              >
+                <SkipForward className="w-4 h-4 mr-1.5" />
+                {skippingVoice ? 'Skipping...' : 'Skip This Step'}
+              </Button>
+            </div>
+          </Card>
+        )}
 
         <QueueStatusBanner />
 
