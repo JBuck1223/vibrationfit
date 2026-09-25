@@ -63,7 +63,7 @@ export function LifeActivationSidebarCard({ collapsed }: { collapsed: boolean })
   if (mode === 'tools-training' || collapsed || !progress) {
     const item = getLifeActivationSidebarItem(mode === 'tools-training' ? 'tools-training' : 'getting-started')
     const Icon = item.icon
-    const isActive = isLifeActivationSidebarActive(mode === 'hidden' ? 'getting-started' : mode, pathname)
+    const isActive = isLifeActivationSidebarActive(mode, pathname)
     return (
       <Link
         href={item.href}

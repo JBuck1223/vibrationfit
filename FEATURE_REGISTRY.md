@@ -1,6 +1,6 @@
 # VibrationFit Feature Registry
 
-**Last Updated:** September 3, 2026
+**Last Updated:** September 23, 2026
 **Purpose:** What's locked, what's fragile, and the constraints agents must respect. Feature details live in `docs/features/`; history lives in git.
 
 | Status | Agent action |
@@ -160,6 +160,13 @@ Vision-to-action steps, 5-phase framework. Schema: `actualization_blueprints`, `
 
 ### 🚧 Cinematic Universe
 Keyframe execution engine: story prompt → keyframe images → video clips (Veo first-last-frame chaining). Lib: `src/lib/cinematic/`, UI: `/admin/cinematic/*`, schema: `cu_*` tables.
+
+### 🚧 Social VIVA (admin)
+Admin desk at `/admin/viva/social` for drafting replies to other people's social questions. Uses the Conversational Intelligence brain with no admin Life Vision, memories, journal, household, tools, or memory extraction. Threads: `conversation_sessions.mode = admin_social_reply` (hidden from `/viva`). API: `/api/admin/viva/social-reply`. Prompt: `src/lib/viva/prompts/social-reply-prompts.ts`. Track tokens as `admin_tool`.
+
+- Do not route this through `/api/viva/coach`
+- Do not load or mention the admin's personal context
+- Copy-paste reply lives inside `<<<REPLY>>>` markers
 
 ### 🚧 Slide Decks
 Static HTML teaching decks in `public/slide-decks/`. Catalog: `src/lib/slide-decks/catalog.ts`. Admin: `/admin/slide-decks` (sidebar under Slide Decks). Public URLs stay `/slide-decks/<slug>.html`. Add new decks to the catalog so they appear in the admin sidebar.
