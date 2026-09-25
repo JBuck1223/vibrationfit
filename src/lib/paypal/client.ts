@@ -13,6 +13,8 @@ export const PAYPAL_CONFIG = {
   clientSecret: process.env.PAYPAL_CLIENT_SECRET || '',
   webhookId: process.env.PAYPAL_WEBHOOK_ID || '',
   apiBase: PAYPAL_API_BASE,
+  /** Which JS SDK v6 core script the browser should load */
+  environment: (process.env.PAYPAL_ENV === 'sandbox' ? 'sandbox' : 'production') as 'sandbox' | 'production',
 }
 
 export function isPayPalConfigured(): boolean {
@@ -52,6 +54,62 @@ export async function getAccessToken(): Promise<string> {
     expiresAt: Date.now() + data.expires_in * 1000,
   }
   return data.access_token
+}
+
+// ---------------------------------------------------------------------------
+// Browser-safe client token (JS SDK v6)
+// ---------------------------------------------------------------------------
+
+/**
+ * Mint a short-lived, browser-safe token for the JS SDK v6 `createInstance`
+ * call. Unlike the client id, this is bound to the listed domains and expires,
+ * so the page never carries a long-lived credential.
+ *
+ * `domains` should be the origins the page is served from. PayPal rejects
+ * localhost, so callers pass none for local development.
+ */
+export async function createBrowserClientToken(
+  domains: string[] = [],
+): Promise<{ clientToken: string; expiresIn: number }> {
+  const auth = Buffer.from(`${PAYPAL_CONFIG.clientId}:${PAYPAL_CONFIG.clientSecret}`).toString('base64')
+
+  const request = async (withDomains: boolean) => {
+    const params = new URLSearchParams({
+      grant_type: 'client_credentials',
+      response_type: 'client_token',
+      intent: 'sdk_init',
+    })
+    if (withDomains) for (const d of domains) params.append('domains[]', d)
+
+    const res = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+      cache: 'no-store',
+    })
+    const text = await res.text()
+    const json = text ? JSON.parse(text) : null
+    return { ok: res.ok, status: res.status, json }
+  }
+
+  let result = await request(domains.length > 0)
+  // A domain PayPal does not recognise fails the whole request. Fall back to
+  // an unbound token rather than taking checkout down.
+  if (!result.ok && domains.length > 0 && /domain/i.test(JSON.stringify(result.json))) {
+    console.warn('[paypal] client token rejected domains, retrying without:', domains)
+    result = await request(false)
+  }
+  if (!result.ok) {
+    throw new PayPalApiError(result.status, result.json, `PayPal client token failed (${result.status})`)
+  }
+
+  return {
+    clientToken: result.json.access_token as string,
+    expiresIn: Number(result.json.expires_in) || 0,
+  }
 }
 
 // ---------------------------------------------------------------------------
