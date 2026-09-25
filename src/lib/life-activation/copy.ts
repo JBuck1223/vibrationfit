@@ -68,6 +68,8 @@ export const LIFE_ACTIVATION_COPY = {
           return 'One conversation with VIVA writes your Life Vision. Then you meet your people.'
         case 'kit':
           return 'Your Life Vision is written. Generate the voice, the mix, and the board.'
+        case 'voice':
+          return 'Record your Life Vision in your own voice, or skip this step.'
         case 'tribe':
           return 'Your vision is written. Publish your introduction in Vibe Tribe.'
         case 'gym':
@@ -109,6 +111,11 @@ So let's start easy. Where does life have you right now — and who's in it with
     body: 'VIVA speaks your Life Vision, mixes it with music, and places images on your board. Voice, a mix, and at least one image are part of this step.',
     cta: 'Generate My Activation Kit',
     generating: 'Your kit is creating. You can keep going.',
+  },
+  voice: {
+    title: 'Record your voice',
+    body: 'Record your Life Vision aloud in your own voice, then save each recording. If you do not want to record, skip ahead.',
+    cta: 'Record my voice',
   },
   tribe: {
     title: 'Meet Vibe Tribe',

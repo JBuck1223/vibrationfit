@@ -104,6 +104,8 @@ interface IntensiveRow {
   vision_built?: boolean
   audio_generated?: boolean
   audios_generated?: boolean
+  voice_recording_completed?: boolean
+  voice_recording_skipped?: boolean
   vision_board_completed?: boolean
   first_journal_entry?: boolean
   first_vibe_post?: boolean
@@ -119,6 +121,7 @@ export function mapIntensiveToOnboarding(intensive: IntensiveRow): JsonMap {
   if (intensive.started_at) onboarding.welcome = intensive.started_at
   if (intensive.vision_built) onboarding.vision = now
   if (intensive.audio_generated || intensive.audios_generated) onboarding.kit = now
+  if (intensive.voice_recording_completed || intensive.voice_recording_skipped) onboarding.voice = now
   if (intensive.first_vibe_post) onboarding.tribe = now
   if (intensive.alignment_gym_toured) onboarding.gym = now
   if (intensive.intake_completed) onboarding.intake = now
@@ -128,6 +131,7 @@ export function mapIntensiveToOnboarding(intensive: IntensiveRow): JsonMap {
     onboarding.welcome = onboarding.welcome || now
     onboarding.vision = onboarding.vision || now
     onboarding.kit = onboarding.kit || now
+    onboarding.voice = onboarding.voice || now
     onboarding.tribe = onboarding.tribe || now
     onboarding.gym = onboarding.gym || now
     onboarding.account = onboarding.account || now

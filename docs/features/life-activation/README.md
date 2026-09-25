@@ -19,10 +19,11 @@ Sidebar: while onboarding is open, the member sidebar lists the Getting Started 
 3. Baseline Intake — `/begin/intake` (same questions as the Intensive pre survey)
 4. Write Life Vision — `/life-vision/begin` (VIVA asks questions, seeds contrast and clarity into a Draft Session, then composes the whole vision in one pass)
 5. Create your Activation Kit — voice, a mix, and at least one board scene. There is no skip.
-6. Vibe Tribe — publishing a post completes the step
-7. Alignment Gym — the guided tour completes the step, then opens MAP
-8. MAP — `/map/update` opens with the four starter commitments (vision audio, journal, Vibe Tribe, Alignment Gym) and the rest of the catalog still available. Saving the plan completes the step and opens Unlock.
-9. Unlock — `/begin/unlock` (closing survey). Completing this lands on `/map` with a congratulations modal, then the MAP walk-through. Last walk-through step sends them to Tools Training. `/begin/complete` redirects to `/map`.
+6. Record your voice — `/audio/record`. Record the Life Vision in your own voice, or skip. Same optional step as the Intensive.
+7. Vibe Tribe — publishing a post completes the step
+8. Alignment Gym — the guided tour completes the step, then opens MAP
+9. MAP — `/map/update` opens with the four starter commitments (vision audio, journal, Vibe Tribe, Alignment Gym) and the rest of the catalog still available. Saving the plan completes the step and opens Unlock.
+10. Unlock — `/begin/unlock` (closing survey). Completing this lands on `/map` with a congratulations modal, then the MAP walk-through. Last walk-through step sends them to Tools Training. `/begin/complete` redirects to `/map`.
 
 Life Activation is the door for new buyers and for anyone with an open Intensive checklist. `/intensive/start`, `/intensive/welcome`, and `/intensive/dashboard` redirect to `/begin`. The locked Intensive shell is off. Checklist rows are not migrated.
 
