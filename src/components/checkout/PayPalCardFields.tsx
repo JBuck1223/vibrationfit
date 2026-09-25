@@ -102,8 +102,17 @@ async function fetchBrowserClientToken(): Promise<string> {
 // Per-field UI state (focus / invalid) driven by SDK events
 // ---------------------------------------------------------------------------
 
+/** The hosted fields we render. The SDK also offers `name`; we use our own input for that. */
+export type HostedCardFieldType = Extract<CardFieldTypes, 'number' | 'expiry' | 'cvv'>
+
+const HOSTED_FIELD_TYPES: readonly HostedCardFieldType[] = ['number', 'expiry', 'cvv']
+
+function isHostedFieldType(value: CardFieldTypes): value is HostedCardFieldType {
+  return (HOSTED_FIELD_TYPES as readonly string[]).includes(value)
+}
+
 type FieldUiState = { focused: boolean; invalid: boolean }
-type FieldsUiState = Record<CardFieldTypes, FieldUiState>
+type FieldsUiState = Record<HostedCardFieldType, FieldUiState>
 
 const initialUi: FieldsUiState = {
   number: { focused: false, invalid: false },
@@ -161,18 +170,24 @@ export function PayPalCardFieldsFrame({ children }: { children: ReactNode }) {
   const [ui, setUi] = useState<FieldsUiState>(initialUi)
 
   const onFocus = useCallback((e: EventPayload) => {
-    setUi((prev) => ({ ...prev, [e.sender]: { ...prev[e.sender], focused: true } }))
+    const sender = e.sender
+    if (!isHostedFieldType(sender)) return
+    setUi((prev) => ({ ...prev, [sender]: { ...prev[sender], focused: true } }))
   }, [])
   const onBlur = useCallback((e: EventPayload) => {
-    const field = e.data[e.sender]
+    const sender = e.sender
+    if (!isHostedFieldType(sender)) return
+    const field = e.data[sender]
     const invalid = !field.isEmpty && !field.isPotentiallyValid
-    setUi((prev) => ({ ...prev, [e.sender]: { focused: false, invalid } }))
+    setUi((prev) => ({ ...prev, [sender]: { focused: false, invalid } }))
   }, [])
   const onValidityChange = useCallback((e: EventPayload) => {
-    const field = e.data[e.sender]
+    const sender = e.sender
+    if (!isHostedFieldType(sender)) return
+    const field = e.data[sender]
     // Clear red as soon as the entry could become valid; only set red on blur
     if (field.isPotentiallyValid || field.isEmpty) {
-      setUi((prev) => (prev[e.sender].invalid ? { ...prev, [e.sender]: { ...prev[e.sender], invalid: false } } : prev))
+      setUi((prev) => (prev[sender].invalid ? { ...prev, [sender]: { ...prev[sender], invalid: false } } : prev))
     }
   }, [])
 
@@ -204,7 +219,7 @@ const FIELD_COMPONENT = {
   cvv: PayPalCardCvvField,
 } as const
 
-const FIELD_ARIA: Record<CardFieldTypes, string> = {
+const FIELD_ARIA: Record<HostedCardFieldType, string> = {
   number: 'Card number',
   expiry: 'Expiration date',
   cvv: 'Security code',
@@ -216,7 +231,7 @@ export function CardFieldBox({
   label,
   placeholder,
 }: {
-  type: CardFieldTypes
+  type: HostedCardFieldType
   label: string
   placeholder: string
 }) {
