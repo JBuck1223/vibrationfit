@@ -124,23 +124,23 @@ export function JourneyDashboard({
                 {LIFE_ACTIVATION_COPY.dashboard.nextStep}
               </p>
               <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
-                    <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md border border-primary-500 px-1 font-mono text-[11px] font-semibold text-primary-300">
-                      {nextStep.stepNumber}
-                    </span>
-                    {nextStep.title}
-                  </h2>
-                  <p className="mt-1 pl-8 text-sm leading-relaxed text-neutral-400">
-                    {nextStep.description}
-                  </p>
+                <div className="flex min-w-0 items-center gap-4">
+                  <span className="font-mono text-5xl font-semibold leading-none tabular-nums tracking-tight text-[#5C6570] [text-shadow:0_-1px_1px_rgba(0,0,0,0.9),0_1px_0_rgba(255,255,255,0.28)]">
+                    {nextStep.stepNumber}
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold text-white">{nextStep.title}</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-400">
+                      {nextStep.description}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+                <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto">
                   <Button
                     variant="primary"
                     onClick={() => onContinue(nextStep)}
                     disabled={continueDisabled}
-                    className="w-full justify-center sm:w-auto"
+                    className="w-full justify-center"
                   >
                     {nextStep.actionLabel}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -150,7 +150,7 @@ export function JourneyDashboard({
                       variant="ghost"
                       onClick={() => onSkip(nextStep)}
                       disabled={continueDisabled}
-                      className="w-full justify-center sm:w-auto"
+                      className="w-full justify-center"
                     >
                       {LIFE_ACTIVATION_COPY.dashboard.skip}
                     </Button>
@@ -208,7 +208,7 @@ export function JourneyDashboard({
                             onContinue(step)
                           }}
                           className={cn(
-                            'flex items-center gap-3 px-4 py-3.5 transition-colors',
+                            'flex items-stretch transition-colors',
                             index > 0 && 'border-t border-white/10',
                             isLocked && 'opacity-50',
                             inactive ? 'cursor-default' : 'cursor-pointer',
@@ -216,61 +216,57 @@ export function JourneyDashboard({
                             !isCurrent && !inactive && 'hover:bg-white/[0.03]',
                           )}
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={cn(
-                                  'flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md border px-1 font-mono text-[11px] font-semibold',
-                                  step.completed
-                                    ? 'border-primary-500/40 text-primary-400'
-                                    : isLocked
-                                      ? 'border-white/10 text-neutral-600'
-                                      : isCurrent
-                                        ? 'border-primary-500 text-primary-300'
-                                        : 'border-white/15 text-neutral-300',
-                                )}
-                              >
-                                {step.stepNumber}
-                              </span>
-                              <p
-                                className={cn(
-                                  'text-sm font-medium',
-                                  step.completed || isLocked ? 'text-neutral-400' : 'text-white',
-                                )}
-                              >
-                                {step.title}
-                              </p>
-                              {step.canSkip && !step.completed && !isLocked ? (
-                                <Badge variant="neutral" className="text-[10px]">
-                                  Optional
-                                </Badge>
-                              ) : null}
-                            </div>
-                            <p className="mt-0.5 pl-8 text-xs leading-relaxed text-neutral-500">
-                              {step.description}
-                            </p>
+                          <div className="flex w-16 shrink-0 items-center justify-center self-stretch">
+                            <span className="font-mono text-5xl font-semibold leading-none tabular-nums tracking-tight text-[#5C6570] [text-shadow:0_-1px_1px_rgba(0,0,0,0.9),0_1px_0_rgba(255,255,255,0.28)]">
+                              {step.stepNumber}
+                            </span>
                           </div>
-                          <StepStatus
-                            completed={step.completed}
-                            current={isCurrent}
-                            locked={isLocked}
-                          />
-                          {isLocked ? (
-                            <span className="flex shrink-0 items-center gap-1 text-xs text-neutral-500">
-                              <Lock className="h-3.5 w-3.5" />
-                              {LIFE_ACTIVATION_COPY.dashboard.locked}
-                            </span>
-                          ) : step.completed ? (
-                            <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-[#333] bg-[#1A1A1A] px-2.5 text-[11px] font-medium text-neutral-300">
-                              {LIFE_ACTIVATION_COPY.dashboard.view}
-                            </span>
-                          ) : isCurrent ? (
-                            <span className="shrink-0 text-xs font-medium text-primary-500">
-                              {LIFE_ACTIVATION_COPY.dashboard.now}
-                            </span>
-                          ) : (
-                            <ChevronRight className="h-4 w-4 shrink-0 text-neutral-600" />
-                          )}
+                          <div className="flex min-w-0 flex-1 items-center gap-3 py-4 pr-4">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p
+                                  className={cn(
+                                    'text-sm font-medium',
+                                    step.completed || isLocked ? 'text-neutral-400' : 'text-white',
+                                  )}
+                                >
+                                  {step.title}
+                                </p>
+                                {step.canSkip && !step.completed && !isLocked ? (
+                                  <Badge
+                                    variant="neutral"
+                                    className="px-1.5 py-0 text-[10px] font-medium leading-none md:text-[10px]"
+                                  >
+                                    Optional
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">
+                                {step.description}
+                              </p>
+                            </div>
+                            <StepStatus
+                              completed={step.completed}
+                              current={isCurrent}
+                              locked={isLocked}
+                            />
+                            {isLocked ? (
+                              <span className="flex shrink-0 items-center gap-1 text-xs text-neutral-500">
+                                <Lock className="h-3.5 w-3.5" />
+                                {LIFE_ACTIVATION_COPY.dashboard.locked}
+                              </span>
+                            ) : step.completed ? (
+                              <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-[#333] bg-[#1A1A1A] px-2.5 text-[11px] font-medium text-neutral-300">
+                                {LIFE_ACTIVATION_COPY.dashboard.view}
+                              </span>
+                            ) : isCurrent ? (
+                              <span className="shrink-0 text-xs font-medium text-primary-500">
+                                {LIFE_ACTIVATION_COPY.dashboard.now}
+                              </span>
+                            ) : (
+                              <ChevronRight className="h-4 w-4 shrink-0 text-neutral-600" />
+                            )}
+                          </div>
                         </div>
                       )
                     })}
