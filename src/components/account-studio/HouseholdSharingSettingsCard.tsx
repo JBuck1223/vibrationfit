@@ -46,7 +46,7 @@ const FEATURES: {
   {
     key: 'life_visions_mode',
     label: 'Life Visions',
-    description: 'Your committed vision versions (drafts always stay private)',
+    description: 'Committed visions show up in Life We Choose. Drafts stay private',
     icon: Sparkles,
   },
   {

@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import * as Diff from 'diff'
@@ -199,13 +199,46 @@ function EditableDiffField({
   )
 }
 
+/** Open the document-group draft for a vision. A blank unlinked shell is replaced. */
+async function openDraftFromVision(visionId: string): Promise<string> {
+  const request = (replaceExisting: boolean) =>
+    fetch('/api/vision/draft/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visionId, replaceExisting }),
+    })
+
+  const res = await request(false)
+  if (!res.ok) throw new Error('Failed to create a draft from your active vision')
+  const body = await res.json()
+  let next = body.draft
+  if (body.existed && next && !next.parent_id && !draftHasAnyVisionText(next as VisionData)) {
+    const retry = await request(true)
+    if (!retry.ok) throw new Error('Failed to create a draft from your active vision')
+    next = (await retry.json()).draft
+  }
+  if (!next?.id) throw new Error('Failed to create a draft from your active vision')
+  return next.id as string
+}
+
 export default function VisionUpdatePage() {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const isCreateMode = pathname.startsWith('/life-vision/begin')
+  const requestedDraftId = searchParams.get('draft')
+  const requestedFromId = searchParams.get('from')
+  const loadedDraftRef = useRef<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const queryClient = useQueryClient()
-  const { activeVisionId, draftId, loading: studioLoading, refreshVisions } = useLifeVisionStudio()
+  const {
+    activeVisionId,
+    draftId,
+    householdActiveVisionId,
+    householdDraftId,
+    loading: studioLoading,
+    refreshVisions,
+  } = useLifeVisionStudio()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -305,13 +338,14 @@ export default function VisionUpdatePage() {
       contextText: isCreateMode
         ? LIFE_ACTIVATION_COPY.vision.chrome
         : 'Tell VIVA what has changed. Review each update, Accept to save it into your draft, then edit there if you want — then commit when it feels right.',
+      editingVisionId: isCreateMode ? undefined : draft?.id,
       walkthrough: isCreateMode
         ? undefined
         : {
             active: tourActive,
             onToggle: toggleWalkthrough,
           },
-    }), [isCreateMode, tourActive, toggleWalkthrough]),
+    }), [isCreateMode, tourActive, toggleWalkthrough, draft?.id]),
   )
 
   // ------------------------------------------------------------------
@@ -319,10 +353,24 @@ export default function VisionUpdatePage() {
   // ------------------------------------------------------------------
   useEffect(() => {
     if (studioLoading) return
+    // Studio ids refresh after a draft is created. Don't reload the editor
+    // when the open draft has not changed.
+    if (
+      !isCreateMode
+      && !requestedFromId
+      && loadedDraftRef.current
+      && (!requestedDraftId || requestedDraftId === loadedDraftRef.current)
+    ) {
+      return
+    }
     let cancelled = false
+    if (!isCreateMode && loadedDraftRef.current) setLoading(true)
     ;(async () => {
       try {
         let resolvedDraftId = draftId
+        // The vision the draft is compared against. Personal active wins;
+        // otherwise the active Life We Choose document.
+        let compareVisionId: string | null = activeVisionId
         if (isCreateMode) {
           const res = await fetch('/api/vision/draft/create-from-activation', { method: 'POST' })
           if (!res.ok) throw new Error('Failed to start your Life Vision draft')
@@ -340,21 +388,41 @@ export default function VisionUpdatePage() {
             )
           }
           refreshVisions().catch(() => {})
+        } else if (requestedDraftId) {
+          resolvedDraftId = requestedDraftId
+          compareVisionId = null
+        } else if (requestedFromId) {
+          compareVisionId = requestedFromId
+          resolvedDraftId = await openDraftFromVision(requestedFromId)
+          refreshVisions().catch(() => {})
         } else {
-          if (!activeVisionId && !draftId) {
+          // A blank personal shell (no parent, no category text) is a leftover
+          // first-vision draft. It must not hide the living vision — including
+          // when the only active document is Life We Choose.
+          const sourceVisionId = activeVisionId || householdActiveVisionId || null
+          compareVisionId = sourceVisionId
+          resolvedDraftId = activeVisionId ? draftId : householdDraftId
+
+          if (resolvedDraftId) {
+            const { data: candidate } = await supabase
+              .from('vision_versions')
+              .select('*')
+              .eq('id', resolvedDraftId)
+              .maybeSingle()
+            const blankShell = candidate
+              && candidate.is_draft
+              && !candidate.parent_id
+              && !draftHasAnyVisionText(candidate as VisionData)
+            if (!candidate || blankShell) resolvedDraftId = null
+          }
+
+          if (!sourceVisionId && !resolvedDraftId) {
             router.replace('/life-vision/create')
             return
           }
 
-          if (!resolvedDraftId) {
-            const res = await fetch('/api/vision/draft/create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ visionId: activeVisionId }),
-            })
-            if (!res.ok) throw new Error('Failed to create a draft from your active vision')
-            const { draft: newDraft } = await res.json()
-            resolvedDraftId = newDraft.id
+          if (!resolvedDraftId && sourceVisionId) {
+            resolvedDraftId = await openDraftFromVision(sourceVisionId)
             refreshVisions().catch(() => {})
           }
         }
@@ -365,20 +433,37 @@ export default function VisionUpdatePage() {
           .eq('id', resolvedDraftId!)
           .single()
         if (!draftRow) throw new Error('Draft not found')
+        if (!compareVisionId && draftRow.parent_id) compareVisionId = draftRow.parent_id
 
         let activeRow: VisionData | null = null
-        if (activeVisionId) {
+        if (compareVisionId) {
           const { data } = await supabase
             .from('vision_versions')
             .select('*')
-            .eq('id', activeVisionId)
+            .eq('id', compareVisionId)
             .single()
           activeRow = (data as VisionData) || null
         }
 
         if (cancelled) return
+        if (!isCreateMode) {
+          restoredThreadRef.current = false
+          setMessages([{ role: 'assistant', content: OPENING_MESSAGE }])
+          setProposals({})
+          setLiveSeeds([])
+          setManualEdits({})
+          setConversationId(null)
+        }
         setDraft(draftRow as VisionData)
         setActive(activeRow)
+        loadedDraftRef.current = resolvedDraftId
+
+        if (!isCreateMode && resolvedDraftId && requestedDraftId !== resolvedDraftId) {
+          const params = new URLSearchParams(searchParams.toString())
+          params.delete('from')
+          params.set('draft', resolvedDraftId)
+          router.replace(`/life-vision/update?${params.toString()}`)
+        }
 
         // Restore the saved VIVA thread for this draft (best-effort) so a
         // page refresh doesn't lose the conversation.
@@ -440,7 +525,7 @@ export default function VisionUpdatePage() {
       }
     })()
     return () => { cancelled = true }
-  }, [studioLoading, activeVisionId, draftId, supabase, router, refreshVisions, isCreateMode, queryClient])
+  }, [studioLoading, activeVisionId, draftId, householdActiveVisionId, householdDraftId, requestedDraftId, requestedFromId, searchParams, supabase, router, refreshVisions, isCreateMode, queryClient])
 
   useEffect(() => {
     if (loading || !draft) return

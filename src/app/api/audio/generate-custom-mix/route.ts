@@ -355,6 +355,22 @@ export async function POST(request: NextRequest) {
       console.log('[CUSTOM MIX] Prepared', lambdaSections.length, 'personal recording tracks for mixing')
     } else {
       // Standard TTS flow: generate voice-only tracks first (or reuse existing ones)
+      const { data: batchMetaRow } = await supabase
+        .from('audio_generation_batches')
+        .select('metadata')
+        .eq('id', batchId)
+        .maybeSingle()
+      const batchMeta = (batchMetaRow?.metadata || {}) as {
+        mix_all_sections?: boolean
+        selected_sections?: string[] | null
+      }
+      const explicitSections =
+        batchMeta.mix_all_sections === false &&
+        Array.isArray(batchMeta.selected_sections) &&
+        batchMeta.selected_sections.length > 0
+          ? batchMeta.selected_sections
+          : null
+
       results = await generateAudioTracks({
         userId: user.id,
         visionId: isStory ? undefined : entityId,
@@ -376,6 +392,7 @@ export async function POST(request: NextRequest) {
           frequency_track_name: frequencyTrackName || undefined,
           frequency_type: frequencyType || undefined,
           output_format: effectiveOutputFormat,
+          ...(explicitSections ? { selected_sections: explicitSections } : {}),
         }
       })
 

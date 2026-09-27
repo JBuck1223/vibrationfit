@@ -18,6 +18,7 @@ import { CommitVisionDialog } from './CommitVisionDialog'
 interface AssetState {
   state?: 'pending' | 'generating' | 'ready' | 'failed'
   error_message?: string | null
+  batches?: Array<{ audio_set_id?: string | null }>
 }
 
 interface KitRun {
@@ -30,8 +31,26 @@ interface KitRun {
     include_board: boolean
   }
   asset_status: Record<string, AssetState>
+  voice_audio_set_id: string | null
+  mix_audio_set_id: string | null
   created_at: string
   completed_at: string | null
+}
+
+function listenHref(audioSetId: string | null | undefined): string {
+  return audioSetId ? `/audio?audioSetId=${audioSetId}` : '/audio'
+}
+
+/** Last mix in the run is the one just generated; fall back to the first recorded set. */
+function mixAudioSetId(run: KitRun): string | null {
+  const batches = run.asset_status?.mix?.batches
+  if (Array.isArray(batches)) {
+    for (let i = batches.length - 1; i >= 0; i--) {
+      const id = batches[i]?.audio_set_id
+      if (typeof id === 'string' && id.length > 0) return id
+    }
+  }
+  return run.mix_audio_set_id
 }
 
 const SHOW_COMPLETED_FOR_MS = 24 * 60 * 60 * 1000
@@ -47,7 +66,7 @@ export function ActivationKitProgressCard({ visionId }: { visionId: string }) {
     queryFn: async () => {
       const { data } = await supabase
         .from('activation_kit_runs')
-        .select('id, vision_id, status, settings, asset_status, created_at, completed_at')
+        .select('id, vision_id, status, settings, asset_status, voice_audio_set_id, mix_audio_set_id, created_at, completed_at')
         .eq('vision_id', visionId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -105,8 +124,8 @@ export function ActivationKitProgressCard({ visionId }: { visionId: string }) {
   }
 
   const assets: Array<{ key: string; label: string; icon: typeof Mic; href: string; enabled: boolean }> = [
-    { key: 'voice', label: 'Voice Tracks', icon: Mic, href: '/audio', enabled: run.settings.include_voice || run.settings.include_mix },
-    { key: 'mix', label: 'Audio Mixes', icon: Music, href: '/audio', enabled: run.settings.include_mix },
+    { key: 'voice', label: 'Voice Tracks', icon: Mic, href: listenHref(run.voice_audio_set_id), enabled: run.settings.include_voice || run.settings.include_mix },
+    { key: 'mix', label: 'Audio Mixes', icon: Music, href: listenHref(mixAudioSetId(run)), enabled: run.settings.include_mix },
     { key: 'board', label: 'Board Images', icon: ImageIcon, href: '/manifestations', enabled: run.settings.include_board },
   ]
   const visible = assets.filter((a) => a.enabled)

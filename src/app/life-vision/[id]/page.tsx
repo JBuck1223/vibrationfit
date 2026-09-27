@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, Gem, Eye, FileText, ArrowUp, Headphones, Moon, Zap, Music, Mic, Users } from 'lucide-react'
 import { getRefinedCategories } from '@/lib/life-vision/draft-helpers'
@@ -36,6 +36,8 @@ import { colors } from '@/lib/design-system/tokens'
 import { generateVisionPDF } from '@/lib/pdf'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 import { VersionActionToolbar } from '@/components/VersionActionToolbar'
+import { ConvertVisionTool } from '@/app/life-vision/household/components/ConvertVisionTool'
+import { MergeVisionsTool } from '@/app/life-vision/household/components/MergeVisionsTool'
 
 interface VisionData {
   id: string
@@ -93,6 +95,34 @@ const VISION_SECTIONS = VISION_CATEGORIES
 
 export default function VisionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const routeParams = useParams<{ id: string }>()
+  const searchParams = useSearchParams()
+  const householdTool = searchParams.get('tool')
+  const [householdForTools, setHouseholdForTools] = useState<{
+    id: string
+    members: Array<{
+      user_id: string
+      role: string
+      profile: { first_name: string; last_name: string; email: string }
+    }>
+  } | null>(null)
+
+  useEffect(() => {
+    if (householdTool !== 'convert' && householdTool !== 'merge') return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/household?includeMembers=true')
+        const data = await res.json()
+        if (cancelled || !res.ok || !data.household) return
+        setHouseholdForTools({ id: data.household.id, members: data.members || [] })
+      } catch {
+        /* The tool stays closed if the household cannot be loaded. */
+      }
+    })()
+    return () => { cancelled = true }
+  }, [householdTool])
+
   const { setAudioSets: setContextAudioSets, selectedAudioSetId, setSelectedAudioSetId, refreshVisions } = useLifeVisionStudio()
   
   const [loading, setLoading] = useState(true)
@@ -787,16 +817,22 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     if (!vision) return
     setVersionToolbarLoading(true)
     try {
-      const res = await fetch(`/api/vision/draft?draftId=${vision.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/vision?id=${vision.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const body = await res.json().catch(() => ({} as { error?: string }))
         throw new Error(body?.error || `Failed to delete draft (${res.status})`)
       }
       await refreshVisions()
-      router.push('/life-vision')
+      if (vision.household_id) {
+        router.push('/life-vision/household')
+      } else if (vision.parent_id) {
+        router.push(`/life-vision/${vision.parent_id}`)
+      } else {
+        router.push('/life-vision')
+      }
     } catch (error) {
       console.error('Error deleting draft:', error)
-      setError(error instanceof Error ? error.message : 'Failed to delete draft')
+      alert(error instanceof Error ? error.message : 'Failed to delete draft')
     } finally {
       setVersionToolbarLoading(false)
     }
@@ -897,9 +933,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
     ? householdCtx?.memberMap?.[vision.user_id]?.displayName ?? null
     : null
 
-  // Delete rule (matches the API): creator always; household admin for household visions
+  // Creator always. Either household member can discard a Life We Choose draft.
+  // Committed household visions stay limited to the creator or the household admin.
   const canDelete = !!currentUserId && (
     vision.user_id === currentUserId ||
+    (!!vision.household_id && !!vision.is_draft) ||
     (!!vision.household_id && !!householdCtx?.isAdmin)
   )
 
@@ -925,7 +963,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 isActive={false}
                 isDraft={true}
                 onCommitAsActive={handleToolbarCommitDraft}
-                onDelete={handleToolbarDeleteDraft}
+                onDelete={canDelete ? handleToolbarDeleteDraft : undefined}
                 isLoading={versionToolbarLoading}
               />
             </div>
@@ -1121,7 +1159,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
                 isActive={false}
                 isDraft={true}
                 onCommitAsActive={handleToolbarCommitDraft}
-                onDelete={handleToolbarDeleteDraft}
+                onDelete={canDelete ? handleToolbarDeleteDraft : undefined}
                 isLoading={versionToolbarLoading}
               />
             </div>
@@ -1150,6 +1188,36 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
             onCommitted={async (visionId) => {
               await refreshVisions()
               setVision(prev => (prev ? { ...prev, is_draft: false, is_active: true } : prev))
+              router.push(`/life-vision/${visionId}`)
+            }}
+          />
+        )}
+
+        {(householdTool === 'convert' || householdTool === 'merge') && !householdForTools && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
+            <Spinner size="lg" />
+          </div>
+        )}
+        {householdTool === 'convert' && householdForTools && (
+          <ConvertVisionTool
+            householdId={householdForTools.id}
+            householdMembers={householdForTools.members}
+            onClose={() => router.replace(`/life-vision/${routeParams.id}`)}
+            onSuccess={() => { refreshVisions().catch(() => {}) }}
+            onResult={(visionId) => {
+              refreshVisions().catch(() => {})
+              router.push(`/life-vision/${visionId}`)
+            }}
+          />
+        )}
+        {householdTool === 'merge' && householdForTools && (
+          <MergeVisionsTool
+            householdId={householdForTools.id}
+            householdMembers={householdForTools.members}
+            onClose={() => router.replace(`/life-vision/${routeParams.id}`)}
+            onSuccess={() => { refreshVisions().catch(() => {}) }}
+            onResult={(visionId) => {
+              refreshVisions().catch(() => {})
               router.push(`/life-vision/${visionId}`)
             }}
           />

@@ -5,6 +5,7 @@ import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircl
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
+import { useMultiMemberHousehold, visionOwnerName } from '@/components/life-vision/useMultiMemberHousehold'
 
 const VOICE_DISPLAY_NAMES: Record<string, string> = {
   alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral',
@@ -28,6 +29,7 @@ export function LifeVisionAreaBar() {
   const pathname = usePathname()
   const router = useRouter()
   const { visions, activeVisionId, draftId, audioSets, selectedAudioSetId, setSelectedAudioSetId, studioAreaChrome, hasHousehold, refreshVisions } = useLifeVisionStudio()
+  const { data: household } = useMultiMemberHousehold()
 
   const isVisionList = pathname === '/life-vision' || pathname === '/life-vision/'
   const isAboutPage = pathname === '/life-vision/about' || pathname === '/life-vision/about/'
@@ -55,10 +57,10 @@ export function LifeVisionAreaBar() {
   let subNav: AreaBarContextNavItem[] | undefined
   let contextText: string | undefined
 
-  // Two-document model: the user's personal visions ("Life I Choose"),
-  // joint household visions ("Life We Choose"), and personal visions other
-  // household members share ("Shared With Me"). Groups only render as
-  // headers when more than one group exists.
+  // Personal visions ("Life I Choose") and household visions ("Life We
+  // Choose"). A partner's shared personal visions live in Life We Choose
+  // too, labeled with their name. Groups only render as headers when more
+  // than one group exists.
   const myPersonal = visions.filter(v => v.is_mine && !v.is_household)
   const householdVisions = visions.filter(v => v.is_household)
   const sharedPersonal = visions.filter(v => !v.is_mine && !v.is_household && !v.is_draft)
@@ -67,9 +69,12 @@ export function LifeVisionAreaBar() {
   const dateSublabel = (v: { created_at: string }) =>
     new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
-  const toVisionOption = (v: (typeof visions)[number], group?: string) => ({
+  const sharedLabel = (v: (typeof visions)[number]) =>
+    `Version ${v.version_number} · ${visionOwnerName(household?.members, v.user_id)}`
+
+  const toVisionOption = (v: (typeof visions)[number], group?: string, label?: string) => ({
     id: v.id,
-    label: v.is_draft ? 'Draft' : `Version ${v.version_number}`,
+    label: label ?? (v.is_draft ? 'Draft' : `Version ${v.version_number}`),
     sublabel: dateSublabel(v),
     badge: v.is_draft ? 'Draft' : (v.is_active ? 'Active' : undefined),
     badgeVariant: v.is_draft ? ('draft' as const) : undefined,
@@ -111,12 +116,24 @@ export function LifeVisionAreaBar() {
     }
   }
 
+  const openLifeVisionTool = (tool: 'convert' | 'merge', sourceVisionId?: string) => {
+    const id = sourceVisionId
+      || householdVisions.find(v => v.is_active && !v.is_draft)?.id
+      || activeVisionId
+      || myPersonal.find(v => !v.is_draft)?.id
+    if (!id) {
+      router.push(`/life-vision/household?tool=${tool}`)
+      return
+    }
+    router.push(`/life-vision/${id}?tool=${tool}`)
+  }
+
   const householdToolsSubNav = (sourceVisionId?: string): AreaBarContextNavItem[] => [
     ...(householdVisions.some(v => !v.is_draft) || sourceVisionId
       ? [{ label: 'Update with VIVA', icon: PenLine, isActive: false, onClick: () => { void handleHouseholdUpdateNav(sourceVisionId) } }]
       : []),
-    { label: 'Convert Personal Vision', icon: Sparkles, isActive: false, onClick: () => router.push('/life-vision/household?tool=convert') },
-    { label: 'Merge Two Visions', icon: Copy, isActive: false, onClick: () => router.push('/life-vision/household?tool=merge') },
+    { label: 'Convert to Life We Choose', icon: Sparkles, isActive: false, onClick: () => openLifeVisionTool('convert', sourceVisionId) },
+    { label: 'Merge Two Visions', icon: Copy, isActive: false, onClick: () => openLifeVisionTool('merge', sourceVisionId) },
   ]
 
   if (isViewOverview) {
@@ -129,13 +146,21 @@ export function LifeVisionAreaBar() {
       !!(detailVisionId && householdVisions.some(v => v.id === detailVisionId))
 
     // Single navigation axis: the grouped document selector (Life I Choose /
-    // Life We Choose / Shared With Me) is the one switching control. The
+    // Life We Choose) is the one switching control. The
     // context row only carries actions — plus an entry point to the household
     // workshop for members who don't have a joint vision yet.
+    const householdViewActions: AreaBarContextNavItem[] = household
+      ? [
+          { label: 'Convert to Life We Choose', icon: Sparkles, isActive: false, onClick: () => openLifeVisionTool('convert', detailVisionId) },
+          { label: 'Merge Two Visions', icon: Copy, isActive: false, onClick: () => openLifeVisionTool('merge', detailVisionId) },
+        ]
+      : []
+
     contextNav = [
       ...(showHouseholdNav && householdVisions.length === 0
         ? [{ label: 'Start Household Vision', path: '/life-vision/household', icon: Users, isActive: false }]
         : []),
+      ...(!viewingHouseholdVision && !isPrintPage ? householdViewActions : []),
       ...(pdfPath ? [{ label: 'Download PDF', path: pdfPath, icon: Download, isActive: isPrintPage }] : []),
     ]
 
@@ -155,7 +180,7 @@ export function LifeVisionAreaBar() {
       const printOptions = [
         ...myPersonal.filter(v => !v.is_draft).map(v => toVisionOption(v, hasVisionGroups ? 'Life I Choose' : undefined)),
         ...householdVisions.filter(v => !v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
-        ...sharedPersonal.map(v => toVisionOption(v, 'Shared With Me')),
+        ...sharedPersonal.map(v => toVisionOption(v, 'Life We Choose', sharedLabel(v))),
       ]
 
       if (printOptions.length > 0) {
@@ -185,7 +210,7 @@ export function LifeVisionAreaBar() {
         ...myPersonal.filter(v => !v.is_draft).map(v => toVisionOption(v, myGroup)),
         ...householdVisions.filter(v => v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
         ...householdVisions.filter(v => !v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
-        ...sharedPersonal.map(v => toVisionOption(v, 'Shared With Me')),
+        ...sharedPersonal.map(v => toVisionOption(v, 'Life We Choose', sharedLabel(v))),
       ]
       const nonDraftVisions = [...myPersonal, ...householdVisions, ...sharedPersonal].filter(v => !v.is_draft)
 
@@ -236,7 +261,35 @@ export function LifeVisionAreaBar() {
       }
     }
   } else if (isUpdatePage) {
-    // VIVA-led update page — chat + draft live on the page itself, no tabs
+    // Which document the editor has open. Life I Choose and Life We Choose
+    // each keep their own draft; picking a committed version opens that
+    // document's draft.
+    const editingVisionId = studioAreaChrome?.editingVisionId
+    const updateGroup = hasVisionGroups ? 'Life I Choose' : undefined
+    const personalCommitted = myPersonal.filter(v => !v.is_draft)
+    const householdCommitted = householdVisions.filter(v => !v.is_draft)
+    const updateOptions = [
+      ...myPersonal.filter(v => v.is_draft).map(v => toVisionOption(v, updateGroup, `Version ${personalCommitted.length + 1}`)),
+      ...personalCommitted.map(v => toVisionOption(v, updateGroup)),
+      ...householdVisions.filter(v => v.is_draft).map(v => toVisionOption(v, 'Life We Choose', `Version ${householdCommitted.length + 1}`)),
+      ...householdCommitted.map(v => toVisionOption(v, 'Life We Choose')),
+    ]
+
+    if (updateOptions.length > 0) {
+      versionSelectors = [{
+        id: 'vision-version',
+        label: 'Editing',
+        position: 'contextRow',
+        options: updateOptions,
+        selectedId: editingVisionId || '',
+        onSelect: (id: string) => {
+          if (id === editingVisionId) return
+          const selected = visions.find(v => v.id === id)
+          if (selected?.is_draft) router.push(`/life-vision/update?draft=${id}`)
+          else router.push(`/life-vision/update?from=${id}`)
+        },
+      }]
+    }
   } else if (isHousehold) {
     // Household workshop (convert/merge + empty state). Download PDF targets
     // the active household vision (else newest, else the personal active).
@@ -257,7 +310,7 @@ export function LifeVisionAreaBar() {
       ...myPersonal.filter(v => !v.is_draft).map(v => toVisionOption(v, myGroup)),
       ...householdVisions.filter(v => v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
       ...householdVisions.filter(v => !v.is_draft).map(v => toVisionOption(v, 'Life We Choose')),
-      ...sharedPersonal.map(v => toVisionOption(v, 'Shared With Me')),
+      ...sharedPersonal.map(v => toVisionOption(v, 'Life We Choose', sharedLabel(v))),
     ]
 
     if (workshopOptions.length > 0) {
@@ -427,7 +480,7 @@ export function LifeVisionAreaBar() {
       }
 
       // Group headers only render when more than one group exists — same rule
-      // as the View pages ("Shared With Me" is excluded from Update flows).
+      // as the View pages. Partner-shared visions stay out of Update flows.
       const myGroup = hasVisionGroups ? 'Life I Choose' : undefined
 
       const draftOption = draft

@@ -4,6 +4,8 @@ import {
   enqueueActivationKit,
   runActivationKit,
   sanitizeBoardSuggestions,
+  sanitizeMixNames,
+  sanitizeMixVoiceVolumes,
   type KitRunRow,
   type KitSettings,
 } from '@/lib/activation-kit/orchestrator'
@@ -86,6 +88,8 @@ export async function POST(request: NextRequest) {
       if (inlineSettings && 'board_suggestions' in inlineSettings) {
         settings.board_suggestions = sanitizeBoardSuggestions(inlineSettings.board_suggestions)
       }
+      settings.mix_names = sanitizeMixNames(settings.mix_names)
+      settings.mix_voice_volumes = sanitizeMixVoiceVolumes(settings.mix_voice_volumes)
       if (!settings.include_voice && !settings.include_mix && !settings.include_board) {
         return NextResponse.json({ error: 'Select at least one asset to generate' }, { status: 400 })
       }

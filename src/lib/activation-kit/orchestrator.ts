@@ -62,6 +62,17 @@ export interface KitSettings {
   background_track_id: string | null
   /** Additional background tracks — each becomes its own mix in the same run. */
   extra_background_track_ids: string[]
+  /**
+   * Display name for each mix. Index 0 is the primary mix; later indexes
+   * match extra_background_track_ids. Empty string keeps the generated name.
+   */
+  mix_names: string[]
+  /**
+   * Voice percent for each mix (background is the remainder). Index 0 is the
+   * primary mix; later indexes match extra_background_track_ids. A missing
+   * slot uses voice_volume / bg_volume.
+   */
+  mix_voice_volumes: number[]
   voice_volume: number
   bg_volume: number
   binaural_track_id: string | null
@@ -85,15 +96,75 @@ export interface MixBatchRef {
   background_track_id: string
 }
 
-/** Unique background tracks to mix: primary first, then extras. */
-export function mixBackgroundTrackIds(settings: KitSettings): string[] {
+const MAX_MIX_NAME_LENGTH = 80
+const MAX_MIXES = 20
+
+/** Trimmed mix names, index-aligned with the primary mix then extras. */
+export function sanitizeMixNames(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.slice(0, MAX_MIXES).map((name) =>
+    typeof name === 'string' ? name.trim().slice(0, MAX_MIX_NAME_LENGTH) : '',
+  )
+}
+
+/** Voice percents for each mix. Invalid entries fall back to 70. */
+export function sanitizeMixVoiceVolumes(raw: unknown): number[] {
+  if (!Array.isArray(raw)) return []
+  return raw.slice(0, MAX_MIXES).map((value) => {
+    const n = typeof value === 'number' ? value : Number(value)
+    if (!Number.isFinite(n)) return 70
+    return Math.min(100, Math.max(0, Math.round(n)))
+  })
+}
+
+function slotBalance(settings: KitSettings, index: number): { voiceVolume: number; bgVolume: number } {
+  const raw = settings.mix_voice_volumes?.[index]
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    const voiceVolume = Math.min(100, Math.max(0, Math.round(raw)))
+    return { voiceVolume, bgVolume: 100 - voiceVolume }
+  }
+  const voiceVolume = Number.isFinite(settings.voice_volume) ? settings.voice_volume : 70
+  const bgVolume = Number.isFinite(settings.bg_volume) ? settings.bg_volume : 100 - voiceVolume
+  return { voiceVolume, bgVolume }
+}
+
+/** Unique background tracks to mix, with the member's name and balance for that slot. */
+export function kitMixes(settings: KitSettings): Array<{
+  backgroundTrackId: string
+  name: string
+  voiceVolume: number
+  bgVolume: number
+}> {
+  const names = sanitizeMixNames(settings.mix_names)
   const extras = Array.isArray(settings.extra_background_track_ids)
     ? settings.extra_background_track_ids
     : []
-  const ids = [settings.background_track_id, ...extras].filter(
-    (id): id is string => typeof id === 'string' && id.length > 0,
-  )
-  return [...new Set(ids)]
+  const slots = [
+    { id: settings.background_track_id, name: names[0] || '', ...slotBalance(settings, 0) },
+    ...extras.map((id, index) => ({
+      id,
+      name: names[index + 1] || '',
+      ...slotBalance(settings, index + 1),
+    })),
+  ]
+  const seen = new Set<string>()
+  const mixes: Array<{ backgroundTrackId: string; name: string; voiceVolume: number; bgVolume: number }> = []
+  for (const slot of slots) {
+    if (typeof slot.id !== 'string' || slot.id.length === 0 || seen.has(slot.id)) continue
+    seen.add(slot.id)
+    mixes.push({
+      backgroundTrackId: slot.id,
+      name: slot.name,
+      voiceVolume: slot.voiceVolume,
+      bgVolume: slot.bgVolume,
+    })
+  }
+  return mixes
+}
+
+/** Unique background tracks to mix: primary first, then extras. */
+export function mixBackgroundTrackIds(settings: KitSettings): string[] {
+  return kitMixes(settings).map((mix) => mix.backgroundTrackId)
 }
 
 export interface KitAssetState {
@@ -293,6 +364,26 @@ function visionSections(vision: VisionRow): Array<{ sectionKey: string; text: st
     .filter((s) => s.text.length > 0)
 }
 
+/** Sections that still need a completed voice track on this set. */
+async function missingVoiceSections(
+  supabase: SupabaseClient,
+  audioSetId: string,
+  sections: Array<{ sectionKey: string; text: string }>,
+): Promise<Array<{ sectionKey: string; text: string }>> {
+  const { data: tracks } = await supabase
+    .from('audio_tracks')
+    .select('section_key, status, content_hash, audio_url')
+    .eq('audio_set_id', audioSetId)
+    .neq('section_key', 'full')
+
+  const byKey = new Map((tracks || []).map((track) => [track.section_key as string, track]))
+  return sections.filter((section) => {
+    const track = byKey.get(section.sectionKey)
+    if (!track || track.status !== 'completed' || !track.audio_url) return true
+    return track.content_hash !== hashContent(section.text)
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Main entry — run every enabled asset that isn't already done
 // ---------------------------------------------------------------------------
@@ -319,60 +410,89 @@ export async function runActivationKit(
   if (sections.length === 0) throw new Error('This vision has no written categories yet')
 
   // ---- 1. Voice tracks (required for mixes too) ----
+  // A carried-over voice set can be missing rewritten categories. The kit
+  // promises a complete voice-only set, so fill those gaps before mixes.
   const voiceNeeded = settings.include_voice || settings.include_mix
-  if (voiceNeeded && !isReady(run, 'voice') && !isActivelyGenerating(run, 'voice')) {
+  if (voiceNeeded && !isActivelyGenerating(run, 'voice')) {
+    const { data: existingVoiceSet } = await supabase
+      .from('audio_sets')
+      .select('id')
+      .eq('vision_id', run.vision_id)
+      .eq('variant', 'standard')
+      .eq('voice_id', settings.voice_id)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    const gaps = existingVoiceSet
+      ? await missingVoiceSections(supabase, existingVoiceSet.id, sections)
+      : sections
+
+    if (!(isReady(run, 'voice') && gaps.length === 0)) {
     await patchAssetStatus(supabase, run, 'voice', { state: 'generating', started_at: now() })
     try {
+      const sectionsToGenerate = existingVoiceSet && gaps.length > 0 && gaps.length < sections.length
+        ? gaps
+        : sections
       const results = await generateAudioTracks({
         userId: run.user_id,
         visionId: run.vision_id,
-        sections,
+        sections: sectionsToGenerate,
         voice: settings.voice_id,
         variant: 'standard',
         batchId: kitVoiceBatchId(run),
+        audioSetId: existingVoiceSet?.id,
       })
 
       const succeeded = results.filter((r) => r.status !== 'failed')
-      if (succeeded.length === 0) {
+      if (succeeded.length === 0 && !existingVoiceSet) {
         throw new Error(results[0]?.error || 'All voice tracks failed to generate')
       }
 
-      // Resolve the "Standard Version" set generateAudioTracks used/created
-      const { data: audioSet } = await supabase
-        .from('audio_sets')
-        .select('id')
-        .eq('vision_id', run.vision_id)
-        .eq('variant', 'standard')
-        .eq('voice_id', settings.voice_id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      const { data: audioSet } = existingVoiceSet
+        ? { data: existingVoiceSet }
+        : await supabase
+          .from('audio_sets')
+          .select('id')
+          .eq('vision_id', run.vision_id)
+          .eq('variant', 'standard')
+          .eq('voice_id', settings.voice_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
-      if (audioSet) {
-        run.voice_audio_set_id = audioSet.id
-        await supabase
-          .from('activation_kit_runs')
-          .update({ voice_audio_set_id: audioSet.id })
-          .eq('id', run.id)
+      if (!audioSet) throw new Error('Voice audio set was not created')
 
-        // Combined full track (Lambda concat — free, arrives async)
-        if (succeeded.length > 1) {
-          await generateFullVoiceTrack(run.user_id, run.vision_id, audioSet.id, settings.voice_id)
-            .catch((err) => console.error('[activation-kit] full voice track failed:', err))
-        }
+      const stillMissing = await missingVoiceSections(supabase, audioSet.id, sections)
+      if (stillMissing.length > 0) {
+        throw new Error(
+          `Voice tracks are still missing: ${stillMissing.map((section) => section.sectionKey).join(', ')}`,
+        )
       }
 
-      const failedCount = results.length - succeeded.length
+      run.voice_audio_set_id = audioSet.id
+      await supabase
+        .from('activation_kit_runs')
+        .update({ voice_audio_set_id: audioSet.id })
+        .eq('id', run.id)
+
+      // Combined full track (Lambda concat — free, arrives async)
+      if (sections.length > 1) {
+        await generateFullVoiceTrack(run.user_id, run.vision_id, audioSet.id, settings.voice_id)
+          .catch((err) => console.error('[activation-kit] full voice track failed:', err))
+      }
+
       await patchAssetStatus(supabase, run, 'voice', {
         state: 'ready',
-        error_message: failedCount > 0 ? `${failedCount} section(s) failed` : null,
+        error_message: null,
         finished_at: now(),
-        sections_total: results.length,
-        sections_failed: failedCount,
+        sections_total: sections.length,
+        sections_failed: 0,
       })
     } catch (err) {
       errors.push(`voice: ${err instanceof Error ? err.message : err}`)
       await patchAssetStatus(supabase, run, 'voice', markFailure(run.asset_status?.voice, err))
+    }
     }
   }
 
@@ -385,13 +505,13 @@ export async function runActivationKit(
   ) {
     await patchAssetStatus(supabase, run, 'mix', { state: 'generating', started_at: now(), batches: [] })
     try {
-      const trackIds = mixBackgroundTrackIds(settings)
-      if (trackIds.length === 0) throw new Error('No background track selected for this kit')
+      const mixes = kitMixes(settings)
+      if (mixes.length === 0) throw new Error('No background track selected for this kit')
 
       const startErrors: string[] = []
-      for (const trackId of trackIds) {
+      for (const mix of mixes) {
         try {
-          await startMixGeneration(supabase, run, sections, trackId)
+          await startMixGeneration(supabase, run, sections, mix)
         } catch (err) {
           startErrors.push(err instanceof Error ? err.message : String(err))
         }
@@ -404,7 +524,7 @@ export async function runActivationKit(
       if (startErrors.length > 0) {
         errors.push(...startErrors.map((msg) => `mix: ${msg}`))
         await patchAssetStatus(supabase, run, 'mix', {
-          error_message: `${startErrors.length} of ${trackIds.length} mix(es) failed to start`,
+          error_message: `${startErrors.length} of ${mixes.length} mix(es) failed to start`,
         })
       }
       // Stays 'generating' — the audio-mixer Lambda finishes async;
@@ -444,9 +564,10 @@ async function startMixGeneration(
   supabase: SupabaseClient,
   run: KitRunRow,
   sections: Array<{ sectionKey: string; text: string }>,
-  backgroundTrackId: string,
+  mix: { backgroundTrackId: string; name: string; voiceVolume: number; bgVolume: number },
 ): Promise<void> {
   const settings = run.settings
+  const { backgroundTrackId, name: mixName, voiceVolume, bgVolume } = mix
 
   const { data: bgTrack } = await supabase
     .from('audio_background_tracks')
@@ -467,13 +588,13 @@ async function startMixGeneration(
   const binauralVolume = binauralTrack ? settings.binaural_volume : 0
 
   // Adjusted volumes (binaural takes its share off the top, like the mix studio)
-  let adjustedVoiceVol = settings.voice_volume
-  let adjustedBgVol = settings.bg_volume
+  let adjustedVoiceVol = voiceVolume
+  let adjustedBgVol = bgVolume
   if (binauralVolume > 0) {
-    const total = settings.voice_volume + settings.bg_volume
+    const total = voiceVolume + bgVolume
     const remaining = 100 - binauralVolume
-    adjustedVoiceVol = Math.round((settings.voice_volume / total) * remaining)
-    adjustedBgVol = Math.round((settings.bg_volume / total) * remaining)
+    adjustedVoiceVol = total > 0 ? Math.round((voiceVolume / total) * remaining) : remaining
+    adjustedBgVol = total > 0 ? Math.round((bgVolume / total) * remaining) : 0
   }
 
   const outputFormat = settings.mix_output_format
@@ -484,6 +605,7 @@ async function startMixGeneration(
     alloy: 'Alloy', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova',
     shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', sage: 'Sage',
   }
+  const memberMixName = mixName.trim().slice(0, MAX_MIX_NAME_LENGTH)
   let audioSetName = voiceNames[parsedVoice.voice] || parsedVoice.voice
   if (vibeLabel && vibeLabel !== 'Natural') audioSetName += ` (${vibeLabel})`
   if (bgTrack.display_name) audioSetName += ` + ${bgTrack.display_name}`
@@ -491,6 +613,7 @@ async function startMixGeneration(
   audioSetName += binauralVolume > 0
     ? ` (${adjustedVoiceVol}/${adjustedBgVol}/${binauralVolume})`
     : ` (${adjustedVoiceVol}/${adjustedBgVol})`
+  if (memberMixName) audioSetName = memberMixName
 
   // Batch row (same shape the mix studio creates client-side)
   const { data: batch, error: batchError } = await supabase
@@ -507,7 +630,7 @@ async function startMixGeneration(
       metadata: {
         custom_mix: true,
         activation_kit_run_id: run.id,
-        audio_set_name: `Activation Kit — ${audioSetName}`,
+        audio_set_name: memberMixName ? audioSetName : `Activation Kit — ${audioSetName}`,
         output_format: outputFormat,
         source_type: 'life_vision',
         background_track_id: bgTrack.id,
@@ -695,7 +818,7 @@ async function startMixGeneration(
 // Board — one manifestation per refined life category
 // ---------------------------------------------------------------------------
 
-export const MAX_BOARD_MANIFESTATIONS = 8
+export const MAX_BOARD_MANIFESTATIONS = 12
 
 export function sanitizeBoardSuggestions(raw: unknown, max = MAX_BOARD_MANIFESTATIONS): KitBoardSuggestion[] {
   if (!Array.isArray(raw)) return []
@@ -755,6 +878,7 @@ async function generateBoardManifestations(
       supabase,
       run,
       picked.slice(0, MAX_BOARD_MANIFESTATIONS),
+      vision.household_id,
     )
   }
 
@@ -810,13 +934,14 @@ async function generateBoardManifestations(
     }
   }
 
-  return createBoardItemsFromSuggestions(supabase, run, distilled)
+  return createBoardItemsFromSuggestions(supabase, run, distilled, vision.household_id)
 }
 
 async function createBoardItemsFromSuggestions(
   supabase: SupabaseClient,
   run: KitRunRow,
   suggestions: KitBoardSuggestion[],
+  householdId: string | null,
 ): Promise<number> {
   let created = 0
   let failures = 0
@@ -832,6 +957,7 @@ async function createBoardItemsFromSuggestions(
           description: (suggestion.description || '').trim() || null,
           categories: [categoryKey],
           status: 'active',
+          household_id: householdId,
         })
         .select('id')
         .single()

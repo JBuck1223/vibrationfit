@@ -23,7 +23,7 @@ import { keys } from '@/lib/query/keys'
 import { NATURAL_VIBE_ID, VOICE_VIBES, buildVoiceId, parseVoiceId } from '@/lib/audio/voice-vibes'
 import { LIFE_CATEGORY_KEYS, getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 
-const MAX_BOARD_PICKS = 8
+const MAX_BOARD_PICKS = 12
 
 interface BoardSuggestion {
   id: string
@@ -43,6 +43,8 @@ interface KitRow {
   voice_id: string
   background_track_id: string | null
   extra_background_track_ids: string[]
+  mix_names?: string[]
+  mix_voice_volumes?: number[]
   voice_volume: number
   bg_volume: number
   binaural_track_id: string | null
@@ -65,6 +67,45 @@ interface CommitVisionDialogProps {
   skipCommitConfirmation?: boolean
   /** Getting Started: voice, mix, and board are required. */
   requireFullKit?: boolean
+}
+
+function alignedMixNames(names: string[] | undefined, slotCount: number): string[] {
+  const next = [...(names || [])]
+  while (next.length < slotCount) next.push('')
+  return next.slice(0, Math.max(slotCount, 0))
+}
+
+function voiceVolumeAt(volumes: number[] | undefined, index: number, fallback: number): number {
+  const value = volumes?.[index]
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.min(100, Math.max(10, Math.round(value)))
+  }
+  const base = Number.isFinite(fallback) ? fallback : 70
+  return Math.min(100, Math.max(10, Math.round(base)))
+}
+
+function alignedVoiceVolumes(volumes: number[] | undefined, slotCount: number, fallback: number): number[] {
+  return Array.from({ length: Math.max(slotCount, 0) }, (_, index) => voiceVolumeAt(volumes, index, fallback))
+}
+
+/** Drop empty extras and extras that reuse the primary track, keeping per-mix fields aligned. */
+function extrasKeepingSlots(
+  extras: string[],
+  names: string[] | undefined,
+  volumes: number[] | undefined,
+  primaryId: string | null,
+  fallbackVoice: number,
+): { extra_background_track_ids: string[]; mix_names: string[]; mix_voice_volumes: number[] } {
+  const mix_names = [names?.[0] || '']
+  const mix_voice_volumes = [voiceVolumeAt(volumes, 0, fallbackVoice)]
+  const extra_background_track_ids: string[] = []
+  extras.forEach((id, index) => {
+    if (!id || (primaryId && id === primaryId)) return
+    extra_background_track_ids.push(id)
+    mix_names.push(names?.[index + 1] || '')
+    mix_voice_volumes.push(voiceVolumeAt(volumes, index + 1, fallbackVoice))
+  })
+  return { extra_background_track_ids, mix_names, mix_voice_volumes }
 }
 
 const OUTPUT_FORMAT_OPTIONS = [
@@ -464,6 +505,12 @@ export function CommitVisionDialog({
       extra_background_track_ids: Array.isArray(kit.extra_background_track_ids)
         ? kit.extra_background_track_ids.filter((id) => typeof id === 'string' && id.length > 0)
         : [],
+      mix_names: Array.isArray(kit.mix_names)
+        ? kit.mix_names.filter((name): name is string => typeof name === 'string').map((name) => name.slice(0, 80))
+        : [],
+      mix_voice_volumes: Array.isArray(kit.mix_voice_volumes)
+        ? kit.mix_voice_volumes.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+        : [],
       voice_volume: kit.voice_volume,
       bg_volume: kit.bg_volume,
       binaural_track_id: kit.binaural_track_id,
@@ -506,11 +553,16 @@ export function CommitVisionDialog({
     const selectedSuggestions = settings.include_board
       ? boardSuggestions.filter((s) => selectedBoardIds.includes(s.id)).slice(0, MAX_BOARD_PICKS)
       : []
+    const keptMixes = extrasKeepingSlots(
+      settings.extra_background_track_ids,
+      settings.mix_names,
+      settings.mix_voice_volumes,
+      settings.background_track_id,
+      settings.voice_volume,
+    )
     const payloadSettings = {
       ...settings,
-      extra_background_track_ids: settings.extra_background_track_ids.filter(
-        (id) => id && id !== settings.background_track_id,
-      ),
+      ...keptMixes,
       board_suggestions: selectedSuggestions,
     }
     const { board_suggestions: _boardSuggestions, ...kitSettings } = payloadSettings
@@ -891,52 +943,68 @@ export function CommitVisionDialog({
                   const isOpen = openMixIndex === index
                   const track = backgroundTracks.find((t) => t.id === trackId)
                   const previewKey = index === 0 ? 'bg' : `bg-extra-${index - 1}`
+                  const mixLabel = (settings.mix_names?.[index] || '').trim() || `MIX ${index + 1}`
+                  const mixVoice = voiceVolumeAt(settings.mix_voice_volumes, index, settings.voice_volume)
                   const Caret = isOpen ? ChevronUp : ChevronDown
                   return (
                     <div key={`mix-card-${index}`} className="rounded-xl border-2 border-[#333]">
-                      <div className={`flex items-center justify-between gap-3 px-4 ${isOpen ? 'border-b border-[#333] pt-3 pb-2' : 'py-2'}`}>
+                      <div className={`flex items-stretch ${isOpen ? 'border-b border-[#333]' : ''}`}>
                         <button
                           type="button"
                           onClick={() => {
                             stopPreview()
                             setOpenMixIndex(isOpen ? -1 : index)
                           }}
-                          className="text-sm font-semibold tracking-wide text-white"
+                          aria-expanded={isOpen}
+                          aria-label={isOpen ? `Collapse ${mixLabel}` : `Expand ${mixLabel}`}
+                          className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left"
                         >
-                          MIX {index + 1}
+                          <span className="truncate text-sm font-semibold tracking-wide text-white">
+                            {mixLabel}
+                          </span>
+                          <Caret className="h-4 w-4 shrink-0 text-neutral-400" />
                         </button>
-                        <div className="flex shrink-0 items-center gap-2">
-                          {index > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                stopPreview()
-                                const next = settings.extra_background_track_ids.filter((_, i) => i !== index - 1)
-                                setSettings({ ...settings, extra_background_track_ids: next })
-                                setOpenMixIndex(isOpen ? Math.max(0, next.length) : openMixIndex)
-                              }}
-                              aria-label="Remove this mix"
-                              title="Remove this mix"
-                              className="text-neutral-500 transition-colors hover:text-[#FF0040]"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
+                        {index > 0 && (
                           <button
                             type="button"
                             onClick={() => {
                               stopPreview()
-                              setOpenMixIndex(isOpen ? -1 : index)
+                              const slotCount = 1 + settings.extra_background_track_ids.length
+                              const next = settings.extra_background_track_ids.filter((_, i) => i !== index - 1)
+                              const mix_names = alignedMixNames(settings.mix_names, slotCount)
+                              const mix_voice_volumes = alignedVoiceVolumes(
+                                settings.mix_voice_volumes,
+                                slotCount,
+                                settings.voice_volume,
+                              )
+                              mix_names.splice(index, 1)
+                              mix_voice_volumes.splice(index, 1)
+                              setSettings({ ...settings, extra_background_track_ids: next, mix_names, mix_voice_volumes })
+                              setOpenMixIndex(isOpen ? Math.max(0, next.length) : openMixIndex)
                             }}
-                            aria-label={isOpen ? `Collapse mix ${index + 1}` : `Expand mix ${index + 1}`}
-                            className="text-neutral-400 transition-colors hover:text-white"
+                            aria-label="Remove this mix"
+                            title="Remove this mix"
+                            className="flex shrink-0 items-center px-4 text-neutral-500 transition-colors hover:text-[#FF0040]"
                           >
-                            <Caret className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
-                        </div>
+                        )}
                       </div>
                       {isOpen && (
                         <div className="space-y-4 px-4 pb-4 pt-2">
+                          <Input
+                            label="Name"
+                            value={settings.mix_names?.[index] || ''}
+                            onChange={(e) => {
+                              const mix_names = alignedMixNames(
+                                settings.mix_names,
+                                1 + settings.extra_background_track_ids.length,
+                              )
+                              mix_names[index] = e.target.value.slice(0, 80)
+                              setSettings({ ...settings, mix_names })
+                            }}
+                            placeholder="Sleep mix"
+                          />
                           <div>
                             <label className="block text-sm font-medium text-neutral-200 mb-2">Background track</label>
                             <div className="flex items-start gap-2">
@@ -947,12 +1015,17 @@ export function CommitVisionDialog({
                                 onChange={(nextId) => {
                                   stopPreview()
                                   if (index === 0) {
+                                    const kept = extrasKeepingSlots(
+                                      settings.extra_background_track_ids,
+                                      settings.mix_names,
+                                      settings.mix_voice_volumes,
+                                      nextId || null,
+                                      settings.voice_volume,
+                                    )
                                     setSettings({
                                       ...settings,
                                       background_track_id: nextId || null,
-                                      extra_background_track_ids: settings.extra_background_track_ids.filter(
-                                        (id) => id && id !== nextId,
-                                      ),
+                                      ...kept,
                                     })
                                   } else {
                                     const next = [...settings.extra_background_track_ids]
@@ -976,17 +1049,30 @@ export function CommitVisionDialog({
 
                           <div>
                             <label className="block text-sm font-medium text-neutral-400 mb-2">
-                              Balance — voice {settings.voice_volume}% / background {settings.bg_volume}%
+                              Balance — voice {mixVoice}% / background {100 - mixVoice}%
                             </label>
                             <input
                               type="range"
                               min={10}
                               max={100}
                               step={5}
-                              value={settings.voice_volume}
+                              value={mixVoice}
                               onChange={(e) => {
                                 const voiceVol = Number(e.target.value)
-                                setSettings({ ...settings, voice_volume: voiceVol, bg_volume: 100 - voiceVol })
+                                const slotCount = 1 + settings.extra_background_track_ids.length
+                                const mix_voice_volumes = alignedVoiceVolumes(
+                                  settings.mix_voice_volumes,
+                                  slotCount,
+                                  settings.voice_volume,
+                                )
+                                mix_voice_volumes[index] = voiceVol
+                                setSettings({
+                                  ...settings,
+                                  mix_voice_volumes,
+                                  ...(index === 0
+                                    ? { voice_volume: voiceVol, bg_volume: 100 - voiceVol }
+                                    : {}),
+                                })
                               }}
                               className="w-full accent-[#39FF14]"
                             />
@@ -1062,6 +1148,18 @@ export function CommitVisionDialog({
                       setSettings({
                         ...settings,
                         extra_background_track_ids: [...settings.extra_background_track_ids, ''],
+                        mix_names: [
+                          ...alignedMixNames(settings.mix_names, 1 + settings.extra_background_track_ids.length),
+                          '',
+                        ],
+                        mix_voice_volumes: [
+                          ...alignedVoiceVolumes(
+                            settings.mix_voice_volumes,
+                            1 + settings.extra_background_track_ids.length,
+                            settings.voice_volume,
+                          ),
+                          voiceVolumeAt(settings.mix_voice_volumes, 0, settings.voice_volume),
+                        ],
                       })
                       setOpenMixIndex(settings.extra_background_track_ids.length + 1)
                     }}

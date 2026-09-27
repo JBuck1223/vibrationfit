@@ -19,6 +19,8 @@ interface ConvertVisionToolProps {
   }>
   onClose: () => void
   onSuccess: () => void
+  /** When set, the caller keeps the new vision on the current page. */
+  onResult?: (visionId: string, isActive: boolean) => void
 }
 
 interface PersonalVision {
@@ -33,7 +35,8 @@ export function ConvertVisionTool({
   householdId,
   householdMembers,
   onClose,
-  onSuccess
+  onSuccess,
+  onResult,
 }: ConvertVisionToolProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -89,13 +92,12 @@ export function ConvertVisionTool({
         throw new Error(data.error || 'Failed to convert vision')
       }
 
-      // Success! Navigate to the new vision (draft or active)
       onSuccess?.()
-      if (data.isActive) {
-        router.push(`/life-vision/${data.visionId}`)
-      } else {
-        router.push(`/life-vision/${data.visionId}/draft`)
+      if (onResult) {
+        onResult(data.visionId, Boolean(data.isActive))
+        return
       }
+      router.push(`/life-vision/${data.visionId}`)
     } catch (err: any) {
       console.error('Error converting vision:', err)
       setError(err.message || 'Failed to convert vision')
@@ -141,7 +143,7 @@ export function ConvertVisionTool({
           <div>
             <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-primary-500" />
-              Convert to Household Vision
+              Convert to Life We Choose
             </h2>
             <p className="text-neutral-400">
               Choose the personal vision version to convert into a shared household vision
