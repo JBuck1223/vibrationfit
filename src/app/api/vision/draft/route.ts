@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
  * GET /api/vision/draft
@@ -67,7 +68,7 @@ export async function DELETE(request: NextRequest) {
 
     const { data: draft, error: fetchError } = await supabase
       .from('vision_versions')
-      .select('id, user_id, is_draft')
+      .select('id, user_id, household_id, is_draft')
       .eq('id', draftId)
       .single()
 
@@ -75,7 +76,19 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Draft not found' }, { status: 404 })
     }
 
-    if (draft.user_id !== user.id) {
+    let canDelete = draft.user_id === user.id
+    if (!canDelete && draft.household_id && draft.is_draft) {
+      const { data: isMember } = await supabase
+        .rpc('is_active_household_member', { h: draft.household_id, u: user.id })
+      canDelete = !!isMember
+    }
+    if (!canDelete && draft.household_id) {
+      const { data: isAdmin } = await supabase
+        .rpc('is_household_admin', { h: draft.household_id, u: user.id })
+      canDelete = !!isAdmin
+    }
+
+    if (!canDelete) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -86,17 +99,20 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const { error: deleteError } = await supabase
+    // Admin client: the user-scoped delete hits household RLS and can fail
+    // without removing the row.
+    const adminClient = createAdminClient()
+    const { data: deleted, error: deleteError } = await adminClient
       .from('vision_versions')
       .delete()
       .eq('id', draftId)
-      .eq('user_id', user.id)
       .eq('is_draft', true)
+      .select('id')
 
-    if (deleteError) {
+    if (deleteError || !deleted?.length) {
       console.error('Error deleting draft:', deleteError)
       return NextResponse.json(
-        { error: deleteError.message || 'Failed to delete draft' },
+        { error: deleteError?.message || 'Failed to delete draft' },
         { status: 500 }
       )
     }
@@ -111,10 +127,6 @@ export async function DELETE(request: NextRequest) {
 
     if (stateDeleteError) {
       console.error('Error clearing vision_new_category_state:', stateDeleteError)
-      return NextResponse.json(
-        { error: stateDeleteError.message || 'Failed to clear category state' },
-        { status: 500 }
-      )
     }
 
     return NextResponse.json({ success: true, draftId })

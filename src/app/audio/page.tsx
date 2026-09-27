@@ -394,10 +394,12 @@ export default function AudioListenPage() {
 
   // Track whether the deep link has already been consumed so version switches don't re-select it.
   const deepLinkConsumed = useRef(false)
+  const loadedSetIdRef = useRef<string | null>(null)
 
-  // Deep link ?audioSetId= — refresh catalog then load this set (fixes stale list right after generation).
+  // Deep link ?audioSetId= — switch to the vision that owns that set, then the
+  // catalog effect below loads its tracks once that vision's sets are in.
   useEffect(() => {
-    if (!urlAudioSetId || !visionId || deepLinkConsumed.current) return
+    if (!urlAudioSetId || !visionId || visionLoading || deepLinkConsumed.current) return
 
     let cancelled = false
     ;(async () => {
@@ -408,40 +410,46 @@ export default function AudioListenPage() {
         .eq('id', urlAudioSetId)
         .maybeSingle()
 
-      if (cancelled) return
-
-      if (setRow?.vision_id && setRow.vision_id !== visionId) {
-        const targetVision = allVisions.find(v => v.id === setRow.vision_id)
-        if (targetVision) {
-          switchVision(setRow.vision_id)
-          return
-        }
+      if (cancelled || !setRow?.vision_id || setRow.vision_id === visionId) return
+      if (allVisions.some(v => v.id === setRow.vision_id)) {
+        switchVision(setRow.vision_id)
       }
-
-      await refreshAudioSets()
-      if (cancelled) return
-      deepLinkConsumed.current = true
-      setSelectedAudioSetId(urlAudioSetId)
-      await loadAudioTracks(urlAudioSetId)
-      if (cancelled) return
-      localStorage.setItem(`audioSetSelection_${visionId}`, urlAudioSetId)
     })()
 
     return () => {
       cancelled = true
     }
-  }, [urlAudioSetId, visionId])
+  }, [urlAudioSetId, visionId, visionLoading, allVisions, switchVision])
 
   useEffect(() => {
-    if (urlAudioSetId && !deepLinkConsumed.current) return
-    if (deepLinkConsumed.current && selectedAudioSetId) return
+    if (!visionId || audioSetsLoading) return
 
-    if (audioSetsLoading || audioSets.length === 0) return
-    const saved = visionId ? localStorage.getItem(`audioSetSelection_${visionId}`) : null
-    let target = saved ? audioSets.find(s => s.id === saved && s.isReady) : null
-    if (!target) target = audioSets.find(s => s.isReady) || null
-    if (target) { setSelectedAudioSetId(target.id); loadAudioTracks(target.id) }
-  }, [audioSets, audioSetsLoading, visionId])
+    const playable = (set: (typeof audioSets)[number]) => set.isReady || set.track_count > 0
+    const inCatalog = (id: string | null) => !!id && audioSets.some(s => s.id === id)
+    const deepLinkHere = !!urlAudioSetId && !deepLinkConsumed.current && inCatalog(urlAudioSetId)
+
+    if (inCatalog(selectedAudioSetId) && !deepLinkHere) {
+      if (loadedSetIdRef.current !== selectedAudioSetId && selectedAudioSetId) {
+        loadedSetIdRef.current = selectedAudioSetId
+        void loadAudioTracks(selectedAudioSetId)
+      }
+      return
+    }
+
+    const saved = localStorage.getItem(`audioSetSelection_${visionId}`)
+    const target = deepLinkHere
+      ? audioSets.find(s => s.id === urlAudioSetId) || null
+      : (saved ? audioSets.find(s => s.id === saved && playable(s)) : null)
+        || audioSets.find(playable)
+        || null
+
+    if (!target) return
+    if (deepLinkHere) deepLinkConsumed.current = true
+    loadedSetIdRef.current = target.id
+    setSelectedAudioSetId(target.id)
+    void loadAudioTracks(target.id)
+    localStorage.setItem(`audioSetSelection_${visionId}`, target.id)
+  }, [audioSets, audioSetsLoading, visionId, urlAudioSetId, selectedAudioSetId])
 
   useEffect(() => { setIsEditingAudioSetName(false) }, [selectedAudioSetId])
 
@@ -964,6 +972,7 @@ export default function AudioListenPage() {
   }
 
   const handleSelectSet = async (setId: string) => {
+    loadedSetIdRef.current = setId
     setSelectedAudioSetId(setId)
     await loadAudioTracks(setId)
     if (visionId) localStorage.setItem(`audioSetSelection_${visionId}`, setId)
@@ -1428,6 +1437,20 @@ export default function AudioListenPage() {
                   <Card variant="glass" className="p-8 text-center">
                     <Music className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
                     <p className="text-neutral-400">No audio tracks available for this set</p>
+                    {audioSets.some(s => s.id !== selectedAudioSetId && (s.isReady || s.track_count > 0)) && (
+                      <div className="mt-4 flex flex-col gap-2 text-left">
+                        {audioSets.filter(s => s.id !== selectedAudioSetId && (s.isReady || s.track_count > 0)).map(set => (
+                          <button
+                            key={set.id}
+                            type="button"
+                            onClick={() => { void handleSelectSet(set.id) }}
+                            className="rounded-lg border border-white/10 px-3 py-2 text-sm text-white hover:bg-white/[0.04]"
+                          >
+                            {getSetDisplayName(set)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </Card>
                 )}
               </div>
@@ -1435,6 +1458,18 @@ export default function AudioListenPage() {
               <div className="max-w-2xl mx-auto w-full rounded-2xl bg-embedded-panel border border-neutral-800 p-6 text-center">
                 <Headphones className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                 <p className="text-neutral-400 text-sm">Select an audio set to play</p>
+                <div className="mt-4 flex flex-col gap-2 text-left">
+                  {audioSets.filter(s => s.isReady || s.track_count > 0).map(set => (
+                    <button
+                      key={set.id}
+                      type="button"
+                      onClick={() => { void handleSelectSet(set.id) }}
+                      className="rounded-lg border border-white/10 px-3 py-2 text-sm text-white hover:bg-white/[0.04]"
+                    >
+                      {getSetDisplayName(set)}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

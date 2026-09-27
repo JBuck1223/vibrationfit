@@ -372,6 +372,8 @@ export async function generateAudioTracks(params: {
     frequency_type?: 'pure' | 'solfeggio_binaural' | 'binaural'
     mix_ratio_id?: string
     output_format?: string
+    /** Set when the member chose specific categories. Absent means the whole vision. */
+    selected_sections?: string[]
   }
 }): Promise<GeneratedTrackResult[]> {
   const { userId, visionId, contentType = 'life_vision', contentId, sections, voice = 'alloy', vibe, format = 'mp3', force = false, audioSetId, audioSetName, audioSetDescription, variant, batchId, audioSetMetadata } = params

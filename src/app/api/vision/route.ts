@@ -395,9 +395,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Vision not found or access denied' }, { status: 404 })
     }
 
-    // Delete rule (matches household-sharing docs): the creator can always
-    // delete; the household admin can also delete household visions.
+    // Creator can always delete. Household drafts are shared work in progress,
+    // so any active member can discard one. Committed household visions stay
+    // limited to the creator or the household admin.
     let canDelete = vision.user_id === user.id
+    if (!canDelete && vision.household_id && vision.is_draft) {
+      const { data: isMember } = await supabase
+        .rpc('is_active_household_member', { h: vision.household_id, u: user.id })
+      canDelete = !!isMember
+    }
     if (!canDelete && vision.household_id) {
       const { data: isAdmin } = await supabase
         .rpc('is_household_admin', { h: vision.household_id, u: user.id })

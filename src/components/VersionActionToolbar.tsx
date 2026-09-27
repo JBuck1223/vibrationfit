@@ -68,13 +68,13 @@ export const VersionActionToolbar: React.FC<VersionActionToolbarProps> = ({
 
     if (isDraft) {
       return [
-        {
+        ...(onDelete ? [{
           label: 'Delete Draft',
           icon: <Trash2 className="w-4 h-4" />,
           variant: 'danger' as const,
-          onClick: () => handleConfirm('delete-version', () => onDelete?.()),
+          onClick: () => handleConfirm('delete-version', () => onDelete()),
           showConfirm: true
-        },
+        }] : []),
         {
           label: 'Commit as Active',
           icon: <CheckCircle className="w-4 h-4" />,

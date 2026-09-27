@@ -130,9 +130,44 @@ export default function HouseholdVisionsPage() {
     )
   }
 
+  const sharedByMember = new Map<string, (typeof studioVisions)[number]>()
+  for (const vision of studioVisions) {
+    if (vision.is_mine || vision.is_household || vision.is_draft) continue
+    const existing = sharedByMember.get(vision.user_id)
+    if (!existing || new Date(vision.created_at) > new Date(existing.created_at)) {
+      sharedByMember.set(vision.user_id, vision)
+    }
+  }
+  const sharedVisions = [...sharedByMember.values()]
+
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {sharedVisions.length > 0 && (
+          <Card variant="elevated" className="p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <Heart className="h-5 w-5 text-secondary-500" />
+              <h3 className="text-lg font-semibold">Life We Choose</h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              {sharedVisions.map((vision) => {
+                const member = household.members.find((item) => item.user_id === vision.user_id)
+                const name = member?.profile?.first_name || 'Household'
+                return (
+                  <Button
+                    key={vision.id}
+                    variant="outline"
+                    onClick={() => router.push(`/life-vision/${vision.id}`)}
+                    className="justify-start"
+                  >
+                    {name}&apos;s Life Vision · Version {vision.version_number}
+                  </Button>
+                )
+              })}
+            </div>
+          </Card>
+        )}
+
         {/* Household Members Info */}
         <Card variant="elevated" className="p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -178,9 +213,13 @@ export default function HouseholdVisionsPage() {
           <div className="w-20 h-20 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <Heart className="w-10 h-10 text-primary-500" />
           </div>
-          <h2 className="text-2xl font-bold mb-3">No Household Visions Yet</h2>
+          <h2 className="text-2xl font-bold mb-3">
+            {sharedVisions.length > 0 ? 'Create a joint vision' : 'No Household Visions Yet'}
+          </h2>
           <p className="text-neutral-300 mb-6 max-w-md mx-auto">
-            Create your first household vision to start building a shared future together.
+            {sharedVisions.length > 0
+              ? 'Shared Life Visions are already in Life We Choose. You can also convert a personal vision or merge two into one joint vision.'
+              : 'Create your first household vision to start building a shared future together.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -188,7 +227,7 @@ export default function HouseholdVisionsPage() {
               onClick={() => openTool('convert')}
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Convert Personal Vision
+              Convert to Life We Choose
             </Button>
             <Button 
               variant="outline"

@@ -37,6 +37,8 @@ export interface AudioSetOption {
 export interface LifeVisionStudioAreaChrome {
   contextEyebrow?: string
   contextText?: string
+  /** Draft currently open on /life-vision/update, so the area bar can show it. */
+  editingVisionId?: string
   walkthrough?: {
     active: boolean
     onToggle: () => void

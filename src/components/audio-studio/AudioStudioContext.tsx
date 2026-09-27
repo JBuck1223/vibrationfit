@@ -239,7 +239,6 @@ async function fetchAudioSets(visionId: string): Promise<AudioSetItem[]> {
       .from('audio_tracks')
       .select('mix_status, status')
       .eq('audio_set_id', set.id)
-      .limit(1)
 
     const hasCompletedVoice = tracks?.some((t: any) => t.status === 'completed')
     const hasCompletedMixing = tracks?.some((t: any) => t.mix_status === 'completed')
@@ -449,13 +448,15 @@ export function AudioStudioProvider({ children }: { children: React.ReactNode })
     queryFn: fetchPublishedVisions,
   })
 
-  // Selected vision falls back to the best default: active personal vision,
-  // then any personal vision, then the newest visible one.
+  // Selected vision falls back to the active personal vision, then the active
+  // household vision, then any personal vision, then the newest visible one.
   const vision = useMemo(() => {
     const explicit = selectedVisionId ? allVisions.find(v => v.id === selectedVisionId) : null
     if (explicit) return explicit
     return (
       allVisions.find(v => v.is_active && v.is_mine && !v.is_household) ||
+      allVisions.find(v => v.is_active && v.is_household) ||
+      allVisions.find(v => v.is_active) ||
       allVisions.find(v => v.is_mine && !v.is_household) ||
       allVisions[0] ||
       null

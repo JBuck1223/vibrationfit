@@ -25,13 +25,16 @@ interface MergeVisionsToolProps {
     }
   }>
   onSuccess?: () => void
+  /** When set, the caller keeps the new vision on the current page. */
+  onResult?: (visionId: string, isActive: boolean) => void
 }
 
 export function MergeVisionsTool({ 
   onClose, 
   householdId,
   householdMembers,
-  onSuccess 
+  onSuccess,
+  onResult,
 }: MergeVisionsToolProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -92,13 +95,12 @@ export function MergeVisionsTool({
         throw new Error(data.error || 'Failed to merge visions')
       }
 
-      // Success! Navigate to the new vision (draft or active)
       onSuccess?.()
-      if (data.isActive) {
-        router.push(`/life-vision/${data.visionId}`)
-      } else {
-        router.push(`/life-vision/${data.visionId}/draft`)
+      if (onResult) {
+        onResult(data.visionId, Boolean(data.isActive))
+        return
       }
+      router.push(`/life-vision/${data.visionId}`)
     } catch (err: any) {
       console.error('Error merging visions:', err)
       setError(err.message || 'Failed to merge visions')

@@ -68,7 +68,8 @@ export async function POST(request: NextRequest) {
     
     console.log('Commit result:', commitResult)
 
-    // Carry over audio sets/tracks from parent vision (non-blocking)
+    // Reconcile unchanged voice tracks onto a new set for this version.
+    // Mixes stay on the version they were created for.
     if (draft.parent_id) {
       try {
         const { data: carryOverResult, error: carryOverError } = await supabase.rpc(

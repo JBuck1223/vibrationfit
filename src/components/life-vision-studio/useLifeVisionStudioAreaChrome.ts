@@ -20,6 +20,7 @@ export function useLifeVisionStudioAreaChrome(chrome: LifeVisionStudioAreaChrome
     setStudioAreaChrome,
     chrome?.contextEyebrow,
     chrome?.contextText,
+    chrome?.editingVisionId,
     chrome?.walkthrough?.active,
     chrome?.walkthrough?.onToggle,
   ])

@@ -27,19 +27,17 @@ const STORY_SOURCE_FILTERS = [
   { value: 'custom', label: 'Custom', icon: Lightbulb },
 ]
 
-// Two-document model: personal visions ("Life I Choose"), joint household
-// visions ("Life We Choose"), and personal visions shared by other members.
-type VisionKind = 'mine' | 'household' | 'shared'
+// Personal visions ("Life I Choose") and household visions ("Life We Choose").
+// A partner's shared personal vision belongs with Life We Choose.
+type VisionKind = 'mine' | 'household'
 
 const VISION_KIND_LABELS: Record<VisionKind, string> = {
   mine: 'Life I Choose',
   household: 'Life We Choose',
-  shared: 'Shared With Me',
 }
 
 function visionKind(v: VisionData): VisionKind {
-  if (v.household_id || v.is_household) return 'household'
-  if (v.is_mine === false) return 'shared'
+  if (v.household_id || v.is_household || v.is_mine === false) return 'household'
   return 'mine'
 }
 
@@ -96,7 +94,7 @@ export function VisionDropdown({
 
   const kindChips: { key: 'all' | VisionKind; label: string }[] = [
     { key: 'all', label: 'All' },
-    ...(['mine', 'household', 'shared'] as VisionKind[])
+    ...(['mine', 'household'] as VisionKind[])
       .filter(kind => presentKinds.has(kind))
       .map(kind => ({ key: kind, label: VISION_KIND_LABELS[kind] })),
   ]

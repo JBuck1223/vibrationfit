@@ -7,7 +7,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { KitSettings } from './orchestrator'
+import { sanitizeMixNames, sanitizeMixVoiceVolumes, type KitSettings } from './orchestrator'
 
 export interface ActivationKitRow extends KitSettings {
   id: string
@@ -20,7 +20,7 @@ export interface ActivationKitRow extends KitSettings {
 
 export const KIT_SETTINGS_FIELDS: Array<keyof KitSettings> = [
   'include_voice', 'include_mix', 'include_board', 'voice_id',
-  'background_track_id', 'extra_background_track_ids', 'voice_volume', 'bg_volume',
+  'background_track_id', 'extra_background_track_ids', 'mix_names', 'mix_voice_volumes', 'voice_volume', 'bg_volume',
   'binaural_track_id', 'binaural_volume', 'mix_output_format',
 ]
 
@@ -38,6 +38,8 @@ export function kitToSettings(kit: ActivationKitRow | Record<string, unknown>): 
     voice_id: String(kit.voice_id || 'nova'),
     background_track_id: (kit.background_track_id as string | null) || null,
     extra_background_track_ids: extraBackgroundTrackIds(kit as Record<string, unknown>),
+    mix_names: sanitizeMixNames((kit as Record<string, unknown>).mix_names),
+    mix_voice_volumes: sanitizeMixVoiceVolumes((kit as Record<string, unknown>).mix_voice_volumes),
     voice_volume: Number(kit.voice_volume ?? 70),
     bg_volume: Number(kit.bg_volume ?? 30),
     binaural_track_id: (kit.binaural_track_id as string | null) || null,

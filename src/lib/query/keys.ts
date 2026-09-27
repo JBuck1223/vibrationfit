@@ -16,6 +16,7 @@ export const keys = {
   visions: ['visions'] as const,
   household: ['household'] as const,
   householdContext: ['household', 'context'] as const,
+  householdMembers: ['household', 'context', 'members'] as const,
 
   // Profile
   profile: ['profile'] as const,

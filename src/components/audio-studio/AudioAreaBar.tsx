@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useAudioStudio } from './AudioStudioContext'
+import { useMultiMemberHousehold, visionOwnerName } from '@/components/life-vision/useMultiMemberHousehold'
 
 const TABS = [
   { label: 'Listen', path: '/audio', icon: Headphones, dataTour: 'studio-tab-audio-listen' },
@@ -73,6 +74,7 @@ export function AudioAreaBar() {
     storiesWithAudio,
     activeBatchCount,
   } = useAudioStudio()
+  const { data: household } = useMultiMemberHousehold()
   const walkthroughMenu = useAreaBarWalkthrough()
 
   const isListen = LISTEN_AREA_ROUTES.some(r => pathname === r || pathname === r + '/')
@@ -101,16 +103,16 @@ export function AudioAreaBar() {
 
     // Version selectors depend on content type
     if (listenContentType === 'life-vision' && allVisions.length > 1) {
-      // Group the dropdown: personal versions ("Life I Choose"), joint household
-      // versions ("Life We Choose"), then anything shared with you by a member.
+      // Personal versions ("Life I Choose") and household versions ("Life We
+      // Choose"), including a partner's shared personal visions.
       const mine = allVisions.filter(v => v.is_mine !== false && !v.is_household)
-      const household = allVisions.filter(v => v.is_household)
+      const householdVisions = allVisions.filter(v => v.is_household)
       const sharedWithMe = allVisions.filter(v => v.is_mine === false && !v.is_household)
-      const hasGroups = household.length > 0 || sharedWithMe.length > 0
+      const hasGroups = householdVisions.length > 0 || sharedWithMe.length > 0
 
-      const toOption = (v: (typeof allVisions)[number], group?: string) => ({
+      const toOption = (v: (typeof allVisions)[number], group?: string, label?: string) => ({
         id: v.id,
-        label: `Version ${v.version_number}`,
+        label: label ?? `Version ${v.version_number}`,
         sublabel: new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         badge: v.is_active ? 'Active' : undefined,
         isActive: v.is_active,
@@ -124,8 +126,12 @@ export function AudioAreaBar() {
         position: 'contextRow',
         options: [
           ...mine.map(v => toOption(v, hasGroups ? 'Life I Choose' : undefined)),
-          ...household.map(v => toOption(v, 'Life We Choose')),
-          ...sharedWithMe.map(v => toOption(v, 'Shared With Me')),
+          ...householdVisions.map(v => toOption(v, 'Life We Choose')),
+          ...sharedWithMe.map(v => toOption(
+            v,
+            'Life We Choose',
+            `Version ${v.version_number} · ${visionOwnerName(household?.members, v.user_id)}`,
+          )),
         ],
         selectedId: vision?.id || '',
         onSelect: (id: string) => switchVision(id),

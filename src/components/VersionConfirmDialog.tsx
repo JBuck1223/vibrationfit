@@ -1,6 +1,9 @@
 'use client'
 
+'use client'
+
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { Button, Card } from '@/lib/design-system/components'
 import { AlertTriangle, CheckCircle, Save, GitBranch } from 'lucide-react'
 
@@ -83,8 +86,8 @@ export const VersionConfirmDialog: React.FC<VersionConfirmDialogProps> = ({
 
   const content = getDialogContent()
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  const dialog = (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
       <Card className="max-w-md w-full p-6">
         <div className="text-center">
           <div className="flex justify-center mb-4">
@@ -132,6 +135,9 @@ export const VersionConfirmDialog: React.FC<VersionConfirmDialogProps> = ({
       </Card>
     </div>
   )
+
+  if (typeof document === 'undefined') return dialog
+  return createPortal(dialog, document.body)
 }
 
 export default VersionConfirmDialog
