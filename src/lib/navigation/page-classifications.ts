@@ -290,10 +290,11 @@ export const PAGE_CLASSIFICATIONS = {
     // free session created at email capture)
     '/activation',
     '/activation/home',              // Redirects to / (promoted front door)
-    '/activation/start',             // Redirects to /free-activation
+    '/activation/start',             // Redirects to /free-activation/start
     '/activation/experience',
     '/activation/[id]',
-    '/free-activation',              // Social / attraction-offer opt-in
+    '/free-activation',              // Free-activation landing (homepage layout, free card)
+    '/free-activation/start',        // Opt-in form. Homepage links here.
     '/join',                         // Paid-only membership landing page
     
     // Authentication

@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import {
   FREE_ACTIVATION_CTA_LABEL,
   FREE_ACTIVATION_HREF,
+  FREE_ACTIVATION_START_CTA,
   MEMBERSHIP_CHECKOUT_HREF,
   MEMBERSHIP_CTA_LABEL,
 } from '@/lib/marketing/public-offer'
@@ -16,17 +17,30 @@ export function DualPathCtas({
   className = '',
   align = 'center',
   paidOnly = false,
+  freeOnly = false,
 }: {
   className?: string
   align?: 'center' | 'start'
   paidOnly?: boolean
+  freeOnly?: boolean
 }) {
+  const rowClass = `flex flex-col items-stretch gap-3 ${
+    align === 'start' ? 'md:items-start' : 'md:items-center'
+  } ${className}`
+
+  if (freeOnly) {
+    return (
+      <div className={rowClass}>
+        <a href={FREE_ACTIVATION_HREF} className={primaryClass}>
+          {FREE_ACTIVATION_START_CTA}
+          <ArrowRight className="h-4 w-4 shrink-0" />
+        </a>
+      </div>
+    )
+  }
+
   return (
-    <div
-      className={`flex flex-col items-stretch gap-3 ${
-        align === 'start' ? 'md:items-start' : 'md:items-center'
-      } ${className}`}
-    >
+    <div className={rowClass}>
       <a href={MEMBERSHIP_CHECKOUT_HREF} className={primaryClass}>
         {MEMBERSHIP_CTA_LABEL}
         <ArrowRight className="h-4 w-4 shrink-0" />

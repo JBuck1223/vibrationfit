@@ -9,15 +9,18 @@ the proof that VIVA can take someone from contrast to a chosen reality.
 Never external results or guaranteed manifestation.
 
 Admin step inspector: `/admin/activation`. Member-facing copy lives in
-`src/lib/activation/copy.ts`. The free opt-in is `/free-activation` (one
-headline, one form, one CTA). `/activation` and `/activation/start` redirect
-there. Mixed-intent front door is `/` (paid primary, free secondary). Paid-only
+`src/lib/activation/copy.ts`. `/free-activation` is the free landing (homepage
+layout, free Activation card under the hero). The opt-in form is
+`/free-activation/start`. `/activation` redirects to the landing.
+`/activation/start` redirects to the form. Mixed-intent front door is `/`
+(paid primary, free secondary linking to `/free-activation/start`). Paid-only
 ad page is `/join`. `/activation/home` redirects to `/`.
 
 ## User flow
 
 ```
-/free-activation       Opt-in (first name + email) → free account + branded resume email
+/free-activation       Free landing. Card and CTAs link to /free-activation/start
+/free-activation/start Opt-in (first name + email) → free account + branded resume email
 /activation/experience Orientation (Start My Activation) → pick one life category
                        → bounded VIVA chat in that area → Create My Activation
 /activation/[id]       Preview (checklist only) → Enter My Activation (opened)
@@ -56,9 +59,8 @@ page before the card is added.
 | `offer_video_viewed` | Offer section entered the viewport once | client track |
 | `converted_to_paid` | Checkout fulfillment when the user has an Activation | Stripe webhook / fulfillment |
 
-There is **no commitment step**. `inspired_next_step` is optional, offered after
-entry, and is never called a commitment or MAP. The offer is not shown until
-`entered`.
+There is **no commitment step** and no inspired-thought prompt on Immersion.
+The offer is not shown until `entered`.
 
 ## Architecture
 

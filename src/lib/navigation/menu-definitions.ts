@@ -183,6 +183,18 @@ export const userNavigationGroups: NavGroup[] = [
     defaultCollapsed: false,
     items: [
       {
+        name: 'Audio',
+        href: '/audio',
+        icon: Headphones,
+        description: 'Key AM/PM/Sleep audio sets',
+      },
+      {
+        name: 'Songs',
+        href: '/audio/songs',
+        icon: Music2,
+        description: 'My songs',
+      },
+      {
         name: 'Stories',
         href: '/story',
         icon: Library,
@@ -195,22 +207,10 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Spoken force statements',
       },
       {
-        name: 'SparkQueries',
+        name: 'Spark Theories',
         href: '/story?kind=spark_query',
         icon: Lightbulb,
         description: 'SparkQuery teaching questions',
-      },
-      {
-        name: 'Audio',
-        href: '/audio',
-        icon: Headphones,
-        description: 'Key AM/PM/Sleep audio sets',
-      },
-      {
-        name: 'Songs',
-        href: '/audio/songs',
-        icon: Music2,
-        description: 'My songs',
       },
     ],
   },

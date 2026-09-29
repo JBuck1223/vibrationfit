@@ -19,6 +19,7 @@ import { PlatformScreens } from '@/components/marketing/home/PlatformScreens'
 import { ChooseActivateAlign, VibrationalFitness } from '@/components/marketing/home/graphics'
 import { DualPathCtas } from '@/components/marketing/home/DualPathCtas'
 import { MembershipBuyBox } from '@/components/marketing/home/MembershipBuyBox'
+import { ActivationOfferCard } from '@/components/marketing/home/ActivationOfferCard'
 import { HOME_PROOF_SCREENSHOTS, HOME_PROOF_VIDEOS } from '@/components/marketing/home/social-proof-data'
 import { SocialProofSection } from '@/lib/design-system/components'
 import { ReceiptsSection } from '@/components/marketing/home/ReceiptsSection'
@@ -85,13 +86,19 @@ const NOT_YET = [
   'You’re already convinced this won’t work for you.',
 ]
 
-export function HomeFrontDoor({ paidOnly = false }: { paidOnly?: boolean } = {}) {
+export function HomeFrontDoor({
+  paidOnly = false,
+  freeOnly = false,
+}: {
+  paidOnly?: boolean
+  freeOnly?: boolean
+} = {}) {
   const Ctas = (props: { className?: string; align?: 'center' | 'start' }) => (
-    <DualPathCtas {...props} paidOnly={paidOnly} />
+    <DualPathCtas {...props} paidOnly={paidOnly} freeOnly={freeOnly} />
   )
 
   return (
-    <div className={`${display.variable} -mx-4 -mt-6 overflow-x-clip sm:-mx-6 md:-mx-6 md:-my-12 md:overflow-x-visible lg:-mx-8 lg:-mt-8`} data-home={paidOnly ? 'join' : 'front-door'}>
+    <div className={`${display.variable} -mx-4 -mt-6 overflow-x-clip sm:-mx-6 md:-mx-6 md:-my-12 md:overflow-x-visible lg:-mx-8 lg:-mt-8`} data-home={freeOnly ? 'free-activation' : paidOnly ? 'join' : 'front-door'}>
       <header className="hp-hero-glow" data-hero={paidOnly ? 'vision-pro' : 'activation-offer'}>
         <Container size="xl" className="px-4 py-12 md:px-10 md:pb-20 md:pt-14">
           <Display as="h1" className="hp-hero-headline">
@@ -103,20 +110,22 @@ export function HomeFrontDoor({ paidOnly = false }: { paidOnly?: boolean } = {})
             <HeroPreviewVideo
               src={ACTIVATION_OFFER_VIDEO.src}
               poster={ACTIVATION_OFFER_VIDEO.poster}
-              trackingId={paidOnly ? 'join-hero-video' : 'home-hero-video'}
+              trackingId={freeOnly ? 'free-activation-hero-video' : paidOnly ? 'join-hero-video' : 'home-hero-video'}
             />
           </div>
           <Ctas className="mt-10" />
           <p className="mt-4 text-center text-sm text-neutral-500">
-            {paidOnly
-              ? 'Vision Pro is $99 every 28 days. Charged today. Cancel anytime.'
-              : 'Membership is $99 every 28 days. The Free Activation never asks for a card.'}
+            {freeOnly
+              ? 'No credit card required. Takes 10–15 minutes.'
+              : paidOnly
+                ? 'Vision Pro is $99 every 28 days. Charged today. Cancel anytime.'
+                : 'Membership is $99 every 28 days. The Free Activation never asks for a card.'}
           </p>
         </Container>
       </header>
 
       <Section>
-        <SectionMedia graphic={<MembershipBuyBox id="pricing" />}>
+        <SectionMedia graphic={freeOnly ? <ActivationOfferCard /> : <MembershipBuyBox id="pricing" />}>
           <Eyebrow className="lg:text-left">The Short Version</Eyebrow>
           <Display className="lg:text-left">How Vibration Fit Works</Display>
           <Body>
@@ -501,9 +510,11 @@ export function HomeFrontDoor({ paidOnly = false }: { paidOnly?: boolean } = {})
             Ready when <Accent>you are.</Accent>
           </Display>
           <p className="mx-auto mt-6 max-w-xl text-center text-lg leading-[1.7] text-neutral-300">
-            {paidOnly
-              ? 'Start Vision Pro today. $99 every 28 days.'
-              : 'Start membership now, or try a Free Activation first.'}
+            {freeOnly
+              ? 'Create your free Activation. No credit card. About 10 to 15 minutes.'
+              : paidOnly
+                ? 'Start Vision Pro today. $99 every 28 days.'
+                : 'Start membership now, or try a Free Activation first.'}
           </p>
           <Ctas className="mt-10" />
         </div>

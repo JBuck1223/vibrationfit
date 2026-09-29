@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateCoreAssets, type ActivationRow } from '@/lib/activation/orchestrator'
+import { isIntakeReady } from '@/lib/activation/intake-markers'
 import { recordActivationEvent } from '@/lib/activation/events'
 
 export const maxDuration = 300
@@ -36,7 +37,7 @@ export async function POST(
     if (!activation) return NextResponse.json({ error: 'Activation not found' }, { status: 404 })
 
     const row = activation as ActivationRow
-    if (!row.current_state?.trim() || !row.dream_response?.want?.trim() || !row.category) {
+    if (!row.intake_ready_at && !isIntakeReady(row)) {
       return NextResponse.json({ error: 'VIVA still needs a little more from your conversation' }, { status: 400 })
     }
 

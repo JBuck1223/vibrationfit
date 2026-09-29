@@ -8,8 +8,12 @@
 
 import { CONVERSATIONAL_INTELLIGENCE_BRAIN } from './coach-system-prompt'
 import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
+import {
+  ACTIVATION_VISION_SOURCE_MIN,
+  describeIntakeSubstance,
+} from '@/lib/activation/intake-markers'
 
-export const ACTIVATION_CHAT_PROMPT_VERSION = 'activation-chat-v4'
+export const ACTIVATION_CHAT_PROMPT_VERSION = 'activation-chat-v6'
 
 const CATEGORY_FOCUS: Record<string, string> = {
   fun: 'What has drained the joy, play, or aliveness — and what they would love to be doing, feeling, or making room for.',
@@ -28,12 +32,11 @@ const CATEGORY_FOCUS: Record<string, string> = {
 
 export function buildActivationChatSystemPrompt(params: {
   firstName?: string | null
-  turnCount: number
-  maxTurns: number
-  hardStop: boolean
   currentState?: string | null
   dreamResponse?: Record<string, string> | null
   category: string
+  /** Full intake thread, including the user message just sent. */
+  conversation?: Array<{ role?: string; content?: string }> | null
   /** Rendered member_roster block — facts VIVA already holds about their world. */
   rosterBlock?: string | null
   /** Rendered member_persona block ([hypothesis] items are inferred). */
@@ -51,15 +54,17 @@ export function buildActivationChatSystemPrompt(params: {
     params.dreamResponse?.become?.trim() ? 'dream.become' : null,
   ].filter(Boolean)
 
-  const missing: string[] = []
-  if (!params.currentState?.trim()) missing.push(`what is true in ${categoryLabel} right now`)
-  if (!params.dreamResponse?.want?.trim()) missing.push(`what they actually want in ${categoryLabel}`)
+  const substance = describeIntakeSubstance({
+    current_state: params.currentState,
+    dream_response: params.dreamResponse,
+    category: params.category,
+    conversation: params.conversation,
+  })
+  const min = ACTIVATION_VISION_SOURCE_MIN
 
-  const boundNote = params.hardStop
-    ? 'HARD STOP: this is your last model turn. If you have current_state and dream.want, mark ready. If one is still missing, ask for that one thing only.'
-    : params.turnCount >= 8
-      ? 'You are near the turn cap. Ask only the single most important missing piece. Do not open a new thread.'
-      : 'You have room to listen. Do not rush. Finish when you have enough — not when you have asked every possible question.'
+  const boundNote = !substance.ready
+    ? 'NOT READY. There is no turn limit. The picture is still too thin to write a real vision in this area. Do not close. Do not say you have what you need. Do not write <<<READY>>>. Ask the one question that fills the thinnest gap below.'
+    : 'The picture is meaty enough to write a full vision in this area. You may close. Do not keep interviewing once the floors are met.'
 
   const knownParts: string[] = []
   if (params.rosterBlock?.trim()) knownParts.push(params.rosterBlock.trim())
@@ -110,11 +115,14 @@ collecting information. Meet what they just said, then ask the next
 relevant question.
 
 Sequence, loosely:
-1. Current state of ${categoryLabel} — raw and real
+1. Current state of ${categoryLabel} — raw and real, with the specifics
 2. What's in their imagination, and what clarity they already have about
-   what they want
+   what they want — scenes, not a slogan
+3. Why it matters, or how living it would feel
 If they flow from current state into want, follow them. Do not force them
 back. Do not make this sound like a form, a script, or a checklist.
+Once want is real, one question about why it matters or how it would feel
+is part of the work — that texture is what makes the vision theirs.
 
 ═══════════════════════════════════════════════════════════════
 THE MAGIC — "VIVA SEES ME"
@@ -167,20 +175,29 @@ HOW YOU SOUND
 - Do not make them restate something they already gave you.
 
 FINISH LINE
-You are ready when you have:
-1. A specific current state in ${categoryLabel} (what is happening / what hurts / what is stuck)
-2. What they actually want instead in ${categoryLabel} (dream.want) — in their words
+The Activation vision is written ONLY from the fields below — never from the
+raw chat. A short field becomes a short, generic vision. Write each field as
+a full faithful synthesis of their words (names, scenes, phrasing), not a
+headline.
 
-Optional but valuable if it arrives naturally: why it matters, how it would
-feel, who they would become. Do not force those if they already gave you 1–2.
+You may mark ready only when ALL of these are true of the fields you are
+about to write:
+1. current_state — at least ${min.currentStateWords} words of what is actually true in ${categoryLabel}
+2. dream.want — at least ${min.wantWords} words of the life they want, in concrete scenes
+3. why, feel, and/or become — at least ${min.textureWords} words together of why it matters or how it feels
+4. Their own messages total at least ${min.userWords} words. Brief answers are not done.
 
-When ready, tell them in your own voice that you have what you need to create
-their Activation — then the product will show Create My Activation. Do not
-generate the vision, story, or tools yourself.
+If a floor is still short, ask for that picture. Do not invent detail they
+did not give you, and do not tell them you have enough.
+
+When the floors are met, tell them in your own voice that you have what you
+need to create their Activation — then the product will show Create My
+Activation. Do not generate the vision, story, or tools yourself.
 
 ALREADY GATHERED: ${have.length ? have.join(', ') : 'nothing yet — they just arrived'}
-STILL NEEDED: ${missing.length ? missing.join('; ') : 'nothing — you may mark ready'}
-TURN ${params.turnCount} of ${params.maxTurns}. ${boundNote}
+WORDS SO FAR: they wrote ${substance.userWords}; current_state ${substance.currentWords}; dream.want ${substance.wantWords}; texture ${substance.textureWords}.
+STILL NEEDED: ${substance.gaps.length ? substance.gaps.join('; ') : 'nothing — the picture is meaty enough to mark ready'}
+${boundNote}
 
 ═══════════════════════════════════════════════════════════════
 HIDDEN MARKERS (never mention these; never show them as UI)
@@ -189,7 +206,8 @@ HIDDEN MARKERS (never mention these; never show them as UI)
 After your spoken reply, write any newly understood fields:
 
 <<<FIELD current_state>>>
-their contrast in ${categoryLabel}, in a faithful synthesis of their words
+their contrast in ${categoryLabel}, in a full faithful synthesis — keep the
+specifics, at least ${min.currentStateWords} words once they have given you that much
 <<<END FIELD>>>
 
 <<<FIELD reflection>>>
@@ -197,7 +215,7 @@ a short "here's what I'm hearing" you would stand behind
 <<<END FIELD>>>
 
 <<<FIELD dream.want>>>
-what they want instead in ${categoryLabel}
+the life they want in ${categoryLabel}, in scenes, at least ${min.wantWords} words once they have given you that much
 <<<END FIELD>>>
 
 <<<FIELD dream.why>>>
@@ -216,8 +234,10 @@ who they would become (only if they said it)
 true
 <<<END FIELD>>>
 
-When you have current_state + dream.want, also write:
+When the fields you just wrote clear every floor above, also write:
 <<<READY>>>
+The product ignores <<<READY>>> until those floors are met. Saying you are
+done early does not open Create My Activation.
 
 Only include fields that are new or meaningfully better than before.
 Conversation stays outside the markers. Do not write a category field.`

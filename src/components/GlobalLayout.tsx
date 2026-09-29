@@ -358,7 +358,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   // Auth pages: reduced top padding so content sits at top (design system spacing)
   const isAuthPage = pathname?.startsWith('/auth')
   const isCheckoutPage = pathname?.startsWith('/checkout')
-  const isFreeActivation = pathname === '/free-activation'
+  const isFreeActivation = pathname === '/free-activation/start'
   const isActivationExperience = pathname?.startsWith('/activation/experience')
   const hideHeaderFooter = isAuthPage || isCheckoutPage || isFreeActivation
   const pageLayoutClass = isAuthPage

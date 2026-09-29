@@ -45,7 +45,7 @@ const STEPS: InspectorStep[] = [
     label: 'Opt-in',
     group: 'Public',
     source: ACTIVATION_COPY.optIn.source,
-    notes: 'Dedicated /free-activation page. One headline, one form, one CTA. /activation redirects here.',
+    notes: 'Landing is /free-activation (homepage layout, free card under the hero). The form is /free-activation/start. /activation redirects to the landing. /activation/start redirects to the form.',
   },
   {
     id: 'email-capture',
@@ -101,7 +101,7 @@ const STEPS: InspectorStep[] = [
     label: 'Immersion',
     group: 'Delivery',
     source: ACTIVATION_COPY.immersion.source,
-    notes: 'Simple header + how-to video slot, activation map, assets with audio in each container. No offer yet.',
+    notes: 'Header, activation map, and assets with audio in each container. No offer yet.',
   },
   {
     id: 'offer',
@@ -215,7 +215,7 @@ export default function AdminActivationInspectorPage() {
 
               {stepId === 'email-capture' && (
                 <div className="px-4 py-8">
-                  <ActivationStartForm previewState="form" landingPage="/free-activation" />
+                  <ActivationStartForm previewState="form" landingPage="/free-activation/start" />
                 </div>
               )}
 
@@ -298,11 +298,8 @@ export default function AdminActivationInspectorPage() {
                       status: 'entered',
                       opened_at: new Date().toISOString(),
                       entered_at: new Date().toISOString(),
-                      inspired_next_step: sample.inspiredStep,
                     }}
                     assets={SAMPLE_ASSETS}
-                    inspiredStep={sample.inspiredStep}
-                    inspiredSaved
                     hideStickyCta
                   />
                 </div>
@@ -322,9 +319,9 @@ function LandingInspector() {
       <Stack gap="md">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-sm text-white font-medium">Free Activation opt-in</p>
+            <p className="text-sm text-white font-medium">Free Activation landing</p>
             <p className="text-xs text-neutral-500 mt-1">
-              Dedicated capture page. Open the live URL to review the chrome-stripped layout.
+              Homepage layout with the free card under the hero. The form below is the /free-activation/start capture page.
             </p>
           </div>
           <div className="flex flex-col items-start gap-2 sm:items-end">
@@ -334,6 +331,14 @@ function LandingInspector() {
               className="inline-flex items-center gap-1.5 text-sm text-[#39FF14] hover:underline"
             >
               Open {landing.route}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              href={ACTIVATION_COPY.optIn.route}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white hover:underline"
+            >
+              Start form {ACTIVATION_COPY.optIn.route}
               <ExternalLink className="h-3.5 w-3.5" />
             </Link>
             <Link
