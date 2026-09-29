@@ -255,6 +255,21 @@ export const ACTIVATION_COPY = {
     images: 'Vision Board',
     imagesHint: 'Look at the pictures. Let this life become familiar.',
     creating: 'Creating',
+    creatingAudioLines: [
+      'Recording this in the voice you chose.',
+      'Shaping your words so you can hear them.',
+      'Almost ready to play.',
+    ],
+    creatingSongLines: [
+      'Composing your song from this vision.',
+      'Setting it in the genre you picked.',
+      'Almost ready to play.',
+    ],
+    creatingBoardLines: [
+      'Painting the scenes from your vision.',
+      'Bringing each picture into focus.',
+      'Almost ready to look at.',
+    ],
     ready: 'Ready',
     failedLabel: 'Failed',
     failed: 'This piece needs another moment. Try again.',

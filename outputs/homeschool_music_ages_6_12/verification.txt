@@ -1,0 +1,22 @@
+{
+  "lessonCount": 108,
+  "levelCounts": [
+    [
+      "Level 1 — Discover",
+      36
+    ],
+    [
+      "Level 2 — Build",
+      36
+    ],
+    [
+      "Level 3 — Create & Lead",
+      36
+    ]
+  ],
+  "checks": {
+    "map": "{\"kind\":\"table\",\"sheet\":\"108-Lesson Map\",\"address\":\"A1:G12\",\"rows\":12,\"cols\":7,\"values\":[[\"Program Lesson\",\"Level\",\"Level Lesson\",\"Unit #\",\"Unit Theme\",\"Learning Arc\",\"Lesson Title\"],[1,\"Level 1 — Discover\",1,\"Unit 1\",\"Music Is Everywhere\",\"Explore\",\"Explore: Music Is Everywhere\"],[2,\"Level 1 — Discover\",2,\"Unit 1\",\"Music Is Everywhere\",\"Build\",\"Build: Music Is Everywhere\"],[3,\"Level 1 — Discover\",3,\"Unit 1\",\"Music Is Everywhere\",\"Apply\",\"Apply: Music Is Everywhere\"],[4,\"Level 1 — Discover\",4,\"Unit 1\",\"Music Is Everywhere\",\"Create\",\"Create: Music Is Everywhere\"],[5,\"Level 1 — Discover\",5,\"Unit 1\",\"Music Is Everywhere\",\"Ensemble\",\"Ensemble: Music Is Everywhere\"],[6,\"Level 1 — Discover\",6,\"Unit 1\",\"Music Is Everywhere\",\"Mastery\",\"Mastery: Music Is Everywhere\"],[7,\"Level 1 — Discover\",7,\"Unit 2\",\"Pulse & Rhythm Builders\",\"Explore\",\"Explore: Pulse & Rhythm Builders\"],[8,\"Level 1 — Discover\",8,\"Unit 2\",\"Pulse & Rhythm Builders\",\"Build\",\"Build: Pulse & Rhythm Builders\"],[9,\"Level 1 — Discover\",9,\"Unit 2\",\"Pulse & Rhythm Builders\",\"Apply\",\"Apply: Pulse & Rhythm Builders\"],[10,\"Level 1 — Discover\",10,\"Unit 2\",\"Pulse & Rhythm Builders\",\"Create\",\"Create: Pulse & Rhythm Builders\"],[11,\"Level 1 — Discover\",11,\"Unit 2\",\"Pulse & Rhythm Builders\",\"Ensemble\",\"Ensemble: Pulse & Rhythm Builders\"]]}",
+    "rubric": "{\"kind\":\"table\",\"sheet\":\"Mastery Rubrics\",\"address\":\"A1:G17\",\"rows\":17,\"cols\":7,\"values\":[[\"Mastery Rubrics — Use at Lessons 36, 72, and 108\",null,null,null,null,null,null],[null,null,null,null,null,null,null],[\"Dimension\",\"1 — Beginning\",\"2 — Developing\",\"3 — Secure\",\"4 — Extending\",\"Evidence to Save\",\"Applies At\"],[\"Pulse & Rhythm\",\"Needs continuous model\",\"Keeps short sections\",\"Maintains part independently\",\"Uses variation while preserving groove\",\"Audio/video clip\",\"All levels\"],[\"Pitch & Accuracy\",\"Finds some targets\",\"Corrects with prompts\",\"Plays intended patterns accurately\",\"Adjusts intonation/voicing independently\",\"Performance excerpt\",\"All levels\"],[\"Technique & Tone\",\"Needs setup support\",\"Uses healthy habits inconsistently\",\"Uses efficient motion and clear tone\",\"Adapts technique to expressive purpose\",\"Teacher/parent observation\",\"All levels\"],[\"Expression\",\"Uses one sound quality\",\"Shows contrast when prompted\",\"Shapes dynamics, articulation, or phrasing\",\"Defends nuanced interpretive choices\",\"Marked plan + recording\",\"Levels 2–3\"],[\"Creativity\",\"Copies a model\",\"Changes one element\",\"Creates a coherent original idea\",\"Develops, revises, and notates ideas\",\"Draft and final version\",\"All levels\"],[\"Ensemble Skills\",\"Loses part without leader\",\"Coordinates with reminders\",\"Listens, enters, balances, and recovers\",\"Leads rehearsal and supports others\",\"Group recording\",\"All levels\"],[\"Reflection & Ownership\",\"Names like/dislike\",\"Names a strength\",\"Uses evidence to set a next goal\",\"Plans practice and mentors others\",\"Learner reflection\",\"All levels\"],[null,null,null,null,null,null,null],[\"Suggested advancement: mostly 3s in the level’s priority dimensions, no safety/technique concern, and a completed mastery demonstration. Scores guide teaching; they are not grades.\",null,null,null,null,null,null],[null,null,null,null,null,null,null],[\"Checkpoint\",\"Priority Dimensions\",\"Required Artifact\",\"Learner Prompt\",\"Adult Prompt\",null,null],[\"Level 1 / Lesson 36\",\"Pulse, technique, creativity, ensemble\",\"8–16 beat performance + reflection\",\"What can you do now that felt hard before?\",\"Where did independence emerge?\",null,null],[\"Level 2 / Lesson 72\",\"Accuracy, expression, creativity, ensemble\",\"16–32 measure/equivalent performance\",\"What did you revise, and why?\",\"What evidence shows readiness for less coaching?\",null,null],[\"Level 3 / Lesson 108\",\"All seven dimensions\",\"3–5 minute led capstone + portfolio\",\"How does this project show your musical voice?\",\"How did the learner plan, adapt, and lead?\",null,null]]}",
+    "errors": "{\"kind\":\"notice\",\"message\":\"Cell search matched 0 entries.\"}"
+  }
+}

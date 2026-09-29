@@ -134,6 +134,149 @@ function ActivationPlayBeacon({
   return null
 }
 
+const CREATING_WAVE = [0.35, 0.62, 0.9, 0.48, 0.78, 1, 0.55, 0.84, 0.42, 0.7, 0.95, 0.5, 0.8, 0.38, 0.66, 0.92, 0.58, 0.74]
+
+function useCreatingProgress(estimatedMs: number) {
+  const started = useRef(Date.now())
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    const tick = () => setElapsed(Date.now() - started.current)
+    tick()
+    const id = window.setInterval(tick, 200)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const t = Math.min(elapsed / estimatedMs, 1)
+  const eased = 1 - Math.pow(1 - t, 3)
+  const progress = t < 1
+    ? 8 + eased * 84
+    : 92 + Math.min((elapsed - estimatedMs) / 90000, 1) * 6
+
+  return { progress, elapsed }
+}
+
+function CreatingStage({
+  kind,
+  color,
+  lines,
+  estimatedMs,
+}: {
+  kind: 'player' | 'song' | 'board'
+  color: string
+  lines: readonly string[]
+  estimatedMs: number
+}) {
+  const { progress, elapsed } = useCreatingProgress(estimatedMs)
+  const line = lines[Math.min(lines.length - 1, Math.floor(elapsed / 6000))] || lines[0]
+
+  const bar = (
+    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+      <div
+        className="h-full rounded-full transition-[width] duration-200 ease-out"
+        style={{
+          width: `${progress}%`,
+          background: `linear-gradient(90deg, ${color}99, ${color})`,
+          boxShadow: `0 0 18px ${color}`,
+        }}
+      />
+    </div>
+  )
+
+  const waveform = (
+    <div className="flex h-16 items-end justify-center gap-1" aria-hidden>
+      {CREATING_WAVE.map((peak, i) => (
+        <span
+          key={i}
+          className="w-1.5 origin-bottom rounded-full"
+          style={{
+            height: `${Math.round(peak * 64)}px`,
+            backgroundColor: color,
+            opacity: 0.35 + peak * 0.65,
+            animation: 'activation-creating-bar 1.15s ease-in-out infinite',
+            animationDelay: `${(i % 7) * 0.12}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+
+  if (kind === 'board') {
+    return (
+      <div role="status" aria-live="polite" className="space-y-4">
+        <CreatingKeyframes />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="relative aspect-[4/3] overflow-hidden rounded-xl border border-white/10 bg-black/50"
+            >
+              <div
+                className="absolute inset-y-0 w-1/2"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${color}33, transparent)`,
+                  animation: 'activation-creating-sweep 2.4s ease-in-out infinite',
+                  animationDelay: `${i * 0.35}s`,
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        {bar}
+        <p className="text-center text-sm text-neutral-300">{line}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={kind === 'player' ? 'mx-auto w-full max-w-md' : 'w-full'}
+    >
+      <CreatingKeyframes />
+      <div
+        className="rounded-2xl border bg-black/50 px-5 py-6"
+        style={{
+          borderColor: `${color}55`,
+          boxShadow: `0 0 36px ${color}22`,
+        }}
+      >
+        {kind === 'song' && (
+          <div className="relative mx-auto mb-5 aspect-square w-40 overflow-hidden rounded-xl border border-white/10 bg-black/60">
+            <div
+              className="absolute inset-y-0 w-1/2"
+              style={{
+                background: `linear-gradient(90deg, transparent, ${color}44, transparent)`,
+                animation: 'activation-creating-sweep 2.2s ease-in-out infinite',
+              }}
+            />
+            <Music className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-white/30" />
+          </div>
+        )}
+        {waveform}
+        <div className="mt-5">{bar}</div>
+        <p className="mt-3 text-center text-sm text-neutral-200">{line}</p>
+      </div>
+    </div>
+  )
+}
+
+function CreatingKeyframes() {
+  return (
+    <style>{`
+      @keyframes activation-creating-bar {
+        0%, 100% { transform: scaleY(0.28); }
+        50% { transform: scaleY(1); }
+      }
+      @keyframes activation-creating-sweep {
+        0% { transform: translateX(-130%); }
+        100% { transform: translateX(280%); }
+      }
+    `}</style>
+  )
+}
+
 function SpokenAudio({
   track,
   title,
@@ -142,6 +285,7 @@ function SpokenAudio({
   onRetry,
   retrying,
   mapActivityType,
+  color,
 }: {
   track?: { id: string; audio_url: string; duration_seconds: number; section_key: string }
   title: string
@@ -150,6 +294,7 @@ function SpokenAudio({
   onRetry?: () => void
   retrying?: boolean
   mapActivityType: 'vision_audio' | 'story_audio'
+  color: string
 }) {
   const copy = ACTIVATION_COPY.immersion
   if (track) {
@@ -186,9 +331,12 @@ function SpokenAudio({
   }
   if (generating) {
     return (
-      <span className="flex items-center gap-1.5 text-xs text-neutral-400">
-        <Spinner size="sm" /> {copy.creating}
-      </span>
+      <CreatingStage
+        kind="player"
+        color={color}
+        lines={copy.creatingAudioLines}
+        estimatedMs={40000}
+      />
     )
   }
   return null
@@ -424,6 +572,7 @@ export function ActivationDelivery({
             onRetry={onRetryEnrich}
             retrying={retrying}
             mapActivityType="vision_audio"
+            color="#39FF14"
           />
         }
       >
@@ -452,6 +601,7 @@ export function ActivationDelivery({
               onRetry={onRetryEnrich}
               retrying={retrying}
               mapActivityType="story_audio"
+              color="#00FFFF"
             />
           }
         >
@@ -875,8 +1025,19 @@ function SongSection({
           color="#FF4D8D"
           title={copy.song}
           hint={copy.songHint}
-          status={<EnrichmentStatus ready={ready} failed={failed} copy={copy} />}
+          status={ready || failed ? <EnrichmentStatus ready={ready} failed={failed} copy={copy} /> : undefined}
         />
+        {playerTracks.length === 0 && !failed && (
+          <div className={plainLyrics ? 'grid gap-4 lg:grid-cols-2 lg:items-start' : undefined}>
+            <CreatingStage
+              kind="song"
+              color="#FF4D8D"
+              lines={copy.creatingSongLines}
+              estimatedMs={90000}
+            />
+            {plainLyrics ? <PlainLyricsDisplay lyrics={plainLyrics} /> : null}
+          </div>
+        )}
         {playerTracks.length > 0 && (
           <>
             <ActivationPlayBeacon
@@ -902,7 +1063,7 @@ function SongSection({
             </div>
           </>
         )}
-        {playerTracks.length === 0 && plainLyrics && (
+        {playerTracks.length === 0 && failed && plainLyrics && (
           <PlainLyricsDisplay lyrics={plainLyrics} />
         )}
         {failed && (
@@ -945,8 +1106,16 @@ function BoardSection({
           color="#00FFFF"
           title={copy.images}
           hint={copy.imagesHint}
-          status={<EnrichmentStatus ready={ready} failed={failed} copy={copy} />}
+          status={ready || failed ? <EnrichmentStatus ready={ready} failed={failed} copy={copy} /> : undefined}
         />
+        {!ready && !failed && (
+          <CreatingStage
+            kind="board"
+            color="#00FFFF"
+            lines={copy.creatingBoardLines}
+            estimatedMs={45000}
+          />
+        )}
         {ready && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {manifestations.filter((m) => m.image_url).map((m) => (
