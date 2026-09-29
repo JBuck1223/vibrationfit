@@ -5,7 +5,6 @@ import {
   Button,
   Stack,
   Text,
-  Textarea,
   Spinner,
   AudioPlayer,
   EmbeddedPlayer,
@@ -24,7 +23,6 @@ import {
   Download,
   HelpCircle,
   Images,
-  Lightbulb,
   Map,
   Mic,
   Music,
@@ -33,7 +31,7 @@ import {
 } from 'lucide-react'
 import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 import { ACTIVATION_COPY } from '@/lib/activation/copy'
-import { ACTIVATION_HOW_TO_VIDEO, ACTIVATION_IMMERSION_OFFER_VIDEO } from '@/lib/activation/videos'
+import { ACTIVATION_IMMERSION_OFFER_VIDEO } from '@/lib/activation/videos'
 import { toast } from 'sonner'
 import { ActivationMediaPick } from '@/components/activation/ActivationMediaPick'
 import type { ActivationGenreId, ActivationVoiceId } from '@/lib/activation/media-options'
@@ -202,10 +200,6 @@ export function ActivationDelivery({
   assets,
   onEnter,
   entering,
-  inspiredStep,
-  inspiredSaved,
-  onInspiredChange,
-  onInspiredSave,
   onTrack,
   onRetryEnrich,
   retrying,
@@ -216,10 +210,6 @@ export function ActivationDelivery({
   assets: DeliveryAssets
   onEnter?: (choices: { voiceId: ActivationVoiceId; genreId: ActivationGenreId }) => void
   entering?: boolean
-  inspiredStep?: string
-  inspiredSaved?: boolean
-  onInspiredChange?: (value: string) => void
-  onInspiredSave?: () => void
   onTrack?: (eventType: string, eventData?: Record<string, unknown>) => void
   onRetryEnrich?: () => void
   retrying?: boolean
@@ -411,12 +401,6 @@ export function ActivationDelivery({
           ) : null}
           Activation
         </h1>
-        <VideoSlot
-          label={copy.heroVideoLabel}
-          src={ACTIVATION_HOW_TO_VIDEO.src}
-          poster={ACTIVATION_HOW_TO_VIDEO.poster}
-          trackingId="activation-how-to-enter"
-        />
       </div>
 
       <ActivationMap copy={copy} />
@@ -556,37 +540,6 @@ export function ActivationDelivery({
               )}
             </Button>
           </div>
-        </Stack>
-      </DeliverySurface>
-
-      <DeliverySurface>
-        <Stack gap="lg">
-          <SectionHeading icon={Lightbulb} color="#FFB701" title={copy.inspiredTitle} hint={copy.inspiredHint} />
-          {inspiredSaved ? (
-            <div className="flex items-start gap-2">
-              <CheckCircle className="h-4 w-4 text-[#39FF14] mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-neutral-200 leading-relaxed">{inspiredStep}</p>
-            </div>
-          ) : (
-            <>
-              <Textarea
-                value={inspiredStep || ''}
-                onChange={(e) => onInspiredChange?.(e.target.value)}
-                placeholder={copy.inspiredPlaceholder}
-                rows={3}
-              />
-              <div className="flex justify-center">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={onInspiredSave}
-                  disabled={!inspiredStep?.trim()}
-                >
-                  {copy.inspiredSave}
-                </Button>
-              </div>
-            </>
-          )}
         </Stack>
       </DeliverySurface>
 

@@ -33,8 +33,6 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [entering, setEntering] = useState(false)
-  const [inspiredStep, setInspiredStep] = useState('')
-  const [inspiredSaved, setInspiredSaved] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const enrichFired = useRef(false)
 
@@ -79,10 +77,6 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
         if (!['ready', 'opened', 'entered'].includes(payload.activation.status)) {
           router.replace(`/activation/experience?id=${id}`)
           return
-        }
-        if (payload.activation.inspired_next_step) {
-          setInspiredStep(payload.activation.inspired_next_step)
-          setInspiredSaved(true)
         }
         const opened = ['opened', 'entered'].includes(payload.activation.status)
         if (opened && !enrichFired.current) {
@@ -154,16 +148,6 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
     }
   }
 
-  async function saveInspiredStep() {
-    if (!inspiredStep.trim()) return
-    await fetch(`/api/activation/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inspired_next_step: inspiredStep }),
-    }).catch(() => {})
-    setInspiredSaved(true)
-  }
-
   async function retryEnrich() {
     setRetrying(true)
     try {
@@ -207,10 +191,6 @@ export default function ActivationDeliveryPage({ params }: { params: Promise<{ i
           assets={data.assets}
           onEnter={handleOpen}
           entering={entering}
-          inspiredStep={inspiredStep}
-          inspiredSaved={inspiredSaved}
-          onInspiredChange={setInspiredStep}
-          onInspiredSave={saveInspiredStep}
           onTrack={track}
           onRetryEnrich={retryEnrich}
           retrying={retrying}

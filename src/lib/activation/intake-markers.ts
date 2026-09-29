@@ -77,13 +77,101 @@ export function parseIntakeMarkers(raw: string): IntakeExtract {
   return extract
 }
 
+/**
+ * Floors for the words that actually feed the Activation vision.
+ * The generator never sees the raw chat — only these fields. A real Life
+ * Vision area on a finished version runs from about 190 words up. The
+ * conversation has no turn cap, so VIVA stays until the source can carry
+ * a vision at least that long.
+ */
+export const ACTIVATION_VISION_SOURCE_MIN = {
+  userWords: 200,
+  currentStateWords: 60,
+  wantWords: 90,
+  textureWords: 40,
+} as const
+
+export function countWords(text: string | null | undefined): number {
+  const trimmed = text?.trim()
+  if (!trimmed) return 0
+  return trimmed.split(/\s+/).length
+}
+
+export function userMessageWords(
+  conversation: Array<{ role?: string; content?: string }> | null | undefined,
+): number {
+  if (!conversation?.length) return 0
+  return conversation.reduce((sum, message) => {
+    if (message?.role !== 'user') return sum
+    return sum + countWords(message.content)
+  }, 0)
+}
+
+export interface IntakeSubstance {
+  userWords: number
+  currentWords: number
+  wantWords: number
+  textureWords: number
+  ready: boolean
+  gaps: string[]
+}
+
+export function describeIntakeSubstance(params: {
+  current_state?: string | null
+  dream_response?: Record<string, string> | null
+  category?: string | null
+  conversation?: Array<{ role?: string; content?: string }> | null
+}): IntakeSubstance {
+  const min = ACTIVATION_VISION_SOURCE_MIN
+  const currentWords = countWords(params.current_state)
+  const wantWords = countWords(params.dream_response?.want)
+  const textureWords = countWords(
+    [params.dream_response?.why, params.dream_response?.feel, params.dream_response?.become]
+      .filter((part) => part?.trim())
+      .join(' '),
+  )
+  const userWords = userMessageWords(params.conversation)
+  const gaps: string[] = []
+
+  if (!params.category) gaps.push('category is not chosen')
+  if (currentWords < min.currentStateWords) {
+    gaps.push(
+      `current_state is ${currentWords} words — write at least ${min.currentStateWords} of their specifics`,
+    )
+  }
+  if (wantWords < min.wantWords) {
+    gaps.push(
+      `dream.want is ${wantWords} words — write at least ${min.wantWords} of the life they want, in scenes`,
+    )
+  }
+  if (textureWords < min.textureWords) {
+    gaps.push(
+      `why / feel / become together are ${textureWords} words — need at least ${min.textureWords} of why it matters or how it feels`,
+    )
+  }
+  if (userWords < min.userWords) {
+    gaps.push(
+      `they have written ${userWords} words — keep listening until at least ${min.userWords}`,
+    )
+  }
+
+  return {
+    userWords,
+    currentWords,
+    wantWords,
+    textureWords,
+    ready: gaps.length === 0,
+    gaps,
+  }
+}
+
 export function isIntakeReady(params: {
   current_state?: string | null
   dream_response?: Record<string, string> | null
   category?: string | null
+  conversation?: Array<{ role?: string; content?: string }> | null
 }): boolean {
-  const want = params.dream_response?.want?.trim()
-  return !!(params.current_state?.trim() && want && params.category)
+  return describeIntakeSubstance(params).ready
 }
 
 export function mergeDream(

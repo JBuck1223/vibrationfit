@@ -48,7 +48,7 @@ export function FreeActivationOptIn({
         </div>
         <div className="hp-optin-form">
           <ActivationStartForm
-            landingPage="/free-activation"
+            landingPage="/free-activation/start"
             previewState={preview ? 'form' : undefined}
           />
         </div>

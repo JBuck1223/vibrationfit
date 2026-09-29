@@ -6,7 +6,7 @@ export const MEMBERSHIP_PRICE_LABEL = '$99 every 28 days'
 export const MEMBERSHIP_CTA_LABEL = 'Start Membership: $99 Every 28 Days'
 export const MEMBERSHIP_CHECKOUT_HREF = '/checkout?product=membership&planType=solo'
 
-export const FREE_ACTIVATION_HREF = '/free-activation'
+export const FREE_ACTIVATION_HREF = '/free-activation/start'
 export const FREE_ACTIVATION_CTA_LABEL = 'Try a Free Activation'
 export const FREE_ACTIVATION_START_CTA = 'Create My Free Activation'
 

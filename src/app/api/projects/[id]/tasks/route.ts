@@ -145,6 +145,35 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
+
+    // Bulk reorder of steps within this group.
+    if (Array.isArray(body.updates)) {
+      if (!(await assertOwnership(supabase, id, user.id))) {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+      }
+      const rows = body.updates as { task_id?: string; sort_order?: number }[]
+      if (rows.length === 0) {
+        return NextResponse.json({ error: 'updates array is required' }, { status: 400 })
+      }
+      for (const row of rows) {
+        if (!row?.task_id || typeof row.sort_order !== 'number' || !Number.isFinite(row.sort_order)) {
+          return NextResponse.json({ error: 'Each update needs task_id and sort_order' }, { status: 400 })
+        }
+      }
+      for (const row of rows) {
+        const { error } = await supabase
+          .from('project_tasks')
+          .update({ sort_order: Math.round(row.sort_order as number) })
+          .eq('id', row.task_id)
+          .eq('project_id', id)
+        if (error) {
+          console.error('Error updating task sort_order:', error)
+          return NextResponse.json({ error: 'Failed to update order' }, { status: 500 })
+        }
+      }
+      return NextResponse.json({ success: true })
+    }
+
     const { task_id, title, is_complete, sort_order, description, target_project_id } = body
 
     if (!task_id) {

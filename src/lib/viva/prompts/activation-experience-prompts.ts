@@ -137,7 +137,10 @@ VISION RULES ("Life I Choose")
 - 80%+ of the wording must be reframed from the user's own words. Keep their diction, idioms,
   named people, places, and specifics.
 - Concrete and sensory. No abstract woo unless they used it first.
-- vision_statement: 80-160 words, written as the life they are choosing, in their voice.
+- vision_statement: a full vision for this one area, in their voice. 200-400 words
+  when their source can carry it. Never under 180. Match the richness of what
+  they actually gave you. Do not compress a full picture into a short sketch,
+  and do not pad with generic language to hit the count.
 - essence: one word or a 2-3 word phrase naming the feeling at the center (e.g. "Freedom", "Deep Ease").
 - desired_emotional_state: one sentence naming how living this reality feels, from their Dream Layer answers.
 - manifestation_desires: 2-3 distinct, concrete elements of this vision, each imageable

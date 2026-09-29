@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { normalizeText } from '@/lib/audio/content-normalize'
 import { pluralizeVisionSections } from '@/lib/viva/pluralize-vision'
 
 // Pluralizing all 14 sections runs parallel AI calls; allow time for long visions
@@ -141,6 +142,21 @@ export async function POST(request: NextRequest) {
       console.error('[Convert] Pluralization unavailable, copying text as-is:', err)
     }
 
+    // A rewrite that only changes whitespace is the same recording. Keep the
+    // original text so existing audio hashes still match. Real wording changes
+    // are recorded so those sections' tracks are not carried over.
+    const changedSections: string[] = []
+    for (const key of VISION_SECTION_KEYS) {
+      const original = sourceSections[key]
+      const rewritten = pluralizedSections[key]
+      if (!original?.trim() || !rewritten?.trim()) continue
+      if (normalizeText(rewritten) === normalizeText(original)) {
+        pluralizedSections[key] = original
+      } else {
+        changedSections.push(key)
+      }
+    }
+
     // 7. Clone the vision as a household vision
     const { data: householdVision, error: cloneError } = await supabase
       .from('vision_versions')
@@ -165,6 +181,7 @@ export async function POST(request: NextRequest) {
         
         // Copy metadata if present
         richness_metadata: sourceVision.richness_metadata,
+        refined_categories: changedSections,
       })
       .select()
       .single()
@@ -196,11 +213,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Carry recordings whose spoken words still match. Changed sections are
+    // listed in refined_categories and are skipped. Commit runs this again;
+    // the function fills gaps instead of duplicating sets.
+    let audioCarryOver: unknown = null
+    try {
+      const { data: carryOverResult, error: carryOverError } = await supabase.rpc(
+        'carry_over_audio_to_new_vision',
+        { p_new_vision_id: householdVision.id, p_parent_vision_id: sourceVisionId }
+      )
+      if (carryOverError) {
+        console.error('Audio carry-over failed (non-blocking):', carryOverError)
+      } else {
+        audioCarryOver = carryOverResult
+        console.log('Audio carry-over result:', carryOverResult)
+      }
+    } catch (carryOverErr) {
+      console.error('Audio carry-over exception (non-blocking):', carryOverErr)
+    }
+
     console.log('✅ Converted personal vision to household:', {
       sourceVisionId,
       householdVisionId: householdVision.id,
       householdId,
       isActive: shouldBeActive,
+      changedSections,
       pluralizationFailedSections: failedSections
     })
 
@@ -209,7 +246,9 @@ export async function POST(request: NextRequest) {
       visionId: householdVision.id,
       isActive: shouldBeActive,
       isDraft: !shouldBeActive,
+      changedSections,
       pluralizationFailedSections: failedSections,
+      audioCarryOver,
       message: shouldBeActive 
         ? 'Household vision created and activated!' 
         : 'Household vision created as draft'

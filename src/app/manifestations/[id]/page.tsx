@@ -8,7 +8,7 @@ import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import {
-  ArrowLeft, ArrowUpRight, Brain, CheckCircle, ChevronDown, ChevronRight,
+  ArrowLeft, ArrowUpRight, Brain, CheckCircle,
   Edit3, Plus, Save, Sparkles, Trash2, Unlink, Upload, XCircle,
 } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { colors } from '@/lib/design-system/tokens'
 import { EssenceSection, type EssenceVersion } from '@/components/manifestations-studio/EssenceSection'
 import { BrainDumpOrganizer } from '@/components/manifestations-studio/BrainDumpOrganizer'
+import { InspiredActionList, type ActionGroup, type ActionTask } from '@/components/manifestations-studio/InspiredActionList'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
 import { keys } from '@/lib/query/keys'
 import {
@@ -35,23 +36,6 @@ const STATUS_OPTIONS = [
   { value: 'actualized', label: 'Actualized' },
   { value: 'inactive', label: 'Inactive' },
 ]
-
-interface TaskRow {
-  id: string
-  title: string
-  description: string | null
-  is_complete: boolean
-  parent_task_id: string | null
-  sort_order: number
-}
-
-interface ActionGroup {
-  id: string
-  title: string
-  description: string | null
-  status: string
-  project_tasks: TaskRow[]
-}
 
 interface JournalEntryRow {
   id: string
@@ -143,9 +127,9 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
   const [newGroupTitle, setNewGroupTitle] = useState('')
   const [addingGroup, setAddingGroup] = useState(false)
   const [showAddGroup, setShowAddGroup] = useState(false)
-  const [stepDrafts, setStepDrafts] = useState<Record<string, string>>({})
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [detailPane, setDetailPane] = useState<'essence' | 'action' | 'journey'>('essence')
+  const reorderTicket = useRef(0)
+  const reorderQueue = useRef(Promise.resolve())
   const editParamAppliedRef = useRef(false)
 
   // Hydrate the edit form whenever fresh data lands and we're not mid-edit
@@ -493,22 +477,22 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     }
   }
 
-  const addStep = async (projectId: string, parentTaskId?: string) => {
-    const key = parentTaskId ? `${projectId}:${parentTaskId}` : projectId
-    const title = (stepDrafts[key] || '').trim()
-    if (!title) return
+  const addStep = async (projectId: string, title: string) => {
+    const trimmed = title.trim()
+    if (!trimmed) return false
     const res = await fetch(`/api/projects/${projectId}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, parent_task_id: parentTaskId || undefined }),
+      body: JSON.stringify({ title: trimmed }),
     })
     if (res.ok) {
-      setStepDrafts(prev => ({ ...prev, [key]: '' }))
       refresh()
+      return true
     }
+    return false
   }
 
-  const toggleStep = async (projectId: string, task: TaskRow) => {
+  const toggleStep = async (projectId: string, task: ActionTask) => {
     await fetch(`/api/projects/${projectId}/tasks`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -526,6 +510,110 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     if (!confirm('Remove this action group and its steps?')) return
     await fetch(`/api/projects/${projectId}`, { method: 'DELETE' })
     refresh()
+  }
+
+  const renameGroup = async (groupId: string, title: string) => {
+    queryClient.setQueryData<ManifestationDetail>(keys.manifestationKit(id), prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        projects: prev.projects.map(group => group.id === groupId ? { ...group, title } : group),
+      }
+    })
+    const res = await fetch(`/api/projects/${groupId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    })
+    if (!res.ok) await refresh()
+  }
+
+  const renameStep = async (projectId: string, taskId: string, title: string) => {
+    queryClient.setQueryData<ManifestationDetail>(keys.manifestationKit(id), prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        projects: prev.projects.map(group => {
+          if (group.id !== projectId) return group
+          return {
+            ...group,
+            project_tasks: group.project_tasks.map(task => task.id === taskId ? { ...task, title } : task),
+          }
+        }),
+      }
+    })
+    const res = await fetch(`/api/projects/${projectId}/tasks`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_id: taskId, title }),
+    })
+    if (!res.ok) await refresh()
+  }
+
+  const enqueueReorder = (send: () => Promise<Response>) => {
+    const ticket = ++reorderTicket.current
+    reorderQueue.current = reorderQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (ticket !== reorderTicket.current) return
+        try {
+          const res = await send()
+          if (ticket !== reorderTicket.current) return
+          if (!res.ok) await refresh()
+        } catch {
+          if (ticket === reorderTicket.current) await refresh()
+        }
+      })
+  }
+
+  const reorderGroups = (orderedIds: string[]) => {
+    const projects = data?.projects || []
+    const maxOrder = Math.max(orderedIds.length - 1, ...projects.map(group => group.sort_order ?? 0))
+    const sortById = new Map(orderedIds.map((groupId, index) => [groupId, maxOrder - index]))
+    queryClient.setQueryData<ManifestationDetail>(keys.manifestationKit(id), prev => {
+      if (!prev) return prev
+      const byId = new Map(prev.projects.map(group => [group.id, group]))
+      return {
+        ...prev,
+        projects: orderedIds
+          .map(groupId => byId.get(groupId))
+          .filter((group): group is ActionGroup => Boolean(group))
+          .map(group => ({ ...group, sort_order: sortById.get(group.id) ?? group.sort_order })),
+      }
+    })
+    enqueueReorder(() => fetch('/api/projects', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        updates: orderedIds.map(groupId => ({ id: groupId, sort_order: sortById.get(groupId) ?? 0 })),
+      }),
+    }))
+  }
+
+  const reorderSteps = (projectId: string, orderedIds: string[]) => {
+    const sortById = new Map(orderedIds.map((taskId, index) => [taskId, index]))
+    queryClient.setQueryData<ManifestationDetail>(keys.manifestationKit(id), prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        projects: prev.projects.map(group => {
+          if (group.id !== projectId) return group
+          return {
+            ...group,
+            project_tasks: group.project_tasks.map(task =>
+              sortById.has(task.id) ? { ...task, sort_order: sortById.get(task.id)! } : task,
+            ),
+          }
+        }),
+      }
+    })
+    enqueueReorder(() => fetch(`/api/projects/${projectId}/tasks`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        updates: orderedIds.map((taskId, index) => ({ task_id: taskId, sort_order: index })),
+      }),
+    }))
   }
 
   const unlinkAsset = async (assetId: string) => {
@@ -581,13 +669,6 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
         </Card>
       </Container>
     )
-  }
-
-  const taskTree = (tasks: TaskRow[]) => {
-    const top = tasks.filter(t => !t.parent_task_id).sort((a, b) => a.sort_order - b.sort_order)
-    const children = (parentId: string) =>
-      tasks.filter(t => t.parent_task_id === parentId).sort((a, b) => a.sort_order - b.sort_order)
-    return { top, children }
   }
 
   return (
@@ -1206,105 +1287,17 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                 {(data?.projects || []).length === 0 && !showAddGroup && !showBrainDump ? (
                   <p className="text-sm text-neutral-500 text-center">No actions yet. Brain dump or add a group.</p>
                 ) : (
-                  <div className="space-y-3">
-                    {(data?.projects || []).map(group => {
-                      const { top, children } = taskTree(group.project_tasks || [])
-                      const done = (group.project_tasks || []).filter(t => t.is_complete).length
-                      const total = (group.project_tasks || []).length
-                      const collapsed = collapsedGroups.has(group.id)
-                      return (
-                        <div key={group.id} className="rounded-xl border border-[#282828] bg-[#161616]">
-                          <div className="flex items-center gap-2 px-4 py-3">
-                            <button
-                              type="button"
-                              onClick={() => setCollapsedGroups(prev => {
-                                const next = new Set(prev)
-                                if (next.has(group.id)) next.delete(group.id)
-                                else next.add(group.id)
-                                return next
-                              })}
-                              className="text-neutral-400 hover:text-white"
-                            >
-                              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </button>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-white truncate">{group.title}</p>
-                              {group.description && <p className="text-xs text-neutral-500 line-clamp-1">{group.description}</p>}
-                            </div>
-                            {total > 0 && (
-                              <span className="text-[11px] uppercase tracking-[0.16em] text-neutral-500 shrink-0">{done}/{total}</span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => deleteGroup(group.id)}
-                              className="text-neutral-500 hover:text-red-400 shrink-0"
-                              title="Remove action group"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                          {!collapsed && (
-                            <div className="px-4 pb-4 space-y-1.5">
-                              {top.map(task => (
-                                <div key={task.id}>
-                                  <div className="flex items-center gap-2.5 py-1">
-                                    <button type="button" onClick={() => toggleStep(group.id, task)} className="shrink-0">
-                                      {task.is_complete
-                                        ? <CheckCircle className="w-4 h-4 text-[#39FF14]" />
-                                        : <div className="w-4 h-4 rounded-full border-2 border-neutral-600 hover:border-neutral-400" />}
-                                    </button>
-                                    <span className={`flex-1 text-sm ${task.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}>
-                                      {task.title}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => deleteStep(group.id, task.id)}
-                                      className="text-neutral-600 hover:text-red-400 shrink-0"
-                                      title="Delete step"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                  {children(task.id).map(sub => (
-                                    <div key={sub.id} className="flex items-center gap-2.5 py-1 pl-7">
-                                      <button type="button" onClick={() => toggleStep(group.id, sub)} className="shrink-0">
-                                        {sub.is_complete
-                                          ? <CheckCircle className="w-4 h-4 text-[#39FF14]" />
-                                          : <div className="w-4 h-4 rounded-full border-2 border-neutral-600 hover:border-neutral-400" />}
-                                      </button>
-                                      <span className={`flex-1 text-sm ${sub.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}>
-                                        {sub.title}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => deleteStep(group.id, sub.id)}
-                                        className="text-neutral-600 hover:text-red-400 shrink-0"
-                                        title="Delete step"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              ))}
-                              <div className="flex gap-2 items-center pt-1.5">
-                                <input
-                                  value={stepDrafts[group.id] || ''}
-                                  onChange={e => setStepDrafts(prev => ({ ...prev, [group.id]: e.target.value }))}
-                                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addStep(group.id) } }}
-                                  placeholder="Add a step…"
-                                  className="flex-1 bg-transparent border-b border-[#2A2A2A] focus:border-neutral-500 outline-none text-sm text-white py-1.5 placeholder:text-neutral-600"
-                                />
-                                <Button variant="ghost" size="sm" onClick={() => addStep(group.id)} disabled={!(stepDrafts[group.id] || '').trim()}>
-                                  <Plus className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
+                  <InspiredActionList
+                    groups={data?.projects || []}
+                    onAddStep={addStep}
+                    onToggleStep={toggleStep}
+                    onDeleteStep={deleteStep}
+                    onDeleteGroup={deleteGroup}
+                    onRenameGroup={renameGroup}
+                    onRenameStep={renameStep}
+                    onReorderGroups={reorderGroups}
+                    onReorderSteps={reorderSteps}
+                  />
                 )}
               </section>
               )}

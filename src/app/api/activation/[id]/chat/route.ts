@@ -19,7 +19,7 @@ import {
   buildActivationChatSystemPrompt,
 } from '@/lib/viva/prompts/activation-chat-prompts'
 import {
-  isIntakeReady,
+  describeIntakeSubstance,
   mergeDream,
   parseIntakeMarkers,
   stripIntakeMarkers,
@@ -35,8 +35,6 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const maxDuration = 120
 
-const MAX_TURNS = 8
-const HARD_STOP_TURNS = 10
 const FALLBACK_MODEL = 'openai/gpt-5.6-terra'
 
 function asMessages(value: unknown): ActivationChatMessage[] {
@@ -82,12 +80,6 @@ export async function POST(
 
     const prior = asMessages(row.conversation)
     const turnCount = (row.intake_turn_count || 0) + 1
-    if (turnCount > HARD_STOP_TURNS) {
-      return new Response(JSON.stringify({
-        error: 'VIVA has what she needs from this conversation. Create your Activation when you are ready.',
-        ready: isIntakeReady(row),
-      }), { status: 409 })
-    }
 
     const conversation: ActivationChatMessage[] = [...prior, { role: 'user', content: incoming }]
     const firstName =
@@ -117,12 +109,10 @@ export async function POST(
 
     const systemPrompt = buildActivationChatSystemPrompt({
       firstName,
-      turnCount,
-      maxTurns: MAX_TURNS,
-      hardStop: turnCount >= HARD_STOP_TURNS,
       currentState: row.current_state,
       dreamResponse: row.dream_response,
       category: row.category,
+      conversation,
       rosterBlock,
       personaBlock,
     })
@@ -171,11 +161,14 @@ export async function POST(
             const reflection = extract.reflection || row.reflection
             const category = row.category
             const needsSupport = extract.needs_support || row.needs_support || false
-            const ready = extract.ready || isIntakeReady({
+            const substance = describeIntakeSubstance({
               current_state: currentState,
               dream_response: dream,
               category,
+              conversation: nextConversation,
             })
+            // <<<READY>>> is ignored until the stored fields can carry a full vision.
+            const ready = substance.ready
 
             const updates: Record<string, unknown> = {
               conversation: nextConversation,

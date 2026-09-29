@@ -64,8 +64,8 @@ export const ACTIVATION_COPY = {
   },
 
   optIn: {
-    route: '/free-activation',
-    source: 'src/app/free-activation/page.tsx',
+    route: '/free-activation/start',
+    source: 'src/app/free-activation/start/page.tsx',
     metaTitle: 'Create Your Free Activation | Vibration Fit',
     metaDescription:
       'Create a personalized Conscious Creation System for one area of your life in minutes and experience the first step of Vibration Fit free.',
@@ -90,9 +90,9 @@ export const ACTIVATION_COPY = {
     noCard: 'No credit card required. Takes 10–15 minutes.',
     sections: [
       {
-        id: 'opt-in',
+        id: 'hero',
         heading: 'Thoughts Become Things. So Why Isn\'t It Working?',
-        notes: 'Dedicated opt-in. One headline, one form, one CTA. /activation redirects here.',
+        notes: 'Homepage-style landing. The card under the hero is the free Activation. CTAs go to /free-activation/start.',
       },
     ],
   },
@@ -101,7 +101,7 @@ export const ACTIVATION_COPY = {
     route: '/',
     source: 'src/app/page.tsx',
     notes:
-      'Mixed-intent front door. Paid primary (Vision Pro $99/28 days) and free secondary (Try a Free Activation → /free-activation). /join is paid-only. /activation/home redirects here.',
+      'Mixed-intent front door. Paid primary (Vision Pro $99/28 days) and free secondary (Try a Free Activation → /free-activation/start). /join is paid-only. /free-activation is the free landing. /activation/home redirects here.',
   },
 
   startForm: {

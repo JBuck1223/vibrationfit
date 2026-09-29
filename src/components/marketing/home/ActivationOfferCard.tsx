@@ -1,5 +1,9 @@
 import { ArrowRight, Download } from 'lucide-react'
 import { ACTIVATION_ASSET_GROUPS } from '@/lib/activation/assets'
+import {
+  FREE_ACTIVATION_HREF,
+  FREE_ACTIVATION_START_CTA,
+} from '@/lib/marketing/public-offer'
 
 /** Free-activation counterpart to the homepage OfferBuyBox — same card chrome, no purchase. */
 export function ActivationOfferCard() {
@@ -66,10 +70,10 @@ export function ActivationOfferCard() {
       </div>
 
       <a
-        href="/free-activation"
+        href={FREE_ACTIVATION_HREF}
         className="mt-5 inline-flex items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-6 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:whitespace-nowrap md:px-7"
       >
-        Try a Free Activation
+        {FREE_ACTIVATION_START_CTA}
         <ArrowRight className="h-4 w-4 shrink-0" />
       </a>
 
