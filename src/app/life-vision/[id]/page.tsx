@@ -43,6 +43,7 @@ interface VisionData {
   id: string
   user_id: string
   household_id?: string | null
+  parent_id?: string | null
   version_number: number
   forward: string
   fun: string
