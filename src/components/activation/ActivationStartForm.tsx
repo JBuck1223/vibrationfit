@@ -84,7 +84,7 @@ export function ActivationStartForm({
   }
 
   return (
-    <form onSubmit={handleStart} className="mx-auto mt-10 w-full max-w-md">
+    <form onSubmit={handleStart} className="mx-auto mt-8 w-full max-w-2xl">
       <div className="rounded-2xl border-2 border-[#333] bg-[#101010] p-6 md:p-8">
         {/* Honeypot */}
         <input
@@ -97,21 +97,23 @@ export function ActivationStartForm({
         />
 
         <div className="space-y-4">
-          <input
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            placeholder={copy.firstNamePlaceholder}
-            required
-            className="w-full rounded-xl border-2 border-[#222] bg-[#0D0D0D] px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-[#39FF14] focus:outline-none"
-          />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={copy.emailPlaceholder}
-            required
-            className="w-full rounded-xl border-2 border-[#222] bg-[#0D0D0D] px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-[#39FF14] focus:outline-none"
-          />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder={copy.firstNamePlaceholder}
+              required
+              className="w-full rounded-xl border-2 border-[#222] bg-[#0D0D0D] px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-[#39FF14] focus:outline-none"
+            />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={copy.emailPlaceholder}
+              required
+              className="w-full rounded-xl border-2 border-[#222] bg-[#0D0D0D] px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-[#39FF14] focus:outline-none"
+            />
+          </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 

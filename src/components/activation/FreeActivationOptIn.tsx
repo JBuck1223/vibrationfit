@@ -1,6 +1,5 @@
 'use client'
 
-import { Check } from 'lucide-react'
 import { ActivationIncludes } from '@/components/activation/ActivationIncludes'
 import { ActivationStartForm } from '@/components/activation/ActivationStartForm'
 import { ACTIVATION_COPY } from '@/lib/activation/copy'
@@ -21,26 +20,14 @@ export function FreeActivationOptIn({
       <div className="hp-optin-hero">
       <img src={LOGO} alt="Vibration Fit" className="mx-auto mb-8 block h-5 w-auto opacity-70" />
       <div className="px-4 md:px-8">
-      <div className="hp-optin-split w-full">
-        <div className="hp-optin hp-optin-copy">
+        <div className="mx-auto w-full max-w-2xl text-center [container-type:inline-size]">
           <h1 className="hp-optin-title">{copy.headline}</h1>
-          <p className="hp-optin-sub">{copy.subhead}</p>
-          <ul className="mx-auto mt-5 w-fit space-y-2.5 text-left lg:mx-0">
-            {[copy.limit, copy.reassurance].map((line) => (
-              <li key={line} className="flex items-start gap-2.5 text-sm leading-snug text-white">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#39FF14]" strokeWidth={2.5} aria-hidden="true" />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="hp-optin-form">
           <ActivationStartForm
             landingPage="/free-activation/start"
             previewState={preview ? 'form' : undefined}
           />
+          <p className="hp-optin-sub">{copy.subhead}</p>
         </div>
-      </div>
       </div>
       </div>
       <section className="hp-optin-kit">
