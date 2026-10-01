@@ -26,7 +26,7 @@ export const ACTIVATION_COPY = {
   orientation: {
     source: 'src/components/activation/ActivationOrientation.tsx',
     title: 'Welcome to your Activation!',
-    lead: 'Here\'s how it works:',
+    lead: 'Here\'s how it works.',
     paragraphs: [
       'You\'ll have a real conversation with VIVA — about what\'s true in your life right now, and what you\'d love it to become when you let yourself dream without editing.',
       'She listens. She remembers. She gets to know you.',
@@ -69,10 +69,9 @@ export const ACTIVATION_COPY = {
     metaTitle: 'Create Your Free Activation | Vibration Fit',
     metaDescription:
       'Create a personalized Conscious Creation System for one area of your life in minutes and experience the first step of Vibration Fit free.',
-    headlineLead: 'Thoughts Become Things.',
-    headlineAccent: "So Why Isn't It Working?",
+    headline: 'Start your free activation!',
     subhead:
-      'Create a personalized Conscious Creation System for one area of your life in minutes, and experience the first step of Vibration Fit free.',
+      'You will receive a custom kit for the life you choose in one life category.',
     limit: 'One personalized activation for one area of your life.',
     includesLabel: 'What You\u2019ll Create',
     reassurance: 'Download and keep everything you create.',
@@ -255,6 +254,21 @@ export const ACTIVATION_COPY = {
     images: 'Vision Board',
     imagesHint: 'Look at the pictures. Let this life become familiar.',
     creating: 'Creating',
+    creatingAudioLines: [
+      'Recording this in the voice you chose.',
+      'Shaping your words so you can hear them.',
+      'Almost ready to play.',
+    ],
+    creatingSongLines: [
+      'Composing your song from this vision.',
+      'Setting it in the genre you picked.',
+      'Almost ready to play.',
+    ],
+    creatingBoardLines: [
+      'Painting the scenes from your vision.',
+      'Bringing each picture into focus.',
+      'Almost ready to look at.',
+    ],
     ready: 'Ready',
     failedLabel: 'Failed',
     failed: 'This piece needs another moment. Try again.',

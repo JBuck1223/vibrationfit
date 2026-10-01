@@ -17,11 +17,21 @@ export type VaultedCardDetails = {
  * collects the card details against this token; we then exchange it for a
  * permanent payment token.
  */
-export async function createVaultSetupToken(): Promise<{ id: string }> {
+export async function createVaultSetupToken(opts?: {
+  paypalCustomerId?: string | null
+  merchantCustomerId?: string | null
+}): Promise<{ id: string }> {
+  const customer = opts?.paypalCustomerId
+    ? { id: opts.paypalCustomerId }
+    : opts?.merchantCustomerId
+      ? { merchant_customer_id: opts.merchantCustomerId }
+      : null
+
   const setupToken = await paypalFetch('/v3/vault/setup-tokens', {
     method: 'POST',
     requestId: `setup-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     body: {
+      ...(customer ? { customer } : {}),
       payment_source: {
         card: {
           verification_method: 'SCA_WHEN_REQUIRED',

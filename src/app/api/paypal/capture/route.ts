@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { captureOrder } from '@/lib/paypal/orders'
+import { captureOrder, getOrder, vaultFromPayPalOrder } from '@/lib/paypal/orders'
 import { isPayPalConfigured, PayPalApiError } from '@/lib/paypal/client'
 import { fulfillPayPalPurchase, type PurchaseContext } from '@/lib/billing/fulfillment'
 
@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
       capture = await captureOrder(orderID)
     } catch (err) {
       if (err instanceof PayPalApiError && (err.body as any)?.details?.[0]?.issue === 'ORDER_ALREADY_CAPTURED') {
-        const { getOrder } = await import('@/lib/paypal/orders')
         const order = await getOrder(orderID)
         const cap = order?.purchase_units?.[0]?.payments?.captures?.[0]
         capture = {
@@ -51,20 +50,19 @@ export async function POST(request: NextRequest) {
           status: cap?.status || 'COMPLETED',
           amountCents: cap?.amount?.value ? Math.round(parseFloat(cap.amount.value) * 100) : checkoutSession.amount_cents,
           currency: (cap?.amount?.currency_code || checkoutSession.currency || 'USD').toLowerCase(),
-          vault: order?.payment_source?.card?.attributes?.vault?.id
-            ? {
-                vaultId: order.payment_source.card.attributes.vault.id,
-                paypalCustomerId: order.payment_source.card.attributes.vault.customer?.id || null,
-                brand: order.payment_source.card.brand || null,
-                last4: order.payment_source.card.last_digits || null,
-                expiry: order.payment_source.card.expiry || null,
-              }
-            : null,
+          vault: vaultFromPayPalOrder(order),
           raw: order,
         }
       } else {
         throw err
       }
+    }
+
+    // Vault tokens are sometimes missing on the capture body and present on a
+    // follow-up order read. Save whatever PayPal has before fulfillment.
+    if (capture.status === 'COMPLETED' && !capture.vault) {
+      const order = await getOrder(orderID)
+      capture = { ...capture, vault: vaultFromPayPalOrder(order), raw: order }
     }
 
     if (capture.status !== 'COMPLETED') {

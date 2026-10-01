@@ -14,6 +14,7 @@ import { createAdminNotification } from '@/lib/admin/notifications'
 import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
 import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
+import { savePayPalVaultedCard } from '@/lib/paypal/save-payment-method'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -90,6 +91,9 @@ export async function fulfillPayPalPurchase(params: {
     .eq('paypal_order_id', params.paypalOrderId)
     .maybeSingle()
   if (existingOrder) {
+    if (params.vault) {
+      await savePayPalVaultedCard(supabaseAdmin, existingOrder.user_id, params.vault)
+    }
     return { userId: existingOrder.user_id, orderId: existingOrder.id, alreadyFulfilled: true }
   }
 
@@ -147,6 +151,7 @@ export async function fulfillPayPalPurchase(params: {
     userId,
     visitorId: ctx.visitorId || null,
     stripeCustomerId: null,
+    paypalCustomerId: params.vault?.paypalCustomerId || null,
     isPurchase: true,
   })
 
@@ -248,32 +253,12 @@ export async function fulfillPayPalPurchase(params: {
   // -------------------------------------------------------------------------
   let paymentMethodId: string | null = null
   if (params.vault) {
-    // One default per user: demote existing defaults first.
-    await supabaseAdmin.from('payment_methods')
-      .update({ is_default: false })
-      .eq('user_id', userId)
-      .eq('is_default', true)
-
-    const { data: pm, error: pmErr } = await supabaseAdmin
-      .from('payment_methods')
-      .upsert({
-        user_id: userId,
-        provider: 'paypal',
-        paypal_vault_id: params.vault.vaultId,
-        paypal_customer_id: params.vault.paypalCustomerId,
-        brand: params.vault.brand,
-        last4: params.vault.last4,
-        expiry: params.vault.expiry,
-        status: 'active',
-        is_default: true,
-      }, { onConflict: 'paypal_vault_id' })
-      .select('id')
-      .single()
-    if (pmErr) {
-      console.error('[fulfillment] payment_methods upsert failed', pmErr)
-    } else {
-      paymentMethodId = pm?.id || null
-    }
+    paymentMethodId = await savePayPalVaultedCard(supabaseAdmin, userId, params.vault)
+  } else if (isMembership || isIntensive) {
+    console.error('[fulfillment] PayPal capture had no vault token; renewal card not saved yet', {
+      paypalOrderId: params.paypalOrderId,
+      userId,
+    })
   }
 
   if (isMembership) {

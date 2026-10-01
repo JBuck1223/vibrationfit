@@ -11,6 +11,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isPayPalConfigured } from '@/lib/paypal/client'
 import { createVaultSetupToken, createPaymentTokenFromSetupToken } from '@/lib/paypal/vault'
+import { linkPayPalCustomer } from '@/lib/paypal/save-payment-method'
+import { paypalMerchantCustomerId } from '@/lib/paypal/orders'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +31,16 @@ export async function POST(request: NextRequest) {
     const { action } = body as { action?: string }
 
     if (action === 'setup') {
-      const setupToken = await createVaultSetupToken()
+      const serviceClient = createServiceClient()
+      const { data: customer } = await serviceClient
+        .from('customers')
+        .select('paypal_customer_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      const setupToken = await createVaultSetupToken({
+        paypalCustomerId: customer?.paypal_customer_id,
+        merchantCustomerId: paypalMerchantCustomerId(user.email),
+      })
       return NextResponse.json({ setupTokenId: setupToken.id })
     }
 
@@ -86,6 +97,8 @@ export async function POST(request: NextRequest) {
         console.error('vault-card: payment_methods save failed', pmErr)
         return NextResponse.json({ error: 'Failed to save card' }, { status: 500 })
       }
+
+      await linkPayPalCustomer(serviceClient, user.id, card.paypalCustomerId)
 
       // Point the member's DB-driven subscriptions at the new card
       await serviceClient

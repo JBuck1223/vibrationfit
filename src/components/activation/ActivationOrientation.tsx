@@ -3,10 +3,9 @@
 import { Indie_Flower } from 'next/font/google'
 import { ArrowRight } from 'lucide-react'
 import { ACTIVATION_COPY } from '@/lib/activation/copy'
+import { ACTIVATION_ORIENTATION_VIDEO } from '@/lib/activation/videos'
 import { ActivationIncludes } from '@/components/activation/ActivationIncludes'
-import {
-  Display,
-} from '@/components/marketing/home/primitives'
+import { HeroPreviewVideo } from '@/components/marketing/home/HeroPreviewVideo'
 import { Container } from '@/lib/design-system'
 import '@/components/marketing/home/marketing.css'
 
@@ -34,29 +33,32 @@ export function ActivationOrientation({
       data-home="activation-orientation"
     >
       <header>
-        <Container size="xl" className="px-4 pb-8 pt-8 md:px-10 md:pb-10 md:pt-10">
-          <Display as="h1" className="hp-hero-headline">
-            <span className="hp-hero-headline-line">Welcome to your</span>
-            <br />
-            Activation!
-          </Display>
+        <Container size="xl" className="px-4 pb-10 pt-8 md:px-6 md:pb-14 md:pt-12">
+          <div className="w-full [container-type:inline-size]">
+            <h1 className="whitespace-nowrap text-center font-extrabold leading-[1.1] text-white [font-size:min(2.75rem,calc(100cqi/18))]">
+              Welcome to your Activation!
+            </h1>
+          </div>
 
-          <div className="mt-6 grid items-start gap-8 lg:mt-8 lg:grid-cols-4 lg:gap-x-10">
-            <p className="hp-display text-left text-[1.65rem] leading-none text-[#39FF14] md:text-[2rem] lg:col-span-2">
-              {copy.lead}
-            </p>
+          <p className="hp-display mx-auto mt-4 text-center text-[1.35rem] leading-none text-[#39FF14] md:text-[1.65rem]">
+            {copy.lead}
+          </p>
 
-            <div className="lg:col-span-2 lg:row-start-2">
-              <div className="space-y-5 text-pretty text-lg leading-[1.7] text-neutral-300">
-                {copy.paragraphs.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
-              </div>
+          <div className="mx-auto mt-8 max-w-3xl md:mt-10">
+            <HeroPreviewVideo
+              src={ACTIVATION_ORIENTATION_VIDEO.src}
+              poster={ACTIVATION_ORIENTATION_VIDEO.poster}
+              trackingId="activation-orientation-video"
+            />
+          </div>
+
+          <div className="mt-10 grid items-start gap-8 lg:mt-12 lg:grid-cols-2 lg:gap-x-10">
+            <div className="space-y-5 text-pretty text-lg leading-[1.7] text-neutral-300">
+              {copy.paragraphs.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
             </div>
-
-            <div className="lg:col-span-2 lg:row-start-2">
-              <ActivationIncludes />
-            </div>
+            <ActivationIncludes />
           </div>
 
           {error && <p className="mt-6 text-center text-sm text-red-400">{error}</p>}

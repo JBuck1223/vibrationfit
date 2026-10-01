@@ -6,10 +6,10 @@
  * Edit strings in src/lib/activation/copy.ts.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Container, Stack, Text } from '@/lib/design-system/components'
-import { ExternalLink, Sparkles } from 'lucide-react'
+import { ExternalLink, PanelLeftClose, PanelLeftOpen, Sparkles } from 'lucide-react'
 import { ActivationStartForm } from '@/components/activation/ActivationStartForm'
 import { FreeActivationOptIn } from '@/components/activation/FreeActivationOptIn'
 import { ActivationOrientation } from '@/components/activation/ActivationOrientation'
@@ -66,7 +66,7 @@ const STEPS: InspectorStep[] = [
     label: 'Orientation',
     group: 'Experience',
     source: ACTIVATION_COPY.orientation.source,
-    notes: 'No model cost. Start My Activation records oriented + activation_oriented.',
+    notes: 'How-it-works video, then Start My Activation. No model cost. Records oriented + activation_oriented.',
   },
   {
     id: 'category',
@@ -113,6 +113,7 @@ const STEPS: InspectorStep[] = [
 ]
 
 const GROUPS = ['Public', 'Experience', 'Delivery'] as const
+const STEPS_OPEN_KEY = 'activation-inspector-steps-open'
 
 const SAMPLE_ASSETS = {
   story: { id: 's1', title: 'Future-Self Story', content: ACTIVATION_SAMPLE.story },
@@ -150,8 +151,20 @@ const SAMPLE_ACTIVATION = {
 
 export default function AdminActivationInspectorPage() {
   const [stepId, setStepId] = useState<InspectorStepId>('orientation')
+  const [stepsOpen, setStepsOpen] = useState(true)
+  const [stepsReady, setStepsReady] = useState(false)
   const step = STEPS.find((s) => s.id === stepId) ?? STEPS[0]
   const sample = ACTIVATION_SAMPLE
+
+  useEffect(() => {
+    if (localStorage.getItem(STEPS_OPEN_KEY) === 'false') setStepsOpen(false)
+    setStepsReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!stepsReady) return
+    localStorage.setItem(STEPS_OPEN_KEY, String(stepsOpen))
+  }, [stepsOpen, stepsReady])
 
   return (
     <Container size="xl">
@@ -170,8 +183,8 @@ export default function AdminActivationInspectorPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[16rem_minmax(0,1fr)] gap-6">
-          <nav className="lg:sticky lg:top-4 self-start space-y-4">
+        <div className={stepsOpen ? 'grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]' : 'grid grid-cols-1 gap-6'}>
+          {stepsOpen && <nav className="lg:sticky lg:top-4 self-start space-y-4">
             {GROUPS.map((group) => (
               <div key={group}>
                 <p className="text-xs uppercase tracking-wider text-neutral-500 mb-2">{group}</p>
@@ -196,13 +209,23 @@ export default function AdminActivationInspectorPage() {
                 </div>
               </div>
             ))}
-          </nav>
+          </nav>}
 
           <div className="min-w-0">
-            <div className="mb-4 rounded-2xl border border-[#222] bg-[#0D0D0D] px-4 py-3">
-              <p className="text-sm text-white font-medium">{step.label}</p>
-              <p className="text-xs text-neutral-500 mt-1">{step.notes}</p>
-              <p className="text-xs text-neutral-600 mt-1 font-mono">{step.source}</p>
+            <div className="mb-4 flex items-start justify-between gap-3 rounded-2xl border border-[#222] bg-[#0D0D0D] px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm text-white font-medium">{step.label}</p>
+                <p className="text-xs text-neutral-500 mt-1">{step.notes}</p>
+                <p className="text-xs text-neutral-600 mt-1 font-mono">{step.source}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStepsOpen((open) => !open)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#333] px-3 py-1.5 text-xs font-medium text-neutral-300 hover:border-[#39FF14] hover:text-white"
+              >
+                {stepsOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
+                {stepsOpen ? 'Hide sections' : 'Sections'}
+              </button>
             </div>
 
             <div className="rounded-2xl border-2 border-[#1F1F1F] bg-[#0A0A0A] overflow-hidden">
@@ -226,7 +249,7 @@ export default function AdminActivationInspectorPage() {
               )}
 
               {stepId === 'orientation' && (
-                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
+                <div className="py-8 md:py-10">
                   <ActivationOrientation onReady={() => {}} />
                 </div>
               )}

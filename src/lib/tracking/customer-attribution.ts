@@ -4,6 +4,7 @@ interface EnsureCustomerOptions {
   userId: string
   visitorId?: string | null
   stripeCustomerId?: string | null
+  paypalCustomerId?: string | null
   leadId?: string | null
   isPurchase?: boolean
 }
@@ -21,7 +22,7 @@ export async function ensureCustomerWithAttribution(
   supabase: SupabaseClient,
   opts: EnsureCustomerOptions
 ): Promise<string | null> {
-  const { userId, visitorId, stripeCustomerId, leadId, isPurchase } = opts
+  const { userId, visitorId, stripeCustomerId, paypalCustomerId, leadId, isPurchase } = opts
 
   let visitorData: Record<string, unknown> | null = null
   if (visitorId) {
@@ -42,7 +43,7 @@ export async function ensureCustomerWithAttribution(
 
   const { data: existing } = await supabase
     .from('customers')
-    .select('id, first_utm_source, first_seen_at')
+    .select('id, first_utm_source, first_seen_at, paypal_customer_id')
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -54,6 +55,7 @@ export async function ensureCustomerWithAttribution(
       updated_at: now,
     }
     if (stripeCustomerId) updates.stripe_customer_id = stripeCustomerId
+    if (paypalCustomerId && !existing.paypal_customer_id) updates.paypal_customer_id = paypalCustomerId
     if (visitorId && !existing.first_seen_at) updates.visitor_id = visitorId
     if (leadId) updates.lead_id = leadId
     if (isPurchase) {
@@ -87,6 +89,7 @@ export async function ensureCustomerWithAttribution(
       user_id: userId,
       visitor_id: visitorId || null,
       stripe_customer_id: stripeCustomerId || null,
+      paypal_customer_id: paypalCustomerId || null,
       lead_id: leadId || null,
 
       first_utm_source: (visitorData?.first_utm_source as string) || null,
