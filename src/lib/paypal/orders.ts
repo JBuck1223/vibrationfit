@@ -24,26 +24,46 @@ function toAmountString(cents: number): string {
   return (cents / 100).toFixed(2)
 }
 
+/** PayPal merchant_customer_id: 1–64 chars, limited character set. */
+const MERCHANT_CUSTOMER_ID = /^[0-9a-zA-Z-_.^*$@#]{1,64}$/
+
+/**
+ * Id PayPal stores on the vault customer so a later
+ * VAULT.PAYMENT-TOKEN.CREATED webhook can find our user.
+ * Email when it fits the pattern; otherwise the cart session id.
+ */
+export function paypalMerchantCustomerId(
+  email?: string | null,
+  cartSessionId?: string | null,
+): string | undefined {
+  if (email && MERCHANT_CUSTOMER_ID.test(email)) return email
+  if (cartSessionId && MERCHANT_CUSTOMER_ID.test(cartSessionId)) return cartSessionId
+  return undefined
+}
+
+export function vaultFromPayPalOrder(order: any): PayPalCaptureResult['vault'] {
+  const card = order?.payment_source?.card
+  const vaultAttrs = card?.attributes?.vault
+  if (!vaultAttrs?.id) return null
+  return {
+    vaultId: vaultAttrs.id,
+    paypalCustomerId: vaultAttrs.customer?.id || null,
+    brand: card?.brand || null,
+    last4: card?.last_digits || null,
+    expiry: card?.expiry || null,
+  }
+}
+
 function parseCapture(order: any): PayPalCaptureResult {
   const pu = order?.purchase_units?.[0]
   const capture = pu?.payments?.captures?.[0] || null
-  const card = order?.payment_source?.card
-  const vaultAttrs = card?.attributes?.vault
   return {
     orderId: order?.id,
     captureId: capture?.id || null,
     status: capture?.status || order?.status || 'UNKNOWN',
     amountCents: capture?.amount?.value ? Math.round(parseFloat(capture.amount.value) * 100) : 0,
     currency: (capture?.amount?.currency_code || 'USD').toLowerCase(),
-    vault: vaultAttrs?.id
-      ? {
-          vaultId: vaultAttrs.id,
-          paypalCustomerId: vaultAttrs.customer?.id || null,
-          brand: card?.brand || null,
-          last4: card?.last_digits || null,
-          expiry: card?.expiry || null,
-        }
-      : null,
+    vault: vaultFromPayPalOrder(order),
     raw: order,
   }
 }
@@ -58,8 +78,19 @@ export async function createCardOrder(params: {
   description: string
   /** Our internal reference (e.g. cart session id) — echoed back on capture/webhooks */
   customId: string
+  /** Stored on PayPal's vault customer so the token webhook can find this buyer. */
+  merchantCustomerId?: string
+  /** Existing PayPal vault customer. Additional cards attach to this customer. */
+  paypalCustomerId?: string
   requestId?: string
 }): Promise<{ id: string; status: string }> {
+  const merchantCustomerId = params.merchantCustomerId && MERCHANT_CUSTOMER_ID.test(params.merchantCustomerId)
+    ? params.merchantCustomerId
+    : undefined
+  const paypalCustomerId = params.paypalCustomerId && MERCHANT_CUSTOMER_ID.test(params.paypalCustomerId)
+    ? params.paypalCustomerId
+    : undefined
+
   const order = await paypalFetch('/v2/checkout/orders', {
     method: 'POST',
     requestId: params.requestId,
@@ -78,6 +109,11 @@ export async function createCardOrder(params: {
       payment_source: {
         card: {
           attributes: {
+            ...(paypalCustomerId
+              ? { customer: { id: paypalCustomerId } }
+              : merchantCustomerId
+                ? { customer: { merchant_customer_id: merchantCustomerId } }
+                : {}),
             vault: { store_in_vault: 'ON_SUCCESS' },
             verification: { method: 'SCA_WHEN_REQUIRED' },
           },

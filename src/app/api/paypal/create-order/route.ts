@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createCardOrder } from '@/lib/paypal/orders'
+import { createCardOrder, paypalMerchantCustomerId } from '@/lib/paypal/orders'
+import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
 import { isPayPalConfigured } from '@/lib/paypal/client'
 import { resolveProduct } from '@/lib/billing/products'
 import { currentSessionUserId, isActivationId, loadActivationOwner } from '@/lib/checkout/activation-handoff'
@@ -104,11 +105,24 @@ export async function POST(request: NextRequest) {
     // -----------------------------------------------------------------------
     // Create the PayPal order (card vaulted on successful capture)
     // -----------------------------------------------------------------------
+    let paypalCustomerId: string | undefined
+    const existingUserId = lockedUserId || await getUserIdByEmail(supabaseAdmin, checkoutEmail)
+    if (existingUserId) {
+      const { data: customer } = await supabaseAdmin
+        .from('customers')
+        .select('paypal_customer_id')
+        .eq('user_id', existingUserId)
+        .maybeSingle()
+      paypalCustomerId = customer?.paypal_customer_id || undefined
+    }
+
     const paypalOrder = await createCardOrder({
       amountCents: chargeAmount,
       currency: checkoutProduct.currency,
       description: checkoutProduct.name,
       customId: cartSessionId || sessionId || product,
+      merchantCustomerId: paypalMerchantCustomerId(checkoutEmail, cartSessionId),
+      paypalCustomerId,
     })
 
     // Stash the full context server-side for capture-time fulfillment
