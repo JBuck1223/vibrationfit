@@ -1,4 +1,5 @@
 import type { OnboardingStepId, TrainingStepId } from './steps'
+import type { ActivationSeedNote } from '@/lib/activation/orchestrator'
 
 export interface LifeActivationSeed {
   activationId: string | null
@@ -8,6 +9,8 @@ export interface LifeActivationSeed {
   essence: string | null
   currentState: string | null
   dreamResponse: Record<string, string> | null
+  /** Cross-category notes VIVA caught during the free Activation chat. */
+  seeds: ActivationSeedNote[]
   firstName: string | null
   needsFirstName: boolean
 }

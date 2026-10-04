@@ -10,6 +10,7 @@ import {
 import { recordLifeActivationEvent } from './events'
 import type { LifeActivationProgress, LifeActivationSeed } from './types'
 import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
+import { asSeedNotes } from '@/lib/activation/intake-markers'
 import { getWalkthrough, type TrainingCompletionId } from './walkthroughs'
 
 type JsonMap = Record<string, string>
@@ -67,7 +68,7 @@ export async function loadSeed(
       .maybeSingle(),
     supabase
       .from('activations')
-      .select('id, category, vision_statement, essence, current_state, dream_response, entered_at, ready_at, created_at')
+      .select('id, category, vision_statement, essence, current_state, dream_response, seeds, entered_at, ready_at, created_at')
       .eq('user_id', userId)
       .order('entered_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
@@ -91,6 +92,7 @@ export async function loadSeed(
       activation?.dream_response && typeof activation.dream_response === 'object'
         ? (activation.dream_response as Record<string, string>)
         : null,
+    seeds: asSeedNotes(activation?.seeds),
     firstName,
     needsFirstName: !firstName,
   }
