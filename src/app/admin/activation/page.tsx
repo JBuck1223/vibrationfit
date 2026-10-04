@@ -265,12 +265,12 @@ export default function AdminActivationInspectorPage() {
               )}
 
               {stepId === 'chat' && (
-                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
+                <div className="mx-auto flex h-[80vh] max-w-7xl flex-col px-4 py-6 md:px-10">
                   <ActivationIntakeChat
                     activationId="preview"
                     initialMessages={[...sample.conversation]}
                     currentState={sample.currentState}
-                    dreamWant={sample.dream.want}
+                    dreamResponse={sample.dream}
                     category={sample.category}
                     intakeReady
                     readOnly
