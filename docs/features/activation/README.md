@@ -22,7 +22,8 @@ ad page is `/join`. `/activation/home` redirects to `/`.
 /free-activation       Free landing. Card and CTAs link to /free-activation/start
 /free-activation/start Opt-in (first name + email) → free account + branded resume email
 /activation/experience Orientation (Start My Activation) → pick one life category
-                       → bounded VIVA chat in that area → Create My Activation
+                       → two-pane VIVA chat (chat left, 12-area progress board right)
+                       → Create My Activation
 /activation/[id]       Preview (checklist only) → Enter My Activation (opened)
                        → Immersion map + assets (audio lives in each container)
                        → I've Entered This Reality (entered)
@@ -46,12 +47,38 @@ Homepage `/` and `/join` stay the full account form. `/auth/callback` also
 honors a `/checkout` `returnTo` so the link is not diverted to a password
 page before the card is added.
 
+## Twelve areas, one Activation
+
+The visitor chooses one life category and VIVA writes only that Activation.
+But life is not twelve silos, so while they talk VIVA also captures every
+other life area that enters the story as a keyed **seed** note
+(`<<<SEED category polarity key>>>`, stored in `activations.seeds`). Seeds are
+a byproduct of listening: VIVA may ask one bridging follow-up into another
+area only when it deepens the chosen one; she never runs a category sweep.
+
+The right pane (`ActivationProgressBoard`) shows all 12 areas as progress
+bars. The chosen area is unlocked and its percent follows the word floors
+below; the other eleven are locked and fill from seeds. Scoring lives in
+`src/lib/activation/category-progress.ts`:
+
+- Seeds are scored by **count of distinct ideas**, never by words, so a long
+  and a short phrasing of the same fact score the same. Same key re-emitted
+  replaces the earlier note (richer detail on one fact stays one seed).
+- Diminishing returns: contrast seeds +20 / +10 / +5 (cap 35); clarity seeds
+  +30 / +20 / +10 / +5 (cap 65). One contrast + one clarity = 50, the
+  "taking shape" line (`NEAR_COMPLETE_PERCENT`).
+
+After `entered`, the offer shows a compact 12-bar strip and names how many
+other areas are already past halfway. When they join, `loadSeed` carries the
+seeds into the first Draft Session (`notesFromActivationSeed`), so
+`/life-vision/begin` opens with the board pre-filled across categories.
+
 ## Completion model
 
 | State / event | Meaning | Set by |
 |---|---|---|
 | `activation_oriented` | They committed on the orientation screen | `PATCH { action: 'orient' }` |
-| `activation_intake_ready` | `current_state` + `dream.want` + category exist | chat route, on finish |
+| `activation_intake_ready` | Chosen-area word floors met (`describeIntakeSubstance`); event data includes `seed_count`, `seeded_categories`, `near_complete_count` | chat route, on finish |
 | `activation_ready` | Core written assets exist | `/api/activation/[id]/generate` |
 | `activation_opened` | **Enter My Activation** from Preview | `PATCH { action: 'open' }` |
 | `activation_entered` | **I've Entered This Reality** after the activation map — north-star | `PATCH { action: 'enter' }` |
@@ -65,15 +92,18 @@ The offer is not shown until `entered`.
 ## Architecture
 
 - **Table:** `activations` — one row per Activation. Inputs (`current_state`,
-  `dream_response`, `category`), conversation jsonb, eval columns
+  `dream_response`, `category`), conversation jsonb, `seeds` jsonb
+  (cross-category keyed notes), eval columns
   (`prompt_version`, `intake_turn_count`, `intake_ready_at`, `needs_support`,
   `resume_email_sent_at`), the structured vision, asset refs, `asset_status`,
   `ready_at` / `opened_at` / `entered_at`. Owner-only RLS.
 - **Chat:** `POST /api/activation/[id]/chat` streams with the same padding /
   `readCoachStream` path as `/viva`. Model `gpt-5.6-terra` via `activation_chat`.
   Same Conversational Intelligence brain as coach, plus a finish line. Hidden
-  `<<<FIELD>>>` markers are parsed on the server. Max 8 model turns; hard stop
-  at 10. Transcript stays on the Activation row — not in `/viva` sessions.
+  `<<<FIELD>>>` and `<<<SEED>>>` markers are parsed on the server and stripped
+  from the stream. There is no turn cap — readiness is the word floors in
+  `src/lib/activation/intake-markers.ts`. Transcript stays on the Activation
+  row — not in `/viva` sessions.
 - **Orchestrator:** `src/lib/activation/orchestrator.ts`
   - `generateCoreAssets` — vision object first, then story + incantation +
     SparkQuery in parallel. Ready requires vision + story.
