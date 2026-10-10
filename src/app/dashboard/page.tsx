@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import DashboardContent from '@/components/DashboardContent'
 import { getGraduateChecklist } from '@/lib/graduate-checklist'
+import { BEGIN_HOME, resolveMemberHome } from '@/lib/life-activation/home'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardPage() {
@@ -11,18 +12,9 @@ export default async function DashboardPage() {
     redirect('/auth/login')
   }
 
-  // If user has a pending/in-progress intensive, send them there instead
-  const { data: activeIntensive } = await supabase
-    .from('intensive_checklist')
-    .select('id, started_at')
-    .eq('user_id', user.id)
-    .in('status', ['pending', 'in_progress'])
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (activeIntensive) {
-    redirect('/begin')
+  // Members stay in Getting Started until Life Activation onboarding is complete
+  if ((await resolveMemberHome(supabase, user.id)) === BEGIN_HOME) {
+    redirect(BEGIN_HOME)
   }
 
   // Run all independent queries in parallel for speed

@@ -7,6 +7,7 @@ import { Card, Input, Button, Spinner } from '@/lib/design-system'
 import { Eye, EyeOff } from 'lucide-react'
 import Image from 'next/image'
 import { ASSETS } from '@/lib/storage/s3-storage-presigned'
+import { MEMBER_HOME, resolveMemberHome } from '@/lib/life-activation/home'
 
 export default function LoginPage() {
   return (
@@ -50,19 +51,12 @@ function LoginForm() {
       return
     }
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: intensiveChecklist } = await supabase
-        .from('intensive_checklist')
-        .select('id, status, started_at')
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
-        .maybeSingle()
-      if (intensiveChecklist) {
-        router.push('/begin')
-        return
-      }
+    if (!user) {
+      router.push(MEMBER_HOME)
+      return
     }
-    router.push('/dashboard')
+    // New members stay in Getting Started until onboarding is complete
+    router.push(await resolveMemberHome(supabase, user.id))
   }
 
   const getLoginErrorMessage = (error: { message?: string; code?: string } | null, fallback: string): string => {

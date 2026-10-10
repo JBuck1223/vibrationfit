@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { recordActivationEvent } from '@/lib/activation/events'
+import { BEGIN_HOME, resolveMemberHome } from '@/lib/life-activation/home'
 
 function getAdminClient() {
   return createSupabaseAdmin(
@@ -46,6 +47,13 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${returnTo}`)
   }
 
+  // Members still in Getting Started land on /begin (or the begin page they asked for)
+  async function honorBeginFlow(userId: string) {
+    if ((await resolveMemberHome(getAdminClient(), userId)) !== BEGIN_HOME) return null
+    const stayOnBeginPage = !!returnTo && returnTo.startsWith(`${BEGIN_HOME}/`) && !returnTo.startsWith('//')
+    return NextResponse.redirect(`${origin}${stayOnBeginPage ? returnTo : BEGIN_HOME}`)
+  }
+
   // Handle PKCE code exchange (standard flow)
   if (code) {
     await supabase.auth.exchangeCodeForSession(code)
@@ -63,20 +71,8 @@ export async function GET(request: Request) {
         return NextResponse.redirect(setupPasswordUrl)
       }
 
-      // Already has password -- check DB for intensive
-      const adminClient = getAdminClient()
-      const { data: checklist } = await adminClient
-        .from('intensive_checklist')
-        .select('id, started_at')
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'in_progress'])
-        .maybeSingle()
-
-      if (checklist) {
-        return NextResponse.redirect(
-          `${origin}/begin`
-        )
-      }
+      const beginRedirect = await honorBeginFlow(user.id)
+      if (beginRedirect) return beginRedirect
     }
 
     return NextResponse.redirect(defaultRedirect)
@@ -106,19 +102,8 @@ export async function GET(request: Request) {
         return NextResponse.redirect(setupPasswordUrl)
       }
 
-      const adminClient = getAdminClient()
-      const { data: checklist } = await adminClient
-        .from('intensive_checklist')
-        .select('id, started_at')
-        .eq('user_id', data.user.id)
-        .in('status', ['pending', 'in_progress'])
-        .maybeSingle()
-
-      if (checklist) {
-        return NextResponse.redirect(
-          `${origin}/begin`
-        )
-      }
+      const beginRedirect = await honorBeginFlow(data.user.id)
+      if (beginRedirect) return beginRedirect
     }
 
     return NextResponse.redirect(defaultRedirect)
