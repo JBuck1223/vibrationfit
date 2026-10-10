@@ -104,12 +104,26 @@ export function LifeActivationSidebarCard({ collapsed }: { collapsed: boolean })
     return pathname === path || pathname.startsWith(`${path}/`)
   }
 
+  const onBeginHome = pathname === '/begin'
+
   return (
     <div className="mb-3 space-y-3">
-      <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
-        {LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}
-        <span className="ml-2 text-neutral-600">{doneCount} of {steps.length}</span>
-      </p>
+      <Link
+        href="/begin"
+        title="Open Getting Started"
+        className={cn(
+          'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors',
+          onBeginHome
+            ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
+            : 'text-neutral-300 hover:bg-neutral-800 hover:text-white',
+        )}
+      >
+        <Rocket className="h-4 w-4 shrink-0" />
+        <span className="flex-1 truncate">{LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}</span>
+        <span className={cn('text-[10px] font-medium tabular-nums', onBeginHome ? 'text-[#00CC44]/80' : 'text-neutral-500')}>
+          {LIFE_ACTIVATION_COPY.sidebar.progress(doneCount, steps.length)}
+        </span>
+      </Link>
       {ONBOARDING_PHASES.map((phase) => {
         const phaseSteps = steps.filter((step) => step.phase === phase)
         if (phaseSteps.length === 0) return null
