@@ -23,6 +23,7 @@ import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { LifeActivationSidebarCard } from '@/components/life-activation/LifeActivationSidebarCard'
+import { useLifeActivation } from '@/hooks/useLifeActivation'
 
 interface SidebarProps {
   className?: string
@@ -54,6 +55,10 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
   const searchParams = useSearchParams()
   const search = searchParams.toString()
   const { count: unreadNotifications } = useAdminNotificationCount(isAdmin)
+  const { progress, isFetched } = useLifeActivation()
+  // Until Getting Started is finished, the member sidebar is only that path.
+  const gettingStartedOnly =
+    !isAdmin && isFetched && progress != null && !progress.onboarding_completed_at
 
   const itemIsActive = (item: NavItem, isChild = false) =>
     isNavItemActive(item, pathname, profile?.id, isChild, search)
@@ -318,9 +323,9 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
 
       {/* Navigation */}
       <nav className="flex-1 min-h-0 px-4 pt-1 pb-4 space-y-1 overflow-y-auto">
-        {primaryNavigation.length > 0 && (
+        {!isAdmin && <LifeActivationSidebarCard collapsed={isCollapsed} />}
+        {!gettingStartedOnly && primaryNavigation.length > 0 && (
           <div className="mb-3 space-y-1">
-            {!isAdmin && <LifeActivationSidebarCard collapsed={isCollapsed} />}
             {primaryNavigation.map((item) => {
               const Icon = item.icon
               const isActive = itemIsActive(item)
@@ -346,7 +351,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           </div>
         )}
 
-        {navigation.map((item) => {
+        {!gettingStartedOnly && navigation.map((item) => {
           const itemHref = item.href
           
           const isActive = itemIsActive(item)
@@ -430,7 +435,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           )
         })}
         
-        {groups.map((group) => {
+        {!gettingStartedOnly && groups.map((group) => {
           const isGroupExpanded = expandedGroups.includes(group.name)
           
           if (isCollapsed) {

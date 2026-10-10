@@ -14,7 +14,7 @@ const PREVIEW_PHASES: Array<{ id: LifeActivationSidebarMode; label: string; note
   {
     id: 'getting-started',
     label: 'Begin mode',
-    note: 'While they are getting started, the sidebar lists each step. They can still collapse it.',
+    note: 'While they are getting started, the sidebar is only that path. The regular navigation comes back when they finish.',
   },
   {
     id: 'tools-training',
