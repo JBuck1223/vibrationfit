@@ -63,11 +63,15 @@ export function MemberSidebarPreview({
               />
             )
           )}
-          <PreviewLink icon={<Home className="h-5 w-5 shrink-0" />} label="Dashboard" />
-          <PreviewLink icon={<Sparkles className="h-5 w-5 shrink-0" />} label="VIVA" />
+          {mode !== 'getting-started' && (
+            <>
+              <PreviewLink icon={<Home className="h-5 w-5 shrink-0" />} label="Dashboard" />
+              <PreviewLink icon={<Sparkles className="h-5 w-5 shrink-0" />} label="VIVA" />
+            </>
+          )}
         </div>
 
-        {userNavigationGroups.slice(0, 3).map((group) => (
+        {mode !== 'getting-started' && userNavigationGroups.slice(0, 3).map((group) => (
           <div key={group.name} className="mt-4">
             <p className="mb-1 px-3 text-[11px] uppercase tracking-wider text-neutral-500">
               {group.name}
