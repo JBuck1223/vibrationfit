@@ -61,6 +61,33 @@ export const ACTIVATION_COPY = {
     create: 'Create My Activation',
     creating: 'Creating your Activation...',
     readyLine: 'I have what I need. When you are ready, I will write your Activation from your words.',
+    statusListening: 'Listening...',
+    statusBuilding: (categoryLabel: string) => `Building your ${categoryLabel} Activation`,
+    statusReady: 'Ready to write',
+    mobileChat: 'Chat',
+    mobileProgress: 'Progress',
+  },
+
+  progress: {
+    source: 'src/components/activation/ActivationProgressBoard.tsx',
+    paneTitle: 'Your Life',
+    paneSubtitle: 'One area unlocks now. Everything else you mention is kept for you.',
+    boardLine: (touched: number) =>
+      touched <= 1
+        ? 'Talk about your life — the other areas fill in as they come up.'
+        : `${touched} of 12 areas taking shape`,
+    chosenTag: 'Your Activation',
+    lockedHint: 'Unlocks with membership',
+    offerTitle: 'Your other areas are already taking shape',
+    offerLine: (lockedNearComplete: number, touched: number) => {
+      if (lockedNearComplete >= 2) {
+        return `${lockedNearComplete} of your other 11 areas are already more than halfway. VIVA kept every word. Pick up exactly where you left off.`
+      }
+      if (touched >= 3) {
+        return `${touched - 1} other areas of your life came up while we talked. VIVA kept every word. Pick up exactly where you left off.`
+      }
+      return 'Everything you told VIVA about the rest of your life is kept. Pick up exactly where you left off.'
+    },
   },
 
   optIn: {

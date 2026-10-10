@@ -13,7 +13,7 @@ import { ActivationCategoryPick } from '@/components/activation/ActivationCatego
 import { ActivationIntakeChat } from '@/components/activation/ActivationIntakeChat'
 import { GeneratingStep } from '@/components/activation/ActivationExperienceSteps'
 import { isIntakeReady } from '@/lib/activation/intake-markers'
-import type { ActivationChatMessage } from '@/lib/activation/orchestrator'
+import type { ActivationChatMessage, ActivationSeedNote } from '@/lib/activation/orchestrator'
 
 type Step = 'loading' | 'orientation' | 'category' | 'chat' | 'generating'
 
@@ -29,8 +29,9 @@ function ActivationExperience() {
 
   const [conversation, setConversation] = useState<ActivationChatMessage[]>([])
   const [currentState, setCurrentState] = useState<string | null>(null)
-  const [dreamWant, setDreamWant] = useState<string | null>(null)
+  const [dreamResponse, setDreamResponse] = useState<Record<string, string> | null>(null)
   const [category, setCategory] = useState<string | null>(null)
+  const [seeds, setSeeds] = useState<ActivationSeedNote[]>([])
   const [intakeReady, setIntakeReady] = useState(false)
 
   const applyRow = useCallback((activation: {
@@ -43,6 +44,7 @@ function ActivationExperience() {
     current_state?: string | null
     dream_response?: Record<string, string> | null
     category?: string | null
+    seeds?: ActivationSeedNote[] | null
     intake_ready_at?: string | null
   }) => {
     if (['ready', 'opened', 'entered'].includes(activation.status) || activation.ready_at) {
@@ -51,8 +53,9 @@ function ActivationExperience() {
     }
     setActivationId(activation.id)
     setCurrentState(activation.current_state || null)
-    setDreamWant(activation.dream_response?.want || null)
+    setDreamResponse(activation.dream_response || null)
     setCategory(activation.category || null)
+    setSeeds(Array.isArray(activation.seeds) ? activation.seeds : [])
     setIntakeReady(!!activation.intake_ready_at || isIntakeReady(activation))
     setConversation(Array.isArray(activation.conversation) ? activation.conversation : [])
 
@@ -217,13 +220,15 @@ function ActivationExperience() {
           activationId={activationId}
           initialMessages={conversation}
           currentState={currentState}
-          dreamWant={dreamWant}
+          dreamResponse={dreamResponse}
           category={category}
+          seeds={seeds}
           intakeReady={intakeReady}
           onFieldsChange={(next) => {
             setCurrentState(next.current_state || null)
-            setDreamWant(next.dream_want || null)
+            setDreamResponse(next.dream_response || null)
             setCategory(next.category || null)
+            setSeeds(next.seeds || [])
             setIntakeReady(!!next.intake_ready)
             setConversation(next.conversation)
           }}

@@ -64,8 +64,6 @@ export function notesFromActivationSeed(seed: LifeActivationSeed): Array<{
   text: string
   source: NoteSource
 }> {
-  if (!seed.category || !isLifeCategoryKey(seed.category)) return []
-  const category = seed.category
   const notes: Array<{
     category: LifeCategoryKey
     polarity: NotePolarity
@@ -73,31 +71,48 @@ export function notesFromActivationSeed(seed: LifeActivationSeed): Array<{
     source: NoteSource
   }> = []
 
-  const contrast = seed.currentState?.trim()
-  if (contrast) {
-    notes.push({ category, polarity: 'contrast', text: contrast, source: 'activation' })
-  }
+  if (seed.category && isLifeCategoryKey(seed.category)) {
+    const category = seed.category
 
-  const dreamParts: string[] = []
-  const dream = seed.dreamResponse
-  if (dream) {
-    for (const key of DREAM_KEYS) {
-      const value = dream[key]?.trim()
-      if (value) dreamParts.push(value)
+    const contrast = seed.currentState?.trim()
+    if (contrast) {
+      notes.push({ category, polarity: 'contrast', text: contrast, source: 'activation' })
+    }
+
+    const dreamParts: string[] = []
+    const dream = seed.dreamResponse
+    if (dream) {
+      for (const key of DREAM_KEYS) {
+        const value = dream[key]?.trim()
+        if (value) dreamParts.push(value)
+      }
+    }
+    if (dreamParts.length > 0) {
+      notes.push({
+        category,
+        polarity: 'clarity',
+        text: dreamParts.join('\n\n'),
+        source: 'activation',
+      })
+    }
+
+    const vision = seed.visionStatement?.trim()
+    if (vision) {
+      notes.push({ category, polarity: 'clarity', text: vision, source: 'activation' })
     }
   }
-  if (dreamParts.length > 0) {
-    notes.push({
-      category,
-      polarity: 'clarity',
-      text: dreamParts.join('\n\n'),
-      source: 'activation',
-    })
-  }
 
-  const vision = seed.visionStatement?.trim()
-  if (vision) {
-    notes.push({ category, polarity: 'clarity', text: vision, source: 'activation' })
+  // Cross-category seeds VIVA caught while they talked about the chosen area.
+  // These are what make "pick up where you left off" true on the Draft Session board.
+  const seen = new Set(notes.map((n) => `${n.category}|${n.polarity}|${normalizeNoteText(n.text)}`))
+  for (const note of seed.seeds || []) {
+    if (!isLifeCategoryKey(note.category)) continue
+    const text = note.text.trim()
+    if (!text) continue
+    const id = `${note.category}|${note.polarity}|${normalizeNoteText(text)}`
+    if (seen.has(id)) continue
+    seen.add(id)
+    notes.push({ category: note.category, polarity: note.polarity, text, source: 'activation' })
   }
 
   return notes

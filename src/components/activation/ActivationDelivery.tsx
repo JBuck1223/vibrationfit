@@ -34,7 +34,13 @@ import { ACTIVATION_COPY } from '@/lib/activation/copy'
 import { ACTIVATION_IMMERSION_OFFER_VIDEO } from '@/lib/activation/videos'
 import { toast } from 'sonner'
 import { ActivationMediaPick } from '@/components/activation/ActivationMediaPick'
+import { ActivationProgressBoard } from '@/components/activation/ActivationProgressBoard'
 import type { ActivationGenreId, ActivationVoiceId } from '@/lib/activation/media-options'
+import type { ActivationSeedNote } from '@/lib/activation/orchestrator'
+import {
+  describeActivationCategoryProgress,
+  summarizeActivationProgress,
+} from '@/lib/activation/category-progress'
 
 function deliveryGlow(color: string): { borderColor: string; boxShadow: string } {
   return {
@@ -78,6 +84,8 @@ export interface DeliveryActivation {
   first_name?: string | null
   current_state?: string | null
   dream_response?: Record<string, string> | null
+  seeds?: ActivationSeedNote[] | null
+  conversation?: Array<{ role?: string; content?: string }> | null
   reflection?: string | null
   vision_statement: string | null
   essence: string | null
@@ -445,6 +453,16 @@ export function ActivationDelivery({
     window.location.href = `/checkout?product=membership&planType=solo&activation=${activation.id}`
   }
 
+  const progressInput = {
+    category: activation.category,
+    current_state: activation.current_state,
+    dream_response: activation.dream_response,
+    conversation: activation.conversation,
+    seeds: activation.seeds,
+  }
+  const progressSummary = summarizeActivationProgress(describeActivationCategoryProgress(progressInput))
+  const progressCopy = ACTIVATION_COPY.progress
+
   if (phase === 'preview') {
     const writtenReady = {
       vision: !!activation.vision_statement,
@@ -702,6 +720,15 @@ export function ActivationDelivery({
                 <p className="mx-auto max-w-4xl text-base leading-relaxed text-neutral-400 md:text-lg">
                   {copy.offerBody}
                 </p>
+                {progressSummary.touched > 1 && (
+                  <div className="mx-auto w-full max-w-3xl rounded-2xl border border-white/10 bg-black/40 p-4 text-left md:p-5">
+                    <p className="text-sm font-semibold text-white">{progressCopy.offerTitle}</p>
+                    <p className="mt-1 text-sm text-neutral-400">
+                      {progressCopy.offerLine(progressSummary.lockedNearComplete, progressSummary.touched)}
+                    </p>
+                    <ActivationProgressBoard input={progressInput} compact className="mt-4" />
+                  </div>
+                )}
                 <VideoSlot
                   label={copy.offerVideoLabel}
                   src={ACTIVATION_IMMERSION_OFFER_VIDEO.src}

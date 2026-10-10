@@ -21,10 +21,15 @@ import {
 import {
   describeIntakeSubstance,
   mergeDream,
+  mergeSeeds,
   parseIntakeMarkers,
   stripIntakeMarkers,
   stripIntakeMarkersLive,
 } from '@/lib/activation/intake-markers'
+import {
+  describeActivationCategoryProgress,
+  summarizeActivationProgress,
+} from '@/lib/activation/category-progress'
 import { recordActivationEvent } from '@/lib/activation/events'
 import type { ActivationChatMessage, ActivationRow } from '@/lib/activation/orchestrator'
 import { loadRoster, loadPersona } from '@/lib/roster/store'
@@ -115,6 +120,7 @@ export async function POST(
       conversation,
       rosterBlock,
       personaBlock,
+      seeds: row.seeds,
     })
 
     const estimatedTokens = estimateTokensForText(
@@ -161,6 +167,7 @@ export async function POST(
             const reflection = extract.reflection || row.reflection
             const category = row.category
             const needsSupport = extract.needs_support || row.needs_support || false
+            const seeds = mergeSeeds(row.seeds, extract.seeds, turnCount)
             const substance = describeIntakeSubstance({
               current_state: currentState,
               dream_response: dream,
@@ -178,6 +185,7 @@ export async function POST(
               reflection,
               dream_response: dream,
               needs_support: needsSupport,
+              seeds,
               status: row.status === 'started' ? 'oriented' : row.status,
             }
             if (ready && !row.intake_ready_at) {
@@ -211,11 +219,27 @@ export async function POST(
                 dream.become ? 'dream.become' : null,
                 category ? 'category' : null,
               ].filter(Boolean)
+              const progressSummary = summarizeActivationProgress(
+                describeActivationCategoryProgress({
+                  category,
+                  current_state: currentState,
+                  dream_response: dream,
+                  conversation: nextConversation,
+                  seeds,
+                }),
+              )
               await recordActivationEvent(createAdminClient(), {
                 eventType: 'activation_intake_ready',
                 activationId: row.id,
                 userId: user.id,
-                eventData: { turns: turnCount, fields_filled: fieldsFilled, category },
+                eventData: {
+                  turns: turnCount,
+                  fields_filled: fieldsFilled,
+                  category,
+                  seed_count: seeds.length,
+                  seeded_categories: progressSummary.touched - 1,
+                  near_complete_count: progressSummary.lockedNearComplete,
+                },
               })
             }
 

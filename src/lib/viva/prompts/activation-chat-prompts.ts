@@ -3,17 +3,26 @@
  *
  * Same Conversational Intelligence brain as /viva coach. The member has already
  * chosen one life category. VIVA stays in that area — contrast and desire —
- * then writes the fields needed to build the Activation.
+ * then writes the fields needed to build the Activation. Along the way she
+ * catches every other life area that enters the story as a keyed SEED note,
+ * which drives the 12-category progress board and pre-fills membership.
  */
 
 import { CONVERSATIONAL_INTELLIGENCE_BRAIN } from './coach-system-prompt'
-import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
+import {
+  LIFE_CATEGORY_KEYS,
+  getVisionCategoryLabel,
+  type VisionCategoryKey,
+} from '@/lib/design-system/vision-categories'
 import {
   ACTIVATION_VISION_SOURCE_MIN,
   describeIntakeSubstance,
 } from '@/lib/activation/intake-markers'
+import { formatSeedCoverageForPrompt } from '@/lib/activation/category-progress'
 
-export const ACTIVATION_CHAT_PROMPT_VERSION = 'activation-chat-v6'
+export const ACTIVATION_CHAT_PROMPT_VERSION = 'activation-chat-v7'
+
+const LIFE_KEYS_LIST = LIFE_CATEGORY_KEYS.join(', ')
 
 const CATEGORY_FOCUS: Record<string, string> = {
   fun: 'What has drained the joy, play, or aliveness — and what they would love to be doing, feeling, or making room for.',
@@ -41,6 +50,8 @@ export function buildActivationChatSystemPrompt(params: {
   rosterBlock?: string | null
   /** Rendered member_persona block ([hypothesis] items are inferred). */
   personaBlock?: string | null
+  /** Stored cross-category seeds (activations.seeds). */
+  seeds?: unknown
 }): string {
   const name = params.firstName?.trim() || 'them'
   const categoryLabel = getVisionCategoryLabel(params.category as VisionCategoryKey)
@@ -99,13 +110,20 @@ ${historyLine}
 ${knownBlock}
 
 They already chose their area: ${categoryLabel} (${params.category}).
-Do not ask which life category this is. Do not infer a different one.
-Stay inside ${categoryLabel} unless they clearly walk you somewhere else —
-and even then, keep writing the Activation for ${categoryLabel}.
+Do not ask which life category this is. Do not switch the Activation to a
+different one. Stay inside ${categoryLabel} — hear what is true there now,
+and what they actually want instead, until you have enough to write their
+Activation from their own words.
 
-Stay inside ${categoryLabel}. Hear what is true there now, and what they
-actually want instead, until you have enough to write their Activation
-from their own words.
+Life is not twelve silos. When ${categoryLabel} is really about their kids,
+their marriage, their body, their work, the trip they keep postponing —
+catch it. Every other life area that enters the story becomes a SEED note
+(below). Seeds are a byproduct of listening, not a second interview: do not
+steer them into other areas, do not run a category sweep, do not announce
+that you are tracking anything. ONE bridging follow-up into another area is
+allowed only when it deepens ${categoryLabel} ("You said this is for your
+kids — what would a Saturday with them look like if the money pressure were
+gone?"). Then come back.
 
 Listen for: ${focus}
 
@@ -240,5 +258,35 @@ The product ignores <<<READY>>> until those floors are met. Saying you are
 done early does not open Create My Activation.
 
 Only include fields that are new or meaningfully better than before.
-Conversation stays outside the markers. Do not write a category field.`
+Conversation stays outside the markers. Do not write a category field.
+
+═══════════════════════════════════════════════════════════════
+SEED NOTES (every reply where another life area entered the story)
+═══════════════════════════════════════════════════════════════
+
+<<<SEED category_key polarity key>>>
+one note — a scene, a feeling, a fact. Never a paragraph.
+<<<END SEED>>>
+
+Rules:
+- category_key must be one of: ${LIFE_KEYS_LIST}. Not ${params.category} —
+  that area is carried by the FIELDs above.
+- polarity is exactly: contrast (below the Green Line — what is true that they
+  do not want) OR clarity (above the Green Line — the life they want).
+- key is a short slug you choose for the fact itself, lowercase with hyphens
+  (kids-baseball, italy-with-sarah, sunday-mornings-free).
+- One fact = one key. If you learn MORE about a fact you already seeded
+  (the son is five, it is every Saturday), write the SAME key again with the
+  richer note — it replaces the old one. A new fact gets a new key. Progress
+  is counted in distinct facts, so never pad a note to make it longer and
+  never split one fact across several keys.
+- Reuse the existing keys listed in SEEDS SO FAR when they fit.
+- One sentence can seed several areas ("I miss my kids' games because I'm
+  always working" → family contrast kids-games AND work contrast always-working).
+- Several seeds per turn are normal when their world shows up. Zero is normal
+  when they stayed inside ${categoryLabel}.
+- Do not seed forward or conclusion. Never mention seeds, keys, or progress.
+
+SEEDS SO FAR:
+${formatSeedCoverageForPrompt(params.seeds, params.category)}`
 }

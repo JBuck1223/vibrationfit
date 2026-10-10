@@ -76,6 +76,15 @@ export type ActivationChatMessage = {
   content: string
 }
 
+export type ActivationSeedNote = {
+  category: string
+  polarity: 'contrast' | 'clarity'
+  /** Short slug VIVA chooses so richer detail on the same fact replaces, not duplicates. */
+  key: string
+  text: string
+  turn: number
+}
+
 export type ActivationRow = {
   id: string
   user_id: string
@@ -101,6 +110,7 @@ export type ActivationRow = {
   entered_at: string | null
   opened_at?: string | null
   conversation?: ActivationChatMessage[]
+  seeds?: ActivationSeedNote[]
   prompt_version?: string | null
   intake_turn_count?: number
   intake_ready_at?: string | null
