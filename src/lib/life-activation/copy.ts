@@ -43,8 +43,8 @@ export const LIFE_ACTIVATION_COPY = {
         'Finish the current step to unlock the next. The sidebar stays open if you need to look around.',
       howNext:
         'When you are ready, start. You will come back to your dashboard with Account as the next step.',
-      startCta: 'Start My Life Activation',
-      continueCta: 'Go to Dashboard',
+      startCta: 'Get Started',
+      continueCta: 'Get Started',
     },
   },
   dashboard: {
