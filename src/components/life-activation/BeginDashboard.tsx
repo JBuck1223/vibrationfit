@@ -48,6 +48,12 @@ export function BeginDashboard() {
 
   const nextStep = steps.find((s) => !s.completed && !s.locked) || null
   const visibleDone = steps.length > 0 && steps.every((s) => s.completed)
+  const notStarted = !isLoading && !progress?.onboarding.welcome
+
+  // A member who has not started yet lands on the welcome page, not an empty checklist
+  useEffect(() => {
+    if (notStarted) router.replace('/begin/welcome')
+  }, [notStarted, router])
 
   useEffect(() => {
     if (!progress || progress.onboarding_completed_at || !visibleDone) return
@@ -89,7 +95,7 @@ export function BeginDashboard() {
         steps={steps}
         nextStep={nextStep}
         progressCopy={LIFE_ACTIVATION_COPY.dashboard.onboardingLead(nextStep?.id ?? null)}
-        loading={isLoading}
+        loading={isLoading || notStarted}
         continueDisabled={isUpdating}
         onContinue={handleContinue}
         extra={progress?.onboarding.vision ? <RosterConfirmCard /> : null}
