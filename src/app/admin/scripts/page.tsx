@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { diffWords } from 'diff'
 import { FileText, Plus, Sparkles, Upload, Lock, Unlock, Trash2, Scissors, ArrowUp, ArrowDown, ChevronDown, ChevronUp, FolderOpen, MessageCircle, Copy, Eye } from 'lucide-react'
 import { Button, Card, Input, Textarea } from '@/lib/design-system/components'
+import { captureScrollAnchor, restoreScrollAnchor, scrollSafeAutoResize, type ScrollAnchor } from '@/lib/design-system/components/forms/auto-resize-utils'
 import { useAdminStudioChrome } from '@/components/admin-studio/AdminStudioContext'
 import type { AreaBarVersionSelector } from '@/lib/design-system/components'
 import { VivaChatInput } from '@/components/viva/VivaChatInput'
@@ -39,11 +40,16 @@ function PreviewField({ label, value, locked, disabled, onChange, onFocus }: {
   onFocus: () => void
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
-  useEffect(() => {
+  const anchorRef = useRef<ScrollAnchor | null>(null)
+  useLayoutEffect(() => {
     const el = ref.current
-    if (!el) return
-    el.style.height = '0px'
-    el.style.height = `${Math.max(el.scrollHeight, 44)}px`
+    const anchor = anchorRef.current
+    anchorRef.current = null
+    if (el) scrollSafeAutoResize(el, { minHeight: 44 })
+    if (!anchor) return
+    restoreScrollAnchor(anchor)
+    const frame = requestAnimationFrame(() => restoreScrollAnchor(anchor))
+    return () => cancelAnimationFrame(frame)
   }, [value])
   if (locked) {
     return <div className="space-y-1">
@@ -53,7 +59,7 @@ function PreviewField({ label, value, locked, disabled, onChange, onFocus }: {
   }
   return <label className="block space-y-1">
     <span className="text-[11px] text-neutral-500">{label}</span>
-    <textarea ref={ref} aria-label={`Draft: ${label}`} value={value} maxLength={100000} disabled={disabled} rows={1} placeholder="Write this section…" className={previewFieldClass} onChange={event => onChange(event.target.value)} onFocus={onFocus} />
+    <textarea ref={ref} aria-label={`Draft: ${label}`} value={value} maxLength={100000} disabled={disabled} rows={1} placeholder="Write this section…" className={previewFieldClass} onChange={event => { anchorRef.current = captureScrollAnchor(event.target); onChange(event.target.value) }} onFocus={onFocus} />
   </label>
 }
 
@@ -93,6 +99,7 @@ export default function ScriptStudioPage() {
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState('')
   const pendingSave = useRef<{ signature: string; id: string } | null>(null)
+  const editAnchor = useRef<ScrollAnchor | null>(null)
   const lastSaved = useRef(JSON.stringify(scriptSections()))
   const dirty = JSON.stringify(sections) !== lastSaved.current
 
@@ -135,6 +142,15 @@ export default function ScriptStudioPage() {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
+
+  useLayoutEffect(() => {
+    const anchor = editAnchor.current
+    if (!anchor) return
+    editAnchor.current = null
+    restoreScrollAnchor(anchor)
+    const frame = requestAnimationFrame(() => restoreScrollAnchor(anchor))
+    return () => cancelAnimationFrame(frame)
+  })
 
   async function run(action: () => Promise<void>) {
     setBusy(true); setError(''); setNotice('')
@@ -271,7 +287,7 @@ export default function ScriptStudioPage() {
     } finally { setRefining(false) }
   }
   const paneClass = 'flex flex-col overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#111] lg:h-[calc(100dvh-15rem)] lg:min-h-[480px]'
-  const scrollClass = 'min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#2c2c2c_transparent]'
+  const scrollClass = 'min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] [scrollbar-width:thin] [scrollbar-color:#2c2c2c_transparent]'
 
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -373,7 +389,7 @@ export default function ScriptStudioPage() {
                   {sectionProposal !== null ? <div className="space-y-3"><p className="text-xs text-[#BF00FF]">VIVA’s proposal · review before accepting</p><Changes before={section.content} after={sectionProposal} /><Textarea aria-label={`VIVA proposal for ${section.title}`} rows={8} value={sectionProposal} onChange={event => setProposal(event.target.value)} disabled={disabled} /><div className="flex gap-2"><Button size="sm" disabled={disabled || section.locked || !sectionProposal.trim()} onClick={() => { updateSelected({ content: sectionProposal }); setProposal(null); setSource('viva'); setNotice('Accepted into draft. Save a version to keep it.') }}>Accept into draft</Button><Button size="sm" variant="ghost" disabled={disabled} onClick={() => setProposal(null)}>Discard</Button></div></div>
                     : view === 'edits' ? (changed ? <Changes before={saved} after={section.content} /> : <p className="text-xs text-neutral-500">No text changes.</p>)
                     : view === 'saved' ? <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">{saved || 'This section did not exist in this version.'}</p>
-                    : <><Input aria-label={`Section title: ${section.title}`} value={section.title} maxLength={200} disabled={disabled || section.locked} onChange={event => setSections(items => items.map(item => item.id === section.id ? { ...item, title: event.target.value } : item))} /><Textarea aria-label={`Draft: ${section.title}`} rows={8} value={section.content} maxLength={100000} disabled={disabled || section.locked} onChange={event => setSections(items => items.map(item => item.id === section.id ? { ...item, content: event.target.value } : item))} /></>}
+                    : <><Input aria-label={`Section title: ${section.title}`} value={section.title} maxLength={200} disabled={disabled || section.locked} onChange={event => { editAnchor.current = captureScrollAnchor(event.target); setSections(items => items.map(item => item.id === section.id ? { ...item, title: event.target.value } : item)) }} /><Textarea aria-label={`Draft: ${section.title}`} rows={8} value={section.content} maxLength={100000} disabled={disabled || section.locked} onChange={event => { editAnchor.current = captureScrollAnchor(event.target); setSections(items => items.map(item => item.id === section.id ? { ...item, content: event.target.value } : item)) }} /></>}
                   <div className="flex flex-wrap gap-3 text-xs text-neutral-500"><span>{section.locked ? 'Text locked · section can still be reordered' : `${section.content.split(/\s+/).filter(Boolean).length} words`}</span>{isSelected && !section.locked && <button disabled={disabled || proposal !== null} onClick={splitSection}><Scissors className="mr-1 inline h-3 w-3" />Split at blank lines</button>}<button disabled={disabled || section.locked || proposal !== null || sections.length === 1} onClick={() => { if (section.content.trim() && !window.confirm('Remove this section from the draft? Saved versions remain available.')) return; const remaining = sections.filter(item => item.id !== section.id); setSections(remaining); if (isSelected) setSelectedSection(remaining[0].id) }}><Trash2 className="mr-1 inline h-3 w-3" />Remove</button></div>
                 </div>}
               </section>
