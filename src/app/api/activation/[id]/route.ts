@@ -10,10 +10,11 @@
  *                               moments: orient, open, enter, inspired step.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordActivationEvent } from '@/lib/activation/events'
+import { sendNotification } from '@/lib/notifications/config'
 import type { ActivationChatMessage, ActivationRow, AssetState } from '@/lib/activation/orchestrator'
 import { LIFE_CATEGORY_KEYS, getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
 import { ACTIVATION_COPY } from '@/lib/activation/copy'
@@ -157,6 +158,28 @@ export async function GET(
 
 const WIZARD_STATUSES = ['started', 'oriented', 'current_state', 'dream', 'category_confirmed'] as const
 
+function notifyAdminActivationComplete(userId: string, category: string) {
+  after(() =>
+    (async () => {
+      const admin = createAdminClient()
+      const { data: account } = await admin
+        .from('user_accounts')
+        .select('full_name, first_name, email')
+        .eq('id', userId)
+        .maybeSingle()
+      const name = account?.full_name || account?.first_name || account?.email || 'Someone'
+      await sendNotification({
+        slug: 'free_activation_complete',
+        variables: {
+          name,
+          email: account?.email || 'no email',
+          category,
+        },
+      })
+    })().catch((err) => console.error('[activation/enter] admin SMS:', err))
+  )
+}
+
 function openingMessage(firstName: string | null | undefined, category: string): ActivationChatMessage {
   const label = getVisionCategoryLabel(category as VisionCategoryKey)
   return { role: 'assistant', content: ACTIVATION_COPY.chat.opening(firstName, label) }
@@ -298,6 +321,14 @@ export async function PATCH(
     if (error) {
       console.error('[activation PATCH] update failed:', error)
       return NextResponse.json({ error: 'Failed to save' }, { status: 500 })
+    }
+
+    if (body.action === 'enter' && !activation.entered_at) {
+      const categoryKey = activation.category
+      const category = categoryKey && (LIFE_CATEGORY_KEYS as readonly string[]).includes(categoryKey)
+        ? getVisionCategoryLabel(categoryKey as VisionCategoryKey)
+        : 'Life'
+      notifyAdminActivationComplete(activation.user_id, category)
     }
 
     return NextResponse.json({ activation: updated })

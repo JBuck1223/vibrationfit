@@ -13,6 +13,7 @@ import { Toaster } from 'sonner'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 import { ReferralBanner } from '@/components/ReferralBanner'
 import { GlobalAudioPlayerShell } from '@/lib/design-system/components'
+import { NativeShellBridge } from '@/components/NativeShellBridge'
 
 const poppins = Poppins({
   weight: ['300', '400', '500', '600', '700', '800'],
@@ -31,6 +32,10 @@ const display = Indie_Flower({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Lets env(safe-area-inset-*) take effect under the notch / home indicator
+  // in the native shell and on iOS Safari. globals.css already uses it.
+  viewportFit: 'cover',
+  themeColor: '#000000',
 }
 
 export const metadata: Metadata = {
@@ -78,6 +83,7 @@ export default function RootLayout({
         <PixelScripts />
         <ImpersonationBanner />
         <ReferralBanner />
+        <NativeShellBridge />
         <AuthProvider>
           <QueryProvider>
           <RealtimeInvalidationBridge />

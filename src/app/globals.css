@@ -39,6 +39,21 @@ body {
   letter-spacing: 0;
 }
 
+/* Native shell (Capacitor iOS/Android). Set by NativeShellBridge. */
+html[data-native-shell] {
+  /* WKWebView: no rubber-band overscroll on the root, no link callouts, no tap flash. */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+html[data-native-shell] body {
+  overscroll-behavior-y: none;
+}
+/* Opt-out hook for marketing-only UI (pricing, signup, upsells). */
+html[data-native-shell] .hide-in-native {
+  display: none !important;
+}
+
 /* Dev tools compatibility */
 @media (max-width: 768px) {
   /* Use dynamic viewport height to handle dev tools */

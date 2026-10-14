@@ -40,6 +40,7 @@ import {
 } from '@/lib/life-vision/draft-helpers'
 import { draftHasAnyVisionText } from '@/lib/life-vision/draft-session'
 import {
+  LIFE_CATEGORY_KEYS,
   ORDERED_VISION_CATEGORIES,
   getVisionCategoryIcon,
   type VisionCategoryKey,
@@ -57,6 +58,7 @@ import {
 } from '@/components/life-vision/VisionUpdateTour'
 
 const CATEGORY_KEYS = ORDERED_VISION_CATEGORIES.map((c) => c.key)
+const LIFE_KEYS: string[] = [...LIFE_CATEGORY_KEYS]
 
 const OPENING_MESSAGE =
   "Anytime you choose, I'll be here with your whole vision open beside us. Tell me what's changed in your life — something new that's arrived, a dream that's grown, a chapter that's complete, or contrast that you're experiencing. Speak it or type it, and I'll propose the updates. You accept, edit, or discard every one before it touches your draft."
@@ -256,6 +258,9 @@ export default function VisionUpdatePage() {
 
   const [proposals, setProposals] = useState<Record<string, ProposalState>>({})
   const [liveSeeds, setLiveSeeds] = useState<VisionUpdateSeed[]>([])
+  // Create mode: the compose pass runs per category after VIVA emits <<<COMPOSE>>>
+  // (and again per category after an IMAGINE addition). Tracks what is in flight.
+  const [composing, setComposing] = useState<{ pending: string[]; done: string[] } | null>(null)
   const [savingCategory, setSavingCategory] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [viewMode, setViewMode] = useState<Record<string, CategoryView>>({})
@@ -555,8 +560,67 @@ export default function VisionUpdatePage() {
     isCreateMode &&
     !draftHasText &&
     pendingProposalCount === 0 &&
+    !composing &&
     draftSession?.status !== 'composed'
-  const canCommit = isCreateMode ? draftHasText : changedCategories.length > 0
+  const canCommit = (isCreateMode ? draftHasText : changedCategories.length > 0) && !composing
+
+  // ------------------------------------------------------------------
+  // Compose pass (create mode): POST /api/vision/draft/compose-first streams
+  // NDJSON; each finished category lands in the draft pane as it arrives.
+  // ------------------------------------------------------------------
+  const runCompose = useCallback(async (categories?: string[]) => {
+    if (!draft || !isCreateMode) return
+    const wanted = categories && categories.length ? categories : LIFE_KEYS
+    setComposing({ pending: wanted, done: [] })
+    setChatError(null)
+    setMobilePane('draft')
+    try {
+      const res = await fetch('/api/vision/draft/compose-first', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId: draft.id, categories: categories && categories.length ? categories : undefined }),
+      })
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || 'Could not write your vision')
+      }
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      const handle = (line: string) => {
+        if (!line.trim()) return
+        let evt: Record<string, unknown>
+        try { evt = JSON.parse(line) } catch { return }
+        if (evt.type === 'stage' && evt.stage === 'vision' && typeof evt.category === 'string' && typeof evt.text === 'string') {
+          const category = evt.category
+          const text = evt.text
+          setDraft((prev) => (prev ? ({ ...prev, [category]: text } as VisionData) : prev))
+          setComposing((prev) => prev
+            ? { pending: prev.pending.filter((k) => k !== category), done: [...prev.done, category] }
+            : prev)
+          setExpanded((prev) => ({ ...prev, [category]: true }))
+        } else if (evt.type === 'bookends') {
+          setDraft((prev) => (prev ? ({ ...prev, forward: evt.forward, conclusion: evt.conclusion } as VisionData) : prev))
+        } else if (evt.type === 'error') {
+          throw new Error(typeof evt.message === 'string' ? evt.message : 'Compose failed')
+        }
+      }
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        for (const line of lines) handle(line)
+      }
+      if (buffer.trim()) handle(buffer)
+    } catch (err) {
+      setChatError(err instanceof Error ? err.message : 'Could not write your vision')
+    } finally {
+      setComposing(null)
+      queryClient.invalidateQueries({ queryKey: [...keys.visionDraftSession, draft.id] })
+    }
+  }, [draft, isCreateMode, queryClient])
 
   const tourDemoText = useMemo(() => {
     if (!draft || !tourDemoKey) return ''
@@ -581,8 +645,10 @@ export default function VisionUpdatePage() {
 
     const controller = new AbortController()
     abortRef.current = controller
+    let lastRaw = ''
 
     const applyRaw = (raw: string) => {
+      lastRaw = raw
       setMessages((prev) => {
         const next = [...prev]
         next[next.length - 1] = { role: 'assistant', content: raw }
@@ -637,7 +703,18 @@ export default function VisionUpdatePage() {
         queryClient.invalidateQueries({ queryKey: [...keys.visionDraftSession, draft.id] })
       }
     }
-  }, [input, isStreaming, draft, messages, conversationId, isCreateMode, queryClient])
+
+    // Hand-offs to the compose pass (create mode only).
+    if (isCreateMode && lastRaw && !controller.signal.aborted) {
+      const final = parseVisionUpdateMessage(lastRaw)
+      if (final.compose) {
+        void runCompose()
+      } else {
+        const added = final.imaginings.filter((a) => a.complete && a.text.trim()).map((a) => a.category)
+        if (added.length) void runCompose(Array.from(new Set(added)))
+      }
+    }
+  }, [input, isStreaming, draft, messages, conversationId, isCreateMode, queryClient, runCompose])
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
@@ -804,14 +881,16 @@ export default function VisionUpdatePage() {
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold leading-tight text-white">VIVA</div>
             <div className="text-[11px] leading-tight text-neutral-500">
-              {isStreaming
+              {composing
+                ? 'Writing your Life I Choose…'
+                : isStreaming
                 ? (showGatheringBoard ? 'Listening…' : 'Writing with you…')
                 : isCreateMode
-                  ? (showGatheringBoard ? 'Building your first vision' : 'Editing your first draft')
+                  ? (showGatheringBoard ? 'Building your first vision' : 'Making it yours')
                   : 'Vision Update'}
             </div>
           </div>
-          {isStreaming && <Loader2 className="h-4 w-4 animate-spin text-[#BF00FF]" />}
+          {(isStreaming || composing) && <Loader2 className="h-4 w-4 animate-spin text-[#BF00FF]" />}
         </div>
 
         {/* Messages */}
@@ -866,12 +945,12 @@ export default function VisionUpdatePage() {
             value={input}
             onChange={setInput}
             onSend={(_attachments, text) => handleSend(_attachments, text)}
-            disabled={isStreaming}
+            disabled={isStreaming || Boolean(composing)}
             placeholder={
               isCreateMode
                 ? (showGatheringBoard
-                  ? 'Answer VIVA — from contrast or from clarity'
-                  : 'Tell VIVA what to refine')
+                  ? 'Answer VIVA in your own words — the more you say, the richer it gets'
+                  : 'Add to an area, or tell VIVA what to change')
                 : "What's changed in your life?"
             }
           />
@@ -889,11 +968,13 @@ export default function VisionUpdatePage() {
             {showGatheringBoard ? 'Draft Session' : 'Your Draft'}
           </div>
           <div className="text-xs text-neutral-500">
-            {showGatheringBoard
-              ? 'VIVA asks. Your answers become contrast and clarity beside us.'
+            {composing
+              ? `Writing ${composing.pending.length + composing.done.length} ${composing.pending.length + composing.done.length === 1 ? 'area' : 'areas'} from your words — ${composing.done.length} done`
+              : showGatheringBoard
+              ? 'VIVA asks. Your own words land beside us and become your vision.'
               : isCreateMode
                 ? (draftHasText
-                  ? 'Review your first draft — accept, edit, or discard every section'
+                  ? 'Review your first draft — edit any section, or add to an area in the chat'
                   : 'No draft text yet')
                 : changedCategories.length > 0
                   ? `${changedCategories.length} ${changedCategories.length === 1 ? 'category' : 'categories'} updated from active`
@@ -986,6 +1067,11 @@ export default function VisionUpdatePage() {
                   proposal ? 'text-[#BF00FF]' : isChanged ? 'text-[#FFFF00]' : 'text-neutral-500'
                 }`} />
                 <span className="text-sm font-medium text-white truncate">{category.label}</span>
+                {composing?.pending.includes(key) && (
+                  <span className="ml-1 inline-flex items-center gap-1 text-[11px] text-[#d580ff]">
+                    <Loader2 className="h-3 w-3 animate-spin" />Writing
+                  </span>
+                )}
               </button>
 
               {proposal && (

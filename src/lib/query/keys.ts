@@ -110,6 +110,7 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   life_activation_progress: [keys.lifeActivation],
   vision_draft_sessions: [keys.visionDraftSession],
   vision_draft_session_notes: [keys.visionDraftSession],
+  vision_draft_session_category_text: [keys.visionDraftSession],
   member_roster: [keys.memberRoster],
   member_persona: [keys.memberPersona],
   activations: [keys.activations],

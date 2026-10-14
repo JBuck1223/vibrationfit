@@ -2,8 +2,11 @@
 
 import { getVisionCategoryIcon, getVisionCategoryLabel } from '@/lib/design-system/vision-categories'
 import {
+  DEPTH_CLEAR_WORDS,
+  computeDepth,
   groupNotesByCategory,
   normalizeNoteText,
+  type DepthStatus,
   type DraftSessionNote,
 } from '@/lib/life-vision/draft-session'
 import type { VisionUpdateSeed } from '@/lib/life-vision/vision-update-stream'
@@ -25,6 +28,7 @@ function mergeLiveSeeds(notes: DraftSessionNote[], live: VisionUpdateSeed[]): Dr
       category: seed.category,
       polarity: seed.polarity,
       text: seed.text.trim(),
+      member_text: null,
       source: 'viva',
       created_at: new Date().toISOString(),
     })
@@ -32,16 +36,25 @@ function mergeLiveSeeds(notes: DraftSessionNote[], live: VisionUpdateSeed[]): Dr
   return extra.length ? [...notes, ...extra] : notes
 }
 
-function NoteList({
+const DEPTH_PILL: Record<DepthStatus, { label: string; className: string }> = {
+  cleared: { label: 'Cleared', className: 'bg-[#39FF14]/15 text-[#a4ff8a]' },
+  thin: { label: 'Thin', className: 'bg-[#FFB000]/15 text-[#ffd27a]' },
+  empty: { label: 'Not yet', className: 'bg-[#2a2a2a] text-neutral-500' },
+  unknown: { label: 'Unknown yet', className: 'bg-[#8B5CF6]/15 text-[#c4b5fd]' },
+}
+
+function WordsColumn({
   label,
-  items,
+  passages,
+  labels,
   tone,
 }: {
   label: string
-  items: string[]
+  passages: string[]
+  labels: string[]
   tone: 'contrast' | 'clarity'
 }) {
-  const filled = items.length > 0
+  const filled = passages.length > 0 || labels.length > 0
   const color = tone === 'clarity' ? 'text-[#a4ff8a]' : 'text-[#ff8ba7]'
   const border = tone === 'clarity' ? 'border-[#39FF14]/25 bg-[#39FF14]/[0.04]' : 'border-[#FF0040]/25 bg-[#FF0040]/[0.04]'
   return (
@@ -49,17 +62,25 @@ function NoteList({
       <div className={`text-[10px] uppercase tracking-wider ${filled ? color : 'text-neutral-500'}`}>
         {label}
       </div>
-      {filled ? (
-        <ul className="mt-1.5 space-y-1.5">
-          {items.map((text, i) => (
-            <li key={i} className="text-sm leading-relaxed text-neutral-200 whitespace-pre-wrap">
+      {passages.length > 0 && (
+        <ul className="mt-1.5 space-y-2">
+          {passages.map((text, i) => (
+            <li key={`p-${i}`} className="text-sm leading-relaxed text-neutral-100 whitespace-pre-wrap border-l-2 border-neutral-700 pl-2">
               {text}
             </li>
           ))}
         </ul>
-      ) : (
-        <p className="mt-1 text-xs text-neutral-600">No notes yet</p>
       )}
+      {labels.length > 0 && (
+        <ul className={`${passages.length > 0 ? 'mt-2 pt-2 border-t border-neutral-800' : 'mt-1.5'} space-y-1`}>
+          {labels.map((text, i) => (
+            <li key={`l-${i}`} className="text-xs leading-relaxed text-neutral-400">
+              {text}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!filled && <p className="mt-1 text-xs text-neutral-600">Nothing yet</p>}
     </div>
   )
 }
@@ -71,18 +92,21 @@ export function VisionDraftSessionBoard({
   notes: DraftSessionNote[]
   liveSeeds?: VisionUpdateSeed[]
 }) {
-  const grouped = groupNotesByCategory(mergeLiveSeeds(notes, liveSeeds))
-  const filledCount = grouped.filter((g) => g.contrast.length > 0 || g.clarity.length > 0).length
+  const merged = mergeLiveSeeds(notes, liveSeeds)
+  const grouped = groupNotesByCategory(merged)
+  const depth = computeDepth(merged)
+  const clearedCount = depth.cleared.length + depth.unknown.length
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-neutral-500">
-        {filledCount} of 12 categories have notes. Answer VIVA&apos;s questions — contrast and clarity land here.
+        {clearedCount} of 12 areas cleared. Your own words land here; an area clears at about {DEPTH_CLEAR_WORDS} of them with a real scene inside. Saying you don&apos;t know yet clears it too.
       </p>
       {grouped.map((group) => {
         const key = group.category as LifeCategoryKey
         const Icon = getVisionCategoryIcon(key)
-        const hasAny = group.contrast.length > 0 || group.clarity.length > 0
+        const pill = DEPTH_PILL[group.depth]
+        const hasAny = group.depth !== 'empty'
         return (
           <div
             key={key}
@@ -96,21 +120,22 @@ export function VisionDraftSessionBoard({
                 {getVisionCategoryLabel(key)}
               </span>
               <span className="ml-auto flex items-center gap-1.5 shrink-0">
-                {group.contrast.length > 0 && (
-                  <span className="rounded-full bg-[#FF0040]/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-[#ff8ba7]">
-                    Contrast
-                  </span>
+                {group.memberWords > 0 && (
+                  <span className="text-[10px] text-neutral-500">{group.memberWords} words</span>
                 )}
-                {group.clarity.length > 0 && (
-                  <span className="rounded-full bg-[#39FF14]/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-[#a4ff8a]">
-                    Clarity
-                  </span>
-                )}
+                <span className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ${pill.className}`}>
+                  {pill.label}
+                </span>
               </span>
             </div>
+            {group.memberUnknown.length > 0 && (
+              <p className="px-4 pb-2 text-xs text-neutral-400 italic">
+                {group.memberUnknown[0]}
+              </p>
+            )}
             <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2">
-              <NoteList label="Contrast" items={group.contrast} tone="contrast" />
-              <NoteList label="Clarity" items={group.clarity} tone="clarity" />
+              <WordsColumn label="Contrast" passages={group.memberContrast} labels={group.contrast} tone="contrast" />
+              <WordsColumn label="Clarity" passages={group.memberClarity} labels={group.clarity} tone="clarity" />
             </div>
           </div>
         )

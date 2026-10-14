@@ -885,6 +885,7 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
         'application/pdf',
         'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'text/plain',
+        'audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac',
       ],
     },
   }
@@ -909,7 +910,8 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
   const extension = file.name.split('.').pop()?.toLowerCase() || ''
   const extensionToMimeMap: Record<string, string[]> = {
     // Video extensions
-    'mp4': ['video/mp4'],
+    'mp4': ['video/mp4', 'audio/mp4', 'audio/aac'],
+    'm4a': ['audio/mp4', 'audio/aac', 'audio/x-m4a'],
     'mov': ['video/quicktime'],
     'webm': ['video/webm', 'audio/webm'],
     'avi': ['video/x-msvideo', 'video/avi'],

@@ -136,6 +136,7 @@ So let's start easy. Where does life have you right now — and who's in it with
     title: 'Baseline Intake',
     titleAccent: 'Intake',
     body: 'A snapshot of where you are now. There are no wrong numbers.',
+    locked: 'These answers are locked. This is the snapshot from when you started.',
     cta: 'Save Intake',
   },
   unlock: {

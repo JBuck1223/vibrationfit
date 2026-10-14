@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Container, PageHero, Spinner, Stack } from '@/lib/design-system/components'
 import { BeginTitle } from '@/components/life-activation/BeginTitle'
@@ -12,6 +12,7 @@ import { getQuestionsForPhase } from '@/lib/constants/intensive-intake-questions
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import {
   firstMissingSurveyAnswer,
+  loadPhaseSurvey,
   savePhaseSurvey,
   surveyPrompt,
   type SurveyAnswers,
@@ -23,10 +24,35 @@ export default function BeginIntakePage() {
   const { progress, completeOnboardingStep, isUpdating } = useLifeActivation()
   const walkthrough = useToolWalkthrough('intake')
   const questions = useMemo(() => getQuestionsForPhase('pre_intensive'), [])
+  const questionIds = useMemo(() => questions.map((question) => question.id), [questions])
+  const completed = Boolean(progress?.onboarding.intake)
   const [answers, setAnswers] = useState<SurveyAnswers>({})
+  const [savedAnswers, setSavedAnswers] = useState<SurveyAnswers | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const copy = LIFE_ACTIVATION_COPY.intake
+
+  useEffect(() => {
+    if (!progress?.onboarding.intake || !progress.user_id) return
+    let cancelled = false
+    setError(null)
+    const supabase = createClient()
+    loadPhaseSurvey(supabase, {
+      userId: progress.user_id,
+      phase: 'pre_intensive',
+      intensiveId: progress.intensive_checklist_id,
+      questionIds,
+    })
+      .then((loaded) => {
+        if (!cancelled) setSavedAnswers(loaded ?? {})
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load intake')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [progress?.onboarding.intake, progress?.user_id, progress?.intensive_checklist_id, questionIds])
 
   const handleSubmit = async () => {
     const missing = firstMissingSurveyAnswer(questions, answers, 'pre_intensive')
@@ -55,7 +81,7 @@ export default function BeginIntakePage() {
     }
   }
 
-  if (!progress) {
+  if (!progress || (completed && savedAnswers === null && !error)) {
     return (
       <Container size="xl">
         <div className="flex min-h-[40vh] items-center justify-center">
@@ -65,40 +91,49 @@ export default function BeginIntakePage() {
     )
   }
 
+  const shownAnswers = completed ? savedAnswers ?? {} : answers
+
   return (
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
           eyebrow={LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}
           title={<BeginTitle text={copy.title} accent={copy.titleAccent} />}
-          subtitle={copy.body}
+          subtitle={completed ? copy.locked : copy.body}
           action={
-            <WalkthroughToggle
-              active={walkthrough.active}
-              onToggle={walkthrough.toggle}
-              pending={walkthrough.pending}
-            />
+            completed ? undefined : (
+              <WalkthroughToggle
+                active={walkthrough.active}
+                onToggle={walkthrough.toggle}
+                pending={walkthrough.pending}
+              />
+            )
           }
         />
         <IntakeSurveyFields
           questions={questions}
-          answers={answers}
+          answers={shownAnswers}
+          readOnly={completed}
           onChange={(id, value) => setAnswers((prev) => ({ ...prev, [id]: value }))}
           prompt={(question) => surveyPrompt(question, 'pre_intensive')}
         />
         {error && <p className="text-sm text-contrast-400">{error}</p>}
-        <div data-tour="intake-submit" className="flex justify-center pt-2">
-          <Button variant="primary" onClick={handleSubmit} disabled={submitting || isUpdating} className="min-w-[200px]">
-            {copy.cta}
-          </Button>
-        </div>
+        {!completed && (
+          <div data-tour="intake-submit" className="flex justify-center pt-2">
+            <Button variant="primary" onClick={handleSubmit} disabled={submitting || isUpdating} className="min-w-[200px]">
+              {copy.cta}
+            </Button>
+          </div>
+        )}
       </Stack>
-      <ToolWalkthrough
-        active={walkthrough.active}
-        steps={walkthrough.steps}
-        onClose={walkthrough.close}
-        onComplete={walkthrough.complete}
-      />
+      {!completed && (
+        <ToolWalkthrough
+          active={walkthrough.active}
+          steps={walkthrough.steps}
+          onClose={walkthrough.close}
+          onComplete={walkthrough.complete}
+        />
+      )}
     </Container>
   )
 }

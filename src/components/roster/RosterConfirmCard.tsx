@@ -5,8 +5,9 @@
  * gathered during the Get to Know You conversation. Facts only; the persona
  * (VIVA's living understanding) has no confirmation UI by design.
  *
- * Partial dates are valid: "1988-04-02", "1988-04", or "1988". Blanks are
- * valid too — the card never presents empty rows to complete.
+ * Dates display and edit as MM/DD/YYYY. Full dates are stored as YYYY-MM-DD.
+ * Partial dates from the conversation ("1988-04" or "1988") stay as entered.
+ * Blanks are valid — the card never presents empty rows to complete.
  */
 
 import { useEffect, useState } from 'react'
@@ -33,14 +34,76 @@ interface EditState {
   vocation: string
 }
 
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
+const US_DATE = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+
+function isRealDate(year: number, month: number, day: number): boolean {
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+}
+
+/** Stored roster dates are ISO. The card shows MM/DD/YYYY. */
+function toDisplayDate(stored: string): string {
+  const match = stored.trim().match(ISO_DATE)
+  if (!match) return stored
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (!isRealDate(year, month, day)) return stored
+  return `${match[2]}/${match[3]}/${match[1]}`
+}
+
+/** Complete MM/DD/YYYY values go back to YYYY-MM-DD. Anything else is kept. */
+function toStoredDate(display: string): string {
+  const trimmed = display.trim()
+  if (!trimmed || ISO_DATE.test(trimmed)) return trimmed
+  const match = trimmed.match(US_DATE)
+  if (!match) return trimmed
+  const month = Number(match[1])
+  const day = Number(match[2])
+  const year = Number(match[3])
+  if (!isRealDate(year, month, day)) return trimmed
+  return `${match[3]}-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}`
+}
+
+function maskDateInput(raw: string): string {
+  const trimmed = raw.trim()
+  if (ISO_DATE.test(trimmed)) return toDisplayDate(trimmed)
+
+  let display = raw
+  if (raw.includes('/')) {
+    const parts = raw.split('/')
+    const month = (parts[0] || '').replace(/\D/g, '').slice(0, 2)
+    const day = (parts[1] || '').replace(/\D/g, '').slice(0, 2)
+    const year = (parts[2] || '').replace(/\D/g, '').slice(0, 4)
+    if (parts.length < 2) display = month
+    else if (parts.length === 2) display = `${month}/${day}`
+    else display = `${month}/${day}/${year}`
+  } else if (!raw.includes('-')) {
+    const digits = raw.replace(/\D/g, '').slice(0, 8)
+    if (digits.length <= 2) display = digits
+    else if (digits.length <= 4) display = `${digits.slice(0, 2)}/${digits.slice(2)}`
+    else display = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+  }
+
+  const stored = toStoredDate(display)
+  return ISO_DATE.test(stored) ? toDisplayDate(stored) : display
+}
+
 function toEditState(roster: MemberRoster | null): EditState {
   return {
     partnerName: roster?.partner?.name || '',
-    partnerBirthday: roster?.partner?.birthday || '',
-    marriedOn: roster?.partner?.married_on || '',
-    children: roster?.children || [],
+    partnerBirthday: toDisplayDate(roster?.partner?.birthday || ''),
+    marriedOn: toDisplayDate(roster?.partner?.married_on || ''),
+    children: (roster?.children || []).map((child) => ({
+      ...child,
+      birthday: toDisplayDate(child.birthday || ''),
+    })),
     pets: roster?.pets || [],
-    people: roster?.people || [],
+    people: (roster?.people || []).map((person) => ({
+      ...person,
+      birthday: toDisplayDate(person.birthday || ''),
+    })),
     city: roster?.place?.city || '',
     region: roster?.place?.region || '',
     vocation: roster?.vocation || '',
@@ -77,13 +140,17 @@ export function RosterConfirmCard({ onConfirmed }: { onConfirmed?: () => void })
         state.partnerName.trim() || state.partnerBirthday.trim() || state.marriedOn.trim()
           ? {
               name: state.partnerName.trim() || undefined,
-              birthday: state.partnerBirthday.trim() || undefined,
-              married_on: state.marriedOn.trim() || undefined,
+              birthday: toStoredDate(state.partnerBirthday) || undefined,
+              married_on: toStoredDate(state.marriedOn) || undefined,
             }
           : null,
-      children: state.children.filter((c) => c.name?.trim()),
+      children: state.children
+        .filter((c) => c.name?.trim())
+        .map((c) => ({ ...c, birthday: toStoredDate(c.birthday || '') || undefined })),
       pets: state.pets.filter((p) => p.name?.trim()),
-      people: state.people.filter((p) => p.name?.trim()),
+      people: state.people
+        .filter((p) => p.name?.trim())
+        .map((p) => ({ ...p, birthday: toStoredDate(p.birthday || '') || undefined })),
       place:
         state.city.trim() || state.region.trim()
           ? { city: state.city.trim() || undefined, region: state.region.trim() || undefined }
@@ -100,8 +167,7 @@ export function RosterConfirmCard({ onConfirmed }: { onConfirmed?: () => void })
     <Card className="p-6">
       <h2 className="text-lg font-semibold text-white">Here&apos;s who I&apos;ll remember</h2>
       <p className="mt-2 text-sm text-neutral-300">
-        From our conversation. Fix anything I got wrong — blanks are fine, and dates can be
-        partial (&quot;1988-04&quot; or just &quot;1988&quot;).
+        From our conversation. Fix anything I got wrong — blanks are fine. Dates are MM/DD/YYYY.
       </p>
 
       <div className="mt-5 space-y-6">
@@ -114,17 +180,15 @@ export function RosterConfirmCard({ onConfirmed }: { onConfirmed?: () => void })
                 value={state.partnerName}
                 onChange={(e) => set({ partnerName: e.target.value })}
               />
-              <Input
+              <DateField
                 label="Birthday"
-                placeholder="YYYY-MM-DD"
                 value={state.partnerBirthday}
-                onChange={(e) => set({ partnerBirthday: e.target.value })}
+                onChange={(partnerBirthday) => set({ partnerBirthday })}
               />
-              <Input
+              <DateField
                 label="Married on"
-                placeholder="YYYY-MM-DD"
                 value={state.marriedOn}
-                onChange={(e) => set({ marriedOn: e.target.value })}
+                onChange={(marriedOn) => set({ marriedOn })}
               />
             </div>
           </div>
@@ -138,7 +202,7 @@ export function RosterConfirmCard({ onConfirmed }: { onConfirmed?: () => void })
                 rows={state.children}
                 fields={[
                   { key: 'name', label: 'Name' },
-                  { key: 'birthday', label: 'Birthday', placeholder: 'YYYY-MM-DD' },
+                  { key: 'birthday', label: 'Birthday', date: true },
                 ]}
                 onChange={(idx, patch) => setRow('children', idx, patch)}
                 onRemove={(idx) => removeRow('children', idx)}
@@ -166,7 +230,7 @@ export function RosterConfirmCard({ onConfirmed }: { onConfirmed?: () => void })
                 fields={[
                   { key: 'name', label: 'Name' },
                   { key: 'role', label: 'Who they are' },
-                  { key: 'birthday', label: 'Birthday', placeholder: 'YYYY-MM-DD' },
+                  { key: 'birthday', label: 'Birthday', date: true },
                 ]}
                 onChange={(idx, patch) => setRow('people', idx, patch)}
                 onRemove={(idx) => removeRow('people', idx)}
@@ -220,6 +284,28 @@ interface RowField<T> {
   key: keyof T & string
   label: string
   placeholder?: string
+  date?: boolean
+}
+
+function DateField({
+  label,
+  value,
+  onChange,
+}: {
+  label?: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <Input
+      label={label}
+      placeholder="MM/DD/YYYY"
+      inputMode="numeric"
+      autoComplete="off"
+      value={value}
+      onChange={(e) => onChange(maskDateInput(e.target.value))}
+    />
+  )
 }
 
 function RowSection<T extends object>({
@@ -252,15 +338,24 @@ function RowSection<T extends object>({
       {rows.map((row, idx) => (
         <div key={idx} className="flex items-end gap-2">
           <div className="grid flex-1 gap-2 sm:grid-cols-3">
-            {fields.map((f) => (
-              <Input
-                key={f.key}
-                label={idx === 0 ? f.label : undefined}
-                placeholder={f.placeholder}
-                value={(row[f.key] as string) || ''}
-                onChange={(e) => onChange(idx, { [f.key]: e.target.value } as Partial<T>)}
-              />
-            ))}
+            {fields.map((f) =>
+              f.date ? (
+                <DateField
+                  key={f.key}
+                  label={idx === 0 ? f.label : undefined}
+                  value={(row[f.key] as string) || ''}
+                  onChange={(value) => onChange(idx, { [f.key]: value } as Partial<T>)}
+                />
+              ) : (
+                <Input
+                  key={f.key}
+                  label={idx === 0 ? f.label : undefined}
+                  placeholder={f.placeholder}
+                  value={(row[f.key] as string) || ''}
+                  onChange={(e) => onChange(idx, { [f.key]: e.target.value } as Partial<T>)}
+                />
+              ),
+            )}
           </div>
           <button
             type="button"

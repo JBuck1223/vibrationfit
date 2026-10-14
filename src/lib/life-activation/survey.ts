@@ -30,6 +30,36 @@ export function firstMissingSurveyAnswer(
   return null
 }
 
+export async function loadPhaseSurvey(
+  supabase: SupabaseClient,
+  args: {
+    userId: string
+    phase: SurveyPhase
+    intensiveId: string | null
+    questionIds: string[]
+  },
+): Promise<SurveyAnswers | null> {
+  const { userId, phase, intensiveId, questionIds } = args
+  let lookup = supabase
+    .from('intensive_responses')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('phase', phase)
+  lookup = intensiveId ? lookup.eq('intensive_id', intensiveId) : lookup.is('intensive_id', null)
+
+  const { data, error } = await lookup.maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!data) return null
+
+  const answers: SurveyAnswers = {}
+  for (const id of questionIds) {
+    const value = data[id]
+    if (typeof value === 'number' && Number.isFinite(value)) answers[id] = value
+    else if (typeof value === 'string') answers[id] = value
+  }
+  return answers
+}
+
 export async function savePhaseSurvey(
   supabase: SupabaseClient,
   args: {

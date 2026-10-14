@@ -135,13 +135,23 @@ function calculateInputRichness(
  * @param inspirationQuestions - A few questions to weave in
  * @param perspective - singular (I/my) or plural (we/our)
  */
+export interface ImaginationStarterOptions {
+  /**
+   * Thin-area guard (first-vision compose). The member said little about this
+   * area, so the starter stays inside what they named and under `maxWords`.
+   * No inspiration themes are woven in; nothing new is introduced.
+   */
+  thinArea?: { maxWords: number }
+}
+
 export function buildImaginationStarterPrompt(
   categoryKey: LifeCategoryKey,
   categoryLabel: string,
   stateText: string,
   profileData: Record<string, any>,
   inspirationQuestions: string[],
-  perspective: 'singular' | 'plural' = 'singular'
+  perspective: 'singular' | 'plural' = 'singular',
+  options: ImaginationStarterOptions = {}
 ): string {
   const pronoun = perspective === 'plural' ? 'we/our' : 'I/my'
   const emotionalTarget =
@@ -150,8 +160,11 @@ export function buildImaginationStarterPrompt(
   const profileContext = formatProfileContext(categoryKey, profileData)
   
   const { totalWords, richness } = calculateInputRichness(stateText, profileData)
+  const thin = options.thinArea
   
-  const lengthGuidance = {
+  const lengthGuidance = thin
+    ? `THIN AREA. Write at most ${thin.maxWords} words. Use ONLY the people, places, routines, activities, and things named in the input above. Do not add destinations, hobbies, objects, rooms, or scenes they did not name. If the input names almost nothing for this area, write one short embodied paragraph of how this person meets this area — in their voice, from what they did name — and stop. Shorter and true beats longer and invented.`
+    : {
     minimal: 'Write 100-150 words. Keep it simple since input is brief.',
     moderate: 'Write 150-250 words. Cover the main themes from their input.',
     rich: 'Write 250-400 words. Fully explore each topic from their state description.',
@@ -159,7 +172,7 @@ export function buildImaginationStarterPrompt(
   }[richness]
   
   const questionCount = richness === 'minimal' ? 2 : richness === 'moderate' ? 3 : 4
-  const selectedQuestions = inspirationQuestions.slice(0, questionCount).join('\n- ')
+  const selectedQuestions = thin ? '' : inspirationQuestions.slice(0, questionCount).join('\n- ')
   
   return `You generate imagination text for someone's ${categoryLabel} life vision through three phases: CLEANSE, EXPAND, EMBODY.
 

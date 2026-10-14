@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, Square, Loader2, ArrowUp, Paperclip, X, FileText } from 'lucide-react'
+import { Mic, Square, Loader2, ArrowUp, Paperclip, X, FileText, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { VIVALoadingOverlay } from '@/lib/design-system/components/overlays'
+import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { cn } from '@/lib/utils'
 
 const AUDIO_MIME_CANDIDATES = [
@@ -29,19 +30,22 @@ function clonePickedFile(file: File): File {
   })
 }
 
+function extensionForMime(mime: string): string {
+  if (mime.includes('mp4') || mime.includes('aac') || mime.includes('m4a')) return 'mp4'
+  if (mime.includes('ogg')) return 'ogg'
+  if (mime.includes('wav')) return 'wav'
+  return 'webm'
+}
+
 function pickAudioMimeType(): { mimeType: string; filename: string } {
   const mimeType =
     AUDIO_MIME_CANDIDATES.find(
       (type) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)
     ) || ''
-  const ext =
-    mimeType.includes('mp4') || mimeType.includes('aac')
-      ? 'mp4'
-      : mimeType.includes('ogg')
-        ? 'ogg'
-        : 'webm'
-  return { mimeType, filename: `recording.${ext}` }
+  return { mimeType, filename: `recording.${extensionForMime(mimeType)}` }
 }
+
+type VoicePhase = 'idle' | 'saving' | 'transcribing' | 'error'
 
 export interface ChatAttachment {
   id: string
@@ -80,9 +84,12 @@ export function VivaChatInput({
   const disabled = disabledProp || isLoading
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
-  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [voicePhase, setVoicePhase] = useState<VoicePhase>('idle')
+  const [voiceError, setVoiceError] = useState<string | null>(null)
+  const [savedAudio, setSavedAudio] = useState<{ key: string; url: string } | null>(null)
   const [audioLevel, setAudioLevel] = useState(0)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
+  const isTranscribing = voicePhase === 'saving' || voicePhase === 'transcribing'
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -98,6 +105,7 @@ export function VivaChatInput({
   const discardedRef = useRef(false)
   const mimeTypeRef = useRef('')
   const filenameRef = useRef('recording.webm')
+  const durationRef = useRef(0)
 
   useEffect(() => {
     valueRef.current = value
@@ -167,8 +175,94 @@ export function VivaChatInput({
   }
 
   // --- Recording ---
+  // Same path as Journal: save the audio, then transcribe that saved file.
+  const applyTranscript = (transcript: string) => {
+    const trimmed = transcript.trim()
+    if (!trimmed) {
+      setVoiceError('No words came through in that recording. Your audio is saved -- tap retry.')
+      setVoicePhase('error')
+      return
+    }
+    const existing = valueRef.current.trim()
+    const next = existing ? `${existing}\n\n${trimmed}` : trimmed
+    onChangeRef.current(next)
+    setVoiceError(null)
+    setSavedAudio(null)
+    setVoicePhase('idle')
+    onSendRef.current?.(undefined, next)
+  }
+
+  const transcribeSavedAudio = async (s3Key: string) => {
+    setVoicePhase('transcribing')
+    setVoiceError(null)
+
+    const MAX_ATTEMPTS = 2
+    const TIMEOUT_MS = 4 * 60 * 1000
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), TIMEOUT_MS)
+      try {
+        const response = await fetch('/api/transcribe-from-s3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ s3Key }),
+          signal: controller.signal,
+        })
+        window.clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          let errorMsg = 'Transcription failed'
+          let retryable = false
+          try {
+            const errorData = await response.json()
+            errorMsg = errorData.error || errorMsg
+            retryable = errorData.retryable === true || response.status >= 500
+          } catch { /* use default */ }
+
+          if (retryable && attempt < MAX_ATTEMPTS) {
+            await new Promise(resolve => window.setTimeout(resolve, 2000))
+            continue
+          }
+          throw new Error(errorMsg)
+        }
+
+        const data = await response.json()
+        applyTranscript(data.transcript || '')
+        return
+      } catch (err) {
+        window.clearTimeout(timeoutId)
+        const error = err as { name?: string; message?: string }
+        const retryable =
+          error.name === 'AbortError' ||
+          error.message?.includes('Failed to fetch') ||
+          error.message?.includes('NetworkError') ||
+          error.message?.includes('Load failed')
+
+        if (retryable && attempt < MAX_ATTEMPTS) {
+          await new Promise(resolve => window.setTimeout(resolve, 2000))
+          continue
+        }
+
+        console.error('[VivaChatInput] Transcription error:', err)
+        setVoiceError(
+          error.name === 'AbortError'
+            ? 'Transcription timed out. Your audio is saved -- tap retry.'
+            : 'Transcription failed. Your audio is saved -- tap retry.'
+        )
+        setVoicePhase('error')
+        return
+      }
+    }
+  }
+
   const startRecording = async () => {
     try {
+      discardedRef.current = false
+      setVoiceError(null)
+      setVoicePhase('idle')
+      setSavedAudio(null)
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
       chunksRef.current = []
@@ -183,91 +277,134 @@ export function VivaChatInput({
 
       const updateLevel = () => {
         analyser.getByteFrequencyData(dataArray)
-        const avg = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length
-        setAudioLevel(avg / 255)
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length
+        setAudioLevel(Math.min(100, (average / 255) * 100) / 100)
         animationFrameRef.current = requestAnimationFrame(updateLevel)
       }
       updateLevel()
 
-      const { mimeType, filename } = pickAudioMimeType()
-      mimeTypeRef.current = mimeType
-      filenameRef.current = filename
-      discardedRef.current = false
+      const { mimeType } = pickAudioMimeType()
+      let mediaRecorder: MediaRecorder
+      try {
+        mediaRecorder = new MediaRecorder(stream, {
+          ...(mimeType ? { mimeType } : {}),
+          audioBitsPerSecond: 48000,
+        })
+      } catch {
+        mediaRecorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream)
+      }
 
-      const mediaRecorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
-      mimeTypeRef.current = mediaRecorder.mimeType || mimeType || 'audio/webm'
+      const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm'
+      mimeTypeRef.current = actualMime
+      filenameRef.current = `recording-${Date.now()}.${extensionForMime(actualMime)}`
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data)
       }
 
       mediaRecorder.onstop = async () => {
-        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
-        if (audioContextRef.current) audioContextRef.current.close().catch(() => {})
-        setAudioLevel(0)
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(t => t.stop())
-          streamRef.current = null
-        }
-
-        if (discardedRef.current) {
-          chunksRef.current = []
-          return
-        }
-
-        const blobType = mimeTypeRef.current || 'audio/webm'
-        const blob = new Blob(chunksRef.current, { type: blobType })
-        chunksRef.current = []
-        if (blob.size === 0) {
-          toast.error('That recording was empty. Try again?')
-          return
-        }
-
-        setIsTranscribing(true)
         try {
-          const formData = new FormData()
-          formData.append('audio', blob, filenameRef.current)
-          const response = await fetch('/api/transcribe', {
-            method: 'POST',
-            body: formData,
-          })
-          const data = await response.json().catch(() => ({})) as { transcript?: string; error?: string }
-          if (!response.ok) {
-            throw new Error(data.error || 'Transcription failed.')
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current)
+            animationFrameRef.current = null
           }
-          const transcript = data.transcript?.trim()
-          if (!transcript) {
-            throw new Error('No words came through. Try recording again?')
+          if (audioContextRef.current) {
+            try { audioContextRef.current.close() } catch { /* already closed */ }
+            audioContextRef.current = null
+          }
+          setAudioLevel(0)
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop())
+            streamRef.current = null
           }
 
-          const existing = valueRef.current.trim()
-          const next = existing ? `${existing}\n${transcript}` : transcript
-          onChangeRef.current(next)
+          if (discardedRef.current) {
+            discardedRef.current = false
+            chunksRef.current = []
+            return
+          }
 
-          // Chat surfaces treat the stop button as submit — send the transcript
-          // instead of leaving it in the box where a failed send looks like it vanished.
-          if (onSendRef.current) {
-            onSendRef.current(undefined, next)
+          const blobType = (mimeTypeRef.current || 'audio/webm').split(';')[0] || 'audio/webm'
+          const blob = new Blob(chunksRef.current, { type: blobType })
+          chunksRef.current = []
+          if (blob.size === 0) {
+            setVoiceError('Recording failed - no data captured')
+            setVoicePhase('error')
+            return
+          }
+
+          setIsRecording(false)
+          setVoicePhase('saving')
+          const file = new File([blob], filenameRef.current, { type: blobType })
+
+          try {
+            const result = await uploadUserFile('viva', file)
+            setSavedAudio({ key: result.key, url: result.url })
+            await transcribeSavedAudio(result.key)
+          } catch (uploadErr) {
+            console.error('[VivaChatInput] S3 upload failed, falling back to direct transcription:', uploadErr)
+            setVoicePhase('transcribing')
+            try {
+              const formData = new FormData()
+              formData.append('audio', blob, filenameRef.current)
+              const controller = new AbortController()
+              const timeoutId = window.setTimeout(() => controller.abort(), 4 * 60 * 1000)
+              const response = await fetch('/api/transcribe', {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal,
+              })
+              window.clearTimeout(timeoutId)
+              if (!response.ok) throw new Error('Direct transcription also failed')
+              const data = await response.json()
+              applyTranscript(data.transcript || '')
+            } catch {
+              setVoiceError('Failed to save or transcribe. Please try again.')
+              setVoicePhase('error')
+            }
           }
         } catch (err) {
-          console.error('[VivaChatInput] Transcription error:', err)
-          toast.error(err instanceof Error ? err.message : 'Could not turn that recording into text. Try again?')
+          console.error('[VivaChatInput] Recording stop error:', err)
+          setVoiceError('Something went wrong. Please try again.')
+          setVoicePhase('error')
         } finally {
-          setIsTranscribing(false)
+          setIsRecording(false)
+          setRecordingDuration(0)
         }
       }
 
-      mediaRecorder.start(250)
+      if (actualMime.includes('mp4') || actualMime.includes('aac')) mediaRecorder.start()
+      else mediaRecorder.start(1000)
       setIsRecording(true)
       setRecordingDuration(0)
-      timerRef.current = setInterval(() => setRecordingDuration(prev => prev + 1), 1000)
+      durationRef.current = 0
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => {
+          const next = prev + 1
+          durationRef.current = next
+          return next
+        })
+      }, 1000)
     } catch (err) {
       console.error('[VivaChatInput] Mic access error:', err)
+      const name = err instanceof DOMException ? err.name : ''
+      setVoiceError(
+        name === 'NotAllowedError'
+          ? 'Microphone permission denied. Please allow microphone access.'
+          : name === 'NotFoundError'
+            ? 'No microphone found. Please connect a microphone.'
+            : 'Failed to access microphone.'
+      )
+      setVoicePhase('error')
       setIsRecording(false)
-      toast.error('Could not access the microphone. Check permissions and try again.')
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
+      if (audioContextRef.current) audioContextRef.current.close().catch(() => {})
+      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+      audioContextRef.current = null
     }
   }
 
@@ -276,21 +413,24 @@ export function VivaChatInput({
       clearInterval(timerRef.current)
       timerRef.current = null
     }
-    const recorder = mediaRecorderRef.current
-    if (recorder && recorder.state === 'recording') {
-      if (typeof recorder.requestData === 'function') {
-        recorder.requestData()
-      }
-      recorder.stop()
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    } else {
+      setIsRecording(false)
+      setRecordingDuration(0)
     }
-    setIsRecording(false)
   }
 
   const cancelRecording = () => {
     discardedRef.current = true
     stopRecording()
-    chunksRef.current = []
   }
+
+  const retryTranscription = () => {
+    if (!savedAudio) return
+    void transcribeSavedAudio(savedAudio.key)
+  }
+
 
   // --- Send ---
   const handleSend = () => {
@@ -463,17 +603,34 @@ export function VivaChatInput({
         )}
       </div>
 
-      {/* VIVA transcription overlay */}
+      {voiceError && voicePhase === 'error' && !isRecording && (
+        <div className="mt-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <p className="text-red-400 text-sm">{voiceError}</p>
+          {savedAudio && (
+            <button
+              type="button"
+              onClick={retryTranscription}
+              className="mt-2 flex items-center gap-1.5 text-sm font-medium text-[#39FF14] hover:text-[#39FF14]/80 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Retry transcription
+            </button>
+          )}
+        </div>
+      )}
+
       <VIVALoadingOverlay
         isVisible={isTranscribing}
-        messages={[
-          'VIVA is turning your voice into text...',
-          'Just a few more seconds...',
-        ]}
+        messages={
+          voicePhase === 'saving'
+            ? ['Saving your audio to the cloud...', 'Almost there...']
+            : ['VIVA is turning your voice into text...', 'Just a few more seconds...']
+        }
         cycleDuration={4000}
-        estimatedTime="~10s"
-        showProgressBar={false}
+        estimatedTime={voicePhase === 'saving' ? 'Uploading your audio...' : 'This usually takes about 10 seconds'}
+        showProgressBar
         size="sm"
+        estimatedDuration={voicePhase === 'transcribing' ? Math.max(10000, durationRef.current * 1500) : undefined}
       />
 
       {/* Visually hidden — display:none file inputs drop the change event on some iOS versions */}

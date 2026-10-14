@@ -236,6 +236,13 @@ Alignment is natural. I return to it easily.`
  * @param perspective - 'singular' or 'plural'
  * @returns Complete prompt string for single category generation
  */
+export interface IndividualCategoryOptions {
+  /** First-vision compose: numbers, ages, dates, names only as given in the sources. */
+  strictFacts?: boolean
+  /** The member said little here: hard word ceiling, nothing new introduced. */
+  thinArea?: { maxWords: number }
+}
+
 export function buildIndividualCategoryPrompt(
   categoryKey: string,
   categoryLabel: string,
@@ -243,10 +250,25 @@ export function buildIndividualCategoryPrompt(
   imaginationText: string,
   currentStateText: string,
   perspective: 'singular' | 'plural' = 'singular',
-  profileStoryText: string = ''
+  profileStoryText: string = '',
+  options: IndividualCategoryOptions = {}
 ): string {
   const categoryMicroTuning = CATEGORY_MICRO_TUNING[categoryKey] || ''
   const pronoun = perspective === 'plural' ? 'we/our' : 'I/my'
+  const guardLines: string[] = []
+  if (options.strictFacts) {
+    guardLines.push(
+      'FACTS ARE FIXED: every number, age, date, timeline, name, place, brand, and job title appears ONLY as it appears in the sources above. Do not change "by 30" to "at 25". Do not add a city, a trip, a person, or a possession the sources do not contain.',
+    )
+  }
+  if (options.thinArea) {
+    guardLines.push(
+      `THIN AREA: the member said little about ${categoryLabel}. Output at most ${options.thinArea.maxWords} words. Do not introduce any object, room, destination, activity, person, or scene that is not already in the sources. Sensory detail goes only on moments already there. Shorter and true beats longer and invented.`,
+    )
+  }
+  const outputLine = options.thinArea
+    ? `OUTPUT: At most ${options.thinArea.maxWords} words. Only what the sources support.`
+    : 'OUTPUT: Match their input length. Rich input = rich output.'
 
   const hasBothInputs = getMeStartedText?.trim() && imaginationText?.trim()
   const hasOnlyStarter = getMeStartedText?.trim() && !imaginationText?.trim()
@@ -420,7 +442,7 @@ If it sounds like a motivational poster instead of a real human, rewrite it.
 
 ${categoryMicroTuning ? `EMOTIONAL TONE FOR ${categoryLabel.toUpperCase()}:
 ${categoryMicroTuning}
-` : ''}
-OUTPUT: Match their input length. Rich input = rich output.
+` : ''}${guardLines.length ? `\n${guardLines.join('\n\n')}\n` : ''}
+${outputLine}
 Output ONLY the activated vision text. No headers, labels, phases, or commentary.`
 }

@@ -1,6 +1,12 @@
 /**
- * First-vision Draft Session — contrast + clarity notes gathered before VIVA
- * composes the Life Vision. Does not write vision_versions category text.
+ * First-vision Draft Session — what VIVA gathers before the Life Vision is
+ * composed. Does not write vision_versions category text.
+ *
+ * Two kinds of notes live here:
+ * - VIVA / activation labels (`text`): short paraphrases, the coverage map.
+ * - Member passages (`member_text`, source 'member' or activation): the
+ *   member's own words, verbatim. These are what the depth gate measures and
+ *   what the compose pass expands. Length comes from here, never from labels.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -15,8 +21,8 @@ import type { VisionData } from '@/lib/life-vision/draft-helpers'
 import { getVisionCategoryText } from '@/lib/life-vision/draft-helpers'
 
 export type DraftSessionStatus = 'gathering' | 'composed'
-export type NotePolarity = 'contrast' | 'clarity'
-export type NoteSource = 'activation' | 'viva'
+export type NotePolarity = 'contrast' | 'clarity' | 'unknown'
+export type NoteSource = 'activation' | 'viva' | 'member'
 
 export interface DraftSessionRow {
   id: string
@@ -32,20 +38,48 @@ export interface DraftSessionNote {
   session_id: string
   category: string
   polarity: NotePolarity
+  /** Short label (VIVA paraphrase, or first words of a member passage). */
   text: string
+  /** The member's verbatim words. Null for VIVA labels. */
+  member_text?: string | null
   source: NoteSource
   created_at: string
 }
 
+export interface DraftSessionCategoryText {
+  id: string
+  session_id: string
+  category: string
+  starter_text: string | null
+  imagination_text: string | null
+  vision_text: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface DraftSessionPayload extends DraftSessionRow {
   notes: DraftSessionNote[]
+  categoryText: DraftSessionCategoryText[]
 }
+
+export type DepthStatus = 'cleared' | 'thin' | 'empty' | 'unknown'
 
 export interface CategoryCoverage {
   category: LifeCategoryKey
+  /** VIVA / activation labels. */
   contrast: string[]
   clarity: string[]
+  /** Member's verbatim passages. */
+  memberContrast: string[]
+  memberClarity: string[]
+  memberUnknown: string[]
+  memberWords: number
+  hasScene: boolean
+  depth: DepthStatus
 }
+
+/** Member words in a category before it is cleared to write. */
+export const DEPTH_CLEAR_WORDS = 120
 
 const DREAM_KEYS = ['want', 'why', 'feel', 'become'] as const
 
@@ -53,15 +87,32 @@ export function normalizeNoteText(text: string): string {
   return text.replace(/\r\n/g, '\n').replace(/\s+/g, ' ').trim()
 }
 
+export function countWords(text: string): number {
+  const t = text.trim()
+  return t ? t.split(/\s+/).length : 0
+}
+
 export function draftHasAnyVisionText(draft: VisionData): boolean {
   const keys = [...LIFE_CATEGORY_KEYS, 'forward', 'conclusion'] as const
   return keys.some((key) => getVisionCategoryText(draft, key).trim())
+}
+
+const SCENE_WORDS =
+  /\b(morning|mornings|evening|evenings|night|nights|weekend|weekends|dinner|breakfast|lunch|coffee|patio|kitchen|backyard|porch|couch|bed|monday|tuesday|wednesday|thursday|friday|saturday|sunday|every day|everyday|each day|after work|before work|on the way|at home|at work|at the)\b/i
+
+/** Cheap floor: a passage has a scene if it names a place, time, person, or number. */
+export function passageHasScene(text: string): boolean {
+  if (SCENE_WORDS.test(text)) return true
+  if (/\d/.test(text)) return true
+  // Proper noun not at sentence start.
+  return /(?:[^.!?\n]\s)([A-Z][a-z]{2,})/.test(text)
 }
 
 export function notesFromActivationSeed(seed: LifeActivationSeed): Array<{
   category: LifeCategoryKey
   polarity: NotePolarity
   text: string
+  member_text: string | null
   source: NoteSource
 }> {
   if (!seed.category || !isLifeCategoryKey(seed.category)) return []
@@ -70,12 +121,14 @@ export function notesFromActivationSeed(seed: LifeActivationSeed): Array<{
     category: LifeCategoryKey
     polarity: NotePolarity
     text: string
+    member_text: string | null
     source: NoteSource
   }> = []
 
+  // Activation text is member-written: it counts as their words.
   const contrast = seed.currentState?.trim()
   if (contrast) {
-    notes.push({ category, polarity: 'contrast', text: contrast, source: 'activation' })
+    notes.push({ category, polarity: 'contrast', text: contrast, member_text: contrast, source: 'activation' })
   }
 
   const dreamParts: string[] = []
@@ -87,68 +140,141 @@ export function notesFromActivationSeed(seed: LifeActivationSeed): Array<{
     }
   }
   if (dreamParts.length > 0) {
-    notes.push({
-      category,
-      polarity: 'clarity',
-      text: dreamParts.join('\n\n'),
-      source: 'activation',
-    })
+    const joined = dreamParts.join('\n\n')
+    notes.push({ category, polarity: 'clarity', text: joined, member_text: joined, source: 'activation' })
   }
 
   const vision = seed.visionStatement?.trim()
   if (vision) {
-    notes.push({ category, polarity: 'clarity', text: vision, source: 'activation' })
+    notes.push({ category, polarity: 'clarity', text: vision, member_text: vision, source: 'activation' })
   }
 
   return notes
 }
 
+function depthFor(bucket: {
+  memberWords: number
+  hasScene: boolean
+  memberUnknown: string[]
+  contrast: string[]
+  clarity: string[]
+}): DepthStatus {
+  if (bucket.memberWords >= DEPTH_CLEAR_WORDS && bucket.hasScene) return 'cleared'
+  // "I don't know yet" clears an area only when they have not also described it.
+  if (bucket.memberUnknown.length > 0 && bucket.memberWords < DEPTH_CLEAR_WORDS / 3) return 'unknown'
+  if (bucket.memberWords === 0 && bucket.contrast.length === 0 && bucket.clarity.length === 0) return 'empty'
+  return 'thin'
+}
+
 export function groupNotesByCategory(notes: DraftSessionNote[]): CategoryCoverage[] {
-  const map = new Map<LifeCategoryKey, { contrast: string[]; clarity: string[] }>()
+  const map = new Map<
+    LifeCategoryKey,
+    {
+      contrast: string[]
+      clarity: string[]
+      memberContrast: string[]
+      memberClarity: string[]
+      memberUnknown: string[]
+      memberWords: number
+      hasScene: boolean
+    }
+  >()
   for (const key of LIFE_CATEGORY_KEYS) {
-    map.set(key, { contrast: [], clarity: [] })
+    map.set(key, {
+      contrast: [],
+      clarity: [],
+      memberContrast: [],
+      memberClarity: [],
+      memberUnknown: [],
+      memberWords: 0,
+      hasScene: false,
+    })
   }
   for (const note of notes) {
     if (!isLifeCategoryKey(note.category)) continue
     const bucket = map.get(note.category)
     if (!bucket) continue
+    const member = (note.member_text || '').trim()
+    if (member) {
+      if (note.polarity === 'contrast') bucket.memberContrast.push(member)
+      else if (note.polarity === 'clarity') bucket.memberClarity.push(member)
+      else bucket.memberUnknown.push(member)
+      if (note.polarity !== 'unknown') {
+        bucket.memberWords += countWords(member)
+        if (!bucket.hasScene && passageHasScene(member)) bucket.hasScene = true
+      }
+      continue
+    }
     const text = note.text.trim()
     if (!text) continue
     if (note.polarity === 'contrast') bucket.contrast.push(text)
-    else bucket.clarity.push(text)
+    else if (note.polarity === 'clarity') bucket.clarity.push(text)
+    else bucket.memberUnknown.push(text)
   }
   return LIFE_CATEGORY_KEYS.map((category) => {
-    const bucket = map.get(category) || { contrast: [], clarity: [] }
-    return { category, contrast: bucket.contrast, clarity: bucket.clarity }
+    const bucket = map.get(category)!
+    return { category, ...bucket, depth: depthFor(bucket) }
   })
 }
 
+export interface DepthSummary {
+  cleared: LifeCategoryKey[]
+  thin: LifeCategoryKey[]
+  empty: LifeCategoryKey[]
+  unknown: LifeCategoryKey[]
+  /** True when every category is cleared or explicitly unknown. */
+  readyToCompose: boolean
+  totalMemberWords: number
+}
+
+export function computeDepth(notes: DraftSessionNote[]): DepthSummary {
+  const grouped = groupNotesByCategory(notes)
+  const pick = (d: DepthStatus) => grouped.filter((g) => g.depth === d).map((g) => g.category)
+  const cleared = pick('cleared')
+  const unknown = pick('unknown')
+  return {
+    cleared,
+    thin: pick('thin'),
+    empty: pick('empty'),
+    unknown,
+    readyToCompose: cleared.length + unknown.length === LIFE_CATEGORY_KEYS.length,
+    totalMemberWords: grouped.reduce((sum, g) => sum + g.memberWords, 0),
+  }
+}
+
+/** Depth map + the member's passages, formatted for the create prompt. */
 export function formatSessionNotesForPrompt(notes: DraftSessionNote[]): string {
   const grouped = groupNotesByCategory(notes)
-  const withNotes = grouped.filter((g) => g.contrast.length > 0 || g.clarity.length > 0)
-  const empty = grouped.filter((g) => g.contrast.length === 0 && g.clarity.length === 0)
-  const missingContrast = grouped.filter((g) => g.contrast.length === 0).map((g) => g.category)
-  const missingClarity = grouped.filter((g) => g.clarity.length === 0).map((g) => g.category)
+  const depth = computeDepth(notes)
 
-  const coverage = [
-    `Coverage: ${withNotes.length} of 12 life categories have notes.`,
-    empty.length ? `Empty (no notes yet): ${empty.map((g) => g.category).join(', ')}` : 'Every category has at least one note.',
-    `Still missing contrast: ${missingContrast.length ? missingContrast.join(', ') : 'none'}`,
-    `Still missing clarity: ${missingClarity.length ? missingClarity.join(', ') : 'none'}`,
+  const line = (label: string, keys: LifeCategoryKey[]) =>
+    `${label}: ${keys.length ? keys.join(', ') : 'none'}`
+
+  const header = [
+    `Depth gate: a category is CLEARED at ${DEPTH_CLEAR_WORDS}+ of the member's own words with a real scene in them, or when they say they do not know yet. Only member words count. Your labels do not.`,
+    `${depth.cleared.length} of 12 cleared. ${depth.readyToCompose ? 'READY — you may offer to write.' : 'NOT READY — keep asking.'}`,
+    line('Cleared', depth.cleared),
+    line('Thin (has something, needs a scene)', depth.thin),
+    line('Empty (nothing yet)', depth.empty),
+    line('Unknown yet (they said so — leave blank)', depth.unknown),
   ].join('\n')
 
-  const sections = grouped.map((g) => {
-    const label = getVisionCategoryLabel(g.category)
-    const contrast = g.contrast.length
-      ? g.contrast.map((t) => `- ${t}`).join('\n')
-      : '- (none yet)'
-    const clarity = g.clarity.length
-      ? g.clarity.map((t) => `- ${t}`).join('\n')
-      : '- (none yet)'
-    return `### ${g.category} (${label})\nContrast (below the Green Line):\n${contrast}\nClarity (above the Green Line):\n${clarity}`
-  }).join('\n\n')
+  const sections = grouped
+    .map((g) => {
+      const label = getVisionCategoryLabel(g.category)
+      const list = (items: string[]) => (items.length ? items.map((t) => `- ${t}`).join('\n') : '- (none yet)')
+      const quote = (items: string[]) => (items.length ? items.map((t) => `> ${t}`).join('\n') : '> (none yet)')
+      return [
+        `### ${g.category} (${label}) — ${g.depth.toUpperCase()}, ${g.memberWords} member words${g.hasScene ? ', scene present' : ', no scene yet'}`,
+        `Their words, contrast:\n${quote(g.memberContrast)}`,
+        `Their words, clarity:\n${quote(g.memberClarity)}`,
+        ...(g.memberUnknown.length ? [`They do not know yet:\n${quote(g.memberUnknown)}`] : []),
+        `Your labels:\n${list([...g.contrast.map((t) => `[contrast] ${t}`), ...g.clarity.map((t) => `[clarity] ${t}`)])}`,
+      ].join('\n')
+    })
+    .join('\n\n')
 
-  return `${coverage}\n\n${sections}`
+  return `${header}\n\n${sections}`
 }
 
 async function loadNotes(
@@ -163,6 +289,17 @@ async function loadNotes(
   return (data || []) as DraftSessionNote[]
 }
 
+async function loadCategoryText(
+  supabase: SupabaseClient,
+  sessionId: string,
+): Promise<DraftSessionCategoryText[]> {
+  const { data } = await supabase
+    .from('vision_draft_session_category_text')
+    .select('*')
+    .eq('session_id', sessionId)
+  return (data || []) as DraftSessionCategoryText[]
+}
+
 export async function loadDraftSession(
   supabase: SupabaseClient,
   draftId: string,
@@ -173,8 +310,11 @@ export async function loadDraftSession(
     .eq('draft_id', draftId)
     .maybeSingle()
   if (!session) return null
-  const notes = await loadNotes(supabase, session.id)
-  return { ...(session as DraftSessionRow), notes }
+  const [notes, categoryText] = await Promise.all([
+    loadNotes(supabase, session.id),
+    loadCategoryText(supabase, session.id),
+  ])
+  return { ...(session as DraftSessionRow), notes, categoryText }
 }
 
 export async function ensureDraftSession(
@@ -217,7 +357,7 @@ export async function ensureDraftSession(
   }
 
   const notes = await loadNotes(supabase, session.id)
-  return { ...(session as DraftSessionRow), notes }
+  return { ...(session as DraftSessionRow), notes, categoryText: [] }
 }
 
 export async function persistVivaSeeds(
@@ -232,6 +372,7 @@ export async function persistVivaSeeds(
     .from('vision_draft_session_notes')
     .select('category, polarity, text')
     .eq('session_id', sessionId)
+    .eq('source', 'viva')
 
   const seen = new Set(
     (existing || []).map(
@@ -264,6 +405,21 @@ export async function persistVivaSeeds(
   if (rows.length === 0) return
   const { error } = await supabase.from('vision_draft_session_notes').insert(rows)
   if (error) console.error('[draft-session] Failed to persist seeds', error)
+}
+
+export async function upsertCategoryText(
+  supabase: SupabaseClient,
+  sessionId: string,
+  category: LifeCategoryKey,
+  patch: Partial<Pick<DraftSessionCategoryText, 'starter_text' | 'imagination_text' | 'vision_text'>>,
+): Promise<void> {
+  const { error } = await supabase
+    .from('vision_draft_session_category_text')
+    .upsert(
+      { session_id: sessionId, category, ...patch, updated_at: new Date().toISOString() },
+      { onConflict: 'session_id,category' },
+    )
+  if (error) console.error('[draft-session] Failed to upsert category text', error)
 }
 
 export async function markDraftSessionComposed(

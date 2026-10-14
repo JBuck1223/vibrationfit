@@ -18,7 +18,7 @@ import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance } from '@/lib/tokens/tracking'
 import { buildVisionUpdateSystemPrompt } from '@/lib/viva/prompts/vision-update-prompts'
 import { buildVisionCreateSystemPrompt } from '@/lib/viva/prompts/vision-create-prompts'
-import { ORDERED_VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { ORDERED_VISION_CATEGORIES, isLifeCategoryKey } from '@/lib/design-system/vision-categories'
 import {
   COACH_STREAM_META_MARKER,
   COACH_STREAM_PADDING,
@@ -28,10 +28,12 @@ import {
   ensureDraftSession,
   markDraftSessionComposed,
   persistVivaSeeds,
+  upsertCategoryText,
 } from '@/lib/life-vision/draft-session'
 import { loadRoster, loadPersona } from '@/lib/roster/store'
 import { renderRosterForPrompt, renderPersonaForPrompt } from '@/lib/roster/render'
 import { runGetToKnowYouExtraction } from '@/lib/roster/get-to-know-you-extractor'
+import { persistMemberPassages, tagMemberPassages } from '@/lib/life-vision/passage-tagger'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -143,6 +145,7 @@ export async function POST(req: Request) {
           sessionSeed: typeof sessionSeed === 'string' ? sessionSeed : null,
           sessionStatus: draftSession?.status,
           sessionNotes: draftSession?.notes,
+          sessionCategoryText: draftSession?.categoryText,
           dateOfBirth,
           rosterBlock,
           personaBlock,
@@ -252,8 +255,20 @@ export async function POST(req: Request) {
         if (isCreate && draftSession && assistantText.trim()) {
           const parsed = parseVisionUpdateMessage(assistantText)
           await persistVivaSeeds(supabase, draftSession.id, parsed.seeds)
-          if (parsed.proposals.some((p) => p.complete)) {
+          // The compose pass (POST /api/vision/draft/compose-first) marks the
+          // session composed when it finishes writing. Small VISION edits in
+          // composed mode don't change status.
+          if (parsed.proposals.some((p) => p.complete) && draftSession.status === 'gathering' && !parsed.compose) {
             await markDraftSessionComposed(supabase, draftSession.id)
+          }
+          // Unleash: the member's verbatim additions for one category.
+          for (const add of parsed.imaginings) {
+            if (!add.complete || !add.text.trim() || !isLifeCategoryKey(add.category)) continue
+            const existing = draftSession.categoryText.find((c) => c.category === add.category)
+            const prior = (existing?.imagination_text || '').trim()
+            await upsertCategoryText(supabase, draftSession.id, add.category, {
+              imagination_text: prior ? `${prior}\n\n${add.text.trim()}` : add.text.trim(),
+            })
           }
 
           // Get to Know You: background roster/persona extraction from the
@@ -264,11 +279,28 @@ export async function POST(req: Request) {
             { role: 'assistant', content: assistantText },
           ]
           const knownContext = [rosterBlock, personaBlock].filter(Boolean).join('\n')
+          // Passage tagger: the member's own words, verbatim, per category.
+          // This is what the depth gate measures and the compose pass expands.
+          const priorVivaTurn = [...chatTurns].reverse().find((m) => m.role === 'assistant') || null
+          const sessionIdForPassages = draftSession.status === 'gathering' ? draftSession.id : null
           after(async () => {
             try {
               await runGetToKnowYouExtraction(supabase, user.id, recentExchange, knownContext)
             } catch (err) {
               console.error('[VIVA VISION UPDATE] Get to Know You extraction:', err)
+            }
+            if (sessionIdForPassages && lastUserMessage) {
+              try {
+                const passages = await tagMemberPassages({
+                  memberMessage: lastUserMessage.content,
+                  vivaQuestion: priorVivaTurn ? parseVisionUpdateMessage(priorVivaTurn.content).chatText : null,
+                  userId: user.id,
+                  supabase,
+                })
+                await persistMemberPassages(supabase, sessionIdForPassages, passages)
+              } catch (err) {
+                console.error('[VIVA VISION UPDATE] Passage tagging:', err)
+              }
             }
           })
         }
