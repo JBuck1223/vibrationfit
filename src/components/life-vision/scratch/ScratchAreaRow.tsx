@@ -4,7 +4,7 @@
  * One life area in Start From Scratch. Same accordion chrome as the update
  * page rows. Inside: two beats ("What's going on now" / "Unleash your
  * imagination"), a recording textarea, a word meter that never goes red, and
- * a footer with "I don't know yet" (dream beat) and Next.
+ * a footer with Next.
  *
  * Autosave: on blur and after 10 s idle, only when the text changed since the
  * last save. The parent owns persistence.
@@ -63,7 +63,6 @@ interface ScratchAreaRowProps {
   onChange: (beat: AreaBeat, text: string) => void
   /** Persist one beat. Resolves when the server has it. */
   onSave: (beat: AreaBeat, text: string) => Promise<void>
-  onUnknown: () => Promise<void>
   onNextArea: () => void
   isLast: boolean
   /** Compose state for this row. */
@@ -100,7 +99,6 @@ export function ScratchAreaRow({
   onToggle,
   onChange,
   onSave,
-  onUnknown,
   onNextArea,
   isLast,
   writing,
@@ -109,7 +107,6 @@ export function ScratchAreaRow({
 }: ScratchAreaRowProps) {
   const Icon = getVisionCategoryIcon(category)
   const label = getVisionCategoryLabel(category)
-  const rowRef = useRef<HTMLDivElement>(null)
 
   const nowDone = state.now.trim().length > 0
   const dreamDone = state.dream.trim().length > 0
@@ -125,15 +122,6 @@ export function ScratchAreaRow({
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
-
-  useEffect(() => {
-    if (expanded && rowRef.current) {
-      const id = window.setTimeout(() => {
-        rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 60)
-      return () => window.clearTimeout(id)
-    }
-  }, [expanded])
 
   const flushBeat = useCallback(async (which: AreaBeat) => {
     const text = stateRef.current[which]
@@ -182,16 +170,10 @@ export function ScratchAreaRow({
 
   const handleNext = async () => {
     await flushBeat(beat)
-    if (beat === 'now' && !state.unknown) {
+    if (beat === 'now') {
       setBeat('dream')
       return
     }
-    onNextArea()
-  }
-
-  const handleUnknown = async () => {
-    await flushBeat(beat)
-    await onUnknown()
     onNextArea()
   }
 
@@ -205,7 +187,6 @@ export function ScratchAreaRow({
 
   return (
     <div
-      ref={rowRef}
       id={`scratch-area-${category}`}
       className={`scroll-mt-24 rounded-2xl border bg-[#161616] transition-all ${borderClass}`}
     >
@@ -305,27 +286,15 @@ export function ScratchAreaRow({
               {saving && <Loader2 className="h-3 w-3 animate-spin text-neutral-500" />}
               {!saving && savedFlash && <span className="text-[11px] text-neutral-500">Saved</span>}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              {beat === 'dream' && !dreamDone && (
-                <button
-                  type="button"
-                  onClick={() => { void handleUnknown() }}
-                  disabled={disabled}
-                  className="rounded-full border border-[#333] px-3 py-1.5 text-xs text-neutral-300 transition-colors hover:border-[#555] hover:text-white disabled:opacity-40"
-                >
-                  I don&apos;t know yet
-                </button>
-              )}
-              <button
+            <button
                 type="button"
                 onClick={() => { void handleNext() }}
                 disabled={disabled}
                 className="inline-flex items-center gap-1 rounded-full bg-[#39FF14] px-3 py-1.5 text-xs font-semibold text-black shadow-[0_0_12px_rgba(57,255,20,0.25)] transition-opacity hover:opacity-90 disabled:opacity-40"
               >
-                {beat === 'now' ? 'Next: imagination' : isLast ? 'Done' : 'Next area'}
+                {beat === 'now' ? 'Next: imagination' : isLast ? 'Done' : 'Next category'}
                 <ArrowRight className="h-3.5 w-3.5" />
               </button>
-            </div>
           </div>
           </div>
         </div>
