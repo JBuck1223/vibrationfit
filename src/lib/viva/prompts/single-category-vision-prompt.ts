@@ -287,7 +287,7 @@ export function buildIndividualCategoryPrompt(
   let primarySourceSection = ''
   if (hasBothInputs) {
     primarySourceSection = `═══════════════════════════════════════════════════════════════
-SOURCE 1: GET ME STARTED TEXT (VIVA-generated from their profile)
+SOURCE 1: STARTER TEXT (VIVA's first pass, built from their words)
 ═══════════════════════════════════════════════════════════════
 
 ${getMeStartedText}
@@ -310,7 +310,7 @@ PRIMARY SOURCE: THE MEMBER'S IMAGINATION
 ${imaginationText}`
   } else {
     primarySourceSection = `═══════════════════════════════════════════════════════════════
-PRIMARY SOURCE: GET ME STARTED TEXT
+PRIMARY SOURCE: STARTER TEXT (VIVA's first pass, built from their words)
 ═══════════════════════════════════════════════════════════════
 
 ${getMeStartedText || '(No text provided)'}`
