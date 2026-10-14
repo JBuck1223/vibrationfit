@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Info, Copy, RefreshCw } from 'lucide-react'
+import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Copy, RefreshCw } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
@@ -14,7 +14,6 @@ const VOICE_DISPLAY_NAMES: Record<string, string> = {
 
 const TABS = [
   { label: 'View', path: '/life-vision', icon: Eye, dataTour: 'studio-tab-vision-view' },
-  { label: 'About', path: '/life-vision/about', icon: Info, dataTour: 'studio-tab-vision-about' },
   { label: 'Update', path: '/life-vision/update', icon: PenLine, dataTour: 'studio-tab-vision-update' },
 ]
 

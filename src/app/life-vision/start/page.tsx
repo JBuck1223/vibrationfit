@@ -149,17 +149,6 @@ function StartFromScratch() {
     queryClient.invalidateQueries({ queryKey: [...keys.visionDraftSession, draftId] })
   }, [draftId, queryClient])
 
-  const markUnknown = useCallback(async (category: LifeCategoryKey) => {
-    if (!draftId) return
-    setAreas((prev) => ({ ...prev, [category]: { ...prev[category], unknown: true } }))
-    await fetch('/api/vision/draft/area-text', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ draftId, category, unknown: true }),
-    }).catch(() => {})
-    queryClient.invalidateQueries({ queryKey: [...keys.visionDraftSession, draftId] })
-  }, [draftId, queryClient])
-
   const handleChange = useCallback((category: LifeCategoryKey, beat: AreaBeat, text: string) => {
     setAreas((prev) => ({ ...prev, [category]: { ...prev[category], [beat]: text } }))
     setExplainerOpen((open) => (open && text.trim() ? false : open))
@@ -176,7 +165,13 @@ function StartFromScratch() {
     const nextOpen = [...after, ...before].find((k) => !areaIsReady(current[k]))
     const next = nextOpen ?? after[0] ?? null
     setExpandedKey(next)
-    if (!next) window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.setTimeout(() => {
+      if (!next) {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
+      document.getElementById(`scratch-area-${next}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 60)
   }, [])
 
   // ------------------------------------------------------------------
@@ -256,6 +251,8 @@ function StartFromScratch() {
   return (
     <Container size="xl">
       <div className="space-y-3 pb-24">
+        <ScratchExplainer open={explainerOpen} onToggle={() => setExplainerOpen((o) => !o)} />
+
         <ScratchProgress
           readyKeys={readyKeys}
           total={LIFE_CATEGORY_KEYS.length}
@@ -274,8 +271,6 @@ function StartFromScratch() {
           </div>
         )}
 
-        <ScratchExplainer open={explainerOpen} onToggle={() => setExplainerOpen((o) => !o)} />
-
         {LIFE_CATEGORY_KEYS.map((key) => (
           <ScratchAreaRow
             key={key}
@@ -285,7 +280,6 @@ function StartFromScratch() {
             onToggle={() => setExpandedKey((prev) => (prev === key ? null : key))}
             onChange={(beat, text) => handleChange(key, beat, text)}
             onSave={(beat, text) => saveBeat(key, beat, text)}
-            onUnknown={() => markUnknown(key)}
             onNextArea={() => goToNextArea(key)}
             isLast={key === lastKey}
             writing={composing?.pending.includes(key)}
