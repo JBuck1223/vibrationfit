@@ -44,7 +44,7 @@ export function captureScrollAnchor(field: HTMLInputElement | HTMLTextAreaElemen
     fieldScroll: field.scrollTop,
     start: field.selectionStart,
     end: field.selectionEnd,
-    direction: field.selectionDirection,
+    direction: field.selectionDirection ?? 'none',
   }
 }
 
