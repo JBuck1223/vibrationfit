@@ -26,6 +26,8 @@ import {
 import { parseVisionUpdateMessage } from '@/lib/life-vision/vision-update-stream'
 import {
   ensureDraftSession,
+  formatScratchBeatsForPrompt,
+  loadDraftSession,
   markDraftSessionComposed,
   persistVivaSeeds,
   upsertCategoryText,
@@ -136,6 +138,12 @@ export async function POST(req: Request) {
           return null
         })
       : null
+    // Update mode on a draft written from Start From Scratch: VIVA sees the
+    // raw beats so she builds on what they wrote.
+    const scratchSession = isCreate ? null : await loadDraftSession(supabase, draftId).catch(() => null)
+    const rawMaterialBlock = scratchSession?.mode === 'scratch'
+      ? formatScratchBeatsForPrompt(scratchSession.categoryText) || null
+      : null
     const system = isCreate
       ? buildVisionCreateSystemPrompt({
           firstName: profile?.first_name || accountFirstName,
@@ -158,6 +166,7 @@ export async function POST(req: Request) {
           sessionSeed: typeof sessionSeed === 'string' ? sessionSeed : null,
           rosterBlock,
           personaBlock,
+          rawMaterialBlock,
         })
     const sessionMode = isCreate ? 'vision_create' : 'vision_update'
 

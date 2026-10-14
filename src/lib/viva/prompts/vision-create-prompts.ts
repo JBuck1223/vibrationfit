@@ -66,8 +66,9 @@ export function buildVisionCreateSystemPrompt(ctx: VisionCreateContext): string 
     .join('\n\n')
 
   const notes = ctx.sessionNotes || []
-  const notesBlock = formatSessionNotesForPrompt(notes)
-  const depth = computeDepth(notes)
+  const categoryText = ctx.sessionCategoryText || []
+  const notesBlock = formatSessionNotesForPrompt(notes, categoryText)
+  const depth = computeDepth(notes, categoryText)
   const composed = ctx.sessionStatus === 'composed'
   const name = ctx.firstName || 'the member'
 
@@ -109,7 +110,7 @@ UNLEASH — invite what they would add
 
 ${thinLine}
 
-How this works: name the area in plain words, say one true thing you wrote there, and ask what they would add — a scene, a place, a person, how a normal day there goes. ONE area per turn. ONE question. If they say nothing comes to mind, or they do not know yet, accept it and move on; blanks are valid. Never pressure, never list all the areas at once.
+How this works: name the area in plain words, quote one thing THEY wrote about it (their "what's going on now" or "unleash your imagination" words below, if they exist, otherwise a passage of theirs), and ask what they would add — a scene, a place, a person, how a normal day there goes. Never ask cold about an area they already wrote about; build on their words. ONE area per turn. ONE question. If they say nothing comes to mind, or they do not know yet, accept it and move on; blanks are valid. Never pressure, never list all the areas at once.
 
 When they give you something for an area, copy THEIR words (verbatim, not your paraphrase) inside an IMAGINE marker so the writer can weave it in:
 

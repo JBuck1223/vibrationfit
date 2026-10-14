@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { keys } from '@/lib/query/keys'
+import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 
 interface VisionVersion {
   id: string
@@ -21,6 +22,8 @@ interface VisionVersion {
   is_mine: boolean
   /** true for "Life We Choose" household visions */
   is_household: boolean
+  /** true when any life category has text (drafts: written vs blank shell) */
+  has_text: boolean
 }
 
 export interface AudioSetOption {
@@ -120,6 +123,7 @@ async function fetchVisions(): Promise<VisionVersion[]> {
       version_number: versionNumber,
       is_mine: v.user_id === user.id,
       is_household: !!v.household_id,
+      has_text: LIFE_CATEGORY_KEYS.some((k) => typeof v[k] === 'string' && v[k].trim().length > 0),
     }
   })
 }

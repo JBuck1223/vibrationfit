@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Info, Copy } from 'lucide-react'
+import { Target, PenLine, Eye, Download, Users, Headphones, Sparkles, CheckCircle, Info, Copy, RefreshCw } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
@@ -23,6 +23,7 @@ const CREATE_AREA_ROUTES = [
   '/life-vision/new',
   '/life-vision/refine',
   '/life-vision/begin',
+  '/life-vision/start',
 ]
 
 export function LifeVisionAreaBar() {
@@ -71,6 +72,17 @@ export function LifeVisionAreaBar() {
 
   const sharedLabel = (v: (typeof visions)[number]) =>
     `Version ${v.version_number} · ${visionOwnerName(household?.members, v.user_id)}`
+
+  // Update tab modes. Edit with VIVA needs something to edit: an active
+  // personal vision, or a draft that already has vision text.
+  const personalDraft = myPersonal.find(v => v.is_draft)
+  const canEditWithViva = Boolean(activeVisionId) || Boolean(personalDraft && personalDraft.has_text)
+  const updateModeNav = (active: 'viva' | 'scratch'): AreaBarContextNavItem[] => [
+    ...(canEditWithViva
+      ? [{ label: 'Edit with VIVA', icon: Sparkles, path: '/life-vision/update', isActive: active === 'viva' }]
+      : []),
+    { label: 'Start Fresh', icon: RefreshCw, path: '/life-vision/start', isActive: active === 'scratch' },
+  ]
 
   const toVisionOption = (v: (typeof visions)[number], group?: string, label?: string) => ({
     id: v.id,
@@ -261,6 +273,8 @@ export function LifeVisionAreaBar() {
       }
     }
   } else if (isUpdatePage) {
+    contextNav = updateModeNav('viva')
+
     // Which document the editor has open. Life I Choose and Life We Choose
     // each keep their own draft; picking a committed version opens that
     // document's draft.
@@ -285,8 +299,14 @@ export function LifeVisionAreaBar() {
         onSelect: (id: string) => {
           if (id === editingVisionId) return
           const selected = visions.find(v => v.id === id)
-          if (selected?.is_draft) router.push(`/life-vision/update?draft=${id}`)
-          else router.push(`/life-vision/update?from=${id}`)
+          // One personal draft exists, so the editor finds it on its own.
+          // Household drafts still need to be named.
+          if (selected?.is_draft) {
+            router.push(selected.is_household ? `/life-vision/update?draft=${id}` : '/life-vision/update')
+            return
+          }
+          // A committed version is read, not edited.
+          router.push(`/life-vision/${id}`)
         },
       }]
     }
@@ -334,6 +354,7 @@ export function LifeVisionAreaBar() {
   } else if (isCreateArea) {
     const isCreateLanding = pathname === '/life-vision/create' || pathname === '/life-vision/create/'
 
+    const isScratchFlow = pathname === '/life-vision/start' || pathname.startsWith('/life-vision/start/')
     const isFreshFlow = pathname === '/life-vision/new' || pathname === '/life-vision/new/'
       || pathname.startsWith('/life-vision/new/')
     const isRefineFlow = /^\/life-vision\/[^/]+\/refine/.test(pathname)
@@ -348,6 +369,8 @@ export function LifeVisionAreaBar() {
 
     if (isCreateLanding) {
       // No context nav on the landing — the two cards handle navigation
+    } else if (isScratchFlow) {
+      contextNav = updateModeNav('scratch')
     } else if (isRefineFlow) {
       // When the route carries a vision id (/life-vision/{id}/draft|refine),
       // operate on that document — it may be a household draft, which the

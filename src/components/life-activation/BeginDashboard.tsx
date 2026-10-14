@@ -72,7 +72,7 @@ export function BeginDashboard() {
           setKitOpen(true)
           return
         }
-        router.push('/life-vision/begin')
+        router.push('/life-vision/start')
         return
       }
 

@@ -21,14 +21,18 @@ import type { VisionData } from '@/lib/life-vision/draft-helpers'
 import { getVisionCategoryText } from '@/lib/life-vision/draft-helpers'
 
 export type DraftSessionStatus = 'gathering' | 'composed'
+/** chat = VIVA-led conversation; scratch = member writes two beats per area. */
+export type DraftSessionMode = 'chat' | 'scratch'
 export type NotePolarity = 'contrast' | 'clarity' | 'unknown'
 export type NoteSource = 'activation' | 'viva' | 'member'
+export type AreaBeat = 'now' | 'dream'
 
 export interface DraftSessionRow {
   id: string
   user_id: string
   draft_id: string
   status: DraftSessionStatus
+  mode: DraftSessionMode
   created_at: string
   updated_at: string
 }
@@ -53,6 +57,13 @@ export interface DraftSessionCategoryText {
   starter_text: string | null
   imagination_text: string | null
   vision_text: string | null
+  /** Scratch flow: the member's raw beats, verbatim. */
+  now_text?: string | null
+  dream_text?: string | null
+  now_at?: string | null
+  dream_at?: string | null
+  /** Set when they marked the area "I don't know yet". */
+  unknown_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -75,6 +86,13 @@ export interface CategoryCoverage {
   memberUnknown: string[]
   memberWords: number
   hasScene: boolean
+  /** Scratch flow beats (verbatim). Empty strings when not written. */
+  nowText: string
+  dreamText: string
+  nowDone: boolean
+  dreamDone: boolean
+  /** Marked "I don't know yet" in the scratch flow. */
+  unknownYet: boolean
   depth: DepthStatus
 }
 
@@ -152,13 +170,17 @@ export function notesFromActivationSeed(seed: LifeActivationSeed): Array<{
   return notes
 }
 
-function depthFor(bucket: {
-  memberWords: number
-  hasScene: boolean
-  memberUnknown: string[]
-  contrast: string[]
-  clarity: string[]
-}): DepthStatus {
+type CoverageBucket = Omit<CategoryCoverage, 'category' | 'depth'>
+
+function depthFor(bucket: CoverageBucket): DepthStatus {
+  const hasBeats = bucket.nowDone || bucket.dreamDone
+  if (bucket.unknownYet && !hasBeats) return 'unknown'
+  if (hasBeats) {
+    // Scratch flow: the two beats are the structure. Both must be written;
+    // the floor is words, not a scene heuristic, so nobody dead-ends.
+    if (bucket.nowDone && bucket.dreamDone && bucket.memberWords >= DEPTH_CLEAR_WORDS) return 'cleared'
+    return 'thin'
+  }
   if (bucket.memberWords >= DEPTH_CLEAR_WORDS && bucket.hasScene) return 'cleared'
   // "I don't know yet" clears an area only when they have not also described it.
   if (bucket.memberUnknown.length > 0 && bucket.memberWords < DEPTH_CLEAR_WORDS / 3) return 'unknown'
@@ -166,19 +188,20 @@ function depthFor(bucket: {
   return 'thin'
 }
 
-export function groupNotesByCategory(notes: DraftSessionNote[]): CategoryCoverage[] {
-  const map = new Map<
-    LifeCategoryKey,
-    {
-      contrast: string[]
-      clarity: string[]
-      memberContrast: string[]
-      memberClarity: string[]
-      memberUnknown: string[]
-      memberWords: number
-      hasScene: boolean
-    }
-  >()
+function normForContain(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+/**
+ * Group everything the session holds per life area. `categoryText` carries
+ * the scratch-flow beats; tagged passages already contained in a beat are not
+ * double counted.
+ */
+export function groupNotesByCategory(
+  notes: DraftSessionNote[],
+  categoryText: DraftSessionCategoryText[] = [],
+): CategoryCoverage[] {
+  const map = new Map<LifeCategoryKey, CoverageBucket>()
   for (const key of LIFE_CATEGORY_KEYS) {
     map.set(key, {
       contrast: [],
@@ -188,8 +211,32 @@ export function groupNotesByCategory(notes: DraftSessionNote[]): CategoryCoverag
       memberUnknown: [],
       memberWords: 0,
       hasScene: false,
+      nowText: '',
+      dreamText: '',
+      nowDone: false,
+      dreamDone: false,
+      unknownYet: false,
     })
   }
+
+  for (const row of categoryText) {
+    if (!isLifeCategoryKey(row.category)) continue
+    const bucket = map.get(row.category)
+    if (!bucket) continue
+    const now = (row.now_text || '').trim()
+    const dream = (row.dream_text || '').trim()
+    bucket.nowText = now
+    bucket.dreamText = dream
+    bucket.nowDone = now.length > 0
+    bucket.dreamDone = dream.length > 0
+    bucket.unknownYet = !!row.unknown_at
+    for (const beat of [now, dream]) {
+      if (!beat) continue
+      bucket.memberWords += countWords(beat)
+      if (!bucket.hasScene && passageHasScene(beat)) bucket.hasScene = true
+    }
+  }
+
   for (const note of notes) {
     if (!isLifeCategoryKey(note.category)) continue
     const bucket = map.get(note.category)
@@ -200,8 +247,12 @@ export function groupNotesByCategory(notes: DraftSessionNote[]): CategoryCoverag
       else if (note.polarity === 'clarity') bucket.memberClarity.push(member)
       else bucket.memberUnknown.push(member)
       if (note.polarity !== 'unknown') {
-        bucket.memberWords += countWords(member)
-        if (!bucket.hasScene && passageHasScene(member)) bucket.hasScene = true
+        const beats = normForContain(`${bucket.nowText}\n${bucket.dreamText}`)
+        const contained = beats.length > 0 && beats.includes(normForContain(member))
+        if (!contained) {
+          bucket.memberWords += countWords(member)
+          if (!bucket.hasScene && passageHasScene(member)) bucket.hasScene = true
+        }
       }
       continue
     }
@@ -227,8 +278,11 @@ export interface DepthSummary {
   totalMemberWords: number
 }
 
-export function computeDepth(notes: DraftSessionNote[]): DepthSummary {
-  const grouped = groupNotesByCategory(notes)
+export function computeDepth(
+  notes: DraftSessionNote[],
+  categoryText: DraftSessionCategoryText[] = [],
+): DepthSummary {
+  const grouped = groupNotesByCategory(notes, categoryText)
   const pick = (d: DepthStatus) => grouped.filter((g) => g.depth === d).map((g) => g.category)
   const cleared = pick('cleared')
   const unknown = pick('unknown')
@@ -243,9 +297,12 @@ export function computeDepth(notes: DraftSessionNote[]): DepthSummary {
 }
 
 /** Depth map + the member's passages, formatted for the create prompt. */
-export function formatSessionNotesForPrompt(notes: DraftSessionNote[]): string {
-  const grouped = groupNotesByCategory(notes)
-  const depth = computeDepth(notes)
+export function formatSessionNotesForPrompt(
+  notes: DraftSessionNote[],
+  categoryText: DraftSessionCategoryText[] = [],
+): string {
+  const grouped = groupNotesByCategory(notes, categoryText)
+  const depth = computeDepth(notes, categoryText)
 
   const line = (label: string, keys: LifeCategoryKey[]) =>
     `${label}: ${keys.length ? keys.join(', ') : 'none'}`
@@ -264,8 +321,16 @@ export function formatSessionNotesForPrompt(notes: DraftSessionNote[]): string {
       const label = getVisionCategoryLabel(g.category)
       const list = (items: string[]) => (items.length ? items.map((t) => `- ${t}`).join('\n') : '- (none yet)')
       const quote = (items: string[]) => (items.length ? items.map((t) => `> ${t}`).join('\n') : '> (none yet)')
+      const beats = g.nowDone || g.dreamDone || g.unknownYet
+        ? [
+            ...(g.nowDone ? [`What's going on now (their words):\n> ${g.nowText}`] : []),
+            ...(g.dreamDone ? [`Unleash your imagination (their words):\n> ${g.dreamText}`] : []),
+            ...(g.unknownYet ? ['They marked this area: I don\'t know yet.'] : []),
+          ]
+        : []
       return [
         `### ${g.category} (${label}) — ${g.depth.toUpperCase()}, ${g.memberWords} member words${g.hasScene ? ', scene present' : ', no scene yet'}`,
+        ...beats,
         `Their words, contrast:\n${quote(g.memberContrast)}`,
         `Their words, clarity:\n${quote(g.memberClarity)}`,
         ...(g.memberUnknown.length ? [`They do not know yet:\n${quote(g.memberUnknown)}`] : []),
@@ -275,6 +340,28 @@ export function formatSessionNotesForPrompt(notes: DraftSessionNote[]): string {
     .join('\n\n')
 
   return `${header}\n\n${sections}`
+}
+
+/**
+ * The member's Start From Scratch beats, per area, for a prompt that edits
+ * the draft those beats produced. Empty string when none were written.
+ */
+export function formatScratchBeatsForPrompt(categoryText: DraftSessionCategoryText[]): string {
+  const sections: string[] = []
+  for (const key of LIFE_CATEGORY_KEYS) {
+    const row = categoryText.find((c) => c.category === key)
+    if (!row) continue
+    const now = (row.now_text || '').trim()
+    const dream = (row.dream_text || '').trim()
+    if (!now && !dream && !row.unknown_at) continue
+    sections.push([
+      `### ${key} (${getVisionCategoryLabel(key)})`,
+      ...(now ? [`What's going on now (their words):\n> ${now}`] : []),
+      ...(dream ? [`Unleash your imagination (their words):\n> ${dream}`] : []),
+      ...(!now && !dream && row.unknown_at ? ['They marked this area: I don\'t know yet.'] : []),
+    ].join('\n'))
+  }
+  return sections.join('\n\n')
 }
 
 async function loadNotes(
@@ -324,6 +411,7 @@ export async function ensureDraftSession(
   opts?: {
     seed?: LifeActivationSeed | null
     draftHasText?: boolean
+    mode?: DraftSessionMode
   },
 ): Promise<DraftSessionPayload> {
   const existing = await loadDraftSession(supabase, draftId)
@@ -336,6 +424,7 @@ export async function ensureDraftSession(
       user_id: userId,
       draft_id: draftId,
       status,
+      mode: opts?.mode ?? 'chat',
     })
     .select('*')
     .single()
@@ -411,7 +500,19 @@ export async function upsertCategoryText(
   supabase: SupabaseClient,
   sessionId: string,
   category: LifeCategoryKey,
-  patch: Partial<Pick<DraftSessionCategoryText, 'starter_text' | 'imagination_text' | 'vision_text'>>,
+  patch: Partial<
+    Pick<
+      DraftSessionCategoryText,
+      | 'starter_text'
+      | 'imagination_text'
+      | 'vision_text'
+      | 'now_text'
+      | 'dream_text'
+      | 'now_at'
+      | 'dream_at'
+      | 'unknown_at'
+    >
+  >,
 ): Promise<void> {
   const { error } = await supabase
     .from('vision_draft_session_category_text')

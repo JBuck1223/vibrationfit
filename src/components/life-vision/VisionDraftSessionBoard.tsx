@@ -7,6 +7,7 @@ import {
   groupNotesByCategory,
   normalizeNoteText,
   type DepthStatus,
+  type DraftSessionCategoryText,
   type DraftSessionNote,
 } from '@/lib/life-vision/draft-session'
 import type { VisionUpdateSeed } from '@/lib/life-vision/vision-update-stream'
@@ -85,16 +86,27 @@ function WordsColumn({
   )
 }
 
+function BeatBlock({ label, text }: { label: string; text: string }) {
+  return (
+    <div className="rounded-xl border border-[#39FF14]/25 bg-[#39FF14]/[0.04] p-3">
+      <div className="text-[10px] uppercase tracking-wider text-[#a4ff8a]">{label}</div>
+      <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-neutral-100">{text}</p>
+    </div>
+  )
+}
+
 export function VisionDraftSessionBoard({
   notes,
+  categoryText = [],
   liveSeeds = [],
 }: {
   notes: DraftSessionNote[]
+  categoryText?: DraftSessionCategoryText[]
   liveSeeds?: VisionUpdateSeed[]
 }) {
   const merged = mergeLiveSeeds(notes, liveSeeds)
-  const grouped = groupNotesByCategory(merged)
-  const depth = computeDepth(merged)
+  const grouped = groupNotesByCategory(merged, categoryText)
+  const depth = computeDepth(merged, categoryText)
   const clearedCount = depth.cleared.length + depth.unknown.length
 
   return (
@@ -133,10 +145,21 @@ export function VisionDraftSessionBoard({
                 {group.memberUnknown[0]}
               </p>
             )}
-            <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2">
-              <WordsColumn label="Contrast" passages={group.memberContrast} labels={group.contrast} tone="contrast" />
-              <WordsColumn label="Clarity" passages={group.memberClarity} labels={group.clarity} tone="clarity" />
-            </div>
+            {group.unknownYet && !group.nowDone && !group.dreamDone && (
+              <p className="px-4 pb-2 text-xs text-neutral-400 italic">I don&apos;t know yet.</p>
+            )}
+            {group.nowDone || group.dreamDone ? (
+              // Start From Scratch: the beats are the body.
+              <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2">
+                {group.nowDone && <BeatBlock label="What's going on now" text={group.nowText} />}
+                {group.dreamDone && <BeatBlock label="Unleash your imagination" text={group.dreamText} />}
+              </div>
+            ) : (
+              <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2">
+                <WordsColumn label="Contrast" passages={group.memberContrast} labels={group.contrast} tone="contrast" />
+                <WordsColumn label="Clarity" passages={group.memberClarity} labels={group.clarity} tone="clarity" />
+              </div>
+            )}
           </div>
         )
       })}

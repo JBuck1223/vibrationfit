@@ -38,7 +38,7 @@ import {
   getCategoriesChangedFromActive,
   type VisionData,
 } from '@/lib/life-vision/draft-helpers'
-import { draftHasAnyVisionText } from '@/lib/life-vision/draft-session'
+import { draftHasAnyVisionText, loadDraftSession } from '@/lib/life-vision/draft-session'
 import {
   LIFE_CATEGORY_KEYS,
   ORDERED_VISION_CATEGORIES,
@@ -340,9 +340,7 @@ export default function VisionUpdatePage() {
 
   useLifeVisionStudioAreaChrome(
     useMemo(() => ({
-      contextText: isCreateMode
-        ? LIFE_ACTIVATION_COPY.vision.chrome
-        : 'Tell VIVA what has changed. Review each update, Accept to save it into your draft, then edit there if you want — then commit when it feels right.',
+      contextText: isCreateMode ? LIFE_ACTIVATION_COPY.vision.chrome : undefined,
       editingVisionId: isCreateMode ? undefined : draft?.id,
       walkthrough: isCreateMode
         ? undefined
@@ -366,6 +364,9 @@ export default function VisionUpdatePage() {
       && loadedDraftRef.current
       && (!requestedDraftId || requestedDraftId === loadedDraftRef.current)
     ) {
+      // The URL sync below re-runs this effect. The draft is already loaded,
+      // so don't start another fetch — and don't leave the spinner up.
+      setLoading(false)
       return
     }
     let cancelled = false
@@ -406,7 +407,10 @@ export default function VisionUpdatePage() {
           // when the only active document is Life We Choose.
           const sourceVisionId = activeVisionId || householdActiveVisionId || null
           compareVisionId = sourceVisionId
-          resolvedDraftId = activeVisionId ? draftId : householdDraftId
+          // The one personal draft wins (it may be a first vision written from
+          // scratch with no active behind it); otherwise the household draft.
+          resolvedDraftId = draftId ?? (activeVisionId ? null : householdDraftId)
+          if (resolvedDraftId && resolvedDraftId === draftId) compareVisionId = activeVisionId
 
           if (resolvedDraftId) {
             const { data: candidate } = await supabase
@@ -422,7 +426,8 @@ export default function VisionUpdatePage() {
           }
 
           if (!sourceVisionId && !resolvedDraftId) {
-            router.replace('/life-vision/create')
+            // Nothing to update yet: the first vision is written from scratch.
+            router.replace('/life-vision/start')
             return
           }
 
@@ -438,6 +443,17 @@ export default function VisionUpdatePage() {
           .eq('id', resolvedDraftId!)
           .single()
         if (!draftRow) throw new Error('Draft not found')
+
+        // A Start From Scratch draft that has not been written yet belongs on
+        // /life-vision/start, not in the VIVA editor.
+        if (!isCreateMode && !draftHasAnyVisionText(draftRow as VisionData)) {
+          const session = await loadDraftSession(supabase, draftRow.id)
+          if (session?.mode === 'scratch' && session.status === 'gathering') {
+            if (!cancelled) router.replace('/life-vision/start')
+            return
+          }
+        }
+
         if (!compareVisionId && draftRow.parent_id) compareVisionId = draftRow.parent_id
 
         let activeRow: VisionData | null = null
@@ -461,14 +477,6 @@ export default function VisionUpdatePage() {
         }
         setDraft(draftRow as VisionData)
         setActive(activeRow)
-        loadedDraftRef.current = resolvedDraftId
-
-        if (!isCreateMode && resolvedDraftId && requestedDraftId !== resolvedDraftId) {
-          const params = new URLSearchParams(searchParams.toString())
-          params.delete('from')
-          params.set('draft', resolvedDraftId)
-          router.replace(`/life-vision/update?${params.toString()}`)
-        }
 
         // Restore the saved VIVA thread for this draft (best-effort) so a
         // page refresh doesn't lose the conversation.
@@ -522,7 +530,19 @@ export default function VisionUpdatePage() {
         }
 
         if (cancelled) return
+        // Mark the draft loaded only after the thread restore finishes.
+        // Writing ?draft= before this used to cancel the effect mid-flight,
+        // and the follow-up run skipped setLoading(false) — spinner forever
+        // until a full refresh.
+        loadedDraftRef.current = resolvedDraftId
         setLoading(false)
+
+        // A `?from=` request has done its job once the draft is open; drop it
+        // so a refresh does not re-create. The draft itself is never written
+        // to the URL: there is one personal draft and the page finds it.
+        if (!isCreateMode && requestedFromId) {
+          router.replace('/life-vision/update')
+        }
       } catch (err) {
         if (cancelled) return
         setError(err instanceof Error ? err.message : 'Failed to load your draft')
@@ -530,7 +550,7 @@ export default function VisionUpdatePage() {
       }
     })()
     return () => { cancelled = true }
-  }, [studioLoading, activeVisionId, draftId, householdActiveVisionId, householdDraftId, requestedDraftId, requestedFromId, searchParams, supabase, router, refreshVisions, isCreateMode, queryClient])
+  }, [studioLoading, activeVisionId, draftId, householdActiveVisionId, householdDraftId, requestedDraftId, requestedFromId, supabase, router, refreshVisions, isCreateMode, queryClient])
 
   useEffect(() => {
     if (loading || !draft) return
@@ -1003,7 +1023,11 @@ export default function VisionUpdatePage() {
 
       <div className={`space-y-3 lg:flex-1 lg:overflow-y-auto lg:p-4 ${thinScrollbar}`}>
       {showGatheringBoard ? (
-        <VisionDraftSessionBoard notes={draftSession?.notes || []} liveSeeds={liveSeeds} />
+        <VisionDraftSessionBoard
+          notes={draftSession?.notes || []}
+          categoryText={draftSession?.categoryText || []}
+          liveSeeds={liveSeeds}
+        />
       ) : (
       <>
       {ORDERED_VISION_CATEGORIES.map((category) => {
