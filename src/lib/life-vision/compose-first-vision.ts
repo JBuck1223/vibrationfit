@@ -113,10 +113,13 @@ function fallbackStateText(group: CategoryCoverage): string {
   return [...group.clarity, ...group.contrast].join(' ')
 }
 
-/** Word ceiling for the starter when the member said little about an area. */
-export function thinAreaCap(memberWords: number): number {
-  if (memberWords === 0) return 80
-  return Math.max(100, Math.min(220, Math.round(memberWords * 2.5)))
+/**
+ * Word ceiling for an area the member said nothing about (marked unknown, or
+ * never reached). Null when they gave any words: length then follows the
+ * richness ladder, and the invention guard (not a cap) keeps it honest.
+ */
+export function thinAreaCap(memberWords: number): number | null {
+  return memberWords === 0 ? 80 : null
 }
 
 async function runPass(
@@ -162,10 +165,13 @@ export async function composeCategory(
   const label = getVisionCategoryLabel(key)
   const ownWords = memberStateText(group)
   const stateText = ownWords || fallbackStateText(group)
-  const cleared = group.depth === 'cleared'
-  // Inspiration themes only where they gave a real scene; otherwise the
-  // starter would weave in a life they did not describe.
-  const questions = cleared ? getQuestionsForCategory(key).map((q) => q.text) : []
+  // Every area runs under the invention guard: expand only on what they
+  // named. Length follows the richness ladder. Only an area with none of
+  // their words gets a hard cap, so a light area can still climb instead of
+  // being cut off at a word count.
+  const cap = thinAreaCap(group.memberWords)
+  const questions = cap === null ? getQuestionsForCategory(key).map((q) => q.text) : []
+  const guard = cap === null ? { ownWordsOnly: true as const } : { ownWordsOnly: true as const, thinArea: { maxWords: cap } }
 
   const starterPrompt = buildImaginationStarterPrompt(
     key,
@@ -174,7 +180,7 @@ export async function composeCategory(
     {},
     questions,
     opts.perspective,
-    cleared ? {} : { thinArea: { maxWords: thinAreaCap(group.memberWords) } },
+    guard,
   )
   const starterText = await runPass(starterPrompt, opts, { category: key, stage: 'starter' })
   await opts.onStage?.(key, 'starter', starterText)
@@ -190,10 +196,7 @@ export async function composeCategory(
     contrastText,
     opts.perspective,
     '',
-    {
-      strictFacts: true,
-      ...(cleared ? {} : { thinArea: { maxWords: thinAreaCap(group.memberWords) } }),
-    },
+    { strictFacts: true, ...guard },
   )
   const visionText = await runPass(writerPrompt, opts, { category: key, stage: 'vision' })
   await opts.onStage?.(key, 'vision', visionText)

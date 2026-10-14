@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * Activation Experience — orientation, then bounded VIVA chat, then generate.
+ * Activation Experience — orientation, pick one area, write the two beats
+ * (what's going on now / unleash your imagination), then generate.
  * Preview / Immersion / Offer live on /activation/[id].
  */
 
@@ -10,12 +11,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, Spinner } from '@/lib/design-system/components'
 import { ActivationOrientation } from '@/components/activation/ActivationOrientation'
 import { ActivationCategoryPick } from '@/components/activation/ActivationCategoryPick'
-import { ActivationIntakeChat } from '@/components/activation/ActivationIntakeChat'
+import { ActivationRawMaterial } from '@/components/activation/ActivationRawMaterial'
 import { GeneratingStep } from '@/components/activation/ActivationExperienceSteps'
-import { isIntakeReady } from '@/lib/activation/intake-markers'
-import type { ActivationChatMessage } from '@/lib/activation/orchestrator'
+import type { LifeCategoryKey } from '@/lib/design-system/vision-categories'
 
-type Step = 'loading' | 'orientation' | 'category' | 'chat' | 'generating'
+type Step = 'loading' | 'orientation' | 'category' | 'raw-material' | 'generating'
 
 function ActivationExperience() {
   const router = useRouter()
@@ -27,11 +27,9 @@ function ActivationExperience() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const [conversation, setConversation] = useState<ActivationChatMessage[]>([])
   const [currentState, setCurrentState] = useState<string | null>(null)
   const [dreamWant, setDreamWant] = useState<string | null>(null)
   const [category, setCategory] = useState<string | null>(null)
-  const [intakeReady, setIntakeReady] = useState(false)
 
   const applyRow = useCallback((activation: {
     id: string
@@ -39,11 +37,9 @@ function ActivationExperience() {
     entered_at?: string | null
     opened_at?: string | null
     ready_at?: string | null
-    conversation?: ActivationChatMessage[]
     current_state?: string | null
     dream_response?: Record<string, string> | null
     category?: string | null
-    intake_ready_at?: string | null
   }) => {
     if (['ready', 'opened', 'entered'].includes(activation.status) || activation.ready_at) {
       router.replace(`/activation/${activation.id}`)
@@ -53,13 +49,11 @@ function ActivationExperience() {
     setCurrentState(activation.current_state || null)
     setDreamWant(activation.dream_response?.want || null)
     setCategory(activation.category || null)
-    setIntakeReady(!!activation.intake_ready_at || isIntakeReady(activation))
-    setConversation(Array.isArray(activation.conversation) ? activation.conversation : [])
 
     if (activation.status === 'generating') return 'generating' as const
     if (activation.status === 'started') return 'orientation' as const
     if (!activation.category) return 'category' as const
-    return 'chat' as const
+    return 'raw-material' as const
   }, [router])
 
   useEffect(() => {
@@ -150,8 +144,7 @@ function ActivationExperience() {
       if (!res.ok) throw new Error(data.error || 'Could not continue')
       const row = data.activation
       setCategory(row.category || category)
-      setConversation(Array.isArray(row.conversation) ? row.conversation : [])
-      setStep('chat')
+      setStep('raw-material')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not continue')
     } finally {
@@ -171,7 +164,7 @@ function ActivationExperience() {
       router.push(`/activation/${target}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation hit a snag. Please try again.')
-      setStep('chat')
+      setStep('raw-material')
     }
   }
 
@@ -207,29 +200,24 @@ function ActivationExperience() {
     )
   }
 
-  if (step === 'chat' && activationId) {
+  if (step === 'raw-material' && activationId && category) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        {error && (
-          <p className="px-4 pt-4 text-sm text-red-400 md:px-6">{error}</p>
-        )}
-        <ActivationIntakeChat
-          activationId={activationId}
-          initialMessages={conversation}
-          currentState={currentState}
-          dreamWant={dreamWant}
-          category={category}
-          intakeReady={intakeReady}
-          onFieldsChange={(next) => {
-            setCurrentState(next.current_state || null)
-            setDreamWant(next.dream_want || null)
-            setCategory(next.category || null)
-            setIntakeReady(!!next.intake_ready)
-            setConversation(next.conversation)
-          }}
-          onCreate={() => runGenerate()}
-          creating={false}
-        />
+      <div className="flex-1 overflow-y-auto">
+        <Container size="xl" className="px-4 py-6 md:px-10 md:py-8">
+          <ActivationRawMaterial
+            key={activationId}
+            activationId={activationId}
+            category={category as LifeCategoryKey}
+            initialNow={currentState}
+            initialDream={dreamWant}
+            onFieldsChange={(next) => {
+              setCurrentState(next.current_state)
+              setDreamWant(next.dream_response?.want || null)
+            }}
+            onCreate={() => runGenerate()}
+            error={error}
+          />
+        </Container>
       </div>
     )
   }

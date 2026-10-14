@@ -17,6 +17,8 @@ interface ScratchProgressProps {
   composedCount: number
   onWrite: () => void
   disabled?: boolean
+  /** Labels of areas still thin or empty, for the button tooltip. */
+  pendingLabels?: string[]
 }
 
 export function ScratchProgress({
@@ -26,6 +28,7 @@ export function ScratchProgress({
   composedCount,
   onWrite,
   disabled,
+  pendingLabels,
 }: ScratchProgressProps) {
   const ready = readyKeys.size
   const allReady = ready >= total
@@ -64,7 +67,13 @@ export function ScratchProgress({
         size="sm"
         disabled={!allReady || composing || disabled}
         onClick={onWrite}
-        title={allReady ? 'VIVA writes all 12 areas from your words' : `${total - ready} ${total - ready === 1 ? 'area' : 'areas'} still need both parts`}
+        title={
+          allReady
+            ? 'VIVA writes all 12 areas from your words'
+            : pendingLabels?.length
+              ? `Still needs more: ${pendingLabels.join(', ')}`
+              : `${total - ready} ${total - ready === 1 ? 'area' : 'areas'} still need more`
+        }
         className="shrink-0"
       >
         {composing

@@ -28,9 +28,9 @@ export const ACTIVATION_COPY = {
     title: 'Welcome to your Activation!',
     lead: 'Here\'s how it works.',
     paragraphs: [
-      'You\'ll have a real conversation with VIVA — about what\'s true in your life right now, and what you\'d love it to become when you let yourself dream without editing.',
-      'She listens. She remembers. She gets to know you.',
-      'Then she crafts your vision from your own words, so it sounds like you, not a template.',
+      'Pick one area of your life. Then give VIVA two things: what\'s actually going on there right now, and what you\'d love it to become when you let yourself dream without editing.',
+      'Speak it or type it. The more you let out, the more VIVA has to work with.',
+      'Then she writes your vision from your own words, so it sounds like you, not a template.',
       'From there, VIVA builds your Activation around that vision, so you can start living into it immediately.',
       'There\'s nothing to get right. Just be yourself, dream big, and have fun with it.',
     ],
@@ -42,25 +42,33 @@ export const ACTIVATION_COPY = {
     source: 'src/components/activation/ActivationCategoryPick.tsx',
     eyebrow: 'One area',
     title: 'Which life category would you like to activate?',
-    continue: 'Talk with VIVA',
+    continue: 'Continue',
     continuing: 'Opening...',
   },
 
-  chat: {
-    source: 'src/components/activation/ActivationIntakeChat.tsx',
-    promptFile: 'src/lib/viva/prompts/activation-chat-prompts.ts',
-    opening: (firstName: string | null | undefined, categoryLabel: string) => {
-      const name = firstName?.trim()
-      const hello = name ? `Hi ${name} — I'm VIVA.` : "Hi — I'm VIVA."
-      return `${hello}\n\nBefore anything else: come as you are. Not the polished version — the real one. This works best when you talk to me like someone who's actually listening, because I am.\n\nYou chose ${categoryLabel}. So tell me — what's actually true there right now? The good, the heavy, the stuff you don't usually say out loud. And if you drift into what you want instead, follow that. I'm with you.`
-    },
-    placeholder: 'Talk to VIVA...',
-    readinessTitle: 'So far',
-    readinessCurrent: 'Current state',
-    readinessDesire: 'Desire',
+  rawMaterial: {
+    source: 'src/components/activation/ActivationRawMaterial.tsx',
+    howTitle: 'How this works',
+    explainerTitle: 'Bring this part of your life to life',
+    explainerIntro: 'VIVA writes your Activation from your raw material. Give her two things:',
+    nowTitle: "What's going on now",
+    nowBody:
+      "The honest version. No sugarcoating, no spiritual bypassing. If it's amazing, celebrate it. If it sucks, let it out. You don't have to make it sound pretty.",
+    dreamTitle: 'Unleash your imagination',
+    dreamBody:
+      'What would you absolutely love to experience in this part of your life? Let yourself want what you want, even if it feels wildly out of reach. Dream big. Get specific. Go unhinged.',
+    flowTitle: 'Get in flow and keep going',
+    flowBody:
+      "Speak it or type it. Don't edit as you go. A few hundred words beats a few tidy sentences — the more you let out, the more VIVA has to write from.",
+    meterEmpty: 'Speak it or type it.',
+    meterKeepGoing: 'keep going',
+    meterEnough: "Enough to write from. Keep going if there's more.",
+    nextBeat: 'Next: imagination',
     create: 'Create My Activation',
     creating: 'Creating your Activation...',
-    readyLine: 'I have what I need. When you are ready, I will write your Activation from your words.',
+    moreNow: (words: number) => `Add about ${words} more words to What's going on now.`,
+    moreDream: (words: number) => `Add about ${words} more words here and VIVA can write.`,
+    saved: 'Saved',
   },
 
   optIn: {
@@ -202,7 +210,7 @@ export const ACTIVATION_COPY = {
       { key: 'story', label: 'Future-Self Story' },
       { key: 'incantation', label: 'Incantation' },
       { key: 'spark_query', label: 'SparkQuery' },
-      { key: 'song', label: 'Your song' },
+      { key: 'song', label: 'Your song lyrics' },
     ],
   },
 
@@ -299,23 +307,6 @@ export const ACTIVATION_COPY = {
 export const ACTIVATION_SAMPLE = {
   firstName: 'Jordan',
   email: 'jordan@example.com',
-  conversation: [
-    {
-      role: 'assistant' as const,
-      content:
-        "Hi Jordan — I'm VIVA.\n\nBefore anything else: come as you are. Not the polished version — the real one. This works best when you talk to me like someone who's actually listening, because I am.\n\nYou chose Money. So tell me — what's actually true there right now? The good, the heavy, the stuff you don't usually say out loud. And if you drift into what you want instead, follow that. I'm with you.",
-    },
-    {
-      role: 'user' as const,
-      content:
-        "I've been working sixty-hour weeks for two years and I still feel one bad month away from everything falling apart. I can't remember the last time I felt proud of my life.",
-    },
-    {
-      role: 'assistant' as const,
-      content:
-        "I hear the hours — and the fear under them. Sixty weeks stacked on sixty, and the life those hours were supposed to buy still feels one bad month from collapsing. What would you love to be true instead?",
-    },
-  ],
   currentState:
     "I've been working sixty-hour weeks for two years and I still feel one bad month away from everything falling apart. I can't remember the last time I felt proud of my life — just tired, behind, and like I'm performing a version of success that doesn't actually feel like mine.",
   reflection:

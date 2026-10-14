@@ -15,10 +15,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recordActivationEvent } from '@/lib/activation/events'
 import { sendNotification } from '@/lib/notifications/config'
-import type { ActivationChatMessage, ActivationRow, AssetState } from '@/lib/activation/orchestrator'
+import type { ActivationRow, AssetState } from '@/lib/activation/orchestrator'
 import { LIFE_CATEGORY_KEYS, getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-system/vision-categories'
-import { ACTIVATION_COPY } from '@/lib/activation/copy'
 import { isActivationGenreId, isActivationVoiceId } from '@/lib/activation/media-options'
+import { describeIntakeSubstance } from '@/lib/activation/intake-markers'
 
 export const dynamic = 'force-dynamic'
 
@@ -180,11 +180,6 @@ function notifyAdminActivationComplete(userId: string, category: string) {
   )
 }
 
-function openingMessage(firstName: string | null | undefined, category: string): ActivationChatMessage {
-  const label = getVisionCategoryLabel(category as VisionCategoryKey)
-  return { role: 'assistant', content: ACTIVATION_COPY.chat.opening(firstName, label) }
-}
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -193,7 +188,7 @@ export async function PATCH(
     const { id } = await params
     const loaded = await loadOwnedActivation(id)
     if ('error' in loaded) return loaded.error
-    const { supabase, user, activation } = loaded
+    const { supabase, activation } = loaded
 
     const body = await request.json()
     const updates: Record<string, unknown> = {}
@@ -258,15 +253,6 @@ export async function PATCH(
       if (activation.status === 'oriented' || activation.status === 'started') {
         updates.status = 'oriented'
       }
-      const existing = Array.isArray(activation.conversation) ? activation.conversation : []
-      const userHasSpoken = existing.some((m) => m.role === 'user')
-      if (!userHasSpoken) {
-        const firstName =
-          (user.user_metadata?.first_name as string | undefined) ||
-          (user.user_metadata?.full_name as string | undefined)?.split(' ')[0] ||
-          null
-        updates.conversation = [openingMessage(firstName, chosen)]
-      }
       if (activation.category !== chosen) {
         await recordActivationEvent(admin, {
           eventType: 'category_confirmed',
@@ -306,6 +292,31 @@ export async function PATCH(
         userId: activation.user_id,
         eventData: { category: activation.category },
       })
+    }
+
+    // Raw material saved — stamp intake_ready_at the first time both beats
+    // can carry the vision (gates Create My Activation and /generate).
+    if (('current_state' in updates || 'dream_response' in updates) && !activation.intake_ready_at) {
+      const merged = { ...activation, ...updates } as ActivationRow
+      const substance = describeIntakeSubstance({
+        current_state: merged.current_state,
+        dream_response: merged.dream_response,
+        category: merged.category,
+      })
+      if (substance.ready) {
+        updates.intake_ready_at = new Date().toISOString()
+        await recordActivationEvent(admin, {
+          eventType: 'activation_intake_ready',
+          activationId: activation.id,
+          userId: activation.user_id,
+          eventData: {
+            category: merged.category,
+            current_state_words: substance.currentWords,
+            dream_words: substance.wantWords,
+            source: 'raw_material',
+          },
+        })
+      }
     }
 
     if (Object.keys(updates).length === 0) {

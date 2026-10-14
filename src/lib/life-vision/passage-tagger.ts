@@ -116,7 +116,7 @@ export async function tagMemberPassages(input: {
   if (!memberMessage || memberMessage.split(/\s+/).length < 3) return []
 
   const focusLine = input.focusCategory
-    ? `The member was writing specifically about the "${input.focusCategory}" area. Tag passages under "${input.focusCategory}" by default; use another category only when a passage is clearly about that other area (it may also stay under "${input.focusCategory}").\n\n`
+    ? `VIVA asked about the "${input.focusCategory}" area. Tag EVERY passage in the reply, not just the ones about "${input.focusCategory}". Passages about "${input.focusCategory}" stay there (default when ambiguous). Passages clearly about another area MUST be tagged under that other area; never drop them because they wander off topic.\n\n`
     : ''
 
   try {

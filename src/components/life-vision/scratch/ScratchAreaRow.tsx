@@ -31,7 +31,7 @@ export const BEAT_LABEL: Record<AreaBeat, string> = {
   dream: 'Unleash your imagination',
 }
 
-const AREA_EXPLAINER: Record<LifeCategoryKey, string> = {
+export const AREA_EXPLAINER: Record<LifeCategoryKey, string> = {
   fun: 'Play, hobbies, entertainment, and the things you do simply because you enjoy them.',
   health: 'Your physical and mental well-being, including energy, fitness, nutrition, rest, and caring for yourself.',
   travel: 'Trips, getaways, and exploring places—from local discoveries to adventures around the world.',
@@ -69,6 +69,10 @@ interface ScratchAreaRowProps {
   writing?: boolean
   writtenText?: string | null
   disabled?: boolean
+  /** Depth-gate words for this area. Falls back to beat words. */
+  memberWords?: number
+  /** Depth gate cleared / unknown for this area; falls back to both beats written. */
+  ready?: boolean
 }
 
 function WordMeter({ words }: { words: number }) {
@@ -104,14 +108,16 @@ export function ScratchAreaRow({
   writing,
   writtenText,
   disabled,
+  memberWords,
+  ready: readyProp,
 }: ScratchAreaRowProps) {
   const Icon = getVisionCategoryIcon(category)
   const label = getVisionCategoryLabel(category)
 
   const nowDone = state.now.trim().length > 0
   const dreamDone = state.dream.trim().length > 0
-  const ready = areaIsReady(state)
-  const totalWords = countWords(state.now) + countWords(state.dream)
+  const ready = readyProp ?? areaIsReady(state)
+  const totalWords = memberWords ?? countWords(state.now) + countWords(state.dream)
 
   const [beat, setBeat] = useState<AreaBeat>(nowDone && !dreamDone ? 'dream' : 'now')
   const [saving, setSaving] = useState<AreaBeat | null>(null)

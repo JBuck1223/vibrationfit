@@ -79,10 +79,13 @@ export function parseIntakeMarkers(raw: string): IntakeExtract {
 
 /**
  * Floors for the words that actually feed the Activation vision.
- * The generator never sees the raw chat — only these fields. A real Life
- * Vision area on a finished version runs from about 190 words up. The
- * conversation has no turn cap, so VIVA stays until the source can carry
- * a vision at least that long.
+ *
+ * The member writes two beats for one area — "What's going on now"
+ * (current_state) and "Unleash your imagination" (dream.want) — and VIVA
+ * writes the vision from that raw text. A real Life Vision area on a
+ * finished version runs from about 190 words up, so Create stays closed
+ * until both beats can carry it. `userWords` and `textureWords` are still
+ * reported for the legacy chat intake but no longer gate readiness.
  */
 export const ACTIVATION_VISION_SOURCE_MIN = {
   userWords: 200,
@@ -136,22 +139,12 @@ export function describeIntakeSubstance(params: {
   if (!params.category) gaps.push('category is not chosen')
   if (currentWords < min.currentStateWords) {
     gaps.push(
-      `current_state is ${currentWords} words — write at least ${min.currentStateWords} of their specifics`,
+      `current_state is ${currentWords} words — needs at least ${min.currentStateWords} of what is going on now`,
     )
   }
   if (wantWords < min.wantWords) {
     gaps.push(
-      `dream.want is ${wantWords} words — write at least ${min.wantWords} of the life they want, in scenes`,
-    )
-  }
-  if (textureWords < min.textureWords) {
-    gaps.push(
-      `why / feel / become together are ${textureWords} words — need at least ${min.textureWords} of why it matters or how it feels`,
-    )
-  }
-  if (userWords < min.userWords) {
-    gaps.push(
-      `they have written ${userWords} words — keep listening until at least ${min.userWords}`,
+      `dream.want is ${wantWords} words — needs at least ${min.wantWords} of the life they want`,
     )
   }
 

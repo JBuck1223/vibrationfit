@@ -9,7 +9,8 @@
  * Vision runs compose-first (overwriting whatever the one personal draft
  * held) and hands off to /life-vision/update for VIVA-led edits.
  *
- * Single column, one explainer, accordion rows in the update-page chrome.
+ * The VIVA-directed "Talk it out" intake writes into the same session and is
+ * admin-only for now at /admin/talk-it-out.
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -19,12 +20,19 @@ import { Container, Spinner } from '@/lib/design-system/components'
 import { WarningConfirmationDialog } from '@/lib/design-system/components/overlays'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
 import { useLifeVisionStudioAreaChrome } from '@/components/life-vision-studio/useLifeVisionStudioAreaChrome'
-import { LIFE_CATEGORY_KEYS, isLifeCategoryKey, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
+import {
+  LIFE_CATEGORY_KEYS,
+  getVisionCategoryLabel,
+  isLifeCategoryKey,
+  type LifeCategoryKey,
+} from '@/lib/design-system/vision-categories'
 import {
   draftHasAnyVisionText,
   type AreaBeat,
+  type DepthSummary,
   type DraftSessionPayload,
 } from '@/lib/life-vision/draft-session'
+import type { AreaSummary } from '@/lib/life-vision/vision-director'
 import type { VisionData } from '@/lib/life-vision/draft-helpers'
 import { keys } from '@/lib/query/keys'
 import { ScratchExplainer } from '@/components/life-vision/scratch/ScratchExplainer'
@@ -40,6 +48,8 @@ type AreaMap = Record<LifeCategoryKey, ScratchAreaState>
 interface StartResponse {
   draft: VisionData & { id: string }
   session: DraftSessionPayload
+  depth: DepthSummary
+  areas: AreaSummary[]
   existed: boolean
 }
 
@@ -85,6 +95,11 @@ function StartFromScratch() {
   const [written, setWritten] = useState<Record<string, string>>({})
   const bootedRef = useRef(false)
 
+  // Server coverage: depth gate + tagged passages per area (shared with the
+  // admin Talk it out flow, which writes into the same session).
+  const [depth, setDepth] = useState<DepthSummary | null>(null)
+  const [coverage, setCoverage] = useState<AreaSummary[]>([])
+
   useLifeVisionStudioAreaChrome(useMemo(() => ({}), []))
 
   const requestedArea = searchParams.get('area')
@@ -100,8 +115,10 @@ function StartFromScratch() {
     setDraftId(data.draft.id)
     setDraftHasText(draftHasAnyVisionText(data.draft))
     setAreas(map)
-    setExpandedKey(pickInitialExpanded(map))
+    setDepth(data.depth)
+    setCoverage(data.areas)
     setExplainerOpen(!anyBeatWritten(map))
+    setExpandedKey(pickInitialExpanded(map))
     queryClient.setQueryData([...keys.visionDraftSession, data.draft.id], data.session)
     refreshVisions().catch(() => {})
   }, [pickInitialExpanded, queryClient, refreshVisions])
@@ -143,6 +160,9 @@ function StartFromScratch() {
       const body = await res.json().catch(() => ({}))
       throw new Error(body?.error || 'Could not save')
     }
+    const data = (await res.json().catch(() => null)) as { depth?: DepthSummary; areas?: AreaSummary[] } | null
+    if (data?.depth) setDepth(data.depth)
+    if (data?.areas) setCoverage(data.areas)
     if (text.trim()) {
       setAreas((prev) => (prev[category].unknown ? { ...prev, [category]: { ...prev[category], unknown: false } } : prev))
     }
@@ -156,13 +176,14 @@ function StartFromScratch() {
 
   const areasRef = useRef(areas)
   areasRef.current = areas
+  const readyKeysRef = useRef<Set<LifeCategoryKey>>(new Set())
 
   const goToNextArea = useCallback((from: LifeCategoryKey) => {
     const current = areasRef.current
     const idx = LIFE_CATEGORY_KEYS.indexOf(from)
     const after = LIFE_CATEGORY_KEYS.slice(idx + 1)
     const before = LIFE_CATEGORY_KEYS.slice(0, idx)
-    const nextOpen = [...after, ...before].find((k) => !areaIsReady(current[k]))
+    const nextOpen = [...after, ...before].find((k) => !readyKeysRef.current.has(k) && !areaIsReady(current[k]))
     const next = nextOpen ?? after[0] ?? null
     setExpandedKey(next)
     window.setTimeout(() => {
@@ -177,10 +198,24 @@ function StartFromScratch() {
   // ------------------------------------------------------------------
   // Compose: all 12 through compose-first, then hand off to VIVA edits.
   // ------------------------------------------------------------------
-  const readyKeys = useMemo(
-    () => new Set(LIFE_CATEGORY_KEYS.filter((k) => areaIsReady(areas[k]))),
-    [areas],
+  // Progress: the server depth gate when we have it,
+  // the local "both beats written" check until the first response lands.
+  const readyKeys = useMemo(() => {
+    if (depth) return new Set<LifeCategoryKey>([...depth.cleared, ...depth.unknown])
+    return new Set(LIFE_CATEGORY_KEYS.filter((k) => areaIsReady(areas[k])))
+  }, [depth, areas])
+  readyKeysRef.current = readyKeys
+
+  const pendingLabels = useMemo(
+    () => LIFE_CATEGORY_KEYS.filter((k) => !readyKeys.has(k)).map((k) => getVisionCategoryLabel(k)),
+    [readyKeys],
   )
+
+  const coverageByKey = useMemo(() => {
+    const map = new Map<LifeCategoryKey, AreaSummary>()
+    for (const a of coverage) if (isLifeCategoryKey(a.category)) map.set(a.category, a)
+    return map
+  }, [coverage])
 
   const runCompose = useCallback(async () => {
     if (!draftId || composing) return
@@ -263,6 +298,7 @@ function StartFromScratch() {
             else void runCompose()
           }}
           disabled={!draftId}
+          pendingLabels={pendingLabels}
         />
 
         {error && (
@@ -271,22 +307,27 @@ function StartFromScratch() {
           </div>
         )}
 
-        {LIFE_CATEGORY_KEYS.map((key) => (
-          <ScratchAreaRow
-            key={key}
-            category={key}
-            state={areas[key]}
-            expanded={expandedKey === key}
-            onToggle={() => setExpandedKey((prev) => (prev === key ? null : key))}
-            onChange={(beat, text) => handleChange(key, beat, text)}
-            onSave={(beat, text) => saveBeat(key, beat, text)}
-            onNextArea={() => goToNextArea(key)}
-            isLast={key === lastKey}
-            writing={composing?.pending.includes(key)}
-            writtenText={written[key] ?? null}
-            disabled={Boolean(composing)}
-          />
-        ))}
+        {LIFE_CATEGORY_KEYS.map((key) => {
+          const summary = coverageByKey.get(key)
+          return (
+            <ScratchAreaRow
+              key={key}
+              category={key}
+              state={areas[key]}
+              expanded={expandedKey === key}
+              onToggle={() => setExpandedKey((prev) => (prev === key ? null : key))}
+              onChange={(beat, text) => handleChange(key, beat, text)}
+              onSave={(beat, text) => saveBeat(key, beat, text)}
+              onNextArea={() => goToNextArea(key)}
+              isLast={key === lastKey}
+              writing={composing?.pending.includes(key)}
+              writtenText={written[key] ?? null}
+              disabled={Boolean(composing)}
+              memberWords={summary?.memberWords}
+              ready={depth ? readyKeys.has(key) : undefined}
+            />
+          )
+        })}
       </div>
 
       <WarningConfirmationDialog

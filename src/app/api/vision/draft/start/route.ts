@@ -19,7 +19,25 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { LIFE_CATEGORY_KEYS, isLifeCategoryKey } from '@/lib/design-system/vision-categories'
 import { ensureProgress, loadSeed, markOnboardingStep } from '@/lib/life-activation/progress'
-import { ensureDraftSession, upsertCategoryText } from '@/lib/life-vision/draft-session'
+import {
+  computeDepth,
+  ensureDraftSession,
+  loadDraftSession,
+  upsertCategoryText,
+  type DraftSessionPayload,
+} from '@/lib/life-vision/draft-session'
+import { summarizeAreas } from '@/lib/life-vision/vision-director'
+
+/** Session + depth + per-area summary. The directed-flow card is fetched by
+ *  the client via /api/vision/draft/turn { peek: true } so a page load never
+ *  pays for a model call. */
+function withCoverage(session: DraftSessionPayload) {
+  return {
+    session,
+    depth: computeDepth(session.notes, session.categoryText),
+    areas: summarizeAreas(session),
+  }
+}
 
 const CATEGORY_COLUMNS = ['forward', ...LIFE_CATEGORY_KEYS, 'conclusion'] as const
 const DREAM_KEYS = ['want', 'why', 'feel', 'become'] as const
@@ -60,7 +78,7 @@ export async function POST() {
         await supabase.from('vision_draft_sessions').update({ mode: 'scratch' }).eq('id', session.id)
         session = { ...session, mode: 'scratch' }
       }
-      return NextResponse.json({ draft: existingDraft, session, existed: true })
+      return NextResponse.json({ draft: existingDraft, ...withCoverage(session), existed: true })
     }
 
     const [{ data: active }, progress, seed] = await Promise.all([
@@ -149,7 +167,8 @@ export async function POST() {
         .eq('id', progress.id)
     }
 
-    return NextResponse.json({ draft, session, existed: false })
+    const fresh = (await loadDraftSession(supabase, String(draft.id))) ?? session
+    return NextResponse.json({ draft, ...withCoverage(fresh), existed: false })
   } catch (error) {
     console.error('[draft/start]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

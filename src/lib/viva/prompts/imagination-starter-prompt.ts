@@ -137,9 +137,15 @@ function calculateInputRichness(
  */
 export interface ImaginationStarterOptions {
   /**
-   * Thin-area guard (first-vision compose). The member said little about this
-   * area, so the starter stays inside what they named and under `maxWords`.
-   * No inspiration themes are woven in; nothing new is introduced.
+   * Invention guard (first-vision compose, every area). Expand only on the
+   * people, places, routines, and things the member named. Length still
+   * follows the richness ladder; inspiration themes shape feeling and
+   * pacing, never add content.
+   */
+  ownWordsOnly?: boolean
+  /**
+   * The member said nothing about this area (marked unknown, or empty). One
+   * short embodied paragraph under `maxWords`, no inspiration themes.
    */
   thinArea?: { maxWords: number }
 }
@@ -161,18 +167,26 @@ export function buildImaginationStarterPrompt(
   
   const { totalWords, richness } = calculateInputRichness(stateText, profileData)
   const thin = options.thinArea
+  const ownWordsOnly = options.ownWordsOnly || Boolean(thin)
   
   const lengthGuidance = thin
-    ? `THIN AREA. Write at most ${thin.maxWords} words. Use ONLY the people, places, routines, activities, and things named in the input above. Do not add destinations, hobbies, objects, rooms, or scenes they did not name. If the input names almost nothing for this area, write one short embodied paragraph of how this person meets this area — in their voice, from what they did name — and stop. Shorter and true beats longer and invented.`
+    ? `EMPTY AREA. The member said almost nothing here. Write at most ${thin.maxWords} words: one short embodied paragraph of how this person meets this area, in their voice, built only from what they did name. Then stop. Shorter and true beats longer and invented.`
     : {
-    minimal: 'Write 100-150 words. Keep it simple since input is brief.',
+    minimal: 'Write 100-150 words. Keep it simple since input is brief. Go deeper into the few things they named rather than wider into things they did not.',
     moderate: 'Write 150-250 words. Cover the main themes from their input.',
     rich: 'Write 250-400 words. Fully explore each topic from their state description.',
     very_rich: 'Write 400-600 words. This person has shared a lot - honor all of it. Multiple paragraphs, each topic addressed.'
   }[richness]
+
+  const inventionGuard = ownWordsOnly
+    ? `THEIR WORDS ONLY: use ONLY the people, places, routines, activities, and things named in the input above. Do not add a destination, hobby, object, room, pet, person, or scene they did not name. Sensory detail goes on moments already there. If an inspiration theme has nothing in their input to attach to, skip it.`
+    : ''
   
   const questionCount = richness === 'minimal' ? 2 : richness === 'moderate' ? 3 : 4
   const selectedQuestions = thin ? '' : inspirationQuestions.slice(0, questionCount).join('\n- ')
+  const themesHeading = ownWordsOnly
+    ? 'INSPIRATION THEMES (texture and rhythm only: let these shape the feeling and pacing of what they DID name. They never add a place, person, object, or activity. Weave as confident statements, NEVER as questions)'
+    : 'INSPIRATION THEMES (weave as confident statements — NEVER as questions)'
   
   return `You generate imagination text for someone's ${categoryLabel} life vision through three phases: CLEANSE, EXPAND, EMBODY.
 
@@ -193,7 +207,7 @@ Everything already working gets amplified with vivid, embodied language.
 ` : ''}${profileContext ? `GROUNDING FACTS:
 ${profileContext}
 
-` : ''}${selectedQuestions ? `INSPIRATION THEMES (weave as confident statements — NEVER as questions):
+` : ''}${selectedQuestions ? `${themesHeading}:
 - ${selectedQuestions}
 
 ` : ''}═══════════════════════════════════════════════════════════════
@@ -202,7 +216,7 @@ LENGTH MATCH (CRITICAL)
 
 Input richness: ${richness} (~${totalWords} words of input)
 ${lengthGuidance}
-
+${inventionGuard ? `\n${inventionGuard}\n` : ''}
 Do NOT compress their ideas. If they described multiple topics, address each one.
 Do NOT pad with generic filler if input is brief.
 

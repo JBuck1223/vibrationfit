@@ -68,9 +68,23 @@ export interface DraftSessionCategoryText {
   updated_at: string
 }
 
+/** Directed intake ("Talk it out"): one VIVA prompt card + the member's reply. */
+export interface DraftSessionTurn {
+  id: string
+  session_id: string
+  turn_index: number
+  prompt_text: string
+  target_categories: string[]
+  member_text: string
+  member_words: number
+  tagged_at: string | null
+  created_at: string
+}
+
 export interface DraftSessionPayload extends DraftSessionRow {
   notes: DraftSessionNote[]
   categoryText: DraftSessionCategoryText[]
+  turns: DraftSessionTurn[]
 }
 
 export type DepthStatus = 'cleared' | 'thin' | 'empty' | 'unknown'
@@ -181,7 +195,9 @@ function depthFor(bucket: CoverageBucket): DepthStatus {
     if (bucket.nowDone && bucket.dreamDone && bucket.memberWords >= DEPTH_CLEAR_WORDS) return 'cleared'
     return 'thin'
   }
-  if (bucket.memberWords >= DEPTH_CLEAR_WORDS && bucket.hasScene) return 'cleared'
+  // Tagged passages only (chat or directed intake): words + a scene + at least
+  // one clarity passage. A vision needs the dream, not just the contrast.
+  if (bucket.memberWords >= DEPTH_CLEAR_WORDS && bucket.hasScene && bucket.memberClarity.length > 0) return 'cleared'
   // "I don't know yet" clears an area only when they have not also described it.
   if (bucket.memberUnknown.length > 0 && bucket.memberWords < DEPTH_CLEAR_WORDS / 3) return 'unknown'
   if (bucket.memberWords === 0 && bucket.contrast.length === 0 && bucket.clarity.length === 0) return 'empty'
@@ -342,6 +358,55 @@ export function formatSessionNotesForPrompt(
   return `${header}\n\n${sections}`
 }
 
+function excerpt(text: string, words: number): string {
+  const parts = text.trim().split(/\s+/)
+  if (parts.length <= words) return text.trim()
+  return `${parts.slice(0, words).join(' ')}…`
+}
+
+/**
+ * Coverage map for the directed-intake director: what VIVA already holds per
+ * area, so her next prompt builds on it instead of re-asking. Compact on
+ * purpose; the director writes one card, not a vision.
+ */
+export function formatCoverageForDirector(
+  grouped: CategoryCoverage[],
+  depth: DepthSummary,
+  turns: DraftSessionTurn[],
+): string {
+  const order: DepthStatus[] = ['empty', 'thin', 'unknown', 'cleared']
+  const sorted = [...grouped].sort((a, b) => order.indexOf(a.depth) - order.indexOf(b.depth))
+
+  const areaLines = sorted.map((g) => {
+    const label = getVisionCategoryLabel(g.category)
+    const flags: string[] = []
+    flags.push(`${g.memberWords} words`)
+    flags.push(g.memberContrast.length || g.nowDone ? 'has now' : 'no now yet')
+    flags.push(g.memberClarity.length || g.dreamDone ? 'has dream' : 'no dream yet')
+    if (g.nowDone || g.dreamDone) flags.push('they wrote this area directly in the rows')
+    if (g.unknownYet || g.memberUnknown.length) flags.push('they said they have not pictured this yet')
+    const sample = [g.nowText, g.dreamText, ...g.memberContrast, ...g.memberClarity].find((t) => t.trim())
+    const quote = sample ? `\n  excerpt: "${excerpt(sample, 24)}"` : ''
+    return `- ${g.category} (${label}) — ${g.depth.toUpperCase()}: ${flags.join(', ')}${quote}`
+  })
+
+  const last = turns.length ? turns[turns.length - 1] : null
+  const lastBlock = last
+    ? [
+        '',
+        `LAST TURN (${last.turn_index + 1}) — you asked about: ${last.target_categories.join(', ') || 'anything'}`,
+        `Your prompt: "${last.prompt_text}"`,
+        `They said (first words): "${excerpt(last.member_text, 80)}"`,
+      ].join('\n')
+    : '\nNo turns yet.'
+
+  return [
+    `COVERAGE: ${depth.cleared.length} of 12 cleared. Cleared = ${DEPTH_CLEAR_WORDS}+ of their words with a scene and a dream, or they said they have not pictured it.`,
+    ...areaLines,
+    lastBlock,
+  ].join('\n')
+}
+
 /**
  * The member's Start From Scratch beats, per area, for a prompt that edits
  * the draft those beats produced. Empty string when none were written.
@@ -387,6 +452,18 @@ async function loadCategoryText(
   return (data || []) as DraftSessionCategoryText[]
 }
 
+async function loadTurns(
+  supabase: SupabaseClient,
+  sessionId: string,
+): Promise<DraftSessionTurn[]> {
+  const { data } = await supabase
+    .from('vision_draft_session_turns')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('turn_index', { ascending: true })
+  return (data || []) as DraftSessionTurn[]
+}
+
 export async function loadDraftSession(
   supabase: SupabaseClient,
   draftId: string,
@@ -397,11 +474,36 @@ export async function loadDraftSession(
     .eq('draft_id', draftId)
     .maybeSingle()
   if (!session) return null
-  const [notes, categoryText] = await Promise.all([
+  const [notes, categoryText, turns] = await Promise.all([
     loadNotes(supabase, session.id),
     loadCategoryText(supabase, session.id),
+    loadTurns(supabase, session.id),
   ])
-  return { ...(session as DraftSessionRow), notes, categoryText }
+  return { ...(session as DraftSessionRow), notes, categoryText, turns }
+}
+
+export async function insertDraftSessionTurn(
+  supabase: SupabaseClient,
+  sessionId: string,
+  turn: {
+    turn_index: number
+    prompt_text: string
+    target_categories: string[]
+    member_text: string
+    member_words: number
+    tagged_at?: string | null
+  },
+): Promise<DraftSessionTurn | null> {
+  const { data, error } = await supabase
+    .from('vision_draft_session_turns')
+    .insert({ session_id: sessionId, ...turn })
+    .select('*')
+    .single()
+  if (error) {
+    console.error('[draft-session] Failed to insert turn', error)
+    return null
+  }
+  return data as DraftSessionTurn
 }
 
 export async function ensureDraftSession(
@@ -446,7 +548,7 @@ export async function ensureDraftSession(
   }
 
   const notes = await loadNotes(supabase, session.id)
-  return { ...(session as DraftSessionRow), notes, categoryText: [] }
+  return { ...(session as DraftSessionRow), notes, categoryText: [], turns: [] }
 }
 
 export async function persistVivaSeeds(

@@ -14,10 +14,11 @@ import { ActivationStartForm } from '@/components/activation/ActivationStartForm
 import { FreeActivationOptIn } from '@/components/activation/FreeActivationOptIn'
 import { ActivationOrientation } from '@/components/activation/ActivationOrientation'
 import { ActivationCategoryPick } from '@/components/activation/ActivationCategoryPick'
-import { ActivationIntakeChat } from '@/components/activation/ActivationIntakeChat'
+import { ActivationRawMaterial } from '@/components/activation/ActivationRawMaterial'
 import { GeneratingStep } from '@/components/activation/ActivationExperienceSteps'
 import { ActivationDelivery } from '@/components/activation/ActivationDelivery'
 import { ACTIVATION_COPY, ACTIVATION_SAMPLE } from '@/lib/activation/copy'
+import type { LifeCategoryKey } from '@/lib/design-system/vision-categories'
 
 type InspectorStepId =
   | 'landing'
@@ -25,7 +26,7 @@ type InspectorStepId =
   | 'check-email'
   | 'orientation'
   | 'category'
-  | 'chat'
+  | 'raw-material'
   | 'generating'
   | 'preview'
   | 'immersion'
@@ -76,11 +77,11 @@ const STEPS: InspectorStep[] = [
     notes: 'Member picks the life category. VIVA does not infer it.',
   },
   {
-    id: 'chat',
-    label: 'VIVA chat',
+    id: 'raw-material',
+    label: 'Raw material',
     group: 'Experience',
-    source: ACTIVATION_COPY.chat.source,
-    notes: `Bounded Conversational Intelligence, tailored to the chosen area. Prompt: ${ACTIVATION_COPY.chat.promptFile}`,
+    source: ACTIVATION_COPY.rawMaterial.source,
+    notes: 'Same capture as Start Fresh, for one area: What\'s going on now, then Unleash your imagination. Create unlocks when both beats clear the word floors.',
   },
   {
     id: 'generating',
@@ -264,15 +265,13 @@ export default function AdminActivationInspectorPage() {
                 </div>
               )}
 
-              {stepId === 'chat' && (
-                <div className="mx-auto max-w-7xl px-4 py-10 md:px-10 md:py-16">
-                  <ActivationIntakeChat
+              {stepId === 'raw-material' && (
+                <div className="px-4 py-6 md:px-10 md:py-8">
+                  <ActivationRawMaterial
                     activationId="preview"
-                    initialMessages={[...sample.conversation]}
-                    currentState={sample.currentState}
-                    dreamWant={sample.dream.want}
-                    category={sample.category}
-                    intakeReady
+                    category={sample.category as LifeCategoryKey}
+                    initialNow={sample.currentState}
+                    initialDream={[sample.dream.want, sample.dream.why, sample.dream.feel, sample.dream.become].join('\n\n')}
                     readOnly
                     onCreate={() => {}}
                   />

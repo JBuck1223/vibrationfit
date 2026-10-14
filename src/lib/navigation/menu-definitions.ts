@@ -416,6 +416,13 @@ export const adminNavigation: NavItem[] = [
     description: 'Preview and edit each Activation funnel step',
   },
   {
+    name: 'Talk It Out (test)',
+    href: '/admin/talk-it-out',
+    icon: Mic,
+    requiresAdmin: true,
+    description: 'VIVA-directed Life Vision intake, admin test bench',
+  },
+  {
     name: 'Life Activation',
     href: '/admin/begin',
     icon: Rocket,
