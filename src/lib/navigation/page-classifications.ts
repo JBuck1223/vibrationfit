@@ -63,6 +63,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/life-vision/new/[category]',
     '/life-vision/begin',
     '/life-vision/start',
+    '/life-vision/write',
     '/life-vision/update',
     '/begin',
     '/begin/welcome',

@@ -6,15 +6,13 @@
  * update page.
  */
 
-import { Loader2, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
 import { ORDERED_VISION_CATEGORIES, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 
 interface ScratchProgressProps {
   readyKeys: Set<LifeCategoryKey>
   total: number
-  composing: boolean
-  composedCount: number
   onWrite: () => void
   disabled?: boolean
   /** Labels of areas still thin or empty, for the button tooltip. */
@@ -24,8 +22,6 @@ interface ScratchProgressProps {
 export function ScratchProgress({
   readyKeys,
   total,
-  composing,
-  composedCount,
   onWrite,
   disabled,
   pendingLabels,
@@ -42,9 +38,7 @@ export function ScratchProgress({
         <div className="flex items-baseline gap-2">
           <h1 className="text-base font-semibold text-white">Your Life Vision</h1>
           <span className="text-xs text-neutral-500">
-            {composing
-              ? `Writing ${total} areas from your words — ${composedCount} done`
-              : `${ready} of ${total} ready`}
+            {`${ready} of ${total} ready`}
           </span>
         </div>
         <div className="mt-2 grid grid-cols-12 gap-1" aria-hidden="true">
@@ -65,7 +59,7 @@ export function ScratchProgress({
       <Button
         variant="primary"
         size="sm"
-        disabled={!allReady || composing || disabled}
+        disabled={!allReady || disabled}
         onClick={onWrite}
         title={
           allReady
@@ -76,10 +70,8 @@ export function ScratchProgress({
         }
         className="shrink-0"
       >
-        {composing
-          ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-          : <Sparkles className="mr-1.5 h-4 w-4" />}
-        {composing ? 'Writing…' : 'Write My Life Vision'}
+        <Sparkles className="mr-1.5 h-4 w-4" />
+        Write My Life Vision
       </Button>
     </div>
   )

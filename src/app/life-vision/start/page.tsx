@@ -6,8 +6,8 @@
  * The member writes two beats per life area, in their own words: "What's
  * going on now" and "Unleash your imagination". That raw material is stored
  * on a `scratch` draft session. When all 12 areas are ready, Write My Life
- * Vision runs compose-first (overwriting whatever the one personal draft
- * held) and hands off to /life-vision/update for VIVA-led edits.
+ * Vision opens /life-vision/write, where the vision streams in one area at a
+ * time. These notes stay here, so they can add more and write again.
  *
  * The VIVA-directed "Talk it out" intake writes into the same session and is
  * admin-only for now at /admin/talk-it-out.
@@ -91,8 +91,6 @@ function StartFromScratch() {
   const [expandedKey, setExpandedKey] = useState<LifeCategoryKey | null>(null)
   const [explainerOpen, setExplainerOpen] = useState(true)
   const [confirmWrite, setConfirmWrite] = useState(false)
-  const [composing, setComposing] = useState<{ pending: string[]; done: string[] } | null>(null)
-  const [written, setWritten] = useState<Record<string, string>>({})
   const bootedRef = useRef(false)
 
   // Server coverage: depth gate + tagged passages per area (shared with the
@@ -195,9 +193,12 @@ function StartFromScratch() {
     }, 60)
   }, [])
 
-  // ------------------------------------------------------------------
-  // Compose: all 12 through compose-first, then hand off to VIVA edits.
-  // ------------------------------------------------------------------
+  const goWrite = useCallback(() => {
+    if (!draftId) return
+    try { sessionStorage.setItem(`vf_write_${draftId}`, `go:${Date.now()}`) } catch { /* storage unavailable */ }
+    router.push('/life-vision/write')
+  }, [draftId, router])
+
   // Progress: the server depth gate when we have it,
   // the local "both beats written" check until the first response lands.
   const readyKeys = useMemo(() => {
@@ -216,59 +217,6 @@ function StartFromScratch() {
     for (const a of coverage) if (isLifeCategoryKey(a.category)) map.set(a.category, a)
     return map
   }, [coverage])
-
-  const runCompose = useCallback(async () => {
-    if (!draftId || composing) return
-    setError(null)
-    setComposing({ pending: [...LIFE_CATEGORY_KEYS], done: [] })
-    setExpandedKey(null)
-    try {
-      const res = await fetch('/api/vision/draft/compose-first', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId }),
-      })
-      if (!res.ok || !res.body) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || 'Could not write your vision')
-      }
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      const handle = (line: string) => {
-        if (!line.trim()) return
-        let evt: Record<string, unknown>
-        try { evt = JSON.parse(line) } catch { return }
-        if (evt.type === 'stage' && evt.stage === 'vision' && typeof evt.category === 'string' && typeof evt.text === 'string') {
-          const category = evt.category
-          const text = evt.text
-          setWritten((prev) => ({ ...prev, [category]: text }))
-          setComposing((prev) => prev
-            ? { pending: prev.pending.filter((k) => k !== category), done: [...prev.done, category] }
-            : prev)
-          if (isLifeCategoryKey(category)) setExpandedKey(category)
-        } else if (evt.type === 'error') {
-          throw new Error(typeof evt.message === 'string' ? evt.message : 'Compose failed')
-        }
-      }
-      for (;;) {
-        const { value, done } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-        for (const line of lines) handle(line)
-      }
-      if (buffer.trim()) handle(buffer)
-
-      queryClient.invalidateQueries({ queryKey: [...keys.visionDraftSession, draftId] })
-      await refreshVisions().catch(() => {})
-      router.push('/life-vision/update')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not write your vision')
-      setComposing(null)
-    }
-  }, [draftId, composing, queryClient, refreshVisions, router])
 
   // ------------------------------------------------------------------
   // Render
@@ -291,11 +239,9 @@ function StartFromScratch() {
         <ScratchProgress
           readyKeys={readyKeys}
           total={LIFE_CATEGORY_KEYS.length}
-          composing={Boolean(composing)}
-          composedCount={composing?.done.length ?? 0}
           onWrite={() => {
             if (draftHasText) setConfirmWrite(true)
-            else void runCompose()
+            else goWrite()
           }}
           disabled={!draftId}
           pendingLabels={pendingLabels}
@@ -320,9 +266,6 @@ function StartFromScratch() {
               onSave={(beat, text) => saveBeat(key, beat, text)}
               onNextArea={() => goToNextArea(key)}
               isLast={key === lastKey}
-              writing={composing?.pending.includes(key)}
-              writtenText={written[key] ?? null}
-              disabled={Boolean(composing)}
               memberWords={summary?.memberWords}
               ready={depth ? readyKeys.has(key) : undefined}
             />
@@ -335,11 +278,11 @@ function StartFromScratch() {
         onClose={() => setConfirmWrite(false)}
         onConfirm={() => {
           setConfirmWrite(false)
-          void runCompose()
+          goWrite()
         }}
         type="draft"
         title="Write over your current draft?"
-        message="VIVA writes all 12 areas from what you wrote here. The text in your current draft is replaced."
+        message="VIVA writes all 12 areas from what you wrote here, and you watch each one come in. The text in your current draft is replaced. Your notes stay on this page, so you can add more and write again."
         confirmText="Write My Life Vision"
         cancelText="Not yet"
       />
