@@ -1283,6 +1283,7 @@ function isLifeVisionView(pathname: string) {
     pathname.startsWith('/life-vision/create') ||
     pathname.startsWith('/life-vision/new') ||
     pathname.startsWith('/life-vision/begin') ||
+    pathname.startsWith('/life-vision/start') ||
     pathname.startsWith('/life-vision/household') ||
     pathname.startsWith('/life-vision/refine')
   ) {

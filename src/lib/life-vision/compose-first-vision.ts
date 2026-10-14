@@ -84,9 +84,23 @@ function words(text: string): number {
  */
 export function memberStateText(group: CategoryCoverage): string {
   const parts: string[] = []
-  if (group.memberClarity.length) parts.push(group.memberClarity.join('\n\n'))
-  if (group.memberContrast.length) parts.push(group.memberContrast.join('\n\n'))
+  // Scratch flow beats first: these are the raw material, verbatim.
+  if (group.nowText) parts.push(group.nowText)
+  if (group.dreamText) parts.push(group.dreamText)
+  // Then tagged passages not already inside a beat (chat flow, or spill-over
+  // from another area's writing).
+  const beats = normalizeContain(`${group.nowText}\n${group.dreamText}`)
+  const uncontained = (items: string[]) =>
+    items.filter((t) => !beats || !beats.includes(normalizeContain(t)))
+  const clarity = uncontained(group.memberClarity)
+  const contrast = uncontained(group.memberContrast)
+  if (clarity.length) parts.push(clarity.join('\n\n'))
+  if (contrast.length) parts.push(contrast.join('\n\n'))
   return parts.join('\n\n')
+}
+
+function normalizeContain(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
 /**
@@ -165,8 +179,9 @@ export async function composeCategory(
   const starterText = await runPass(starterPrompt, opts, { category: key, stage: 'starter' })
   await opts.onStage?.(key, 'starter', starterText)
 
-  // Contrast is the invisible anchor: shapes tone, never quoted.
-  const contrastText = group.memberContrast.join('\n\n')
+  // Contrast is the invisible anchor: shapes tone, never quoted. In the
+  // scratch flow "what's going on now" is that anchor.
+  const contrastText = [group.nowText, ...group.memberContrast].filter(Boolean).join('\n\n')
   const writerPrompt = buildIndividualCategoryPrompt(
     key,
     label,
@@ -195,11 +210,16 @@ export async function composeCategory(
 }
 
 export async function composeFirstVision(opts: ComposeFirstVisionOptions): Promise<ComposeFirstVisionResult> {
-  const grouped = groupNotesByCategory(opts.notes)
+  const grouped = groupNotesByCategory(opts.notes, opts.categoryText || [])
   const wanted = new Set<LifeCategoryKey>(opts.categories?.length ? opts.categories : [...LIFE_CATEGORY_KEYS])
+  // Writer imagination input: the scratch "unleash your imagination" beat,
+  // plus anything added later through IMAGINE in VIVA edit mode.
   const imagination = new Map<string, string>()
   for (const row of opts.categoryText || []) {
-    if ((row.imagination_text || '').trim()) imagination.set(row.category, row.imagination_text!.trim())
+    const parts = [row.dream_text, row.imagination_text]
+      .map((t) => (t || '').trim())
+      .filter(Boolean)
+    if (parts.length) imagination.set(row.category, parts.join('\n\n'))
   }
 
   const categories = await Promise.all(

@@ -37,6 +37,11 @@ export interface VisionUpdateContext {
   rosterBlock?: string | null
   /** Rendered member_persona block ([hypothesis] items are inferred). */
   personaBlock?: string | null
+  /**
+   * The member's own raw material behind this draft (Start From Scratch
+   * beats). When present, VIVA builds on these words instead of asking cold.
+   */
+  rawMaterialBlock?: string | null
 }
 
 /**
@@ -109,6 +114,15 @@ ${[ctx.rosterBlock?.trim(), ctx.personaBlock?.trim()].filter(Boolean).join('\n')
 ` : ''}
 
 They talk (or speak aloud) about what has changed, expanded, or come true in their life. You listen, reflect briefly, and propose updated category text. Their voice is ${voice}.
+${ctx.rawMaterialBlock?.trim() ? `
+═══════════════════════════════════════════════════════════════
+THEIR WORDS THAT BUILT THIS DRAFT (honor these; never drop them)
+═══════════════════════════════════════════════════════════════
+
+This draft was written from the member's own raw material below: for each area, "what's going on now" and "unleash your imagination". When they want to shape an area, quote one thing THEY wrote there and build on it. Never ask cold about an area they already described. Names, places, routines, and phrasing in these passages belong in the vision.
+
+${ctx.rawMaterialBlock.trim()}
+` : ''}
 
 ═══════════════════════════════════════════════════════════════
 HOW TO PROPOSE CATEGORY UPDATES (STRICT OUTPUT FORMAT)

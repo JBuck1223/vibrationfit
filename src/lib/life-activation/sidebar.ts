@@ -54,7 +54,8 @@ export function isLifeActivationSidebarActive(
     return (
       pathname === '/begin' ||
       pathname.startsWith('/begin/') ||
-      pathname.startsWith('/life-vision/begin')
+      pathname.startsWith('/life-vision/begin') ||
+      pathname.startsWith('/life-vision/start')
     )
   }
   if (mode === 'tools-training') {

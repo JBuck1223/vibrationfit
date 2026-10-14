@@ -37,27 +37,27 @@ function useGuidance() {
   let freshDraftDescription: string
 
   if (!hasActiveVision) {
-    paragraph = "You don't have a Life Vision yet. Click Start Fresh to walk through each category with VIVA and create your first one."
+    paragraph = "You don't have a Life Vision yet. Click Start From Scratch, write two parts for each area in your own words, and VIVA writes your first one."
     refineCardDescription = ''
-    freshDescription = 'Build your first Life Vision from the ground up with VIVA guiding you through each category.'
+    freshDescription = "Write what's going on now and what it looks like unleashed, for each area. VIVA writes your Life Vision from your words."
     continueDescription = ''
     freshDraftDescription = ''
   } else if (hasDraft && draftIsFromActive) {
     paragraph = `You have a refinement in progress from ${vLabel}. Click Refine my Vision to pick up where you left off -- you've touched ${refinedOf14}.`
     refineCardDescription = `Continue with your current draft, or launch a fresh draft from ${vLabel}.`
-    freshDescription = 'Set aside your current draft and build a completely new vision from your profile.'
+    freshDescription = 'Set aside your current draft and write a completely new vision from your own words, area by area.'
     continueDescription = `Your draft was created from ${vLabel} on ${draftDate}. You've refined ${refinedOf14} so far.`
     freshDraftDescription = `Clone ${vLabel}${vDate ? ` (committed ${vDate})` : ''} and begin refining with a clean slate.`
   } else if (hasDraft && !draftIsFromActive) {
     paragraph = `You have a draft that was started from ${parentLabel}, not your current active vision (${vLabel}). Continue with your current draft, or launch a fresh draft from your active vision.`
     refineCardDescription = `Continue with your current draft (from ${parentLabel}), or launch a fresh draft from ${vLabel}.`
-    freshDescription = 'Set aside your current draft and build a completely new vision from your profile.'
+    freshDescription = 'Set aside your current draft and write a completely new vision from your own words, area by area.'
     continueDescription = `Your draft was created from ${parentLabel} on ${draftDate}. You've refined ${refinedOf14} so far.`
     freshDraftDescription = `Clone ${vLabel}${vDate ? ` (committed ${vDate})` : ''} and begin refining with a clean slate.`
   } else {
-    paragraph = `${vLabel} is ready for its next evolution. Click Refine my Vision to elevate it with VIVA, or click Start Fresh to build a new one from your profile.`
+    paragraph = `${vLabel} is ready for its next evolution. Click Refine my Vision to elevate it with VIVA, or click Start From Scratch to write a new one from your own words.`
     refineCardDescription = `Elevate ${vLabel}${vDate ? ` (committed ${vDate})` : ''} with VIVA through guided refinement.`
-    freshDescription = 'Build a new Life Vision from the ground up with VIVA guiding you through each category.'
+    freshDescription = "Write what's going on now and what it looks like unleashed, for each area. VIVA writes a new Life Vision from your words."
     continueDescription = ''
     freshDraftDescription = ''
   }
@@ -202,7 +202,7 @@ export default function LifeVisionCreatePage() {
               </button>
             )}
 
-            <Link href="/life-vision/new" className="block">
+            <Link href="/life-vision/start" className="block">
               <Card
                 variant="elevated"
                 hover
@@ -213,7 +213,7 @@ export default function LifeVisionCreatePage() {
                     <Plus className="w-6 h-6 text-[#39FF14]" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-base font-semibold text-white mb-1">Start Fresh</h3>
+                    <h3 className="text-base font-semibold text-white mb-1">Start From Scratch</h3>
                     <p className="text-sm text-neutral-400 leading-relaxed">
                       {freshDescription}
                     </p>

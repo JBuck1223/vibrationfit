@@ -102,6 +102,11 @@ function sanitize(raw: unknown, source: string): TaggedPassage[] {
 export async function tagMemberPassages(input: {
   memberMessage: string
   vivaQuestion?: string | null
+  /**
+   * The area the member was writing about (scratch flow). Passages default to
+   * this category unless they are clearly about another area.
+   */
+  focusCategory?: LifeCategoryKey | null
   /** Token ledger owner. Null skips tracking (scripts). */
   userId?: string | null
   /** Client for the ledger; defaults to the server client inside API routes. */
@@ -110,11 +115,15 @@ export async function tagMemberPassages(input: {
   const memberMessage = input.memberMessage?.trim()
   if (!memberMessage || memberMessage.split(/\s+/).length < 3) return []
 
+  const focusLine = input.focusCategory
+    ? `The member was writing specifically about the "${input.focusCategory}" area. Tag passages under "${input.focusCategory}" by default; use another category only when a passage is clearly about that other area (it may also stay under "${input.focusCategory}").\n\n`
+    : ''
+
   try {
     const result = await generateText({
       model: gateway(PASSAGE_TAGGER_MODEL),
       system: TAGGER_PROMPT,
-      prompt: `${input.vivaQuestion?.trim() ? `VIVA asked:\n${input.vivaQuestion.trim()}\n\n` : ''}MEMBER replied:\n${memberMessage}`,
+      prompt: `${focusLine}${input.vivaQuestion?.trim() ? `VIVA asked:\n${input.vivaQuestion.trim()}\n\n` : ''}MEMBER replied:\n${memberMessage}`,
       temperature: 0,
     })
 
