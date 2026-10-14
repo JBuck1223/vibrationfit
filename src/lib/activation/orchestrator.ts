@@ -233,10 +233,10 @@ function buildSourceContent(activation: ActivationRow): string {
     parts.push(`HOW IT FEELS: ${activation.desired_emotional_state}`)
   }
   if (activation.dream_response) {
-    const dream = Object.entries(activation.dream_response)
-      .filter(([, v]) => v?.trim())
-      .map(([k, v]) => `${k}: ${v.trim()}`)
-      .join('\n')
+    const entries = Object.entries(activation.dream_response).filter(([, v]) => v?.trim())
+    const dream = entries.length === 1 && entries[0][0] === 'want'
+      ? entries[0][1].trim()
+      : entries.map(([k, v]) => `${k}: ${v.trim()}`).join('\n')
     if (dream) parts.push(`IN THEIR OWN WORDS:\n${dream}`)
   }
   return parts.join('\n\n')

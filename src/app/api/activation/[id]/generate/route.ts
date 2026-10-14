@@ -38,7 +38,7 @@ export async function POST(
 
     const row = activation as ActivationRow
     if (!row.intake_ready_at && !isIntakeReady(row)) {
-      return NextResponse.json({ error: 'VIVA still needs a little more from your conversation' }, { status: 400 })
+      return NextResponse.json({ error: 'VIVA needs a little more in both boxes before she can write' }, { status: 400 })
     }
 
     const wasReady = !!row.ready_at

@@ -168,15 +168,22 @@ export function buildActivationVisionPrompt(params: {
   const parts: string[] = []
   if (params.firstName) parts.push(`USER FIRST NAME: ${params.firstName}`, '')
   parts.push(`PRIMARY CATEGORY: ${params.category}`, '')
-  parts.push('CURRENT STATE (their truth — flip to presence, never reference the lack):', '"""', params.currentState.trim(), '"""', '')
+  parts.push(
+    "WHAT'S GOING ON NOW (their words, verbatim — flip to presence, never reference the lack):",
+    '"""', params.currentState.trim(), '"""', '',
+  )
   if (params.reflection) {
     parts.push('YOUR EARLIER REFLECTION:', '"""', params.reflection.trim(), '"""', '')
   }
-  if (params.dreamResponse && Object.values(params.dreamResponse).some(Boolean)) {
+  const dream = Object.entries(params.dreamResponse || {}).filter(([, v]) => v?.trim())
+  if (dream.length === 1 && dream[0][0] === 'want') {
+    parts.push(
+      'UNLEASH YOUR IMAGINATION (their words, verbatim — what they would love in this area):',
+      '"""', dream[0][1].trim(), '"""', '',
+    )
+  } else if (dream.length > 0) {
     parts.push('DREAM LAYER (what they want, why it matters, how it feels, who they become):', '"""')
-    for (const [key, value] of Object.entries(params.dreamResponse)) {
-      if (value?.trim()) parts.push(`${key}: ${value.trim()}`)
-    }
+    for (const [key, value] of dream) parts.push(`${key}: ${value.trim()}`)
     parts.push('"""', '')
   }
   parts.push('Build the vision object now. Strict JSON only.')

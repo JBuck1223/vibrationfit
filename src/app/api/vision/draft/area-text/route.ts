@@ -26,6 +26,7 @@ import {
   type AreaBeat,
 } from '@/lib/life-vision/draft-session'
 import { persistMemberPassages, tagMemberPassages } from '@/lib/life-vision/passage-tagger'
+import { summarizeAreas } from '@/lib/life-vision/vision-director'
 
 const MAX_CHARS = 20_000
 
@@ -120,6 +121,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       depth,
+      areas: refreshed ? summarizeAreas(refreshed) : [],
       area: area
         ? {
             category: area.category,

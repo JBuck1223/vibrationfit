@@ -244,6 +244,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/admin/viva/social',
     '/admin/audio-mixer',
     '/admin/activation',
+    '/admin/talk-it-out',
     '/admin/begin',
     '/admin/walkthroughs',
     

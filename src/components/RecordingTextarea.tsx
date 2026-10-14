@@ -102,6 +102,12 @@ interface RecordingTextareaProps {
   recordingPurpose?: 'quick' | 'transcriptOnly' | 'withFile' | 'audioOnly' // Recording behavior: quick (no S3), transcriptOnly (S3 deleted if discarded), withFile (S3 always kept), audioOnly (S3 storage, no transcription)
   onAudioSaved?: (audioUrl: string, transcript: string) => void
   hideClear?: boolean
+  /**
+   * Talking is the primary control: while the box is empty and idle, a large
+   * lime mic sits over the lower part of the textarea with "Tap and talk".
+   * Requires recordingPurpose "quick".
+   */
+  micEmphasis?: boolean
 }
 
 export function RecordingTextarea({
@@ -123,6 +129,7 @@ export function RecordingTextarea({
   recordingPurpose = transcriptOnly ? 'transcriptOnly' : 'transcriptOnly', // Default to transcriptOnly for better UX
   onAudioSaved,
   hideClear = false,
+  micEmphasis = false,
 }: RecordingTextareaProps) {
   const [showRecorder, setShowRecorder] = useState(false)
   const [recordingMode, setRecordingMode] = useState<'audio' | 'video'>('audio')
@@ -656,6 +663,14 @@ export function RecordingTextarea({
   }, [quickUploadPhase])
 
   const resolvedPlaceholder = placeholder ?? 'Type or transcribe audio.'
+  const showBigMic =
+    micEmphasis &&
+    recordingPurpose === 'quick' &&
+    !value.trim() &&
+    !isQuickRecording &&
+    !showRecorder &&
+    !isUploading &&
+    !disabled
 
   // Dynamic VIVA overlay messages and time estimates based on phase and recording length
   const getOverlayMessages = (): string[] => {
@@ -734,9 +749,24 @@ export function RecordingTextarea({
           disabled={disabled || isUploading}
           className={`w-full min-h-[100px] resize-none overflow-hidden pb-11 pr-10 ${className}`}
         />
+
+        {/* Mic emphasis: talking is the primary control while the box is empty */}
+        {showBigMic && !isOverlayVisible && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-14 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={startQuickRecording}
+              aria-label="Tap and talk"
+              className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#39FF14] text-black shadow-[0_0_28px_rgba(57,255,20,0.35)] transition-transform hover:scale-105 active:scale-95"
+            >
+              <Mic className="h-6 w-6" />
+            </button>
+            <span className="text-xs font-medium text-neutral-300">Tap and talk</span>
+          </div>
+        )}
         
         {/* Recording Buttons - never disabled by isUploading so clicks can self-heal stuck state */}
-        {!showRecorder && !isQuickRecording && !isOverlayVisible && (
+        {!showRecorder && !isQuickRecording && !isOverlayVisible && !showBigMic && (
           <div className="absolute bottom-3 right-1.5 flex gap-2 p-2">
             <button
               type="button"

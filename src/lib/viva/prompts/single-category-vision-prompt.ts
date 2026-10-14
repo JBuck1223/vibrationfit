@@ -239,7 +239,12 @@ Alignment is natural. I return to it easily.`
 export interface IndividualCategoryOptions {
   /** First-vision compose: numbers, ages, dates, names only as given in the sources. */
   strictFacts?: boolean
-  /** The member said little here: hard word ceiling, nothing new introduced. */
+  /**
+   * Invention guard (every area): expand only on what the sources name.
+   * Length still matches their input.
+   */
+  ownWordsOnly?: boolean
+  /** The member said nothing here: hard word ceiling, one honest paragraph. */
   thinArea?: { maxWords: number }
 }
 
@@ -261,14 +266,19 @@ export function buildIndividualCategoryPrompt(
       'FACTS ARE FIXED: every number, age, date, timeline, name, place, brand, and job title appears ONLY as it appears in the sources above. Do not change "by 30" to "at 25". Do not add a city, a trip, a person, or a possession the sources do not contain.',
     )
   }
+  if (options.ownWordsOnly || options.thinArea) {
+    guardLines.push(
+      `THEIR WORDS ONLY: do not introduce any object, room, destination, activity, pet, person, or scene that is not already in the sources. Sensory detail goes only on moments already there. Go deeper into what they named, never wider into what they did not.`,
+    )
+  }
   if (options.thinArea) {
     guardLines.push(
-      `THIN AREA: the member said little about ${categoryLabel}. Output at most ${options.thinArea.maxWords} words. Do not introduce any object, room, destination, activity, person, or scene that is not already in the sources. Sensory detail goes only on moments already there. Shorter and true beats longer and invented.`,
+      `EMPTY AREA: the member said almost nothing about ${categoryLabel}. Output at most ${options.thinArea.maxWords} words: one honest, embodied paragraph from what they did name. Shorter and true beats longer and invented.`,
     )
   }
   const outputLine = options.thinArea
     ? `OUTPUT: At most ${options.thinArea.maxWords} words. Only what the sources support.`
-    : 'OUTPUT: Match their input length. Rich input = rich output.'
+    : 'OUTPUT: Match their input length. Rich input = rich output. Brief input = a shorter piece that goes deep on the few things they named.'
 
   const hasBothInputs = getMeStartedText?.trim() && imaginationText?.trim()
   const hasOnlyStarter = getMeStartedText?.trim() && !imaginationText?.trim()

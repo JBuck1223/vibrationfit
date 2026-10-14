@@ -24,6 +24,7 @@ import { getAIToolConfig } from '@/lib/ai/database-config'
 import { validateTokenBalance } from '@/lib/tokens/tracking'
 import { isLifeCategoryKey, LIFE_CATEGORY_KEYS, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
 import {
+  computeDepth,
   loadDraftSession,
   markDraftSessionComposed,
   upsertCategoryText,
@@ -64,6 +65,22 @@ export async function POST(req: Request) {
   const session = await loadDraftSession(supabase, draftId)
   if (!session) {
     return new Response(JSON.stringify({ error: 'No draft session' }), { status: 404 })
+  }
+
+  // The first full write waits for the depth gate: every area cleared or
+  // marked unknown. Per-category rewrites after compose are not gated.
+  if (fullCompose && session.status === 'gathering') {
+    const depth = computeDepth(session.notes, session.categoryText)
+    if (!depth.readyToCompose) {
+      const open = [...depth.empty, ...depth.thin]
+      return new Response(
+        JSON.stringify({
+          error: `VIVA needs more in ${open.length} ${open.length === 1 ? 'area' : 'areas'} before she can write`,
+          depth,
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
   }
 
   // Two passes per category; rough budget so an empty balance fails before we spend.
