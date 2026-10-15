@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { extractAndStoreMentions, getMentionedUsersForPosts } from '@/lib/vibe-tribe/mention-utils'
+import { buildMentionRecipients, createVibeNotifications } from '@/lib/vibe-tribe/notifications'
 import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
 
 /**
@@ -261,6 +262,17 @@ export async function POST(request: NextRequest) {
       user.id,
       { post_id: newPost.id }
     )
+
+    await createVibeNotifications({
+      actorId: user.id,
+      postId: newPost.id,
+      excerpt: content?.trim() || null,
+      recipients: buildMentionRecipients(
+        user.id,
+        mentionedUsers.map(mentioned => mentioned.id),
+        'post'
+      ),
+    })
 
     // Auto-verify MAP commitment for vibe tribe engagement
     autoVerifyOccurrenceByActivityType(user.id, 'vibe_tribe_post').catch(() => {})

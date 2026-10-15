@@ -28,6 +28,8 @@ interface PostCardProps {
   currentUserId?: string
   isAdmin?: boolean
   mentionedUsers?: MentionedUser[]
+  initialCommentsOpen?: boolean
+  highlightCommentId?: string | null
 }
 
 export function PostCard({ 
@@ -37,10 +39,12 @@ export function PostCard({
   currentUserId,
   isAdmin = false,
   mentionedUsers = [],
+  initialCommentsOpen = false,
+  highlightCommentId = null,
 }: PostCardProps) {
   const [hearted, setHearted] = useState(post.has_hearted || false)
   const [heartsCount, setHeartsCount] = useState(post.hearts_count)
-  const [showComments, setShowComments] = useState(false)
+  const [showComments, setShowComments] = useState(initialCommentsOpen || Boolean(highlightCommentId))
   const [commentsCount, setCommentsCount] = useState(post.comments_count)
   const [isHeartLoading, setIsHeartLoading] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
@@ -614,6 +618,7 @@ export function PostCard({
               onCommentAdded={handleCommentAdded}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
+              highlightCommentId={highlightCommentId}
             />
           )}
         </div>

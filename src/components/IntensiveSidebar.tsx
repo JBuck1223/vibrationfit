@@ -8,6 +8,7 @@ import { getActiveProfileClient } from '@/lib/supabase/profile-client'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { Button } from '@/lib/design-system/components'
+import { VibeNotificationBell } from '@/components/vibe-tribe/VibeNotificationBell'
 import { useIntensiveSidebar } from '@/components/intensive-studio/IntensiveSidebarContext'
 import { 
   LayoutDashboard,
@@ -487,13 +488,16 @@ export function IntensiveSidebar() {
               <div className="w-20 h-4 bg-neutral-700 rounded animate-pulse" />
             )}
           </div>
-          <button
-            onClick={() => closeMobileSidebar()}
-            className="md:hidden text-neutral-400 hover:text-white"
-            aria-label="Close menu"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <VibeNotificationBell className="hidden md:flex" />
+            <button
+              onClick={() => closeMobileSidebar()}
+              className="md:hidden text-neutral-400 hover:text-white"
+              aria-label="Close menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <h2 className="text-base md:text-lg font-bold text-primary-400">
@@ -730,6 +734,7 @@ export function IntensiveSidebar() {
 
   return (
     <>
+      <VibeNotificationBell variant="mobile" />
       {/* Mobile Menu Button */}
       <button
         onClick={openMobileSidebar}

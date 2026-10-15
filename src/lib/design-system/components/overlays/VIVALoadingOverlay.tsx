@@ -105,36 +105,43 @@ export const VIVALoadingOverlay = React.forwardRef<HTMLDivElement, VIVALoadingOv
       <div 
         ref={ref}
         className={cn(
-          'absolute inset-0 bg-black/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-50',
+          'absolute inset-0 overflow-hidden bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center',
+          size === 'sm' ? 'rounded-xl z-20' : 'rounded-2xl z-50',
           className
         )}
         {...props}
       >
-        <div className="text-center space-y-6 px-4">
+        <div className={cn(
+          'text-center w-full min-w-0',
+          size === 'sm' ? 'space-y-1.5 px-3' : 'space-y-6 px-4'
+        )}>
           {/* VIVA Logo Spinner */}
           <div className="flex justify-center">
-            <Spinner size={spinnerSizes[size]} variant="branded" />
+            <Spinner size={size === 'sm' ? 'sm' : spinnerSizes[size]} variant="branded" />
           </div>
           
           {/* Animated Loading Message */}
-          <div className="space-y-2">
+          <div className={size === 'sm' ? 'space-y-1' : 'space-y-2'}>
             <h3 className={cn(
               'font-bold text-white text-center break-words hyphens-auto',
-              headingSizes[size]
+              size === 'sm' ? 'text-sm leading-snug' : headingSizes[size]
             )}>
               {messages[messageIndex]}
             </h3>
             <div className="flex justify-center space-x-1">
-              <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-secondary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-accent-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              <div className={cn('bg-primary-500 rounded-full animate-bounce', size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2')} style={{ animationDelay: '0ms' }}></div>
+              <div className={cn('bg-secondary-500 rounded-full animate-bounce', size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2')} style={{ animationDelay: '150ms' }}></div>
+              <div className={cn('bg-accent-500 rounded-full animate-bounce', size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2')} style={{ animationDelay: '300ms' }}></div>
             </div>
           </div>
           
           {/* Progress Indicator */}
           {showProgressBar && (
-            <div className="flex justify-center">
-              <div className="w-80 max-w-full bg-neutral-800 rounded-full h-2.5 overflow-hidden">
+            <div className="flex justify-center w-full min-w-0">
+              <div className={cn(
+                'bg-neutral-800 rounded-full overflow-hidden',
+                size === 'sm' ? 'w-full max-w-[11rem] h-1.5' : 'w-80 max-w-full h-2.5'
+              )}>
                 <div 
                   className="h-full bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500 rounded-full transition-all duration-300 ease-out"
                   style={{ 
@@ -147,7 +154,7 @@ export const VIVALoadingOverlay = React.forwardRef<HTMLDivElement, VIVALoadingOv
           
           {/* Estimated Time */}
           {estimatedTime && (
-            <p className="text-sm text-neutral-400">
+            <p className={size === 'sm' ? 'text-[11px] leading-tight text-neutral-400' : 'text-sm text-neutral-400'}>
               {estimatedTime}
             </p>
           )}

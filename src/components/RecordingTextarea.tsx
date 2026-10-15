@@ -736,8 +736,8 @@ export function RecordingTextarea({
         </p>
       )}
 
-      {/* Text Input */}
-      <div className="relative">
+      {/* Text Input. Clip the VIVA overlay to the field so it cannot spill out. */}
+      <div className="relative overflow-hidden rounded-xl">
         <Textarea
           ref={textareaRef}
           value={value}

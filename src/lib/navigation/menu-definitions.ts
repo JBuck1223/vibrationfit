@@ -119,7 +119,7 @@ export const userNavigationPrimary: NavItem[] = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: Home,
-    description: 'Run your MAP and stay connected',
+    description: 'Your daily practice, in one place',
   },
   {
     name: 'VIVA',

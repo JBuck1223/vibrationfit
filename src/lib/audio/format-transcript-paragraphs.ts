@@ -53,6 +53,11 @@ function endsSentence(token: string): boolean {
   return /[.!?]["']?$/.test(token.trim())
 }
 
+/** whisper-1 word timestamps omit periods, commas, and question marks. */
+function hasSentencePunctuation(text: string): boolean {
+  return /[.!?]/.test(text)
+}
+
 function splitIntoSentences(text: string): string[] {
   const normalized = text.replace(/\s+/g, ' ').trim()
   if (!normalized) return []
@@ -145,7 +150,10 @@ export function formatTranscript(
 
   if (words?.length) {
     const fromWords = formatTranscriptFromWords(words)
-    if (fromWords.trim() && !transcriptLostSpaces(fromWords, raw)) {
+    const wordsKeepPunctuation =
+      hasSentencePunctuation(fromWords) || !hasSentencePunctuation(raw)
+    // Word tokens drop punctuation even when transcription.text still has it.
+    if (fromWords.trim() && !transcriptLostSpaces(fromWords, raw) && wordsKeepPunctuation) {
       return fromWords
     }
   }

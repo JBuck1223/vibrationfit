@@ -59,7 +59,7 @@ export function BeginDashboard() {
     if (!progress || progress.onboarding_completed_at || !visibleDone) return
     void completeOnboardingStep('complete').then(() => {
       signalBeginComplete()
-      router.replace('/map')
+      router.replace('/dashboard?welcome=1')
     })
   }, [completeOnboardingStep, progress, router, visibleDone])
 

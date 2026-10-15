@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { updateMentions } from '@/lib/vibe-tribe/mention-utils'
+import { buildMentionRecipients, createVibeNotifications } from '@/lib/vibe-tribe/notifications'
 
 /**
  * GET /api/vibe-tribe/posts/[id]
@@ -157,6 +158,11 @@ export async function PATCH(
       )
     }
 
+    const { data: previousMentions } = await adminClient
+      .from('vibe_mentions')
+      .select('mentioned_user_id')
+      .eq('post_id', id)
+
     // Recalculate mentions after edit
     const mentionedUsers = await updateMentions(
       adminClient,
@@ -164,6 +170,18 @@ export async function PATCH(
       user.id,
       { post_id: id }
     )
+
+    const previousMentionIds = new Set((previousMentions || []).map(mention => mention.mentioned_user_id))
+    await createVibeNotifications({
+      actorId: user.id,
+      postId: id,
+      excerpt: updatedPost.content,
+      recipients: buildMentionRecipients(
+        user.id,
+        mentionedUsers.map(mentioned => mentioned.id).filter(mentionId => !previousMentionIds.has(mentionId)),
+        'post'
+      ),
+    })
 
     return NextResponse.json({
       success: true,

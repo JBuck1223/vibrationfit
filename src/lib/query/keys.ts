@@ -76,6 +76,18 @@ export const keys = {
   tripDetail: (tripId: string) => ['trips', 'detail', tripId] as const,
   travelStats: ['travel-stats'] as const,
   dreamDestinations: ['dream-destinations'] as const,
+
+  // Member Dashboard
+  dashboardLayout: ['dashboard-layout'] as const,
+  dailyPapers: ['daily-papers'] as const,
+  abundanceEvents: ['abundance-events'] as const,
+  vibePosts: ['vibe-posts'] as const,
+  videoSessions: ['video-sessions'] as const,
+  areaActivations: ['area-activations'] as const,
+  manifestations: ['manifestations'] as const,
+
+  // Vibe Tribe
+  vibeNotifications: ['vibe-notifications'] as const,
 } as const
 
 type QueryKeyPrefix = readonly string[]
@@ -88,8 +100,15 @@ type QueryKeyPrefix = readonly string[]
 export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   vision_versions: [keys.visions, keys.audioSets],
   user_profiles: [keys.profile],
-  journal_entries: [keys.journalEntries],
-  manifestations: [keys.visionBoardCount, keys.manifestationKits],
+  journal_entries: [keys.journalEntries, keys.areaActivations],
+  manifestations: [keys.visionBoardCount, keys.manifestationKits, keys.manifestations],
+  member_dashboard_layouts: [keys.dashboardLayout],
+  daily_papers: [keys.dailyPapers, keys.areaActivations],
+  abundance_events: [keys.abundanceEvents, keys.areaActivations],
+  vibe_posts: [keys.vibePosts, keys.areaActivations],
+  video_sessions: [keys.videoSessions],
+  video_session_participants: [keys.videoSessions],
+  area_activations: [keys.areaActivations],
   stories: [keys.stories, keys.audioSets],
   user_playlists: [keys.playlists],
   user_playlist_tracks: [keys.playlists],
@@ -121,4 +140,5 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   dream_destinations: [keys.dreamDestinations],
   travel_attachments: [keys.trips, keys.dreamDestinations],
   travel_reference_links: [keys.trips, keys.dreamDestinations],
+  vibe_notifications: [keys.vibeNotifications],
 }

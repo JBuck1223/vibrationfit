@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendNotification } from '@/lib/notifications/config'
 import { VibeComment } from '@/lib/vibe-tribe/types'
 import { extractAndStoreMentions, getMentionedUsersForComments } from '@/lib/vibe-tribe/mention-utils'
+import { buildCommentNotificationRecipients, createVibeNotifications } from '@/lib/vibe-tribe/notifications'
 import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
 
 /**
@@ -156,7 +157,7 @@ export async function POST(
     // Check if post exists
     const { data: post, error: postError } = await supabase
       .from('vibe_posts')
-      .select('id, content')
+      .select('id, content, user_id')
       .eq('id', postId)
       .eq('is_deleted', false)
       .single()
@@ -166,10 +167,11 @@ export async function POST(
     }
 
     // If replying to a comment, verify the parent comment exists
+    let parentAuthorId: string | null = null
     if (parent_comment_id) {
       const { data: parentComment, error: parentError } = await supabase
         .from('vibe_comments')
-        .select('id')
+        .select('id, user_id')
         .eq('id', parent_comment_id)
         .eq('post_id', postId)
         .eq('is_deleted', false)
@@ -178,6 +180,7 @@ export async function POST(
       if (parentError || !parentComment) {
         return NextResponse.json({ error: 'Parent comment not found' }, { status: 404 })
       }
+      parentAuthorId = parentComment.user_id
     }
 
     // Create comment (or reply)
@@ -215,6 +218,19 @@ export async function POST(
       user.id,
       { comment_id: newComment.id }
     )
+
+    await createVibeNotifications({
+      actorId: user.id,
+      postId,
+      commentId: newComment.id,
+      excerpt: content.trim(),
+      recipients: buildCommentNotificationRecipients({
+        actorId: user.id,
+        postAuthorId: post.user_id,
+        parentAuthorId,
+        mentionedUserIds: mentionedUsers.map(mentioned => mentioned.id),
+      }),
+    })
 
     const userName = userData?.full_name || user.email?.split('@')[0] || 'Someone'
     const postPreview = (post.content || '').slice(0, 40) + ((post.content || '').length > 40 ? '...' : '')
