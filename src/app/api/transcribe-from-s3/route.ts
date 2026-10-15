@@ -84,12 +84,12 @@ export async function POST(request: NextRequest) {
     const contentType = s3Response.ContentType || 'audio/webm'
     const file = new File([buffer], fileName, { type: contentType })
 
+    // Word timestamps strip punctuation from whisper-1. Sentence text is what we show.
     const transcription = await openai.audio.transcriptions.create({
       file,
       model: 'whisper-1',
       language: 'en',
       response_format: 'verbose_json',
-      timestamp_granularities: ['word'],
     })
 
     console.log('Transcription complete:', {

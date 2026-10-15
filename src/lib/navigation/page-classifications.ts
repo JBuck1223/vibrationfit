@@ -446,6 +446,8 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/travel-tracker',
   '/audio',
   '/daily-paper',
+  '/dashboard',
+  '/tracking',
   '/intensive/life-vision',
   '/intensive/journal',
   '/intensive/profile',

@@ -16,7 +16,7 @@ export default function BeginCompletePage() {
       void completeOnboardingStep('complete')
     }
     signalBeginComplete()
-    router.replace('/map')
+    router.replace('/dashboard?welcome=1')
   }, [completeOnboardingStep, isLoading, progress, router])
 
   return (

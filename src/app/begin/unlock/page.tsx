@@ -69,7 +69,7 @@ export default function BeginUnlockPage() {
       })
       await completeOnboardingStep('unlock')
       signalBeginComplete()
-      router.replace('/map')
+      router.replace('/dashboard?welcome=1')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the survey')
     } finally {
