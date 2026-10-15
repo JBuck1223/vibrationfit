@@ -76,6 +76,9 @@ export const keys = {
   tripDetail: (tripId: string) => ['trips', 'detail', tripId] as const,
   travelStats: ['travel-stats'] as const,
   dreamDestinations: ['dream-destinations'] as const,
+
+  // Vibe Tribe
+  vibeNotifications: ['vibe-notifications'] as const,
 } as const
 
 type QueryKeyPrefix = readonly string[]
@@ -121,4 +124,5 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   dream_destinations: [keys.dreamDestinations],
   travel_attachments: [keys.trips, keys.dreamDestinations],
   travel_reference_links: [keys.trips, keys.dreamDestinations],
+  vibe_notifications: [keys.vibeNotifications],
 }

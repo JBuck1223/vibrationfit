@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { updateMentions } from '@/lib/vibe-tribe/mention-utils'
+import { buildMentionRecipients, createVibeNotifications } from '@/lib/vibe-tribe/notifications'
 
 /**
  * PATCH /api/vibe-tribe/comments/[id]
@@ -31,7 +32,7 @@ export async function PATCH(
 
     const { data: comment, error: fetchError } = await adminClient
       .from('vibe_comments')
-      .select('id, user_id')
+      .select('id, user_id, post_id')
       .eq('id', id)
       .eq('is_deleted', false)
       .single()
@@ -73,6 +74,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 })
     }
 
+    const { data: previousMentions } = await adminClient
+      .from('vibe_mentions')
+      .select('mentioned_user_id')
+      .eq('comment_id', id)
+
     // Recalculate mentions after edit
     const mentionedUsers = await updateMentions(
       adminClient,
@@ -80,6 +86,19 @@ export async function PATCH(
       user.id,
       { comment_id: id }
     )
+
+    const previousMentionIds = new Set((previousMentions || []).map(mention => mention.mentioned_user_id))
+    await createVibeNotifications({
+      actorId: user.id,
+      postId: comment.post_id,
+      commentId: id,
+      excerpt: content.trim(),
+      recipients: buildMentionRecipients(
+        user.id,
+        mentionedUsers.map(mentioned => mentioned.id).filter(mentionId => !previousMentionIds.has(mentionId)),
+        'comment'
+      ),
+    })
 
     return NextResponse.json({
       success: true,
