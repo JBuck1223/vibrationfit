@@ -107,6 +107,25 @@ export interface PostsListResponse {
   total: number
 }
 
+export type VibeNotificationType = 'comment' | 'reply' | 'mention' | 'heart'
+export type VibeNotificationContext = 'post' | 'comment'
+
+export interface VibeNotification {
+  id: string
+  type: VibeNotificationType
+  context: VibeNotificationContext | null
+  post_id: string
+  comment_id: string | null
+  excerpt: string | null
+  read_at: string | null
+  created_at: string
+  actor: {
+    id: string
+    full_name: string | null
+    profile_picture_url: string | null
+  } | null
+}
+
 export interface ActivityItem {
   id: string
   type: 'post' | 'comment' | 'heart_received' | 'heart_given'

@@ -23,6 +23,7 @@ import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { LifeActivationSidebarCard } from '@/components/life-activation/LifeActivationSidebarCard'
+import { VibeNotificationBell } from '@/components/vibe-tribe/VibeNotificationBell'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 
 interface SidebarProps {
@@ -292,6 +293,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           >
             <X className="w-4 h-4 text-neutral-400" />
           </button>
+          {!isAdmin && <VibeNotificationBell className="hidden md:flex" />}
           {/* Desktop: admin notifications */}
           {isAdmin && (
             <Link
@@ -602,6 +604,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
 
   return (
     <>
+      {!isAdmin && <VibeNotificationBell variant="mobile" />}
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileOpen(true)}

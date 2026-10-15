@@ -95,6 +95,7 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Vibe Tribe Community
     '/vibe-tribe',
+    '/vibe-tribe/posts/[id]',
     '/vibe-tribe/wins',
     '/vibe-tribe/wobbles',
     '/vibe-tribe/visions',

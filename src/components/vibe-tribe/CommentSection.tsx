@@ -19,6 +19,7 @@ interface CommentSectionProps {
   onCommentAdded?: () => void
   currentUserId?: string
   isAdmin?: boolean
+  highlightCommentId?: string | null
 }
 
 export function CommentSection({ 
@@ -26,6 +27,7 @@ export function CommentSection({
   onCommentAdded,
   currentUserId,
   isAdmin = false,
+  highlightCommentId = null,
 }: CommentSectionProps) {
   const [comments, setComments] = useState<VibeComment[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,6 +46,12 @@ export function CommentSection({
   useEffect(() => {
     fetchComments()
   }, [postId])
+
+  useEffect(() => {
+    if (!highlightCommentId || loading) return
+    const el = document.getElementById(`vibe-comment-${highlightCommentId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [highlightCommentId, loading, comments])
 
   const fetchComments = async () => {
     try {
@@ -318,6 +326,7 @@ export function CommentSection({
               onHeartComment={handleHeartComment}
               onEditComment={handleEditComment}
               userNameMap={userNameMap}
+              highlightCommentId={highlightCommentId}
             />
           ))
         )}
@@ -348,6 +357,7 @@ interface CommentItemProps {
   replyToAuthor?: { name: string; userId: string }
   nestingLevel?: number
   userNameMap: Map<string, string>
+  highlightCommentId?: string | null
 }
 
 function CommentItem({ 
@@ -372,6 +382,7 @@ function CommentItem({
   replyToAuthor,
   nestingLevel = 0,
   userNameMap,
+  highlightCommentId = null,
 }: CommentItemProps) {
   const [deleting, setDeleting] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -475,7 +486,10 @@ function CommentItem({
 
 
   return (
-    <div className={`relative ${indentClass}`}>
+    <div
+      id={`vibe-comment-${comment.id}`}
+      className={`relative ${indentClass} ${highlightCommentId === comment.id ? 'rounded-xl ring-1 ring-[#39FF14]/70' : ''}`}
+    >
       <div className="flex items-start gap-2 md:gap-3">
         {/* Avatar — tap photo to enlarge; name links to snapshot */}
         {comment.user?.profile_picture_url ? (
@@ -694,6 +708,7 @@ function CommentItem({
               }}
               nestingLevel={nestingLevel + 1}
               userNameMap={userNameMap}
+              highlightCommentId={highlightCommentId}
             />
           ))}
         </div>

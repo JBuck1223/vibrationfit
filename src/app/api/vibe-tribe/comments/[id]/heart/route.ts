@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
+import { createVibeNotifications } from '@/lib/vibe-tribe/notifications'
 
 /**
  * POST /api/vibe-tribe/comments/[id]/heart
@@ -22,7 +23,7 @@ export async function POST(
     // Check if comment exists
     const { data: comment, error: commentError } = await supabase
       .from('vibe_comments')
-      .select('id')
+      .select('id, user_id, post_id, content')
       .eq('id', commentId)
       .eq('is_deleted', false)
       .single()
@@ -48,6 +49,16 @@ export async function POST(
     }
 
     autoVerifyOccurrenceByActivityType(user.id, 'vibe_tribe_engage').catch(() => {})
+
+    await createVibeNotifications({
+      actorId: user.id,
+      postId: comment.post_id,
+      commentId,
+      excerpt: comment.content,
+      recipients: comment.user_id === user.id
+        ? []
+        : [{ userId: comment.user_id, type: 'heart', context: 'comment' }],
+    })
 
     // Get updated hearts count
     const { data: updatedComment } = await supabase

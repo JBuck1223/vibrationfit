@@ -181,44 +181,72 @@ export default function SongSubmissionsPage() {
     setDownloadingAudio(subId)
     setDownloadError(null)
 
-    const tryDownload = async (url: string, ext: string): Promise<boolean> => {
-      const proxyUrl = `/api/media/proxy?url=${encodeURIComponent(url)}`
-      const res = await fetch(proxyUrl)
-      if (!res.ok) return false
-      const blob = await res.blob()
-      if (blob.size === 0) return false
+    const showDownloadError = (message: string) => {
+      setDownloadError(message)
+      setTimeout(() => setDownloadError(null), 5000)
+    }
+
+    const saveBlob = (blob: Blob, ext: string) => {
       const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = blobUrl
       a.download = `${(songTitle || 'track').replace(/[^a-zA-Z0-9-_ ]/g, '')}.${ext}`
       document.body.appendChild(a)
       a.click()
-      document.body.removeChild(a)
+      a.remove()
       URL.revokeObjectURL(blobUrl)
-      return true
+    }
+
+    // Mureka WAVs are ~30MB and already sent as attachments. Pulling them
+    // through /api/media/proxy fails in the browser with net::ERR_FAILED.
+    const startDirectDownload = (url: string) => {
+      const iframe = document.createElement('iframe')
+      iframe.hidden = true
+      iframe.setAttribute('aria-hidden', 'true')
+      iframe.src = url
+      document.body.appendChild(iframe)
+      window.setTimeout(() => iframe.remove(), 60_000)
+    }
+
+    const tryProxyDownload = async (url: string, ext: string): Promise<boolean> => {
+      try {
+        const res = await fetch(`/api/media/proxy?url=${encodeURIComponent(url)}`)
+        if (!res.ok) return false
+        const blob = await res.blob()
+        if (blob.size === 0) return false
+        saveBlob(blob, ext)
+        return true
+      } catch (err) {
+        console.error('Audio download failed:', err)
+        return false
+      }
     }
 
     try {
       if (wavUrl) {
-        const ok = await tryDownload(wavUrl, 'wav')
-        if (ok) return
+        const probeRes = await fetch(`/api/media/proxy?url=${encodeURIComponent(wavUrl)}&probe=1`)
+        if (probeRes.ok) {
+          const probe = await probeRes.json() as { contentDisposition?: string | null }
+          const attachment = (probe.contentDisposition || '').toLowerCase().includes('attachment')
+          if (attachment) {
+            startDirectDownload(wavUrl)
+            return
+          }
+          const ok = await tryProxyDownload(wavUrl, 'wav')
+          if (ok) return
+        }
       }
       if (mp3Url) {
-        const ok = await tryDownload(mp3Url, 'mp3')
+        const ok = await tryProxyDownload(mp3Url, 'mp3')
         if (ok) {
-          if (wavUrl) {
-            setDownloadError('WAV expired on Mureka CDN — downloaded MP3 instead')
-            setTimeout(() => setDownloadError(null), 5000)
-          }
+          if (wavUrl) showDownloadError('WAV is no longer available — downloaded MP3 instead')
           return
         }
       }
-      setDownloadError('Both WAV and MP3 downloads failed')
-      setTimeout(() => setDownloadError(null), 5000)
+      showDownloadError('Audio download failed')
     } catch (err) {
       console.error('Audio download failed:', err)
-      setDownloadError('Download failed — check console for details')
-      setTimeout(() => setDownloadError(null), 5000)
+      showDownloadError('Audio download failed')
     } finally {
       setDownloadingAudio(null)
     }
