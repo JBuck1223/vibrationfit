@@ -65,10 +65,16 @@ function taskTree(tasks: ActionTask[]) {
   return { top, children }
 }
 
+function fitTextarea(el: HTMLTextAreaElement | null) {
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
+
 function useInlineEdit(value: string, onSave: (next: string) => void) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const ignoreBlur = useRef(false)
 
   useEffect(() => {
@@ -78,6 +84,7 @@ function useInlineEdit(value: string, onSave: (next: string) => void) {
   useEffect(() => {
     if (!editing) return
     ignoreBlur.current = false
+    fitTextarea(inputRef.current)
     inputRef.current?.focus()
     inputRef.current?.select()
   }, [editing])
@@ -96,7 +103,11 @@ function useInlineEdit(value: string, onSave: (next: string) => void) {
     inputProps: {
       ref: inputRef,
       value: draft,
-      onChange: (event: ChangeEvent<HTMLInputElement>) => setDraft(event.target.value),
+      rows: 1,
+      onChange: (event: ChangeEvent<HTMLTextAreaElement>) => {
+        setDraft(event.target.value)
+        fitTextarea(event.target)
+      },
       onBlur: () => {
         if (ignoreBlur.current) {
           ignoreBlur.current = false
@@ -104,8 +115,8 @@ function useInlineEdit(value: string, onSave: (next: string) => void) {
         }
         finish(true)
       },
-      onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') {
+      onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
           event.preventDefault()
           finish(true)
         } else if (event.key === 'Escape') {
@@ -116,6 +127,9 @@ function useInlineEdit(value: string, onSave: (next: string) => void) {
     },
   }
 }
+
+const titleClass = 'flex-1 min-w-0 text-sm break-words'
+const editClass = 'flex-1 min-w-0 w-full max-w-full bg-transparent border-b border-neutral-500 outline-none text-sm text-white py-0.5 resize-none overflow-hidden leading-snug'
 
 function DragHandle({
   label,
@@ -156,21 +170,21 @@ function SubtaskRow({
   const edit = useInlineEdit(task.title, onRename)
 
   return (
-    <div className="flex items-center gap-2.5 py-1 pl-7">
-      <button type="button" onClick={onToggle} className="shrink-0" aria-label={task.is_complete ? 'Mark step open' : 'Mark step done'}>
+    <div className="flex items-start gap-2.5 py-1 pl-7">
+      <button type="button" onClick={onToggle} className="shrink-0 mt-0.5" aria-label={task.is_complete ? 'Mark step open' : 'Mark step done'}>
         {task.is_complete
           ? <CheckCircle className="w-4 h-4 text-[#39FF14]" />
           : <div className="w-4 h-4 rounded-full border-2 border-neutral-600 hover:border-neutral-400" />}
       </button>
       {edit.editing ? (
-        <input
+        <textarea
           {...edit.inputProps}
           aria-label="Step title"
           autoComplete="off"
-          className="flex-1 min-w-0 bg-transparent border-b border-neutral-500 outline-none text-sm text-white py-0.5"
+          className={editClass}
         />
       ) : (
-        <span className={`flex-1 min-w-0 text-sm truncate ${task.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}>
+        <span className={`${titleClass} ${task.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}>
           {task.title}
         </span>
       )}
@@ -178,7 +192,7 @@ function SubtaskRow({
         <button
           type="button"
           onClick={edit.start}
-          className="text-neutral-600 hover:text-white shrink-0"
+          className="text-neutral-600 hover:text-white shrink-0 mt-0.5"
           aria-label="Edit step"
         >
           <Pencil className="w-3.5 h-3.5" />
@@ -187,7 +201,7 @@ function SubtaskRow({
       <button
         type="button"
         onClick={onDelete}
-        className="text-neutral-600 hover:text-red-400 shrink-0"
+        className="text-neutral-600 hover:text-red-400 shrink-0 mt-0.5"
         aria-label="Delete step"
       >
         <Trash2 className="w-3.5 h-3.5" />
@@ -221,27 +235,27 @@ function SortableStep({
 
   return (
     <div ref={setNodeRef} style={style}>
-      <div className="flex items-center gap-2.5 py-1">
+      <div className="flex items-start gap-2.5 py-1">
         <DragHandle
           label="Reorder step"
           buttonRef={setActivatorNodeRef}
           attributes={attributes}
           listeners={listeners}
         />
-        <button type="button" onClick={() => onToggle(task)} className="shrink-0" aria-label={task.is_complete ? 'Mark step open' : 'Mark step done'}>
+        <button type="button" onClick={() => onToggle(task)} className="shrink-0 mt-0.5" aria-label={task.is_complete ? 'Mark step open' : 'Mark step done'}>
           {task.is_complete
             ? <CheckCircle className="w-4 h-4 text-[#39FF14]" />
             : <div className="w-4 h-4 rounded-full border-2 border-neutral-600 hover:border-neutral-400" />}
         </button>
         {edit.editing ? (
-          <input
+          <textarea
             {...edit.inputProps}
             aria-label="Step title"
             autoComplete="off"
-            className="flex-1 min-w-0 bg-transparent border-b border-neutral-500 outline-none text-sm text-white py-0.5"
+            className={editClass}
           />
         ) : (
-          <span className={`flex-1 min-w-0 text-sm truncate ${task.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}>
+          <span className={`${titleClass} ${task.is_complete ? 'text-neutral-500 line-through' : 'text-neutral-200'}`}>
             {task.title}
           </span>
         )}
@@ -249,7 +263,7 @@ function SortableStep({
           <button
             type="button"
             onClick={edit.start}
-            className="text-neutral-600 hover:text-white shrink-0"
+            className="text-neutral-600 hover:text-white shrink-0 mt-0.5"
             aria-label="Edit step"
           >
             <Pencil className="w-3.5 h-3.5" />
@@ -258,7 +272,7 @@ function SortableStep({
         <button
           type="button"
           onClick={() => onDelete(task.id)}
-          className="text-neutral-600 hover:text-red-400 shrink-0"
+          className="text-neutral-600 hover:text-red-400 shrink-0 mt-0.5"
           aria-label="Delete step"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -333,7 +347,7 @@ function SortableGroup({
 
   return (
     <div ref={setNodeRef} style={style} className="rounded-xl border border-[#282828] bg-[#161616]">
-      <div className="flex items-center gap-2 px-4 py-3">
+      <div className="flex items-start gap-2 px-4 py-3">
         <DragHandle
           label="Reorder group"
           buttonRef={setActivatorNodeRef}
@@ -343,34 +357,34 @@ function SortableGroup({
         <button
           type="button"
           onClick={onToggleCollapsed}
-          className="text-neutral-400 hover:text-white shrink-0"
+          className="text-neutral-400 hover:text-white shrink-0 mt-0.5"
           aria-label={collapsed ? 'Expand group' : 'Collapse group'}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
         <div className="flex-1 min-w-0">
           {edit.editing ? (
-            <input
+            <textarea
               {...edit.inputProps}
               aria-label="Group title"
               autoComplete="off"
-              className="w-full bg-transparent border-b border-neutral-500 outline-none text-sm font-medium text-white py-0.5"
+              className={`${editClass} font-medium`}
             />
           ) : (
             <>
-              <p className="text-sm font-medium text-white truncate">{group.title}</p>
-              {group.description && <p className="text-xs text-neutral-500 line-clamp-1">{group.description}</p>}
+              <p className="text-sm font-medium text-white break-words">{group.title}</p>
+              {group.description && <p className="text-xs text-neutral-500 break-words">{group.description}</p>}
             </>
           )}
         </div>
         {total > 0 && (
-          <span className="text-[11px] uppercase tracking-[0.16em] text-neutral-500 shrink-0">{done}/{total}</span>
+          <span className="text-[11px] uppercase tracking-[0.16em] text-neutral-500 shrink-0 mt-0.5">{done}/{total}</span>
         )}
         {!edit.editing && (
           <button
             type="button"
             onClick={edit.start}
-            className="text-neutral-500 hover:text-white shrink-0"
+            className="text-neutral-500 hover:text-white shrink-0 mt-0.5"
             aria-label="Edit group"
           >
             <Pencil className="w-4 h-4" />
@@ -379,7 +393,7 @@ function SortableGroup({
         <button
           type="button"
           onClick={onDeleteGroup}
-          className="text-neutral-500 hover:text-red-400 shrink-0"
+          className="text-neutral-500 hover:text-red-400 shrink-0 mt-0.5"
           aria-label="Remove action group"
         >
           <Trash2 className="w-4 h-4" />

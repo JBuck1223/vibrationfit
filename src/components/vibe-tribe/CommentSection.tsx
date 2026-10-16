@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
-import { Spinner } from '@/lib/design-system'
+import { Spinner, DeleteConfirmationDialog } from '@/lib/design-system'
 import { Heart, Trash2, Send, Reply, X, Pencil } from 'lucide-react'
 import { VibeComment } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
@@ -385,6 +385,7 @@ function CommentItem({
   highlightCommentId = null,
 }: CommentItemProps) {
   const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState(comment.content)
   const [originalText, setOriginalText] = useState(comment.content)
@@ -455,6 +456,15 @@ function CommentItem({
     setDeleting(true)
     await onDelete()
     setDeleting(false)
+    setShowDeleteConfirm(false)
+  }
+
+  const handleDeleteClick = () => {
+    if (isAdmin) {
+      setShowDeleteConfirm(true)
+      return
+    }
+    void handleDelete()
   }
 
   const handleReplyClick = () => {
@@ -624,7 +634,7 @@ function CommentItem({
               
               {canDelete && (
                 <button
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   disabled={deleting}
                   className="text-xs text-neutral-500 hover:text-red-500 transition-colors"
                 >
@@ -713,6 +723,19 @@ function CommentItem({
           ))}
         </div>
       )}
+
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          if (!deleting) setShowDeleteConfirm(false)
+        }}
+        onConfirm={handleDelete}
+        title="Delete comment?"
+        message="Are you sure you want to delete this comment?"
+        itemName={comment.content.length > 120 ? `${comment.content.slice(0, 120)}...` : comment.content}
+        isLoading={deleting}
+        loadingText="Deleting..."
+      />
     </div>
   )
 }

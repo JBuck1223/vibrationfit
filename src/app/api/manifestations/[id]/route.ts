@@ -164,9 +164,16 @@ export async function PATCH(
     }
     if (body.status === 'actualized') {
       updates.status = 'actualized'
-      updates.actualized_at = new Date().toISOString()
+      updates.actualized_at = typeof body.actualized_at === 'string' && body.actualized_at
+        ? body.actualized_at
+        : new Date().toISOString()
     } else if (body.status === 'active' || body.status === 'inactive' || body.status === 'open') {
       updates.status = body.status === 'open' ? 'active' : body.status
+    } else if (typeof body.actualized_at === 'string' && body.actualized_at) {
+      updates.actualized_at = body.actualized_at
+    }
+    if (typeof body.created_at === 'string' && body.created_at) {
+      updates.created_at = body.created_at
     }
 
     const { data, error } = await supabase

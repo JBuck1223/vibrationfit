@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { AtSign, Bell, Heart, MessageCircle, Reply } from 'lucide-react'
+import { AtSign, Bell, Heart, MessageCircle, PenLine, Reply } from 'lucide-react'
 import { keys } from '@/lib/query/keys'
 import type { VibeNotification, VibeNotificationType } from '@/lib/vibe-tribe/types'
 
@@ -36,6 +36,8 @@ function actionLabel(notification: VibeNotification): string {
       return notification.context === 'comment'
         ? 'sent a heart on your comment'
         : 'sent a heart on your post'
+    case 'post':
+      return 'posted in Vibe Tribe'
     default:
       return 'responded in Vibe Tribe'
   }
@@ -50,6 +52,8 @@ function ActionIcon({ type }: { type: VibeNotificationType }) {
       return <AtSign className={className} />
     case 'heart':
       return <Heart className={className} />
+    case 'post':
+      return <PenLine className={className} />
     default:
       return <MessageCircle className={className} />
   }
@@ -227,7 +231,7 @@ export function VibeNotificationBell({ variant = 'inline', className = '' }: Vib
           <div className="overflow-y-auto">
             {notifications.length === 0 ? (
               <p className="px-4 py-8 text-sm text-neutral-400 text-center">
-                No notifications yet. Comments, replies, mentions, and hearts will show up here.
+                No notifications yet. New posts, comments, replies, mentions, and hearts will show up here.
               </p>
             ) : (
               notifications.map(notification => {

@@ -52,6 +52,7 @@ export interface Manifestation {
   actualized_at: string | null
   actualized_image_url: string | null
   actualization_story: string | null
+  sort_order: number
   created_at: string
   updated_at: string
 }
