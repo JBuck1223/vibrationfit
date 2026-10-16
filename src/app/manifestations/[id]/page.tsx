@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Card, Input, Button, CategoryGrid, Container, Stack, Spinner, DeleteConfirmationDialog, Textarea, VIVAButton } from '@/lib/design-system'
+import { Card, Input, Button, CategoryGrid, Container, Stack, Spinner, DeleteConfirmationDialog, Textarea, VIVAButton, DatePicker } from '@/lib/design-system'
 import { FileUpload } from '@/components/FileUpload'
 import { uploadUserFile, deleteUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +22,7 @@ import { BrainDumpOrganizer } from '@/components/manifestations-studio/BrainDump
 import { InspiredActionList, type ActionGroup, type ActionTask } from '@/components/manifestations-studio/InspiredActionList'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
 import { keys } from '@/lib/query/keys'
+import { resolveEditedTimestamp, toLocalDateInput, todayDateInput } from '@/lib/manifestations/dates'
 import {
   SLOT_DESTINATIONS,
   SLOT_LABELS,
@@ -116,6 +117,8 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     actualization_story: '',
     status: 'active',
     categories: [] as string[],
+    added_on: '',
+    actualized_on: '',
   })
   const [imageSource, setImageSource] = useState<'upload' | 'ai'>('upload')
   const [actualizedImageSource, setActualizedImageSource] = useState<'upload' | 'ai'>('upload')
@@ -143,6 +146,8 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
       actualization_story: item.actualization_story || '',
       status: item.status,
       categories: item.categories || [],
+      added_on: toLocalDateInput(item.created_at),
+      actualized_on: toLocalDateInput(item.actualized_at) || (item.status === 'actualized' ? todayDateInput() : ''),
     })
     setAudioRecordings((item as unknown as { audio_recordings?: any[] }).audio_recordings || [])
   }, [item, isEditing])
@@ -350,6 +355,11 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
         actualizedImageUrl = null
       }
 
+      const addedAt = resolveEditedTimestamp(item.created_at, formData.added_on)
+      const actualizedAt = formData.status === 'actualized'
+        ? (resolveEditedTimestamp(item.actualized_at, formData.actualized_on) ?? new Date().toISOString())
+        : item.actualized_at
+
       const { error } = await supabase
         .from('manifestations')
         .update({
@@ -362,9 +372,8 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
           actualization_story: formData.status === 'actualized' ? formData.actualization_story : null,
           status: formData.status,
           categories: formData.categories,
-          actualized_at: formData.status === 'actualized' && item.status !== 'actualized'
-            ? new Date().toISOString()
-            : item.actualized_at,
+          created_at: addedAt ?? item.created_at,
+          actualized_at: actualizedAt,
           audio_recordings: audioRecordings,
           updated_at: new Date().toISOString(),
         })
@@ -1021,7 +1030,10 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                       onClick={() => setFormData({
                         ...formData,
                         status: status.value,
-                        actualization_story: status.value === 'actualized' ? formData.actualization_story : ''
+                        actualization_story: status.value === 'actualized' ? formData.actualization_story : '',
+                        actualized_on: status.value === 'actualized'
+                          ? (formData.actualized_on || todayDateInput())
+                          : formData.actualized_on,
                       })}
                       className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
                         formData.status === status.value
@@ -1040,6 +1052,21 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <DatePicker
+                  label="Added"
+                  value={formData.added_on}
+                  onChange={(date) => setFormData({ ...formData, added_on: date })}
+                />
+                {formData.status === 'actualized' && (
+                  <DatePicker
+                    label="Actualized"
+                    value={formData.actualized_on}
+                    onChange={(date) => setFormData({ ...formData, actualized_on: date })}
+                  />
+                )}
               </div>
 
               <div>
@@ -1106,19 +1133,15 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                   : item.image_url
                 const hasImage = hasBoth || Boolean(displayImageUrl)
                 const heroMedia = hasBoth ? (
-                  <div className={HERO_FRAME_CLASS}>
+                  <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-2xl border border-[#282828]">
                     <BeforeAfterSlider
                       beforeSrc={item.image_url!}
                       afterSrc={item.actualized_image_url!}
-                      contain
-                      className={`mx-auto w-full ${HERO_MAX_H_CLASS}`}
+                      className={HERO_MAX_H_CLASS}
                     />
                     <div className="absolute top-3 right-3 pointer-events-none">
                       {getStatusBadge(item.status)}
                     </div>
-                    <p className="absolute bottom-3 left-3 right-3 text-[10px] uppercase tracking-[0.2em] text-white/70 bg-black/40 rounded-full px-2.5 py-1 pointer-events-none w-fit max-w-[calc(100%-1.5rem)] truncate">
-                      Vision ↔ Actualized — drag to compare
-                    </p>
                   </div>
                 ) : displayImageUrl ? (
                   <div className={HERO_FRAME_CLASS}>
@@ -1147,6 +1170,14 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                       {item.description && (
                         <p className="text-neutral-300 text-base md:text-lg">{item.description}</p>
                       )}
+                      <p className="text-sm text-neutral-400">
+                        Added {new Date(item.created_at).toLocaleDateString()}
+                        {item.status === 'actualized' && item.actualized_at && (
+                          <span className="text-purple-300">
+                            {' '}· Actualized {new Date(item.actualized_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </p>
                       {item.categories && item.categories.length > 0 && (
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs text-neutral-500">Life Category:</span>
@@ -1174,7 +1205,11 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                             size="sm"
                             className="w-full sm:w-auto"
                             onClick={() => {
-                              setFormData(prev => ({ ...prev, status: 'actualized' }))
+                              setFormData(prev => ({
+                                ...prev,
+                                status: 'actualized',
+                                actualized_on: prev.actualized_on || todayDateInput(),
+                              }))
                               setIsEditing(true)
                             }}
                           >
