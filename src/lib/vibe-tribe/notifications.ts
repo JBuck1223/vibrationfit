@@ -1,7 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-
-export type VibeNotificationType = 'comment' | 'reply' | 'mention' | 'heart'
-export type VibeNotificationContext = 'post' | 'comment'
+import type { VibeNotificationContext, VibeNotificationType } from '@/lib/vibe-tribe/types'
 
 export interface VibeNotificationRecipient {
   userId: string
@@ -14,6 +12,7 @@ const RANK: Record<VibeNotificationType, number> = {
   reply: 2,
   comment: 1,
   heart: 0,
+  post: 0,
 }
 
 function offer(
@@ -52,6 +51,28 @@ export function buildCommentNotificationRecipients(input: {
 
   for (const mentionedId of input.mentionedUserIds) {
     offer(chosen, input.actorId, mentionedId, 'mention', 'comment')
+  }
+
+  return Array.from(chosen.values())
+}
+
+/**
+ * Every other active member hears about a new post.
+ * A mention replaces the generic post notice for that person.
+ */
+export function buildNewPostRecipients(input: {
+  actorId: string
+  memberIds: string[]
+  mentionedUserIds: string[]
+}): VibeNotificationRecipient[] {
+  const chosen = new Map<string, VibeNotificationRecipient>()
+
+  for (const memberId of input.memberIds) {
+    offer(chosen, input.actorId, memberId, 'post', 'post')
+  }
+
+  for (const mentionedId of input.mentionedUserIds) {
+    offer(chosen, input.actorId, mentionedId, 'mention', 'post')
   }
 
   return Array.from(chosen.values())

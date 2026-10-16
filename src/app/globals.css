@@ -48,6 +48,30 @@ html[data-native-shell] {
 }
 html[data-native-shell] body {
   overscroll-behavior-y: none;
+  /* The status bar overlays the WebView; start content below it. */
+  padding-top: env(safe-area-inset-top, 0px);
+}
+/* Solid strip behind the status bar so scrolled content never shows under the clock. */
+html[data-native-shell] body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: #000;
+  z-index: 100000;
+  pointer-events: none;
+}
+/* Sticky chrome (Header, AreaBar) pins below the status bar instead of under it. */
+html[data-native-shell] .sticky.top-0 {
+  top: env(safe-area-inset-top, 0px);
+}
+/* Body padding already covers the inset; don't count it twice. */
+@media (max-width: 767px) {
+  html[data-native-shell] div.mobile-menu-clearance {
+    padding-top: calc(0.75rem + 3.75rem) !important;
+  }
 }
 /* Opt-out hook for marketing-only UI (pricing, signup, upsells). */
 html[data-native-shell] .hide-in-native {

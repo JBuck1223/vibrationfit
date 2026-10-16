@@ -4,6 +4,7 @@ import { generateImage } from '@/lib/services/imageService'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 import { getHouseholdContext } from '@/lib/household/context'
 import { getShareAllMemberIds } from '@/lib/household/sharing'
+import { nextManifestationSortOrder } from '@/lib/manifestations/board-order'
 
 // Image generation (fal/DALL-E) often takes 20-60s; avoid Vercel killing the request
 export const maxDuration = 120
@@ -59,7 +60,9 @@ export async function GET(request: NextRequest) {
       query = query.or(conditions.join(','))
     }
 
-    const { data: items, error } = await query.order('created_at', { ascending: false })
+    const { data: items, error } = await query
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching vision board items:', error)
@@ -174,6 +177,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const sortOrder = await nextManifestationSortOrder(supabase, user.id)
+
     // Create vision board item
     const { data: newItem, error: insertError } = await supabase
       .from('manifestations')
@@ -185,6 +190,7 @@ export async function POST(request: NextRequest) {
         categories: categories || [],
         status: status || 'active',
         household_id: householdId,
+        sort_order: sortOrder,
       })
       .select()
       .single()

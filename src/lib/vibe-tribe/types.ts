@@ -107,7 +107,7 @@ export interface PostsListResponse {
   total: number
 }
 
-export type VibeNotificationType = 'comment' | 'reply' | 'mention' | 'heart'
+export type VibeNotificationType = 'comment' | 'reply' | 'mention' | 'heart' | 'post'
 export type VibeNotificationContext = 'post' | 'comment'
 
 export interface VibeNotification {

@@ -11,8 +11,15 @@ import type { CapacitorConfig } from '@capacitor/cli'
  *   CAP_SERVER_URL=http://192.168.1.50:3000 npx cap sync
  * (use your Mac's LAN IP; localhost does not resolve from a device)
  */
-const serverUrl = process.env.CAP_SERVER_URL || 'https://vibrationfit.com'
-const isLocalDev = /^http:\/\//.test(serverUrl)
+const serverOrigin = process.env.CAP_SERVER_URL || 'https://vibrationfit.com'
+const isLocalDev = /^http:\/\//.test(serverOrigin)
+
+/**
+ * Entry point. Members-only: land on the dashboard, which server-redirects
+ * to /auth/login when signed out. Never the marketing homepage; its hero
+ * video does not paint in WKWebView and the app shows a black screen.
+ */
+const serverUrl = `${serverOrigin.replace(/\/$/, '')}/dashboard`
 
 const config: CapacitorConfig = {
   appId: 'com.vibrationfit.app',
@@ -40,12 +47,16 @@ const config: CapacitorConfig = {
       'vibrationfit.com',
       '*.vibrationfit.com',
       '*.supabase.co',
-      ...(isLocalDev ? [new URL(serverUrl).hostname] : []),
+      ...(isLocalDev ? [new URL(serverOrigin).hostname] : []),
     ],
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 0,
+      // NativeShellBridge hides the splash as soon as the web app mounts.
+      // This is only the ceiling, so a dead network never traps the splash.
+      launchShowDuration: 4000,
+      launchAutoHide: true,
+      launchFadeOutDuration: 200,
       backgroundColor: '#000000',
       splashFullScreen: true,
       splashImmersive: true,

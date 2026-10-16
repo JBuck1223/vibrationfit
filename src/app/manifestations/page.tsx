@@ -1,6 +1,23 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  type SortingStrategy,
+} from '@dnd-kit/sortable'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -18,6 +35,9 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown, Users, Home, Play } from 'lucide-react'
+import { BoardDragHandle, BoardPhotoTile, SortableBoardItem } from '@/components/manifestations-studio/SortableBoardItem'
+import { compareBoardOrder, reorderOwnedItems } from '@/lib/manifestations/board-order'
+import { resolveEditedTimestamp, toLocalDateInput, todayDateInput } from '@/lib/manifestations/dates'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
@@ -25,26 +45,40 @@ import { VisionBoardSlideshow } from '@/components/VisionBoardSlideshow'
 import { colors } from '@/lib/design-system/tokens'
 import { toast } from 'sonner'
 
-// Hook to get responsive column count
-function useColumnCount() {
-  const [columnCount, setColumnCount] = useState(1)
-  
+function useIsPhoneGrid() {
+  const [isPhone, setIsPhone] = useState(false)
+
   useEffect(() => {
-    const updateColumnCount = () => {
-      const width = window.innerWidth
-      if (width >= 1280) setColumnCount(4) // xl
-      else if (width >= 1024) setColumnCount(3) // lg
-      else if (width >= 640) setColumnCount(2) // sm
-      else setColumnCount(1)
-    }
-    
-    updateColumnCount()
-    window.addEventListener('resize', updateColumnCount)
-    return () => window.removeEventListener('resize', updateColumnCount)
+    const query = window.matchMedia('(max-width: 639px)')
+    const update = () => setIsPhone(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
   }, [])
-  
+
+  return isPhone
+}
+
+function useBoardColumnCount() {
+  const [columnCount, setColumnCount] = useState(4)
+
+  useEffect(() => {
+    const update = () => {
+      const width = window.innerWidth
+      if (width >= 1280) setColumnCount(4)
+      else if (width >= 1024) setColumnCount(3)
+      else setColumnCount(2)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+
   return columnCount
 }
+
+/** Leave masonry items in place while dragging. A grid strategy opens gaps between mixed heights. */
+const masonrySortingStrategy: SortingStrategy = () => null
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active', color: 'primary' },
@@ -53,6 +87,26 @@ const STATUS_OPTIONS = [
 ]
 
 const BOARD_FILTERS_STORAGE_KEY = 'vf-manifestations-board-filters'
+const PHONE_BOARD_MODE_KEY = 'vf-manifestations-phone-board-mode'
+
+function readPhoneBoardMode(): 'clean' | 'detail' | null {
+  try {
+    const saved = sessionStorage.getItem(PHONE_BOARD_MODE_KEY)
+    if (saved === 'clean' || saved === 'detail') return saved
+  } catch {
+    // Ignore private-mode storage failures
+  }
+  return null
+}
+
+function persistPhoneBoardMode(mode: 'clean' | 'detail') {
+  try {
+    if (!window.matchMedia('(max-width: 639px)').matches) return
+    sessionStorage.setItem(PHONE_BOARD_MODE_KEY, mode)
+  } catch {
+    // Ignore quota / private-mode failures
+  }
+}
 const VALID_BOARD_STATUSES = new Set(['all', 'active', 'actualized', 'inactive'])
 
 type PersistedBoardFilters = {
@@ -188,7 +242,13 @@ export default function VisionBoardPage() {
   const [isIntensivePath, setIsIntensivePath] = useState(false)
   useEffect(() => { setIsIntensivePath(pathname.startsWith('/intensive/')) }, [pathname])
   const { stats: practiceStats } = useAreaStats('vision-board')
-  const columnCount = useColumnCount()
+  const isPhoneGrid = useIsPhoneGrid()
+  const boardColumnCount = useBoardColumnCount()
+  const boardSensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
   const [items, setItems] = useState<any[]>([])
   const [scope, setScope] = useState<HouseholdScope>(
     searchParams.get('scope') === 'household' ? 'all' : 'me'
@@ -216,9 +276,16 @@ export default function VisionBoardPage() {
     categories: string[]
     actualization_story: string
     shareWithHousehold: boolean
+    added_on: string
+    actualized_on: string
   } | null>(null)
   const [saving, setSaving] = useState(false)
   const [boardMode, setBoardMode] = useState<'clean' | 'detail'>('detail')
+
+  useLayoutEffect(() => {
+    if (!window.matchMedia('(max-width: 639px)').matches) return
+    setBoardMode(readPhoneBoardMode() ?? 'clean')
+  }, [])
   const [detailModalIndex, setDetailModalIndex] = useState<number | null>(null)
   const [editFile, setEditFile] = useState<File | null>(null)
   const [editImageSource, setEditImageSource] = useState<'upload' | 'ai'>('upload')
@@ -446,19 +513,57 @@ export default function VisionBoardPage() {
       const statusMatch = selectedStatuses.includes('all') || selectedStatuses.includes(item.status)
       return categoryMatch && statusMatch
     })
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort((a, b) => {
+      if (scope === 'all') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+      return compareBoardOrder(a, b)
+    })
 
-  // Distribute items horizontally across columns (row-first, then down)
-  // This creates Pinterest-style masonry that fills across the top first
-  const columnizedItems = useMemo(() => {
-    const columns: any[][] = Array.from({ length: columnCount }, () => [])
-    filteredItems.forEach((item, index) => {
-      // Round-robin distribution: item 0 -> col 0, item 1 -> col 1, etc.
-      const columnIndex = index % columnCount
-      columns[columnIndex].push({ ...item, originalIndex: index })
+  const boardColumns = useMemo(() => {
+    const withIndex = filteredItems.map((item, index) => ({ ...item, originalIndex: index }))
+    if (isPhoneGrid) return [withIndex]
+    const columns: typeof withIndex[] = Array.from({ length: boardColumnCount }, () => [])
+    withIndex.forEach((item, index) => {
+      columns[index % boardColumnCount].push(item)
     })
     return columns
-  }, [filteredItems, columnCount])
+  }, [filteredItems, isPhoneGrid, boardColumnCount])
+
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+  const filteredItemsRef = useRef(filteredItems)
+  filteredItemsRef.current = filteredItems
+
+  const canReorder = scope === 'me' && !isSnapshotMode && !bulkMode && !editingItemId && !(isPhoneGrid && boardMode === 'detail')
+
+  const handleBoardDragEnd = async (event: DragEndEvent) => {
+    if (!canReorder) return
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const current = filteredItemsRef.current
+    const oldIndex = current.findIndex((item) => item.id === active.id)
+    const newIndex = current.findIndex((item) => item.id === over.id)
+    if (oldIndex < 0 || newIndex < 0) return
+
+    const orderedIds = arrayMove(current, oldIndex, newIndex).map((item) => item.id)
+    const previous = itemsRef.current
+    setItems(reorderOwnedItems(previous, orderedIds))
+
+    try {
+      const res = await fetch('/api/manifestations/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds }),
+      })
+      if (!res.ok) throw new Error('reorder failed')
+    } catch (error) {
+      console.error('Error saving board order:', error)
+      setItems(previous)
+      toast.error('Could not save the new order')
+    }
+  }
 
 
   const totalItems = boardItems?.length || 0
@@ -797,7 +902,9 @@ export default function VisionBoardPage() {
       status: item.status,
       categories: item.categories || [],
       actualization_story: item.actualization_story || '',
-      shareWithHousehold: !!item.household_id
+      shareWithHousehold: !!item.household_id,
+      added_on: toLocalDateInput(item.created_at),
+      actualized_on: toLocalDateInput(item.actualized_at) || (item.status === 'actualized' ? todayDateInput() : ''),
     })
     setEditAudioRecordings(
       Array.isArray(item.audio_recordings) ? [...item.audio_recordings] : []
@@ -939,6 +1046,11 @@ export default function VisionBoardPage() {
         nextHouseholdId = editFormData.shareWithHousehold ? household.id : null
       }
 
+      const addedAt = resolveEditedTimestamp(currentItem?.created_at, editFormData.added_on)
+      const actualizedAt = editFormData.status === 'actualized'
+        ? (resolveEditedTimestamp(currentItem?.actualized_at, editFormData.actualized_on) ?? new Date().toISOString())
+        : currentItem?.actualized_at
+
       const { error } = await supabase
         .from('manifestations')
         .update({
@@ -950,9 +1062,8 @@ export default function VisionBoardPage() {
           categories: editFormData.categories,
           household_id: nextHouseholdId,
           actualization_story: editFormData.status === 'actualized' ? editFormData.actualization_story : null,
-          actualized_at: editFormData.status === 'actualized' && currentItem?.status !== 'actualized'
-            ? new Date().toISOString()
-            : currentItem?.actualized_at,
+          created_at: addedAt ?? currentItem?.created_at,
+          actualized_at: actualizedAt,
           audio_recordings: editAudioRecordings
         })
         .eq('id', itemId)
@@ -980,9 +1091,8 @@ export default function VisionBoardPage() {
                 household_id: nextHouseholdId,
                 isShared: !!nextHouseholdId,
                 actualization_story: editFormData.status === 'actualized' ? editFormData.actualization_story : null,
-                actualized_at: editFormData.status === 'actualized' && i.status !== 'actualized'
-                  ? new Date().toISOString()
-                  : i.actualized_at,
+                created_at: addedAt ?? i.created_at,
+                actualized_at: actualizedAt,
                 audio_recordings: editAudioRecordings,
                 updated_at: new Date().toISOString()
               }
@@ -1170,7 +1280,11 @@ export default function VisionBoardPage() {
                         ...editFormData,
                         status: status.value,
                         actualization_story:
-                          status.value === 'actualized' ? editFormData.actualization_story : ''
+                          status.value === 'actualized' ? editFormData.actualization_story : '',
+                        actualized_on:
+                          status.value === 'actualized'
+                            ? (editFormData.actualized_on || todayDateInput())
+                            : editFormData.actualized_on,
                       })
                     }
                     className={`px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-2 flex-1 ${
@@ -1191,6 +1305,21 @@ export default function VisionBoardPage() {
                 ))}
               </div>
             </section>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <DatePicker
+                label="Added"
+                value={editFormData.added_on}
+                onChange={(date) => setEditFormData({ ...editFormData, added_on: date })}
+              />
+              {editFormData.status === 'actualized' && (
+                <DatePicker
+                  label="Actualized"
+                  value={editFormData.actualized_on}
+                  onChange={(date) => setEditFormData({ ...editFormData, actualized_on: date })}
+                />
+              )}
+            </div>
 
             {household?.isMultiMember && (item.isMine ?? true) && (
               <section className="space-y-2">
@@ -1594,7 +1723,13 @@ export default function VisionBoardPage() {
               <button
                 key={status.value}
                 type="button"
-                onClick={() => setEditFormData({ ...editFormData, status: status.value })}
+                onClick={() => setEditFormData({
+                  ...editFormData,
+                  status: status.value,
+                  actualized_on: status.value === 'actualized'
+                    ? (editFormData.actualized_on || todayDateInput())
+                    : editFormData.actualized_on,
+                })}
                 className={`px-2 py-1.5 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 flex-1 ${
                   editFormData.status === status.value
                     ? status.value === 'active'
@@ -1612,6 +1747,21 @@ export default function VisionBoardPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <DatePicker
+            label="Added"
+            value={editFormData.added_on}
+            onChange={(date) => setEditFormData({ ...editFormData, added_on: date })}
+          />
+          {editFormData.status === 'actualized' && (
+            <DatePicker
+              label="Actualized"
+              value={editFormData.actualized_on}
+              onChange={(date) => setEditFormData({ ...editFormData, actualized_on: date })}
+            />
+          )}
         </div>
 
         {/* Actualization Story + Evidence Image */}
@@ -1800,7 +1950,7 @@ export default function VisionBoardPage() {
       )}
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-400">
-        <span>Created: {new Date(item.created_at).toLocaleDateString()}</span>
+        <span>Added: {new Date(item.created_at).toLocaleDateString()}</span>
         {item.actualized_at && (
           <span className="text-purple-400">Actualized: {new Date(item.actualized_at).toLocaleDateString()}</span>
         )}
@@ -2089,7 +2239,7 @@ export default function VisionBoardPage() {
             <div className="flex items-center gap-1">
               {/* Board Mode Toggle */}
               <button
-                onClick={() => { setBoardMode('clean'); setExpandedItemId(null); cancelEditing() }}
+                onClick={() => { setBoardMode('clean'); persistPhoneBoardMode('clean'); setExpandedItemId(null); cancelEditing() }}
                 className={`p-2.5 rounded-full transition-all ${
                   boardMode === 'clean'
                     ? 'bg-[#39FF14] text-black shadow-lg'
@@ -2100,7 +2250,7 @@ export default function VisionBoardPage() {
                 <Grid className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setBoardMode('detail')}
+                onClick={() => { setBoardMode('detail'); persistPhoneBoardMode('detail') }}
                 className={`p-2.5 rounded-full transition-all ${
                   boardMode === 'detail'
                     ? 'bg-[#39FF14] text-black shadow-lg'
@@ -2250,15 +2400,66 @@ export default function VisionBoardPage() {
         ) : filteredItems && filteredItems.length > 0 ? (
           <>
             {viewMode === 'grid' ? (
-              /* Grid View - Masonry with Clean/Detail modes */
-              <div className="flex gap-4 md:gap-6 w-full">
-                {columnizedItems.map((column, columnIndex) => (
-                  <div key={columnIndex} className="flex-1 min-w-0 flex flex-col gap-4 md:gap-6">
+              <DndContext
+                sensors={boardSensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleBoardDragEnd}
+              >
+                {canReorder && (
+                  <p className="mb-3 text-center text-xs text-neutral-500">
+                    {isPhoneGrid && boardMode === 'clean' ? 'Hold a photo, then drag to reorder.' : 'Drag the handle on a photo to reorder.'}
+                  </p>
+                )}
+                <SortableContext
+                  items={filteredItems.map((boardItem) => boardItem.id)}
+                  strategy={isPhoneGrid && boardMode === 'clean' ? rectSortingStrategy : masonrySortingStrategy}
+                >
+                  <div className={isPhoneGrid ? 'contents' : 'flex w-full items-start gap-4 md:gap-6'}>
+                    {boardColumns.map((column, columnIndex) => (
+                      <div
+                        key={columnIndex}
+                        className={isPhoneGrid
+                          ? boardMode === 'clean'
+                            ? 'grid grid-cols-3 gap-0.5'
+                            : 'flex flex-col gap-3'
+                          : 'flex min-w-0 flex-1 flex-col gap-4 md:gap-6'
+                        }
+                      >
                     {column.map((item) => {
                       const isExpanded = expandedItemId === item.id
                       const isEditing = editingItemId === item.id
                       const isOpen =
                         (isExpanded || isEditing) && !(lightboxOpen && editingItemId === item.id)
+
+                      return (
+                        <SortableBoardItem
+                          key={item.id}
+                          id={item.id}
+                          disabled={!canReorder}
+                          className="w-full min-w-0"
+                        >
+                          {({ attributes, listeners }) => {
+                      if (isPhoneGrid && boardMode === 'clean') {
+                        const photoUrl = item.image_url
+                          || (item.status === 'actualized' ? item.actualized_image_url : null)
+                        const afterUrl = item.status === 'actualized' && item.image_url && item.actualized_image_url
+                          ? item.actualized_image_url
+                          : null
+                        return (
+                          <BoardPhotoTile
+                            name={item.name}
+                            imageUrl={photoUrl || null}
+                            afterImageUrl={afterUrl}
+                            status={item.status}
+                            selected={selectedItemIds.has(item.id)}
+                            bulkMode={bulkMode}
+                            canReorder={canReorder}
+                            attributes={attributes}
+                            listeners={listeners}
+                            onPress={() => bulkMode ? toggleItemSelection(item.id) : openItem(item)}
+                          />
+                        )
+                      }
 
                       if (boardMode === 'clean') {
                         const isSelected = selectedItemIds.has(item.id)
@@ -2279,10 +2480,14 @@ export default function VisionBoardPage() {
                                 )}
                               </div>
                             )}
+                            {canReorder && (
+                              <BoardDragHandle attributes={attributes} listeners={listeners} />
+                            )}
                             {(item.status === 'actualized' && item.actualized_image_url && item.image_url) ? (
                               <BeforeAfterSlider
                                 beforeSrc={item.image_url}
                                 afterSrc={item.actualized_image_url}
+                                stretch
                               />
                             ) : (item.status === 'actualized' && item.actualized_image_url) ? (
                               <img src={item.actualized_image_url} alt={item.name} className="w-full max-w-full h-auto object-cover block" loading="lazy" />
@@ -2315,10 +2520,14 @@ export default function VisionBoardPage() {
                                 )}
                               </div>
                             )}
+                            {canReorder && (
+                              <BoardDragHandle attributes={attributes} listeners={listeners} />
+                            )}
                             {(item.status === 'actualized' && item.actualized_image_url && item.image_url) ? (
                               <BeforeAfterSlider
                                 beforeSrc={item.image_url}
                                 afterSrc={item.actualized_image_url}
+                                stretch
                               />
                             ) : (item.status === 'actualized' && item.actualized_image_url) ? (
                               <img src={item.actualized_image_url} alt={item.name} className="w-full max-w-full h-auto object-cover block" loading="lazy" />
@@ -2401,10 +2610,15 @@ export default function VisionBoardPage() {
                           </div>
                         </div>
                       )
+                          }}
+                        </SortableBoardItem>
+                      )
                     })}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             ) : (
               /* List View - Mobile-First with inline expand/edit */
               <div className="space-y-3 md:space-y-4">
@@ -2471,7 +2685,7 @@ export default function VisionBoardPage() {
                         </div>
 
                         {/* Item Details */}
-                        <div className={`flex-1 min-w-0 overflow-hidden ${bulkMode ? 'cursor-pointer' : ''}`} onClick={() => bulkMode && toggleItemSelection(item.id)}>
+                        <div className={`min-w-0 md:flex-1 ${bulkMode ? 'cursor-pointer' : ''}`} onClick={() => bulkMode && toggleItemSelection(item.id)}>
                           {/* Title row with action icons */}
                           <div className="flex items-start gap-2 mb-2">
                             <div
@@ -2537,7 +2751,7 @@ export default function VisionBoardPage() {
                           {!isEditing && (
                             <div className="flex flex-wrap items-center gap-4">
                               <div className="flex items-center gap-2 text-sm">
-                                <span className="font-medium text-white">Created:</span>
+                                <span className="font-medium text-white">Added:</span>
                                 <span className="text-white px-3 py-1 border-2 border-neutral-600 rounded-lg">{new Date(item.created_at).toLocaleDateString()}</span>
                               </div>
                               {item.categories && item.categories.length > 0 && (
@@ -2795,7 +3009,7 @@ export default function VisionBoardPage() {
                         )
                       })}
                       <span className="text-xs text-neutral-500">
-                        Created {new Date(currentItem.created_at).toLocaleDateString()}
+                        Added {new Date(currentItem.created_at).toLocaleDateString()}
                       </span>
                       {currentItem.actualized_at && (
                         <span className="text-xs text-purple-400">
@@ -3002,7 +3216,7 @@ export default function VisionBoardPage() {
                           )
                         })}
                         <span className="text-xs text-neutral-500">
-                          Created {new Date(item.created_at).toLocaleDateString()}
+                          Added {new Date(item.created_at).toLocaleDateString()}
                         </span>
                         {item.actualized_at && (
                           <span className="text-xs text-purple-400">
