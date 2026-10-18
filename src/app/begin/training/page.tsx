@@ -10,6 +10,7 @@ import {
   TRAINING_PHASES,
   TRAINING_STEPS,
 } from '@/lib/life-activation/steps'
+import { withWalkthroughStart } from '@/lib/life-activation/walkthroughs'
 
 export default function BeginTrainingPage() {
   const router = useRouter()
@@ -38,7 +39,11 @@ export default function BeginTrainingPage() {
     if (!started) {
       await startTraining()
     }
-    router.push(step.completed ? step.viewHref : step.href)
+    if (step.completed) {
+      router.push(step.viewHref)
+      return
+    }
+    router.push(step.id === 'complete' ? step.href : withWalkthroughStart(step.href))
   }
 
   return (

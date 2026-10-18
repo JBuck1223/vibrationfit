@@ -13,6 +13,7 @@ import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
 import { MentionDropdown } from './MentionDropdown'
 import { EmojiPickerButton } from './EmojiPickerButton'
+import { VoiceInputButton } from './VoiceInputButton'
 import { scrollSafeAutoResize } from '@/lib/design-system/components/forms/auto-resize-utils'
 
 const ICON_MAP: Record<VibeTag, any> = {
@@ -287,9 +288,20 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                   setTimeout(() => fileInputRef.current?.click(), 200)
                 }}
                 className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                aria-label="Add video"
               >
                 <Video className="w-5 h-5" />
               </button>
+              <VoiceInputButton
+                value={content}
+                onChange={(next) => {
+                  setContent(next)
+                  setFocusOpen(true)
+                }}
+                join="paragraph"
+                disabled={submitting || focusOpen}
+                stopWhenDisabled
+              />
             </div>
           </div>
         </div>
@@ -467,6 +479,14 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                 >
                   <Video className="w-5 h-5" />
                 </button>
+                <VoiceInputButton
+                  value={content}
+                  onChange={setContent}
+                  textareaRef={textareaRef}
+                  join="paragraph"
+                  autoResize
+                  disabled={submitting}
+                />
                 <EmojiPickerButton
                   textareaRef={textareaRef}
                   onInsert={(val) => setContent(val)}

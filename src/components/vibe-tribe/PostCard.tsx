@@ -13,6 +13,7 @@ import { CommentSection } from './CommentSection'
 import { format, isToday, isYesterday } from 'date-fns'
 import { renderContentWithMentions, MentionedUser } from '@/lib/vibe-tribe/render-mentions'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
+import { VoiceInputButton } from './VoiceInputButton'
 
 const EDIT_ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -61,6 +62,7 @@ export function PostCard({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxImageIndex, setLightboxImageIndex] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const canDelete = currentUserId === post.user_id || isAdmin
   const canEdit = currentUserId === post.user_id
@@ -446,6 +448,7 @@ export function PostCard({
           {isEditing ? (
             <div className="mt-2 space-y-3">
               <textarea
+                ref={editTextareaRef}
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14] resize-none"
@@ -510,6 +513,14 @@ export function PostCard({
               </div>
 
               <div className="flex items-center gap-2">
+                <VoiceInputButton
+                  value={editContent}
+                  onChange={setEditContent}
+                  textareaRef={editTextareaRef}
+                  join="paragraph"
+                  autoResize
+                  disabled={isSavingEdit}
+                />
                 <button
                   onClick={handleSaveEdit}
                   disabled={isSavingEdit || (!editContent.trim() && !(post.media_urls && post.media_urls.length > 0))}

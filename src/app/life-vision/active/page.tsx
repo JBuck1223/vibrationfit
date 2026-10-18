@@ -18,7 +18,7 @@ export default function ActiveVisionRedirectPage() {
       router.replace(`/life-vision/${activeVisionId}`)
     } else {
       redirected.current = true
-      router.replace('/life-vision/new')
+      router.replace('/life-vision/start')
     }
   }, [loading, activeVisionId, router])
 

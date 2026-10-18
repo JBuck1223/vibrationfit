@@ -68,10 +68,15 @@ export async function savePhaseSurvey(
     intensiveId: string | null
     answers: SurveyAnswers
     extras?: Record<string, string | null>
+    statsSnapshot?: object | null
   },
 ) {
-  const { userId, phase, intensiveId, answers, extras } = args
-  const payload = { ...answers, ...extras }
+  const { userId, phase, intensiveId, answers, extras, statsSnapshot } = args
+  const payload = {
+    ...answers,
+    ...extras,
+    ...(statsSnapshot ? { stats_snapshot: statsSnapshot } : {}),
+  }
   let lookup = supabase
     .from('intensive_responses')
     .select('id')

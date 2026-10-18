@@ -11,6 +11,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
 import { MentionDropdown } from './MentionDropdown'
 import { EmojiPickerButton } from './EmojiPickerButton'
+import { VoiceInputButton } from './VoiceInputButton'
 
 interface PostComposerProps {
   preselectedTag?: VibeTag
@@ -222,6 +223,13 @@ export function PostComposer({
               {files.length} file{files.length > 1 ? 's' : ''}
             </span>
           )}
+          <VoiceInputButton
+            value={content}
+            onChange={setContent}
+            textareaRef={textareaRef}
+            join="paragraph"
+            disabled={submitting}
+          />
           <EmojiPickerButton
             textareaRef={textareaRef}
             onInsert={(val) => setContent(val)}

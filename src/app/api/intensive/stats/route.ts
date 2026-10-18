@@ -16,6 +16,12 @@ import type { MapPillarActive } from '@/lib/map/types'
 
 export type { MapPillarActive }
 
+function onboardingStepDone(onboarding: unknown, step: string) {
+  if (!onboarding || typeof onboarding !== 'object' || Array.isArray(onboarding)) return false
+  const stamp = (onboarding as Record<string, unknown>)[step]
+  return typeof stamp === 'string' && stamp.length > 0
+}
+
 export interface IntensiveStats {
   // Vision Stats
   visions_count: number
@@ -82,6 +88,8 @@ export async function GET(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    let activationStartedAt: string | null = null
 
     // Initialize stats object
     const stats: IntensiveStats = {
@@ -262,26 +270,39 @@ export async function GET(request: NextRequest) {
 
     stats.vibe_tribe_engaged = vibeEngaged
 
-    const { data: checklist } = await supabase
-      .from('intensive_checklist')
-      .select('first_vibe_post, vibe_engagement, activation_protocol_completed, alignment_gym_toured')
-      .eq('user_id', user.id)
-      .in('status', ['pending', 'in_progress', 'completed'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    const [{ data: checklist }, { data: activationProgress }] = await Promise.all([
+      supabase
+        .from('intensive_checklist')
+        .select('first_vibe_post, vibe_engagement, activation_protocol_completed, alignment_gym_toured')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'in_progress', 'completed'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('life_activation_progress')
+        .select('onboarding, onboarding_started_at')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    ])
 
-    if (checklist?.vibe_engagement) {
+    const lifeOnboarding = activationProgress?.onboarding
+    const tribeDone = onboardingStepDone(lifeOnboarding, 'tribe')
+    const gymDone = onboardingStepDone(lifeOnboarding, 'gym')
+    const mapDone = onboardingStepDone(lifeOnboarding, 'map')
+    activationStartedAt = activationProgress?.onboarding_started_at ?? null
+
+    if (checklist?.vibe_engagement || tribeDone) {
       stats.vibe_tribe_engaged = true
     }
-    if (checklist?.first_vibe_post && stats.vibe_posts_count < 1) {
+    if ((checklist?.first_vibe_post || tribeDone) && stats.vibe_posts_count < 1) {
       stats.vibe_posts_count = 1
     }
 
     // ========================================================================
     // MAP (MY ALIGNMENT PLAN) STATS
     // ========================================================================
-    const intensiveMapStepCompleted = Boolean(checklist?.activation_protocol_completed)
+    const intensiveMapStepCompleted = Boolean(checklist?.activation_protocol_completed) || mapDone
     let activeMapCommitments: {
       category: string | null
       activity_type: string | null
@@ -314,10 +335,12 @@ export async function GET(request: NextRequest) {
     stats.map_all_pillars_active = mapStats.map_all_pillars_active
     stats.map_activated = intensiveMapStepCompleted || stats.map_all_pillars_active
 
-    // Unlock is after step 12 (gym tour) and 13 (MAP); MAP complete implies gym tour in normal flow
+    // MAP complete implies the gym tour in both the intensive and /begin flows
     stats.alignment_gym_toured =
       Boolean(checklist?.alignment_gym_toured) ||
-      Boolean(checklist?.activation_protocol_completed)
+      Boolean(checklist?.activation_protocol_completed) ||
+      gymDone ||
+      mapDone
     const gymCommitment = activeMapCommitments.find(c => c.activity_type === 'alignment_gym')
     stats.alignment_gym_map_commitment =
       Boolean(gymCommitment) ||
@@ -436,6 +459,16 @@ export async function GET(request: NextRequest) {
         const start = new Date(startDate)
         const now = new Date()
         stats.days_since_start = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+      }
+    }
+
+    if (stats.days_since_start === 0 && activationStartedAt) {
+      const start = new Date(activationStartedAt)
+      if (!Number.isNaN(start.getTime())) {
+        stats.days_since_start = Math.max(
+          0,
+          Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24)),
+        )
       }
     }
 

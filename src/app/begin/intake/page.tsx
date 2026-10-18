@@ -73,7 +73,7 @@ export default function BeginIntakePage() {
         answers,
       })
       await completeOnboardingStep('intake')
-      router.push('/life-vision/start')
+      router.push('/profile/create')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save intake')
     } finally {

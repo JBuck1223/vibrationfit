@@ -10,9 +10,9 @@ import {
   Lock,
   Map,
   Mic,
+  User,
   MessageSquarePlus,
   Rocket,
-  Settings,
   Target,
   Unlock,
   Video,
@@ -36,7 +36,7 @@ import {
 
 const STEP_ICONS: Record<OnboardingStepId, LucideIcon> = {
   welcome: Rocket,
-  account: Settings,
+  profile: User,
   intake: FileText,
   vision: Target,
   kit: Headphones,
@@ -94,7 +94,7 @@ export function LifeActivationSidebarCard({ collapsed }: { collapsed: boolean })
   const isCurrentPage = (href: string, id: OnboardingStepId) => {
     const path = pathOf(href)
     if (pathname === '/begin' && id === currentId) return true
-    if (id === 'account' && pathname.startsWith('/account')) return true
+    if (id === 'profile' && pathname.startsWith('/profile')) return true
     if (id === 'vision' && pathname.startsWith('/life-vision')) return true
     if (id === 'tribe' && pathname.startsWith('/vibe-tribe')) return true
     if (id === 'gym' && pathname.startsWith('/alignment-gym')) return true

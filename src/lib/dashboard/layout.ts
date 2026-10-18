@@ -36,9 +36,112 @@ export const dashboardLayoutSchema = z.object({
     .max(WIDGET_IDS.length * 2),
 })
 
-export const DEFAULT_LAYOUT: DashboardLayout = {
-  version: DASHBOARD_LAYOUT_VERSION,
-  widgets: WIDGET_META.map((w) => ({ id: w.id, size: w.defaultSize, visible: w.defaultVisible })),
+export const LAYOUT_PRESET_IDS = ['recommended', 'tools', 'social', 'stats'] as const
+export type LayoutPresetId = (typeof LAYOUT_PRESET_IDS)[number]
+
+export interface LayoutPreset {
+  id: LayoutPresetId
+  label: string
+  description: string
+  layout: DashboardLayout
+}
+
+/** Listed widgets show in order at the given width; every other widget is hidden. */
+function presetLayout(entries: [WidgetId, WidgetSize][]): DashboardLayout {
+  const listed = new Set(entries.map(([id]) => id))
+  return normalizeLayout({
+    version: DASHBOARD_LAYOUT_VERSION,
+    widgets: [
+      ...entries.map(([id, size]) => ({ id, size, visible: true })),
+      ...WIDGET_META.filter((w) => !listed.has(w.id)).map((w) => ({ id: w.id, size: w.defaultSize, visible: false })),
+    ],
+  })
+}
+
+/**
+ * Each preset fills every row to 12 columns at desktop width. "Recommended"
+ * is ordered by how many members use each area (vision audio, board, MAP,
+ * Life Vision, VIVA, journal, tribe, Daily Paper, abundance).
+ */
+export const LAYOUT_PRESETS: LayoutPreset[] = [
+  {
+    id: 'recommended',
+    label: 'Recommended',
+    description: 'What members use most, at the top.',
+    layout: presetLayout([
+      ['listen', 'two-thirds'],
+      ['life-vision', 'third'],
+      ['today-map', 'two-thirds'],
+      ['viva', 'third'],
+      ['manifestations', 'two-thirds'],
+      ['journal', 'third'],
+      ['vibe-tribe', 'third'],
+      ['daily-paper', 'third'],
+      ['streaks', 'third'],
+      ['momentum', 'half'],
+      ['alignment-gym', 'quarter'],
+      ['abundance', 'quarter'],
+    ]),
+  },
+  {
+    id: 'tools',
+    label: 'Tools',
+    description: 'Your daily practice: MAP, audio, paper, journal.',
+    layout: presetLayout([
+      ['today-map', 'two-thirds'],
+      ['daily-paper', 'third'],
+      ['listen', 'two-thirds'],
+      ['viva', 'third'],
+      ['journal', 'third'],
+      ['abundance', 'third'],
+      ['life-vision', 'third'],
+    ]),
+  },
+  {
+    id: 'social',
+    label: 'Social',
+    description: 'Tribe, live sessions, and shared wins first.',
+    layout: presetLayout([
+      ['vibe-tribe', 'two-thirds'],
+      ['alignment-gym', 'third'],
+      ['manifestations', 'two-thirds'],
+      ['viva', 'third'],
+      ['streaks', 'half'],
+      ['journal', 'quarter'],
+      ['abundance', 'quarter'],
+    ]),
+  },
+  {
+    id: 'stats',
+    label: 'Stats',
+    description: 'Momentum, streaks, and numbers up front.',
+    layout: presetLayout([
+      ['momentum', 'full'],
+      ['streaks', 'two-thirds'],
+      ['abundance', 'third'],
+      ['today-map', 'half'],
+      ['life-vision', 'quarter'],
+      ['tokens', 'quarter'],
+    ]),
+  },
+]
+
+export const LAYOUT_PRESETS_BY_ID = Object.fromEntries(LAYOUT_PRESETS.map((p) => [p.id, p])) as Record<
+  LayoutPresetId,
+  LayoutPreset
+>
+
+export const DEFAULT_LAYOUT: DashboardLayout = LAYOUT_PRESETS_BY_ID.recommended.layout
+
+/** The preset whose visible widgets (order and width) this layout matches, if any. */
+export function matchLayoutPreset(layout: DashboardLayout): LayoutPresetId | null {
+  const sig = (l: DashboardLayout) =>
+    l.widgets
+      .filter((w) => w.visible)
+      .map((w) => `${w.id}:${w.size}`)
+      .join('|')
+  const current = sig(layout)
+  return LAYOUT_PRESETS.find((p) => sig(p.layout) === current)?.id ?? null
 }
 
 /**

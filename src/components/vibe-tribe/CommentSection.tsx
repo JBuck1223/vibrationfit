@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
 import { Heart, Trash2, Send, Reply, X, Pencil } from 'lucide-react'
@@ -10,6 +10,7 @@ import { format, isToday, isYesterday } from 'date-fns'
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete'
 import { MentionDropdown } from './MentionDropdown'
 import { EmojiPickerButton } from './EmojiPickerButton'
+import { VoiceInputButton } from './VoiceInputButton'
 import { renderContentWithMentions } from '@/lib/vibe-tribe/render-mentions'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { scrollSafeAutoResize } from '@/lib/design-system/components/forms/auto-resize-utils'
@@ -46,6 +47,11 @@ export function CommentSection({
   useEffect(() => {
     fetchComments()
   }, [postId])
+
+  useLayoutEffect(() => {
+    if (!topCommentRef.current) return
+    scrollSafeAutoResize(topCommentRef.current, { maxHeight: Math.min(window.innerHeight * 0.4, 300) })
+  }, [newComment])
 
   useEffect(() => {
     if (!highlightCommentId || loading) return
@@ -282,6 +288,13 @@ export function CommentSection({
                 rows={1}
               />
             </div>
+            <VoiceInputButton
+              value={newComment}
+              onChange={setNewComment}
+              textareaRef={topCommentRef}
+              autoResize
+              disabled={submitting}
+            />
             <EmojiPickerButton
               textareaRef={topCommentRef}
               onInsert={(val) => setNewComment(val)}
@@ -423,6 +436,16 @@ function CommentItem({
     }
   }, [editing])
 
+  useLayoutEffect(() => {
+    if (!editing || !editInputRef.current) return
+    scrollSafeAutoResize(editInputRef.current, { maxHeight: Math.min(window.innerHeight * 0.4, 300) })
+  }, [editText, editing])
+
+  useLayoutEffect(() => {
+    if (!isReplying || !replyInputRef.current) return
+    scrollSafeAutoResize(replyInputRef.current, { maxHeight: Math.min(window.innerHeight * 0.4, 300) })
+  }, [replyText, isReplying])
+
   const handleSaveEdit = async () => {
     const trimmed = editText.trim()
     if (!trimmed || trimmed === originalText || saving) return
@@ -553,6 +576,13 @@ function CommentItem({
                 rows={1}
               />
               <div className="flex items-center gap-2 mt-2">
+                <VoiceInputButton
+                  value={editText}
+                  onChange={setEditText}
+                  textareaRef={editInputRef}
+                  autoResize
+                  disabled={saving}
+                />
                 <button
                   onClick={handleSaveEdit}
                   disabled={saving || !editText.trim() || editText.trim() === originalText}
@@ -659,6 +689,13 @@ function CommentItem({
                     rows={1}
                   />
                 </div>
+                <VoiceInputButton
+                  value={replyText}
+                  onChange={setReplyText}
+                  textareaRef={replyInputRef}
+                  autoResize
+                  disabled={submitting}
+                />
                 <EmojiPickerButton
                   textareaRef={replyInputRef}
                   onInsert={(val) => setReplyText(val)}

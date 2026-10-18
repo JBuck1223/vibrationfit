@@ -5,6 +5,7 @@ import { ArrowRight, Check, GraduationCap } from 'lucide-react'
 import { Button, ProgressBar } from '@/lib/design-system/components'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { TRAINING_STEPS, firstIncompleteTraining } from '@/lib/life-activation/steps'
+import { withWalkthroughStart } from '@/lib/life-activation/walkthroughs'
 import { cn } from '@/lib/utils'
 import { WidgetFrame, type WidgetChromeProps } from '../WidgetFrame'
 import { isWideWidget } from '@/lib/dashboard/widgets/registry'
@@ -25,7 +26,11 @@ export function ToolsTrainingWidget(chrome: WidgetChromeProps) {
     if (!started) {
       await startTraining()
     }
-    router.push(next?.href ?? '/begin/training')
+    if (!next) {
+      router.push('/begin/training')
+      return
+    }
+    router.push(next.id === 'complete' ? next.href : withWalkthroughStart(next.href))
   }
 
   return (

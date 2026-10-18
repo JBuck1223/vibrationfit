@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import confetti from 'canvas-confetti'
-import { Check, LayoutGrid, Plus, Settings2 } from 'lucide-react'
+import { Check, LayoutGrid, Plus, RotateCcw, Settings2, Undo2 } from 'lucide-react'
 import { Button, Container, Modal, Spinner, Stack } from '@/lib/design-system/components'
 import AnnualUpgradeBanner from '@/components/billing/AnnualUpgradeBanner'
 import { UnlockCelebrationModal } from '@/components/UnlockCelebrationModal'
@@ -15,6 +15,13 @@ import {
   markBeginCelebrated,
 } from '@/lib/life-activation/celebration'
 import { WIDGET_META_BY_ID, type WidgetId, type WidgetMeta } from '@/lib/dashboard/widgets/registry'
+import {
+  LAYOUT_PRESETS,
+  matchLayoutPreset,
+  type DashboardWidgetPlacement,
+  type LayoutPresetId,
+} from '@/lib/dashboard/layout'
+import { cn } from '@/lib/utils'
 import { DashboardProvider, type DashboardServerContext } from './DashboardContext'
 import { DashboardGrid } from './DashboardGrid'
 import { AddWidgetsModal } from './AddWidgetsModal'
@@ -48,7 +55,7 @@ function fireConfetti() {
 export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHomeProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { layout, isLoading, reorder, setVisible, setSize, reset } = useDashboardLayout()
+  const { layout, isLoading, reorder, setVisible, setSize, reset, applyPreset, restore } = useDashboardLayout()
   const { progress } = useLifeActivation()
 
   const [customizing, setCustomizing] = useState(false)
@@ -56,6 +63,7 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
   const [showWelcome, setShowWelcome] = useState(false)
   const [showUnlock, setShowUnlock] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [undoWidgets, setUndoWidgets] = useState<DashboardWidgetPlacement[] | null>(null)
 
   useEffect(() => setMounted(true), [])
 
@@ -81,15 +89,11 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
       switch (meta.availability) {
         case 'training-open':
           return Boolean(progress && !progress.training_completed_at && !progress.training_dismissed_at)
-        case 'calibration-call':
-          return Boolean(server.calibrationCall?.show && server.calibrationCall.session)
-        case 'intensive-graduate':
-          return Boolean(server.graduateChecklist?.isGraduate && server.graduateChecklist.progress)
         default:
           return true
       }
     },
-    [progress, server.calibrationCall, server.graduateChecklist],
+    [progress],
   )
 
   const available = useMemo(
@@ -100,6 +104,30 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
   const hiddenIds = useMemo(() => available.filter((w) => !w.visible).map((w) => w.id), [available])
 
   const handleAdd = (id: WidgetId) => setVisible(id, true)
+
+  const activePreset = useMemo(() => matchLayoutPreset(layout), [layout])
+
+  const handlePreset = (id: LayoutPresetId) => {
+    if (id === activePreset) return
+    setUndoWidgets(layout.widgets)
+    applyPreset(id)
+  }
+
+  const handleReset = () => {
+    setUndoWidgets(layout.widgets)
+    reset()
+  }
+
+  const handleUndo = () => {
+    if (!undoWidgets) return
+    restore(undoWidgets)
+    setUndoWidgets(null)
+  }
+
+  const finishCustomizing = () => {
+    setCustomizing(false)
+    setUndoWidgets(null)
+  }
 
   const greeting = mounted ? greetingFor(new Date()) : 'Welcome'
   const dateLabel = mounted
@@ -157,11 +185,15 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
             <div className="flex items-center gap-2">
               {customizing ? (
                 <>
+                  <Button variant="ghost" size="sm" onClick={handleReset} disabled={activePreset === 'recommended'}>
+                    <RotateCcw className="mr-1.5 h-4 w-4" />
+                    Reset to default
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
                     <Plus className="mr-1.5 h-4 w-4" />
                     Add widgets
                   </Button>
-                  <Button variant="primary" size="sm" onClick={() => setCustomizing(false)}>
+                  <Button variant="primary" size="sm" onClick={finishCustomizing}>
                     <Check className="mr-1.5 h-4 w-4" />
                     Done
                   </Button>
@@ -176,9 +208,48 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
           </div>
 
           {customizing ? (
-            <p className="-mt-2 text-xs text-neutral-500">
-              Drag a widget by its handle to reorder. Use the width stepper to make it narrower or wider, or hide it.
-            </p>
+            <div className="-mt-2 flex flex-col gap-3 rounded-2xl border border-white/[0.08] bg-black/20 p-3 md:p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                  Start from a layout
+                  {activePreset === null ? <span className="ml-2 normal-case tracking-normal text-neutral-500">(currently custom)</span> : null}
+                </p>
+                {undoWidgets ? (
+                  <Button variant="ghost" size="sm" onClick={handleUndo}>
+                    <Undo2 className="mr-1.5 h-4 w-4" />
+                    Undo
+                  </Button>
+                ) : null}
+              </div>
+              <div role="radiogroup" aria-label="Dashboard layout" className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                {LAYOUT_PRESETS.map((preset) => {
+                  const selected = activePreset === preset.id
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => handlePreset(preset.id)}
+                      className={cn(
+                        'rounded-xl border-2 px-3 py-2.5 text-left transition-colors',
+                        selected
+                          ? 'border-primary-500 bg-primary-500/10'
+                          : 'border-[#333] bg-[#1F1F1F] hover:border-neutral-500',
+                      )}
+                    >
+                      <span className={cn('block text-sm font-semibold', selected ? 'text-primary-500' : 'text-white')}>
+                        {preset.label}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-neutral-400">{preset.description}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-neutral-500">
+                Drag a widget by its handle to reorder. Use the width stepper to make it narrower or wider, or hide it.
+              </p>
+            </div>
           ) : null}
 
           {isLoading ? (
@@ -219,7 +290,7 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
         onClose={() => setAddOpen(false)}
         hiddenIds={hiddenIds}
         onAdd={handleAdd}
-        onReset={reset}
+        onReset={handleReset}
       />
     </DashboardProvider>
   )

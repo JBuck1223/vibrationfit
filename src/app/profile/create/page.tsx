@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Container, Stack, Card, Spinner, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { Sparkles, ChevronRight, RotateCcw, PlayCircle, FilePlus } from 'lucide-react'
 import { useProfileStudio } from '@/components/profile-studio/ProfileStudioContext'
 import { createClient } from '@/lib/supabase/client'
@@ -91,10 +91,37 @@ export default function ProfileCreatePage() {
   } = useGuidance()
   const [navigating, setNavigating] = useState(false)
   const [pendingAction, setPendingAction] = useState<'clone' | 'fresh' | null>(null)
+  const [firstProfileError, setFirstProfileError] = useState<string | null>(null)
+  const autoStartedRef = React.useRef(false)
 
   React.useEffect(() => {
     refreshVersions()
   }, [refreshVersions])
+
+  // With no profile yet, the only path is creating one, so skip the choice screen.
+  const startFirstProfile = React.useCallback(async () => {
+    setFirstProfileError(null)
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileData: {}, saveAsVersion: false, isDraft: false }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.profile?.id) throw new Error(data?.error || 'Could not create your profile')
+      await refreshVersions()
+      router.replace(`/profile/${data.profile.id}/edit`)
+    } catch (err) {
+      setFirstProfileError(err instanceof Error ? err.message : 'Could not create your profile')
+    }
+  }, [refreshVersions, router])
+
+  React.useEffect(() => {
+    if (loading || activeProfileId || autoStartedRef.current) return
+    autoStartedRef.current = true
+    if (draftId) router.replace(`/profile/${draftId}/edit`)
+    else void startFirstProfile()
+  }, [loading, activeProfileId, draftId, router, startFirstProfile])
 
   const cloneActiveAndEdit = async () => {
     setNavigating(true)
@@ -254,7 +281,16 @@ export default function ProfileCreatePage() {
     else if (pendingAction === 'fresh') handleStartFresh()
   }
 
-  if (loading) {
+  if (!loading && !activeProfileId && firstProfileError) {
+    return (
+      <Container className="flex min-h-[calc(100vh-10rem)] flex-col items-center justify-center gap-4">
+        <p className="text-sm text-[#ff8ba7]">{firstProfileError}</p>
+        <Button size="sm" onClick={() => void startFirstProfile()}>Try again</Button>
+      </Container>
+    )
+  }
+
+  if (loading || !activeProfileId) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <Spinner size="lg" />

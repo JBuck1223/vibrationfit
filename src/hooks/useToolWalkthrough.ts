@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import {
@@ -8,6 +8,8 @@ import {
   composeStudioSteps,
   getToolWalkthrough,
   isTrainingCompletionId,
+  WALKTHROUGH_START_PARAM,
+  WALKTHROUGH_START_VALUE,
   type ToolWalkthroughStep,
   type WalkthroughId,
 } from '@/lib/life-activation/walkthroughs'
@@ -48,7 +50,9 @@ export function useToolWalkthrough(stepId: WalkthroughId) {
   const [stepIndex, setStepIndex] = useState(0)
   const [hereStep, setHereStep] = useState<ToolWalkthroughStep | null>(null)
   const catalog = useMemo(() => getToolWalkthrough(stepId), [stepId])
-  const alreadyDone = Boolean(progress?.training[stepId])
+  const alreadyDone = Boolean(
+    progress?.training[stepId] || (stepId === 'profile' && progress?.onboarding.profile),
+  )
 
   useEffect(() => {
     const saved = readPersist(stepId)
@@ -78,6 +82,18 @@ export function useToolWalkthrough(stepId: WalkthroughId) {
     persist(true, 0, here)
     setActive(true)
   }, [pathname, persist, stepId])
+
+  const autoStartHandledRef = useRef(false)
+  useEffect(() => {
+    if (autoStartHandledRef.current || !progress || catalog.steps.length === 0) return
+    const url = new URL(window.location.href)
+    if (url.searchParams.get(WALKTHROUGH_START_PARAM) !== WALKTHROUGH_START_VALUE) return
+    autoStartHandledRef.current = true
+    url.searchParams.delete(WALKTHROUGH_START_PARAM)
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+    if (alreadyDone || readPersist(stepId)) return
+    start()
+  }, [alreadyDone, catalog.steps.length, progress, start, stepId])
 
   const toggle = useCallback(() => {
     setActive((prev) => {

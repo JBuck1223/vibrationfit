@@ -80,6 +80,16 @@ function s(
   return { id, title, body, target, href, room }
 }
 
+export const WALKTHROUGH_START_PARAM = 'tour'
+export const WALKTHROUGH_START_VALUE = 'start'
+
+/** Link into a room that opens its walk-through on arrival if the member has not finished it. */
+export function withWalkthroughStart(href: string): string {
+  const [base, hash] = href.split('#')
+  const sep = base.includes('?') ? '&' : '?'
+  return `${base}${sep}${WALKTHROUGH_START_PARAM}=${WALKTHROUGH_START_VALUE}${hash ? `#${hash}` : ''}`
+}
+
 export function splitWalkthroughHref(href: string): { pathname: string; search: URLSearchParams } {
   const url = new URL(href, 'http://walkthrough.local')
   return { pathname: url.pathname, search: url.searchParams }
@@ -228,7 +238,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
     id: 'profile',
     label: 'Profile',
     group: 'studio',
-    description: 'Legacy studio tour for members who already keep a Life Profile. Not part of Tools Training.',
+    description: 'Getting Started step. Update first, then View. Saving a profile and continuing checks it off.',
     route: '/profile/create',
     tabLabel: 'Update',
     sourceFile: WALKTHROUGH_SOURCE,
@@ -322,7 +332,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       s(
         'studio-tab-stories-create',
         'Create is where you make one',
-        'This is the room where you write a story, incantation, or SparkQuery. This walk-through will not write one or spend tokens.',
+        'This is the room where you write a story, incantation, or SparkQuery. This walk-through will not write one for you.',
         'AreaBar tab Create',
         '/story/new',
         'create',
@@ -346,7 +356,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       s(
         'stories-create-generate',
         'When you are ready',
-        'Generate or Create starts it. When VIVA writes, that uses tokens — only do it when you mean to. This walk-through will not press it.',
+        'Generate or Create starts it. VIVA writes from the source you picked. This walk-through will not press it.',
         'data-tour="stories-create-generate" on Generate / Create',
         '/story/new',
         'create',
@@ -422,7 +432,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       s(
         'studio-tab-manifestations-create',
         'Create adds one',
-        'This is where something gets a picture. Next we walk the paths. This walk-through will not open a form or spend tokens.',
+        'This is where something gets a picture. Next we walk the paths. This walk-through will not open a form for you.',
         'AreaBar tab Create',
         '/manifestations/create',
         'create',
@@ -446,7 +456,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       s(
         'manifestations-create-viva',
         'VIVA Ideas',
-        'VIVA reads your Life Vision and offers pictures. That uses tokens — only when you mean to.',
+        'VIVA reads your Life Vision and offers pictures. You choose which ones land on your board.',
         'data-tour="manifestations-create-viva" on VIVA Ideas',
         '/manifestations/create',
         'create',
@@ -715,7 +725,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       s(
         'studio-tab-audio-create',
         'Create makes audio',
-        'This is the room where you generate narration, record in your voice, mix, or write a song. This walk-through will not start a job or spend tokens.',
+        'This is the room where you generate narration, record in your voice, mix, or write a song. This walk-through will not start anything for you.',
         'AreaBar tab Create',
         '/audio/create',
         'create',
@@ -731,7 +741,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       s(
         'audio-create-generate',
         'Generate Voice Audio',
-        'VIVA narration of your Life Vision or a story. That uses tokens — only when you mean to.',
+        'VIVA narrates your Life Vision or a story so you can listen to it.',
         'data-tour="audio-create-generate" on Generate Voice Audio',
         '/audio/create',
         'create',
@@ -755,7 +765,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       s(
         'audio-create-songwriter',
         'Songwriter',
-        'Starts a song from your vision, journal, or life. That uses tokens — only when you mean to.',
+        'Starts a song from your vision, journal, or life. VIVA writes it with you.',
         'data-tour="audio-create-songwriter" on Songwriter',
         '/audio/create',
         'create',
