@@ -250,6 +250,12 @@ export const userNavigationGroups: NavGroup[] = [
         icon: UsersRound,
         description: 'Connect with the Vibration Fit community',
       },
+      {
+        name: 'Referrals',
+        href: '/referral',
+        icon: Share2,
+        description: 'Share your link and see who you brought in',
+      },
     ],
   },
   {

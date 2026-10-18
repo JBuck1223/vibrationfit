@@ -16,7 +16,7 @@ import { toTitleCase } from '@/lib/utils'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { sendSMS } from '@/lib/messaging/twilio'
 import { createAdminNotification } from '@/lib/admin/notifications'
-import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
+import { resolveReferralCode } from '@/lib/referral/helpers'
 import { ensureCustomerWithAttribution } from '@/lib/tracking/customer-attribution'
 import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
 import { OUTBOUND_URL } from '@/lib/urls'
@@ -1619,7 +1619,6 @@ export async function POST(request: NextRequest) {
                 const newPaid = (rp?.paid_conversions || 0) + 1
                 await supabaseAdmin.from('referral_participants').update({ paid_conversions: newPaid }).eq('id', referrer.id)
                 await supabaseAdmin.from('referral_invites').update({ status: 'converted', converted_at: new Date().toISOString() }).eq('participant_id', referrer.id).eq('referred_email', csEmail).in('status', ['sent', 'opened', 'clicked'])
-                await checkAndGrantRewards(supabaseAdmin, referrer.id, rp?.email_signups || 0, newPaid)
                 console.log('[webhook] Referral paid_conversion credited to', referrer.referral_code)
               }
             } catch (refErr) {
@@ -2512,7 +2511,6 @@ export async function POST(request: NextRequest) {
               const newPaid = (rp?.paid_conversions || 0) + 1
               await supabaseAdmin.from('referral_participants').update({ paid_conversions: newPaid }).eq('id', referrer.id)
               await supabaseAdmin.from('referral_invites').update({ status: 'converted', converted_at: new Date().toISOString() }).eq('participant_id', referrer.id).eq('referred_email', email).in('status', ['sent', 'opened', 'clicked'])
-              await checkAndGrantRewards(supabaseAdmin, referrer.id, rp?.email_signups || 0, newPaid)
               console.log('[webhook] Referral paid_conversion credited to', referrer.referral_code)
             }
           } catch (refErr) {
