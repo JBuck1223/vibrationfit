@@ -8,7 +8,7 @@ import { DEFAULT_CRM_SENDER } from '@/lib/crm/senders'
 import { triggerEvent } from '@/lib/messaging/events'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { createAdminNotification } from '@/lib/admin/notifications'
-import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
+import { resolveReferralCode } from '@/lib/referral/helpers'
 import { rateLimit } from '@/lib/rate-limit'
 
 /** Silent fake success so bots don't adapt when blocked. */
@@ -239,7 +239,6 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          await checkAndGrantRewards(supabase, referrer.id, newSignups, updated?.paid_conversions || 0)
           console.log('[leads] Referral credit: email_signup for referrer', referrer.referral_code)
         }
       } catch (refErr) {
