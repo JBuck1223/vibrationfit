@@ -54,6 +54,7 @@ export const WIDGET_IDS = [
   'alignment-gym',
   'life-vision',
   'tokens',
+  'referrals',
 ] as const
 
 export type WidgetId = (typeof WIDGET_IDS)[number]
@@ -171,6 +172,13 @@ export const WIDGET_META: WidgetMeta[] = [
     description: 'VIVA token balance for you and your household.',
     defaultSize: 'half',
     defaultVisible: false,
+  },
+  {
+    id: 'referrals',
+    title: 'Referrals',
+    description: 'Your share link and who it brought in.',
+    defaultSize: 'half',
+    defaultVisible: true,
   },
 ]
 

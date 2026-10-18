@@ -16,6 +16,7 @@ import { AlignmentGymWidget } from './AlignmentGymWidget'
 import { LifeVisionWidget } from './LifeVisionWidget'
 import { MomentumWidget } from './MomentumWidget'
 import { TokensWidget } from './TokensWidget'
+import { ReferralsWidget } from './ReferralsWidget'
 
 /** Widget id -> component. Metadata lives in src/lib/dashboard/widgets/registry.ts. */
 export const WIDGET_COMPONENTS: Record<WidgetId, WidgetComponent> = {
@@ -33,4 +34,5 @@ export const WIDGET_COMPONENTS: Record<WidgetId, WidgetComponent> = {
   'life-vision': LifeVisionWidget,
   momentum: MomentumWidget,
   tokens: TokensWidget,
+  referrals: ReferralsWidget,
 }
