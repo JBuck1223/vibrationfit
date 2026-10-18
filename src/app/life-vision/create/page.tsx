@@ -92,6 +92,11 @@ export default function LifeVisionCreatePage() {
     refreshVisions()
   }, [refreshVisions])
 
+  // With no Life Vision yet, Start From Scratch is the only path.
+  React.useEffect(() => {
+    if (!loading && !activeVisionId) router.replace('/life-vision/start')
+  }, [loading, activeVisionId, router])
+
   const handleRefineClick = () => {
     if (!hasDraft) {
       createFreshDraft()
@@ -137,7 +142,7 @@ export default function LifeVisionCreatePage() {
     }
   }
 
-  if (loading) {
+  if (loading || !activeVisionId) {
     return (
       <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <Spinner size="lg" />

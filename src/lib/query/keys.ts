@@ -85,6 +85,7 @@ export const keys = {
   videoSessions: ['video-sessions'] as const,
   areaActivations: ['area-activations'] as const,
   manifestations: ['manifestations'] as const,
+  referralDashboard: ['referral-dashboard'] as const,
 
   // Vibe Tribe
   vibeNotifications: ['vibe-notifications'] as const,

@@ -113,7 +113,7 @@ const QUICK_LINKS: QuickLink[] = [
   },
   {
     title: 'Referral',
-    description: 'Share your referral link and earn rewards',
+    description: 'Share your link and see who you brought in',
     href: '/referral',
     icon: Share2,
     iconColor: 'text-[#39FF14]',

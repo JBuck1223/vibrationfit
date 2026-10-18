@@ -14,6 +14,10 @@ export function UnlockExperience({
   transcript,
   onVideo,
   recordingId,
+  sharePrompt,
+  shareOptions,
+  sharing,
+  onSharingChange,
 }: {
   number: number
   question: string
@@ -23,6 +27,10 @@ export function UnlockExperience({
   transcript: string | null
   onVideo: (url: string, transcript?: string) => void
   recordingId?: string
+  sharePrompt: string
+  shareOptions: ReadonlyArray<{ value: string; label: string }>
+  sharing: string
+  onSharingChange: (value: string) => void
 }) {
   const [showText, setShowText] = useState(false)
 
@@ -103,6 +111,30 @@ export function UnlockExperience({
             </button>
           </>
         )}
+      </div>
+      <div className="mt-4">
+        <p className="text-xs text-neutral-400">{sharePrompt}</p>
+        <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={sharePrompt}>
+          {shareOptions.map((option) => {
+            const selected = sharing === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => onSharingChange(option.value)}
+                className={`rounded-full border px-3 py-1.5 text-sm ${
+                  selected
+                    ? 'border-primary-500 bg-primary-500/15 text-primary-300'
+                    : 'border-white/10 text-neutral-400 hover:border-white/25'
+                }`}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
         </div>
       </div>

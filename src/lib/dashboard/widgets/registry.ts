@@ -53,9 +53,8 @@ export const WIDGET_IDS = [
   'momentum',
   'alignment-gym',
   'life-vision',
-  'calibration-call',
-  'graduate-checklist',
   'tokens',
+  'referrals',
 ] as const
 
 export type WidgetId = (typeof WIDGET_IDS)[number]
@@ -69,7 +68,7 @@ export interface WidgetMeta {
   /** Pinned widgets always render first and cannot be moved or hidden. */
   pinned?: boolean
   /** Conditional widgets only exist for members matching this flag. */
-  availability?: 'always' | 'intensive-graduate' | 'calibration-call' | 'training-open'
+  availability?: 'always' | 'training-open'
 }
 
 /** Default order follows the daily rhythm: do today's thing, press play, log, reflect. */
@@ -82,22 +81,6 @@ export const WIDGET_META: WidgetMeta[] = [
     defaultVisible: true,
     pinned: true,
     availability: 'training-open',
-  },
-  {
-    id: 'calibration-call',
-    title: 'Calibration Call',
-    description: 'Your 1-on-1 vision calibration session.',
-    defaultSize: 'full',
-    defaultVisible: true,
-    availability: 'calibration-call',
-  },
-  {
-    id: 'graduate-checklist',
-    title: 'Graduate Checklist',
-    description: 'Getting started as an Intensive graduate.',
-    defaultSize: 'full',
-    defaultVisible: true,
-    availability: 'intensive-graduate',
   },
   {
     id: 'today-map',
@@ -189,6 +172,13 @@ export const WIDGET_META: WidgetMeta[] = [
     description: 'VIVA token balance for you and your household.',
     defaultSize: 'half',
     defaultVisible: false,
+  },
+  {
+    id: 'referrals',
+    title: 'Referrals',
+    description: 'Your share link and who it brought in.',
+    defaultSize: 'half',
+    defaultVisible: true,
   },
 ]
 

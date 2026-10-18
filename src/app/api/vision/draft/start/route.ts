@@ -27,6 +27,7 @@ import {
   type DraftSessionPayload,
 } from '@/lib/life-vision/draft-session'
 import { summarizeAreas } from '@/lib/life-vision/vision-director'
+import { prefillNowFromProfile } from '@/lib/life-vision/profile-now-prefill'
 
 /** Session + depth + per-area summary. The directed-flow card is fetched by
  *  the client via /api/vision/draft/turn { peek: true } so a page load never
@@ -77,6 +78,9 @@ export async function POST() {
       if (session.mode !== 'scratch') {
         await supabase.from('vision_draft_sessions').update({ mode: 'scratch' }).eq('id', session.id)
         session = { ...session, mode: 'scratch' }
+      }
+      if (await prefillNowFromProfile(supabase, user.id, session)) {
+        session = (await loadDraftSession(supabase, String(existingDraft.id))) ?? session
       }
       return NextResponse.json({ draft: existingDraft, ...withCoverage(session), existed: true })
     }
@@ -149,6 +153,9 @@ export async function POST() {
         })
       }
     }
+
+    const afterSeed = (await loadDraftSession(supabase, String(draft.id))) ?? session
+    await prefillNowFromProfile(supabase, user.id, afterSeed)
 
     // Keep the /begin dashboard pointed at this draft.
     if (!progress.onboarding.welcome) {

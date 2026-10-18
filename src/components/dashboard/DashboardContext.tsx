@@ -1,17 +1,6 @@
 'use client'
 
 import { createContext, useContext, type ReactNode } from 'react'
-import type { GraduateChecklistResult } from '@/lib/graduate-checklist'
-
-export interface CalibrationCallInfo {
-  show: boolean
-  session?: {
-    id: string | null
-    title: string
-    scheduled_at: string | null
-    join_link: string
-  }
-}
 
 /** Data the server page resolves once and hands to every widget. */
 export interface DashboardServerContext {
@@ -19,8 +8,6 @@ export interface DashboardServerContext {
   userEmail: string | null
   firstName: string | null
   userTimezone: string | null
-  calibrationCall: CalibrationCallInfo | null
-  graduateChecklist: GraduateChecklistResult | null
 }
 
 interface DashboardContextValue {

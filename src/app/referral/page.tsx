@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Container, Stack, Card, Button, Input, Badge, ProgressBar, Spinner } from '@/lib/design-system/components'
+import { Container, Stack, Card, Button, Input, Badge, Spinner } from '@/lib/design-system/components'
 import {
   Copy, Check, Share2, Mail, MessageCircle, Send,
-  Users, Zap, Target, Crown, Link2, Edit3, Gift, ChevronRight,
+  Users, Link2, Edit3, ChevronRight,
   Save, Pen, Smartphone,
 } from 'lucide-react'
 
@@ -20,17 +20,6 @@ interface Participant {
   second_degree_signups: number
 }
 
-interface Tier {
-  id: string
-  tier_name: string
-  tier_order: number
-  min_email_signups: number
-  min_paid_conversions: number
-  reward_type: string
-  reward_value: Record<string, number>
-  description: string
-}
-
 interface Invite {
   id: string
   referred_email: string
@@ -38,14 +27,6 @@ interface Invite {
   personalization: string | null
   status: string
   sent_at: string
-}
-
-interface RewardEarned {
-  id: string
-  tier_id: string
-  is_claimed: boolean
-  created_at: string
-  tier: Tier
 }
 
 interface PaidReferral {
@@ -58,10 +39,7 @@ interface PaidReferral {
 interface DashboardData {
   participant: Participant
   referralLink: string
-  stats: { totalClicks: number; paidConversions: number }
-  currentTier: Tier | null
-  tiers: Tier[]
-  rewardsEarned: RewardEarned[]
+  stats: { totalClicks: number; emailSignups: number; paidConversions: number; secondDegreeSignups: number }
   invites: Invite[]
   paidReferrals: PaidReferral[]
 }
@@ -70,8 +48,6 @@ const INTEREST_OPTIONS = [
   'Vision', 'Growth', 'Universal Law', 'Manifestation',
   'Mindset', 'Personal Development', 'Wellness',
 ]
-
-const TIER_ICONS = [Zap, Target, Crown, Gift]
 
 export default function ReferralPage() {
   const [loading, setLoading] = useState(true)
@@ -370,15 +346,12 @@ export default function ReferralPage() {
               </Button>
             </div>
           </Card>
-
-          {/* Tier preview */}
-          <TierPreview />
         </Stack>
       </Container>
     )
   }
 
-  const { participant, stats, tiers, currentTier, rewardsEarned, invites, paidReferrals } = dashboard
+  const { participant, stats, invites, paidReferrals } = dashboard
 
   return (
     <Container size="xl">
@@ -438,12 +411,13 @@ export default function ReferralPage() {
 
           {/* Stats row: 50/50 on md+, centered block on small screens */}
           <div className="mt-6 w-full max-w-md mx-auto md:max-w-none md:mx-0">
-            <div className="grid grid-cols-2 gap-3 md:gap-6 w-full">
+            <div className="grid grid-cols-3 gap-3 md:gap-6 w-full">
               <StatBox label="Clicks" value={stats.totalClicks} />
+              <StatBox label="Signups" value={stats.emailSignups} />
               <StatBox label="Paid referrals" value={stats.paidConversions} />
             </div>
             <p className="text-xs text-neutral-500 mt-3 text-center max-w-lg mx-auto md:max-w-2xl leading-relaxed">
-              Clicks are visits to your link. Paid referrals are completed purchases attributed to your code.
+              Clicks are visits to your link. Signups are people who left their email after clicking. Paid referrals are completed purchases attributed to your code.
             </p>
           </div>
         </Card>
@@ -679,57 +653,6 @@ export default function ReferralPage() {
           )}
         </Card>
 
-        {/* Progress Tracker */}
-        <Card className="p-4 md:p-6 lg:p-8">
-          <div className="flex items-center gap-2 mb-6">
-            <Target className="w-5 h-5 text-[#39FF14]" />
-            <h2 className="text-lg md:text-xl font-bold text-white">Your Progress</h2>
-            {currentTier && <Badge variant="success">{currentTier.tier_name}</Badge>}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {tiers.map((tier, i) => {
-              const Icon = TIER_ICONS[i] || Gift
-              const emailSignups = participant.email_signups
-              const earned = emailSignups >= tier.min_email_signups &&
-                             stats.paidConversions >= tier.min_paid_conversions
-              const conversionProgress = tier.min_paid_conversions > 0
-                ? Math.min((stats.paidConversions / tier.min_paid_conversions) * 100, 100) : 100
-
-              return (
-                <div
-                  key={tier.id}
-                  className={`rounded-xl border p-4 transition-all ${
-                    earned
-                      ? 'border-[#39FF14]/50 bg-[#39FF14]/5'
-                      : 'border-[#333] bg-[#1a1a1a]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <Icon className={`w-5 h-5 ${earned ? 'text-[#39FF14]' : 'text-neutral-500'}`} />
-                    <span className={`text-sm font-semibold ${earned ? 'text-[#39FF14]' : 'text-white'}`}>
-                      {tier.tier_name}
-                    </span>
-                  </div>
-
-                  {tier.min_paid_conversions > 0 && (
-                    <div className="mb-2">
-                      <div className="flex justify-between text-xs text-neutral-400 mb-1">
-                        <span>Paid referrals</span>
-                        <span>{Math.min(stats.paidConversions, tier.min_paid_conversions)}/{tier.min_paid_conversions}</span>
-                      </div>
-                      <ProgressBar value={conversionProgress} size="sm" variant={earned ? 'primary' : 'accent'} />
-                    </div>
-                  )}
-
-                  <p className="text-xs text-neutral-400 mt-2">{tier.description}</p>
-                  {earned && <Badge variant="success" className="mt-2">Earned</Badge>}
-                </div>
-              )
-            })}
-          </div>
-        </Card>
-
         {/* Your referrals: paid purchases from your link */}
         <Card className="p-4 md:p-6 lg:p-8">
           <div className="flex items-center gap-2 mb-4">
@@ -780,29 +703,6 @@ export default function ReferralPage() {
           )}
         </Card>
 
-        {/* Rewards Earned */}
-        {rewardsEarned.length > 0 && (
-          <Card className="p-4 md:p-6 lg:p-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Gift className="w-5 h-5 text-[#BF00FF]" />
-              <h2 className="text-lg md:text-xl font-bold text-white">Rewards Earned</h2>
-            </div>
-
-            <div className="space-y-2">
-              {rewardsEarned.map(reward => (
-                <div key={reward.id} className="flex items-center justify-between bg-[#1a1a1a] rounded-lg px-4 py-3 border border-[#333]">
-                  <div>
-                    <span className="text-sm text-white font-medium">{reward.tier?.tier_name}</span>
-                    <span className="text-xs text-neutral-400 ml-2">{reward.tier?.description}</span>
-                  </div>
-                  <Badge variant={reward.is_claimed ? 'neutral' : 'premium'}>
-                    {reward.is_claimed ? 'Claimed' : 'Available'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
       </Stack>
     </Container>
   )
@@ -822,41 +722,5 @@ function StatBox({ label, value }: { label: string; value: number }) {
       <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
       <div className="text-xs text-neutral-400">{label}</div>
     </div>
-  )
-}
-
-function TierPreview() {
-  const [tiers, setTiers] = useState<Tier[]>([])
-
-  useEffect(() => {
-    fetch('/api/referral/tiers')
-      .then(r => r.json())
-      .then(d => setTiers(d.tiers || []))
-      .catch(() => {})
-  }, [])
-
-  if (!tiers.length) return null
-
-  return (
-    <Card className="p-4 md:p-6 lg:p-8">
-      <div className="flex items-center gap-2 mb-6">
-        <Gift className="w-5 h-5 text-[#BF00FF]" />
-        <h2 className="text-lg md:text-xl font-bold text-white">Reward Tiers</h2>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        {tiers.map((tier, i) => {
-          const Icon = TIER_ICONS[i] || Gift
-          return (
-            <div key={tier.id} className="rounded-xl border border-[#333] bg-[#1a1a1a] p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className="w-5 h-5 text-neutral-400" />
-                <span className="text-sm font-semibold text-white">{tier.tier_name}</span>
-              </div>
-              <p className="text-xs text-neutral-400">{tier.description}</p>
-            </div>
-          )
-        })}
-      </div>
-    </Card>
   )
 }

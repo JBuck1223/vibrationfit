@@ -30,18 +30,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not enrolled in referral program' }, { status: 404 })
     }
 
-    const { data: tiers } = await adminDb
-      .from('referral_reward_tiers')
-      .select('*')
-      .eq('is_active', true)
-      .order('tier_order', { ascending: true })
-
-    const { data: rewardsEarned } = await adminDb
-      .from('referral_rewards_earned')
-      .select('*, tier:referral_reward_tiers(*)')
-      .eq('participant_id', participant.id)
-      .order('created_at', { ascending: false })
-
     const { data: invites } = await adminDb
       .from('referral_invites')
       .select('*')
@@ -57,18 +45,6 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    let currentTier = null
-    if (tiers?.length) {
-      for (const tier of tiers) {
-        if (
-          participant.email_signups >= tier.min_email_signups &&
-          participant.paid_conversions >= tier.min_paid_conversions
-        ) {
-          currentTier = tier
-        }
-      }
-    }
-
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
 
     return NextResponse.json({
@@ -76,11 +52,10 @@ export async function GET(request: NextRequest) {
       referralLink: `${siteUrl}/?ref=${participant.referral_code}`,
       stats: {
         totalClicks: participant.total_clicks,
+        emailSignups: participant.email_signups,
         paidConversions: participant.paid_conversions,
+        secondDegreeSignups: participant.second_degree_signups,
       },
-      currentTier,
-      tiers: tiers || [],
-      rewardsEarned: rewardsEarned || [],
       invites: invites || [],
       paidReferrals: paidReferralRows || [],
     })

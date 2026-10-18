@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import type { IntakeQuestion } from '@/lib/constants/intensive-intake-questions'
 import type { SurveyAnswers } from '@/lib/life-activation/survey'
@@ -10,12 +11,16 @@ export function IntakeSurveyFields({
   onChange,
   prompt,
   readOnly = false,
+  baseline,
+  insight,
 }: {
   questions: IntakeQuestion[]
   answers: SurveyAnswers
   onChange?: (id: string, value: string | number) => void
   prompt: (question: IntakeQuestion) => string
   readOnly?: boolean
+  baseline?: SurveyAnswers
+  insight?: (question: IntakeQuestion) => ReactNode
 }) {
   const rows = questions.flatMap((question) => {
     const text = prompt(question)
@@ -35,7 +40,9 @@ export function IntakeSurveyFields({
               </span>
               <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-white">{text}</p>
+            <BaselineNote baseline={baseline?.[question.id]} current={answers[question.id]} />
             {question.hint && <p className="mt-1 text-xs text-neutral-500">{question.hint}</p>}
+            {insight?.(question)}
             {question.type === 'text' ? (
               readOnly ? (
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-200">
@@ -123,5 +130,27 @@ export function IntakeSurveyFields({
           </div>
       ))}
     </div>
+  )
+}
+
+function BaselineNote({
+  baseline,
+  current,
+}: {
+  baseline: string | number | undefined
+  current: string | number | undefined
+}) {
+  if (baseline === undefined || baseline === '') return null
+  const improvement =
+    typeof baseline === 'number' && typeof current === 'number' && current > baseline
+      ? current - baseline
+      : null
+  const label = typeof baseline === 'number' ? `${baseline}/10` : String(baseline).replace(/_/g, ' ')
+
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+      <span>Baseline: {label}</span>
+      {improvement !== null && <span className="text-primary-400">+{improvement}</span>}
+    </p>
   )
 }

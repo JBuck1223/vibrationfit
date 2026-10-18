@@ -27,7 +27,7 @@ export function normalizeProgress(row: Record<string, unknown>): LifeActivationP
   const onboarding = asMap(row.onboarding)
   if (onboarding.complete || row.onboarding_completed_at) {
     const doneAt = onboarding.complete || String(row.onboarding_completed_at)
-    if (!onboarding.account) onboarding.account = doneAt
+    if (!onboarding.profile) onboarding.profile = doneAt
     if (!onboarding.intake) onboarding.intake = doneAt
     if (!onboarding.map) onboarding.map = doneAt
     if (!onboarding.unlock) onboarding.unlock = doneAt
@@ -125,6 +125,7 @@ export function mapIntensiveToOnboarding(intensive: IntensiveRow): JsonMap {
   if (intensive.first_vibe_post) onboarding.tribe = now
   if (intensive.alignment_gym_toured) onboarding.gym = now
   if (intensive.intake_completed) onboarding.intake = now
+  if (intensive.profile_completed) onboarding.profile = now
   if (intensive.activation_protocol_completed) onboarding.map = now
   if (intensive.unlock_completed) onboarding.unlock = now
   if (intensive.unlock_completed) {
@@ -134,7 +135,7 @@ export function mapIntensiveToOnboarding(intensive: IntensiveRow): JsonMap {
     onboarding.voice = onboarding.voice || now
     onboarding.tribe = onboarding.tribe || now
     onboarding.gym = onboarding.gym || now
-    onboarding.account = onboarding.account || now
+    onboarding.profile = onboarding.profile || now
     onboarding.intake = onboarding.intake || now
     onboarding.map = onboarding.map || now
     onboarding.unlock = onboarding.unlock || now

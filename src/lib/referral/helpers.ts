@@ -93,38 +93,3 @@ export async function resolveReferralCode(
 
   return fromHistory
 }
-
-/**
- * Check if a participant has earned any new tier rewards and grant them.
- */
-export async function checkAndGrantRewards(
-  supabase: SupabaseClient,
-  participantId: string,
-  emailSignups: number,
-  paidConversions: number
-): Promise<void> {
-  const { data: tiers } = await supabase
-    .from('referral_reward_tiers')
-    .select('id, tier_order, min_email_signups, min_paid_conversions')
-    .eq('is_active', true)
-    .order('tier_order', { ascending: true })
-
-  if (!tiers?.length) return
-
-  const { data: existingRewards } = await supabase
-    .from('referral_rewards_earned')
-    .select('tier_id')
-    .eq('participant_id', participantId)
-
-  const earnedTierIds = new Set(existingRewards?.map(r => r.tier_id) || [])
-
-  for (const tier of tiers) {
-    if (earnedTierIds.has(tier.id)) continue
-    if (emailSignups >= tier.min_email_signups && paidConversions >= tier.min_paid_conversions) {
-      await supabase.from('referral_rewards_earned').insert({
-        participant_id: participantId,
-        tier_id: tier.id,
-      })
-    }
-  }
-}

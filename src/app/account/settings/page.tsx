@@ -9,8 +9,6 @@ import Link from 'next/link'
 import { Container, Stack, Card, Button, Input, Spinner, DatePicker, Checkbox, Modal, TimePicker } from '@/lib/design-system/components'
 import { Check, Globe } from 'lucide-react'
 import { ShippingStreetField } from '@/components/account/ShippingStreetField'
-import { LifeActivationBanner } from '@/components/life-activation/LifeActivationBanner'
-import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
 import { ProfilePictureUpload } from '@/app/profile/components/ProfilePictureUpload'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -374,20 +372,6 @@ export default function AccountSettingsPage() {
     }
   }
 
-  const continueFromAccount = async () => {
-    const missing: string[] = []
-    if (!firstName.trim()) missing.push('first name')
-    if (!lastName.trim()) missing.push('last name')
-    if (!dateOfBirth) missing.push('birthday')
-    if (phone.replace(/\D/g, '').length < 10) missing.push('phone')
-    if (missing.length > 0) {
-      toast.error(`Add your ${missing.join(', ')} before continuing.`)
-      return false
-    }
-    if (hasChanges) return handleSaveAccount()
-    return true
-  }
-
   const handleProfilePictureChange = (url: string) => {
     setProfilePictureUrl(url)
     if (user) {
@@ -415,14 +399,6 @@ export default function AccountSettingsPage() {
     <Container size="xl" className="pt-2 pb-6 sm:pb-8">
       <Stack gap="md">
         <h1 className="sr-only">Personal information</h1>
-        <LifeActivationBanner
-          onboardingStep="account"
-          title={LIFE_ACTIVATION_COPY.account.title}
-          body={LIFE_ACTIVATION_COPY.account.body}
-          doneLabel={LIFE_ACTIVATION_COPY.account.cta}
-          onBeforeDone={continueFromAccount}
-        />
-
         <Card
           variant="glass"
           className="border border-white/[0.06] p-4 shadow-none sm:p-5"

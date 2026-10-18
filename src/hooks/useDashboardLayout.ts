@@ -6,7 +6,9 @@ import { arrayMove } from '@dnd-kit/sortable'
 import { keys } from '@/lib/query/keys'
 import {
   DEFAULT_LAYOUT,
+  LAYOUT_PRESETS_BY_ID,
   normalizeLayout,
+  type LayoutPresetId,
   type DashboardLayout,
   type DashboardWidgetPlacement,
 } from '@/lib/dashboard/layout'
@@ -95,6 +97,21 @@ export function useDashboardLayout() {
     save(DEFAULT_LAYOUT.widgets)
   }, [save])
 
+  const applyPreset = useCallback(
+    (id: LayoutPresetId) => {
+      save(LAYOUT_PRESETS_BY_ID[id].layout.widgets)
+    },
+    [save],
+  )
+
+  /** Put back a layout captured before a preset or reset (undo). */
+  const restore = useCallback(
+    (widgets: DashboardWidgetPlacement[]) => {
+      save(widgets)
+    },
+    [save],
+  )
+
   return {
     layout,
     isLoading: query.isLoading,
@@ -103,5 +120,7 @@ export function useDashboardLayout() {
     setVisible,
     setSize,
     reset,
+    applyPreset,
+    restore,
   }
 }

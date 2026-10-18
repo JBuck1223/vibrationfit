@@ -13,7 +13,7 @@ import { sendSMS } from '@/lib/messaging/twilio'
 import { createAdminNotification } from '@/lib/admin/notifications'
 import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
-import { resolveReferralCode, checkAndGrantRewards } from '@/lib/referral/helpers'
+import { resolveReferralCode } from '@/lib/referral/helpers'
 import { savePayPalVaultedCard } from '@/lib/paypal/save-payment-method'
 
 function getSupabaseAdmin() {
@@ -638,7 +638,7 @@ export async function fulfillPayPalPurchase(params: {
         })
         const { data: rp } = await supabaseAdmin
           .from('referral_participants')
-          .select('email_signups, paid_conversions')
+          .select('paid_conversions')
           .eq('id', referrer.id)
           .single()
         const newPaid = (rp?.paid_conversions || 0) + 1
@@ -648,7 +648,6 @@ export async function fulfillPayPalPurchase(params: {
           .eq('participant_id', referrer.id)
           .eq('referred_email', email)
           .in('status', ['sent', 'opened', 'clicked'])
-        await checkAndGrantRewards(supabaseAdmin, referrer.id, rp?.email_signups || 0, newPaid)
       }
     } catch (refErr) {
       console.error('[fulfillment] referral credit error (non-fatal):', refErr)

@@ -42,7 +42,7 @@ export const LIFE_ACTIVATION_COPY = {
       howChoose:
         'Finish the current step to unlock the next. The sidebar stays open if you need to look around.',
       howNext:
-        'When you are ready, start. You will come back to your dashboard with Account as the next step.',
+        'When you are ready, start. You will come back to your dashboard with a short baseline survey as the next step.',
       startCta: 'Get Started',
       continueCta: 'Get Started',
     },
@@ -59,11 +59,11 @@ export const LIFE_ACTIVATION_COPY = {
     onboardingLead: (stepId: string | null) => {
       switch (stepId) {
         case 'welcome':
-          return 'Start here. Watch the welcome, then save your account.'
-        case 'account':
-          return 'Complete your account information.'
+          return 'Start here. Watch the welcome, then take a short baseline survey.'
         case 'intake':
-          return 'A short baseline so you can see where you started. Then VIVA writes your Life Vision.'
+          return 'A short baseline so you can see where you started. Then save your Life Profile.'
+        case 'profile':
+          return 'Save your personal information and a snapshot of where you are now. Then VIVA writes your Life Vision.'
         case 'vision':
           return 'One conversation with VIVA writes your Life Vision. Then you meet your people.'
         case 'kit':
@@ -89,10 +89,12 @@ export const LIFE_ACTIVATION_COPY = {
         ? `Up next: ${stepTitle}. Nothing is locked.`
         : 'You know the rooms. Use them whenever something wants to be made.',
   },
-  account: {
-    title: 'Your account',
-    body: 'Save your name, birthday, and phone. Add a shipping address if you want something sent to you later.',
-    cta: 'Save and continue',
+  profile: {
+    title: 'Your Life Profile',
+    body: "Start with Personal Information: your name, birthday, and phone. The current state of each life area is optional, and anything you write there carries into your Life Vision's \"What's going on now.\"",
+    cta: 'Continue',
+    needProfile: 'Create your profile first, then continue.',
+    missing: (fields: string[]) => `Save your ${fields.join(', ')} in Personal Information, then continue.`,
   },
   vision: {
     openingFirstVision: (hasActivation: boolean) =>
@@ -142,9 +144,15 @@ So let's start easy. Where does life have you right now — and who's in it with
   unlock: {
     title: 'Platform Unlock',
     titleAccent: 'Unlock',
-    body: 'Answer from today. This is how you see what shifted since you started.',
+    body: 'Answer from today. We filled in a score from the work already on your account. Change anything that does not feel true.',
     cta: 'Save and finish',
-    shiftQuestion: 'What shifted for you as you got started?',
+    shiftQuestion: 'Please share a brief snippet on your experience getting started.',
+    sharePrompt: 'Your words may be exactly what the next member needs to hear. How may we share them?',
+    shareOptions: [
+      { value: 'named', label: 'With my first name' },
+      { value: 'anonymous', label: 'Anonymously' },
+      { value: 'none', label: 'Keep it private' },
+    ],
   },
   complete: {
     title: "You're started",

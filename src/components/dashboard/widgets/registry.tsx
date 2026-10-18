@@ -3,8 +3,6 @@
 import type { WidgetId } from '@/lib/dashboard/widgets/registry'
 import type { WidgetComponent } from '../DashboardGrid'
 import { ToolsTrainingWidget } from './ToolsTrainingWidget'
-import { CalibrationCallWidget } from './CalibrationCallWidget'
-import { GraduateChecklistWidget } from './GraduateChecklistWidget'
 import { TodayMapWidget } from './TodayMapWidget'
 import { DailyPaperWidget } from './DailyPaperWidget'
 import { ListenWidget } from './ListenWidget'
@@ -18,12 +16,11 @@ import { AlignmentGymWidget } from './AlignmentGymWidget'
 import { LifeVisionWidget } from './LifeVisionWidget'
 import { MomentumWidget } from './MomentumWidget'
 import { TokensWidget } from './TokensWidget'
+import { ReferralsWidget } from './ReferralsWidget'
 
 /** Widget id -> component. Metadata lives in src/lib/dashboard/widgets/registry.ts. */
 export const WIDGET_COMPONENTS: Record<WidgetId, WidgetComponent> = {
   'tools-training': ToolsTrainingWidget,
-  'calibration-call': CalibrationCallWidget,
-  'graduate-checklist': GraduateChecklistWidget,
   'today-map': TodayMapWidget,
   'daily-paper': DailyPaperWidget,
   listen: ListenWidget,
@@ -37,4 +34,5 @@ export const WIDGET_COMPONENTS: Record<WidgetId, WidgetComponent> = {
   'life-vision': LifeVisionWidget,
   momentum: MomentumWidget,
   tokens: TokensWidget,
+  referrals: ReferralsWidget,
 }
