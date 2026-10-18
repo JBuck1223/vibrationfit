@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import confetti from 'canvas-confetti'
-import { Check, LayoutGrid, Plus, RotateCcw, Settings2, Undo2 } from 'lucide-react'
+import { Check, Eye, LayoutGrid, Plus, RotateCcw, Settings2, Undo2 } from 'lucide-react'
 import { Button, Container, Modal, Spinner, Stack } from '@/lib/design-system/components'
 import AnnualUpgradeBanner from '@/components/billing/AnnualUpgradeBanner'
 import { UnlockCelebrationModal } from '@/components/UnlockCelebrationModal'
@@ -17,6 +17,7 @@ import {
 import { WIDGET_META_BY_ID, type WidgetId, type WidgetMeta } from '@/lib/dashboard/widgets/registry'
 import {
   LAYOUT_PRESETS,
+  isDefaultLayout,
   matchLayoutPreset,
   type DashboardWidgetPlacement,
   type LayoutPresetId,
@@ -55,7 +56,8 @@ function fireConfetti() {
 export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHomeProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { layout, isLoading, reorder, setVisible, setSize, reset, applyPreset, restore } = useDashboardLayout()
+  const { layout, isLoading, reorder, setVisible, setSize, setPinned, reset, applyPreset, restore } =
+    useDashboardLayout()
   const { progress } = useLifeActivation()
 
   const [customizing, setCustomizing] = useState(false)
@@ -185,7 +187,7 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
             <div className="flex items-center gap-2">
               {customizing ? (
                 <>
-                  <Button variant="ghost" size="sm" onClick={handleReset} disabled={activePreset === 'recommended'}>
+                  <Button variant="ghost" size="sm" onClick={handleReset} disabled={isDefaultLayout(layout)}>
                     <RotateCcw className="mr-1.5 h-4 w-4" />
                     Reset to default
                   </Button>
@@ -247,7 +249,7 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
                 })}
               </div>
               <p className="text-xs text-neutral-500">
-                Drag a widget by its handle to reorder. Use the width stepper to make it narrower or wider, or hide it.
+                Drag a widget by its handle to reorder. Pin it to keep it at the top, use the width stepper to resize it, or hide it. Hidden widgets wait at the bottom.
               </p>
             </div>
           ) : null}
@@ -280,8 +282,42 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
               onReorder={reorder}
               onHide={(id) => setVisible(id, false)}
               onResize={setSize}
+              onTogglePin={setPinned}
             />
           )}
+
+          {customizing && hiddenIds.length > 0 ? (
+            <section
+              aria-label="Hidden widgets"
+              className="rounded-2xl border-2 border-dashed border-[#333] p-3 md:p-4"
+            >
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                Hidden widgets
+                <span className="ml-2 normal-case tracking-normal text-neutral-500">Tap one to put it back</span>
+              </p>
+              <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {hiddenIds.map((id) => {
+                  const meta = WIDGET_META_BY_ID[id]
+                  return (
+                    <li key={id}>
+                      <button
+                        type="button"
+                        onClick={() => handleAdd(id)}
+                        aria-label={`Show ${meta.title}`}
+                        className="flex w-full items-center gap-3 rounded-xl border border-[#333] bg-[#1F1F1F] px-3 py-2.5 text-left transition-colors hover:border-primary-500/60"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-white">{meta.title}</span>
+                          <span className="block truncate text-xs text-neutral-500">{meta.description}</span>
+                        </span>
+                        <Eye className="h-4 w-4 shrink-0 text-primary-500" />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ) : null}
         </Stack>
       </Container>
 

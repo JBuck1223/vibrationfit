@@ -8,6 +8,13 @@ import { getOrder, vaultFromPayPalOrder } from '@/lib/paypal/orders'
 import { fulfillPayPalPurchase, type PurchaseContext } from '@/lib/billing/fulfillment'
 import { savePayPalVaultedCard, type VaultedCardInput } from '@/lib/paypal/save-payment-method'
 import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
+import { findPaymentByCharge, reversePayment } from '@/lib/partners/ledger'
+import { createAdminNotification } from '@/lib/admin/notifications'
+
+function toCents(value: string | undefined | null): number {
+  const cents = Math.round(parseFloat(value || '0') * 100)
+  return Number.isFinite(cents) ? cents : 0
+}
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -139,6 +146,57 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('paypal_capture_id', captureId)
+
+        // Partners: reverse commissions on the refunded payment (renewals and first payments)
+        const paymentId = await findPaymentByCharge(supabaseAdmin, { paypalCaptureId: captureId })
+        if (paymentId) {
+          await reversePayment(supabaseAdmin, paymentId, {
+            kind: 'refund',
+            addCents: toCents(resource?.amount?.value),
+            eventId: refundId ? `paypal_refund:${refundId}` : `paypal_event:${event.id}`,
+          })
+        }
+        break
+      }
+
+      // ----------------------------------------------------------------------
+      // Chargebacks: reverse commissions while the dispute is open
+      // ----------------------------------------------------------------------
+      case 'CUSTOMER.DISPUTE.CREATED': {
+        const disputeId: string | undefined = resource?.dispute_id
+        const transactions: any[] = resource?.disputed_transactions || []
+        for (const tx of transactions) {
+          const captureId: string | undefined = tx?.seller_transaction_id
+          if (!captureId) continue
+          const paymentId = await findPaymentByCharge(supabaseAdmin, { paypalCaptureId: captureId })
+          if (!paymentId) continue
+          await reversePayment(supabaseAdmin, paymentId, {
+            kind: 'chargeback',
+            addCents: toCents(resource?.dispute_amount?.value || tx?.gross_amount?.value),
+            eventId: `paypal_dispute:${disputeId || event.id}:${captureId}`,
+          })
+        }
+        createAdminNotification({
+          type: 'refund',
+          title: 'PayPal dispute opened',
+          body: `Dispute ${disputeId || ''} for ${resource?.dispute_amount?.value || '?'} ${resource?.dispute_amount?.currency_code || ''}. Related referral commissions were reversed.`,
+          metadata: { dispute_id: disputeId, provider: 'paypal' },
+          link: '/admin/orders',
+        }).catch(() => {})
+        break
+      }
+
+      case 'CUSTOMER.DISPUTE.RESOLVED': {
+        // Reversals stay in place; if the dispute was won, an admin re-approves
+        // the commission with an adjustment entry.
+        const outcome: string | undefined = resource?.dispute_outcome?.outcome_code
+        createAdminNotification({
+          type: 'refund',
+          title: 'PayPal dispute resolved',
+          body: `Dispute ${resource?.dispute_id || ''} resolved: ${outcome || 'unknown outcome'}.${outcome === 'RESOLVED_SELLER_FAVOUR' ? ' Re-approve any reversed referral commission.' : ''}`,
+          metadata: { dispute_id: resource?.dispute_id, outcome, provider: 'paypal' },
+          link: '/admin/orders',
+        }).catch(() => {})
         break
       }
 

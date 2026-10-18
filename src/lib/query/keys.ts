@@ -86,6 +86,7 @@ export const keys = {
   areaActivations: ['area-activations'] as const,
   manifestations: ['manifestations'] as const,
   referralDashboard: ['referral-dashboard'] as const,
+  referralDashboardByEmail: (email: string) => ['referral-dashboard', 'email', email] as const,
 
   // Vibe Tribe
   vibeNotifications: ['vibe-notifications'] as const,
@@ -142,4 +143,6 @@ export const TABLE_TO_KEYS: Record<string, QueryKeyPrefix[]> = {
   travel_attachments: [keys.trips, keys.dreamDestinations],
   travel_reference_links: [keys.trips, keys.dreamDestinations],
   vibe_notifications: [keys.vibeNotifications],
+  referrals: [keys.referralDashboard],
+  commission_ledger: [keys.referralDashboard],
 }

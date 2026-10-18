@@ -9,6 +9,7 @@ import { triggerEvent } from '@/lib/messaging/events'
 import { sendServerConversion } from '@/lib/tracking/server-conversions'
 import { createAdminNotification } from '@/lib/admin/notifications'
 import { resolveReferralCode } from '@/lib/referral/helpers'
+import { ensureReferral } from '@/lib/partners/attribution'
 import { rateLimit } from '@/lib/rate-limit'
 
 /** Silent fake success so bots don't adapt when blocked. */
@@ -189,12 +190,20 @@ export async function POST(request: NextRequest) {
       try {
         const referrer = await resolveReferralCode(supabase, refCode)
         if (referrer) {
-          await supabase.from('referral_events').insert({
+          const { data: signupEvent } = await supabase.from('referral_events').insert({
             referrer_id: referrer.id,
             event_type: 'email_signup',
             referred_email: body.email,
             ip_address: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
             user_agent: request.headers.get('user-agent') || null,
+          }).select('id').single()
+
+          // Partners: first verified referral wins; activated by the first payment
+          await ensureReferral(supabase, {
+            referrerId: referrer.id,
+            referredEmail: body.email,
+            status: 'signed_up',
+            attributionEventId: signupEvent?.id || null,
           })
 
           const { data: updated } = await supabase

@@ -22,6 +22,14 @@ import { chargeVaultedCard } from '@/lib/paypal/orders'
 import { isPayPalConfigured } from '@/lib/paypal/client'
 import { createAdminNotification } from '@/lib/admin/notifications'
 import { applySubscriptionAddonGrants, tickRenewalDiscount } from '@/lib/paypal/vault-billing'
+import {
+  paypalFeeCents,
+  processPaymentEvent,
+  recordReferralCredit,
+  referralCreditFor,
+  type CreditQuote,
+} from '@/lib/partners/ledger'
+import { setReferralStatus } from '@/lib/partners/attribution'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -118,14 +126,32 @@ export async function GET(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', sub.id)
+        await setReferralStatus(supabaseAdmin as any, sub.user_id, 'cancelled').catch(err =>
+          console.error('[billing cron] referral status update failed for sub', sub.id, err),
+        )
         results.closed++
         continue
       }
 
-      if (!sub.amount_cents || sub.amount_cents <= 0) {
-        // 100%-off renewal discount: a free cycle. Advance the period and
-        // grant tokens without charging; the discount countdown still ticks.
-        const isFreeCycle = Boolean(sub.renewal_discount_type) && tier?.plan_category !== 'intensive'
+      // Partners: each active referral takes $33 off this bill (up to $99).
+      // In shadow mode the credit is recorded but the full bill is charged.
+      const isMembershipRenewal = tier?.plan_category !== 'intensive'
+      let creditQuote: CreditQuote | null = null
+      if (isMembershipRenewal && sub.amount_cents > 0) {
+        creditQuote = await referralCreditFor(supabaseAdmin as any, sub, sub.amount_cents).catch(err => {
+          console.error('[billing cron] referral credit lookup failed for sub', sub.id, err)
+          return null
+        })
+      }
+      const appliedCredit = creditQuote?.live ? creditQuote.creditCents : 0
+      const chargeCents = Math.max(0, (sub.amount_cents || 0) - appliedCredit)
+      const creditCoversBill = appliedCredit > 0 && chargeCents === 0
+
+      if (!sub.amount_cents || sub.amount_cents <= 0 || creditCoversBill) {
+        // 100%-off renewal discount or a fully credited bill: a free cycle.
+        // Advance the period and grant tokens without charging; the discount
+        // countdown still ticks. Free cycles never generate commissions.
+        const isFreeCycle = (Boolean(sub.renewal_discount_type) || creditCoversBill) && tier?.plan_category !== 'intensive'
         if (!isFreeCycle) {
           results.skipped++
           continue
@@ -148,6 +174,16 @@ export async function GET(request: NextRequest) {
         await tickRenewalDiscount(supabaseAdmin as any, sub).catch(err =>
           console.error('[billing cron] renewal discount tick failed for sub', sub.id, err),
         )
+
+        if (creditQuote) {
+          await recordReferralCredit(supabaseAdmin as any, {
+            quote: creditQuote,
+            paymentId: null,
+            userId: sub.user_id,
+            cycleStart: new Date().toISOString(),
+            cycleEnd: periodEnd.toISOString(),
+          }).catch(err => console.error('[billing cron] referral credit record failed for sub', sub.id, err))
+        }
 
         if (tier?.id) {
           const { error: grantError } = await supabaseAdmin.rpc('grant_tokens_for_tier', {
@@ -180,7 +216,7 @@ export async function GET(request: NextRequest) {
       try {
         charge = await chargeVaultedCard({
           vaultId: pm.paypal_vault_id,
-          amountCents: sub.amount_cents,
+          amountCents: chargeCents,
           description,
           customId: `sub:${sub.id}`,
           // Idempotent per billing period: retries of the same due date dedupe at PayPal
@@ -200,18 +236,46 @@ export async function GET(request: NextRequest) {
       // ----------------------------------------------------------------------
       // Success: record payment
       // ----------------------------------------------------------------------
-      await supabaseAdmin.from('payment_history').insert({
-        user_id: sub.user_id,
-        subscription_id: sub.id,
-        provider: 'paypal',
-        paypal_order_id: charge.orderId,
-        paypal_capture_id: charge.captureId,
-        amount: sub.amount_cents,
-        currency: charge.currency || 'usd',
-        status: 'succeeded',
-        description,
-        paid_at: new Date().toISOString(),
-      })
+      const paidAt = new Date()
+      const cycleEnd = new Date(paidAt.getTime() + (sub.billing_interval_days || 28) * 24 * 60 * 60 * 1000)
+      const { data: paymentRow, error: paymentErr } = await supabaseAdmin
+        .from('payment_history')
+        .insert({
+          user_id: sub.user_id,
+          subscription_id: sub.id,
+          provider: 'paypal',
+          paypal_order_id: charge.orderId,
+          paypal_capture_id: charge.captureId,
+          amount: chargeCents,
+          list_price_cents: sub.amount_cents,
+          referral_credit_cents: appliedCredit,
+          processing_fee_cents: paypalFeeCents(charge.raw),
+          membership_tier_id: tier?.id || null,
+          cycle_start: paidAt.toISOString(),
+          cycle_end: cycleEnd.toISOString(),
+          currency: charge.currency || 'usd',
+          status: 'succeeded',
+          description,
+          paid_at: paidAt.toISOString(),
+        })
+        .select('id')
+        .single()
+      if (paymentErr) console.error('[billing cron] payment_history insert failed for sub', sub.id, paymentErr)
+
+      if (paymentRow?.id && isMembershipRenewal) {
+        if (creditQuote) {
+          await recordReferralCredit(supabaseAdmin as any, {
+            quote: creditQuote,
+            paymentId: paymentRow.id,
+            userId: sub.user_id,
+            cycleStart: paidAt.toISOString(),
+            cycleEnd: cycleEnd.toISOString(),
+          }).catch(err => console.error('[billing cron] referral credit record failed for sub', sub.id, err))
+        }
+        await processPaymentEvent(supabaseAdmin as any, paymentRow.id).catch(err =>
+          console.error('[billing cron] partners processing failed for payment', paymentRow.id, err),
+        )
+      }
 
       if (isInstallment) {
         // 2-pay installment: bump the counter, close the schedule when done
@@ -304,6 +368,10 @@ function addDays(fromIso: string, days: number): string {
 async function recordFailure(supabaseAdmin: any, sub: DueSubscription, raw?: unknown) {
   const newFailureCount = (sub.failure_count || 0) + 1
 
+  await setReferralStatus(supabaseAdmin, sub.user_id, 'failed_payment').catch(err =>
+    console.error('[billing cron] referral status update failed for sub', sub.id, err),
+  )
+
   await supabaseAdmin.from('payment_history').insert({
     user_id: sub.user_id,
     subscription_id: sub.id,
@@ -339,6 +407,10 @@ async function markPastDue(supabaseAdmin: any, sub: DueSubscription, reason: str
       updated_at: new Date().toISOString(),
     })
     .eq('id', sub.id)
+
+  await setReferralStatus(supabaseAdmin, sub.user_id, 'paused').catch(err =>
+    console.error('[billing cron] referral status update failed for sub', sub.id, err),
+  )
 
   createAdminNotification({
     type: 'payment_failed',

@@ -15,7 +15,7 @@ import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useS
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@/lib/utils'
 import type { DashboardWidgetPlacement } from '@/lib/dashboard/layout'
-import { WIDGET_META_BY_ID, type WidgetId, type WidgetSize } from '@/lib/dashboard/widgets/registry'
+import type { WidgetId, WidgetSize } from '@/lib/dashboard/widgets/registry'
 import type { WidgetChromeProps } from './WidgetFrame'
 
 export type WidgetComponent = ComponentType<WidgetChromeProps>
@@ -27,6 +27,7 @@ interface DashboardGridProps {
   onReorder: (activeId: WidgetId, overId: WidgetId) => void
   onHide: (id: WidgetId) => void
   onResize: (id: WidgetId, next: WidgetSize) => void
+  onTogglePin: (id: WidgetId, pinned: boolean) => void
 }
 
 /**
@@ -52,16 +53,17 @@ function SortableCell({
   customizing,
   onHide,
   onResize,
+  onTogglePin,
 }: {
   placement: DashboardWidgetPlacement
   Component: WidgetComponent
   customizing: boolean
   onHide: () => void
   onResize: (next: WidgetSize) => void
+  onTogglePin: () => void
 }) {
-  const pinned = Boolean(WIDGET_META_BY_ID[placement.id].pinned)
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
-    useSortable({ id: placement.id, disabled: pinned })
+    useSortable({ id: placement.id })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -77,9 +79,10 @@ function SortableCell({
       <Component
         size={placement.size}
         customizing={customizing}
-        pinned={pinned}
+        pinned={placement.pinned}
         onHide={onHide}
         onResize={onResize}
+        onTogglePin={onTogglePin}
         dragHandleRef={setActivatorNodeRef}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
@@ -94,6 +97,7 @@ export function DashboardGrid({
   onReorder,
   onHide,
   onResize,
+  onTogglePin,
 }: DashboardGridProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -119,7 +123,7 @@ export function DashboardGrid({
           const Component = components[placement.id]
           return (
             <div key={placement.id} className={cn('col-span-1', spanClass(placement.size))}>
-              <Component size={placement.size} customizing={false} pinned={WIDGET_META_BY_ID[placement.id].pinned} />
+              <Component size={placement.size} customizing={false} pinned={placement.pinned} />
             </div>
           )
         })}
@@ -139,6 +143,7 @@ export function DashboardGrid({
               customizing
               onHide={() => onHide(placement.id)}
               onResize={(next) => onResize(placement.id, next)}
+              onTogglePin={() => onTogglePin(placement.id, !placement.pinned)}
             />
           ))}
         </div>

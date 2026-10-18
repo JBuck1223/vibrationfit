@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       subject = `${vars.referrerName} thought you might like this`
-      textBody = `Hey ${vars.firstName},\n\n${vars.referrerName} mentioned you're into ${vars.personalization}, and suggested I share this with you.\n\nMy partner Vanessa and I just finished building a 72-Hour Activation Intensive. In 3 days you create a written life vision, custom AM/PM audios, a vision board, and a 28-day activation plan to make it stick.\n\nWe're inviting a small group of founding testers in at a big discount in exchange for honest feedback.\n\nDetails are here:\n${vars.referralLink}\n\nIf it feels like a fit, amazing. If not, no worries at all and thanks for taking a look.\n\nJordan`
+      textBody = `Hey ${vars.firstName},\n\n${vars.referrerName} mentioned you're into ${vars.personalization}, and suggested I share this with you.\n\nMy partner Vanessa and I built Vibration Fit to help people get clear on the life they want and actually live it. You write a vision for your life across 12 areas, turn it into audios you listen to morning and night, build a vision board, and follow a simple daily plan that keeps you aligned. VIVA guides you through all of it.\n\nDetails are here:\n${vars.referralLink}\n\nIf it feels like a fit, amazing. If not, no worries at all and thanks for taking a look.\n\nJordan`
     }
 
     const { messageId } = await sendAndLogEmail({
