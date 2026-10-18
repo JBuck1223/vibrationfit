@@ -1,160 +1,224 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeftRight } from 'lucide-react'
 
 interface BeforeAfterSliderProps {
   beforeSrc: string
   afterSrc: string
   className?: string
-  /** When true, contains images within parent and constrains slider to image bounds */
+  /** Cap the photo to the viewport. Used by the fullscreen viewer. */
   fill?: boolean
-  /** Show the full image (no crop). Pair with a max-height on className. */
+  /** Fill the column width. Used on the board so photos stay inside their masonry column. */
+  stretch?: boolean
+  /** Unused. Kept so existing call sites still type-check. */
   contain?: boolean
 }
 
+/** Aspects within this factor can share a slider without cropping a slice or letterboxing. */
+const SIMILAR_ASPECT = 1.2
+
+function useImageRatio(src: string): number | null {
+  const [ratio, setRatio] = useState<number | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const img = new Image()
+    img.onload = () => {
+      if (cancelled || !img.naturalWidth || !img.naturalHeight) return
+      setRatio(img.naturalWidth / img.naturalHeight)
+    }
+    img.src = src
+    return () => {
+      cancelled = true
+    }
+  }, [src])
+
+  return ratio
+}
+
+function aspectsMatch(beforeRatio: number | null, afterRatio: number | null): boolean {
+  if (!beforeRatio || !afterRatio) return false
+  const wider = Math.max(beforeRatio, afterRatio)
+  const narrower = Math.min(beforeRatio, afterRatio)
+  return wider / narrower <= SIMILAR_ASPECT
+}
+
+/**
+ * Photos with a similar shape share a drag slider.
+ * When one is wide and the other is tall, show one photo at a time in its own shape
+ * so neither is cropped into a slice or letterboxed inside the other.
+ */
 export function BeforeAfterSlider({
   beforeSrc,
   afterSrc,
   className = '',
   fill = false,
-  contain = false,
+  stretch = false,
 }: BeforeAfterSliderProps) {
+  const beforeRatio = useImageRatio(beforeSrc)
+  const afterRatio = useImageRatio(afterSrc)
+  const [showing, setShowing] = useState<'before' | 'after'>('after')
+
+  if (aspectsMatch(beforeRatio, afterRatio)) {
+    return (
+      <MatchedSlider
+        beforeSrc={beforeSrc}
+        afterSrc={afterSrc}
+        className={className}
+        fill={fill}
+        stretch={stretch}
+      />
+    )
+  }
+
+  const src = showing === 'before' ? beforeSrc : afterSrc
+  const limit = fill
+    ? 'max-h-[95vh] max-w-[95vw]'
+    : stretch
+      ? 'w-full'
+      : 'max-h-[inherit] max-w-full'
+
+  return (
+    <div className={`relative max-w-full ${stretch ? 'w-full' : 'w-fit'} ${className}`}>
+      <img
+        src={src}
+        alt=""
+        draggable={false}
+        className={`block h-auto ${stretch ? 'w-full' : 'w-auto'} ${limit}`}
+        style={{ imageOrientation: 'from-image' }}
+      />
+      {beforeRatio != null && afterRatio != null && (
+        <div
+          className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1 rounded-full bg-black/60 p-1"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <FrameButton active={showing === 'before'} onClick={() => setShowing('before')}>
+            Vision
+          </FrameButton>
+          <FrameButton active={showing === 'after'} onClick={() => setShowing('after')}>
+            Actualized
+          </FrameButton>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FrameButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick()
+      }}
+      className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+        active ? 'bg-white text-black' : 'text-white/80 hover:text-white'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function MatchedSlider({
+  beforeSrc,
+  afterSrc,
+  className,
+  fill,
+  stretch,
+}: {
+  beforeSrc: string
+  afterSrc: string
+  className: string
+  fill: boolean
+  stretch: boolean
+}) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const afterImgRef = useRef<HTMLImageElement>(null)
+  const handleRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState(50)
   const isDragging = useRef(false)
   const didDrag = useRef(false)
-  const [imgBounds, setImgBounds] = useState<{ left: number; width: number } | null>(null)
-
-  const constrainToImage = fill || contain
-
-  const computeImgBounds = useCallback(() => {
-    if (!constrainToImage || !afterImgRef.current || !containerRef.current) {
-      setImgBounds(null)
-      return
-    }
-    const img = afterImgRef.current
-    const container = containerRef.current
-    if (!img.naturalWidth || !img.naturalHeight) return
-
-    const containerRect = container.getBoundingClientRect()
-    const containerW = containerRect.width
-    const containerH = containerRect.height
-    const imgRatio = img.naturalWidth / img.naturalHeight
-    const containerRatio = containerW / containerH
-
-    let renderedW: number
-    if (imgRatio > containerRatio) {
-      renderedW = containerW
-    } else {
-      renderedW = containerH * imgRatio
-    }
-    const offsetLeft = (containerW - renderedW) / 2
-    setImgBounds({ left: offsetLeft, width: renderedW })
-  }, [constrainToImage])
-
-  useEffect(() => {
-    if (!constrainToImage) return
-    computeImgBounds()
-    window.addEventListener('resize', computeImgBounds)
-    return () => window.removeEventListener('resize', computeImgBounds)
-  }, [constrainToImage, computeImgBounds])
+  const limit = fill
+    ? 'max-h-[95vh] max-w-[95vw]'
+    : stretch
+      ? 'w-full'
+      : 'max-h-[inherit] max-w-full'
 
   const updatePosition = useCallback((clientX: number) => {
     const container = containerRef.current
     if (!container) return
     const rect = container.getBoundingClientRect()
+    if (rect.width <= 0) return
+    const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100))
+    setPosition(pct)
+  }, [])
 
-    if (constrainToImage && imgBounds) {
-      const x = clientX - rect.left - imgBounds.left
-      const pct = Math.max(0, Math.min(100, (x / imgBounds.width) * 100))
-      setPosition(pct)
-    } else {
-      const x = clientX - rect.left
-      const pct = Math.max(0, Math.min(100, (x / rect.width) * 100))
-      setPosition(pct)
-    }
-  }, [constrainToImage, imgBounds])
-
-  const handleRef = useRef<HTMLDivElement>(null)
-
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const handlePointerDown = useCallback((event: React.PointerEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
     isDragging.current = true
     didDrag.current = false
-    handleRef.current?.setPointerCapture(e.pointerId)
-  }, [])
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging.current) return
-    e.preventDefault()
-    e.stopPropagation()
-    didDrag.current = true
-    updatePosition(e.clientX)
+    handleRef.current?.setPointerCapture(event.pointerId)
+    updatePosition(event.clientX)
   }, [updatePosition])
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    e.stopPropagation()
+  const handlePointerMove = useCallback((event: React.PointerEvent) => {
+    if (!isDragging.current) return
+    event.preventDefault()
+    event.stopPropagation()
+    didDrag.current = true
+    updatePosition(event.clientX)
+  }, [updatePosition])
+
+  const handlePointerUp = useCallback((event: React.PointerEvent) => {
+    event.stopPropagation()
     isDragging.current = false
   }, [])
-
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    if (didDrag.current) {
-      e.stopPropagation()
-      e.preventDefault()
-    }
-    didDrag.current = false
-  }, [])
-
-  const containerWidth = containerRef.current?.getBoundingClientRect().width ?? 0
-
-  let sliderLeftPx: number | null = null
-  let clipRightPct = 100 - position
-
-  if (constrainToImage && imgBounds && containerWidth > 0) {
-    sliderLeftPx = imgBounds.left + (position / 100) * imgBounds.width
-    clipRightPct = ((containerWidth - sliderLeftPx) / containerWidth) * 100
-  }
 
   return (
     <div
       ref={containerRef}
-      className={`relative select-none overflow-hidden ${className}`}
-      onClick={handleClick}
+      className={`relative max-w-full select-none overflow-hidden ${stretch ? 'w-full' : 'w-fit'} ${className}`}
+      onClick={(event) => {
+        if (!didDrag.current) return
+        event.stopPropagation()
+        event.preventDefault()
+        didDrag.current = false
+      }}
     >
-      {/* After image (full, bottom layer) */}
       <img
-        ref={afterImgRef}
         src={afterSrc}
         alt=""
-        className={
-          fill
-            ? 'w-full h-full object-contain block'
-            : contain
-              ? 'mx-auto block h-auto w-auto max-w-full max-h-[inherit] object-contain'
-              : 'w-full h-auto object-cover block'
-        }
         draggable={false}
-        onLoad={computeImgBounds}
+        className={`block h-auto ${stretch ? 'w-full' : 'w-auto'} ${limit}`}
+        style={{ imageOrientation: 'from-image' }}
       />
-
-      {/* Before image (clipped, top layer) */}
       <img
         src={beforeSrc}
         alt=""
-        className={constrainToImage ? 'absolute inset-0 w-full h-full object-contain' : 'absolute inset-0 w-full h-full object-cover'}
         draggable={false}
-        style={{ clipPath: `inset(0 ${clipRightPct}% 0 0)` }}
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        style={{
+          imageOrientation: 'from-image',
+          clipPath: `inset(0 ${100 - position}% 0 0)`,
+        }}
       />
-
-      {/* Slider drag zone — wide invisible hit area for easy grabbing */}
       <div
         ref={handleRef}
-        className="absolute top-0 bottom-0 z-10"
+        className="absolute bottom-0 top-0 z-10"
         style={{
-          left: sliderLeftPx !== null ? `${sliderLeftPx}px` : `${position}%`,
+          left: `${position}%`,
           transform: 'translateX(-50%)',
           width: '44px',
           touchAction: 'none',
@@ -164,11 +228,9 @@ export function BeforeAfterSlider({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        {/* Visible line */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-purple-500 pointer-events-none" />
-        {/* Visible handle circle */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/40 border-2 border-white/30 pointer-events-none">
-          <ArrowLeftRight className="w-4 h-4 text-white" />
+        <div className="pointer-events-none absolute bottom-0 left-1/2 top-0 w-0.5 -translate-x-1/2 bg-purple-500" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/30 bg-purple-500 shadow-lg shadow-purple-500/40">
+          <ArrowLeftRight className="h-4 w-4 text-white" />
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { normalizeLifeCategories } from '@/lib/manifestations/kit-helpers'
+import { nextManifestationSortOrder } from '@/lib/manifestations/board-order'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,11 +86,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
+    const sortOrder = await nextManifestationSortOrder(supabase, user.id)
+
     const { data, error } = await supabase
       .from('manifestations')
       .insert({
         user_id: user.id,
         name,
+        sort_order: sortOrder,
         description: typeof body.description === 'string' ? body.description.trim() || null : null,
         why_it_matters: typeof body.why_it_matters === 'string'
           ? body.why_it_matters.trim() || null

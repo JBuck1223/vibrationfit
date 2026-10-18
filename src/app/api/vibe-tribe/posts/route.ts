@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { extractAndStoreMentions, getMentionedUsersForPosts } from '@/lib/vibe-tribe/mention-utils'
-import { buildMentionRecipients, createVibeNotifications } from '@/lib/vibe-tribe/notifications'
+import { buildNewPostRecipients, createVibeNotifications } from '@/lib/vibe-tribe/notifications'
 import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
 
 /**
@@ -263,15 +263,25 @@ export async function POST(request: NextRequest) {
       { post_id: newPost.id }
     )
 
+    const { data: members, error: membersError } = await adminClient
+      .from('user_accounts')
+      .select('id')
+      .eq('is_active', true)
+      .limit(2000)
+
+    if (membersError) {
+      console.error('Error loading members for post notifications:', membersError)
+    }
+
     await createVibeNotifications({
       actorId: user.id,
       postId: newPost.id,
       excerpt: content?.trim() || null,
-      recipients: buildMentionRecipients(
-        user.id,
-        mentionedUsers.map(mentioned => mentioned.id),
-        'post'
-      ),
+      recipients: buildNewPostRecipients({
+        actorId: user.id,
+        memberIds: (members || []).map(member => member.id),
+        mentionedUserIds: mentionedUsers.map(mentioned => mentioned.id),
+      }),
     })
 
     // Auto-verify MAP commitment for vibe tribe engagement
