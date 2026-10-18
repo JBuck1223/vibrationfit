@@ -14,6 +14,8 @@ export interface DashboardWidgetPlacement {
   id: WidgetId
   size: WidgetSize
   visible: boolean
+  /** Pinned widgets render first, in their own order, and are always visible. */
+  pinned: boolean
 }
 
 export interface DashboardLayout {
@@ -31,6 +33,7 @@ export const dashboardLayoutSchema = z.object({
         id: z.enum(WIDGET_IDS),
         size: z.enum(WIDGET_SIZES),
         visible: z.boolean(),
+        pinned: z.boolean().optional(),
       }),
     )
     .max(WIDGET_IDS.length * 2),
@@ -133,15 +136,38 @@ export const LAYOUT_PRESETS_BY_ID = Object.fromEntries(LAYOUT_PRESETS.map((p) =>
 
 export const DEFAULT_LAYOUT: DashboardLayout = LAYOUT_PRESETS_BY_ID.recommended.layout
 
-/** The preset whose visible widgets (order and width) this layout matches, if any. */
+function visibleSignature(widgets: DashboardWidgetPlacement[], includePinned: boolean) {
+  return widgets
+    .filter((w) => w.visible && (includePinned || !w.pinned))
+    .map((w) => `${w.id}:${w.size}${w.pinned ? ':p' : ''}`)
+    .join('|')
+}
+
+/**
+ * The preset whose unpinned widgets (order and width) this layout matches.
+ * Pins are the member's own choice and carry across presets.
+ */
 export function matchLayoutPreset(layout: DashboardLayout): LayoutPresetId | null {
-  const sig = (l: DashboardLayout) =>
-    l.widgets
-      .filter((w) => w.visible)
-      .map((w) => `${w.id}:${w.size}`)
-      .join('|')
-  const current = sig(layout)
-  return LAYOUT_PRESETS.find((p) => sig(p.layout) === current)?.id ?? null
+  const current = visibleSignature(layout.widgets, false)
+  return LAYOUT_PRESETS.find((p) => visibleSignature(p.layout.widgets, false) === current)?.id ?? null
+}
+
+/** True when the layout looks exactly like the default, pins included. */
+export function isDefaultLayout(layout: DashboardLayout): boolean {
+  return visibleSignature(layout.widgets, true) === visibleSignature(DEFAULT_LAYOUT.widgets, true)
+}
+
+/** A preset's widgets with the member's current pins (and pinned widths) kept. */
+export function applyPinsToPreset(
+  preset: DashboardLayout,
+  current: DashboardWidgetPlacement[],
+): DashboardWidgetPlacement[] {
+  const currentById = new Map(current.map((w) => [w.id, w]))
+  const pinned = current.filter((w) => w.pinned)
+  const rest = preset.widgets
+    .filter((w) => !currentById.get(w.id)?.pinned)
+    .map((w) => ({ ...w, pinned: false }))
+  return [...pinned, ...rest]
 }
 
 /**
@@ -160,24 +186,32 @@ export function normalizeLayout(saved: unknown): DashboardLayout {
 
   for (const raw of rawWidgets) {
     if (!raw || typeof raw !== 'object') continue
-    const { id, size, visible } = raw as { id?: unknown; size?: unknown; visible?: unknown }
+    const { id, size, visible, pinned: rawPinned } = raw as {
+      id?: unknown
+      size?: unknown
+      visible?: unknown
+      pinned?: unknown
+    }
     if (!isWidgetId(id) || seen.has(id)) continue
     seen.add(id)
     const meta = WIDGET_META_BY_ID[id]
+    const pinned = typeof rawPinned === 'boolean' ? rawPinned : Boolean(meta.defaultPinned)
     widgets.push({
       id,
       size: coerceWidgetSize(size, meta.defaultSize),
-      visible: meta.pinned ? true : typeof visible === 'boolean' ? visible : meta.defaultVisible,
+      visible: pinned ? true : typeof visible === 'boolean' ? visible : meta.defaultVisible,
+      pinned,
     })
   }
 
   for (const meta of WIDGET_META) {
     if (seen.has(meta.id)) continue
-    widgets.push({ id: meta.id, size: meta.defaultSize, visible: meta.defaultVisible })
+    const pinned = Boolean(meta.defaultPinned)
+    widgets.push({ id: meta.id, size: meta.defaultSize, visible: pinned || meta.defaultVisible, pinned })
   }
 
-  const pinned = widgets.filter((w) => WIDGET_META_BY_ID[w.id].pinned)
-  const rest = widgets.filter((w) => !WIDGET_META_BY_ID[w.id].pinned)
+  const pinned = widgets.filter((w) => w.pinned)
+  const rest = widgets.filter((w) => !w.pinned)
 
   return { version: DASHBOARD_LAYOUT_VERSION, widgets: [...pinned, ...rest] }
 }

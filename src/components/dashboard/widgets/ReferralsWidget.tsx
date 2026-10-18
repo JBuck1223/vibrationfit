@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Copy, Share2 } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, Check, Copy, Gift, Share2 } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
-import { WidgetEmpty, WidgetFrame, WidgetStat, type WidgetChromeProps } from '../WidgetFrame'
-import { relativeDay, useReferralSummary } from './queries'
+import { cn } from '@/lib/utils'
+import { WidgetEmpty, WidgetFrame, type WidgetChromeProps } from '../WidgetFrame'
+import { formatCents } from '@/hooks/useReferralDashboard'
+import { useReferralSummary } from './queries'
 
 const SHARE_TEXT = 'I have been using Vibration Fit to create and live my life vision. Thought you would love it.'
 
@@ -29,22 +32,43 @@ export function ReferralsWidget(chrome: WidgetChromeProps) {
     }
   }
 
-  const latest = data?.paidReferrals[0]
+  const partners = data?.partners
+  const slots = partners?.creditSlots || 3
+  const perReferral = formatCents(partners?.creditPerReferralCents ?? 3300)
+  const active = partners ? partners.activeReferrals : data?.stats.paidConversions ?? 0
+  const slotsFilled = Math.min(active, slots)
+  const remaining = slots - slotsFilled
+  const isFree = remaining === 0
+  const commissionCents = partners
+    ? partners.balance.pending + partners.balance.held + partners.balance.approved
+    : 0
+
+  const headline = isFree
+      ? 'Your membership is free'
+      : slotsFilled === 0
+        ? `Refer ${slots}, get yours free`
+        : `Refer ${remaining} more, get yours free`
+
+  const rewards = isFree
+    ? `Every new referral now pays you through Partners${commissionCents > 0 ? `. ${formatCents(commissionCents)} earned so far.` : '.'}`
+    : `Each referral takes ${perReferral} off your bill until it's free. After that, referrals pay you through Partners.`
+
+  const detail = partners?.isInternal
+    ? `${rewards} (Founder link: yours are tracked, not paid.)`
+    : partners && !partners.isMember
+      ? `${rewards} Rewards start once you have an active paid membership.`
+      : rewards
 
   return (
-    <WidgetFrame
-      {...chrome}
-      title="Referrals"
-      icon={Share2}
-      accent="#39FF14"
-      href="/referral"
-      hrefLabel="Open"
-      loading={isLoading}
-    >
+    <WidgetFrame {...chrome} title="Partners" icon={Share2} accent="#39FF14" loading={isLoading}>
       {!data ? (
         <WidgetEmpty
           title="Your referral link is almost ready"
-          body="Open Referrals to grab your link and start sharing."
+          action={
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/referral">Open Partners</Link>
+            </Button>
+          }
         />
       ) : (
         <div className="flex flex-1 flex-col gap-3">
@@ -62,16 +86,35 @@ export function ReferralsWidget(chrome: WidgetChromeProps) {
               </Button>
             ) : null}
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <WidgetStat label="Clicks" value={data.stats.totalClicks} />
-            <WidgetStat label="Signups" value={data.stats.emailSignups} />
-            <WidgetStat label="Paid" value={data.stats.paidConversions} />
+
+          <div className="flex items-center gap-3">
+              <Gift className="h-4 w-4 shrink-0 text-primary-500" aria-hidden />
+              <span className="shrink-0 text-sm font-semibold text-white">{headline}</span>
+              <div className="flex min-w-[3rem] flex-1 gap-1" aria-hidden>
+                {Array.from({ length: slots }, (_, i) => (
+                  <span
+                    key={i}
+                    className={cn('h-1.5 flex-1 rounded-full', i < slotsFilled ? 'bg-primary-500' : 'bg-white/[0.08]')}
+                  />
+                ))}
+              </div>
+              <span className="shrink-0 text-xs tabular-nums text-neutral-400">
+                {slotsFilled}/{slots}
+              </span>
+            </div>
+
+          <div className="mt-auto flex items-end justify-between gap-3">
+            <p className="min-w-0 text-xs leading-relaxed text-neutral-400">
+              {detail}
+            </p>
+            <Link
+              href="/referral"
+              className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary-500 hover:text-primary-400"
+            >
+              Open Partners
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <p className="mt-auto truncate text-xs text-neutral-500">
-            {latest
-              ? `Latest: ${latest.referred_email || 'a purchase'} ${relativeDay(latest.created_at)}`
-              : 'Share your link. Everyone who joins through it shows up here.'}
-          </p>
         </div>
       )}
     </WidgetFrame>

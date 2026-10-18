@@ -2,7 +2,7 @@
 
 import type { ComponentType, ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ChevronLeft, ChevronRight, EyeOff, GripVertical, Pin } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, EyeOff, GripVertical, Pin, PinOff } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
 import { Spinner } from '@/lib/design-system/components'
 import { cn } from '@/lib/utils'
@@ -14,6 +14,7 @@ export interface WidgetChromeProps {
   pinned?: boolean
   onHide?: () => void
   onResize?: (next: WidgetSize) => void
+  onTogglePin?: () => void
   dragHandleRef?: (el: HTMLElement | null) => void
   dragHandleProps?: Record<string, unknown>
 }
@@ -50,6 +51,7 @@ export function WidgetFrame({
   pinned,
   onHide,
   onResize,
+  onTogglePin,
   dragHandleRef,
   dragHandleProps,
 }: WidgetFrameProps) {
@@ -66,7 +68,7 @@ export function WidgetFrame({
       )}
     >
       <header className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-3">
-        {customizing && !pinned ? (
+        {customizing ? (
           <button
             type="button"
             ref={dragHandleRef}
@@ -87,11 +89,20 @@ export function WidgetFrame({
 
         {customizing ? (
           <div className="flex items-center gap-0.5">
-            {pinned ? (
-              <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
-                <Pin className="h-3 w-3" />
-                Pinned
-              </span>
+            {onTogglePin ? (
+              <button
+                type="button"
+                onClick={onTogglePin}
+                aria-pressed={Boolean(pinned)}
+                aria-label={pinned ? `Unpin ${title}` : `Pin ${title} to the top`}
+                title={pinned ? 'Unpin' : 'Pin to top'}
+                className={cn(
+                  'rounded-md p-1.5 hover:bg-white/5',
+                  pinned ? 'text-primary-500 hover:text-primary-400' : 'text-neutral-400 hover:text-white',
+                )}
+              >
+                {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+              </button>
             ) : null}
             {onResize ? (
               <div
@@ -122,7 +133,7 @@ export function WidgetFrame({
                 </button>
               </div>
             ) : null}
-            {onHide && !pinned ? (
+            {onHide ? (
               <button
                 type="button"
                 onClick={onHide}

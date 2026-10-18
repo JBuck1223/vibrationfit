@@ -14,6 +14,8 @@ import { createAdminNotification } from '@/lib/admin/notifications'
 import { triggerEvent } from '@/lib/messaging/events'
 import { getPaymentPlanLabel } from '@/lib/intensive/utils'
 import { resolveReferralCode } from '@/lib/referral/helpers'
+import { attributeByCode } from '@/lib/partners/attribution'
+import { processPaymentEvent } from '@/lib/partners/ledger'
 import { savePayPalVaultedCard } from '@/lib/paypal/save-payment-method'
 
 function getSupabaseAdmin() {
@@ -261,8 +263,9 @@ export async function fulfillPayPalPurchase(params: {
     })
   }
 
+  let membershipSubscriptionId: string | null = null
   if (isMembership) {
-    await activateVisionProMembership({
+    membershipSubscriptionId = await activateVisionProMembership({
       supabaseAdmin,
       userId,
       orderId: order.id,
@@ -630,11 +633,21 @@ export async function fulfillPayPalPurchase(params: {
     try {
       const referrer = await resolveReferralCode(supabaseAdmin, ctx.referralSource)
       if (referrer) {
-        await supabaseAdmin.from('referral_events').insert({
+        const { data: conversionEvent } = await supabaseAdmin.from('referral_events').insert({
           referrer_id: referrer.id,
           event_type: 'paid_conversion',
           referred_email: email,
+          referred_user_id: userId,
           metadata: { amount: totalAmount, product, source: 'paypal_capture' },
+        }).select('id').single()
+        // Partners: lifetime attribution (first verified referral wins). The
+        // payment itself activates it below via processPaymentEvent.
+        await attributeByCode(supabaseAdmin, {
+          code: ctx.referralSource,
+          referredEmail: email,
+          referredUserId: userId,
+          status: 'payment_pending',
+          attributionEventId: conversionEvent?.id || null,
         })
         const { data: rp } = await supabaseAdmin
           .from('referral_participants')
@@ -660,6 +673,37 @@ export async function fulfillPayPalPurchase(params: {
     } catch {}
   }
 
+  // Partners ledger: the first membership charge is a collected payment like
+  // any renewal. Recorded in payment_history (PayPal revenue dedupes on the
+  // capture id) so commissions and profit run from one place.
+  if (isMembership && membershipSubscriptionId && totalAmount > 0) {
+    try {
+      const paidAt = new Date()
+      const { data: firstPayment, error: firstPaymentErr } = await supabaseAdmin
+        .from('payment_history')
+        .insert({
+          user_id: userId,
+          subscription_id: membershipSubscriptionId,
+          provider: 'paypal',
+          paypal_order_id: params.paypalOrderId,
+          paypal_capture_id: params.paypalCaptureId,
+          amount: totalAmount,
+          currency: params.currency || 'usd',
+          status: 'succeeded',
+          description: 'Vision Pro Membership — first payment',
+          paid_at: paidAt.toISOString(),
+          cycle_start: paidAt.toISOString(),
+          cycle_end: new Date(paidAt.getTime() + 28 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .select('id')
+        .single()
+      if (firstPaymentErr) throw firstPaymentErr
+      await processPaymentEvent(supabaseAdmin, firstPayment.id)
+    } catch (partnersErr) {
+      console.error('[fulfillment] partners processing failed (non-fatal):', partnersErr)
+    }
+  }
+
   return { userId, orderId: order.id, alreadyFulfilled: false }
 }
 
@@ -677,7 +721,7 @@ export async function activateVisionProMembership(params: {
   promoCode?: string | null
   referralSource?: string | null
   campaignName?: string | null
-}): Promise<void> {
+}): Promise<string | null> {
   const {
     supabaseAdmin,
     userId,
@@ -703,13 +747,13 @@ export async function activateVisionProMembership(params: {
 
   if (!tier) {
     console.error('[fulfillment] vision_pro_28day tier not found')
-    return
+    return null
   }
 
   const renewalAmount = tier.price_monthly || amountCents || 9900
   const periodEnd = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000)
 
-  const { error: subErr } = await supabaseAdmin.from('customer_subscriptions').insert({
+  const { data: newSub, error: subErr } = await supabaseAdmin.from('customer_subscriptions').insert({
     user_id: userId,
     membership_tier_id: tier.id,
     provider,
@@ -728,7 +772,7 @@ export async function activateVisionProMembership(params: {
     promo_code: promoCode || null,
     referral_source: referralSource || null,
     campaign_name: campaignName || null,
-  })
+  }).select('id').single()
   if (subErr) {
     console.error('[fulfillment] membership subscription insert failed', subErr)
   }
@@ -749,6 +793,8 @@ export async function activateVisionProMembership(params: {
       console.error('[fulfillment] membership token grant failed', err)
     }
   }
+
+  return newSub?.id || null
 }
 
 // ---------------------------------------------------------------------------

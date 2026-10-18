@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadPartnerDashboard } from '@/lib/partners/dashboard'
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,6 +46,9 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(50)
 
+    // Ledger data only for the signed-in member, never for an email-only lookup
+    const partners = user ? await loadPartnerDashboard(adminDb, participant) : null
+
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vibrationfit.com'
 
     return NextResponse.json({
@@ -58,6 +62,7 @@ export async function GET(request: NextRequest) {
       },
       invites: invites || [],
       paidReferrals: paidReferralRows || [],
+      partners,
     })
   } catch (error) {
     console.error('[referral/dashboard] Error:', error)

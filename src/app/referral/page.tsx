@@ -1,48 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Container, Stack, Card, Button, Input, Badge, Spinner } from '@/lib/design-system/components'
 import {
   Copy, Check, Share2, Mail, MessageCircle, Send,
-  Users, Link2, Edit3, ChevronRight,
+  Link2, Edit3, ChevronRight,
   Save, Pen, Smartphone,
 } from 'lucide-react'
-
-interface Participant {
-  id: string
-  email: string
-  referral_code: string
-  display_name: string | null
-  custom_message: string | null
-  total_clicks: number
-  email_signups: number
-  paid_conversions: number
-  second_degree_signups: number
-}
-
-interface Invite {
-  id: string
-  referred_email: string
-  referred_name: string | null
-  personalization: string | null
-  status: string
-  sent_at: string
-}
-
-interface PaidReferral {
-  id: string
-  referred_email: string | null
-  created_at: string
-  metadata: Record<string, unknown> | null
-}
-
-interface DashboardData {
-  participant: Participant
-  referralLink: string
-  stats: { totalClicks: number; emailSignups: number; paidConversions: number; secondDegreeSignups: number }
-  invites: Invite[]
-  paidReferrals: PaidReferral[]
-}
+import { keys } from '@/lib/query/keys'
+import { useReferralDashboard } from '@/hooks/useReferralDashboard'
+import { EarningNotice, StatBox } from '@/components/referral/ReferralPartnerCards'
 
 const INTEREST_OPTIONS = [
   'Vision', 'Growth', 'Universal Law', 'Manifestation',
@@ -50,9 +18,10 @@ const INTEREST_OPTIONS = [
 ]
 
 export default function ReferralPage() {
-  const [loading, setLoading] = useState(true)
-  const [enrolled, setEnrolled] = useState(false)
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null)
+  const queryClient = useQueryClient()
+  // Signed-out visitors look themselves up by email after joining
+  const [lookupEmail, setLookupEmail] = useState<string | null>(null)
+  const { data: dashboard, isLoading: loading } = useReferralDashboard(lookupEmail)
   const [email, setEmail] = useState('')
   const [joinLoading, setJoinLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -85,44 +54,7 @@ export default function ReferralPage() {
   const [sendSuccess, setSendSuccess] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
 
-  const loadDashboard = useCallback(async (participantEmail?: string) => {
-    try {
-      const params = new URLSearchParams()
-      if (participantEmail) params.set('email', participantEmail)
-      const res = await fetch(`/api/referral/dashboard?${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        setDashboard({
-          ...data,
-          paidReferrals: data.paidReferrals ?? [],
-        })
-        setEnrolled(true)
-      } else if (res.status === 404 && !participantEmail) {
-        const joinRes = await fetch('/api/referral/join', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        })
-        if (joinRes.ok) {
-          const retryRes = await fetch('/api/referral/dashboard')
-          if (retryRes.ok) {
-            const data = await retryRes.json()
-            setDashboard({
-              ...data,
-              paidReferrals: data.paidReferrals ?? [],
-            })
-            setEnrolled(true)
-          }
-        }
-      }
-    } catch {} finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadDashboard()
-  }, [loadDashboard])
+  const refreshDashboard = () => queryClient.invalidateQueries({ queryKey: keys.referralDashboard })
 
   const handleJoin = async () => {
     if (!email.trim()) return
@@ -140,7 +72,8 @@ export default function ReferralPage() {
         setError(data.error || 'Failed to join')
         return
       }
-      await loadDashboard(email.trim())
+      setLookupEmail(email.trim().toLowerCase())
+      await refreshDashboard()
     } catch {
       setError('Something went wrong')
     } finally {
@@ -158,7 +91,7 @@ export default function ReferralPage() {
   const shareVia = (platform: string) => {
     if (!dashboard) return
     const link = encodeURIComponent(dashboard.referralLink)
-    const text = encodeURIComponent('Check out Vibration Fit - a 72-hour life vision activation experience')
+    const text = encodeURIComponent('I have been using Vibration Fit to create and live my life vision. Thought you would love it.')
 
     const urls: Record<string, string> = {
       twitter: `https://twitter.com/intent/tweet?text=${text}&url=${link}`,
@@ -188,7 +121,7 @@ export default function ReferralPage() {
       }
       setEditingCode(false)
       setNewCode('')
-      await loadDashboard(dashboard?.participant.email)
+      await refreshDashboard()
     } catch {
       setCodeError('Something went wrong')
     } finally {
@@ -233,7 +166,7 @@ export default function ReferralPage() {
       setIntroName('')
       setIntroEmail('')
       setIntroStep(1)
-      await loadDashboard(dashboard?.participant.email)
+      await refreshDashboard()
     } catch {
       setSendError('Something went wrong')
     } finally {
@@ -242,7 +175,7 @@ export default function ReferralPage() {
   }
 
   const defaultMessage = dashboard
-    ? `Hey! I've been using something called Vibration Fit and thought you'd love it. It's a 72-Hour Activation Intensive where you create a written life vision, custom AM/PM audios, a vision board, and a 28-day plan to make it all stick. Check it out here: ${dashboard.referralLink}`
+    ? `Hey! I've been using Vibration Fit and thought you'd love it. You write a clear vision for your life across 12 areas, turn it into audios you listen to morning and night, build a vision board, and follow a simple daily plan that keeps you aligned with it. VIVA guides you through all of it. Check it out here: ${dashboard.referralLink}`
     : ''
 
   const activeMessage = myMessage || defaultMessage
@@ -271,6 +204,7 @@ export default function ReferralPage() {
       }
       setMessageSaved(true)
       setEditingMessage(false)
+      await refreshDashboard()
       setTimeout(() => setMessageSaved(false), 3000)
     } catch {
       setMessageError('Something went wrong')
@@ -314,13 +248,13 @@ export default function ReferralPage() {
   }
 
   // Not enrolled - show join form
-  if (!enrolled || !dashboard) {
+  if (!dashboard) {
     return (
       <Container size="xl">
         <Stack gap="lg">
           <Card className="p-4 md:p-6 lg:p-8 max-w-lg mx-auto w-full">
             <h2 className="text-xl md:text-2xl font-bold text-white text-center mb-2">
-              Join the Referral Program
+              Become a Referral Partner
             </h2>
             <p className="text-sm md:text-base text-neutral-400 text-center mb-6">
               Enter your email to get your unique referral link
@@ -351,11 +285,12 @@ export default function ReferralPage() {
     )
   }
 
-  const { participant, stats, invites, paidReferrals } = dashboard
+  const { participant, stats, partners } = dashboard
 
   return (
     <Container size="xl">
       <Stack gap="lg">
+        {partners ? <EarningNotice partners={partners} /> : null}
         {/* Your Referral Link */}
         <Card className="p-4 md:p-6 lg:p-8">
           <div className="flex items-center gap-2 mb-4">
@@ -409,17 +344,14 @@ export default function ReferralPage() {
             {codeError && <p className="text-[#FF0040] text-xs w-full">{codeError}</p>}
           </div>
 
-          {/* Stats row: 50/50 on md+, centered block on small screens */}
-          <div className="mt-6 w-full max-w-md mx-auto md:max-w-none md:mx-0">
-            <div className="grid grid-cols-3 gap-3 md:gap-6 w-full">
-              <StatBox label="Clicks" value={stats.totalClicks} />
-              <StatBox label="Signups" value={stats.emailSignups} />
-              <StatBox label="Paid referrals" value={stats.paidConversions} />
-            </div>
-            <p className="text-xs text-neutral-500 mt-3 text-center max-w-lg mx-auto md:max-w-2xl leading-relaxed">
-              Clicks are visits to your link. Signups are people who left their email after clicking. Paid referrals are completed purchases attributed to your code.
-            </p>
+          <div className="mt-6 grid grid-cols-3 gap-3 md:gap-6 w-full">
+            <StatBox label="Active referrals" value={partners ? partners.activeReferrals : stats.paidConversions} />
+            <StatBox label="Signups" value={stats.emailSignups} />
+            <StatBox label="Clicks" value={stats.totalClicks} />
           </div>
+          <p className="text-xs text-neutral-500 mt-3 leading-relaxed">
+            Active referrals are people who joined through your link and hold a paid membership right now. Signups left their email after clicking. Clicks are visits to your link.
+          </p>
         </Card>
 
         {/* My Message / Share / Warm Intro */}
@@ -652,75 +584,7 @@ export default function ReferralPage() {
             </div>
           )}
         </Card>
-
-        {/* Your referrals: paid purchases from your link */}
-        <Card className="p-4 md:p-6 lg:p-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-5 h-5 text-[#00FFFF]" />
-            <h2 className="text-lg md:text-xl font-bold text-white">Your referrals</h2>
-          </div>
-
-          {paidReferrals.length === 0 ? (
-            <p className="text-sm text-neutral-400">No paid referrals yet. When someone completes checkout with your link, they will appear here.</p>
-          ) : (
-            <div className="space-y-2">
-              {paidReferrals.map(row => (
-                <div key={row.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-[#1a1a1a] rounded-lg px-4 py-3 border border-[#333]">
-                  <div>
-                    <span className="text-sm text-white font-medium">{row.referred_email || 'Purchase'}</span>
-                    <span className="text-xs text-neutral-500 block sm:inline sm:ml-2">{formatReferralDate(row.created_at)}</span>
-                  </div>
-                  <Badge variant="success">Purchased</Badge>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {invites.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-[#333]">
-              <h3 className="text-sm font-semibold text-white mb-3">Warm intro emails</h3>
-              <p className="text-xs text-neutral-500 mb-3">People you emailed through the warm intro form (separate from link purchases).</p>
-              <div className="space-y-2">
-                {invites.map(invite => (
-                  <div key={invite.id} className="flex items-center justify-between bg-[#1a1a1a] rounded-lg px-4 py-3 border border-[#333]">
-                    <div>
-                      <span className="text-sm text-white">{invite.referred_name || invite.referred_email}</span>
-                      <span className="text-xs text-neutral-500 ml-2">{invite.referred_email}</span>
-                    </div>
-                    <Badge
-                      variant={
-                        invite.status === 'converted' ? 'success' :
-                        invite.status === 'clicked' ? 'secondary' :
-                        'neutral'
-                      }
-                    >
-                      {invite.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-
       </Stack>
     </Container>
-  )
-}
-
-function formatReferralDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
-  } catch {
-    return ''
-  }
-}
-
-function StatBox({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-[#1a1a1a] border border-[#333] rounded-xl p-3 text-center">
-      <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
-      <div className="text-xs text-neutral-400">{label}</div>
-    </div>
   )
 }

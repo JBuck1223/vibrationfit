@@ -538,28 +538,4 @@ export function useActiveVisionSummary() {
 // Referrals
 // ---------------------------------------------------------------------------
 
-export interface ReferralSummary {
-  referralLink: string
-  stats: { totalClicks: number; emailSignups: number; paidConversions: number; secondDegreeSignups: number }
-  paidReferrals: { id: string; referred_email: string | null; created_at: string }[]
-}
-
-export function useReferralSummary() {
-  return useQuery({
-    queryKey: keys.referralDashboard,
-    queryFn: async () => {
-      let res = await fetch('/api/referral/dashboard')
-      if (res.status === 404) {
-        // Members are auto-enrolled; this covers anyone created before that trigger.
-        await fetch('/api/referral/join', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        })
-        res = await fetch('/api/referral/dashboard')
-      }
-      if (!res.ok) return null
-      return (await res.json()) as ReferralSummary
-    },
-  })
-}
+export { useReferralDashboard as useReferralSummary } from '@/hooks/useReferralDashboard'

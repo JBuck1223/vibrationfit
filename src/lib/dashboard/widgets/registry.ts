@@ -65,8 +65,8 @@ export interface WidgetMeta {
   description: string
   defaultSize: WidgetSize
   defaultVisible: boolean
-  /** Pinned widgets always render first and cannot be moved or hidden. */
-  pinned?: boolean
+  /** Starts pinned to the top. Members can unpin (or pin others) in Customize. */
+  defaultPinned?: boolean
   /** Conditional widgets only exist for members matching this flag. */
   availability?: 'always' | 'training-open'
 }
@@ -77,9 +77,9 @@ export const WIDGET_META: WidgetMeta[] = [
     id: 'tools-training',
     title: 'Tools Training',
     description: 'Finish the walk-through of each room.',
-    defaultSize: 'full',
+    defaultSize: 'half',
     defaultVisible: true,
-    pinned: true,
+    defaultPinned: true,
     availability: 'training-open',
   },
   {
@@ -175,10 +175,11 @@ export const WIDGET_META: WidgetMeta[] = [
   },
   {
     id: 'referrals',
-    title: 'Referrals',
-    description: 'Your share link and who it brought in.',
+    title: 'Partners',
+    description: 'Share your link, send intros, and earn bill credit.',
     defaultSize: 'half',
     defaultVisible: true,
+    defaultPinned: true,
   },
 ]
 

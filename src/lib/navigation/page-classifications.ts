@@ -182,8 +182,11 @@ export const PAGE_CLASSIFICATIONS = {
     // Alignment Gym (Graduate Unlock)
     '/alignment-gym',
     
-    // Referral Program
+    // Referral Partners
     '/referral',
+    '/referral/referrals',
+    '/referral/earnings',
+    '/referral/payouts',
 
     // Projects
     // Legacy Projects routes (redirect into owning manifestation)
@@ -461,6 +464,7 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/manifestations',
   '/profile',
   '/projects',
+  '/referral',
   '/reset',
   '/storage',
   '/story',

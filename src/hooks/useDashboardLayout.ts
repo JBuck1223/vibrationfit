@@ -7,12 +7,13 @@ import { keys } from '@/lib/query/keys'
 import {
   DEFAULT_LAYOUT,
   LAYOUT_PRESETS_BY_ID,
+  applyPinsToPreset,
   normalizeLayout,
   type LayoutPresetId,
   type DashboardLayout,
   type DashboardWidgetPlacement,
 } from '@/lib/dashboard/layout'
-import { WIDGET_META_BY_ID, type WidgetId, type WidgetSize } from '@/lib/dashboard/widgets/registry'
+import type { WidgetId, WidgetSize } from '@/lib/dashboard/widgets/registry'
 
 async function fetchLayout(): Promise<DashboardLayout> {
   const res = await fetch('/api/dashboard/layout')
@@ -69,7 +70,6 @@ export function useDashboardLayout() {
   const reorder = useCallback(
     (activeId: WidgetId, overId: WidgetId) => {
       if (activeId === overId) return
-      if (WIDGET_META_BY_ID[activeId].pinned || WIDGET_META_BY_ID[overId].pinned) return
       const from = layout.widgets.findIndex((w) => w.id === activeId)
       const to = layout.widgets.findIndex((w) => w.id === overId)
       if (from < 0 || to < 0) return
@@ -80,8 +80,7 @@ export function useDashboardLayout() {
 
   const setVisible = useCallback(
     (id: WidgetId, visible: boolean) => {
-      if (WIDGET_META_BY_ID[id].pinned) return
-      save(layout.widgets.map((w) => (w.id === id ? { ...w, visible } : w)))
+      save(layout.widgets.map((w) => (w.id === id ? { ...w, visible, pinned: visible ? w.pinned : false } : w)))
     },
     [layout.widgets, save],
   )
@@ -93,15 +92,29 @@ export function useDashboardLayout() {
     [layout.widgets, save],
   )
 
+  /** Pinning moves a widget to the end of the pinned group; unpinning drops it just below. */
+  const setPinned = useCallback(
+    (id: WidgetId, pinned: boolean) => {
+      const target = layout.widgets.find((w) => w.id === id)
+      if (!target || target.pinned === pinned) return
+      const others = layout.widgets.filter((w) => w.id !== id)
+      const pinnedCount = others.filter((w) => w.pinned).length
+      const next = [...others]
+      next.splice(pinnedCount, 0, { ...target, pinned, visible: true })
+      save(next)
+    },
+    [layout.widgets, save],
+  )
+
   const reset = useCallback(() => {
     save(DEFAULT_LAYOUT.widgets)
   }, [save])
 
   const applyPreset = useCallback(
     (id: LayoutPresetId) => {
-      save(LAYOUT_PRESETS_BY_ID[id].layout.widgets)
+      save(applyPinsToPreset(LAYOUT_PRESETS_BY_ID[id].layout, layout.widgets))
     },
-    [save],
+    [layout.widgets, save],
   )
 
   /** Put back a layout captured before a preset or reset (undo). */
@@ -119,6 +132,7 @@ export function useDashboardLayout() {
     reorder,
     setVisible,
     setSize,
+    setPinned,
     reset,
     applyPreset,
     restore,
