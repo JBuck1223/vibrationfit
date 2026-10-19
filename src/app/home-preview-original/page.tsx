@@ -386,7 +386,7 @@ export default function HomePreviewOriginalPage() {
                 {/* Headline at top */}
                 <div className="text-center">
                   <Heading level={2} className="text-white leading-tight !mb-0">
-                    Thoughts become things…<br />so why isn't it working?
+                    Consciously create<br />the life you choose
                   </Heading>
                 </div>
                 

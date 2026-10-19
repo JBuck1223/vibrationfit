@@ -27,6 +27,7 @@ export function ReferralPartnersAreaBar() {
       area={{ name: 'Referral Partners', icon: Handshake }}
       tabs={TABS}
       contextText={CONTEXT_TEXT[path]}
+      keepTabActive
       variant="default"
       appLikePrimaryTabs
       fluidAppLikeTabs

@@ -50,8 +50,8 @@ export function ReferralsWidget(chrome: WidgetChromeProps) {
         : `Refer ${remaining} more, get yours free`
 
   const rewards = isFree
-    ? `Every new referral now pays you through Partners${commissionCents > 0 ? `. ${formatCents(commissionCents)} earned so far.` : '.'}`
-    : `Each referral takes ${perReferral} off your bill until it's free. After that, referrals pay you through Partners.`
+    ? `Every new referral now pays you through Referral Partners${commissionCents > 0 ? `. ${formatCents(commissionCents)} earned so far.` : '.'}`
+    : `Each referral takes ${perReferral} off your bill until it's free. After that, referrals pay you through Referral Partners.`
 
   const detail = partners?.isInternal
     ? `${rewards} (Founder link: yours are tracked, not paid.)`
@@ -60,13 +60,13 @@ export function ReferralsWidget(chrome: WidgetChromeProps) {
       : rewards
 
   return (
-    <WidgetFrame {...chrome} title="Partners" icon={Share2} accent="#39FF14" loading={isLoading}>
+    <WidgetFrame {...chrome} title="Referral Partners" icon={Share2} accent="#39FF14" loading={isLoading}>
       {!data ? (
         <WidgetEmpty
           title="Your referral link is almost ready"
           action={
             <Button variant="outline" size="sm" asChild>
-              <Link href="/referral">Open Partners</Link>
+              <Link href="/referral">Open Referral Partners</Link>
             </Button>
           }
         />
@@ -111,7 +111,7 @@ export function ReferralsWidget(chrome: WidgetChromeProps) {
               href="/referral"
               className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary-500 hover:text-primary-400"
             >
-              Open Partners
+              Open Referral Partners
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

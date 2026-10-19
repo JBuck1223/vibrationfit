@@ -207,7 +207,7 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Spoken force statements',
       },
       {
-        name: 'Spark Theories',
+        name: 'Queries',
         href: '/story?kind=spark_query',
         icon: Lightbulb,
         description: 'SparkQuery teaching questions',

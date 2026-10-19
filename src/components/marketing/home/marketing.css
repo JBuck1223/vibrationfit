@@ -86,6 +86,14 @@ html:has([data-home]) body {
   white-space: nowrap;
 }
 
+/* The script face runs small; scale it so the accent line reads the same size as the first line. */
+.hp-hero-headline .hp-display {
+  display: inline-block;
+  margin-top: 0.2em;
+  font-size: 1.15em;
+  line-height: 1.1;
+}
+
 .hp-optin-hero {
   padding-top: 0.25rem;
 }

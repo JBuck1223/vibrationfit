@@ -37,9 +37,9 @@ export default function HomePreview4Page() {
             variant="stacked"
             intro={
               <Display as="h1">
-                Thoughts Become Things.
+                Consciously Create
                 <br />
-                <Accent>So Why Isn&rsquo;t It Working?</Accent>
+                <Accent>The Life You Choose</Accent>
               </Display>
             }
           />

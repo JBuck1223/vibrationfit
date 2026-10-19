@@ -90,9 +90,9 @@ export default function HomePage() {
               {/* Headline at top */}
               <div className="text-center mb-4 md:mb-6 px-2 md:px-0">
                 <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
-                  Thoughts become things…
+                  Consciously create
                   <br />
-                  <span className="text-xl md:text-4xl lg:text-5xl text-white">so why isn't it working?</span>
+                  <span className="text-xl md:text-4xl lg:text-5xl text-white">the life you choose</span>
                 </h1>
               </div>
               
