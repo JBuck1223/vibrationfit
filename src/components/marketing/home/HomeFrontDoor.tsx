@@ -102,9 +102,9 @@ export function HomeFrontDoor({
       <header className="hp-hero-glow" data-hero={paidOnly ? 'vision-pro' : 'activation-offer'}>
         <Container size="xl" className="px-4 py-12 md:px-10 md:pb-20 md:pt-14">
           <Display as="h1" className="hp-hero-headline">
-            <span className="hp-hero-headline-line">Thoughts Become Things.</span>
+            <span className="hp-hero-headline-line">Consciously Create</span>
             <br />
-            <Accent>So Why Isn&rsquo;t It Working?</Accent>
+            <Accent>The Life You Choose</Accent>
           </Display>
           <div className="mx-auto mt-10 max-w-3xl">
             <HeroPreviewVideo

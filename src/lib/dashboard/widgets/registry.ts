@@ -175,7 +175,7 @@ export const WIDGET_META: WidgetMeta[] = [
   },
   {
     id: 'referrals',
-    title: 'Partners',
+    title: 'Referral Partners',
     description: 'Share your link, send intros, and earn bill credit.',
     defaultSize: 'half',
     defaultVisible: true,

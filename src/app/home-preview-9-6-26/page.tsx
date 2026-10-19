@@ -53,9 +53,9 @@ export default function HomePreview9626Page() {
             variant="stacked"
             intro={
               <Display as="h1" className="hp-hero-headline">
-                <span className="hp-hero-headline-line">Thoughts Become Things.</span>
+                <span className="hp-hero-headline-line">Consciously Create</span>
                 <br />
-                <Accent>So Why Isn&rsquo;t It Working?</Accent>
+                <Accent>The Life You Choose</Accent>
               </Display>
             }
           />

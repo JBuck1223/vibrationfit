@@ -438,7 +438,7 @@ export function renderComponentExamples(component: ComponentMetadata): React.Rea
               <h5 className="text-sm md:text-base font-semibold text-white">Real Example from Home Page</h5>
               <Text size="sm" className="text-neutral-400 mb-4">Hero section headline</Text>
               <Heading level={1} className="text-white leading-tight text-center">
-                Thoughts become things…<br />so why isn't it working?
+                Consciously create<br />the life you choose
               </Heading>
             </Stack>
           </Card>

@@ -30,8 +30,9 @@ export async function POST(request: NextRequest) {
         .eq('id', user.id)
         .maybeSingle()
 
-      displayName = account?.first_name || null
-      codeSeed = account?.first_name || email.split('@')[0]
+      const name = [account?.first_name, account?.last_name].filter(Boolean).join(' ').trim()
+      displayName = name || null
+      codeSeed = name || email.split('@')[0]
     } else {
       email = body.email?.trim()?.toLowerCase()
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

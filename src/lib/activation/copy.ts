@@ -98,7 +98,7 @@ export const ACTIVATION_COPY = {
     sections: [
       {
         id: 'hero',
-        heading: 'Thoughts Become Things. So Why Isn\'t It Working?',
+        heading: 'Consciously Create the Life You Choose',
         notes: 'Homepage-style landing. The card under the hero is the free Activation. CTAs go to /free-activation/start.',
       },
     ],
