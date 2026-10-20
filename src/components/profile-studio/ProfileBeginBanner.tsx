@@ -21,7 +21,7 @@ export function ProfileBeginBanner() {
   return (
     <>
       <LifeActivationBanner
-        onboardingStep="profile"
+        onboardingStep="world"
         title={LIFE_ACTIVATION_COPY.profile.title}
         body={LIFE_ACTIVATION_COPY.profile.body}
         doneLabel={LIFE_ACTIVATION_COPY.profile.cta}

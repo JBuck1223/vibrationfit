@@ -26,6 +26,7 @@ export function useSongs(): UseSongsReturn {
         .from('songs')
         .select('*')
         .eq('user_id', user.id)
+        .neq('entity_type', 'meditation')
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError

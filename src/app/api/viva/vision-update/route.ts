@@ -32,8 +32,10 @@ import {
   persistVivaSeeds,
   upsertCategoryText,
 } from '@/lib/life-vision/draft-session'
-import { loadRoster, loadPersona } from '@/lib/roster/store'
-import { renderRosterForPrompt, renderPersonaForPrompt } from '@/lib/roster/render'
+import { loadPersona } from '@/lib/roster/store'
+import { renderPersonaForPrompt } from '@/lib/roster/render'
+import { loadMemberWorld } from '@/lib/your-world/load'
+import { buildMemberWorldVisionBlock } from '@/lib/viva/prompts/shared/member-world'
 import { runGetToKnowYouExtraction } from '@/lib/roster/get-to-know-you-extractor'
 import { persistMemberPassages, tagMemberPassages } from '@/lib/life-vision/passage-tagger'
 
@@ -111,22 +113,16 @@ export async function POST(req: Request) {
       )
     }
 
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('first_name')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    // Get to Know You context: account prefill + whatever the roster/persona
-    // already hold, so VIVA never re-asks what we know (both modes).
-    const [{ data: account }, roster, persona] = await Promise.all([
-      supabase.from('user_accounts').select('first_name, date_of_birth').eq('id', user.id).maybeSingle(),
-      loadRoster(supabase, user.id),
+    // Their world (Account + Your World + what VIVA learned) and persona, so
+    // VIVA never re-asks what we know (both modes).
+    const [world, persona] = await Promise.all([
+      loadMemberWorld(supabase, user.id),
       loadPersona(supabase, user.id),
     ])
-    const accountFirstName = account?.first_name || null
-    const dateOfBirth = account?.date_of_birth || null
-    const rosterBlock = renderRosterForPrompt(roster) || null
+    const profile = { first_name: world.firstName }
+    const accountFirstName = world.firstName
+    const dateOfBirth = world.dateOfBirth
+    const rosterBlock = buildMemberWorldVisionBlock(world) || null
     const personaBlock = renderPersonaForPrompt(persona) || null
 
     const seededCategory = CATEGORY_KEYS.find((key) => draftText[key]) || null

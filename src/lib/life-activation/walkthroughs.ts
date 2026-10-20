@@ -171,19 +171,6 @@ const STUDIO_HERE_TABS: Partial<Record<WalkthroughId, StudioHereTab[]>> = {
         pathname !== '/manifestations/create',
     },
   ],
-  profile: [
-    { href: '/profile/create', tabId: 'studio-tab-profile-update', tabLabel: 'Update', studio: 'My Profile' },
-    {
-      href: '/profile',
-      tabId: 'studio-tab-profile-view',
-      tabLabel: 'View',
-      studio: 'My Profile',
-      match: (pathname) =>
-        (pathname === '/profile' || pathname === '/profile/' || /^\/profile\/[^/]+/.test(pathname)) &&
-        pathname !== '/profile/create' &&
-        pathname !== '/profile/new',
-    },
-  ],
   map: [
     { href: '/map/update', tabId: 'studio-tab-map-update', tabLabel: 'Update', studio: 'MAP' },
     { href: '/map', tabId: 'studio-tab-map-view', tabLabel: 'View', studio: 'MAP' },
@@ -1259,13 +1246,6 @@ function isExact(pathname: string, path: string) {
   return pathname === path || pathname === `${path}/`
 }
 
-function isProfileView(pathname: string) {
-  if (isExact(pathname, '/profile')) return true
-  const match = pathname.match(/^\/profile\/([^/]+)\/?$/)
-  if (!match) return false
-  return !['create', 'new', 'compare', 'active'].includes(match[1])
-}
-
 function isStoryView(pathname: string) {
   if (isExact(pathname, '/story')) return true
   const match = pathname.match(/^\/story\/([^/]+)\/?$/)
@@ -1333,8 +1313,6 @@ export function resolveToolWalkthrough(
   if (isExact(pathname, '/manifestations/create') || isManifestationView(pathname)) {
     return 'manifestations'
   }
-
-  if (isExact(pathname, '/profile/create') || isProfileView(pathname)) return 'profile'
 
   if (
     isExact(pathname, '/audio/create') ||

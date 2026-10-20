@@ -666,6 +666,7 @@ export default function AudioListenPage() {
     const { data } = await supabase
       .from('songs')
       .select('id, title, status, created_at, entity_type, lyrics, style_prompt, metadata, generation_count, story_media_url, story_media_type')
+      .neq('entity_type', 'meditation')
       .in('status', ['completed', 'generating_music'])
       .order('created_at', { ascending: false })
       .limit(50)
@@ -678,6 +679,7 @@ export default function AudioListenPage() {
     const { data: drafts } = await supabase
       .from('songs')
       .select('id, title, status, created_at, entity_type, lyrics')
+      .neq('entity_type', 'meditation')
       .in('status', ['draft', 'generating_lyrics', 'lyrics_complete', 'failed'])
       .order('updated_at', { ascending: false })
       .limit(50)

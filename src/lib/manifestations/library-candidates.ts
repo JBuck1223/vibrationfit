@@ -234,6 +234,7 @@ export async function findLibraryCandidates(
         .from('songs')
         .select('id, title, created_at, life_categories')
         .eq('user_id', userId)
+        .neq('entity_type', 'meditation')
         .order('created_at', { ascending: false })
         .limit(24)
       for (const row of data || []) {

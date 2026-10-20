@@ -25,6 +25,7 @@ import {
   SPARK_QUERY_SYSTEM_PROMPT,
   buildSparkQueryPrompt,
 } from '@/lib/viva/prompts/spark-query-prompt'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     const result = await generateText({
       model: gateway(`openai/${toolConfig.model_name}`),
-      system: SPARK_QUERY_SYSTEM_PROMPT,
+      system: [SPARK_QUERY_SYSTEM_PROMPT, await loadMemberWorldBlock(supabase, user.id)].filter(Boolean).join('\n\n'),
       prompt: userPrompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.7) : undefined,
     })

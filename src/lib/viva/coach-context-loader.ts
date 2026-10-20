@@ -12,6 +12,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { CoachContextInput } from './prompts/coach-system-prompt'
 import { loadOpenKitsSummary } from '@/lib/manifestations/kit-helpers'
 import { loadRoster, loadPersona } from '@/lib/roster/store'
+import { loadMemberWorld } from '@/lib/your-world/load'
 
 export interface LoadCoachContextParams {
   supabase: SupabaseClient
@@ -45,7 +46,7 @@ export async function loadCoachContext({
 
   // Run all queries in parallel
   const [
-    profileResult,
+    worldResult,
     visionResult,
     assessmentResult,
     journalResult,
@@ -64,16 +65,8 @@ export async function loadCoachContext({
     rosterResult,
     personaResult,
   ] = await Promise.all([
-    // 1. User profile (profiles are versioned — load the active, non-draft one)
-    supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .eq('is_draft', false)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    // 1. Their world (Account + Your World + roster)
+    loadMemberWorld(supabase, userId),
 
     // 2. Active vision (for category-specific text)
     loadActiveVision(supabase, userId),
@@ -140,7 +133,8 @@ export async function loadCoachContext({
 
   const context: CoachContextInput = {
     userName,
-    profileData: profileResult.data || null,
+    profileData: null,
+    world: worldResult,
     visionData: visionResult,
     assessmentData: assessmentResult.data || null,
     journalEntries: journalResult || [],

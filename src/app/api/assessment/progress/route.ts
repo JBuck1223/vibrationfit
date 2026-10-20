@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { assessmentQuestions, filterQuestionsByProfile } from '@/lib/assessment/questions'
+import { loadProfileCompat } from '@/lib/your-world/load'
 
 // ============================================================================
 // GET - Calculate assessment progress
@@ -46,13 +47,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user profile for conditional logic
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .eq('is_draft', false)
-      .single()
+    const profile = await loadProfileCompat(supabase, user.id)
     
     console.log('📊 Progress API - Profile data:', {
       found: !!profile,

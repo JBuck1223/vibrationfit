@@ -15,6 +15,7 @@ import {
   type DepthPreference,
 } from '@/lib/viva/voice-profile'
 import { generateJSON } from '@/lib/ai/client'
+import { loadCurrentStateText } from '@/lib/your-world/current-state'
 
 interface VoiceAnalysisResult {
   word_flow: WordFlow
@@ -72,37 +73,17 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch user's active profile
-    const { data: userProfile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .eq('is_draft', false)
-      .maybeSingle()
-
-    if (profileError) {
-      console.error('user_profiles fetch error', profileError)
-      return NextResponse.json({ error: 'Failed to fetch user profile.' }, { status: 500 })
-    }
-
-    if (!userProfile) {
-      return NextResponse.json({ error: 'No active user profile found.' }, { status: 404 })
-    }
-
-    // Collect state fields
+    const texts = await Promise.all(
+      STATE_FIELDS.map((field) => loadCurrentStateText(supabase, user.id, field.replace('state_', ''))),
+    )
     const samples: string[] = []
-
-    STATE_FIELDS.forEach((field) => {
-      const value = userProfile[field]
-      if (value && typeof value === 'string' && value.trim().length > 0) {
-        samples.push(`STATE (${field.replace('state_', '')}): ${value}`)
-      }
+    texts.forEach((value, i) => {
+      if (value) samples.push(`STATE (${STATE_FIELDS[i].replace('state_', '')}): ${value}`)
     })
 
     if (samples.length === 0) {
       return NextResponse.json(
-        { error: 'No state fields found in user profile. Complete your profile first.' },
+        { error: 'Nothing written yet. Write what is going on now in a few Life Vision areas first.' },
         { status: 400 }
       )
     }

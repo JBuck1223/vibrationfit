@@ -32,6 +32,10 @@ export function normalizeProgress(row: Record<string, unknown>): LifeActivationP
     if (!onboarding.map) onboarding.map = doneAt
     if (!onboarding.unlock) onboarding.unlock = doneAt
   }
+  if (!onboarding.world) {
+    const later = ONBOARDING_STEP_IDS.slice(ONBOARDING_STEP_IDS.indexOf('world') + 1).find((id) => onboarding[id])
+    if (later) onboarding.world = onboarding.intake || onboarding[later]
+  }
 
   return {
     id: String(row.id),

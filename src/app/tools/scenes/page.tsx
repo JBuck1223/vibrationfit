@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { loadCurrentStateText } from '@/lib/your-world/current-state'
 import { Container, Card, Button, Spinner, Badge, Stack, PageHero, CategoryGrid, VIVALoadingOverlay, Textarea, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { Sparkles, CheckCircle, ArrowRight, RefreshCw, AlertCircle, Video, Edit2, Save, X, Trash2, Check } from 'lucide-react'
 import { getVisionCategory, VISION_CATEGORIES, type LifeCategoryKey } from '@/lib/design-system/vision-categories'
@@ -131,13 +132,7 @@ export default function ScenesToolPage() {
         .eq('category', selectedCategory)
         .maybeSingle()
 
-      // Get profile data for this category
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .maybeSingle()
+      const profileStory = await loadCurrentStateText(supabase, user.id, selectedCategory)
 
       // Get active assessment data for this category
       const { data: assessment } = await supabase
@@ -149,11 +144,6 @@ export default function ScenesToolPage() {
 
       // Extract category-specific data
       const categoryResponses = assessment?.assessment_responses?.filter((r: any) => r.category === selectedCategory) || []
-      
-      // Map category to profile story field
-      const storyField = `${selectedCategory}_story`
-      const profileStory = profile?.[storyField] || ''
-
       setVivaStage('generating')
 
       // Call scenes generation API

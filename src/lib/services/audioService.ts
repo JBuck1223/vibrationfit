@@ -9,6 +9,7 @@ import path from 'path'
 import { execSync } from 'child_process'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { getVoiceVibe, buildVoiceId, parseVoiceId } from '@/lib/audio/voice-vibes'
+import { applySayAsEntries, loadSayAsEntries } from '@/lib/your-world/say-as'
 
 export type OpenAIVoice = 'alloy' | 'ash' | 'coral' | 'echo' | 'fable' | 'onyx' | 'nova' | 'sage' | 'shimmer'
 export type VoiceId = OpenAIVoice
@@ -396,6 +397,9 @@ export async function generateAudioTracks(params: {
   // Persisted voice_id keeps audio sets + de-dup distinct per voice+vibe combo.
   const storedVoiceId = buildVoiceId(ttsVoice, vibeId)
 
+  // Names are respelled for the voice only; text_content keeps the real spelling.
+  const sayAsEntries = await loadSayAsEntries(supabase, userId).catch(() => [])
+
   const isStory = contentType === 'story'
   const entityId = visionId || contentId
   if (!entityId) throw new Error('Either visionId or contentId is required')
@@ -578,7 +582,8 @@ export async function generateAudioTracks(params: {
   for (const section of sections) {
     console.log(`\n📝 [Section Start] ${section.sectionKey} ========================================`)
     
-    const contentHash = hashContent(section.text)
+    const spokenText = applySayAsEntries(section.text, sayAsEntries)
+    const contentHash = hashContent(spokenText)
 
     // STEP 1: Check if track already exists in THIS audio set
     const { data: existingInSet, error: existingInSetError } = await supabase
@@ -755,7 +760,7 @@ export async function generateAudioTracks(params: {
       
       if (shouldGenerateVoice) {
         // Generate new voice track (for standard variant or if no existing track found)
-        const processedText = processTextForVariant(section.text, variant)
+        const processedText = processTextForVariant(spokenText, variant)
         
         // Validate the resolved OpenAI voice (the vibe id resolves to one of these)
         if (!['alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer'].includes(ttsVoice)) {

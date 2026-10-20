@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { loadRoster } from '@/lib/roster/store'
 import type { RosterUpdate } from '@/lib/roster/types'
+import { commitVersionFromRoster } from '@/lib/your-world/store'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,6 +52,14 @@ export async function PATCH(req: Request) {
   for (const key of EDITABLE_KEYS) {
     if (key in incoming) update[key] = incoming[key] as RosterUpdate[typeof key]
   }
+  if ('vocation' in update) {
+    const existing = await loadRoster(supabase, user.id)
+    const occupation = typeof update.vocation === 'string' ? update.vocation.trim() : ''
+    const work: Record<string, unknown> = { ...(existing?.work || {}) }
+    if (occupation) work.occupation = occupation
+    else delete work.occupation
+    update.work = work
+  }
   if (body.confirm === true) update.confirmed_at = new Date().toISOString()
 
   const { data, error } = await supabase
@@ -62,6 +71,11 @@ export async function PATCH(req: Request) {
   if (error) {
     console.error('[Roster API] PATCH error:', error)
     return NextResponse.json({ error: 'Failed to save' }, { status: 500 })
+  }
+  if (body.confirm === true) {
+    await commitVersionFromRoster(supabase, user.id)
+    const fresh = await loadRoster(supabase, user.id)
+    return NextResponse.json({ roster: fresh ?? data })
   }
   return NextResponse.json({ roster: data })
 }

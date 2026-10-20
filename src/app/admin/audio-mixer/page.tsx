@@ -120,7 +120,7 @@ export default function AudioMixerAdminPage() {
         .from('audio_background_tracks')
         .select('*')
         .order('sort_order')
-      if (data) setBackgroundTracks(data)
+      if (data) setBackgroundTracks(data.filter((track) => track.category !== 'meditations'))
     } else if (activeTab === 'ratios') {
       const { data } = await supabase
         .from('audio_mix_ratios')
@@ -144,7 +144,7 @@ export default function AudioMixerAdminPage() {
         .from('audio_background_tracks')
         .select('*')
         .eq('is_active', true)
-        .not('category', 'in', '(binaural,solfeggio)')
+        .not('category', 'in', '(binaural,solfeggio,meditations)')
         .order('display_name')
       if (tracks) setBackgroundTracks(tracks)
       

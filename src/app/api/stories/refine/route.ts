@@ -10,6 +10,7 @@ import {
 } from '@/lib/tokens/tracking'
 import { FOCUS_STORY_SYSTEM_PROMPT } from '@/lib/viva/prompts/focus-story-prompt'
 import { ESSENCE_STORY_SYSTEM_PROMPT } from '@/lib/viva/prompts/essence-story-prompt'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 
 export const runtime = 'edge'
 
@@ -150,7 +151,7 @@ Return ONLY the revised narrative text. No explanations, no headings, no comment
         }
 
         const messages = [
-          { role: 'system' as const, content: isEssence ? ESSENCE_STORY_SYSTEM_PROMPT : FOCUS_STORY_SYSTEM_PROMPT },
+          { role: 'system' as const, content: [isEssence ? ESSENCE_STORY_SYSTEM_PROMPT : FOCUS_STORY_SYSTEM_PROMPT, await loadMemberWorldBlock(supabase, user.id)].filter(Boolean).join('\n\n') },
           { role: 'user' as const, content: prompt },
         ]
         const openaiParams = buildOpenAIParams(toolConfig, messages, {

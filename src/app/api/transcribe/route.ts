@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 import { formatTranscript, type TranscriptionWord } from '@/lib/audio/format-transcript-paragraphs'
+import { loadNameHints } from '@/lib/your-world/say-as'
 
 export const maxDuration = 300
 
@@ -59,11 +60,13 @@ export async function POST(request: NextRequest) {
     })
 
     // Word timestamps strip punctuation from whisper-1. Sentence text is what we show.
+    const nameHints = await loadNameHints(supabase, user.id)
     const transcription = await openai.audio.transcriptions.create({
       file: file,
       model: 'whisper-1',
       language: 'en',
       response_format: 'verbose_json',
+      ...(nameHints.length ? { prompt: `Names: ${nameHints.join(', ')}.` } : {}),
     })
 
     console.log('Transcription complete:', {

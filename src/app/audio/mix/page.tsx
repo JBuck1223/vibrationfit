@@ -9,6 +9,8 @@ import type { Story } from '@/lib/stories/types'
 import { createClient } from '@/lib/supabase/client'
 import { Headphones, CheckCircle, Play, Moon, Zap, Sparkles, Music, X, Wand2, Mic, Clock, Music2, Plus, Waves, Search, Home } from 'lucide-react'
 import Link from 'next/link'
+import { CreatorLink } from '@/components/meditations/CreatorLink'
+import { accountDisplayName } from '@/lib/meditations/display-name'
 import { getVisionCategoryKeys, VISION_CATEGORIES } from '@/lib/design-system'
 import { parseVoiceId, getVoiceVibe } from '@/lib/audio/voice-vibes'
 import { SectionSelector } from '@/components/SectionSelector'
@@ -41,6 +43,7 @@ interface BackgroundTrack {
   category: string
   file_url: string
   description?: string
+  created_by?: string | null
 }
 
 interface MixRatio {
@@ -134,6 +137,7 @@ export default function AudioMixPage() {
   
   // Background Track Selection
   const [backgroundTracks, setBackgroundTracks] = useState<BackgroundTrack[]>([])
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({})
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<string>('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [bgTrackSearch, setBgTrackSearch] = useState('')
@@ -468,6 +472,18 @@ export default function AudioMixPage() {
     
     if (tracks) {
       setBackgroundTracks(tracks)
+      const creatorIds = [...new Set(tracks.map((track) => track.created_by).filter((id): id is string => Boolean(id)))]
+      if (creatorIds.length > 0) {
+        const { data: accounts } = await supabase
+          .from('user_accounts')
+          .select('id, full_name, first_name, last_name')
+          .in('id', creatorIds)
+        const names: Record<string, string> = {}
+        for (const account of accounts || []) names[account.id] = accountDisplayName(account)
+        setCreatorNames(names)
+      } else {
+        setCreatorNames({})
+      }
     }
     
     // Load frequency enhancement tracks (pure solfeggio + solfeggio binaural + future non-solfeggio binaural)
@@ -1585,11 +1601,15 @@ export default function AudioMixPage() {
                               <p className="text-white font-medium text-sm md:text-base">
                                 {track.display_name}
                               </p>
-                              {track.description && (
+                              {track.category === 'meditations' && track.created_by && creatorNames[track.created_by] ? (
+                                <p className="text-xs md:text-sm mt-1">
+                                  <CreatorLink userId={track.created_by} name={creatorNames[track.created_by]} />
+                                </p>
+                              ) : track.description ? (
                                 <p className="text-xs md:text-sm text-neutral-400 mt-1">
                                   {track.description}
                                 </p>
-                              )}
+                              ) : null}
                             </div>
                             <div className="relative flex-shrink-0 w-9 h-9">
                               {isPreviewing && (

@@ -30,6 +30,7 @@ import {
   upsertCategoryText,
 } from '@/lib/life-vision/draft-session'
 import { composeFirstVision } from '@/lib/life-vision/compose-first-vision'
+import { loadMemberWorldVisionBlock } from '@/lib/your-world/load'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -99,6 +100,7 @@ export async function POST(req: Request) {
     systemPrompt = undefined
   }
 
+  const memberWorld = await loadMemberWorldVisionBlock(supabase, user.id)
   const perspective: 'singular' | 'plural' = draft.perspective === 'plural' ? 'plural' : 'singular'
   const encoder = new TextEncoder()
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
@@ -118,6 +120,7 @@ export async function POST(req: Request) {
         perspective,
         categories,
         systemPrompt,
+        memberWorld,
         tracking: { supabase, userId: user.id, billable: true },
         onStage: async (category, stage, text) => {
           await send({ type: 'stage', category, stage, text })

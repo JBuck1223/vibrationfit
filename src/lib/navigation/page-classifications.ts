@@ -45,6 +45,7 @@ export const PAGE_CLASSIFICATIONS = {
     
     // Audio Studio (global hub)
     '/audio',
+    '/meditations',
     
     // Life Vision System
     '/life-vision',
@@ -71,6 +72,8 @@ export const PAGE_CLASSIFICATIONS = {
     '/begin/training',
     '/begin/training/complete',
     '/begin/intake',
+    '/begin/world',
+    '/your-world',
     
     // Legacy Vision Board routes (redirect to /manifestations)
     '/vision-board',
@@ -449,6 +452,7 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/abundance-tracker',
   '/travel-tracker',
   '/audio',
+  '/meditations',
   '/daily-paper',
   '/dashboard',
   '/tracking',

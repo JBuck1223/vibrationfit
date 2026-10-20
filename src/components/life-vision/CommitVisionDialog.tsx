@@ -17,6 +17,8 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Mic, Music, Image as ImageIcon, Loader2, Play, Pause, Plus, ChevronDown, ChevronUp, Trash2, Package } from 'lucide-react'
 import { Modal, Button, Spinner, Select, Checkbox, Input } from '@/lib/design-system/components'
+import { CreatorLink } from '@/components/meditations/CreatorLink'
+import { accountDisplayName } from '@/lib/meditations/display-name'
 import { createClient } from '@/lib/supabase/client'
 import { commitDraft } from '@/lib/life-vision/draft-helpers'
 import { keys } from '@/lib/query/keys'
@@ -438,22 +440,36 @@ export function CommitVisionDialog({
   })
 
   const { data: tracks } = useQuery<{
-    background: Array<{ id: string; display_name: string; file_url: string | null }>
+    background: Array<{ id: string; display_name: string; file_url: string | null; category: string; created_by: string | null; creator_name: string | null }>
     frequency: Array<{ id: string; display_name: string; file_url: string | null }>
   }>({
-    queryKey: ['activation-kit-dialog', 'background-tracks', 'v3'],
+    queryKey: ['activation-kit-dialog', 'background-tracks', 'v4'],
     enabled: isOpen,
     staleTime: Infinity,
     queryFn: async () => {
       const { data } = await supabase
         .from('audio_background_tracks')
-        .select('id, display_name, category, file_url')
+        .select('id, display_name, category, file_url, created_by')
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
       const rows = data || []
+      const creatorIds = [...new Set(rows.map((row) => row.created_by).filter((id): id is string => Boolean(id)))]
+      const names = new Map<string, string>()
+      if (creatorIds.length > 0) {
+        const { data: accounts } = await supabase
+          .from('user_accounts')
+          .select('id, full_name, first_name, last_name')
+          .in('id', creatorIds)
+        for (const account of accounts || []) names.set(account.id, accountDisplayName(account))
+      }
       const FREQUENCY_CATEGORIES = ['binaural', 'solfeggio', 'solfeggio_binaural']
       return {
-        background: rows.filter((t) => !FREQUENCY_CATEGORIES.includes(t.category)),
+        background: rows
+          .filter((t) => !FREQUENCY_CATEGORIES.includes(t.category))
+          .map((t) => ({
+            ...t,
+            creator_name: t.created_by ? names.get(t.created_by) || 'Member' : null,
+          })),
         frequency: rows.filter((t) => FREQUENCY_CATEGORIES.includes(t.category)),
       }
     },
@@ -643,7 +659,12 @@ export function CommitVisionDialog({
   function backgroundOptions(currentId: string | null) {
     return backgroundTracks
       .filter((t) => t.id === currentId || !takenTrackIds.has(t.id))
-      .map((t) => ({ value: t.id, label: t.display_name }))
+      .map((t) => ({
+        value: t.id,
+        label: t.category === 'meditations' && t.creator_name
+          ? `${t.display_name} · ${t.creator_name}`
+          : t.display_name,
+      }))
   }
 
   // The extra layer is a frequency (Hz) track
@@ -1042,6 +1063,11 @@ export function CommitVisionDialog({
                                 onClick={() => togglePreview(previewKey, track?.file_url)}
                               />
                             </div>
+                            {track?.category === 'meditations' && track.created_by && track.creator_name && (
+                              <p className="mt-2 text-sm">
+                                <CreatorLink userId={track.created_by} name={track.creator_name} />
+                              </p>
+                            )}
                             <p className="mt-2 text-xs text-neutral-500">
                               Each background track becomes its own mix — sleep, meditation, workout, and so on.
                             </p>

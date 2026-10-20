@@ -3,10 +3,9 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import {
   DndContext,
+  MeasuringStrategy,
   closestCenter,
   KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -35,7 +34,7 @@ import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown, Users, Home, Play } from 'lucide-react'
-import { BoardDragHandle, BoardPhotoTile, SortableBoardItem } from '@/components/manifestations-studio/SortableBoardItem'
+import { BoardDragHandle, BoardMouseSensor, BoardPhotoTile, BoardTouchSensor, SortableBoardItem } from '@/components/manifestations-studio/SortableBoardItem'
 import { compareBoardOrder, reorderOwnedItems } from '@/lib/manifestations/board-order'
 import { resolveEditedTimestamp, toLocalDateInput, todayDateInput } from '@/lib/manifestations/dates'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
@@ -245,10 +244,19 @@ export default function VisionBoardPage() {
   const isPhoneGrid = useIsPhoneGrid()
   const boardColumnCount = useBoardColumnCount()
   const boardSensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
+    useSensor(BoardMouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(BoardTouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
+  const boardDragLock = useRef(false)
+  useEffect(() => {
+    const blockScroll = (event: TouchEvent) => {
+      if (!boardDragLock.current || !event.cancelable) return
+      event.preventDefault()
+    }
+    window.addEventListener('touchmove', blockScroll, { passive: false })
+    return () => window.removeEventListener('touchmove', blockScroll)
+  }, [])
   const [items, setItems] = useState<any[]>([])
   const [scope, setScope] = useState<HouseholdScope>(
     searchParams.get('scope') === 'household' ? 'all' : 'me'
@@ -2403,7 +2411,13 @@ export default function VisionBoardPage() {
               <DndContext
                 sensors={boardSensors}
                 collisionDetection={closestCenter}
-                onDragEnd={handleBoardDragEnd}
+                measuring={{ droppable: { strategy: MeasuringStrategy.BeforeDragging } }}
+                onDragStart={() => { boardDragLock.current = true }}
+                onDragCancel={() => { boardDragLock.current = false }}
+                onDragEnd={(event) => {
+                  boardDragLock.current = false
+                  handleBoardDragEnd(event)
+                }}
               >
                 {canReorder && (
                   <p className="mb-3 text-center text-xs text-neutral-500">

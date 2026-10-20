@@ -1,5 +1,6 @@
 // src/lib/viva/profile-analyzer.ts
 import { SupabaseClient } from '@supabase/supabase-js'
+import { loadProfileCompat } from '@/lib/your-world/load'
 
 export interface ProfileInsights {
   strengths: string[]
@@ -40,15 +41,7 @@ export interface AssessmentInsights {
  * Analyzes user profile data to extract key insights for VIVA
  */
 export async function analyzeProfile(userId: string, supabase: SupabaseClient): Promise<ProfileInsights> {
-  const { data: profile, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .single()
-
-  if (error || !profile) {
-    throw new Error('Profile not found')
-  }
+  const profile = await loadProfileCompat(supabase, userId)
 
   return {
     strengths: extractStrengths(profile),

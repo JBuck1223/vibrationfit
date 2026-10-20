@@ -48,7 +48,8 @@ const SYSTEM_PROMPT = FLIP_FREQUENCY_SYSTEM_PROMPT
  * Converts contrast/lack language into clarity seeds
  */
 export async function flipFrequency(
-  params: FlipFrequencyParams
+  params: FlipFrequencyParams,
+  options?: { memberWorld?: string }
 ): Promise<FlipFrequencyResponse | string> {
   const openai = getOpenAI()
   
@@ -67,7 +68,7 @@ export async function flipFrequency(
   const userPrompt = buildFlipFrequencyPrompt(params)
   
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: [SYSTEM_PROMPT, options?.memberWorld].filter(Boolean).join('\n\n') },
     { role: 'user', content: userPrompt }
   ]
   

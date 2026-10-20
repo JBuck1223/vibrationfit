@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@/lib/supabase/server'
+import { applySayAs } from '@/lib/your-world/say-as'
 import { getActiveStudent } from '@/lib/life-explorer/context'
 import { trackTokenUsage, validateTokenBalance } from '@/lib/tokens/tracking'
 
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     body: JSON.stringify({
       model: 'tts-1',
       voice: 'nova',
-      input: text.slice(0, 4000),
+      input: (await applySayAs(supabase, user.id, text)).slice(0, 4000),
       format: 'mp3',
     }),
   })

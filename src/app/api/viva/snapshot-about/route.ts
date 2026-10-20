@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { loadMemberWorld, toLegacyProfile } from '@/lib/your-world/load'
 import { generateText } from 'ai'
 import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
 import { getAIToolConfig } from '@/lib/ai/database-config'
@@ -30,57 +31,11 @@ function cleanAbout(raw: string): string {
 }
 
 async function loadProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: account } = await supabase
-    .from('user_accounts')
-    .select('first_name, last_name, full_name')
-    .eq('id', userId)
-    .maybeSingle()
-
-  const { data: activeProfile } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .eq('is_draft', false)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const { data: latestProfile } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  // Prefer the latest row when it is newer than the committed active profile,
-  // so recent (including draft) edits still reach the About.
-  let profile = activeProfile || latestProfile || null
-  let usedDraft = false
-  if (activeProfile && latestProfile && latestProfile.id !== activeProfile.id) {
-    const latestAt = latestProfile.updated_at ? new Date(latestProfile.updated_at).getTime() : 0
-    const activeAt = activeProfile.updated_at ? new Date(activeProfile.updated_at).getTime() : 0
-    if (latestAt > activeAt) {
-      profile = latestProfile
-      usedDraft = !!latestProfile.is_draft
-    }
-  } else if (!activeProfile && latestProfile) {
-    usedDraft = !!latestProfile.is_draft
-  }
-
-  if (profile && account) {
-    profile = {
-      ...profile,
-      first_name: account.first_name ?? profile.first_name,
-      last_name: account.last_name ?? profile.last_name,
-    }
-  }
-
+  const world = await loadMemberWorld(supabase, userId)
   return {
-    account,
-    profile,
-    usedDraft,
+    account: { first_name: world.firstName, last_name: world.lastName, full_name: null as string | null },
+    profile: toLegacyProfile(world) as Record<string, any>,
+    usedDraft: false,
   }
 }
 

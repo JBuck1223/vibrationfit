@@ -9,6 +9,7 @@
  */
 
 import type { MemberPersona, MemberRoster } from '@/lib/roster/types'
+import { MEMBER_WORLD_RULES, renderMemberWorldFacts, type MemberWorldFacts } from './shared/member-world'
 import {
   renderPersonaForPrompt,
   renderRosterForPrompt,
@@ -210,6 +211,8 @@ export interface CoachContextInput {
   }>
   stories?: any[]
   roster?: MemberRoster | null
+  /** Account + Your World + roster. Preferred over `roster` when present. */
+  world?: MemberWorldFacts | null
   persona?: MemberPersona | null
   constraints?: any[]
   semanticRecall?: any[]
@@ -369,12 +372,14 @@ export function buildCoachSystemPrompt(input: CoachContextInput): string {
   // --- Get to Know You: roster (WORLD facts) + persona (living understanding) ---
   // When these exist they are the primary personal knowledge; the legacy
   // profile summary below remains as fallback for members who predate them.
-  const rosterBlock = renderRosterForPrompt(input.roster || null)
+  const rosterBlock = input.world
+    ? renderMemberWorldFacts(input.world)
+    : renderRosterForPrompt(input.roster || null)
   const personaBlock = renderPersonaForPrompt(input.persona || null)
-  const upcomingBlock = renderUpcomingDatesForPrompt(upcomingRosterDates(input.roster || null))
+  const upcomingBlock = renderUpcomingDatesForPrompt(upcomingRosterDates(input.world?.roster ?? input.roster ?? null))
   let worldContext = ''
   if (rosterBlock) {
-    worldContext += `\n\n**THEIR WORLD (facts — hold these like a close friend would; never re-ask):**\n${rosterBlock}`
+    worldContext += `\n\n**THEIR WORLD (facts — hold these like a close friend would; never re-ask):**\n${rosterBlock}\n\n${MEMBER_WORLD_RULES}`
   }
   if (upcomingBlock) {
     worldContext += `\n\n**DATES COMING UP:**\n${upcomingBlock}`

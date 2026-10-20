@@ -68,7 +68,9 @@ export function renderRosterForPrompt(roster: MemberRoster | null): string {
 
   const placeParts = [clean(roster.place?.city), clean(roster.place?.region)].filter(Boolean)
   if (placeParts.length > 0) lines.push(`- Place: ${placeParts.join(', ')}`)
-  if (clean(roster.vocation)) lines.push(`- Vocation: ${roster.vocation}`)
+  const work = [clean(roster.work?.occupation), clean(roster.work?.company)].filter(Boolean).join(' at ')
+  if (work) lines.push(`- Work: ${work}`)
+  else if (clean(roster.vocation)) lines.push(`- Work: ${roster.vocation}`)
   if (clean(roster.pronouns)) lines.push(`- Pronouns: ${roster.pronouns}`)
 
   const things = (roster.named_things || []).filter((n) => clean(n.name))

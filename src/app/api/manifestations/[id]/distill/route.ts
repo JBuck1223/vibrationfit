@@ -3,12 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getAIToolConfig, buildOpenAIParams } from '@/lib/ai/database-config'
 import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
-import { flattenProfile } from '@/lib/viva/prompt-flatteners'
 import {
   MANIFESTATION_DISTILL_SYSTEM_PROMPT,
   buildManifestationDistillPrompt,
 } from '@/lib/viva/prompts'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 
 export const dynamic = 'force-dynamic'
 
@@ -137,7 +137,7 @@ export async function POST(
 
     const categories: string[] = manifestation.categories || []
 
-    const [visionResult, profileResult, assetsResult, projectsResult] = await Promise.all([
+    const [visionResult, worldBlock, assetsResult, projectsResult] = await Promise.all([
       supabase
         .from('vision_versions')
         .select('*')
@@ -147,11 +147,7 @@ export async function POST(
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
-      supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle(),
+      loadMemberWorldBlock(supabase, user.id),
       supabase
         .from('manifestation_assets')
         .select('entity_id, slot')
@@ -223,7 +219,7 @@ export async function POST(
       })
       .join('\n')
 
-    const profileContext = profileResult.data ? flattenProfile(profileResult.data, 40) : ''
+    const profileContext = worldBlock
 
     const prompt = buildManifestationDistillPrompt({
       name: manifestation.name,

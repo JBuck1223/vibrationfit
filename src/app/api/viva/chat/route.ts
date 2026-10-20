@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildVivaSystemPrompt } from '@/lib/viva/prompts/chat-system-prompt'
 import { getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
+import { loadMemberWorld, toLegacyProfile } from '@/lib/your-world/load'
+import { buildMemberWorldBlock } from '@/lib/viva/prompts/shared/member-world'
 
 // Using Node.js runtime instead of Edge for proper onFinish callback support
 // Edge runtime terminates the response before onFinish can run
@@ -257,12 +259,8 @@ export async function POST(req: Request) {
       
       // Fetch all user context in parallel
       const [profileResult, visionResult, assessmentResult, journeyStateResults] = await Promise.all([
-      // User profile
-      supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single(),
+      // Their world (Account + Your World), in the Profile shape the prompt expects
+      loadMemberWorld(supabase, user.id).then((world) => ({ data: toLegacyProfile(world), world })),
       
       // Vision - get latest ACTIVE or COMPLETE vision for master assistant, or specific for refinement
       // Priority: 1) is_active = true, 2) status = 'complete', 3) latest by version/date
@@ -405,7 +403,7 @@ export async function POST(req: Request) {
         visionCount: journeyStateResults[0]?.count || 0,
         journalCount: journeyStateResults[1]?.count || 0,
         visionBoardCount: journeyStateResults[2]?.count || 0,
-        hasProfile: !!profileData,
+        hasProfile: !!profileResult.world.roster,
         hasAssessment: !!assessmentDataRaw,
         hasActiveVision: !!hasCompleteVision,
         activeVisionVersion: visionData?.version_number || null,
@@ -430,6 +428,8 @@ export async function POST(req: Request) {
           requestedSection: requestedSection || undefined
         }
       })
+      const worldBlock = buildMemberWorldBlock(profileResult.world)
+      if (worldBlock) systemPrompt = `${systemPrompt}\n\n${worldBlock}`
       
       // Cache this system prompt in the session to avoid rebuilding
       if (currentConversationId) {

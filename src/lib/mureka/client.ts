@@ -7,6 +7,7 @@
 
 import type {
   MurekaGenerateRequest,
+  MurekaInstrumentalRequest,
   MurekaGenerateResponse,
   MurekaQueryResponse,
   MurekaStemRequest,
@@ -105,6 +106,24 @@ class MurekaClient {
    * Optionally pass reference_id for style-matching a reference track.
    * Returns a task ID for polling.
    */
+  /**
+   * Generate an instrumental (no lyrics) from a style prompt.
+   * Tempo belongs in the prompt. Mureka has no BPM field.
+   */
+  async generateInstrumental(params: MurekaInstrumentalRequest): Promise<MurekaGenerateResponse> {
+    return this.request<MurekaGenerateResponse>('POST', '/v1/instrumental/generate', {
+      model: params.model || 'auto',
+      prompt: params.prompt,
+    })
+  }
+
+  /**
+   * Poll an instrumental generation task.
+   */
+  async queryInstrumental(taskId: string): Promise<MurekaQueryResponse> {
+    return this.request<MurekaQueryResponse>('GET', `/v1/instrumental/query/${taskId}`)
+  }
+
   async generateSong(params: MurekaGenerateRequest): Promise<MurekaGenerateResponse> {
     const body: Record<string, unknown> = {
       lyrics: params.lyrics,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
+import { loadNameHints } from '@/lib/your-world/say-as'
 import { getActiveStudent } from '@/lib/life-explorer/context'
 import { trackTokenUsage, validateTokenBalance } from '@/lib/tokens/tracking'
 import { putLifeExplorerObject } from '@/lib/life-explorer/media-s3'
@@ -89,10 +90,12 @@ export async function POST(
     type: audio.type || 'audio/webm',
   })
 
+  const nameHints = await loadNameHints(supabase, user.id)
   const transcription = await openai.audio.transcriptions.create({
     file,
     model: 'whisper-1',
     language: 'en',
+    ...(nameHints.length ? { prompt: `Names: ${nameHints.join(', ')}.` } : {}),
     response_format: 'verbose_json',
     timestamp_granularities: ['word'],
   })

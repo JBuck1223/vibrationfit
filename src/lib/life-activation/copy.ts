@@ -61,9 +61,9 @@ export const LIFE_ACTIVATION_COPY = {
         case 'welcome':
           return 'Start here. Watch the welcome, then take a short baseline survey.'
         case 'intake':
-          return 'A short baseline so you can see where you started. Then save your Life Profile.'
-        case 'profile':
-          return 'Save your personal information and a snapshot of where you are now. Then VIVA writes your Life Vision.'
+          return 'A short baseline so you can see where you started. Then tell VIVA about your world.'
+        case 'world':
+          return 'Your people, home, work, and money, so VIVA can write a Life Vision that is really yours.'
         case 'vision':
           return 'One conversation with VIVA writes your Life Vision. Then you meet your people.'
         case 'kit':
@@ -95,6 +95,17 @@ export const LIFE_ACTIVATION_COPY = {
     cta: 'Continue',
     needProfile: 'Create your profile first, then continue.',
     missing: (fields: string[]) => `Save your ${fields.join(', ')} in Personal Information, then continue.`,
+  },
+  world: {
+    title: 'Your World',
+    titleAccent: 'World',
+    body: 'The names, places, and details that make your Life Vision yours. Everything here is optional.',
+    done: 'Saved. You can update this anytime in Your World.',
+    next: 'Next',
+    back: 'Back',
+    cta: 'Save and continue',
+    skip: 'Skip for now',
+    editCta: 'Update in Your World',
   },
   vision: {
     openingFirstVision: (hasActivation: boolean) =>

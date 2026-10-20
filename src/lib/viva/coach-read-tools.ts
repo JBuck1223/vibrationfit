@@ -17,8 +17,10 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { searchMemberContext } from '@/lib/viva/embeddings'
-import { loadRoster, loadPersona } from '@/lib/roster/store'
-import { renderRosterForPrompt, renderPersonaForPrompt } from '@/lib/roster/render'
+import { loadPersona } from '@/lib/roster/store'
+import { renderPersonaForPrompt } from '@/lib/roster/render'
+import { loadMemberWorld } from '@/lib/your-world/load'
+import { renderMemberWorldFacts } from '@/lib/viva/prompts/shared/member-world'
 
 const LIFE_CATEGORIES = [
   'fun', 'health', 'travel', 'love', 'family', 'social',
@@ -212,11 +214,11 @@ export function buildCoachReadTools(ctx: CoachReadToolsContext) {
             case 'profile': {
               // Get to Know You roster + persona come first; the legacy
               // profile fills in behind them.
-              const [roster, persona] = await Promise.all([
-                loadRoster(supabase, userId),
+              const [world, persona] = await Promise.all([
+                loadMemberWorld(supabase, userId),
                 loadPersona(supabase, userId),
               ])
-              const rosterText = renderRosterForPrompt(roster)
+              const rosterText = renderMemberWorldFacts(world)
               const personaText = renderPersonaForPrompt(persona)
               const worldSections: string[] = []
               if (rosterText) worldSections.push(`### Their world (facts)\n${rosterText}`)

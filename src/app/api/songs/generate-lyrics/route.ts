@@ -24,6 +24,7 @@ import {
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
 import { statusAfterLyricsEdit } from '@/lib/songs/status'
 import type { SongEssence, SongEntityType } from '@/lib/songs/types'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
 
     const result = streamText({
       model: gateway(SONGWRITER_MODEL),
-      system: MASTER_SONGWRITER_SYSTEM_PROMPT,
+      system: [MASTER_SONGWRITER_SYSTEM_PROMPT, await loadMemberWorldBlock(supabase, user.id)].filter(Boolean).join('\n\n'),
       prompt,
       temperature: 0.85,
 

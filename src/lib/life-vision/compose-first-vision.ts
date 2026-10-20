@@ -65,6 +65,8 @@ export interface ComposeFirstVisionOptions {
   categories?: LifeCategoryKey[]
   /** System prompt for both passes; defaults to the category-vision fallback. */
   systemPrompt?: string
+  /** "Their world" block (buildMemberWorldVisionBlock), added to both passes. */
+  memberWorld?: string
   model?: string
   /** Token ledger. Omit to skip tracking. */
   tracking?: { supabase?: SupabaseClient; userId: string | null; billable: boolean }
@@ -130,7 +132,7 @@ async function runPass(
   const model = opts.model || VISION_MODEL
   const result = await generateText({
     model: gateway(model),
-    system: opts.systemPrompt || DEFAULT_WRITER_SYSTEM_PROMPT,
+    system: [opts.systemPrompt || DEFAULT_WRITER_SYSTEM_PROMPT, opts.memberWorld].filter(Boolean).join('\n\n'),
     prompt,
   })
 

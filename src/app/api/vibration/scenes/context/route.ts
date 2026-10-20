@@ -1,21 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-
-const CATEGORY_STATE_FIELDS: Record<string, string> = {
-  fun: 'state_fun',
-  travel: 'state_travel',
-  home: 'state_home',
-  family: 'state_family',
-  love: 'state_love',
-  health: 'state_health',
-  money: 'state_money',
-  work: 'state_work',
-  social: 'state_social',
-  giving: 'state_giving',
-  stuff: 'state_stuff',
-  spirituality: 'state_spirituality',
-}
+import { loadCurrentStateText } from '@/lib/your-world/current-state'
 
 const VISION_FIELD_MAP: Record<string, string> = {
   fun: 'fun',
@@ -30,28 +16,6 @@ const VISION_FIELD_MAP: Record<string, string> = {
   giving: 'giving',
   stuff: 'stuff',
   spirituality: 'spirituality',
-}
-
-async function fetchActiveProfile(supabase: SupabaseClient, userId: string) {
-  const { data: activeProfile } = await supabase
-    .from('user_profiles')
-    .select('id, *')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .eq('is_draft', false)
-    .maybeSingle()
-
-  if (activeProfile) return activeProfile
-
-  const { data: fallbackProfile } = await supabase
-    .from('user_profiles')
-    .select('id, *')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  return fallbackProfile ?? null
 }
 
 async function fetchActiveVision(supabase: SupabaseClient, userId: string) {
@@ -144,12 +108,11 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const category = url.searchParams.get('category') ?? 'fun'
 
-    const profile = await fetchActiveProfile(supabase, user.id)
-    const vision = await fetchActiveVision(supabase, user.id)
-    const assessmentSnippets = await fetchAssessmentSnippets(supabase, user.id, category)
-
-    const stateField = CATEGORY_STATE_FIELDS[category]
-    const profileStateText = stateField && profile ? profile[stateField] ?? '' : ''
+    const [profileStateText, vision, assessmentSnippets] = await Promise.all([
+      loadCurrentStateText(supabase, user.id, category),
+      fetchActiveVision(supabase, user.id),
+      fetchAssessmentSnippets(supabase, user.id, category),
+    ])
 
     const visionField = VISION_FIELD_MAP[category] ?? category
     const existingVisionParagraph = vision

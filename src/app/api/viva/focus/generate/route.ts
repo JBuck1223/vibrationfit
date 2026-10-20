@@ -21,6 +21,8 @@ import {
   type FocusHighlight 
 } from '@/lib/viva/prompts'
 import { generateAudioTracks } from '@/lib/services/audioService'
+import { loadMemberWorld } from '@/lib/your-world/load'
+import { buildMemberWorldBlock } from '@/lib/viva/prompts/shared/member-world'
 
 export const maxDuration = 300 // 5 minutes for story + audio generation
 export const dynamic = 'force-dynamic'
@@ -75,16 +77,21 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', focusId)
 
-    // Get user profile for name and perspective
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('first_name, perspective')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle()
+    const [world, { data: activeVision }] = await Promise.all([
+      loadMemberWorld(supabase, user.id),
+      supabase
+        .from('vision_versions')
+        .select('perspective')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+        .is('household_id', null)
+        .maybeSingle(),
+    ])
 
-    const userName = profile?.first_name
-    const perspective = (profile?.perspective as 'singular' | 'plural') || 'singular'
+    const userName = world.firstName ?? undefined
+    const perspective = (activeVision?.perspective as 'singular' | 'plural') || 'singular'
+    const worldBlock = buildMemberWorldBlock(world)
 
     // Build the story prompt
     const storyPrompt = buildDayInTheLifeStoryPrompt(highlights, userName, perspective)
@@ -124,7 +131,7 @@ export async function POST(request: NextRequest) {
     // Generate the story using Gemini via Vercel AI Gateway
     const storyResult = await generateText({
       model: gateway(VISION_MODEL),
-      system: FOCUS_STORY_SYSTEM_PROMPT,
+      system: [FOCUS_STORY_SYSTEM_PROMPT, worldBlock].filter(Boolean).join('\n\n'),
       prompt: storyPrompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.8) : undefined,
     })

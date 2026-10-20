@@ -13,8 +13,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { gateway, gatewayGenerationId, VISION_MODEL } from '@/lib/ai/gateway'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
 import type { LifeCategoryKey } from '@/lib/design-system/vision-categories'
-import { loadRoster, loadPersona } from '@/lib/roster/store'
-import { renderRosterForPrompt, renderPersonaForPrompt } from '@/lib/roster/render'
+import { loadPersona } from '@/lib/roster/store'
+import { renderPersonaForPrompt } from '@/lib/roster/render'
+import { loadMemberWorld } from '@/lib/your-world/load'
+import { buildMemberWorldBlock } from '@/lib/viva/prompts/shared/member-world'
 import {
   computeDepth,
   formatCoverageForDirector,
@@ -44,15 +46,10 @@ export async function loadDirectorContext(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<DirectorContext> {
-  const [{ data: profile }, { data: account }, roster, persona] = await Promise.all([
-    supabase.from('user_profiles').select('first_name').eq('user_id', userId).maybeSingle(),
-    supabase.from('user_accounts').select('first_name').eq('id', userId).maybeSingle(),
-    loadRoster(supabase, userId),
-    loadPersona(supabase, userId),
-  ])
+  const [world, persona] = await Promise.all([loadMemberWorld(supabase, userId), loadPersona(supabase, userId)])
   return {
-    firstName: profile?.first_name || account?.first_name || null,
-    rosterBlock: renderRosterForPrompt(roster) || null,
+    firstName: world.firstName,
+    rosterBlock: buildMemberWorldBlock(world) || null,
     personaBlock: renderPersonaForPrompt(persona) || null,
   }
 }
