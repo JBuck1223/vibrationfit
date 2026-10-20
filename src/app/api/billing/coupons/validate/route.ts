@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
             cycles: result.coupon.renewal_discount_cycles,
           }
         : null,
+      trialDays: productKey === 'membership' ? result.coupon?.trial_days ?? null : null,
     })
   } catch (error) {
     console.error('Coupon validation error:', error)

@@ -87,17 +87,29 @@ export async function POST(request: NextRequest) {
     renewalDiscountType,
     renewalDiscountValue,
     renewalDiscountCycles,
+    trialDays,
   } = body
 
-  if (!name || !discountType || !discountValue) {
+  if (trialDays !== undefined && trialDays !== null && trialDays !== '' && (!Number.isInteger(Number(trialDays)) || Number(trialDays) < 1)) {
+    return NextResponse.json({ error: 'Trial days must be a whole number of at least 1' }, { status: 400 })
+  }
+  const trialDaysValue = trialDays ? Number(trialDays) : null
+
+  // Trial coupons charge nothing today, so the discount defaults to 100% and
+  // the code is limited to Vision Pro checkout.
+  const effectiveDiscountType = discountType || (trialDaysValue ? 'percent' : undefined)
+  const effectiveDiscountValue = discountValue || (trialDaysValue ? 100 : undefined)
+  const effectiveEligibleProducts = eligibleProducts || (trialDaysValue ? ['membership'] : null)
+
+  if (!name || !effectiveDiscountType || !effectiveDiscountValue) {
     return NextResponse.json({ error: 'Name, discount type, and discount value are required' }, { status: 400 })
   }
 
-  if (!['percent', 'fixed'].includes(discountType)) {
+  if (!['percent', 'fixed'].includes(effectiveDiscountType)) {
     return NextResponse.json({ error: 'Discount type must be percent or fixed' }, { status: 400 })
   }
 
-  if (discountType === 'percent' && (discountValue < 1 || discountValue > 100)) {
+  if (effectiveDiscountType === 'percent' && (effectiveDiscountValue < 1 || effectiveDiscountValue > 100)) {
     return NextResponse.json({ error: 'Percent discount must be between 1 and 100' }, { status: 400 })
   }
 
@@ -119,12 +131,12 @@ export async function POST(request: NextRequest) {
     .from('coupons')
     .insert({
       name,
-      discount_type: discountType,
-      discount_value: discountValue,
+      discount_type: effectiveDiscountType,
+      discount_value: effectiveDiscountValue,
       currency: currency || 'usd',
       min_purchase_amount: minPurchaseAmount || null,
       max_discount_amount: maxDiscountAmount || null,
-      eligible_products: eligibleProducts || null,
+      eligible_products: effectiveEligibleProducts,
       eligible_tiers: eligibleTiers || null,
       max_redemptions: maxRedemptions || null,
       max_redemptions_per_user: maxRedemptionsPerUser ?? 1,
@@ -135,6 +147,7 @@ export async function POST(request: NextRequest) {
       renewal_discount_type: renewalDiscountType || null,
       renewal_discount_value: renewalDiscountType ? renewalDiscountValue : null,
       renewal_discount_cycles: renewalDiscountType ? (renewalDiscountCycles || null) : null,
+      trial_days: trialDaysValue,
     })
     .select()
     .single()
@@ -195,6 +208,7 @@ export async function PATCH(request: NextRequest) {
     renewalDiscountType: 'renewal_discount_type',
     renewalDiscountValue: 'renewal_discount_value',
     renewalDiscountCycles: 'renewal_discount_cycles',
+    trialDays: 'trial_days',
   }
 
   const dbUpdates: Record<string, any> = {}

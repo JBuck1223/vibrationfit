@@ -11,7 +11,6 @@ import {
   Lock,
   Map,
   Mic,
-  User,
   MessageSquarePlus,
   Rocket,
   Target,
@@ -37,7 +36,6 @@ import {
 
 const STEP_ICONS: Record<OnboardingStepId, LucideIcon> = {
   welcome: Rocket,
-  profile: User,
   intake: FileText,
   world: Globe,
   vision: Target,

@@ -285,15 +285,18 @@ export function FocusSession({
           ) : (
             <ShapeVisual kind={visual} frame={{ height, time: elapsed + LEAD_IN_SECONDS }} />
           )}
-          <div className="relative text-center" aria-live="polite">
-            <p className="text-2xl md:text-3xl font-semibold tracking-tight drop-shadow">{headline}</p>
-            {detail && <p className="mt-1 text-4xl md:text-5xl font-light tabular-nums text-white/90">{detail}</p>}
-            {status === 'complete' && (
-              <p className="mt-2 text-sm text-neutral-200">
-                {breaths} breaths · {durationMinutes} min
-              </p>
-            )}
-          </div>
+        </div>
+
+        <div className="text-center" aria-live="polite">
+          <p className="text-lg md:text-xl font-medium tracking-tight text-white/90">
+            {headline}
+            {detail && <span className="ml-3 font-light tabular-nums text-neutral-400">{detail}</span>}
+          </p>
+          {status === 'complete' && (
+            <p className="mt-1 text-sm text-neutral-400">
+              {breaths} breaths · {durationMinutes} min
+            </p>
+          )}
         </div>
 
         {visual === 'wave' && (
