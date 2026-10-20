@@ -47,6 +47,8 @@ export type PurchaseContext = {
   promoPackage?: string | null
   /** Set only after the server confirms the session owns this Activation. */
   activationUserId?: string | null
+  /** Trial coupon on Vision Pro: card saved, nothing charged, first charge after this many days */
+  trialDays?: number | null
 }
 
 export type VaultedCard = {
@@ -276,6 +278,7 @@ export async function fulfillPayPalPurchase(params: {
       promoCode: ctx.promoCode || null,
       referralSource: ctx.referralSource || null,
       campaignName: ctx.campaignName || null,
+      trialDays: ctx.trialDays || null,
     })
   }
 
@@ -506,7 +509,7 @@ export async function fulfillPayPalPurchase(params: {
         .maybeSingle()
       visitorData = data
     }
-    sendServerConversion('purchase', {
+    if (totalAmount > 0) sendServerConversion('purchase', {
       email: email || undefined,
       phone: phone || undefined,
       firstName: firstName || undefined,
@@ -721,6 +724,7 @@ export async function activateVisionProMembership(params: {
   promoCode?: string | null
   referralSource?: string | null
   campaignName?: string | null
+  trialDays?: number | null
 }): Promise<string | null> {
   const {
     supabaseAdmin,
@@ -736,6 +740,7 @@ export async function activateVisionProMembership(params: {
     promoCode,
     referralSource,
     campaignName,
+    trialDays,
   } = params
 
   const { data: tier } = await supabaseAdmin
@@ -751,7 +756,8 @@ export async function activateVisionProMembership(params: {
   }
 
   const renewalAmount = tier.price_monthly || amountCents || 9900
-  const periodEnd = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000)
+  const now = new Date()
+  const periodEnd = new Date(now.getTime() + (trialDays || 28) * 24 * 60 * 60 * 1000)
 
   const { data: newSub, error: subErr } = await supabaseAdmin.from('customer_subscriptions').insert({
     user_id: userId,
@@ -764,9 +770,10 @@ export async function activateVisionProMembership(params: {
     amount_cents: renewalAmount,
     billing_interval_days: 28,
     next_billing_at: periodEnd.toISOString(),
-    status: 'active' as any,
-    current_period_start: new Date().toISOString(),
+    status: (trialDays ? 'trialing' : 'active') as any,
+    current_period_start: now.toISOString(),
     current_period_end: periodEnd.toISOString(),
+    ...(trialDays ? { trial_start: now.toISOString(), trial_end: periodEnd.toISOString() } : {}),
     order_id: orderId,
     order_item_id: orderItemId || null,
     promo_code: promoCode || null,

@@ -39,6 +39,8 @@ export type CouponRow = {
   renewal_discount_value: number | null
   /** Renewal charges that get the discount; null = forever */
   renewal_discount_cycles: number | null
+  /** Vision Pro only: save the card, charge nothing today, first charge after this many days */
+  trial_days: number | null
 }
 
 export type CouponCodeRow = {

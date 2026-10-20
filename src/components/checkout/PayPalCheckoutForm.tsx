@@ -8,8 +8,11 @@
 // Flow: validate account → server creates the order → SDK submits the card
 // against that order (handles 3-D Secure) → server captures and fulfils.
 
-import { useEffect, useRef, useState } from 'react'
-import { usePayPalCardFieldsOneTimePaymentSession } from '@paypal/react-paypal-js/sdk-v6'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  usePayPalCardFieldsOneTimePaymentSession,
+  usePayPalCardFieldsSavePaymentSession,
+} from '@paypal/react-paypal-js/sdk-v6'
 import { Input, Button, Checkbox } from '@/lib/design-system/components'
 import { Loader2, Home } from 'lucide-react'
 import { PayPalCardFieldsFrame, CardFieldBox, useCardFieldsStatus } from '@/components/checkout/PayPalCardFields'
@@ -30,6 +33,11 @@ interface PayPalCheckoutFormProps {
   renewalPhrase?: string | null
   offerType?: 'intensive' | 'membership'
   accountLock?: AccountLock | null
+  /**
+   * Trial coupon on Vision Pro: the card is saved, not charged. createOrder
+   * returns a vault setup token id and onApproved receives the same id.
+   */
+  trialDays?: number | null
 }
 
 function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 'solo' | 'household'): string {
@@ -40,12 +48,51 @@ function getMembershipBillingPhrase(continuity: 'annual' | '28day', planType: 's
 /** Account details plus the cardholder name PayPal needs at submit time */
 type CheckoutDetails = AccountDetails & { cardName: string }
 
+/** Normalised card-fields submit result for either session type */
+type SubmitResult =
+  | { state: 'succeeded'; id: string }
+  | { state: 'canceled' }
+  | { state: 'failed'; message?: string }
+
+type CardSession = {
+  submit: (id: string, options: { name: string }) => Promise<void>
+  result: SubmitResult | null
+  error: { message?: string } | null
+}
+
+type CardSectionProps = Omit<Parameters<typeof CardSection>[0], 'session'>
+
 // ---------------------------------------------------------------------------
 // Card section: fields + pay button. Must live inside PayPalCardFieldsFrame
-// because the session hook picks the one-time-payment session type.
+// because the session hook picks the session type (one-time charge or save).
 // ---------------------------------------------------------------------------
 
+function OneTimeCardSection(props: CardSectionProps) {
+  const { submit, submitResponse, error } = usePayPalCardFieldsOneTimePaymentSession()
+  const result = useMemo<SubmitResult | null>(() => !submitResponse
+    ? null
+    : submitResponse.state === 'succeeded'
+      ? { state: 'succeeded', id: submitResponse.data.orderId }
+      : submitResponse.state === 'canceled'
+        ? { state: 'canceled' }
+        : { state: 'failed', message: submitResponse.data.message }, [submitResponse])
+  return <CardSection {...props} session={{ submit, result, error }} />
+}
+
+function SaveCardSection(props: CardSectionProps) {
+  const { submit, submitResponse, error } = usePayPalCardFieldsSavePaymentSession()
+  const result = useMemo<SubmitResult | null>(() => !submitResponse
+    ? null
+    : submitResponse.state === 'succeeded'
+      ? { state: 'succeeded', id: submitResponse.data.vaultSetupToken }
+      : submitResponse.state === 'canceled'
+        ? { state: 'canceled' }
+        : { state: 'failed', message: submitResponse.data.message }, [submitResponse])
+  return <CardSection {...props} session={{ submit, result, error }} />
+}
+
 function CardSection({
+  session,
   cardName,
   setCardName,
   cardNameError,
@@ -61,6 +108,7 @@ function CardSection({
   agreedToTerms,
   children,
 }: {
+  session: CardSession
   cardName: string
   setCardName: (v: string) => void
   cardNameError?: string
@@ -76,7 +124,7 @@ function CardSection({
   agreedToTerms: boolean
   children: React.ReactNode
 }) {
-  const { submit, submitResponse, error: submitError } = usePayPalCardFieldsOneTimePaymentSession()
+  const { submit, result: submitResponse, error: submitError } = session
   const fieldsStatus = useCardFieldsStatus()
   // Only react to submit results we asked for (the hook keeps the last one around)
   const awaitingRef = useRef(false)
@@ -124,7 +172,7 @@ function CardSection({
     if (!submitResponse) return
 
     if (submitResponse.state === 'succeeded') {
-      onApproved(submitResponse.data.orderId)
+      onApproved(submitResponse.id)
         .then((redirectUrl) => {
           window.location.href = redirectUrl
         })
@@ -137,7 +185,7 @@ function CardSection({
     if (submitResponse.state === 'canceled') {
       setGeneralError('Card verification was cancelled. Please try again.')
     } else {
-      setGeneralError(submitResponse.data.message || 'Please check your card details and try again.')
+      setGeneralError(submitResponse.message || 'Please check your card details and try again.')
     }
     setIsProcessing(false)
   }, [submitResponse, submitError, onApproved, setGeneralError, setIsProcessing])
@@ -213,11 +261,16 @@ export default function PayPalCheckoutForm({
   renewalPhrase,
   offerType = 'intensive',
   accountLock = null,
+  trialDays = null,
 }: PayPalCheckoutFormProps) {
   const isMembershipCheckout = offerType === 'membership'
+  const isTrial = isMembershipCheckout && Boolean(trialDays)
+  const SessionCardSection = isTrial ? SaveCardSection : OneTimeCardSection
   const membershipBillingPhrase =
     renewalPhrase || (continuity && planType ? getMembershipBillingPhrase(continuity, planType) : null)
-  const agreementLabel = isMembershipCheckout
+  const agreementLabel = isTrial
+    ? `I understand and agree that nothing is charged today, that Vision Pro begins at $99 every 28 days after my ${trialDays}-day free trial, and that I can cancel anytime before then.`
+    : isMembershipCheckout
     ? 'I understand and agree that Vision Pro is $99 every 28 days starting today, that I can cancel anytime, and that I am covered by the 28-day membership guarantee.'
     : membershipBillingPhrase
     ? `I understand and agree to the charges shown, including that my Vision Pro membership will continue billing on Day 28 at ${membershipBillingPhrase} and that I'm covered by the 16‑week guarantee.`
@@ -287,7 +340,9 @@ export default function PayPalCheckoutForm({
     <div className="space-y-5 -mx-2 sm:mx-0">
       <h2 className="text-xl font-bold text-white mb-1">{accountLock ? 'Add your card' : 'Create your account'}</h2>
       {!accountLock?.hasPassword && (
-        <p className="text-sm text-neutral-400 mb-4">You&apos;ll set your password right after payment.</p>
+        <p className="text-sm text-neutral-400 mb-4">
+          You&apos;ll set your password right after {isTrial ? 'saving your card' : 'payment'}.
+        </p>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -370,8 +425,8 @@ export default function PayPalCheckoutForm({
         </div>
       )}
 
-      <PayPalCardFieldsFrame>
-        <CardSection
+      <PayPalCardFieldsFrame key={isTrial ? 'save' : 'pay'}>
+        <SessionCardSection
           cardName={cardName}
           setCardName={setCardName}
           cardNameError={errors.cardName}
@@ -396,7 +451,17 @@ export default function PayPalCheckoutForm({
             />
           </div>
 
-          {isMembershipCheckout && (
+          {isTrial && (
+            <div className="text-xs text-neutral-400 border border-neutral-700 rounded-lg bg-neutral-900/50 p-4 space-y-2 leading-relaxed mt-5">
+              <p>
+                You are starting a {trialDays}-day free trial of Vision Pro. Your card is saved and
+                nothing is charged today. When the trial ends, Vision Pro renews at $99 every 28 days on
+                the same payment method until you cancel. Cancel any time with one click in your account.
+              </p>
+            </div>
+          )}
+
+          {isMembershipCheckout && !isTrial && (
             <div className="text-xs text-neutral-400 border border-neutral-700 rounded-lg bg-neutral-900/50 p-4 space-y-2 leading-relaxed mt-5">
               <p>
                 You are starting Vision Pro today for $99. It renews at $99 every 28 days on the same
@@ -429,7 +494,7 @@ export default function PayPalCheckoutForm({
               )}
             </div>
           )}
-        </CardSection>
+        </SessionCardSection>
       </PayPalCardFieldsFrame>
 
       <p className="text-xs text-neutral-500 text-center">

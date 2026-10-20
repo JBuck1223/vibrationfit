@@ -26,6 +26,7 @@ type Coupon = {
   renewal_discount_type: 'percent' | 'fixed' | null
   renewal_discount_value: number | null
   renewal_discount_cycles: number | null
+  trial_days: number | null
   created_at: string
   total_redemptions: number
   codes_count: number
@@ -34,6 +35,7 @@ type Coupon = {
 }
 
 function discountLabel(c: Coupon): string {
+  if (c.trial_days) return `${c.trial_days}-day free trial`
   if (c.discount_type === 'percent') return `${c.discount_value}% off`
   return `${formatPrice(c.discount_value)} off`
 }
@@ -65,7 +67,7 @@ export default function CouponsAdminPage() {
   // Create form state
   const [formName, setFormName] = useState('')
   const [formCode, setFormCode] = useState('')
-  const [formDiscountType, setFormDiscountType] = useState<'percent' | 'fixed'>('percent')
+  const [formDiscountType, setFormDiscountType] = useState<'percent' | 'fixed' | 'trial'>('percent')
   const [formDiscountValue, setFormDiscountValue] = useState('')
   const [formMaxRedemptions, setFormMaxRedemptions] = useState('')
   const [formMaxPerUser, setFormMaxPerUser] = useState('1')
@@ -75,6 +77,7 @@ export default function CouponsAdminPage() {
   const [formRenewalValue, setFormRenewalValue] = useState('')
   const [formRenewalCycles, setFormRenewalCycles] = useState('')
   const [creating, setCreating] = useState(false)
+  const isTrial = formDiscountType === 'trial'
 
   // Bulk generation state
   const [bulkCouponId, setBulkCouponId] = useState<string | null>(null)
@@ -109,8 +112,9 @@ export default function CouponsAdminPage() {
         body: JSON.stringify({
           name: formName,
           code: formCode || undefined,
-          discountType: formDiscountType,
-          discountValue: Number(formDiscountValue),
+          discountType: isTrial ? undefined : formDiscountType,
+          discountValue: isTrial ? undefined : Number(formDiscountValue),
+          trialDays: isTrial ? Number(formDiscountValue) : undefined,
           maxRedemptions: formMaxRedemptions ? Number(formMaxRedemptions) : undefined,
           maxRedemptionsPerUser: Number(formMaxPerUser) || 1,
           validUntil: formValidUntil || undefined,
@@ -251,22 +255,24 @@ export default function CouponsAdminPage() {
                   <label className="block text-sm text-neutral-400 mb-1">Discount Type</label>
                   <select
                     value={formDiscountType}
-                    onChange={e => setFormDiscountType(e.target.value as 'percent' | 'fixed')}
+                    onChange={e => setFormDiscountType(e.target.value as 'percent' | 'fixed' | 'trial')}
                     className="w-full rounded-xl bg-neutral-800 border-2 border-neutral-700 text-white px-4 py-2.5 focus:border-[#39FF14] focus:outline-none"
                   >
                     <option value="percent">Percent Off</option>
                     <option value="fixed">Fixed Amount Off (cents)</option>
+                    <option value="trial">Free Trial (Vision Pro)</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm text-neutral-400 mb-1">
-                    {formDiscountType === 'percent' ? 'Percent (1-100)' : 'Amount (cents)'}
+                    {isTrial ? 'Trial length (days)' : formDiscountType === 'percent' ? 'Percent (1-100)' : 'Amount (cents)'}
                   </label>
                   <Input
                     type="number"
+                    min={1}
                     value={formDiscountValue}
                     onChange={e => setFormDiscountValue(e.target.value)}
-                    placeholder={formDiscountType === 'percent' ? '50' : '5000'}
+                    placeholder={isTrial ? '365' : formDiscountType === 'percent' ? '50' : '5000'}
                     required
                   />
                 </div>
@@ -308,6 +314,13 @@ export default function CouponsAdminPage() {
                   />
                 </div>
               </div>
+
+              {isTrial && (
+                <p className="text-xs text-neutral-500 -mt-2">
+                  Vision Pro only. Checkout saves the card and charges nothing today. The first $99
+                  charge happens after the trial ends.
+                </p>
+              )}
 
               {/* Renewal discount — also discount the recurring membership */}
               <div className="border border-neutral-800 rounded-xl p-4 space-y-4 bg-neutral-900/40">

@@ -63,6 +63,7 @@ export default function CartCheckoutPage() {
     label: string
     amountOff: number
     renewal?: { type: 'percent' | 'fixed'; value: number; cycles: number | null } | null
+    trialDays?: number | null
   } | null>(null)
   const [validatingPromo, setValidatingPromo] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -187,14 +188,19 @@ export default function CartCheckoutPage() {
           ?? (data.percent_off
             ? Math.round(product.amount * data.percent_off / 100)
             : data.amount_off || 0)
-        setPromoDiscount({ label: data.name || promoCode, amountOff, renewal: data.renewalDiscount || null })
+        setPromoDiscount({ label: data.name || promoCode, amountOff, renewal: data.renewalDiscount || null, trialDays: data.trialDays || null })
       })
       .catch(() => setPromoDiscount(null))
       .finally(() => setValidatingPromo(false))
   }, [cart, product, promoCode, promoDiscount, hasPromoPackage])
 
+  const trialDays = promoDiscount?.trialDays || null
+
   const { submitLabel, submitLabelShort } = useMemo(() => {
     if (!product) return { submitLabel: 'Complete Purchase', submitLabelShort: undefined }
+    if (trialDays) {
+      return { submitLabel: `Start My ${trialDays}-Day Free Trial`, submitLabelShort: 'Start Free Trial' }
+    }
     const todayCents = Math.max(0, product.amount - (promoDiscount?.amountOff || 0))
     const todayDollars = todayCents % 100 === 0 ? (todayCents / 100).toString() : (todayCents / 100).toFixed(2)
     const isIntensive = product.key?.startsWith('intensive-') || product.key?.startsWith('premium-intensive-')
@@ -202,7 +208,7 @@ export default function CartCheckoutPage() {
       submitLabel: isIntensive ? `Pay $${todayDollars} and Start the Activation Intensive` : `Pay $${todayDollars}`,
       submitLabelShort: `Pay $${todayDollars}`,
     }
-  }, [product, promoDiscount?.amountOff])
+  }, [product, promoDiscount?.amountOff, trialDays])
 
   async function validatePromo() {
     if (!promoCode.trim() || !product) return
@@ -232,7 +238,7 @@ export default function CartCheckoutPage() {
         ?? (data.percent_off
           ? Math.round(product.amount * data.percent_off / 100)
           : data.amount_off || 0)
-      setPromoDiscount({ label: data.name || promoCode, amountOff, renewal: data.renewalDiscount || null })
+      setPromoDiscount({ label: data.name || promoCode, amountOff, renewal: data.renewalDiscount || null, trialDays: data.trialDays || null })
       toast.success('Promo code applied')
     } catch {
       toast.error('Could not validate promo code')
@@ -327,6 +333,7 @@ export default function CartCheckoutPage() {
         visitorId: getVisitorId() || undefined,
         sessionId: getSessionId() || undefined,
         activationId: activationId || undefined,
+        trial: Boolean(trialDays),
       }),
     })
     const data = await res.json()
@@ -334,12 +341,18 @@ export default function CartCheckoutPage() {
     return data.id
   }
 
-  async function handlePayPalApproved(orderID: string): Promise<string> {
-    const res = await fetch('/api/paypal/capture', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderID }),
-    })
+  async function handlePayPalApproved(id: string): Promise<string> {
+    const res = trialDays
+      ? await fetch('/api/paypal/start-trial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setupTokenId: id }),
+        })
+      : await fetch('/api/paypal/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderID: id }),
+        })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Payment failed. Please try again.')
     return data.redirectUrl
@@ -480,6 +493,7 @@ export default function CartCheckoutPage() {
                 continuity={(cart?.items?.[0]?.continuity as 'annual' | '28day') || undefined}
                 planType={(cart?.items?.[0]?.plan_type as 'solo' | 'household') || undefined}
                 paymentPlan={(cart?.items?.[0]?.plan as 'full' | '2pay') || undefined}
+                trialDays={trialDays}
                 renewalPhrase={renewalBillingPhrase(
                   (cart?.items?.[0]?.continuity as 'annual' | '28day') || '28day',
                   (cart?.items?.[0]?.plan_type as 'solo' | 'household') || 'solo',
