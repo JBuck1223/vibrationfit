@@ -184,12 +184,12 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
               </h1>
               <p className="mt-0.5 text-sm text-neutral-400">{dateLabel || '\u00A0'}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:justify-start">
               {customizing ? (
                 <>
-                  <Button variant="ghost" size="sm" onClick={handleReset} disabled={isDefaultLayout(layout)}>
-                    <RotateCcw className="mr-1.5 h-4 w-4" />
-                    Reset to default
+                  <Button variant="ghost" size="sm" onClick={handleReset} disabled={isDefaultLayout(layout)} aria-label="Reset to default">
+                    <RotateCcw className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Reset to default</span>
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
                     <Plus className="mr-1.5 h-4 w-4" />

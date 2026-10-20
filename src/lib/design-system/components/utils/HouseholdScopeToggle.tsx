@@ -80,7 +80,7 @@ export function HouseholdScopeToggle({
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1 bg-[#1F1F1F] rounded-full p-1',
+        'inline-flex max-w-full items-center gap-1 overflow-x-auto scrollbar-hide bg-[#1F1F1F] rounded-full p-1',
         className
       )}
       role="tablist"
@@ -97,7 +97,7 @@ export function HouseholdScopeToggle({
             aria-selected={isActive}
             onClick={() => onChange(option.value)}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300',
+              'flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300',
               isActive
                 ? isCombined
                   ? 'bg-[#00FFFF] text-black'
@@ -115,7 +115,7 @@ export function HouseholdScopeToggle({
             ) : (
               option.icon
             )}
-            {option.label}
+            <span className="max-w-[8rem] truncate sm:max-w-none">{option.label}</span>
           </button>
         )
       })}

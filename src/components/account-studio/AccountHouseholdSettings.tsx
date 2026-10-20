@@ -335,7 +335,7 @@ export function AccountHouseholdSettings() {
                     className="flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-white">{invitation.invited_email}</p>
+                      <p className="break-all text-sm font-medium text-white">{invitation.invited_email}</p>
                       <p className="mt-0.5 text-xs text-neutral-500">
                         Sent {new Date(invitation.created_at).toLocaleDateString()}
                       </p>

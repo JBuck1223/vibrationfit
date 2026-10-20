@@ -35,7 +35,7 @@ export default function ReferralPartnersReferralsPage() {
                 {invites.map(invite => (
                   <div key={invite.id} className="flex items-center justify-between gap-2 bg-[#1a1a1a] rounded-lg px-4 py-3 border border-[#333]">
                     <div className="min-w-0">
-                      <span className="text-sm text-white">{invite.referred_name || invite.referred_email}</span>
+                      <span className="break-all text-sm text-white">{invite.referred_name || invite.referred_email}</span>
                       <span className="text-xs text-neutral-500 ml-2 break-all">{invite.referred_email}</span>
                     </div>
                     <Badge

@@ -676,7 +676,7 @@ export default function VisionBoardIdeasPage() {
             <Lightbulb className="w-12 h-12 text-neutral-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-white mb-2">Unable to Generate Ideas</h2>
             <p className="text-neutral-400 mb-6">{error}</p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={fetchVisionAndGenerateSuggestions} variant="primary">
                 Try Again
               </Button>

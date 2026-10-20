@@ -10,6 +10,8 @@
 html {
   background-color: #000000;
   overflow-x: hidden;
+  /* clip (where supported) hides overflow without making a scroll container, so sticky keeps working */
+  overflow-x: clip;
 }
 
 body {
@@ -18,6 +20,7 @@ body {
   /* Ensure proper mobile scrolling */
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Member pages without a studio bar: keep the first line below the fixed menu button. */
@@ -40,6 +43,14 @@ body {
 }
 
 /* Native shell (Capacitor iOS/Android). Set by NativeShellBridge. */
+/* Top inset the body already pads in the native shell (0 on the web). Lets full-height shells and
+   AreaBar subtract it instead of counting the status bar twice. */
+:root {
+  --native-inset-top: 0px;
+}
+html[data-native-shell] {
+  --native-inset-top: env(safe-area-inset-top, 0px);
+}
 html[data-native-shell] {
   /* WKWebView: no rubber-band overscroll on the root, no link callouts, no tap flash. */
   overscroll-behavior: none;
@@ -66,6 +77,19 @@ html[data-native-shell] body::before {
 /* Sticky chrome (Header, AreaBar) pins below the status bar instead of under it. */
 html[data-native-shell] .sticky.top-0 {
   top: env(safe-area-inset-top, 0px);
+}
+/* Inside the app shell's scroller (already below the body padding), sticky chrome pins at its top. */
+html[data-native-shell] [data-app-scroller] .sticky.top-0 {
+  top: 0;
+}
+/* Full-height shells fill the space under the body padding, not the whole viewport. */
+html[data-native-shell] .h-screen,
+html[data-native-shell] .h-dvh {
+  height: calc(100dvh - var(--native-inset-top));
+}
+html[data-native-shell] .min-h-screen,
+html[data-native-shell] .min-h-dvh {
+  min-height: calc(100dvh - var(--native-inset-top));
 }
 /* Body padding already covers the inset; don't count it twice. */
 @media (max-width: 767px) {

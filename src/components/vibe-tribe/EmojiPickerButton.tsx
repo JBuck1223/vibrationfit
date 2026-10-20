@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 
 const Picker = dynamic(() => import('@emoji-mart/react').then(mod => mod.default), {
   ssr: false,
-  loading: () => <div className="w-[352px] h-[435px] bg-neutral-800 rounded-xl animate-pulse" />,
+  loading: () => <div className="w-[352px] max-w-[calc(100vw-1rem)] h-[435px] bg-neutral-800 rounded-xl animate-pulse" />,
 })
 
 interface EmojiPickerButtonProps {
@@ -20,6 +20,15 @@ export function EmojiPickerButton({ textareaRef, onInsert, className = '', iconS
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const [pickerData, setPickerData] = useState<any>(null)
+  // emoji-mart sizes itself from perLine (9 x 36px + 28px chrome = 352px).
+  // On narrow screens, drop columns so the picker fits inside the viewport.
+  const [perLine, setPerLine] = useState(9)
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') return
+    const available = window.innerWidth - 16 - 28
+    setPerLine(Math.max(6, Math.min(9, Math.floor(available / 36))))
+  }, [open])
 
   useEffect(() => {
     if (open && !pickerData) {
@@ -87,7 +96,7 @@ export function EmojiPickerButton({ textareaRef, onInsert, className = '', iconS
       </button>
 
       {open && pickerData && (
-        <div className="absolute bottom-full mb-2 right-0 z-50">
+        <div className="absolute bottom-full mb-2 right-0 z-50 max-w-[calc(100vw-1rem)] overflow-hidden">
           <Picker
             data={pickerData}
             onEmojiSelect={handleSelect}
@@ -95,6 +104,7 @@ export function EmojiPickerButton({ textareaRef, onInsert, className = '', iconS
             previewPosition="none"
             skinTonePosition="search"
             set="native"
+            perLine={perLine}
           />
         </div>
       )}

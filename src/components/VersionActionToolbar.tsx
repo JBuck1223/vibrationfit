@@ -108,7 +108,7 @@ export const VersionActionToolbar: React.FC<VersionActionToolbarProps> = ({
 
   return (
     <>
-      <div className={`flex items-center gap-2 ${className}`}>
+      <div className={`flex flex-wrap items-center justify-center gap-2 sm:flex-nowrap sm:justify-start ${className}`}>
         {actions.map((action, index) => (
           <Button
             key={index}

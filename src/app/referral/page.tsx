@@ -421,11 +421,11 @@ export default function ReferralPage() {
                       className="w-full bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-sm text-white focus:border-[#39FF14] focus:outline-none resize-y"
                       placeholder="Write your personal referral message..."
                     />
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap sm:gap-0">
                       <span className="text-xs text-neutral-500">
                         {(myMessage || defaultMessage).length}/2000
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap justify-end gap-2 sm:flex-nowrap">
                         <Button variant="ghost" size="sm" onClick={() => {
                           setMyMessage(dashboard?.participant.custom_message || '')
                           setEditingMessage(false)

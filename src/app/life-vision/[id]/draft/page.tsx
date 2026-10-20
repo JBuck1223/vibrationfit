@@ -510,7 +510,7 @@ export default function VisionDraftPage({ params }: { params: Promise<{ id: stri
           <h2 className="text-2xl font-bold text-white mb-4">This Life Vision is Not a Draft</h2>
           <p className="text-neutral-400 mb-6">{error}</p>
           <p className="text-neutral-400 mb-6">Would you like to create a draft from this vision?</p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={(e) => {
                 console.log('Button clicked')

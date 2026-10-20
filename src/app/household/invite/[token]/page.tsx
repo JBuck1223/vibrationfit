@@ -248,8 +248,8 @@ export default function AcceptInvitationPage() {
           {!emailMatches && (
             <div className="p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20 mb-6">
               <p className="text-sm text-yellow-500">
-                <strong>Note:</strong> This invitation was sent to {invitation.invited_email}, 
-                but you're logged in as {currentUserEmail}. 
+                <strong>Note:</strong> This invitation was sent to <span className="break-all">{invitation.invited_email}</span>, 
+                but you&apos;re logged in as <span className="break-all">{currentUserEmail}</span>. 
                 You can still accept, but make sure this is the right account.
               </p>
             </div>

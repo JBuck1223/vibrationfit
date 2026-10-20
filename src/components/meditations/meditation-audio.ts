@@ -167,10 +167,11 @@ export class LoopLayer {
   }
 }
 
-export type ChimeKind = 'inhale' | 'exhale' | 'complete'
+export type ChimeKind = 'inhale' | 'hold' | 'exhale' | 'complete'
 
 const CHIME_NOTES: Record<ChimeKind, number[]> = {
   inhale: [660],
+  hold: [550],
   exhale: [440],
   complete: [528, 660, 792],
 }

@@ -35,7 +35,7 @@ export const InsufficientStorageDialog: React.FC<InsufficientStorageDialogProps>
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1F1F1F] border-2 border-[#8B5CF6] rounded-2xl p-6 max-w-md w-full relative">
+      <div className="bg-[#1F1F1F] border-2 border-[#8B5CF6] rounded-2xl p-4 sm:p-6 max-w-md w-full relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors"
@@ -58,7 +58,7 @@ export const InsufficientStorageDialog: React.FC<InsufficientStorageDialogProps>
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row">
           <Button
             variant="ghost"
             onClick={onClose}

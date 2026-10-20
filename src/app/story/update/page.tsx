@@ -840,7 +840,7 @@ export default function StoryUpdatePage() {
                       ))}
                     </div>
 
-                    <div className="mt-6 flex justify-center gap-3">
+                    <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
                       <Button variant="outline" size="sm" onClick={() => setManualStep('write')}>Back to Editing</Button>
                       <Button variant="accent" size="sm" onClick={applyProofreadEdits}>
                         Apply Selected Edits
@@ -849,7 +849,7 @@ export default function StoryUpdatePage() {
                     </div>
                   </>
                 ) : (
-                  <div className="mt-6 flex justify-center gap-3">
+                  <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
                     <Button variant="outline" size="sm" onClick={() => setManualStep('write')}>Back to Editing</Button>
                     <Button
                       variant="primary"

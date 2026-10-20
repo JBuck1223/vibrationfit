@@ -35,13 +35,13 @@ export function SidebarLayout({
   isAdmin?: boolean
 }) {
   return (
-    <div className="flex h-screen bg-black">
+    <div className="flex h-dvh bg-black">
       {isAdmin ? (
         <AdminSidebar className={className} />
       ) : (
         <UserSidebar className={className} />
       )}
-      <main className={cn('min-w-0 flex-1 overflow-auto min-h-0', className)}>
+      <main data-app-scroller className={cn('min-w-0 flex-1 overflow-y-auto overflow-x-clip min-h-0', className)}>
         <div className="w-full">{children}</div>
       </main>
     </div>

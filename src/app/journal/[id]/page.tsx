@@ -410,7 +410,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
           title={entry?.title || 'Journal Entry'}
           subtitle="View your journal entry"
         >
-          <div className="flex justify-center gap-3">
+          <div className="flex flex-wrap sm:flex-nowrap justify-center gap-3">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -631,12 +631,12 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
             )}
 
             {/* Actions */}
-            <div className="flex flex-row items-center gap-2 sm:gap-3 sm:justify-end pt-2">
+            <div className="grid grid-cols-2 items-center gap-2 pt-2 sm:flex sm:flex-row sm:gap-3 sm:justify-end">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setShowAddToKit(true)}
-                className="flex-1 sm:flex-none sm:w-auto"
+                className="col-span-2 w-full sm:flex-none sm:w-auto"
               >
                 <Layers className="w-4 h-4 mr-2" />
                 Add to manifestation
@@ -645,7 +645,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                 variant="danger"
                 size="sm"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex-1 sm:flex-none sm:w-32"
+                className="w-full sm:flex-none sm:w-32"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
@@ -654,7 +654,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                 variant="primary"
                 size="sm"
                 onClick={() => router.push(`/journal/${entry.id}/edit`)}
-                className="flex-1 sm:flex-none sm:w-32"
+                className="w-full sm:flex-none sm:w-32"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit

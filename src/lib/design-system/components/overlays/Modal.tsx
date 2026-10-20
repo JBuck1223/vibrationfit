@@ -30,13 +30,15 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     ...props 
   }, ref) => {
     useEffect(() => {
-      if (isOpen) {
-        document.body.style.overflow = 'hidden'
-      } else {
-        document.body.style.overflow = 'unset'
-      }
+      if (!isOpen) return
+      // Member pages scroll inside the app shell's <main>, not the body, so lock both.
+      const shellScroller = document.querySelector('main')
+      const prevShellOverflow = shellScroller?.style.overflow ?? ''
+      document.body.style.overflow = 'hidden'
+      if (shellScroller) shellScroller.style.overflow = 'hidden'
       return () => {
         document.body.style.overflow = 'unset'
+        if (shellScroller) shellScroller.style.overflow = prevShellOverflow
       }
     }, [isOpen])
 
@@ -52,13 +54,13 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 
     return (
       <div 
-        className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
         onClick={onClose}
       >
         <div
           ref={ref}
           className={cn(
-            'bg-[#1F1F1F] border-2 border-[#333] rounded-2xl w-full relative max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden',
+            'bg-[#1F1F1F] border-2 border-[#333] rounded-2xl w-full relative max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden',
             sizeClasses[size],
             className
           )}
@@ -67,14 +69,14 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
         >
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-6 border-b border-[#333] shrink-0">
+            <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-[#333] shrink-0">
               {title && (
-                <h2 className="text-xl font-semibold text-white">{title}</h2>
+                <h2 className="min-w-0 break-words text-xl font-semibold text-white">{title}</h2>
               )}
               {showCloseButton && (
                 <button
                   onClick={onClose}
-                  className="text-neutral-400 hover:text-white transition-colors ml-auto"
+                  className="shrink-0 text-neutral-400 hover:text-white transition-colors ml-auto"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -83,13 +85,13 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           )}
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto min-h-0 flex-1">
+          <div className="p-4 sm:p-6 overflow-y-auto min-h-0 flex-1">
             {children}
           </div>
 
           {/* Footer */}
           {footer && (
-            <div className="p-6 border-t border-[#333] shrink-0">
+            <div className="p-4 sm:p-6 border-t border-[#333] shrink-0">
               {footer}
             </div>
           )}

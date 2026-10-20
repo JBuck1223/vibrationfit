@@ -415,7 +415,7 @@ export default function SnapshotPage() {
 
         {/* About Me Section */}
         <Card className="p-4 md:p-6">
-          <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-[#39FF14]" />
               <h2 className="text-lg font-semibold text-white">About</h2>

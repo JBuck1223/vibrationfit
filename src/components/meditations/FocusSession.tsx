@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { Bell, BellOff, Pause, Play, RotateCcw, Shapes, SlidersHorizontal, X } from 'lucide-react'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Button } from '@/lib/design-system/components'
-import { breathHeight, formatClock } from '@/lib/meditations/breath'
+import { breathHeight, breathPhase, formatClock, rhythmLabel, type BreathPhase } from '@/lib/meditations/breath'
 import { LEAD_IN_SECONDS } from '@/lib/meditations/constants'
 import { isNativeShell } from '@/lib/mobile/native-shell'
 import { BreathWave } from './BreathWave'
@@ -17,12 +17,20 @@ export interface FocusSessionConfig {
   title: string
   inhale: number
   exhale: number
+  hold: number
   durationMinutes: number
   musicTitle: string | null
   binauralTitle: string | null
 }
 
 type Status = 'running' | 'paused' | 'complete'
+
+const PHASE_ORDER: BreathPhase[] = ['inhale', 'hold', 'exhale']
+const PHASE_HEADLINE: Record<BreathPhase, string> = {
+  inhale: 'Breathe in',
+  hold: 'Hold',
+  exhale: 'Breathe out',
+}
 
 interface FocusSessionProps {
   config: FocusSessionConfig
@@ -70,8 +78,8 @@ export function FocusSession({
   onRestart,
   onClose,
 }: FocusSessionProps) {
-  const { inhale, exhale, durationMinutes } = config
-  const cycle = inhale + exhale
+  const { inhale, exhale, hold, durationMinutes } = config
+  const cycle = inhale + hold + exhale
   const durationSeconds = durationMinutes * 60
 
   const [status, setStatus] = useState<Status>('running')
@@ -118,11 +126,11 @@ export function FocusSession({
         return
       }
       if (next >= 0 && cycle > 0) {
-        const cycleTime = next % cycle
-        const phase = Math.floor(next / cycle) * 2 + (cycleTime < inhale ? 0 : 1)
+        const current = breathPhase(next % cycle, inhale, exhale, hold).phase
+        const phase = Math.floor(next / cycle) * 3 + PHASE_ORDER.indexOf(current)
         if (phase !== lastPhase.current) {
           lastPhase.current = phase
-          callbacks.current.onPhase(phase % 2 === 0 ? 'inhale' : 'exhale')
+          callbacks.current.onPhase(current)
           pulse()
         }
       }
@@ -138,7 +146,7 @@ export function FocusSession({
       cancelAnimationFrame(frame)
       clearTimeout(backstop)
     }
-  }, [status, runId, cycle, inhale, durationSeconds, readElapsed, finish])
+  }, [status, runId, cycle, inhale, exhale, hold, durationSeconds, readElapsed, finish])
 
   const togglePause = useCallback(() => {
     if (status === 'running') {
@@ -175,14 +183,14 @@ export function FocusSession({
   const settling = elapsed < 0
   const time = Math.max(0, elapsed)
   const cycleTime = cycle > 0 ? time % cycle : 0
-  const inhaling = cycleTime < inhale
-  const height = status === 'complete' || settling ? 0 : breathHeight(cycleTime, inhale, exhale)
-  const phaseLeft = Math.max(1, Math.ceil(inhaling ? inhale - cycleTime : cycle - cycleTime))
+  const current = breathPhase(cycleTime, inhale, exhale, hold)
+  const height = status === 'complete' || settling ? 0 : breathHeight(cycleTime, inhale, exhale, hold)
+  const phaseLeft = Math.max(1, Math.ceil(current.left))
   const progress = Math.min(1, time / durationSeconds)
   const breaths = cycle > 0 ? Math.floor(time / cycle) : 0
   const hasSound = Boolean(config.musicTitle || config.binauralTitle)
 
-  let headline = inhaling ? 'Breathe in' : 'Breathe out'
+  let headline = PHASE_HEADLINE[current.phase]
   let detail = `${phaseLeft}`
   if (settling) {
     headline = 'Settle in'
@@ -221,7 +229,7 @@ export function FocusSession({
         <div className="min-w-0">
           <p className="truncate text-base md:text-lg font-semibold">{config.title || 'Breathe'}</p>
           <p className="truncate text-xs md:text-sm text-neutral-400">
-            {inhale}s in · {exhale}s out · {durationMinutes} min{soundLine ? ` · ${soundLine}` : ''}
+            {rhythmLabel(inhale, exhale, hold)} · {durationMinutes} min{soundLine ? ` · ${soundLine}` : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -301,7 +309,7 @@ export function FocusSession({
 
         {visual === 'wave' && (
           <div className="w-full max-w-3xl">
-            <BreathWave inhale={inhale} exhale={exhale} elapsed={status === 'complete' ? 0 : elapsed} />
+            <BreathWave inhale={inhale} exhale={exhale} hold={hold} elapsed={status === 'complete' ? 0 : elapsed} />
           </div>
         )}
       </main>

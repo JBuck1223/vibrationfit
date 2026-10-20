@@ -7,6 +7,7 @@ import {
   BREATH_MIN_SECONDS,
   DURATION_MAX_MINUTES,
   DURATION_MIN_MINUTES,
+  HOLD_MAX_SECONDS,
 } from '@/lib/meditations/constants'
 
 export const dynamic = 'force-dynamic'
@@ -62,6 +63,10 @@ export async function PATCH(
     if (body.exhale_seconds != null) {
       const value = clampInt(body.exhale_seconds, BREATH_MIN_SECONDS, BREATH_MAX_SECONDS)
       if (value != null) update.exhale_seconds = value
+    }
+    if (body.hold_seconds != null) {
+      const value = clampInt(body.hold_seconds, 0, HOLD_MAX_SECONDS)
+      if (value != null) update.hold_seconds = value
     }
     if (body.duration_minutes != null) {
       const value = clampInt(body.duration_minutes, DURATION_MIN_MINUTES, DURATION_MAX_MINUTES)

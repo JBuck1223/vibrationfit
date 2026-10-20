@@ -884,7 +884,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
           </div>
           <h2 className="text-2xl font-bold text-white mb-4">Error Loading Vision</h2>
           <p className="text-neutral-400 mb-6">{error}</p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button onClick={() => window.location.reload()} variant="primary">
               Try Again
             </Button>

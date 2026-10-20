@@ -1408,7 +1408,7 @@ export default function VisionUpdatePage() {
               Would you like VIVA to run a cleanse to ensure your Life Vision is written in
               vibrational grammar? She only flags clear misses — a clean vision comes back untouched.
             </p>
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
               <Button variant="primary" size="sm" onClick={runCleanse}>
                 <Sparkles className="mr-1.5 h-4 w-4" />Yes, run the cleanse
               </Button>
@@ -1515,7 +1515,7 @@ export default function VisionUpdatePage() {
                 })}
               </div>
 
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
                 <Button variant="primary" size="sm" onClick={applyCleanse} disabled={cleanseApplying}>
                   {cleanseApplying ? (
                     <><Spinner size="sm" className="mr-1.5" />Applying…</>

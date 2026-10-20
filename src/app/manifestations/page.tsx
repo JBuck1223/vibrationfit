@@ -3292,9 +3292,9 @@ export default function VisionBoardPage() {
 
         {/* Floating Bulk Action Bar */}
         {bulkMode && (
-          <div className="fixed bottom-6 left-1/2 md:left-[calc(50%+8rem)] -translate-x-1/2 z-40 animate-in slide-in-from-bottom duration-300">
+          <div className="fixed bottom-6 left-1/2 md:left-[calc(50%+8rem)] -translate-x-1/2 z-40 w-[calc(100vw-2rem)] sm:w-auto animate-in slide-in-from-bottom duration-300">
             <div className="bg-[#1A1A1A] border-2 border-[#333] rounded-2xl shadow-2xl shadow-black/60 px-4 sm:px-5 py-3 backdrop-blur-sm">
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
+              <div className="flex flex-wrap sm:flex-nowrap items-center justify-center gap-2 sm:gap-3">
                 <span className="text-sm font-medium text-neutral-300 whitespace-nowrap">
                   {selectedItemIds.size} selected
                 </span>

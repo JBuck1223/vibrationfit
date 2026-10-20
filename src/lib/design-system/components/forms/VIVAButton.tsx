@@ -15,8 +15,8 @@ export const VIVAButton = React.forwardRef<HTMLButtonElement, VIVAButtonProps>(
   ({ size = 'md', children, asChild = false, className = '', ...props }, ref) => {
     const sizes = {
       sm: 'px-5 py-3 text-sm gap-2',
-      md: 'px-7 py-3 text-sm md:text-base gap-2',
-      lg: 'px-10 py-4 text-base gap-2.5',
+      md: 'px-5 py-3 text-sm md:px-7 md:text-base gap-2',
+      lg: 'px-6 py-4 text-base md:px-10 gap-2.5',
       xl: 'px-6 py-4 text-lg gap-3'
     }
     

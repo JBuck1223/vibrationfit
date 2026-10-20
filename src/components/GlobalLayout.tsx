@@ -27,7 +27,7 @@ function VivaShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="flex bg-black overflow-hidden"
-      style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
+      style={{ height: `calc(${viewportHeight ? `${viewportHeight}px` : '100dvh'} - var(--native-inset-top, 0px))` }}
     >
       <UserSidebar />
       <main className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
@@ -40,7 +40,7 @@ function VivaShell({ children }: { children: React.ReactNode }) {
 function PlayerSpacer() {
   const hasActive = useGlobalAudioStore(s => s.tracks.length > 0)
   if (!hasActive) return null
-  return <div className="h-20" />
+  return <div className="h-[calc(5rem+env(safe-area-inset-bottom,0px))]" />
 }
 
 
@@ -297,7 +297,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       return (
         <div className="flex h-screen bg-black">
           <UserSidebar />
-          <main className={`flex-1 flex flex-col min-h-0 ${isNewPage ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+          <main data-app-scroller className={`flex-1 flex flex-col min-h-0 min-w-0 ${isNewPage ? 'overflow-y-auto overflow-x-clip' : 'overflow-hidden'}`}>
             <div className="flex-1 flex flex-col min-h-0 w-full">
               {children}
             </div>
@@ -319,7 +319,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
           <IntensiveSidebarProvider>
             <div className="min-h-screen bg-black text-white">
               <IntensiveSidebar />
-              <div className="min-w-0 md:ml-[280px]">
+              <div className="min-w-0 overflow-x-clip md:ml-[280px]">
                 <PageLayout className={cn(audioPageLayoutClass, fullBleedClass, !studioRoute && 'mobile-menu-clearance')}>
                   {children}
                   <PlayerSpacer />

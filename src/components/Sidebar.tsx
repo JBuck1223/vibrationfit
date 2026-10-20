@@ -625,7 +625,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       {/* Mobile Sidebar */}
       <aside
         className={cn(
-          'md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-800 border-r border-neutral-800 z-50',
+          'md:hidden fixed top-0 left-0 bottom-0 w-[280px] bg-neutral-800 border-r border-neutral-800 z-50 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
           'transform transition-transform duration-300',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}

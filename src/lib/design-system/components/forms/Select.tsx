@@ -25,7 +25,7 @@ interface SelectProps {
 export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
   ({ label, options, placeholder = 'Select...', value, onChange, error, helperText, disabled = false, className = '' }, ref) => {
     const [isOpen, setIsOpen] = useState(false)
-    const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null)
+    const [dropdownRect, setDropdownRect] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const triggerRef = useRef<HTMLDivElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
@@ -36,8 +36,15 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
     const updateDropdownRect = () => {
       if (triggerRef.current) {
         const rect = triggerRef.current.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+        const vv = window.visualViewport
+        const visibleBottom = vv ? vv.offsetTop + vv.height : viewportHeight
+        const spaceBelow = visibleBottom - rect.bottom
+        // max-h-48 list + padding/border
+        const fitsBelow = spaceBelow >= 208 || spaceBelow >= rect.top
         setDropdownRect({
-          top: rect.bottom + 4,
+          // Open upward when there isn't room for the list below (bottom of screen, keyboard open).
+          ...(fitsBelow ? { top: rect.bottom + 4 } : { bottom: viewportHeight - rect.top + 4 }),
           left: rect.left,
           width: rect.width,
         })
@@ -128,6 +135,7 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                 className="fixed z-[221] py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain"
                 style={{
                   top: dropdownRect.top,
+                  bottom: dropdownRect.bottom,
                   left: dropdownRect.left,
                   width: dropdownRect.width,
                 }}

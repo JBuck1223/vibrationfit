@@ -48,7 +48,7 @@ export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(
       'font-semibold',
       'border-2',
       'disabled:opacity-50 disabled:cursor-not-allowed',
-      'whitespace-nowrap',
+      'max-w-full whitespace-normal text-center sm:whitespace-nowrap',
       className
     )
     

@@ -41,7 +41,7 @@ function Message({ message, onQuickAction, userInitial }: { message: Message; on
       
       <div
         className={cn(
-          'max-w-[80%] rounded-2xl px-4 py-3',
+          'min-w-0 max-w-[80%] break-words [overflow-wrap:anywhere] rounded-2xl px-4 py-3',
           isUser
             ? 'bg-neutral-800 text-white border border-neutral-700'
             : 'bg-neutral-900 border border-neutral-800 text-white'
@@ -261,7 +261,7 @@ export default function VivaChat({ visionBuildPhase, currentCategory, onSaveVisi
       </div>
 
       {/* Input Area - Fixed at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-neutral-900 border-t border-neutral-800">
+      <div className="absolute bottom-0 left-0 right-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-neutral-900 border-t border-neutral-800">
         <VivaChatInput
           value={input}
           onChange={setInput}

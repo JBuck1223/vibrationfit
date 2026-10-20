@@ -16,6 +16,7 @@ import {
   DURATION_MIN_MINUTES,
   DURATION_OPTIONS,
   END_FADE_SECONDS,
+  HOLD_MAX_SECONDS,
   LEAD_IN_SECONDS,
   AUTO_DURATION_MINUTES,
   AUTO_EXHALE_SECONDS,
@@ -52,6 +53,7 @@ interface StoredPrefs {
   preset?: string
   inhale?: number
   exhale?: number
+  hold?: number
   duration?: number
   music?: string
   binaural?: string
@@ -69,8 +71,13 @@ function unit(value: unknown, fallback: number) {
   return typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback
 }
 
-function presetFor(inhale: number, exhale: number) {
-  return BREATH_PRESETS.find((preset) => preset.inhale === inhale && preset.exhale === exhale)?.id ?? CUSTOM_PRESET_ID
+function presetFor(inhale: number, exhale: number, hold: number) {
+  return BREATH_PRESETS.find((preset) => preset.inhale === inhale && preset.exhale === exhale && preset.hold === hold)?.id
+    ?? CUSTOM_PRESET_ID
+}
+
+function rhythmDigits(inhale: number, exhale: number, hold: number) {
+  return hold > 0 ? `${inhale} · ${hold} · ${exhale}` : `${inhale} · ${exhale}`
 }
 
 async function readJson(response: Response) {
@@ -90,6 +97,7 @@ export function BreathPacer() {
   const [preset, setPreset] = useState<string>(BREATH_PRESETS[0].id)
   const [customInhale, setCustomInhale] = useState(AUTO_INHALE_SECONDS)
   const [customExhale, setCustomExhale] = useState(AUTO_EXHALE_SECONDS)
+  const [customHold, setCustomHold] = useState(0)
   const [duration, setDuration] = useState(AUTO_DURATION_MINUTES)
   const [musicId, setMusicId] = useState('')
   const [musicVolume, setMusicVolume] = useState(DEFAULT_MUSIC_VOLUME)
@@ -128,6 +136,7 @@ export function BreathPacer() {
         const exhale = saved.exhale ? clamp(saved.exhale, BREATH_MIN_SECONDS, BREATH_MAX_SECONDS) : AUTO_EXHALE_SECONDS
         setCustomInhale(inhale)
         setCustomExhale(exhale)
+        if (saved.hold) setCustomHold(clamp(saved.hold, 0, HOLD_MAX_SECONDS))
         if (saved.preset && (saved.preset === CUSTOM_PRESET_ID || BREATH_PRESETS.some((item) => item.id === saved.preset))) {
           setPreset(saved.preset)
         } else if (saved.mode === 'custom') {
@@ -156,6 +165,7 @@ export function BreathPacer() {
       preset,
       inhale: customInhale,
       exhale: customExhale,
+      hold: customHold,
       duration,
       music: musicId,
       binaural: binauralId,
@@ -169,13 +179,14 @@ export function BreathPacer() {
     } catch {
       // Private mode or full storage; preferences just won't persist.
     }
-  }, [prefsLoaded, preset, customInhale, customExhale, duration, musicId, binauralId, musicVolume, binauralVolume, chimes, visual])
+  }, [prefsLoaded, preset, customInhale, customExhale, customHold, duration, musicId, binauralId, musicVolume, binauralVolume, chimes, visual])
 
   useEffect(() => () => audioRef.current?.close(), [])
 
   const activePreset = BREATH_PRESETS.find((item) => item.id === preset) || null
   const inhale = activePreset ? activePreset.inhale : customInhale
   const exhale = activePreset ? activePreset.exhale : customExhale
+  const hold = activePreset ? activePreset.hold : customHold
 
   // Own tracks stay playable in the composer even before they join the music list.
   const musicPool = useMemo<MeditationMusicOption[]>(() => {
@@ -225,6 +236,7 @@ export function BreathPacer() {
         title: title.trim(),
         inhale,
         exhale,
+        hold,
         durationMinutes: duration,
         musicTitle: music?.title || null,
         binauralTitle: binaural?.title || null,
@@ -243,6 +255,7 @@ export function BreathPacer() {
         title: card.title,
         inhale: card.inhaleSeconds,
         exhale: card.exhaleSeconds,
+        hold: card.holdSeconds,
         durationMinutes: card.durationMinutes,
         musicTitle: card.musicUrl ? card.musicTitle : null,
         binauralTitle: card.binauralUrl ? card.binauralTitle : null,
@@ -283,11 +296,12 @@ export function BreathPacer() {
   }, [chimes])
 
   function loadIntoComposer(card: MeditationCard, asCopy: boolean) {
-    const nextPreset = presetFor(card.inhaleSeconds, card.exhaleSeconds)
+    const nextPreset = presetFor(card.inhaleSeconds, card.exhaleSeconds, card.holdSeconds)
     setPreset(nextPreset)
     if (nextPreset === CUSTOM_PRESET_ID) {
       setCustomInhale(card.inhaleSeconds)
       setCustomExhale(card.exhaleSeconds)
+      setCustomHold(card.holdSeconds)
     }
     setDuration(card.durationMinutes)
 
@@ -331,6 +345,7 @@ export function BreathPacer() {
       title: name,
       inhale_seconds: inhale,
       exhale_seconds: exhale,
+      hold_seconds: hold,
       duration_minutes: duration,
       music_background_track_id: music?.source === 'background' ? music.id : null,
       music_song_track_id: generated ? music.id : null,
@@ -451,7 +466,7 @@ export function BreathPacer() {
   }
 
   const editingCard = editingId ? catalog?.mine.find((card) => card.id === editingId) : null
-  const breaths = breathCount(inhale, exhale, duration)
+  const breaths = breathCount(inhale, exhale, duration, hold)
   const customDuration = !(DURATION_OPTIONS as readonly number[]).includes(duration)
 
   return (
@@ -487,29 +502,30 @@ export function BreathPacer() {
 
               <section>
                 <SectionLabel>Rhythm</SectionLabel>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-3 xl:grid-cols-5">
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-3 xl:grid-cols-6">
                   {BREATH_PRESETS.map((item) => (
                     <RhythmTile
                       key={item.id}
                       selected={preset === item.id}
                       label={item.label}
-                      detail={`${item.inhale} · ${item.exhale}`}
+                      detail={rhythmDigits(item.inhale, item.exhale, item.hold)}
                       onClick={() => setPreset(item.id)}
                     />
                   ))}
                   <RhythmTile
                     selected={preset === CUSTOM_PRESET_ID}
                     label="Custom"
-                    detail={`${customInhale} · ${customExhale}`}
+                    detail={rhythmDigits(customInhale, customExhale, customHold)}
                     onClick={() => setPreset(CUSTOM_PRESET_ID)}
                   />
                 </div>
                 <p className="mt-2 text-xs text-neutral-500">
-                  {activePreset ? activePreset.hint : 'Set your own in-breath and out-breath'}
+                  {activePreset ? activePreset.hint : 'Set your own in-breath, hold, and out-breath. Leave hold at 0 to skip it'}
                 </p>
                 {preset === CUSTOM_PRESET_ID && (
-                  <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
                     <Stepper label="Breathe in" value={customInhale} min={BREATH_MIN_SECONDS} max={BREATH_MAX_SECONDS} unit="s" onChange={setCustomInhale} />
+                    <Stepper label="Hold" value={customHold} min={0} max={HOLD_MAX_SECONDS} unit="s" onChange={setCustomHold} />
                     <Stepper label="Breathe out" value={customExhale} min={BREATH_MIN_SECONDS} max={BREATH_MAX_SECONDS} unit="s" onChange={setCustomExhale} />
                   </div>
                 )}
@@ -631,11 +647,12 @@ export function BreathPacer() {
                 </div>
 
                 <div className="my-3 md:my-5">
-                  <VisualPreview kind={visual} inhale={inhale} exhale={exhale} />
+                  <VisualPreview kind={visual} inhale={inhale} exhale={exhale} hold={hold} />
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center">
+                <div className={`grid gap-2 text-center ${hold > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
                   <Stat value={`${inhale}s`} label="in" />
+                  {hold > 0 && <Stat value={`${hold}s`} label="hold" />}
                   <Stat value={`${exhale}s`} label="out" />
                   <Stat value={`${duration}m`} label={`${breaths} breaths`} />
                 </div>

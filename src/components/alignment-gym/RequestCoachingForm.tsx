@@ -179,7 +179,7 @@ export function RequestCoachingForm({ userId, onClose, hideNavigation = false }:
           onCategoryClick={toggleArea}
           wrapOnDesktop
           pillLabel="scroll"
-          bleedClassName="max-md:-mx-6 md:mx-0"
+          bleedClassName="max-md:-mx-4 sm:max-md:-mx-6 md:mx-0"
         />
       </div>
 

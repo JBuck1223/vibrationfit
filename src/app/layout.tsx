@@ -116,6 +116,7 @@ export default function RootLayout({
               duration: 5000,
             }}
             offset="16px"
+            mobileOffset={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
           />
         </AuthProvider>
       </body>

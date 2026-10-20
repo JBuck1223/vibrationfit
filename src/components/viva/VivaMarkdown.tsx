@@ -26,7 +26,7 @@ const components = {
   ),
   a: (props: React.ComponentProps<'a'>) => (
     <a
-      className="text-[#39FF14] underline underline-offset-2 hover:text-[#5FFF3E]"
+      className="text-[#39FF14] underline underline-offset-2 [overflow-wrap:anywhere] hover:text-[#5FFF3E]"
       {...props}
       target="_blank"
       rel="noopener noreferrer"
@@ -45,12 +45,26 @@ const components = {
     <blockquote className="border-l-2 border-neutral-600 pl-4 my-4 text-neutral-300 italic" {...props} />
   ),
   hr: () => <hr className="border-neutral-800 my-6" />,
+  table: (props: React.ComponentProps<'table'>) => (
+    <div className="my-4 max-w-full overflow-x-auto">
+      <table className="min-w-full border-collapse text-left text-sm text-neutral-100" {...props} />
+    </div>
+  ),
+  th: (props: React.ComponentProps<'th'>) => (
+    <th className="border-b border-neutral-600 px-3 py-2 font-semibold text-white" {...props} />
+  ),
+  td: (props: React.ComponentProps<'td'>) => (
+    <td className="border-b border-neutral-800 px-3 py-2 align-top" {...props} />
+  ),
+  pre: (props: React.ComponentProps<'pre'>) => (
+    <pre className="my-4 max-w-full overflow-x-auto rounded-lg border border-neutral-800 bg-black/30 p-3 text-[13px] leading-relaxed text-neutral-100" {...props} />
+  ),
 }
 
 export function VivaMarkdown({ children }: { children: string }) {
   const cards = extractActionCards(children)
   return (
-    <div className="viva-markdown text-[15px] leading-relaxed text-neutral-100">
+    <div className="viva-markdown min-w-0 break-words [overflow-wrap:anywhere] text-[15px] leading-relaxed text-neutral-100">
       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={components}>
         {children}
       </ReactMarkdown>

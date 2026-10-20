@@ -139,7 +139,7 @@ export function IntensiveMobileNav() {
   if (loading || navItems.length === 0) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-900 border-t-2 border-primary-500 md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-900 border-t-2 border-primary-500 pb-[env(safe-area-inset-bottom)] md:hidden">
       {/* Progress indicator */}
       <div className="h-1 bg-neutral-800">
         <div 

@@ -9,7 +9,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Play, Pause, Download, Loader2, Music, AlignLeft } from 'lucide-react'
+import { Play, Pause, Download, Loader2, Music, AlignLeft, Repeat, SkipBack } from 'lucide-react'
 import { colors } from '@/lib/design-system/tokens'
 import {
   convertMurekaLyrics,
@@ -87,6 +87,7 @@ export function PublicSongPlayer({
   const [isBuffering, setIsBuffering] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [repeat, setRepeat] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
   const syncedLyrics = useMemo(() => {
@@ -116,6 +117,22 @@ export function PublicSongPlayer({
     if (!audio) return
     audio.currentTime = parseFloat(e.target.value)
     setCurrentTime(audio.currentTime)
+  }, [])
+
+  const restart = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    audio.currentTime = 0
+    setCurrentTime(0)
+    if (audio.paused) void audio.play()
+  }, [])
+
+  const toggleRepeat = useCallback(() => {
+    setRepeat((on) => {
+      const next = !on
+      if (audioRef.current) audioRef.current.loop = next
+      return next
+    })
   }, [])
 
   const seekToLine = useCallback((line: TimedLine) => {
@@ -172,6 +189,7 @@ export function PublicSongPlayer({
       <audio
         ref={audioRef}
         src={mp3Url}
+        loop={repeat}
         preload="metadata"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -247,7 +265,16 @@ export function PublicSongPlayer({
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-6">
+            <button
+              type="button"
+              onClick={restart}
+              className="p-3 text-neutral-400 hover:text-white transition-colors"
+              aria-label="Restart"
+            >
+              <SkipBack className="w-6 h-6" />
+            </button>
+
             <button
               onClick={togglePlay}
               className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 transition-colors shadow-lg"
@@ -260,6 +287,20 @@ export function PublicSongPlayer({
               ) : (
                 <Play className="w-7 h-7 ml-1" fill="currentColor" />
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleRepeat}
+              aria-pressed={repeat}
+              aria-label={repeat ? 'Repeat on' : 'Repeat off'}
+              className={`p-3 rounded-lg transition-colors ${
+                repeat
+                  ? 'text-primary-500 bg-primary-500/20'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <Repeat className="w-6 h-6" />
             </button>
           </div>
 

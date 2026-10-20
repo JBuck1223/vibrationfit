@@ -1387,7 +1387,7 @@ export default function UnifiedCategoryPage() {
 
               {/* Action button — single CTA. The streamed result lands directly
                   in the Compare panel below, so no duplicate output box here. */}
-              <div className="flex justify-center gap-3 pt-6">
+              <div className="flex flex-col sm:flex-row justify-center gap-3 pt-6">
                 <Button
                   onClick={handleEditWithViva}
                   disabled={isGenerating || !canRunViva}
@@ -1619,7 +1619,7 @@ export default function UnifiedCategoryPage() {
                         ))}
                       </div>
 
-                      <div className="mt-6 flex justify-center gap-3">
+                      <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
                         <Button
                           variant="outline"
                           size="sm"
@@ -1638,7 +1638,7 @@ export default function UnifiedCategoryPage() {
                       </div>
                     </>
                   ) : (
-                    <div className="mt-6 flex justify-center gap-3">
+                    <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
                       <Button
                         variant="outline"
                         size="sm"

@@ -32,6 +32,8 @@ const config: CapacitorConfig = {
     backgroundColor: '#000000',
     // Match the web app's dark chrome while the first page loads.
     preferredContentMode: 'mobile',
+    // No long-press link previews inside the app.
+    allowsLinkPreview: false,
   },
   android: {
     path: 'mobile/android',

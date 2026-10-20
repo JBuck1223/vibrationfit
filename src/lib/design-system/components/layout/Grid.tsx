@@ -102,8 +102,8 @@ export const Grid = React.forwardRef<HTMLDivElement, GridProps>(
       // Only use inline style if responsiveCols is not provided
       if (!responsiveCols) {
         gridStyle = cols 
-          ? { gridTemplateColumns: `repeat(${cols}, 1fr)` }
-          : { gridTemplateColumns: `repeat(auto-fit, minmax(${minWidth}, 1fr))` }
+          ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
+          : { gridTemplateColumns: `repeat(auto-fit, minmax(min(${minWidth}, 100%), 1fr))` }
       }
       // If responsiveCols is provided, rely on className-based classes (no inline style needed)
 
