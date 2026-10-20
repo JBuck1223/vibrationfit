@@ -4,6 +4,7 @@ export const AUTO_DURATION_MINUTES = 5
 
 export const BREATH_MIN_SECONDS = 2
 export const BREATH_MAX_SECONDS = 20
+export const HOLD_MAX_SECONDS = 20
 export const DURATION_MIN_MINUTES = 1
 export const DURATION_MAX_MINUTES = 30
 
@@ -14,14 +15,17 @@ export interface BreathPreset {
   label: string
   inhale: number
   exhale: number
+  /** Seconds held at full lungs between in and out. */
+  hold: number
   hint: string
 }
 
 export const BREATH_PRESETS: readonly BreathPreset[] = [
-  { id: 'calm', label: 'Calm', inhale: AUTO_INHALE_SECONDS, exhale: AUTO_EXHALE_SECONDS, hint: 'A longer out-breath to settle' },
-  { id: 'balance', label: 'Balance', inhale: 5, exhale: 5, hint: 'Even, steady rhythm' },
-  { id: 'unwind', label: 'Unwind', inhale: 4, exhale: 8, hint: 'Slow release before sleep' },
-  { id: 'lift', label: 'Lift', inhale: 4, exhale: 3, hint: 'A brighter, waking rhythm' },
+  { id: 'calm', label: 'Calm', inhale: AUTO_INHALE_SECONDS, exhale: AUTO_EXHALE_SECONDS, hold: 0, hint: 'A longer out-breath to settle' },
+  { id: 'balance', label: 'Balance', inhale: 5, exhale: 5, hold: 0, hint: 'Even, steady rhythm' },
+  { id: 'unwind', label: 'Unwind', inhale: 4, exhale: 8, hold: 0, hint: 'Slow release before sleep' },
+  { id: 'lift', label: 'Lift', inhale: 4, exhale: 3, hold: 0, hint: 'A brighter, waking rhythm' },
+  { id: '478', label: '4-7-8', inhale: 4, exhale: 8, hold: 7, hint: 'In for 4, hold for 7, out for 8. Deep calm for stress and sleep' },
 ]
 
 export const CUSTOM_PRESET_ID = 'custom'

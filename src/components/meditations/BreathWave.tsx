@@ -10,20 +10,24 @@ const BOTTOM = 164
 interface BreathWaveProps {
   inhale: number
   exhale: number
+  hold?: number
   /** Seconds into the session. Negative while settling in. */
   elapsed: number
   className?: string
 }
 
 /** Two breaths of the pattern with a glowing ball riding the curve. */
-export function BreathWave({ inhale, exhale, elapsed, className }: BreathWaveProps) {
+export function BreathWave({ inhale, exhale, hold = 0, elapsed, className }: BreathWaveProps) {
   const id = useId().replace(/:/g, '')
-  const cycle = inhale + exhale
-  const path = useMemo(() => breathPath(inhale, exhale, { width: WIDTH, top: TOP, bottom: BOTTOM }), [inhale, exhale])
+  const cycle = inhale + hold + exhale
+  const path = useMemo(
+    () => breathPath(inhale, exhale, { width: WIDTH, top: TOP, bottom: BOTTOM, hold }),
+    [inhale, exhale, hold],
+  )
 
   const time = Math.max(0, elapsed)
   const cycleTime = cycle > 0 ? time % cycle : 0
-  const height = elapsed < 0 ? 0 : breathHeight(cycleTime, inhale, exhale)
+  const height = elapsed < 0 ? 0 : breathHeight(cycleTime, inhale, exhale, hold)
   const x = cycle > 0 ? ((time % (cycle * 2)) / (cycle * 2)) * WIDTH : 0
   const y = BOTTOM - height * (BOTTOM - TOP)
 
@@ -63,9 +67,12 @@ export function BreathWave({ inhale, exhale, elapsed, className }: BreathWavePro
 }
 
 /** Static thumbnail of a pattern for library cards. */
-export function PatternThumb({ inhale, exhale }: { inhale: number; exhale: number }) {
+export function PatternThumb({ inhale, exhale, hold = 0 }: { inhale: number; exhale: number; hold?: number }) {
   const id = useId().replace(/:/g, '')
-  const path = useMemo(() => breathPath(inhale, exhale, { width: 200, top: 8, bottom: 52, cycles: 2, steps: 60 }), [inhale, exhale])
+  const path = useMemo(
+    () => breathPath(inhale, exhale, { width: 200, top: 8, bottom: 52, cycles: 2, steps: 60, hold }),
+    [inhale, exhale, hold],
+  )
   return (
     <svg viewBox="0 0 200 60" className="w-full h-10" aria-hidden="true" preserveAspectRatio="none">
       <defs>

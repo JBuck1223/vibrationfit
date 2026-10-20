@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Check, Copy, Heart, ListChecks, ListPlus, MoreHorizontal, Pause, Pencil, Play, Share2, Trash2 } from 'lucide-react'
 import { Button, DeleteConfirmationDialog, Spinner } from '@/lib/design-system/components'
+import { rhythmLabel } from '@/lib/meditations/breath'
 import type { MeditationCard, MeditationTrack } from '@/lib/meditations/catalog'
 import { PatternThumb } from './BreathWave'
 import { CreatorLink } from './CreatorLink'
@@ -209,7 +210,7 @@ function LibraryCard({
       }`}
     >
       <div className="mb-3 rounded-xl bg-black/60 px-2 py-1">
-        <PatternThumb inhale={card.inhaleSeconds} exhale={card.exhaleSeconds} />
+        <PatternThumb inhale={card.inhaleSeconds} exhale={card.exhaleSeconds} hold={card.holdSeconds} />
       </div>
 
       <div className="flex items-start justify-between gap-2">
@@ -238,7 +239,7 @@ function LibraryCard({
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-neutral-300">
-        <span className="rounded-full bg-white/5 px-2 py-0.5 tabular-nums">{card.inhaleSeconds}s in · {card.exhaleSeconds}s out</span>
+        <span className="rounded-full bg-white/5 px-2 py-0.5 tabular-nums">{rhythmLabel(card.inhaleSeconds, card.exhaleSeconds, card.holdSeconds)}</span>
         <span className="rounded-full bg-white/5 px-2 py-0.5 tabular-nums">{card.durationMinutes} min</span>
         {card.bpm && <span className="rounded-full bg-white/5 px-2 py-0.5">{card.bpm} BPM</span>}
       </div>
