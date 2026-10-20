@@ -62,12 +62,15 @@ type Loose = Record<string, unknown>
 const isBlank = (v: unknown) =>
   v === undefined || v === null || (typeof v === 'string' && !v.trim())
 
-/** Field-by-field object merge; incoming blanks never erase existing values. */
+/**
+ * Field-by-field object merge that only fills blanks. What the member entered
+ * in Your World is never overwritten by something VIVA heard in a chat.
+ */
 function mergeObject<T extends object>(existing: T | null | undefined, incoming: T | null | undefined): T | null {
   if (!incoming) return existing ?? null
   const out: Loose = { ...(existing || {}) }
   for (const [key, value] of Object.entries(incoming)) {
-    if (!isBlank(value)) out[key] = value
+    if (!isBlank(value) && isBlank(out[key])) out[key] = value
   }
   return Object.keys(out).length > 0 ? (out as T) : null
 }
@@ -118,8 +121,11 @@ export function mergeRoster(
       update.days_that_matter,
       (d) => `${normKey(d.what)}|${normKey(d.date)}`,
     ),
-    vocation: isBlank(update.vocation) ? existing?.vocation ?? null : update.vocation,
-    pronouns: isBlank(update.pronouns) ? existing?.pronouns ?? null : update.pronouns,
+    ...(!isBlank(update.vocation) && isBlank(existing?.work?.occupation) && isBlank(existing?.vocation)
+      ? { work: { ...(existing?.work || {}), occupation: update.vocation!.trim() } }
+      : {}),
+    vocation: isBlank(existing?.vocation) ? update.vocation ?? null : existing!.vocation,
+    pronouns: isBlank(existing?.pronouns) ? update.pronouns ?? null : existing!.pronouns,
   }
 }
 
@@ -223,7 +229,12 @@ export async function saveRosterUpdate(
   const { error } = await supabase
     .from('member_roster')
     .upsert({ user_id: userId, ...merged }, { onConflict: 'user_id' })
-  if (error) console.error('[Roster] save error:', error)
+  if (error) {
+    console.error('[Roster] save error:', error)
+    return
+  }
+  const { amendActiveWorldFromRoster } = await import('@/lib/your-world/store')
+  await amendActiveWorldFromRoster(supabase, userId)
 }
 
 export async function savePersonaUpdate(

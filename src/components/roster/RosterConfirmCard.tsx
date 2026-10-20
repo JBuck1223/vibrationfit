@@ -106,7 +106,7 @@ function toEditState(roster: MemberRoster | null): EditState {
     })),
     city: roster?.place?.city || '',
     region: roster?.place?.region || '',
-    vocation: roster?.vocation || '',
+    vocation: roster?.work?.occupation || roster?.vocation || '',
   }
 }
 

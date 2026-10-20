@@ -2,6 +2,7 @@ import { generateJSON, generateText } from '@/lib/ai/client'
 import { buildNorthStarReflectionPrompt, buildSceneGenerationPrompt, buildVibrationalAnalyzerPrompt } from '@/lib/viva/vibrational-prompts'
 import { createClient } from '@/lib/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 import { ensureVibrationalSourceEnabled } from './sources'
 import { isValidVibrationalSourceType } from './sourceTypes'
 import { trackTokenUsage, estimateTokensForText } from '@/lib/tokens/tracking'
@@ -127,13 +128,17 @@ export async function generateScenesForCategory(input: SceneGenerationInput): Pr
   console.log(`[Scene Generation V3] Category: ${input.category}, Tier: ${tier}, Target Scenes: ${sceneRecommendation.targetScenes} (${sceneRecommendation.minScenes}-${sceneRecommendation.maxScenes})`)
 
   // Build prompt with dynamic scene count parameters
-  const prompt = buildSceneGenerationPrompt({
-    ...input,
-    minScenes: sceneRecommendation.minScenes,
-    maxScenes: sceneRecommendation.maxScenes,
-    targetScenes: sceneRecommendation.targetScenes,
-    dataRichnessTier: tier
-  })
+  const worldBlock = await loadMemberWorldBlock(await createClient(), input.userId)
+  const prompt = [
+    buildSceneGenerationPrompt({
+      ...input,
+      minScenes: sceneRecommendation.minScenes,
+      maxScenes: sceneRecommendation.maxScenes,
+      targetScenes: sceneRecommendation.targetScenes,
+      dataRichnessTier: tier
+    }),
+    worldBlock,
+  ].filter(Boolean).join('\n\n')
   
   const scenePayload = await generateJSON<{ scenes: Array<{ title: string; text: string; essence_word?: string }> }>(
     prompt,

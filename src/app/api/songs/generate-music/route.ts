@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { mureka } from '@/lib/mureka/client'
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
+import { applySayAs } from '@/lib/your-world/say-as'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
     console.log(`[SongMusic] Submitting to Mureka: song=${song_id}, gen=${nextGenerationCount}, style="${stylePrompt.slice(0, 60)}"${reference_id ? `, ref=${reference_id}` : ''}`)
 
     const murekaResponse = await mureka.generateSong({
-      lyrics,
+      lyrics: await applySayAs(supabase, user.id, lyrics),
       prompt: reference_id ? undefined : stylePrompt,
       model: 'auto',
       reference_id: reference_id || undefined,

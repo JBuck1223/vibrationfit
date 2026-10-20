@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
 import { BeginTitle } from '@/components/life-activation/BeginTitle'
 import { JourneyDashboard, type DashboardStep } from '@/components/life-activation/JourneyDashboard'
-import { RosterConfirmCard } from '@/components/roster/RosterConfirmCard'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { signalBeginComplete } from '@/lib/life-activation/celebration'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
@@ -98,7 +97,6 @@ export function BeginDashboard() {
         loading={isLoading || notStarted}
         continueDisabled={isUpdating}
         onContinue={handleContinue}
-        extra={progress?.onboarding.vision ? <RosterConfirmCard /> : null}
         onSkip={async (step) => {
           if (step.id !== 'voice' || isUpdating) return
           await completeOnboardingStep('voice')

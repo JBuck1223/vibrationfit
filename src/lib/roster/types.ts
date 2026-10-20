@@ -15,25 +15,53 @@
 // Roster (WORLD facts)
 // ---------------------------------------------------------------------------
 
+/**
+ * `say_as` on any named entry: how to pronounce it, as hyphenated syllables
+ * with the stressed one in capitals ("SEER-sha"). Swapped in only for audio.
+ */
 export interface RosterPartner {
   name?: string
+  say_as?: string
   birthday?: string
   married_on?: string
+  /** Single | In a Relationship | Married */
+  status?: string
+  length?: string
 }
 
 export interface RosterChild {
   name?: string
+  say_as?: string
   birthday?: string
 }
 
 export interface RosterPet {
   name?: string
+  say_as?: string
   kind?: string
   age?: string
 }
 
+export interface RosterWork {
+  employment_type?: string
+  occupation?: string
+  company?: string
+  time_in_role?: string
+  education?: string
+  education_description?: string
+}
+
+export interface RosterMoney {
+  currency?: string
+  household_income?: string
+  savings_retirement?: string
+  assets_equity?: string
+  consumer_debt?: string
+}
+
 export interface RosterPerson {
   name?: string
+  say_as?: string
   /** e.g. "mom", "brother", "best friend", "business partner" */
   role?: string
   birthday?: string
@@ -43,6 +71,9 @@ export interface RosterPerson {
 export interface RosterPlace {
   city?: string
   region?: string
+  /** Own | Rent | With family/friends | Other | Prefer not to say */
+  living_situation?: string
+  time_at_location?: string
 }
 
 export interface RosterNamedThing {
@@ -81,6 +112,14 @@ export interface MemberRoster {
   vocation: string | null
   /** Only when explicitly stated or supplied elsewhere — never inferred. */
   pronouns: string | null
+  /** How to say the member's own first name. */
+  say_as: string | null
+  gender: string | null
+  ethnicity: string | null
+  social_preference: string | null
+  hobbies: string[]
+  work: RosterWork
+  money: RosterMoney
   confirmed_at: string | null
   created_at: string
   updated_at: string
@@ -100,6 +139,13 @@ export type RosterUpdate = Partial<
     | 'days_that_matter'
     | 'vocation'
     | 'pronouns'
+    | 'say_as'
+    | 'gender'
+    | 'ethnicity'
+    | 'social_preference'
+    | 'hobbies'
+    | 'work'
+    | 'money'
   >
 >
 

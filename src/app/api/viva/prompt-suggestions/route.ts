@@ -5,6 +5,7 @@ import { gatewayClient } from '@/lib/ai/gateway'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { ellipsize, flattenAssessmentResponsesNumbered } from '@/lib/viva/prompt-flatteners'
 import { buildPromptSuggestionsPrompt } from '@/lib/viva/prompts/prompt-suggestions-prompt'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 
 export async function POST(request: NextRequest) {
   try {
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // Build OpenAI params using database config
     const messages = [
-      { role: 'system' as const, content: toolConfig.system_prompt || 'You are a helpful assistant that generates personalized prompts in JSON format only. Return ONLY valid JSON, no other text.' },
+      { role: 'system' as const, content: [toolConfig.system_prompt || 'You are a helpful assistant that generates personalized prompts in JSON format only. Return ONLY valid JSON, no other text.', await loadMemberWorldBlock(supabase, user.id)].filter(Boolean).join('\n\n') },
       { role: 'user' as const, content: prompt }
     ]
     const openaiParams = buildOpenAIParams(toolConfig, messages)

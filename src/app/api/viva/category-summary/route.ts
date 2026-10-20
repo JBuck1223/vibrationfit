@@ -6,6 +6,7 @@ import { analyzeProfile, analyzeAssessment } from '@/lib/viva/profile-analyzer'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
 import { buildCategorySummaryPrompt, CATEGORY_SUMMARY_SYSTEM_PROMPT } from '@/lib/viva/prompts/category-summary-prompt'
 import { getCategoryStateField } from '@/lib/design-system/vision-categories'
+import { loadProfileCompat } from '@/lib/your-world/load'
 
 function getCategoryProfileFields(category: string, profile: any): string {
   if (!profile) return ''
@@ -90,12 +91,7 @@ export async function POST(request: NextRequest) {
         let profile, assessment
         try {
           // Get raw profile data
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', user.id)
-            .single()
-          profile = profileData
+          profile = await loadProfileCompat(supabase, user.id)
         } catch (err) {
           console.log('No profile found, continuing without profile data')
           profile = null

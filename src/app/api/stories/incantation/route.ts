@@ -26,6 +26,7 @@ import {
   buildIncantationPrompt,
   type IncantationFramework,
 } from '@/lib/viva/prompts/incantation-prompt'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
     // Routed through the Vercel AI Gateway for exact per-request billing
     const result = await generateText({
       model: gateway(`openai/${toolConfig.model_name}`),
-      system: INCANTATION_SYSTEM_PROMPT,
+      system: [INCANTATION_SYSTEM_PROMPT, await loadMemberWorldBlock(supabase, user.id)].filter(Boolean).join('\n\n'),
       prompt: userPrompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.7) : undefined,
     })

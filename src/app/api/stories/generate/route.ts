@@ -14,6 +14,7 @@ import { streamText } from 'ai'
 import { gateway, VISION_MODEL } from '@/lib/ai/gateway'
 import { getAIToolConfig } from '@/lib/ai/database-config'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/lib/tokens/tracking'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 import {
   FOCUS_STORY_SYSTEM_PROMPT,
   buildFocusStoryFromCategoriesPrompt,
@@ -220,16 +221,23 @@ export async function POST(request: NextRequest) {
 
     console.log(`[StoryGenerate] Starting for entityType=${entityType}, entityId=${body.entityId || 'none'}`)
 
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('perspective')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle()
+    const [{ data: activeVision }, worldBlock] = await Promise.all([
+      supabase
+        .from('vision_versions')
+        .select('perspective')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('is_draft', false)
+        .is('household_id', null)
+        .maybeSingle(),
+      loadMemberWorldBlock(supabase, user.id),
+    ])
 
-    const perspective = (profile?.perspective as 'singular' | 'plural') || 'singular'
+    const perspective = (activeVision?.perspective as 'singular' | 'plural') || 'singular'
 
-    const { prompt, systemPrompt, entityId, title, sourceInput } = await buildPromptForEntity(supabase, user.id, body, perspective)
+    const built = await buildPromptForEntity(supabase, user.id, body, perspective)
+    const { prompt, entityId, title, sourceInput } = built
+    const systemPrompt = [built.systemPrompt, worldBlock].filter(Boolean).join('\n\n')
 
     let toolConfig
     try {

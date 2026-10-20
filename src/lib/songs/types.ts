@@ -61,6 +61,7 @@ export type SongEntityType =
   | 'vision_board_item'
   | 'journal_entry'
   | 'custom'
+  | 'meditation'
 
 export type SongSource =
   | 'ai_generated'

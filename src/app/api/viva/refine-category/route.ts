@@ -11,11 +11,8 @@ import {
   validateTokenBalance,
   estimateTokensForText,
 } from "@/lib/tokens/tracking";
-import {
-  flattenProfile,
-  flattenAssessment,
-  flattenAssessmentWithScores,
-} from "@/lib/viva/prompt-flatteners";
+import { flattenAssessment } from "@/lib/viva/prompt-flatteners";
+import { loadMemberWorldVisionBlock } from "@/lib/your-world/load";
 import {
   MASTER_VISION_SHARED_SYSTEM_PROMPT,
   MASTER_VISION_EXECUTION_RULES,
@@ -71,12 +68,7 @@ async function buildRefinementPrompt(
     .eq("id", request.visionId)
     .single();
 
-  // Get profile
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
+  const worldBlock = await loadMemberWorldVisionBlock(supabase, userId);
 
   // Get active assessment
   const { data: assessment } = await supabase
@@ -165,15 +157,9 @@ ${instructions}
 
 ${MASTER_VISION_EXECUTION_RULES}
 
-BACKGROUND CONTEXT (draw voice & specifics from here; current vision > conversation > profile > assessment):
+BACKGROUND CONTEXT (draw voice & specifics from here; current vision > conversation > their world > assessment):
 
-${
-  profile && Object.keys(profile).length > 0
-    ? `PROFILE (flattened; use for facts, not phrasing):
-${flattenProfile(profile)}
-`
-    : ""
-}
+${worldBlock ? `${worldBlock}\n` : ""}
 
 ${
   assessment
@@ -198,10 +184,10 @@ ${fullVisionContext}
 CONTEXT USAGE RULES:
 - Conversation = primary refinement guidance (what changes to make)
 - Current vision = foundation to build upon (maintain 80%+ of their words)
-- Profile & Assessment = factual specificity + color (names, roles, places, routines, preferences)
+- Their world & Assessment = factual specificity + color (names, roles, places, routines, preferences)
 - Do NOT output scores or numeric values. Use them only to infer what matters most.
 - Never copy field labels verbatim into the vision. Transform to natural first-person language.
-- Prefer concrete details from profile/assessment to replace generic phrases.
+- Prefer concrete details from their world/assessment to replace generic phrases.
 
 FOUNDATIONAL PRINCIPLES - THE CORE PURPOSE:
 1. **The basis of life is freedom** — This vision should help the member feel free.

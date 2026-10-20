@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Circle,
   FileText,
+  Globe,
   Headphones,
   Lock,
   Map,
@@ -38,6 +39,7 @@ const STEP_ICONS: Record<OnboardingStepId, LucideIcon> = {
   welcome: Rocket,
   profile: User,
   intake: FileText,
+  world: Globe,
   vision: Target,
   kit: Headphones,
   voice: Mic,
@@ -94,7 +96,7 @@ export function LifeActivationSidebarCard({ collapsed }: { collapsed: boolean })
   const isCurrentPage = (href: string, id: OnboardingStepId) => {
     const path = pathOf(href)
     if (pathname === '/begin' && id === currentId) return true
-    if (id === 'profile' && pathname.startsWith('/profile')) return true
+    if (id === 'world' && (pathname.startsWith('/your-world') || pathname.startsWith('/begin/world'))) return true
     if (id === 'vision' && pathname.startsWith('/life-vision')) return true
     if (id === 'tribe' && pathname.startsWith('/vibe-tribe')) return true
     if (id === 'gym' && pathname.startsWith('/alignment-gym')) return true

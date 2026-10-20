@@ -1,12 +1,39 @@
 'use client'
 
-import type { DraggableAttributes } from '@dnd-kit/core'
+import { PointerSensor, type DraggableAttributes } from '@dnd-kit/core'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { CheckCircle, CheckSquare, Grid3X3, GripVertical, Square } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
 
 type DragBindings = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>
+
+function isBoardPointer(event: ReactPointerEvent['nativeEvent'], pointerType: 'mouse' | 'touch') {
+  if (!event.isPrimary || event.button !== 0) return false
+  if (pointerType === 'touch') return event.pointerType === 'touch'
+  return event.pointerType !== 'touch'
+}
+
+/** Mouse drags listen on the document so a moving tile cannot swallow the drop. */
+export class BoardMouseSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent }: ReactPointerEvent) => isBoardPointer(nativeEvent, 'mouse'),
+    },
+  ]
+}
+
+/** Touch drags listen on the document. The default touch sensor loses the drop once the tile moves. */
+export class BoardTouchSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent }: ReactPointerEvent) => isBoardPointer(nativeEvent, 'touch'),
+    },
+  ]
+}
 
 export function SortableBoardItem({
   id,
@@ -19,14 +46,16 @@ export function SortableBoardItem({
   className?: string
   children: (drag: DragBindings) => ReactNode
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
     disabled,
   })
   const style: CSSProperties = {
-    transform: isDragging ? CSS.Transform.toString(transform) : undefined,
+    transform: CSS.Transform.toString(transform),
+    transition,
     zIndex: isDragging ? 30 : undefined,
-    opacity: isDragging ? 0.55 : 1,
+    position: isDragging ? 'relative' : undefined,
+    opacity: isDragging ? 0.85 : 1,
   }
 
   return (

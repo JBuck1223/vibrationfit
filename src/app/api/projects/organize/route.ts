@@ -6,6 +6,7 @@ import { trackTokenUsage, validateTokenBalance, estimateTokensForText } from '@/
 import { flattenProfile, flattenProfileStories } from '@/lib/viva/prompt-flatteners'
 import { PROJECT_ORGANIZE_SYSTEM_PROMPT, buildProjectOrganizePrompt } from '@/lib/viva/prompts'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+import { loadProfileCompat } from '@/lib/your-world/load'
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,11 +46,7 @@ export async function POST(request: NextRequest) {
         .eq('is_active', true)
         .is('household_id', null)
         .single(),
-      supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single(),
+      loadProfileCompat(supabase, user.id).then((data) => ({ data })),
       supabase
         .from('projects')
         .select('id, title, life_categories, project_tasks(id)')

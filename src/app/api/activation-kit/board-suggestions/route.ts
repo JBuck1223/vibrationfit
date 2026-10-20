@@ -10,6 +10,7 @@ import {
   KIT_BOARD_SUGGESTIONS_SYSTEM_PROMPT,
   buildKitBoardSuggestionsPrompt,
 } from '@/lib/viva/prompts/activation-kit-prompts'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     const result = await generateText({
       model: gateway(`openai/${toolConfig.model_name}`),
-      system: KIT_BOARD_SUGGESTIONS_SYSTEM_PROMPT,
+      system: [KIT_BOARD_SUGGESTIONS_SYSTEM_PROMPT, await loadMemberWorldBlock(supabase, user.id)].filter(Boolean).join('\n\n'),
       prompt: buildKitBoardSuggestionsPrompt({ categories }),
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.7) : undefined,
     })

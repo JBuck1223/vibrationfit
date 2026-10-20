@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { loadProfileCompat } from '@/lib/your-world/load'
 
 export interface RollingContextObject {
   member_id: string
@@ -72,11 +73,7 @@ export async function GET(request: NextRequest) {
  */
 async function buildRollingContext(userId: string, supabase: any): Promise<RollingContextObject> {
   // 1. Get user profile
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .single()
+  const profile = await loadProfileCompat(supabase, userId)
 
   // 2. Get active vision across all categories
   const { data: vision } = await supabase

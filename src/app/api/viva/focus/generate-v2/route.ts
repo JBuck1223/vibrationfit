@@ -20,6 +20,7 @@ import {
   type CategoryContent,
 } from '@/lib/viva/prompts/focus-story-prompt'
 import { createFreshStoryRecord } from '@/lib/stories/create-story-record'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -54,15 +55,12 @@ export async function POST(request: NextRequest) {
 
     console.log(`[FocusGenerateV2] Starting for vision ${visionId}, categories: ${selectedCategories.join(', ')}`)
 
-    // Get user profile for perspective
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('perspective')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle()
+    const [{ data: vision }, worldBlock] = await Promise.all([
+      supabase.from('vision_versions').select('perspective').eq('id', visionId).maybeSingle(),
+      loadMemberWorldBlock(supabase, user.id),
+    ])
 
-    const perspective = (profile?.perspective as 'singular' | 'plural') || 'singular'
+    const perspective = (vision?.perspective as 'singular' | 'plural') || 'singular'
 
     // Build the prompt using centralized prompt system
     const prompt = buildFocusStoryFromCategoriesPrompt(categoryData, perspective)
@@ -109,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Stream the response using Gemini via Vercel AI Gateway
     const result = streamText({
       model: gateway(VISION_MODEL),
-      system: FOCUS_STORY_SYSTEM_PROMPT,
+      system: [FOCUS_STORY_SYSTEM_PROMPT, worldBlock].filter(Boolean).join('\n\n'),
       prompt: prompt,
       temperature: toolConfig.supports_temperature ? (toolConfig.temperature || 0.8) : undefined,
       

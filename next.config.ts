@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      { source: '/profile', destination: '/your-world', permanent: false },
+      { source: '/profile/:path*', destination: '/your-world', permanent: false },
       {
         // Short links for the free guide PDF
         source: '/downloads/100k.pdf',

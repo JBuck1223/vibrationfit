@@ -10,6 +10,7 @@
  */
 
 import {
+  Globe,
   Home,
   User,
   Target,
@@ -37,6 +38,7 @@ import {
   Layers,
   Upload,
   Headphones,
+  Wind,
   Inbox,
   Mail,
   DollarSign,
@@ -189,6 +191,12 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Key AM/PM/Sleep audio sets',
       },
       {
+        name: 'Meditations',
+        href: '/meditations',
+        icon: Wind,
+        description: 'Breathe with a wave, music, and binaural beds',
+      },
+      {
         name: 'Songs',
         href: '/audio/songs',
         icon: Music2,
@@ -264,10 +272,10 @@ export const userNavigationGroups: NavGroup[] = [
     defaultCollapsed: true,
     items: [
       {
-        name: 'Profile',
-        href: '/profile',
-        icon: User,
-        description: 'Your active profile',
+        name: 'Your World',
+        href: '/your-world',
+        icon: Globe,
+        description: 'Your people, home, and work',
       },
       {
         name: 'Billing',
@@ -668,10 +676,10 @@ export const headerAccountMenu: NavItem[] = [
     description: 'Go to your member dashboard',
   },
   {
-    name: 'My Profile',
-    href: '/profile',
-    icon: User,
-    description: 'View your profile',
+    name: 'Your World',
+    href: '/your-world',
+    icon: Globe,
+    description: 'Your people, home, and work',
   },
   {
     name: 'Activity Feed',

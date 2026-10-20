@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { flipFrequency, FlipFrequencyParams, FlipMode } from '@/lib/viva/flip-frequency'
+import { loadMemberWorldBlock } from '@/lib/your-world/load'
 import { trackTokenUsage, validateTokenBalance, estimateTokensForText, getDefaultTokenEstimate } from '@/lib/tokens/tracking'
 
 export const dynamic = 'force-dynamic'
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
     
     // Call flip frequency
     const startTime = Date.now()
-    const result = await flipFrequency(params)
+    const result = await flipFrequency(params, { memberWorld: await loadMemberWorldBlock(supabase, user.id) })
     const duration = Date.now() - startTime
     
     // Handle text mode response

@@ -48,6 +48,7 @@ function resolveStarterStateText(categoryKey: VisionCategoryKey, profile: Record
   return aggregateLifeCategoryStates(profile)
 }
 import { getFilteredQuestionsForCategory } from '@/lib/life-vision/ideal-state-questions'
+import { loadProfileCompat } from '@/lib/your-world/load'
 
 export const maxDuration = 60 // 1 minute max
 export const dynamic = 'force-dynamic'
@@ -85,21 +86,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[ImaginationStarter] Starting for ${categoryKey}`)
 
-    // Get user's active profile
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .eq('is_draft', false)
-      .maybeSingle()
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'No active profile found. Please complete your profile first.' },
-        { status: 400 }
-      )
-    }
+    const profile = await loadProfileCompat(supabase, user.id)
 
     // Primary: this category's state_*; fallback: all life-area states (covers Forward/meta + sparse fun state)
     const stateText = resolveStarterStateText(categoryKey as VisionCategoryKey, profile as Record<string, unknown>)
@@ -108,7 +95,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'No profile state found yet. Add your current-state answers for at least one life area in your profile, then try Get Me Started again.',
+            'Nothing written yet about where you are now. Add a few lines for at least one life area, then try Get Me Started again.',
         },
         { status: 400 }
       )

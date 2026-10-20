@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { applySayAsEntries, loadSayAsEntries } from '@/lib/your-world/say-as'
 import { trackTokenUsage, validateTokenBalance } from '@/lib/tokens/tracking'
 import {
   LIFE_EXPLORER_CDN,
@@ -80,15 +81,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: tokenValidation.error }, { status: tokenValidation.status })
   }
 
+  const sayAs = await loadSayAsEntries(supabase, user.id).catch(() => [])
   const clips: Record<string, string> = {}
   const billed: string[] = []
   for (const text of texts) {
-    const key = speakCacheKey(text)
+    const spoken = applySayAsEntries(text, sayAs)
+    const key = speakCacheKey(spoken.trim().slice(0, 400))
     if (await objectExists(key)) {
       clips[text] = cachedUrl(key)
     } else {
       billed.push(text)
-      clips[text] = await speakOne(text)
+      clips[text] = await speakOne(spoken)
     }
   }
 
