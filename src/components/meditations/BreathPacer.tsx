@@ -22,7 +22,7 @@ import {
   AUTO_INHALE_SECONDS,
 } from '@/lib/meditations/constants'
 import { breathCount } from '@/lib/meditations/breath'
-import type { MeditationBinauralOption, MeditationCard, MeditationMusicOption } from '@/lib/meditations/catalog'
+import type { MeditationBinauralOption, MeditationCard, MeditationMusicOption, MeditationTrack } from '@/lib/meditations/catalog'
 import { BREATH_VISUALS, DEFAULT_VISUAL, isBreathVisual, VisualGlyph, VisualPreview, type BreathVisualKind } from './BreathVisuals'
 import { FocusSession, type FocusSessionConfig } from './FocusSession'
 import { MeditationAudio, type ChimeKind } from './meditation-audio'
@@ -33,6 +33,7 @@ import { TrackStudio } from './TrackStudio'
 interface Catalog {
   music: MeditationMusicOption[]
   binaurals: MeditationBinauralOption[]
+  tracks: MeditationTrack[]
   mine: MeditationCard[]
   community: MeditationCard[]
 }
@@ -176,10 +177,20 @@ export function BreathPacer() {
   const inhale = activePreset ? activePreset.inhale : customInhale
   const exhale = activePreset ? activePreset.exhale : customExhale
 
+  // Own tracks stay playable in the composer even before they join the music list.
+  const musicPool = useMemo<MeditationMusicOption[]>(() => {
+    if (!catalog) return []
+    const listed = new Set(catalog.music.map(musicKey))
+    return [...catalog.music, ...catalog.tracks.filter((track) => !listed.has(musicKey(track)))]
+  }, [catalog])
   const music = useMemo(
-    () => catalog?.music.find((option) => musicKey(option) === musicId) || null,
-    [catalog, musicId],
+    () => musicPool.find((option) => musicKey(option) === musicId) || null,
+    [musicPool, musicId],
   )
+  const pickerOptions = useMemo(() => {
+    const listed = catalog?.music || []
+    return music && !listed.some((option) => musicKey(option) === musicKey(music)) ? [music, ...listed] : listed
+  }, [catalog, music])
   const binaural = useMemo(
     () => catalog?.binaurals.find((option) => option.id === binauralId) || null,
     [catalog, binauralId],
@@ -280,7 +291,7 @@ export function BreathPacer() {
     }
     setDuration(card.durationMinutes)
 
-    const options = catalog?.music || []
+    const options = musicPool
     const byId = card.musicSongTrackId
       ? options.find((option) => option.source === 'generated' && option.id === card.musicSongTrackId)
       : card.musicBackgroundTrackId
@@ -385,15 +396,57 @@ export function BreathPacer() {
     await loadCatalog().catch(() => {})
   }
 
-  async function handleTrackCreated(track: { songTrackId: string | null; title: string; bpm: number; mood: string }) {
-    const next = await loadCatalog()
-    const created = next.music.find((option) => option.source === 'generated' && option.id === track.songTrackId)
-      || next.music.find((option) => option.source === 'generated' && option.title === track.title)
-    if (created) {
-      setMusicId(musicKey(created))
-      setTrackMeta({ bpm: track.bpm, mood: track.mood || null })
+  async function handleTrackCreated(name: string) {
+    await loadCatalog().catch(() => {})
+    flash(`“${name}” is in your Library under Mine`)
+  }
+
+  async function updateTrack(track: MeditationTrack, body: { is_favorite?: boolean; in_music_list?: boolean }) {
+    setCatalog((current) => current && {
+      ...current,
+      tracks: current.tracks.map((item) => item.id === track.id
+        ? {
+            ...item,
+            isFavorite: body.is_favorite ?? item.isFavorite,
+            inMusicList: body.in_music_list ?? item.inMusicList,
+          }
+        : item),
+    })
+    const response = await fetch(`/api/meditations/tracks/${track.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) {
+      const data = await readJson(response)
+      setError(data.error || 'Could not update track')
+    } else if (typeof body.in_music_list === 'boolean') {
+      flash(body.in_music_list ? `“${track.title}” added to your music` : `“${track.title}” removed from your music`)
     }
-    if (!title.trim()) setTitle(track.title)
+    await loadCatalog().catch(() => {})
+  }
+
+  async function deleteTrack(track: MeditationTrack) {
+    const response = await fetch(`/api/meditations/tracks/${track.id}`, { method: 'DELETE' })
+    if (!response.ok) {
+      const data = await readJson(response)
+      setError(data.error || 'Could not delete track')
+      return
+    }
+    if (musicId === musicKey(track)) {
+      setMusicId('')
+      setTrackMeta(null)
+    }
+    preview.stop()
+    flash(`Deleted “${track.title}”`)
+    await loadCatalog().catch(() => {})
+  }
+
+  function selectTrack(track: MeditationTrack) {
+    setMusicId(musicKey(track))
+    setTrackMeta({ bpm: track.bpm, mood: track.mood })
+    flash(`“${track.title}” is set as your music`)
+    composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const editingCard = editingId ? catalog?.mine.find((card) => card.id === editingId) : null
@@ -537,7 +590,7 @@ export function BreathPacer() {
                 <SectionLabel>Sound</SectionLabel>
                 <div className="space-y-3">
                   <MusicPicker
-                    options={catalog?.music || []}
+                    options={pickerOptions}
                     value={musicId}
                     onChange={(key) => {
                       setMusicId(key)
@@ -633,7 +686,13 @@ export function BreathPacer() {
         <MeditationLibrary
           loading={loading}
           mine={catalog?.mine || []}
+          tracks={catalog?.tracks || []}
           community={catalog?.community || []}
+          selectedMusicKey={musicId}
+          preview={preview}
+          onUseTrack={selectTrack}
+          onUpdateTrack={updateTrack}
+          onDeleteTrack={deleteTrack}
           editingId={editingId}
           onPlay={playCard}
           onEdit={(card) => loadIntoComposer(card, false)}

@@ -5,10 +5,10 @@
  * API base: https://api.mureka.ai
  */
 
-export interface MurekaInstrumentalRequest {
-  prompt: string
+/** Mureka takes exactly one of prompt or instrumental_id (a file uploaded with purpose 'instrumental'). */
+export type MurekaInstrumentalRequest = {
   model?: 'auto' | 'mureka-6' | 'mureka-7.6' | 'mureka-8' | 'mureka-9' | 'mureka-9.5'
-}
+} & ({ prompt: string; instrumental_id?: never } | { instrumental_id: string; prompt?: never })
 
 export interface MurekaGenerateRequest {
   lyrics: string

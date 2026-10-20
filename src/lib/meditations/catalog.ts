@@ -14,6 +14,19 @@ export interface MeditationMusicOption {
   creatorName: string | null
 }
 
+/** A member's own generated instrumental, listed in the library before it joins the music list. */
+export interface MeditationTrack extends MeditationMusicOption {
+  source: 'generated'
+  songId: string
+  durationSeconds: number | null
+  bpm: number | null
+  mood: string | null
+  referenceTitle: string | null
+  isFavorite: boolean
+  inMusicList: boolean
+  createdAt: string
+}
+
 export interface MeditationBinauralOption {
   id: string
   title: string
@@ -63,6 +76,23 @@ interface MeditationRow {
   is_favorite: boolean
 }
 
+interface OwnTrackRow {
+  id: string
+  song_id: string
+  title: string | null
+  version: string
+  mp3_url: string | null
+  user_id: string
+  duration_ms: number | null
+  is_favorite: boolean
+  metadata: unknown
+  created_at: string
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? value as Record<string, unknown> : {}
+}
+
 export async function loadMeditationCatalog(db: AdminDb, userId: string) {
   const [{ data: beds }, { data: binauralRows }, { data: ownSongs }, { data: sessions }] = await Promise.all([
     db
@@ -78,7 +108,7 @@ export async function loadMeditationCatalog(db: AdminDb, userId: string) {
       .order('sort_order'),
     db
       .from('songs')
-      .select('id, title')
+      .select('id, title, metadata')
       .eq('user_id', userId)
       .eq('entity_type', 'meditation'),
     db
@@ -89,15 +119,16 @@ export async function loadMeditationCatalog(db: AdminDb, userId: string) {
   ])
 
   const songIds = (ownSongs || []).map((song) => song.id)
-  const songTitle = new Map((ownSongs || []).map((song) => [song.id, song.title as string]))
+  const songById = new Map((ownSongs || []).map((song) => [song.id, song]))
 
   const { data: ownTracks } = songIds.length
     ? await db
         .from('song_tracks')
-        .select('id, song_id, title, mp3_url, user_id, duration_ms, status')
+        .select('id, song_id, title, version, mp3_url, user_id, duration_ms, is_favorite, metadata, created_at')
         .in('song_id', songIds)
         .eq('status', 'completed')
-    : { data: [] as Array<{ id: string; song_id: string; title: string | null; mp3_url: string | null; user_id: string }> }
+        .order('created_at', { ascending: false })
+    : { data: [] as OwnTrackRow[] }
 
   const sessionRows = (sessions || []) as MeditationRow[]
   const songTrackIds = [
@@ -145,17 +176,37 @@ export async function loadMeditationCatalog(db: AdminDb, userId: string) {
     })
   }
 
-  for (const track of ownTracks || []) {
+  const takesPerSong = new Map<string, number>()
+  for (const track of (ownTracks || []) as OwnTrackRow[]) {
+    takesPerSong.set(track.song_id, (takesPerSong.get(track.song_id) || 0) + 1)
+  }
+
+  const tracks: MeditationTrack[] = []
+  for (const track of (ownTracks || []) as OwnTrackRow[]) {
     if (!track.mp3_url) continue
-    music.push({
+    const song = songById.get(track.song_id)
+    const songMeta = asRecord(song?.metadata)
+    const baseTitle = track.title || (song?.title as string | null) || 'Untitled'
+    tracks.push({
       id: track.id,
       source: 'generated',
-      title: track.title || songTitle.get(track.song_id) || 'Untitled',
+      songId: track.song_id,
+      title: (takesPerSong.get(track.song_id) || 0) > 1 ? `${baseTitle} · Take ${track.version}` : baseTitle,
       url: track.mp3_url,
       category: 'meditations',
       creatorId: track.user_id,
       creatorName: names.get(track.user_id) || 'Member',
+      durationSeconds: track.duration_ms ? Math.round(track.duration_ms / 1000) : null,
+      bpm: typeof songMeta.bpm === 'number' ? songMeta.bpm : null,
+      mood: typeof songMeta.mood === 'string' && songMeta.mood ? songMeta.mood : null,
+      referenceTitle: typeof songMeta.reference_title === 'string' ? songMeta.reference_title : null,
+      isFavorite: track.is_favorite,
+      inMusicList: asRecord(track.metadata).in_music_list === true,
+      createdAt: track.created_at,
     })
+  }
+  for (const track of tracks) {
+    if (track.inMusicList) music.push(track)
   }
 
   const binaurals: MeditationBinauralOption[] = (binauralRows || [])
@@ -199,6 +250,7 @@ export async function loadMeditationCatalog(db: AdminDb, userId: string) {
   return {
     music,
     binaurals,
+    tracks,
     mine: cards.filter((card) => card.isMine),
     community: cards.filter((card) => card.isShared && !card.isMine),
   }

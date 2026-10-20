@@ -1,5 +1,7 @@
 'use client'
 
+import { sameOriginMediaUrl } from '@/lib/meditations/media-url'
+
 const LOOP_FADE_SECONDS = 4
 const CURVE_STEPS = 64
 
@@ -61,7 +63,7 @@ export class LoopLayer {
       const element = new Audio()
       element.crossOrigin = 'anonymous'
       element.preload = 'auto'
-      element.src = url
+      element.src = sameOriginMediaUrl(url)
       const source = this.ctx.createMediaElementSource(element)
       const gain = this.ctx.createGain()
       source.connect(gain)
