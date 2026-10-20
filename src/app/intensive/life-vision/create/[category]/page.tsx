@@ -1414,7 +1414,7 @@ export default function IntensiveCreateCategoryPage() {
                         ))}
                       </div>
 
-                      <div className="mt-6 flex justify-center gap-3">
+                      <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
                         <Button
                           variant="outline"
                           size="sm"
@@ -1433,7 +1433,7 @@ export default function IntensiveCreateCategoryPage() {
                       </div>
                     </>
                   ) : (
-                    <div className="mt-6 flex justify-center gap-3">
+                    <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
                       <Button
                         variant="outline"
                         size="sm"

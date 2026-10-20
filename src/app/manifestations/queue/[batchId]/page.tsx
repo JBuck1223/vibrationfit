@@ -580,7 +580,7 @@ export default function VisionBoardQueueBatchPage() {
                     : ` ${errorCount} items had errors.`)
                 : ''}
             </p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={handleViewBoard} variant="primary" className="gap-2">
                 <Eye className="w-4 h-4" />
                 View My Manifestations

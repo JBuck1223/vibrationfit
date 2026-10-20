@@ -409,8 +409,15 @@ function VersionSelectorSheet({
 
   useEffect(() => {
     if (!isOpen) return
+    // Member pages scroll inside the app shell's <main>, not the body, so lock both.
+    const shellScroller = document.querySelector('main')
+    const prevShellOverflow = shellScroller?.style.overflow ?? ''
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
+    if (shellScroller) shellScroller.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+      if (shellScroller) shellScroller.style.overflow = prevShellOverflow
+    }
   }, [isOpen])
 
   useEffect(() => {
@@ -427,7 +434,7 @@ function VersionSelectorSheet({
   return (
     <div className="fixed inset-0 z-50 md:hidden flex items-end" onClick={handleBackdrop}>
       <div className="absolute inset-0 bg-black/60" />
-      <div className="relative w-full bg-[#1A1A1A] rounded-t-2xl pb-8 animate-in slide-in-from-bottom duration-200">
+      <div className="relative w-full bg-[#1A1A1A] rounded-t-2xl pb-[max(2rem,env(safe-area-inset-bottom))] animate-in slide-in-from-bottom duration-200">
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-10 h-1 rounded-full bg-neutral-700" />
         </div>
@@ -735,7 +742,8 @@ export function AreaBar({
   const hasTopRight = topRightSelectors.length > 0
   const hasMobileTitleActions = hasTopRight || !!menuItems
 
-  const mobileTitlePaddingTop = { paddingTop: 'env(safe-area-inset-top, 0px)' } as const
+  // In the native shell the body already pads the status bar, so this resolves to 0 there.
+  const mobileTitlePaddingTop = { paddingTop: 'calc(env(safe-area-inset-top, 0px) - var(--native-inset-top, 0px))' } as const
   const mobileTitleRowClass =
     'flex min-h-[3.25rem] min-w-0 items-center gap-2.5 pb-2.5 pl-[4.75rem] pr-4'
 
@@ -793,7 +801,7 @@ export function AreaBar({
           }
         >
           {TabIcon && <TabIcon className={`${size === 'compact' ? 'w-3.5 h-3.5 shrink-0' : 'w-4 h-4 shrink-0'} ${pending ? 'text-[#00FFFF]' : ''}`} />}
-          <span className={`min-w-0 text-center font-medium leading-tight ${denseAppTabs ? 'line-clamp-2 sm:line-clamp-none' : ''}`}>{tab.label}</span>
+          <span className={`min-w-0 text-center font-medium leading-tight ${denseAppTabs ? 'line-clamp-2 sm:line-clamp-none' : 'break-words max-sm:line-clamp-2'}`}>{tab.label}</span>
           {showParentCaret && (
             <ChevronDown className={`absolute ${size === 'compact' ? '-bottom-1 w-3 h-3' : '-bottom-1.5 w-3.5 h-3.5'} left-1/2 -translate-x-1/2 text-primary-500/60`} />
           )}

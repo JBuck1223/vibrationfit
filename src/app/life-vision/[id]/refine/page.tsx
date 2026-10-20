@@ -229,7 +229,7 @@ const ChatInterface = ({
       {/* Copy Prompt */}
       {showCopyPrompt && (
         <div className="mt-4 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
             <div>
               <p className="text-purple-300 text-sm font-medium">
                 Ready to copy this refinement to your current refinement?
@@ -1415,7 +1415,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
           <p className="text-neutral-300 mb-8">
             Would you like to create a draft from this vision to refine it?
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={() => router.push('/life-vision')} 
               variant="outline"

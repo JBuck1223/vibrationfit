@@ -89,8 +89,8 @@ export function ReferralsWidget(chrome: WidgetChromeProps) {
 
           <div className="flex items-center gap-3">
               <Gift className="h-4 w-4 shrink-0 text-primary-500" aria-hidden />
-              <span className="shrink-0 text-sm font-semibold text-white">{headline}</span>
-              <div className="flex min-w-[3rem] flex-1 gap-1" aria-hidden>
+              <span className="min-w-0 truncate text-sm font-semibold text-white sm:shrink-0">{headline}</span>
+              <div className="flex min-w-[2rem] flex-1 gap-1 sm:min-w-[3rem]" aria-hidden>
                 {Array.from({ length: slots }, (_, i) => (
                   <span
                     key={i}

@@ -13,7 +13,7 @@ import { MessageCopyButton } from './MessageCopyButton'
  * Assistant = markdown in the open, no bubble.
  */
 export const VIVA_USER_BUBBLE_CLASS =
-  'max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md border border-accent-500/30 bg-gradient-to-br from-accent-500/20 to-accent-500/[0.05] px-4 py-2.5 text-[15px] leading-relaxed text-neutral-100 shadow-[0_0_18px_rgba(191,0,255,0.14)]'
+  'min-w-0 max-w-[85%] whitespace-pre-wrap break-words [overflow-wrap:anywhere] rounded-2xl rounded-br-md border border-accent-500/30 bg-gradient-to-br from-accent-500/20 to-accent-500/[0.05] px-4 py-2.5 text-[15px] leading-relaxed text-neutral-100 shadow-[0_0_18px_rgba(191,0,255,0.14)]'
 
 const THINKING_DOT_CLASS = 'h-1.5 w-1.5 rounded-full bg-accent-500'
 

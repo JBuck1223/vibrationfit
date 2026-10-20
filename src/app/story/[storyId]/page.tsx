@@ -150,34 +150,41 @@ export default function StoryDetailPage({
     if (!story) return
     const options: AudioOption[] = []
 
-    if (story.audio_set_id) {
+    const setFilter = story.audio_set_id
+      ? `and(content_type.eq.story,content_id.eq.${story.id}),id.eq.${story.audio_set_id}`
+      : `and(content_type.eq.story,content_id.eq.${story.id})`
+    const { data: audioSets } = await supabase
+      .from('audio_sets')
+      .select('id, name, voice_id, variant, created_at')
+      .or(setFilter)
+      .order('created_at', { ascending: false })
+
+    const orderedSets = [...(audioSets || [])].sort((a, b) =>
+      Number(b.id === story.audio_set_id) - Number(a.id === story.audio_set_id)
+    )
+
+    if (orderedSets.length > 0) {
       const { data: tracks } = await supabase
         .from('audio_tracks')
-        .select('id, audio_url, voice_id, section_key, text_content, content_hash')
-        .eq('audio_set_id', story.audio_set_id)
+        .select('id, audio_set_id, audio_url, mixed_audio_url, mix_status, text_content, created_at')
+        .in('audio_set_id', orderedSets.map(set => set.id))
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
 
-      const currentTracks = (tracks || []).filter(track =>
-        storyTextMatchesTrack(story.content, track.text_content)
-      )
+      for (const audioSet of orderedSets) {
+        const setTracks = (tracks || []).filter(track =>
+          track.audio_set_id === audioSet.id && storyTextMatchesTrack(story.content, track.text_content)
+        )
+        const voiceName = audioSet.voice_id ? (VOICE_DISPLAY_NAMES[audioSet.voice_id] || audioSet.voice_id) : 'VIVA'
+        const setName = audioSet.name || 'Generated Audio'
 
-      if (currentTracks.length > 0) {
-        const { data: audioSet } = await supabase
-          .from('audio_sets')
-          .select('name, voice_id, variant')
-          .eq('id', story.audio_set_id)
-          .maybeSingle()
-
-        const voiceName = audioSet?.voice_id ? (VOICE_DISPLAY_NAMES[audioSet.voice_id] || audioSet.voice_id) : 'VIVA'
-        const setName = audioSet?.name || 'Generated Audio'
-
-        currentTracks.forEach((track, idx) => {
+        setTracks.forEach((track, idx) => {
+          const hasMix = track.mix_status === 'completed' && !!track.mixed_audio_url
           options.push({
             id: `generated-${track.id}`,
-            label: currentTracks.length > 1 ? `${setName} (${idx + 1}/${currentTracks.length})` : setName,
-            sublabel: `${voiceName} narration`,
-            url: track.audio_url,
+            label: setTracks.length > 1 ? `${setName} (${idx + 1}/${setTracks.length})` : setName,
+            sublabel: hasMix ? `${voiceName} narration + music` : `${voiceName} narration`,
+            url: hasMix ? track.mixed_audio_url! : track.audio_url,
             icon: Headphones,
             iconColor: 'bg-primary-500/20 text-primary-500',
           })
@@ -693,12 +700,12 @@ export default function StoryDetailPage({
                   )}
                 </section>
 
-                <div className="flex flex-row gap-2 sm:gap-3 justify-end pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-1 sm:flex sm:flex-row sm:gap-3 sm:justify-end">
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => setShowAddToKit(true)}
-                    className="flex-1 sm:flex-none sm:w-auto"
+                    className="col-span-2 w-full sm:flex-none sm:w-auto"
                   >
                     <Layers className="w-4 h-4 mr-2" />
                     Add to manifestation
@@ -709,7 +716,7 @@ export default function StoryDetailPage({
                       size="sm"
                       onClick={handleDelete}
                       disabled={deleting}
-                      className="flex-1 sm:flex-none sm:w-auto"
+                      className="w-full sm:flex-none sm:w-auto"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       {deleting ? 'Deleting...' : 'Delete'}
@@ -719,7 +726,7 @@ export default function StoryDetailPage({
                     variant="primary"
                     size="sm"
                     onClick={startEditing}
-                    className="flex-1 sm:flex-none sm:w-auto"
+                    className={`w-full sm:flex-none sm:w-auto ${canDelete ? '' : 'col-span-2'}`}
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit

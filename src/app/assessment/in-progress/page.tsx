@@ -929,30 +929,40 @@ export default function AssessmentPage() {
             </Card>
 
             {/* Navigation */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2 sm:gap-0">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
                 disabled={isFirstQuestion || isSaving}
+                aria-label="Previous"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                Previous
+                <ChevronLeft className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Previous</span>
               </Button>
 
-              <div className="text-sm text-neutral-400">
-                Question {currentQuestionIndex + 1} of {filteredQuestions.length} in this category
+              <div className="min-w-0 text-center text-sm text-neutral-400">
+                Question {currentQuestionIndex + 1} of {filteredQuestions.length}
+                <span className="hidden sm:inline"> in this category</span>
               </div>
 
               <Button
                 variant="primary"
                 onClick={handleNext}
                 disabled={selectedValue === undefined || selectedValue === null}
+                aria-label={
+                  currentCategoryIndex === orderedAssessmentQuestions.length - 1 &&
+                  currentQuestionIndex === filteredQuestions.length - 1
+                    ? 'Complete Assessment'
+                    : 'Next'
+                }
               >
-                {currentCategoryIndex === orderedAssessmentQuestions.length - 1 &&
-                currentQuestionIndex === filteredQuestions.length - 1
-                  ? 'Complete Assessment'
-                  : 'Next'}
-                <ChevronRight className="w-4 h-4 ml-2" />
+                <span className="hidden sm:inline">
+                  {currentCategoryIndex === orderedAssessmentQuestions.length - 1 &&
+                  currentQuestionIndex === filteredQuestions.length - 1
+                    ? 'Complete Assessment'
+                    : 'Next'}
+                </span>
+                <ChevronRight className="w-4 h-4 sm:ml-2" />
               </Button>
             </div>
           </div>

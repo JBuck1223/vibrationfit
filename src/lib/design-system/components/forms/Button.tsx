@@ -88,7 +88,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
     
     const sizes = {
-      sm: 'px-4 py-3 text-sm md:text-sm md:px-5 gap-1.5',
+      sm: 'px-3.5 py-2.5 text-sm md:text-sm md:px-5 md:py-3 gap-1.5',
       md: 'px-4 py-3 text-sm md:text-sm md:px-7 md:py-3 gap-2',
       lg: 'px-5 py-4 text-sm md:text-base md:px-10 md:py-4 gap-2.5',
       xl: 'px-5 py-4 text-sm md:text-base md:px-6 md:py-4 gap-3',
@@ -96,7 +96,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     
     const buttonClasses = cn(
       'inline-flex items-center justify-center antialiased',
-      'rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap',
+      'rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed',
+      // Labels wrap on phones instead of pushing past the screen edge; single line from sm up.
+      'max-w-full whitespace-normal text-center sm:whitespace-nowrap',
       variants[variant],
       sizes[size],
       fullWidth ? 'w-full' : '',

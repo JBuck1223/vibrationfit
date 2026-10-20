@@ -209,7 +209,7 @@ export default function HouseholdVisionsPage() {
         {/* Empty state — with any household vision present, the hub redirects to it.
             Hidden while a tool modal is open over a household that already has visions. */}
         {householdVisions.length === 0 && (
-        <Card className="text-center p-12">
+        <Card className="text-center p-6 md:p-12">
           <div className="w-20 h-20 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <Heart className="w-10 h-10 text-primary-500" />
           </div>

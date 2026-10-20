@@ -136,7 +136,7 @@ export default function DeleteAccountPage() {
 
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
                 <div className="text-xs font-medium text-neutral-500">Account email</div>
-                <div className="mt-1 text-sm text-neutral-300">{email}</div>
+                <div className="mt-1 break-all text-sm text-neutral-300">{email}</div>
               </div>
             </div>
 

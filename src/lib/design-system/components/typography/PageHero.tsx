@@ -41,11 +41,11 @@ export const PageHero = React.forwardRef<HTMLDivElement, PageHeroProps>(
               {eyebrow}
             </p>
           )}
-          <div className="flex items-center gap-3">
-            <h1 className="min-w-0 flex-1 py-0.5 text-lg font-semibold leading-normal text-white md:text-2xl">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="min-w-0 shrink grow basis-40 py-0.5 text-lg font-semibold leading-normal text-white md:text-2xl">
               {typeof title === 'string' ? <ScriptTitle text={title} /> : title}
             </h1>
-            {action ? <div className="shrink-0">{action}</div> : null}
+            {action ? <div className="max-w-full shrink-0">{action}</div> : null}
           </div>
           {subtitle && (
             <p className="mt-1 max-w-2xl text-sm text-neutral-400">

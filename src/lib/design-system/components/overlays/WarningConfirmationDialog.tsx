@@ -35,7 +35,7 @@ export const WarningConfirmationDialog: React.FC<WarningConfirmationDialogProps>
 
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1F1F1F] border-2 border-[#FFB701] rounded-2xl p-6 max-w-md w-full">
+      <div className="bg-[#1F1F1F] border-2 border-[#FFB701] rounded-2xl p-4 sm:p-6 max-w-md w-full">
         <div className="flex items-start gap-4 mb-6">
           <div className="w-12 h-12 rounded-full bg-[#FFB701]/20 flex items-center justify-center flex-shrink-0">
             <AlertTriangle className="w-6 h-6 text-[#FFB701]" />
@@ -46,7 +46,7 @@ export const WarningConfirmationDialog: React.FC<WarningConfirmationDialogProps>
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row">
           <Button
             variant="ghost"
             onClick={onClose}

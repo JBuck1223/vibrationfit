@@ -86,7 +86,7 @@ export default function PasswordSettingsPage() {
               <label className="mb-1.5 block text-xs font-medium text-neutral-400">Email</label>
               <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] p-3">
                 <Mail className="h-5 w-5 shrink-0 text-neutral-500" aria-hidden />
-                <span className="text-sm text-white">{email}</span>
+                <span className="min-w-0 break-all text-sm text-white">{email}</span>
               </div>
             </div>
 

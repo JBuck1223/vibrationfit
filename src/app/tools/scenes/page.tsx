@@ -433,7 +433,7 @@ export default function ScenesToolPage() {
                   {selectedCount} Selected
                 </Badge>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap sm:flex-nowrap gap-2">
                 <Button
                   variant="ghost"
                   size="sm"

@@ -57,7 +57,7 @@ export function UserMiniProfile({ userId, trigger }: UserMiniProfileProps) {
           />
           
           {/* Popover */}
-          <div className="absolute left-0 top-full mt-2 z-50 min-w-[280px]">
+          <div className="absolute left-0 top-full mt-2 z-50 min-w-[min(280px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]">
             <Card className="p-4 shadow-xl border border-neutral-700">
               {loading ? (
                 <div className="flex justify-center py-8">

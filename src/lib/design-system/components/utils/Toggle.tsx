@@ -44,8 +44,8 @@ export function Toggle<T extends string>({
 }: ToggleProps<T>) {
   const sizes = {
     sm: 'px-3 py-2 text-sm',
-    md: 'px-4 py-3.5 text-base',
-    lg: 'px-6 py-4 text-lg'
+    md: 'px-3 py-2.5 text-sm sm:px-4 sm:py-3.5 sm:text-base',
+    lg: 'px-4 py-3 text-base sm:px-6 sm:py-4 sm:text-lg'
   }
 
   const segmentedSizes = {
@@ -74,10 +74,10 @@ export function Toggle<T extends string>({
                   )
                 : cn(
                     'items-stretch gap-0 rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]',
-                    fullWidth ? 'flex w-full' : 'inline-flex'
+                    fullWidth ? 'flex w-full' : 'inline-flex max-w-full'
                   )
             )
-          : 'inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-800/80 p-2 backdrop-blur-sm',
+          : 'inline-flex max-w-full items-center gap-1.5 sm:gap-2 rounded-full border border-neutral-700 bg-neutral-800/80 p-2 backdrop-blur-sm',
         className
       )}
       {...props}

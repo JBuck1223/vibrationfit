@@ -162,7 +162,7 @@ export default function TravelTrackerPage() {
   }
 
   return (
-    <Container size="xl" className="px-6">
+    <Container size="xl" className="px-0 sm:px-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           {payload?.household?.isMultiMember && (

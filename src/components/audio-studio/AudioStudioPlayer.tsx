@@ -39,7 +39,7 @@ export function AudioStudioPlayer() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
+    <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)]">
       <div className="pointer-events-auto mx-auto max-w-2xl px-3 pb-3 sm:px-4">
         <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#1F1F1F]/55 shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-inset ring-white/[0.06] backdrop-blur-lg">
           <div

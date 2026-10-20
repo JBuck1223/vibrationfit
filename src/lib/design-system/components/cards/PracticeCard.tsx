@@ -278,7 +278,7 @@ export const PracticeCard: React.FC<PracticeCardProps> = ({
               href={ctaHref}
               className={`
                 block text-center rounded-full text-sm font-medium
-                transition-all duration-200 py-2 px-5 ${inline ? 'whitespace-nowrap' : 'w-full'}
+                transition-all duration-200 py-2 px-5 ${inline ? 'md:whitespace-nowrap' : 'w-full'}
                 ${todayCompleted ? c.ctaDoneBg : c.ctaBg}
               `}
             >
