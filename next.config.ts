@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   // Ensure the static ffmpeg binary is shipped to the serverless function.
   outputFileTracingIncludes: {
     '/api/songs/upload-reference': ['./node_modules/ffmpeg-static/ffmpeg'],
+    '/api/meditations/references': ['./node_modules/ffmpeg-static/ffmpeg'],
   },
   async redirects() {
     return [
@@ -50,6 +51,16 @@ const nextConfig: NextConfig = {
         source: '/admin/ideas/:path*',
         destination: '/admin/projects/:path*',
         permanent: false,
+      },
+    ]
+  },
+  async rewrites() {
+    return [
+      {
+        // Same-origin path for CDN audio: Web Audio can't read media.vibrationfit.com
+        // files because CloudFront sends no CORS headers.
+        source: '/cdn-media/:path*',
+        destination: 'https://media.vibrationfit.com/:path*',
       },
     ]
   },

@@ -26,8 +26,8 @@ export const BREATH_PRESETS: readonly BreathPreset[] = [
 
 export const CUSTOM_PRESET_ID = 'custom'
 
-export const BPM_OPTIONS = [40, 50, 60] as const
-export const DEFAULT_BPM = 60
+/** Mureka trims instrumental references to 30 seconds. */
+export const REFERENCE_CLIP_SECONDS = 30
 
 export const MOOD_IDEAS = [
   'Warm pads, distant piano',

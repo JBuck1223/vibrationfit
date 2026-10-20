@@ -17,6 +17,11 @@ function titleCase(value: string) {
     .join(' ')
 }
 
+function musicSubtitle(option: MeditationMusicOption) {
+  const category = option.category === 'meditations' ? 'Meditation' : titleCase(option.category)
+  return option.creatorName ? `${category} • by ${option.creatorName}` : category
+}
+
 /** One preview at a time across every picker on the page. */
 export function usePreview() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -47,7 +52,7 @@ export function usePreview() {
   return { previewUrl, toggle, stop }
 }
 
-type Preview = ReturnType<typeof usePreview>
+export type Preview = ReturnType<typeof usePreview>
 
 interface SlotProps {
   icon: React.ReactNode
@@ -214,7 +219,7 @@ export function MusicPicker({ options, value, onChange, volume, onVolume, previe
           <OptionRow
             key={musicKey(option)}
             title={option.title}
-            subtitle={option.creatorName ? option.creatorName : titleCase(option.category)}
+            subtitle={musicSubtitle(option)}
             selected={musicKey(option) === value}
             previewing={preview.previewUrl === option.url}
             onSelect={() => onChange(musicKey(option))}

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { mureka } from '@/lib/mureka/client'
-import { BPM_OPTIONS, DEFAULT_BPM } from '@/lib/meditations/constants'
 import { buildInstrumentalPrompt } from '@/lib/meditations/prompt'
 
 export const maxDuration = 30
@@ -18,14 +17,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const title = String(body.title || '').trim().slice(0, 80)
     const mood = String(body.mood || '').trim().slice(0, 200)
-    const requestedBpm = Number(body.bpm)
-    const bpm = (BPM_OPTIONS as readonly number[]).includes(requestedBpm) ? requestedBpm : DEFAULT_BPM
+    const referenceId = body.reference_id ? String(body.reference_id) : null
 
     if (!title) {
       return NextResponse.json({ error: 'Name the track before generating it' }, { status: 400 })
     }
 
-    const prompt = buildInstrumentalPrompt(mood, bpm)
+    let reference: { id: string; title: string; mureka_file_id: string } | null = null
+    if (referenceId) {
+      const { data } = await supabase
+        .from('meditation_references')
+        .select('id, title, mureka_file_id')
+        .eq('id', referenceId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (!data) return NextResponse.json({ error: 'Reference not found' }, { status: 404 })
+      reference = data
+    }
+
+    const prompt = reference ? null : buildInstrumentalPrompt(mood)
+    const baseMeta = reference
+      ? { kind: 'meditation_instrumental', reference_id: reference.id, reference_title: reference.title }
+      : { kind: 'meditation_instrumental', mood }
 
     const { data: song, error: songError } = await supabase
       .from('songs')
@@ -35,11 +48,11 @@ export async function POST(request: NextRequest) {
         entity_id: crypto.randomUUID(),
         title,
         lyrics: '',
-        style_prompt: prompt,
+        style_prompt: prompt || `Reference: ${reference!.title}`,
         source: 'ai_generated',
         status: 'generating_music',
         generation_count: 1,
-        metadata: { kind: 'meditation_instrumental', bpm, mood },
+        metadata: baseMeta,
       })
       .select('id')
       .single()
@@ -50,7 +63,9 @@ export async function POST(request: NextRequest) {
 
     let murekaResponse
     try {
-      murekaResponse = await mureka.generateInstrumental({ prompt, model: 'auto' })
+      murekaResponse = await mureka.generateInstrumental(
+        reference ? { instrumental_id: reference.mureka_file_id, model: 'auto' } : { prompt: prompt!, model: 'auto' },
+      )
     } catch (murekaError) {
       await supabase
         .from('songs')
@@ -64,9 +79,7 @@ export async function POST(request: NextRequest) {
       .from('songs')
       .update({
         metadata: {
-          kind: 'meditation_instrumental',
-          bpm,
-          mood,
+          ...baseMeta,
           mureka_task_id: murekaResponse.id,
           mureka_model: murekaResponse.model,
           mureka_trace_id: murekaResponse.trace_id,

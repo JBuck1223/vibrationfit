@@ -2,22 +2,24 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Sparkles } from 'lucide-react'
-import { Button, Card, Input } from '@/lib/design-system/components'
-import { BPM_OPTIONS, DEFAULT_BPM, MOOD_IDEAS } from '@/lib/meditations/constants'
+import { Button, Input } from '@/lib/design-system/components'
+import { MOOD_IDEAS, REFERENCE_CLIP_SECONDS } from '@/lib/meditations/constants'
+import { ReferencePicker, type MeditationReference } from './ReferencePicker'
 
 const POLL_MS = 4000
 const POLL_LIMIT_MS = 10 * 60 * 1000
 
 interface TrackStudioProps {
-  /** Called with the new song track id once the instrumental is ready. */
-  onCreated: (track: { songTrackId: string | null; title: string; bpm: number; mood: string }) => Promise<void> | void
+  /** Called once the instrumental is ready so the library can show it under Mine. */
+  onCreated: (title: string) => Promise<void> | void
 }
 
 export function TrackStudio({ onCreated }: TrackStudioProps) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [mood, setMood] = useState('')
-  const [bpm, setBpm] = useState<number>(DEFAULT_BPM)
+  const [mode, setMode] = useState<'mood' | 'reference'>('mood')
+  const [reference, setReference] = useState<MeditationReference | null>(null)
   const [generating, setGenerating] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +42,10 @@ export function TrackStudio({ onCreated }: TrackStudioProps) {
       setError('Name the track before creating it')
       return
     }
+    if (mode === 'reference' && !reference) {
+      setError('Choose or add a reference first')
+      return
+    }
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -52,7 +58,9 @@ export function TrackStudio({ onCreated }: TrackStudioProps) {
       const response = await fetch('/api/meditations/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: name, mood, bpm }),
+        body: JSON.stringify(mode === 'reference'
+          ? { title: name, reference_id: reference!.id }
+          : { title: name, mood }),
         signal,
       })
       const data = await response.json()
@@ -66,13 +74,13 @@ export function TrackStudio({ onCreated }: TrackStudioProps) {
         const result = await poll.json()
         if (result.status === 'failed') throw new Error(result.error || 'The track did not finish')
         if (result.status === 'completed' && result.tracks?.[0]) {
-          await onCreated({ songTrackId: result.tracks[0].id ?? null, title: name, bpm, mood: mood.trim() })
-          setStatus(`“${name}” is ready and selected`)
+          await onCreated(name)
+          setStatus(`“${name}” is ready in your Library under Mine`)
           setTitle('')
           return
         }
       }
-      throw new Error('This is taking longer than usual. It will appear under My tracks when it finishes.')
+      throw new Error('This is taking longer than usual. It will appear in your Library under Mine when it finishes.')
     } catch (err) {
       if (signal.aborted) return
       setError(err instanceof Error ? err.message : 'Could not create the track')
@@ -83,82 +91,104 @@ export function TrackStudio({ onCreated }: TrackStudioProps) {
   }
 
   return (
-    <Card className="overflow-hidden p-0 md:p-0 lg:p-0">
+    <div className={`overflow-hidden rounded-2xl border-2 transition-colors ${open ? 'border-[#BF00FF]/40 bg-neutral-950' : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'}`}>
       <button
         type="button"
         onClick={() => setOpen((next) => !next)}
         aria-expanded={open}
-        className="flex w-full items-center gap-3 p-4 text-left md:p-6"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left"
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#BF00FF]/15 text-[#BF00FF]">
-          <Sparkles className="h-5 w-5" />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#BF00FF]/15 text-[#BF00FF]">
+          <Sparkles className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-base font-semibold text-white">Create your own track</span>
-          <span className="block text-xs md:text-sm text-neutral-400">
-            {generating ? `${status} · ${seconds}s` : 'An instrumental with no vocals, shaped by a mood you describe'}
+          <span className="block text-sm md:text-base font-semibold text-white">Create your own track</span>
+          <span className="block truncate text-xs text-neutral-400">
+            {generating ? `${status} · ${seconds}s` : 'An instrumental with no vocals, from a mood or a reference track'}
           </span>
         </span>
         <ChevronDown className={`h-5 w-5 shrink-0 text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="border-t border-neutral-800 p-4 md:p-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              label="Track title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Soft horizon"
-              disabled={generating}
-            />
-            <Input
-              label="Mood"
-              value={mood}
-              onChange={(event) => setMood(event.target.value)}
-              placeholder="Warm pads, distant piano"
-              disabled={generating}
-            />
-          </div>
+        <div className="border-t border-neutral-800 p-4">
+          <Input
+            label="Track title"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Soft horizon"
+            disabled={generating}
+          />
 
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {MOOD_IDEAS.map((idea) => (
+          <div className="mt-4 flex gap-1 rounded-full bg-neutral-900 p-1" role="tablist">
+            {([
+              { id: 'mood', label: 'Describe a mood' },
+              { id: 'reference', label: 'Use a reference' },
+            ] as const).map((option) => (
               <button
-                key={idea}
+                key={option.id}
                 type="button"
+                role="tab"
+                aria-selected={mode === option.id}
                 disabled={generating}
-                onClick={() => setMood(idea)}
-                className={`rounded-full px-3 py-1 text-xs transition-colors disabled:opacity-50 ${
-                  mood === idea ? 'bg-[#BF00FF] text-white' : 'bg-white/5 text-neutral-300 hover:bg-white/10'
+                onClick={() => setMode(option.id)}
+                className={`flex-1 rounded-full px-3 py-1.5 text-xs md:text-sm transition-colors ${
+                  mode === option.id ? 'bg-[#BF00FF] font-semibold text-white' : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                {idea}
+                {option.label}
               </button>
             ))}
           </div>
 
-          <div className="mt-5">
-            <p className="mb-2 text-xs uppercase tracking-wider text-neutral-500">Tempo</p>
-            <div className="flex flex-wrap gap-2">
-              {BPM_OPTIONS.map((option) => (
-                <Button
-                  key={option}
-                  size="sm"
-                  variant={bpm === option ? 'primary' : 'outline'}
-                  onClick={() => setBpm(option)}
+          <div className="mt-4">
+            {mode === 'mood' ? (
+              <>
+                <Input
+                  label="Mood"
+                  value={mood}
+                  onChange={(event) => setMood(event.target.value)}
+                  placeholder="Warm pads, distant piano"
                   disabled={generating}
-                >
-                  {option} BPM
-                </Button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-neutral-500">
-              Tempo is guidance, so the track feels slow without locking to a clock.
-            </p>
+                />
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {MOOD_IDEAS.map((idea) => (
+                    <button
+                      key={idea}
+                      type="button"
+                      disabled={generating}
+                      onClick={() => setMood(idea)}
+                      className={`rounded-full px-3 py-1 text-xs transition-colors disabled:opacity-50 ${
+                        mood === idea ? 'bg-[#BF00FF] text-white' : 'bg-white/5 text-neutral-300 hover:bg-white/10'
+                      }`}
+                    >
+                      {idea}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mb-3 text-xs text-neutral-400">
+                  Your track follows the pace and feel of a {REFERENCE_CLIP_SECONDS}-second clip. Pick a slow section with no drums for the calmest result.
+                </p>
+                <ReferencePicker
+                  selectedId={reference?.id ?? null}
+                  onSelect={setReference}
+                  disabled={generating}
+                />
+              </>
+            )}
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <Button variant="accent" size="sm" onClick={generate} loading={generating} disabled={generating}>
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={generate}
+              loading={generating}
+              disabled={generating || (mode === 'reference' && !reference)}
+            >
               <Sparkles className="mr-2 h-4 w-4" />
               {generating ? 'Creating' : 'Create track'}
             </Button>
@@ -170,6 +200,6 @@ export function TrackStudio({ onCreated }: TrackStudioProps) {
           {error && <p className="mt-3 text-sm text-[#FF0040]">{error}</p>}
         </div>
       )}
-    </Card>
+    </div>
   )
 }

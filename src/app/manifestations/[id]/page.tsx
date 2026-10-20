@@ -1222,7 +1222,6 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                           className="w-full sm:w-auto"
                           onClick={() => router.push(`/viva?manifestation=${item.id}&t=${Date.now()}`)}
                         >
-                          <Sparkles className="w-4 h-4" />
                           Chat with VIVA about this
                         </VIVAButton>
                       </div>

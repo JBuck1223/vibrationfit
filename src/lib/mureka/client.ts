@@ -108,12 +108,12 @@ class MurekaClient {
    */
   /**
    * Generate an instrumental (no lyrics) from a style prompt.
-   * Tempo belongs in the prompt. Mureka has no BPM field.
+   * Mureka has no BPM field; a reference clip is the reliable way to set pace.
    */
   async generateInstrumental(params: MurekaInstrumentalRequest): Promise<MurekaGenerateResponse> {
     return this.request<MurekaGenerateResponse>('POST', '/v1/instrumental/generate', {
       model: params.model || 'auto',
-      prompt: params.prompt,
+      ...(params.instrumental_id ? { instrumental_id: params.instrumental_id } : { prompt: params.prompt }),
     })
   }
 
