@@ -186,12 +186,14 @@ export async function loadMeditationCatalog(db: AdminDb, userId: string) {
     if (!track.mp3_url) continue
     const song = songById.get(track.song_id)
     const songMeta = asRecord(song?.metadata)
-    const baseTitle = track.title || (song?.title as string | null) || 'Untitled'
+    const songTitle = (song?.title as string | null) || 'Untitled'
+    const renamed = Boolean(track.title && track.title !== songTitle)
+    const baseTitle = track.title || songTitle
     tracks.push({
       id: track.id,
       source: 'generated',
       songId: track.song_id,
-      title: (takesPerSong.get(track.song_id) || 0) > 1 ? `${baseTitle} · Take ${track.version}` : baseTitle,
+      title: !renamed && (takesPerSong.get(track.song_id) || 0) > 1 ? `${baseTitle} · Take ${track.version}` : baseTitle,
       url: track.mp3_url,
       category: 'meditations',
       creatorId: track.user_id,

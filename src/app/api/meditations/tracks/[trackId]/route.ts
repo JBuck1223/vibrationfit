@@ -34,6 +34,12 @@ export async function PATCH(
 
     const body = await request.json()
     const update: Record<string, unknown> = {}
+    let title: string | null = null
+    if (typeof body.title === 'string') {
+      title = body.title.trim().slice(0, 80)
+      if (!title) return NextResponse.json({ error: 'A name is required' }, { status: 400 })
+      update.title = title
+    }
     if (typeof body.is_favorite === 'boolean') update.is_favorite = body.is_favorite
     if (typeof body.in_music_list === 'boolean') {
       const metadata = track.metadata && typeof track.metadata === 'object'
@@ -52,6 +58,15 @@ export async function PATCH(
       .eq('user_id', user.id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // A shared bed shows the track's name in other members' pickers.
+    if (title) {
+      await createAdminClient()
+        .from('audio_background_tracks')
+        .update({ display_name: title, updated_at: new Date().toISOString() })
+        .eq('name', `meditation-${trackId}`)
+    }
+
     return NextResponse.json({ id: trackId })
   } catch (err) {
     console.error('[MeditationTrack] Update error:', err)

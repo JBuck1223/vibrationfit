@@ -401,12 +401,13 @@ export function BreathPacer() {
     flash(`“${name}” is in your Library under Mine`)
   }
 
-  async function updateTrack(track: MeditationTrack, body: { is_favorite?: boolean; in_music_list?: boolean }) {
+  async function updateTrack(track: MeditationTrack, body: { is_favorite?: boolean; in_music_list?: boolean; title?: string }) {
     setCatalog((current) => current && {
       ...current,
       tracks: current.tracks.map((item) => item.id === track.id
         ? {
             ...item,
+            title: body.title ?? item.title,
             isFavorite: body.is_favorite ?? item.isFavorite,
             inMusicList: body.in_music_list ?? item.inMusicList,
           }

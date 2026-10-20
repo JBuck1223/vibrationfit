@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Check, Copy, Heart, ListChecks, ListPlus, Pause, Pencil, Play, Share2, Trash2 } from 'lucide-react'
+import { Check, Copy, Heart, ListChecks, ListPlus, MoreHorizontal, Pause, Pencil, Play, Share2, Trash2 } from 'lucide-react'
 import { Button, DeleteConfirmationDialog, Spinner } from '@/lib/design-system/components'
 import type { MeditationCard, MeditationTrack } from '@/lib/meditations/catalog'
 import { PatternThumb } from './BreathWave'
@@ -22,7 +22,7 @@ interface MeditationLibraryProps {
   selectedMusicKey: string
   preview: Preview
   onUseTrack: (track: MeditationTrack) => void
-  onUpdateTrack: (track: MeditationTrack, body: { is_favorite?: boolean; in_music_list?: boolean }) => Promise<void>
+  onUpdateTrack: (track: MeditationTrack, body: { is_favorite?: boolean; in_music_list?: boolean; title?: string }) => Promise<void>
   onDeleteTrack: (track: MeditationTrack) => Promise<void>
   editingId: string | null
   onPlay: (card: MeditationCard) => void
@@ -124,7 +124,7 @@ export function MeditationLibrary({
           {trackRows.length > 0 && (
             <div>
               <p className="mb-2 text-xs uppercase tracking-wider text-neutral-500">Tracks</p>
-              <div className="divide-y divide-neutral-800 rounded-2xl border-2 border-neutral-800 bg-neutral-900/60">
+              <div className="rounded-2xl border-2 border-neutral-800 bg-neutral-900/60 p-1">
                 {trackRows.map((track) => (
                   <TrackRow
                     key={track.id}
@@ -135,6 +135,7 @@ export function MeditationLibrary({
                     onUse={() => onUseTrack(track)}
                     onHeart={() => onUpdateTrack(track, { is_favorite: !track.isFavorite })}
                     onToggleMusic={() => onUpdateTrack(track, { in_music_list: !track.inMusicList })}
+                    onRename={(title) => onUpdateTrack(track, { title })}
                     onDelete={() => setPendingDelete({ kind: 'track', item: track })}
                   />
                 ))}
@@ -286,6 +287,7 @@ function TrackRow({
   onUse,
   onHeart,
   onToggleMusic,
+  onRename,
   onDelete,
 }: {
   track: MeditationTrack
@@ -295,8 +297,12 @@ function TrackRow({
   onUse: () => void
   onHeart: () => void
   onToggleMusic: () => void
+  onRename: (title: string) => Promise<void>
   onDelete: () => void
 }) {
+  const [renaming, setRenaming] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [draft, setDraft] = useState(track.title)
   const details = [
     formatLength(track.durationSeconds),
     track.referenceTitle ? `Like “${track.referenceTitle}”` : track.mood,
@@ -304,55 +310,135 @@ function TrackRow({
     .filter(Boolean)
     .join(' · ')
 
+  function startRename() {
+    setDraft(track.title)
+    setRenaming(true)
+  }
+
+  async function commitRename() {
+    const next = draft.trim()
+    setRenaming(false)
+    if (next && next !== track.title) await onRename(next)
+  }
+
+  const menuItems = [
+    { label: selected ? 'Selected for this session' : 'Use in this session', icon: Check, onClick: onUse, disabled: selected },
+    {
+      label: track.inMusicList ? 'Remove from music' : 'Add to music',
+      icon: track.inMusicList ? ListChecks : ListPlus,
+      onClick: onToggleMusic,
+    },
+    { label: 'Rename', icon: Pencil, onClick: startRename },
+    { label: 'Delete', icon: Trash2, onClick: onDelete, danger: true },
+  ]
+
   return (
-    <div className="flex items-center gap-2 px-2 py-2 md:px-3">
+    <div className={`relative flex items-center gap-0.5 rounded-xl pr-1 ${selected ? 'bg-[#39FF14]/10' : ''}`}>
+      {renaming ? (
+        <div className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-neutral-300">
+            <Pencil className="h-4 w-4" />
+          </span>
+          <input
+            autoFocus
+            value={draft}
+            maxLength={80}
+            aria-label="Track name"
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={() => void commitRename()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur()
+              if (event.key === 'Escape') {
+                setDraft(track.title)
+                setRenaming(false)
+              }
+            }}
+            className="h-9 min-w-0 flex-1 rounded-lg border border-[#BF00FF]/50 bg-black/60 px-2 text-sm text-white focus:outline-none"
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onPreview}
+          aria-label={previewing ? `Stop preview of ${track.title}` : `Preview ${track.title}`}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+        >
+          <span
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+              previewing ? 'bg-[#00FFFF] text-black' : 'bg-white/5 text-neutral-300'
+            }`}
+          >
+            {previewing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-px" />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className={`line-clamp-2 break-words text-sm font-medium ${selected ? 'text-[#39FF14]' : 'text-white'}`}>
+              {track.title}
+            </span>
+            <span className="flex min-w-0 items-center gap-1.5">
+              {details && <span className="truncate text-xs text-neutral-500">{details}</span>}
+              {track.inMusicList && (
+                <span className="shrink-0 rounded-full bg-[#00FFFF]/10 px-1.5 py-0.5 text-[9px] font-medium leading-none text-[#00FFFF]">
+                  In music
+                </span>
+              )}
+            </span>
+          </span>
+        </button>
+      )}
+
       <button
         type="button"
-        onClick={onPreview}
-        aria-label={previewing ? `Stop preview of ${track.title}` : `Preview ${track.title}`}
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
-          previewing ? 'bg-[#00FFFF] text-black' : 'bg-white/5 text-neutral-300 hover:bg-white/10'
+        aria-label={track.isFavorite ? 'Remove heart' : 'Heart'}
+        aria-pressed={track.isFavorite}
+        onClick={onHeart}
+        className={`shrink-0 rounded-lg p-1.5 transition-colors ${
+          track.isFavorite ? 'text-[#FF0040] hover:text-[#FF0040]/80' : 'text-neutral-500 hover:text-[#FF0040]'
         }`}
       >
-        {previewing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-px" />}
+        <Heart className="h-4 w-4" fill={track.isFavorite ? 'currentColor' : 'none'} />
       </button>
-      <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-2 truncate text-sm text-white">
-          <span className="truncate">{track.title}</span>
-          {track.inMusicList && (
-            <span className="shrink-0 rounded-full bg-[#00FFFF]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#00FFFF]">
-              In music
-            </span>
-          )}
-        </p>
-        {details && <p className="truncate text-xs text-neutral-500">{details}</p>}
+
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          aria-label="Track options"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+          className={`rounded-lg p-1.5 transition-colors ${
+            menuOpen ? 'bg-neutral-800/80 text-neutral-200' : 'text-neutral-500 hover:text-neutral-300'
+          }`}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+            <div
+              role="menu"
+              className="absolute right-0 top-full z-50 mt-1 min-w-[200px] rounded-xl border border-neutral-700/80 bg-neutral-900 py-1 shadow-2xl"
+            >
+              {menuItems.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  role="menuitem"
+                  disabled={item.disabled}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    item.onClick()
+                  }}
+                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors disabled:opacity-50 ${
+                    item.danger ? 'text-[#FF0040] hover:bg-[#FF0040]/10' : 'text-neutral-200 hover:bg-white/5'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
-      <Button
-        size="sm"
-        variant={selected ? 'primary' : 'outline'}
-        onClick={onUse}
-        className="hidden shrink-0 sm:inline-flex"
-      >
-        {selected && <Check className="mr-1 h-4 w-4" />}
-        {selected ? 'Selected' : 'Use'}
-      </Button>
-      <CardIcon label={track.isFavorite ? 'Remove heart' : 'Heart'} active={track.isFavorite} onClick={onHeart} tone="#FF0040">
-        <Heart className={`h-4 w-4 ${track.isFavorite ? 'fill-current' : ''}`} />
-      </CardIcon>
-      <CardIcon
-        label={track.inMusicList ? 'Remove from music' : 'Add to music'}
-        active={track.inMusicList}
-        onClick={onToggleMusic}
-        tone="#00FFFF"
-      >
-        {track.inMusicList ? <ListChecks className="h-4 w-4" /> : <ListPlus className="h-4 w-4" />}
-      </CardIcon>
-      <CardIcon label="Use in session" active={selected} onClick={onUse} className="sm:hidden">
-        <Check className="h-4 w-4" />
-      </CardIcon>
-      <CardIcon label="Delete" onClick={onDelete}>
-        <Trash2 className="h-4 w-4" />
-      </CardIcon>
     </div>
   )
 }
