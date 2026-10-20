@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createCardOrder, paypalMerchantCustomerId } from '@/lib/paypal/orders'
 import { getUserIdByEmail } from '@/lib/supabase/get-user-by-email'
 import { isPayPalConfigured } from '@/lib/paypal/client'
+import { createVaultSetupToken } from '@/lib/paypal/vault'
 import { resolveProduct } from '@/lib/billing/products'
 import { currentSessionUserId, isActivationId, loadActivationOwner } from '@/lib/checkout/activation-handoff'
 
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
       partnerEmail,
       activationId,
     } = body as Record<string, string | undefined>
+    const requestedTrial = (body as { trial?: boolean }).trial === true
 
     let lockedUserId: string | null = null
     let checkoutEmail = email
@@ -85,6 +87,7 @@ export async function POST(request: NextRequest) {
     // -----------------------------------------------------------------------
     const { validateCouponCode, calculateDiscount, resolveIntensiveLaunchPromoCode } = await import('@/lib/billing/coupons')
     let discountAmount = 0
+    let trialDays: number | null = null
     const resolvedPromoCode = resolveIntensiveLaunchPromoCode(promoCode, planType)
     if (resolvedPromoCode) {
       const couponResult = await validateCouponCode(resolvedPromoCode, {
@@ -93,11 +96,21 @@ export async function POST(request: NextRequest) {
       })
       if (couponResult.valid && couponResult.coupon) {
         discountAmount = calculateDiscount(couponResult.coupon, checkoutProduct.amount)
+        if (product === 'membership' && couponResult.coupon.trial_days) {
+          trialDays = couponResult.coupon.trial_days
+        }
       }
     }
 
-    const chargeAmount = Math.max(0, checkoutProduct.amount - discountAmount)
-    if (chargeAmount < 100) {
+    if (requestedTrial !== Boolean(trialDays)) {
+      return NextResponse.json(
+        { error: 'This promo code changed. Refresh the page and try again.' },
+        { status: 400 },
+      )
+    }
+
+    const chargeAmount = trialDays ? 0 : Math.max(0, checkoutProduct.amount - discountAmount)
+    if (!trialDays && chargeAmount < 100) {
       // PayPal cannot process $0 orders; $1 launch promos are the floor.
       return NextResponse.json({ error: 'Order total too low to process' }, { status: 400 })
     }
@@ -116,18 +129,25 @@ export async function POST(request: NextRequest) {
       paypalCustomerId = customer?.paypal_customer_id || undefined
     }
 
-    const paypalOrder = await createCardOrder({
-      amountCents: chargeAmount,
-      currency: checkoutProduct.currency,
-      description: checkoutProduct.name,
-      customId: cartSessionId || sessionId || product,
-      merchantCustomerId: paypalMerchantCustomerId(checkoutEmail, cartSessionId),
-      paypalCustomerId,
-    })
+    // Trial: save the card with a vault setup token instead of charging.
+    // The setup token id fills the paypal_order_id slot for idempotency.
+    const paypalId = trialDays
+      ? (await createVaultSetupToken({
+          paypalCustomerId,
+          merchantCustomerId: paypalMerchantCustomerId(checkoutEmail, cartSessionId),
+        })).id
+      : (await createCardOrder({
+          amountCents: chargeAmount,
+          currency: checkoutProduct.currency,
+          description: checkoutProduct.name,
+          customId: cartSessionId || sessionId || product,
+          merchantCustomerId: paypalMerchantCustomerId(checkoutEmail, cartSessionId),
+          paypalCustomerId,
+        })).id
 
     // Stash the full context server-side for capture-time fulfillment
     const { error: ctxError } = await supabaseAdmin.from('paypal_checkout_sessions').insert({
-      paypal_order_id: paypalOrder.id,
+      paypal_order_id: paypalId,
       cart_session_id: cartSessionId || null,
       amount_cents: chargeAmount,
       currency: checkoutProduct.currency,
@@ -153,6 +173,7 @@ export async function POST(request: NextRequest) {
         partnerEmail: partnerEmail || null,
         promoPackage: promoPackage || null,
         intensiveLevel: promoPackage === 'premium_promo' || product === 'intensive_premium' ? 'premium' : null,
+        trialDays,
       },
     })
     if (ctxError) {
@@ -168,7 +189,7 @@ export async function POST(request: NextRequest) {
         .eq('id', cartSessionId)
     }
 
-    return NextResponse.json({ id: paypalOrder.id })
+    return NextResponse.json({ id: paypalId, trial: Boolean(trialDays) })
   } catch (error) {
     console.error('[paypal create-order] error:', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
