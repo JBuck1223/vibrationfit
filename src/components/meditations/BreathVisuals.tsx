@@ -293,7 +293,17 @@ export function ShapeVisual({ kind, frame }: { kind: Exclude<BreathVisualKind, '
 }
 
 /** Looping preview of any visual for the composer, on its own clock. */
-export function VisualPreview({ kind, inhale, exhale }: { kind: BreathVisualKind; inhale: number; exhale: number }) {
+export function VisualPreview({
+  kind,
+  inhale,
+  exhale,
+  hold = 0,
+}: {
+  kind: BreathVisualKind
+  inhale: number
+  exhale: number
+  hold?: number
+}) {
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
@@ -306,14 +316,14 @@ export function VisualPreview({ kind, inhale, exhale }: { kind: BreathVisualKind
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [inhale, exhale])
+  }, [inhale, exhale, hold])
 
   if (kind === 'wave') {
-    return <BreathWave inhale={inhale} exhale={exhale} elapsed={elapsed} />
+    return <BreathWave inhale={inhale} exhale={exhale} hold={hold} elapsed={elapsed} />
   }
 
-  const cycle = inhale + exhale
-  const height = cycle > 0 ? breathHeight(elapsed % cycle, inhale, exhale) : 0
+  const cycle = inhale + hold + exhale
+  const height = cycle > 0 ? breathHeight(elapsed % cycle, inhale, exhale, hold) : 0
   return (
     <div className="relative mx-auto aspect-square w-40 md:w-48">
       <ShapeVisual kind={kind} frame={{ height, time: elapsed }} />
