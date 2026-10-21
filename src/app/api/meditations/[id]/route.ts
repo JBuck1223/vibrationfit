@@ -68,6 +68,10 @@ export async function PATCH(
       const value = clampInt(body.hold_seconds, 0, HOLD_MAX_SECONDS)
       if (value != null) update.hold_seconds = value
     }
+    if (body.hold_out_seconds != null) {
+      const value = clampInt(body.hold_out_seconds, 0, HOLD_MAX_SECONDS)
+      if (value != null) update.hold_out_seconds = value
+    }
     if (body.duration_minutes != null) {
       const value = clampInt(body.duration_minutes, DURATION_MIN_MINUTES, DURATION_MAX_MINUTES)
       if (value != null) update.duration_minutes = value

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useState } from 'react'
-import { breathHeight } from '@/lib/meditations/breath'
+import { breathHeight, cycleLength, type BreathRhythm } from '@/lib/meditations/breath'
 import { BreathWave } from './BreathWave'
 
 /** Server and client trig differ in the last digits; round so hydration matches. */
@@ -293,17 +293,8 @@ export function ShapeVisual({ kind, frame }: { kind: Exclude<BreathVisualKind, '
 }
 
 /** Looping preview of any visual for the composer, on its own clock. */
-export function VisualPreview({
-  kind,
-  inhale,
-  exhale,
-  hold = 0,
-}: {
-  kind: BreathVisualKind
-  inhale: number
-  exhale: number
-  hold?: number
-}) {
+export function VisualPreview({ kind, rhythm }: { kind: BreathVisualKind; rhythm: BreathRhythm }) {
+  const { inhale, exhale, hold = 0, holdOut = 0 } = rhythm
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
@@ -316,14 +307,14 @@ export function VisualPreview({
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [inhale, exhale, hold])
+  }, [inhale, exhale, hold, holdOut])
 
   if (kind === 'wave') {
-    return <BreathWave inhale={inhale} exhale={exhale} hold={hold} elapsed={elapsed} />
+    return <BreathWave rhythm={rhythm} elapsed={elapsed} />
   }
 
-  const cycle = inhale + hold + exhale
-  const height = cycle > 0 ? breathHeight(elapsed % cycle, inhale, exhale, hold) : 0
+  const cycle = cycleLength(rhythm)
+  const height = cycle > 0 ? breathHeight(elapsed % cycle, rhythm) : 0
   return (
     <div className="relative mx-auto aspect-square w-40 md:w-48">
       <ShapeVisual kind={kind} frame={{ height, time: elapsed }} />

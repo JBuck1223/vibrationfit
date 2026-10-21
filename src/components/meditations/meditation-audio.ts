@@ -1,5 +1,6 @@
 'use client'
 
+import { cycleLength, phaseStarts, type BreathRhythm } from '@/lib/meditations/breath'
 import { sameOriginMediaUrl } from '@/lib/meditations/media-url'
 
 const LOOP_FADE_SECONDS = 4
@@ -176,6 +177,13 @@ const CHIME_NOTES: Record<ChimeKind, number[]> = {
   complete: [528, 660, 792],
 }
 
+export interface ChimePlan {
+  rhythm: BreathRhythm
+  /** Seconds of settling before the first breath. */
+  leadIn: number
+  durationSeconds: number
+}
+
 export interface SessionSound {
   musicUrl: string | null
   musicVolume: number
@@ -194,6 +202,10 @@ export class MeditationAudio {
   private music: LoopLayer | null = null
   private binaural: LoopLayer | null = null
   private stopTimer: ReturnType<typeof setTimeout> | null = null
+  private chimePlan: ChimePlan | null = null
+  private chimeOrigin = 0
+  private chimesOn = false
+  private chimeVoices = new Set<{ osc: OscillatorNode; gain: GainNode }>()
 
   private ensure() {
     if (this.ctx) return this.ctx
@@ -255,16 +267,70 @@ export class MeditationAudio {
     this.stopTimer = setTimeout(() => this.stopBeds(), seconds * 1000 + 100)
   }
 
-  chime(kind: ChimeKind) {
+  /**
+   * Book every chime for the session on the audio clock. requestAnimationFrame
+   * and timers stall when the screen locks; the audio clock keeps running, and
+   * it freezes with the session on pause because pause suspends the context.
+   */
+  planChimes(plan: ChimePlan, enabled: boolean) {
+    const ctx = this.ensure()
+    this.chimePlan = plan
+    this.chimeOrigin = ctx.currentTime + plan.leadIn
+    this.chimesOn = enabled
+    this.scheduleChimes()
+  }
+
+  setChimesEnabled(enabled: boolean) {
+    this.chimesOn = enabled
+    this.scheduleChimes()
+  }
+
+  /**
+   * Realign chimes to the session clock, e.g. after iOS interrupted audio while the screen was off.
+   * `elapsedSeconds` counts from the first breath, so it is negative while settling in.
+   */
+  syncChimes(elapsedSeconds: number) {
+    if (!this.ctx || !this.chimePlan) return
+    this.chimeOrigin = this.ctx.currentTime - elapsedSeconds
+    this.scheduleChimes()
+  }
+
+  stopChimes() {
+    this.chimePlan = null
+    this.clearChimes()
+  }
+
+  private scheduleChimes() {
+    this.clearChimes()
     const ctx = this.ctx
-    if (!ctx || ctx.state !== 'running') return
-    const at = ctx.currentTime + 0.02
+    const plan = this.chimePlan
+    if (!ctx || !plan || !this.chimesOn) return
+
+    const cycle = cycleLength(plan.rhythm)
+    const starts = phaseStarts(plan.rhythm)
+    const now = ctx.currentTime
+    if (cycle > 0) {
+      for (let cycleStart = 0; cycleStart < plan.durationSeconds; cycleStart += cycle) {
+        for (const { phase, offset } of starts) {
+          const sessionTime = cycleStart + offset
+          if (sessionTime >= plan.durationSeconds) break
+          const at = this.chimeOrigin + sessionTime
+          if (at >= now) this.tone(phase === 'holdOut' ? 'hold' : phase, at)
+        }
+      }
+    }
+    const end = this.chimeOrigin + plan.durationSeconds
+    if (end >= now) this.tone('complete', end)
+  }
+
+  private tone(kind: ChimeKind, at: number) {
+    const ctx = this.ctx!
     const notes = CHIME_NOTES[kind]
     const ring = kind === 'complete' ? 4 : 2.2
     const peak = (kind === 'complete' ? 0.12 : 0.09) / Math.sqrt(notes.length)
 
     notes.forEach((frequency, index) => {
-      const start = at + index * 0.12
+      const start = at + 0.02 + index * 0.12
       // A quiet inharmonic partial gives the tone a bowl-like shimmer.
       for (const [ratio, level] of [[1, 1], [2.76, 0.18]] as const) {
         const osc = ctx.createOscillator()
@@ -278,13 +344,33 @@ export class MeditationAudio {
         gain.connect(ctx.destination)
         osc.start(start)
         osc.stop(start + ring + 0.1)
-        osc.onended = () => gain.disconnect()
+        const voice = { osc, gain }
+        this.chimeVoices.add(voice)
+        osc.onended = () => {
+          gain.disconnect()
+          this.chimeVoices.delete(voice)
+        }
       }
     })
   }
 
+  private clearChimes() {
+    for (const { osc, gain } of this.chimeVoices) {
+      osc.onended = null
+      try {
+        osc.stop()
+      } catch {
+        // Already stopped.
+      }
+      osc.disconnect()
+      gain.disconnect()
+    }
+    this.chimeVoices.clear()
+  }
+
   stop() {
     this.clearStopTimer()
+    this.stopChimes()
     this.stopBeds()
   }
 

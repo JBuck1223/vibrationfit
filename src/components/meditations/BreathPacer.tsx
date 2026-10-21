@@ -22,11 +22,11 @@ import {
   AUTO_EXHALE_SECONDS,
   AUTO_INHALE_SECONDS,
 } from '@/lib/meditations/constants'
-import { breathCount } from '@/lib/meditations/breath'
+import { breathCount, cardRhythm, rhythmDigits, type BreathRhythm } from '@/lib/meditations/breath'
 import type { MeditationBinauralOption, MeditationCard, MeditationMusicOption, MeditationTrack } from '@/lib/meditations/catalog'
 import { BREATH_VISUALS, DEFAULT_VISUAL, isBreathVisual, VisualGlyph, VisualPreview, type BreathVisualKind } from './BreathVisuals'
 import { FocusSession, type FocusSessionConfig } from './FocusSession'
-import { MeditationAudio, type ChimeKind } from './meditation-audio'
+import { MeditationAudio } from './meditation-audio'
 import { MeditationLibrary } from './MeditationLibrary'
 import { BinauralPicker, MusicPicker, musicKey, usePreview } from './SoundPicker'
 import { TrackStudio } from './TrackStudio'
@@ -54,6 +54,7 @@ interface StoredPrefs {
   inhale?: number
   exhale?: number
   hold?: number
+  holdOut?: number
   duration?: number
   music?: string
   binaural?: string
@@ -71,13 +72,18 @@ function unit(value: unknown, fallback: number) {
   return typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback
 }
 
-function presetFor(inhale: number, exhale: number, hold: number) {
-  return BREATH_PRESETS.find((preset) => preset.inhale === inhale && preset.exhale === exhale && preset.hold === hold)?.id
-    ?? CUSTOM_PRESET_ID
+function presetFor(rhythm: Required<BreathRhythm>) {
+  return BREATH_PRESETS.find((preset) =>
+    preset.inhale === rhythm.inhale
+    && preset.exhale === rhythm.exhale
+    && preset.hold === rhythm.hold
+    && preset.holdOut === rhythm.holdOut,
+  )?.id ?? CUSTOM_PRESET_ID
 }
 
-function rhythmDigits(inhale: number, exhale: number, hold: number) {
-  return hold > 0 ? `${inhale} · ${hold} · ${exhale}` : `${inhale} · ${exhale}`
+/** Seconds per part, matching the order `rhythmDigits` lists them in. */
+function rhythmCaption({ hold = 0, holdOut = 0 }: BreathRhythm) {
+  return ['in', hold > 0 ? 'hold' : null, 'out', holdOut > 0 ? 'hold' : null].filter(Boolean).join(' · ')
 }
 
 async function readJson(response: Response) {
@@ -98,6 +104,7 @@ export function BreathPacer() {
   const [customInhale, setCustomInhale] = useState(AUTO_INHALE_SECONDS)
   const [customExhale, setCustomExhale] = useState(AUTO_EXHALE_SECONDS)
   const [customHold, setCustomHold] = useState(0)
+  const [customHoldOut, setCustomHoldOut] = useState(0)
   const [duration, setDuration] = useState(AUTO_DURATION_MINUTES)
   const [musicId, setMusicId] = useState('')
   const [musicVolume, setMusicVolume] = useState(DEFAULT_MUSIC_VOLUME)
@@ -137,6 +144,7 @@ export function BreathPacer() {
         setCustomInhale(inhale)
         setCustomExhale(exhale)
         if (saved.hold) setCustomHold(clamp(saved.hold, 0, HOLD_MAX_SECONDS))
+        if (saved.holdOut) setCustomHoldOut(clamp(saved.holdOut, 0, HOLD_MAX_SECONDS))
         if (saved.preset && (saved.preset === CUSTOM_PRESET_ID || BREATH_PRESETS.some((item) => item.id === saved.preset))) {
           setPreset(saved.preset)
         } else if (saved.mode === 'custom') {
@@ -166,6 +174,7 @@ export function BreathPacer() {
       inhale: customInhale,
       exhale: customExhale,
       hold: customHold,
+      holdOut: customHoldOut,
       duration,
       music: musicId,
       binaural: binauralId,
@@ -179,7 +188,7 @@ export function BreathPacer() {
     } catch {
       // Private mode or full storage; preferences just won't persist.
     }
-  }, [prefsLoaded, preset, customInhale, customExhale, customHold, duration, musicId, binauralId, musicVolume, binauralVolume, chimes, visual])
+  }, [prefsLoaded, preset, customInhale, customExhale, customHold, customHoldOut, duration, musicId, binauralId, musicVolume, binauralVolume, chimes, visual])
 
   useEffect(() => () => audioRef.current?.close(), [])
 
@@ -187,6 +196,12 @@ export function BreathPacer() {
   const inhale = activePreset ? activePreset.inhale : customInhale
   const exhale = activePreset ? activePreset.exhale : customExhale
   const hold = activePreset ? activePreset.hold : customHold
+  const holdOut = activePreset ? activePreset.holdOut : customHoldOut
+  const rhythm = useMemo(() => ({ inhale, exhale, hold, holdOut }), [inhale, exhale, hold, holdOut])
+
+  useEffect(() => {
+    audioRef.current?.setChimesEnabled(chimes)
+  }, [chimes])
 
   // Own tracks stay playable in the composer even before they join the music list.
   const musicPool = useMemo<MeditationMusicOption[]>(() => {
@@ -226,6 +241,10 @@ export function BreathPacer() {
       },
       LEAD_IN_SECONDS,
     )
+    audio.planChimes(
+      { rhythm: next.config.rhythm, leadIn: LEAD_IN_SECONDS, durationSeconds: next.config.durationMinutes * 60 },
+      chimes,
+    )
     setSession(next)
     setRunId((id) => id + 1)
   }
@@ -234,9 +253,7 @@ export function BreathPacer() {
     begin({
       config: {
         title: title.trim(),
-        inhale,
-        exhale,
-        hold,
+        rhythm,
         durationMinutes: duration,
         musicTitle: music?.title || null,
         binauralTitle: binaural?.title || null,
@@ -253,9 +270,7 @@ export function BreathPacer() {
     begin({
       config: {
         title: card.title,
-        inhale: card.inhaleSeconds,
-        exhale: card.exhaleSeconds,
-        hold: card.holdSeconds,
+        rhythm: cardRhythm(card),
         durationMinutes: card.durationMinutes,
         musicTitle: card.musicUrl ? card.musicTitle : null,
         binauralTitle: card.binauralUrl ? card.binauralTitle : null,
@@ -282,26 +297,29 @@ export function BreathPacer() {
   }
 
   const closeSession = useCallback(() => {
+    audioRef.current?.stopChimes()
     audioRef.current?.fadeOut(1.2)
     setSession(null)
   }, [])
 
-  const handlePhase = useCallback((kind: ChimeKind) => {
-    if (chimes) audioRef.current?.chime(kind)
-  }, [chimes])
+  const syncSessionClock = useCallback((elapsedSeconds: number) => {
+    audioRef.current?.syncChimes(elapsedSeconds)
+  }, [])
 
+  // The closing chime is already booked on the audio clock with the rest.
   const handleComplete = useCallback(() => {
     audioRef.current?.fadeOut(END_FADE_SECONDS)
-    if (chimes) audioRef.current?.chime('complete')
-  }, [chimes])
+  }, [])
 
   function loadIntoComposer(card: MeditationCard, asCopy: boolean) {
-    const nextPreset = presetFor(card.inhaleSeconds, card.exhaleSeconds, card.holdSeconds)
+    const nextRhythm = cardRhythm(card)
+    const nextPreset = presetFor(nextRhythm)
     setPreset(nextPreset)
     if (nextPreset === CUSTOM_PRESET_ID) {
-      setCustomInhale(card.inhaleSeconds)
-      setCustomExhale(card.exhaleSeconds)
-      setCustomHold(card.holdSeconds)
+      setCustomInhale(nextRhythm.inhale)
+      setCustomExhale(nextRhythm.exhale)
+      setCustomHold(nextRhythm.hold)
+      setCustomHoldOut(nextRhythm.holdOut)
     }
     setDuration(card.durationMinutes)
 
@@ -346,6 +364,7 @@ export function BreathPacer() {
       inhale_seconds: inhale,
       exhale_seconds: exhale,
       hold_seconds: hold,
+      hold_out_seconds: holdOut,
       duration_minutes: duration,
       music_background_track_id: music?.source === 'background' ? music.id : null,
       music_song_track_id: generated ? music.id : null,
@@ -466,7 +485,7 @@ export function BreathPacer() {
   }
 
   const editingCard = editingId ? catalog?.mine.find((card) => card.id === editingId) : null
-  const breaths = breathCount(inhale, exhale, duration, hold)
+  const breaths = breathCount(rhythm, duration)
   const customDuration = !(DURATION_OPTIONS as readonly number[]).includes(duration)
 
   return (
@@ -502,31 +521,32 @@ export function BreathPacer() {
 
               <section>
                 <SectionLabel>Rhythm</SectionLabel>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-3 xl:grid-cols-6">
+                <div className="grid grid-cols-4 gap-2">
                   {BREATH_PRESETS.map((item) => (
                     <RhythmTile
                       key={item.id}
                       selected={preset === item.id}
                       label={item.label}
-                      detail={rhythmDigits(item.inhale, item.exhale, item.hold)}
+                      detail={rhythmDigits(item)}
                       onClick={() => setPreset(item.id)}
                     />
                   ))}
                   <RhythmTile
                     selected={preset === CUSTOM_PRESET_ID}
                     label="Custom"
-                    detail={rhythmDigits(customInhale, customExhale, customHold)}
+                    detail={rhythmDigits({ inhale: customInhale, exhale: customExhale, hold: customHold, holdOut: customHoldOut })}
                     onClick={() => setPreset(CUSTOM_PRESET_ID)}
                   />
                 </div>
                 <p className="mt-2 text-xs text-neutral-500">
-                  {activePreset ? activePreset.hint : 'Set your own in-breath, hold, and out-breath. Leave hold at 0 to skip it'}
+                  {activePreset ? activePreset.hint : 'Set your own breath and holds. Leave a hold at 0 to skip it'}
                 </p>
                 {preset === CUSTOM_PRESET_ID && (
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3">
                     <Stepper label="Breathe in" value={customInhale} min={BREATH_MIN_SECONDS} max={BREATH_MAX_SECONDS} unit="s" onChange={setCustomInhale} />
-                    <Stepper label="Hold" value={customHold} min={0} max={HOLD_MAX_SECONDS} unit="s" onChange={setCustomHold} />
+                    <Stepper label="Hold full" value={customHold} min={0} max={HOLD_MAX_SECONDS} unit="s" onChange={setCustomHold} />
                     <Stepper label="Breathe out" value={customExhale} min={BREATH_MIN_SECONDS} max={BREATH_MAX_SECONDS} unit="s" onChange={setCustomExhale} />
+                    <Stepper label="Hold empty" value={customHoldOut} min={0} max={HOLD_MAX_SECONDS} unit="s" onChange={setCustomHoldOut} />
                   </div>
                 )}
               </section>
@@ -647,13 +667,11 @@ export function BreathPacer() {
                 </div>
 
                 <div className="my-3 md:my-5">
-                  <VisualPreview kind={visual} inhale={inhale} exhale={exhale} hold={hold} />
+                  <VisualPreview kind={visual} rhythm={rhythm} />
                 </div>
 
-                <div className={`grid gap-2 text-center ${hold > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                  <Stat value={`${inhale}s`} label="in" />
-                  {hold > 0 && <Stat value={`${hold}s`} label="hold" />}
-                  <Stat value={`${exhale}s`} label="out" />
+                <div className="grid grid-cols-2 gap-2 text-center">
+                  <Stat value={rhythmDigits(rhythm)} label={rhythmCaption(rhythm)} />
                   <Stat value={`${duration}m`} label={`${breaths} breaths`} />
                 </div>
 
@@ -734,7 +752,7 @@ export function BreathPacer() {
           onBinauralVolume={(volume) => setSessionVolume('binaural', volume)}
           onPause={() => audioRef.current?.pause()}
           onResume={() => audioRef.current?.resume()}
-          onPhase={handlePhase}
+          onClockSync={syncSessionClock}
           onComplete={handleComplete}
           onRestart={() => begin(session)}
           onClose={closeSession}
