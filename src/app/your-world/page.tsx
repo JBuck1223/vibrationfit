@@ -5,6 +5,7 @@ import { Check, GitCompare, History, Pencil, X } from 'lucide-react'
 import { Badge, Button, Container, Input, PageHero, Select, Spinner, Stack } from '@/lib/design-system/components'
 import { YourWorldEditor } from '@/components/your-world/YourWorldEditor'
 import { useYourWorld } from '@/hooks/useYourWorld'
+import type { WorldIdentity } from '@/lib/your-world/identity'
 import { changedFieldPaths, diffSnapshots, normalizeSnapshot } from '@/lib/your-world/snapshot'
 import type { WorldVersion, YourWorldSnapshot } from '@/lib/your-world/types'
 
@@ -20,6 +21,7 @@ function versionLabel(v: WorldVersion) {
 export default function YourWorldPage() {
   const { data, isLoading, startDraft, saveDraft, discardDraft, commitDraft, activate } = useYourWorld()
   const [draftValue, setDraftValue] = useState<YourWorldSnapshot | null>(null)
+  const [identity, setIdentity] = useState<WorldIdentity | null>(null)
   const [notes, setNotes] = useState('')
   const [viewingId, setViewingId] = useState<string | null>(null)
   const [compare, setCompare] = useState<{ a: string; b: string } | null>(null)
@@ -31,6 +33,10 @@ export default function YourWorldPage() {
   const saved = useMemo(() => (data?.versions || []).filter((v) => !v.is_draft), [data?.versions])
 
   useEffect(() => {
+    if (data && !identity) setIdentity(data.identity)
+  }, [data, identity])
+
+  useEffect(() => {
     if (draft && !draftValue) setDraftValue(normalizeSnapshot(draft.snapshot))
     if (!draft) setDraftValue(null)
   }, [draft, draftValue])
@@ -40,7 +46,7 @@ export default function YourWorldPage() {
     return changedFieldPaths(active?.snapshot ?? null, draftValue)
   }, [active?.snapshot, draftValue])
 
-  if (isLoading || !data) {
+  if (isLoading || !data || !identity) {
     return (
       <Container size="xl">
         <div className="flex min-h-[40vh] items-center justify-center">
@@ -73,7 +79,7 @@ export default function YourWorldPage() {
       if (!draft || !draftValue) return
       if (saveTimer.current) window.clearTimeout(saveTimer.current)
       await saveDraft.mutateAsync({ id: draft.id, snapshot: draftValue })
-      await commitDraft.mutateAsync({ id: draft.id, notes })
+      await commitDraft.mutateAsync({ id: draft.id, notes, identity })
       setNotes('')
       setDraftValue(null)
     })
@@ -97,8 +103,8 @@ export default function YourWorldPage() {
     <Container size="xl">
       <Stack gap="lg">
         <PageHero
-          title="Your World"
-          subtitle="Your people, home, work, and money. VIVA uses these details everywhere."
+          title="My World"
+          subtitle="Your name, people, home, work, and money. VIVA uses these details everywhere."
         >
           {!draft && (
             <Button size="sm" variant="primary" onClick={() => run(() => startDraft.mutateAsync())} disabled={startDraft.isPending}>
@@ -121,7 +127,13 @@ export default function YourWorldPage() {
                 {saveDraft.isPending ? ' Saving...' : ''}
               </p>
             </div>
-            <YourWorldEditor value={draftValue} onChange={onDraftChange} firstName={data.firstName} changed={changed} />
+            <YourWorldEditor
+              value={draftValue}
+              onChange={onDraftChange}
+              identity={identity}
+              onIdentityChange={setIdentity}
+              changed={changed}
+            />
             <div className="space-y-3 rounded-2xl border border-white/[0.06] p-4">
               <Input
                 label="What changed? (optional)"
@@ -134,7 +146,18 @@ export default function YourWorldPage() {
                   <X className="mr-1.5 h-4 w-4" />
                   Discard draft
                 </Button>
-                <Button variant="primary" onClick={onCommit} disabled={commitDraft.isPending || changed.size === 0}>
+                <Button
+                  variant="primary"
+                  onClick={onCommit}
+                  disabled={
+                    commitDraft.isPending ||
+                    (changed.size === 0 &&
+                      identity.firstName === data.identity.firstName &&
+                      identity.lastName === data.identity.lastName &&
+                      identity.phone === data.identity.phone &&
+                      identity.dateOfBirth === data.identity.dateOfBirth)
+                  }
+                >
                   <Check className="mr-1.5 h-4 w-4" />
                   Commit as new version
                 </Button>
@@ -199,7 +222,7 @@ export default function YourWorldPage() {
             {!active && saved.length === 0 && (
               <p className="text-sm text-neutral-400">Nothing saved yet. Click Update to add your details.</p>
             )}
-            <YourWorldEditor value={shownSnapshot} onChange={() => {}} firstName={data.firstName} readOnly />
+            <YourWorldEditor value={shownSnapshot} onChange={() => {}} identity={identity} readOnly />
           </>
         )}
       </Stack>

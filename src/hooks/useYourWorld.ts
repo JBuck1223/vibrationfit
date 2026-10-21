@@ -2,9 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { keys } from '@/lib/query/keys'
+import type { WorldIdentity } from '@/lib/your-world/identity'
 import type { WorldVersion, YourWorldSnapshot, YourWorldState } from '@/lib/your-world/types'
 
 export interface YourWorldResponse extends YourWorldState {
+  identity: WorldIdentity
   firstName: string
 }
 
@@ -28,7 +30,7 @@ export function useYourWorld() {
   })
 
   const saveVersion = useMutation({
-    mutationFn: (input: { snapshot: YourWorldSnapshot; source?: 'getting_started' | 'member' }) =>
+    mutationFn: (input: { snapshot: YourWorldSnapshot; identity?: WorldIdentity; source?: 'getting_started' | 'member' }) =>
       call<{ version: WorldVersion; changed: boolean }>('/api/your-world', {
         method: 'POST',
         body: JSON.stringify(input),
@@ -54,7 +56,7 @@ export function useYourWorld() {
   })
 
   const commitDraft = useMutation({
-    mutationFn: (input: { id: string; notes?: string }) =>
+    mutationFn: (input: { id: string; notes?: string; identity?: WorldIdentity }) =>
       call<{ version: WorldVersion }>('/api/your-world/draft/commit', {
         method: 'POST',
         body: JSON.stringify(input),

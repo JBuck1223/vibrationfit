@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Briefcase, Heart, Home, Plus, Trash2, Wallet } from 'lucide-react'
 import { DatePicker, Input, Select, Textarea } from '@/lib/design-system/components'
+import type { WorldIdentity } from '@/lib/your-world/identity'
 import { ShippingStreetField } from '@/components/account/ShippingStreetField'
 import type { RosterChild, RosterPet } from '@/lib/roster/types'
 import {
@@ -35,11 +36,18 @@ export const WORLD_SCREENS: Array<{ id: WorldScreen; title: string; subtitle: st
   { id: 'money', title: 'Money', subtitle: 'Ranges only. Every one has a "prefer not to say".', icon: Wallet },
 ]
 
+function formatPhone(value: string): string {
+  const limited = value.replace(/\D/g, '').slice(0, 10)
+  if (limited.length <= 3) return limited
+  if (limited.length <= 6) return `(${limited.slice(0, 3)}) ${limited.slice(3)}`
+  return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`
+}
+
 interface EditorProps {
   value: YourWorldSnapshot
   onChange: (next: YourWorldSnapshot) => void
-  /** The member's first name from Account, shown read-only. */
-  firstName: string
+  identity: WorldIdentity
+  onIdentityChange?: (next: WorldIdentity) => void
   screens?: WorldScreen[]
   readOnly?: boolean
   /** Paths that differ from the active version (draft highlighting). */
@@ -137,7 +145,7 @@ function RemoveButton({ onClick, label }: { onClick: () => void; label: string }
   )
 }
 
-export function YourWorldEditor({ value, onChange, firstName, screens, readOnly = false, changed }: EditorProps) {
+export function YourWorldEditor({ value, onChange, identity, onIdentityChange, screens, readOnly = false, changed }: EditorProps) {
   const shown = new Set<WorldScreen>(screens ?? ['people', 'home', 'money'])
   const set = (patch: Partial<YourWorldSnapshot>) => onChange({ ...value, ...patch })
   const setPartner = (patch: Partial<YourWorldSnapshot['partner']>) => set({ partner: { ...value.partner, ...patch } })
@@ -159,14 +167,36 @@ export function YourWorldEditor({ value, onChange, firstName, screens, readOnly 
           <Section title="You" icon={Heart}>
             <NameWithSayAs
               nameLabel="Your first name"
-              name={firstName}
-              nameReadOnly
+              name={identity.firstName}
               sayAs={value.say_as || ''}
+              onNameChange={(firstName) => onIdentityChange?.({ ...identity, firstName })}
               onSayAsChange={(say_as) => set({ say_as })}
               readOnly={readOnly}
               highlightSayAs={changed?.has('say_as')}
             />
             <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                label="Last name"
+                value={identity.lastName}
+                disabled={readOnly}
+                placeholder="Last name"
+                onChange={(e) => onIdentityChange?.({ ...identity, lastName: e.target.value })}
+              />
+              <Input
+                label="Phone"
+                type="tel"
+                value={identity.phone}
+                disabled={readOnly}
+                placeholder="(555) 123-4567"
+                onChange={(e) => onIdentityChange?.({ ...identity, phone: formatPhone(e.target.value) })}
+              />
+              <DatePicker
+                label="Birthday"
+                value={identity.dateOfBirth}
+                disabled={readOnly}
+                maxDate={new Date().toISOString().split('T')[0]}
+                onChange={(dateOfBirth: string) => onIdentityChange?.({ ...identity, dateOfBirth })}
+              />
               <Field path="gender" changed={changed}>
                 <Pick label="Gender" options={GENDER_OPTIONS} value={value.gender} onChange={(gender) => set({ gender })} disabled={readOnly} />
               </Field>

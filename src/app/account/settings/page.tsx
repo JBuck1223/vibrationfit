@@ -501,9 +501,9 @@ export default function AccountSettingsPage() {
               <p className="mt-1 text-xs text-neutral-500">
                 Your address lives in{' '}
                 <Link href="/your-world" className="text-[#39FF14] hover:underline">
-                  Your World
+                  My World
                 </Link>
-                {' '}with your people, home, and work.
+                {' '}with your name, people, home, and work.
               </p>
             </div>
 

@@ -10,6 +10,7 @@ import { WORLD_SCREENS, YourWorldEditor } from '@/components/your-world/YourWorl
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { useYourWorld } from '@/hooks/useYourWorld'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
+import { missingIdentityFields, type WorldIdentity } from '@/lib/your-world/identity'
 import { normalizeSnapshot } from '@/lib/your-world/snapshot'
 import type { YourWorldSnapshot } from '@/lib/your-world/types'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ export default function BeginWorldPage() {
   const { progress, completeOnboardingStep, isUpdating } = useLifeActivation()
   const { data, isLoading, saveVersion } = useYourWorld()
   const [snapshot, setSnapshot] = useState<YourWorldSnapshot | null>(null)
+  const [identity, setIdentity] = useState<WorldIdentity | null>(null)
   const [screen, setScreen] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const completed = Boolean(progress?.onboarding.world)
@@ -27,9 +29,10 @@ export default function BeginWorldPage() {
   useEffect(() => {
     if (!data || snapshot) return
     setSnapshot(normalizeSnapshot(data.active?.snapshot ?? data.seed))
+    setIdentity(data.identity)
   }, [data, snapshot])
 
-  if (!progress || isLoading || !data || !snapshot) {
+  if (!progress || isLoading || !data || !snapshot || !identity) {
     return (
       <Container size="xl">
         <div className="flex min-h-[40vh] items-center justify-center">
@@ -42,10 +45,20 @@ export default function BeginWorldPage() {
   const current = WORLD_SCREENS[screen]
   const last = screen === WORLD_SCREENS.length - 1
 
+  const requireIdentity = () => {
+    const missing = missingIdentityFields(identity)
+    if (missing.length === 0) return true
+    setScreen(0)
+    setError(LIFE_ACTIVATION_COPY.world.missing(missing))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return false
+  }
+
   const finish = async () => {
+    if (!requireIdentity()) return
     setError(null)
     try {
-      await saveVersion.mutateAsync({ snapshot, source: 'getting_started' })
+      await saveVersion.mutateAsync({ snapshot, identity, source: 'getting_started' })
       await completeOnboardingStep('world')
       router.push('/life-vision/start')
     } catch (err) {
@@ -54,7 +67,9 @@ export default function BeginWorldPage() {
   }
 
   const next = () => {
+    if (screen === 0 && !requireIdentity()) return
     if (last) return finish()
+    setError(null)
     setScreen((s) => s + 1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -76,7 +91,7 @@ export default function BeginWorldPage() {
         />
 
         {completed ? (
-          <YourWorldEditor value={snapshot} onChange={() => {}} firstName={data.firstName} readOnly />
+          <YourWorldEditor value={snapshot} onChange={() => {}} identity={identity} readOnly />
         ) : (
           <>
             <div className="flex flex-wrap gap-2">
@@ -86,7 +101,11 @@ export default function BeginWorldPage() {
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => setScreen(i)}
+                    onClick={() => {
+                      if (i > 0 && !requireIdentity()) return
+                      setError(null)
+                      setScreen(i)
+                    }}
                     className={cn(
                       'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition',
                       i === screen
@@ -105,7 +124,8 @@ export default function BeginWorldPage() {
             <YourWorldEditor
               value={snapshot}
               onChange={setSnapshot}
-              firstName={data.firstName}
+              identity={identity}
+              onIdentityChange={setIdentity}
               screens={[current.id]}
             />
 

@@ -61,9 +61,9 @@ export const LIFE_ACTIVATION_COPY = {
         case 'welcome':
           return 'Start here. Watch the welcome, then take a short baseline survey.'
         case 'intake':
-          return 'A short baseline so you can see where you started. Then tell VIVA about your world.'
+          return 'A short baseline so you can see where you started. Then open My World.'
         case 'world':
-          return 'Your people, home, work, and money, so VIVA can write a Life Vision that is really yours.'
+          return 'Your name, the people around you, home, work, and money, so VIVA can write a Life Vision that is really yours.'
         case 'vision':
           return 'One conversation with VIVA writes your Life Vision. Then you meet your people.'
         case 'kit':
@@ -97,15 +97,16 @@ export const LIFE_ACTIVATION_COPY = {
     missing: (fields: string[]) => `Save your ${fields.join(', ')} in Personal Information, then continue.`,
   },
   world: {
-    title: 'Your World',
+    title: 'My World',
     titleAccent: 'World',
-    body: 'The names, places, and details that make your Life Vision yours. Everything here is optional.',
-    done: 'Saved. You can update this anytime in Your World.',
+    body: 'Your name and how to reach you, plus the people, places, and details that make your Life Vision yours. The life details are optional.',
+    done: 'Saved. You can update this anytime in My World.',
     next: 'Next',
     back: 'Back',
     cta: 'Save and continue',
     skip: 'Skip for now',
-    editCta: 'Update in Your World',
+    editCta: 'Update in My World',
+    missing: (fields: string[]) => `Add your ${fields.join(', ')} before continuing.`,
   },
   vision: {
     openingFirstVision: (hasActivation: boolean) =>

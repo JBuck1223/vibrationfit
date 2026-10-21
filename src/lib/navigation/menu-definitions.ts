@@ -272,10 +272,10 @@ export const userNavigationGroups: NavGroup[] = [
     defaultCollapsed: true,
     items: [
       {
-        name: 'Your World',
+        name: 'My World',
         href: '/your-world',
         icon: Globe,
-        description: 'Your people, home, and work',
+        description: 'Your name, people, home, and work',
       },
       {
         name: 'Billing',
@@ -676,10 +676,10 @@ export const headerAccountMenu: NavItem[] = [
     description: 'Go to your member dashboard',
   },
   {
-    name: 'Your World',
+    name: 'My World',
     href: '/your-world',
     icon: Globe,
-    description: 'Your people, home, and work',
+    description: 'Your name, people, home, and work',
   },
   {
     name: 'Activity Feed',
