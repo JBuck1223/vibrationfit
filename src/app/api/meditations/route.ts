@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
         inhale_seconds: clampInt(body.inhale_seconds, BREATH_MIN_SECONDS, BREATH_MAX_SECONDS, 3),
         exhale_seconds: clampInt(body.exhale_seconds, BREATH_MIN_SECONDS, BREATH_MAX_SECONDS, 5),
         hold_seconds: clampInt(body.hold_seconds, 0, HOLD_MAX_SECONDS, 0),
+        hold_out_seconds: clampInt(body.hold_out_seconds, 0, HOLD_MAX_SECONDS, 0),
         duration_minutes: clampInt(body.duration_minutes, DURATION_MIN_MINUTES, DURATION_MAX_MINUTES, 5),
         music_background_track_id: musicBackgroundTrackId,
         music_song_track_id: musicSongTrackId,

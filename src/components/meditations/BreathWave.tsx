@@ -1,33 +1,32 @@
 'use client'
 
 import { useId, useMemo } from 'react'
-import { breathHeight, breathPath } from '@/lib/meditations/breath'
+import { breathHeight, breathPath, cycleLength, type BreathRhythm } from '@/lib/meditations/breath'
 
 const WIDTH = 1000
 const TOP = 36
 const BOTTOM = 164
 
 interface BreathWaveProps {
-  inhale: number
-  exhale: number
-  hold?: number
+  rhythm: BreathRhythm
   /** Seconds into the session. Negative while settling in. */
   elapsed: number
   className?: string
 }
 
 /** Two breaths of the pattern with a glowing ball riding the curve. */
-export function BreathWave({ inhale, exhale, hold = 0, elapsed, className }: BreathWaveProps) {
+export function BreathWave({ rhythm, elapsed, className }: BreathWaveProps) {
   const id = useId().replace(/:/g, '')
-  const cycle = inhale + hold + exhale
+  const { inhale, exhale, hold = 0, holdOut = 0 } = rhythm
+  const cycle = cycleLength(rhythm)
   const path = useMemo(
-    () => breathPath(inhale, exhale, { width: WIDTH, top: TOP, bottom: BOTTOM, hold }),
-    [inhale, exhale, hold],
+    () => breathPath({ inhale, exhale, hold, holdOut }, { width: WIDTH, top: TOP, bottom: BOTTOM }),
+    [inhale, exhale, hold, holdOut],
   )
 
   const time = Math.max(0, elapsed)
   const cycleTime = cycle > 0 ? time % cycle : 0
-  const height = elapsed < 0 ? 0 : breathHeight(cycleTime, inhale, exhale, hold)
+  const height = elapsed < 0 ? 0 : breathHeight(cycleTime, rhythm)
   const x = cycle > 0 ? ((time % (cycle * 2)) / (cycle * 2)) * WIDTH : 0
   const y = BOTTOM - height * (BOTTOM - TOP)
 
@@ -67,11 +66,12 @@ export function BreathWave({ inhale, exhale, hold = 0, elapsed, className }: Bre
 }
 
 /** Static thumbnail of a pattern for library cards. */
-export function PatternThumb({ inhale, exhale, hold = 0 }: { inhale: number; exhale: number; hold?: number }) {
+export function PatternThumb({ rhythm }: { rhythm: BreathRhythm }) {
   const id = useId().replace(/:/g, '')
+  const { inhale, exhale, hold = 0, holdOut = 0 } = rhythm
   const path = useMemo(
-    () => breathPath(inhale, exhale, { width: 200, top: 8, bottom: 52, cycles: 2, steps: 60, hold }),
-    [inhale, exhale, hold],
+    () => breathPath({ inhale, exhale, hold, holdOut }, { width: 200, top: 8, bottom: 52, cycles: 2, steps: 60 }),
+    [inhale, exhale, hold, holdOut],
   )
   return (
     <svg viewBox="0 0 200 60" className="w-full h-10" aria-hidden="true" preserveAspectRatio="none">

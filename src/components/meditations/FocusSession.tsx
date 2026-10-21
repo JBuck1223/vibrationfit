@@ -5,19 +5,25 @@ import { createPortal } from 'react-dom'
 import { Bell, BellOff, Pause, Play, RotateCcw, Shapes, SlidersHorizontal, X } from 'lucide-react'
 import { Haptics, ImpactStyle } from '@capacitor/haptics'
 import { Button } from '@/lib/design-system/components'
-import { breathHeight, breathPhase, formatClock, rhythmLabel, type BreathPhase } from '@/lib/meditations/breath'
+import {
+  BREATH_PHASE_ORDER,
+  breathHeight,
+  breathPhase,
+  cycleLength,
+  formatClock,
+  rhythmLabel,
+  type BreathPhase,
+  type BreathRhythm,
+} from '@/lib/meditations/breath'
 import { LEAD_IN_SECONDS } from '@/lib/meditations/constants'
 import { isNativeShell } from '@/lib/mobile/native-shell'
 import { BreathWave } from './BreathWave'
 import { BREATH_VISUALS, OrbVisual, ShapeVisual, VisualGlyph, type BreathVisualKind } from './BreathVisuals'
-import type { ChimeKind } from './meditation-audio'
 import { useWakeLock } from './useWakeLock'
 
 export interface FocusSessionConfig {
   title: string
-  inhale: number
-  exhale: number
-  hold: number
+  rhythm: BreathRhythm
   durationMinutes: number
   musicTitle: string | null
   binauralTitle: string | null
@@ -25,11 +31,11 @@ export interface FocusSessionConfig {
 
 type Status = 'running' | 'paused' | 'complete'
 
-const PHASE_ORDER: BreathPhase[] = ['inhale', 'hold', 'exhale']
 const PHASE_HEADLINE: Record<BreathPhase, string> = {
   inhale: 'Breathe in',
   hold: 'Hold',
   exhale: 'Breathe out',
+  holdOut: 'Hold',
 }
 
 interface FocusSessionProps {
@@ -46,7 +52,8 @@ interface FocusSessionProps {
   onBinauralVolume: (volume: number) => void
   onPause: () => void
   onResume: () => void
-  onPhase: (kind: ChimeKind) => void
+  /** Seconds into the session, sent when the screen comes back so sound can realign. */
+  onClockSync: (elapsedSeconds: number) => void
   onComplete: () => void
   onRestart: () => void
   onClose: () => void
@@ -73,13 +80,13 @@ export function FocusSession({
   onBinauralVolume,
   onPause,
   onResume,
-  onPhase,
+  onClockSync,
   onComplete,
   onRestart,
   onClose,
 }: FocusSessionProps) {
-  const { inhale, exhale, hold, durationMinutes } = config
-  const cycle = inhale + hold + exhale
+  const { rhythm, durationMinutes } = config
+  const cycle = cycleLength(rhythm)
   const durationSeconds = durationMinutes * 60
 
   const [status, setStatus] = useState<Status>('running')
@@ -88,8 +95,8 @@ export function FocusSession({
   const clock = useRef({ origin: 0, pausedAt: 0, pausedTotal: 0 })
   const lastPhase = useRef(-1)
   const finished = useRef(false)
-  const callbacks = useRef({ onPhase, onComplete })
-  callbacks.current = { onPhase, onComplete }
+  const callbacks = useRef({ onClockSync, onComplete })
+  callbacks.current = { onClockSync, onComplete }
 
   useWakeLock(status === 'running')
 
@@ -126,11 +133,10 @@ export function FocusSession({
         return
       }
       if (next >= 0 && cycle > 0) {
-        const current = breathPhase(next % cycle, inhale, exhale, hold).phase
-        const phase = Math.floor(next / cycle) * 3 + PHASE_ORDER.indexOf(current)
+        const current = breathPhase(next % cycle, rhythm).phase
+        const phase = Math.floor(next / cycle) * BREATH_PHASE_ORDER.length + BREATH_PHASE_ORDER.indexOf(current)
         if (phase !== lastPhase.current) {
           lastPhase.current = phase
-          callbacks.current.onPhase(current)
           pulse()
         }
       }
@@ -146,7 +152,19 @@ export function FocusSession({
       cancelAnimationFrame(frame)
       clearTimeout(backstop)
     }
-  }, [status, runId, cycle, inhale, exhale, hold, durationSeconds, readElapsed, finish])
+  }, [status, runId, cycle, rhythm, durationSeconds, readElapsed, finish])
+
+  // iOS can interrupt audio while the screen is off, so the audio clock may fall behind the session clock.
+  useEffect(() => {
+    if (status !== 'running') return
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        callbacks.current.onClockSync(readElapsed(performance.now()))
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [status, readElapsed])
 
   const togglePause = useCallback(() => {
     if (status === 'running') {
@@ -157,8 +175,9 @@ export function FocusSession({
       clock.current.pausedTotal += performance.now() - clock.current.pausedAt
       setStatus('running')
       onResume()
+      callbacks.current.onClockSync(readElapsed(performance.now()))
     }
-  }, [status, onPause, onResume])
+  }, [status, onPause, onResume, readElapsed])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -183,8 +202,8 @@ export function FocusSession({
   const settling = elapsed < 0
   const time = Math.max(0, elapsed)
   const cycleTime = cycle > 0 ? time % cycle : 0
-  const current = breathPhase(cycleTime, inhale, exhale, hold)
-  const height = status === 'complete' || settling ? 0 : breathHeight(cycleTime, inhale, exhale, hold)
+  const current = breathPhase(cycleTime, rhythm)
+  const height = status === 'complete' || settling ? 0 : breathHeight(cycleTime, rhythm)
   const phaseLeft = Math.max(1, Math.ceil(current.left))
   const progress = Math.min(1, time / durationSeconds)
   const breaths = cycle > 0 ? Math.floor(time / cycle) : 0
@@ -229,7 +248,7 @@ export function FocusSession({
         <div className="min-w-0">
           <p className="truncate text-base md:text-lg font-semibold">{config.title || 'Breathe'}</p>
           <p className="truncate text-xs md:text-sm text-neutral-400">
-            {rhythmLabel(inhale, exhale, hold)} · {durationMinutes} min{soundLine ? ` · ${soundLine}` : ''}
+            {rhythmLabel(rhythm)} · {durationMinutes} min{soundLine ? ` · ${soundLine}` : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -309,7 +328,7 @@ export function FocusSession({
 
         {visual === 'wave' && (
           <div className="w-full max-w-3xl">
-            <BreathWave inhale={inhale} exhale={exhale} hold={hold} elapsed={status === 'complete' ? 0 : elapsed} />
+            <BreathWave rhythm={rhythm} elapsed={status === 'complete' ? 0 : elapsed} />
           </div>
         )}
       </main>

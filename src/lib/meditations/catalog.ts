@@ -42,6 +42,7 @@ export interface MeditationCard {
   inhaleSeconds: number
   exhaleSeconds: number
   holdSeconds: number
+  holdOutSeconds: number
   durationMinutes: number
   musicTitle: string | null
   musicUrl: string | null
@@ -66,6 +67,7 @@ interface MeditationRow {
   inhale_seconds: number
   exhale_seconds: number
   hold_seconds: number | null
+  hold_out_seconds: number | null
   duration_minutes: number
   music_background_track_id: string | null
   music_song_track_id: string | null
@@ -234,6 +236,7 @@ export async function loadMeditationCatalog(db: AdminDb, userId: string) {
       inhaleSeconds: row.inhale_seconds,
       exhaleSeconds: row.exhale_seconds,
       holdSeconds: row.hold_seconds ?? 0,
+      holdOutSeconds: row.hold_out_seconds ?? 0,
       durationMinutes: row.duration_minutes,
       musicTitle: bed?.display_name || generated?.title || null,
       musicUrl: bed?.file_url || generated?.mp3_url || null,
