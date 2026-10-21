@@ -21,6 +21,7 @@ export const PAGE_CLASSIFICATIONS = {
    * Layout: SidebarLayout + MobileBottomNav + PageLayout
    */
   USER: [
+    '/listen', '/capture', '/tribe', '/tools',
     // Dashboard & Analytics
       '/dashboard',
       '/activity',

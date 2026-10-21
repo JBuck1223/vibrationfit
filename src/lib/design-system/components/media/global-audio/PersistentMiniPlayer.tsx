@@ -71,7 +71,7 @@ export function PersistentMiniPlayer() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-out">
+    <div className="member-mini-player fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-out">
       <div
         className="h-1 bg-neutral-800 cursor-pointer group relative"
         onClick={handleProgressClick}

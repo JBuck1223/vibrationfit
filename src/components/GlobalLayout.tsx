@@ -26,7 +26,7 @@ function VivaShell({ children }: { children: React.ReactNode }) {
   const viewportHeight = useVisualViewportHeight()
   return (
     <div
-      className="flex bg-black overflow-hidden"
+      className="member-conversation flex bg-black overflow-hidden"
       style={{ height: `calc(${viewportHeight ? `${viewportHeight}px` : '100dvh'} - var(--native-inset-top, 0px))` }}
     >
       <UserSidebar />
@@ -271,6 +271,9 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   // section nav), so strip PageLayout's padding to avoid a gap around it.
   const fullBleedClass = pathname?.startsWith('/homeschool/life-explorer') ? '!p-0' : undefined
   
+  if (process.env.NODE_ENV === 'development' && pathname === '/room-preview') return <>{children}</>
+  if (['/dashboard', '/begin', '/listen', '/capture', '/tribe', '/tools'].includes(pathname)) return <>{children}</>
+
   // Public/marketing pages always use Header + Footer. Sidebar is member/admin only.
   if (pageType === 'USER' || pageType === 'ADMIN') {
     // Print pages: No sidebar, no padding (full-screen interface)
@@ -295,7 +298,7 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
     if (pathname?.startsWith('/vibe-tribe')) {
       const isNewPage = pathname?.includes('/vibe-tribe/new')
       return (
-        <div className="flex h-screen bg-black">
+        <div className="member-conversation flex h-screen bg-black">
           <UserSidebar />
           <main data-app-scroller className={`flex-1 flex flex-col min-h-0 min-w-0 ${isNewPage ? 'overflow-y-auto overflow-x-clip' : 'overflow-hidden'}`}>
             <div className="flex-1 flex flex-col min-h-0 w-full">

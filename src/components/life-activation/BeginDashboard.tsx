@@ -1,10 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { BeginJourney } from '@/components/rooms/BeginJourney'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
 import { BeginTitle } from '@/components/life-activation/BeginTitle'
-import { JourneyDashboard, type DashboardStep } from '@/components/life-activation/JourneyDashboard'
+import {
+  JourneyDashboard,
+  type DashboardStep,
+} from '@/components/life-activation/JourneyDashboard'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { signalBeginComplete } from '@/lib/life-activation/celebration'
 import { LIFE_ACTIVATION_COPY } from '@/lib/life-activation/copy'
@@ -16,18 +20,18 @@ import {
   type OnboardingStepId,
 } from '@/lib/life-activation/steps'
 
-export function BeginDashboard() {
+export function BeginDashboard({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const {
-    progress,
-    isLoading,
-    isUpdating,
-    completeOnboardingStep,
-  } = useLifeActivation()
+  const { progress, isLoading, isError, isUpdating, completeOnboardingStep } =
+    useLifeActivation()
+  const completing = useRef(false)
+  const [saveError, setSaveError] = useState('')
   const [kitOpen, setKitOpen] = useState(searchParams.get('step') === 'kit')
 
-  const kitReady = Boolean(progress?.onboarding.vision && progress?.active_vision_id)
+  const kitReady = Boolean(
+    progress?.onboarding.vision && progress?.active_vision_id,
+  )
 
   const steps: DashboardStep[] = withSequentialLocks(
     ONBOARDING_STEPS.map((step) => ({
@@ -51,15 +55,29 @@ export function BeginDashboard() {
 
   // A member who has not started yet lands on the welcome page, not an empty checklist
   useEffect(() => {
-    if (notStarted) router.replace('/begin/welcome')
-  }, [notStarted, router])
+    if (notStarted && !embedded) router.replace('/begin/welcome')
+  }, [notStarted, router, embedded])
 
   useEffect(() => {
-    if (!progress || progress.onboarding_completed_at || !visibleDone) return
-    void completeOnboardingStep('complete').then(() => {
-      signalBeginComplete()
-      router.replace('/dashboard?welcome=1')
-    })
+    if (
+      !progress ||
+      progress.onboarding_completed_at ||
+      !visibleDone ||
+      completing.current
+    )
+      return
+    completing.current = true
+    void completeOnboardingStep('complete')
+      .then(() => {
+        signalBeginComplete()
+        router.replace('/dashboard?welcome=1')
+        router.refresh()
+      })
+      .catch(() =>
+        setSaveError(
+          'Your completion could not be saved. Refresh to try again.',
+        ),
+      )
   }, [completeOnboardingStep, progress, router, visibleDone])
 
   const handleContinue = async (step: DashboardStep) => {
@@ -83,26 +101,55 @@ export function BeginDashboard() {
 
   return (
     <>
-      <JourneyDashboard
-        title={
-          <BeginTitle
-            text={LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}
-            accent={LIFE_ACTIVATION_COPY.sidebar.onboardingAccent}
-          />
-        }
-        phases={ONBOARDING_PHASES}
-        steps={steps}
-        nextStep={nextStep}
-        progressCopy={LIFE_ACTIVATION_COPY.dashboard.onboardingLead(nextStep?.id ?? null)}
-        loading={isLoading || notStarted}
-        continueDisabled={isUpdating}
-        onContinue={handleContinue}
-        onSkip={async (step) => {
-          if (step.id !== 'voice' || isUpdating) return
-          await completeOnboardingStep('voice')
-          router.push('/vibe-tribe')
-        }}
-      />
+      {saveError && (
+        <p className="room-notice" role="alert">
+          {saveError}
+        </p>
+      )}
+      {embedded ? (
+        <BeginJourney
+          steps={steps}
+          nextStep={nextStep}
+          loading={isLoading}
+          error={isError}
+          continueDisabled={isUpdating}
+          onContinue={handleContinue}
+          onSkip={async (step) => {
+            if (step.id !== 'voice' || isUpdating) return
+            try {
+              await completeOnboardingStep('voice')
+              router.push('/vibe-tribe')
+            } catch {
+              setSaveError(
+                'Your progress could not be saved. Please try again.',
+              )
+            }
+          }}
+        />
+      ) : (
+        <JourneyDashboard
+          title={
+            <BeginTitle
+              text={LIFE_ACTIVATION_COPY.sidebar.onboardingTitle}
+              accent={LIFE_ACTIVATION_COPY.sidebar.onboardingAccent}
+            />
+          }
+          phases={ONBOARDING_PHASES}
+          steps={steps}
+          nextStep={nextStep}
+          progressCopy={LIFE_ACTIVATION_COPY.dashboard.onboardingLead(
+            nextStep?.id ?? null,
+          )}
+          loading={isLoading || notStarted}
+          continueDisabled={isUpdating}
+          onContinue={handleContinue}
+          onSkip={async (step) => {
+            if (step.id !== 'voice' || isUpdating) return
+            await completeOnboardingStep('voice')
+            router.push('/vibe-tribe')
+          }}
+        />
+      )}
 
       {progress?.active_vision_id && (
         <CommitVisionDialog
