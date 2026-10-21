@@ -302,7 +302,7 @@ function LoginForm() {
           )}
         </form>
 
-        <p className="text-neutral-400 text-center mt-6">
+        <p className="hide-in-native text-neutral-400 text-center mt-6">
           Don&apos;t have an account? <a href="/#pricing" className="text-green-500 hover:text-green-400 transition-colors">Get Started</a>
         </p>
       </Card>
