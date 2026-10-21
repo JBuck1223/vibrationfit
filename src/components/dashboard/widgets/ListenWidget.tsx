@@ -113,7 +113,7 @@ export function ListenWidget(chrome: WidgetChromeProps) {
                   : 'One listen a day keeps the vision close.'}
             </span>
           </div>
-          <ul className={cn('grid gap-2', isWideWidget(chrome.size) ? 'md:grid-cols-3' : 'grid-cols-1')}>
+          <ul className={cn('grid grid-cols-1 gap-2', isWideWidget(chrome.size) && 'md:grid-cols-3')}>
             {playable.map((source) => {
               const meta = KIND_META[source.kind]
               const Icon = meta.icon
@@ -123,7 +123,7 @@ export function ListenWidget(chrome: WidgetChromeProps) {
                 <li
                   key={source.id}
                   className={cn(
-                    'flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 transition-colors',
+                    'flex min-w-0 items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 transition-colors',
                     current && 'border-white/20 bg-white/[0.04]',
                   )}
                 >
