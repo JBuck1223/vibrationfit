@@ -91,7 +91,6 @@ export function Header() {
               alt="Vibration Fit"
               width={363}
               height={32}
-              className="max-sm:h-auto max-sm:max-w-[55vw]"
               priority
               loading="eager"
             />
