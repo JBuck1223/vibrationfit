@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { Container, Spinner } from '@/lib/design-system/components'
-import { MemberHome } from '@/components/rooms/MemberHome'
+import { DashboardHome } from '@/components/dashboard/DashboardHome'
 import { BEGIN_HOME, resolveMemberHome } from '@/lib/life-activation/home'
 import { createClient } from '@/lib/supabase/server'
 
@@ -13,7 +13,10 @@ export default async function DashboardPage() {
     redirect('/auth/login')
   }
 
-  const needsBegin = (await resolveMemberHome(supabase, user.id)) === BEGIN_HOME
+  // Members stay in Getting Started until Life Activation onboarding is complete
+  if ((await resolveMemberHome(supabase, user.id)) === BEGIN_HOME) {
+    redirect(BEGIN_HOME)
+  }
 
   const [{ data: account }, annualUpgradeOffer] = await Promise.all([
     supabase.from('user_accounts').select('first_name, timezone').eq('id', user.id).maybeSingle(),
@@ -30,14 +33,13 @@ export default async function DashboardPage() {
         </Container>
       }
     >
-      <MemberHome
+      <DashboardHome
         server={{
           userId: user.id,
           userEmail: user.email ?? null,
           firstName: account?.first_name ?? null,
           userTimezone: account?.timezone ?? null,
         }}
-        needsBegin={needsBegin}
         annualUpgradeOffer={annualUpgradeOffer}
       />
     </Suspense>

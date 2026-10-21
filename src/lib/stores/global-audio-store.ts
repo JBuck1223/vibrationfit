@@ -19,7 +19,7 @@ interface GlobalAudioState {
   shuffleOrder: number[]
   isDrawerOpen: boolean
 
-  play: (tracks: AudioTrack[], startIndex?: number, setName?: string, setIconKey?: string, contentCategory?: AudioContentCategory, startAt?: number) => void
+  play: (tracks: AudioTrack[], startIndex?: number, setName?: string, setIconKey?: string, contentCategory?: AudioContentCategory) => void
   playTrack: (index: number) => void
   stop: () => void
   pause: () => void
@@ -91,12 +91,9 @@ function preloadNextTrack(nextTrack: AudioTrack | undefined) {
   })
 }
 
-async function loadAndPlay(audio: HTMLAudioElement, track: AudioTrack, startAt = 0) {
+async function loadAndPlay(audio: HTMLAudioElement, track: AudioTrack) {
   const url = await resolveTrackUrl(track)
   audio.src = url
-  if (startAt > 0) audio.addEventListener('loadedmetadata', () => {
-    if (audio.src === url) audio.currentTime = Math.min(startAt, Number.isFinite(audio.duration) ? Math.max(0, audio.duration - 1) : startAt)
-  }, { once: true })
   audio.play().catch(() => {})
   trackPlayEvent(track)
 }
@@ -214,7 +211,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
   shuffleOrder: [],
   isDrawerOpen: false,
 
-  play: (tracks, startIndex = 0, setName, setIconKey, contentCategory, startAt = 0) => {
+  play: (tracks, startIndex = 0, setName, setIconKey, contentCategory) => {
     if (tracks.length === 0) return
     const audio = getAudio()
     set({
@@ -230,7 +227,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       isShuffled: false,
       shuffleOrder: [],
     })
-    loadAndPlay(audio, tracks[startIndex], startAt)
+    loadAndPlay(audio, tracks[startIndex])
     preloadNextTrack(tracks[startIndex + 1])
   },
 

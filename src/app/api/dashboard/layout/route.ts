@@ -1,4 +1,3 @@
-import { updateMemberState } from '@/lib/rooms/save-member-state'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { dashboardLayoutSchema, normalizeLayout } from '@/lib/dashboard/layout'
@@ -44,9 +43,12 @@ export async function PUT(request: NextRequest) {
 
   const layout = normalizeLayout(parsed.data)
 
-  try {
-    await updateMemberState(supabase, user.id, current => ({ ...current, ...layout }))
-  } catch {
+  const { error: upsertError } = await supabase
+    .from('member_dashboard_layouts')
+    .upsert({ user_id: user.id, layout }, { onConflict: 'user_id' })
+
+  if (upsertError) {
+    console.error('Error saving dashboard layout:', upsertError)
     return NextResponse.json({ error: 'Failed to save layout' }, { status: 500 })
   }
 

@@ -1,4 +1,3 @@
-import './rooms.css'
 import type { Metadata, Viewport } from "next";
 import { Indie_Flower, Poppins } from "next/font/google";
 import "./globals.css";
