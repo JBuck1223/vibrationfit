@@ -243,14 +243,14 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
     )
   }
 
-  // Inside the app shell: one app-like row for everything, a soft pill for
-  // where you are, no outlines.
+  // Inside the app shell: one app-like row for everything, a green pill for
+  // where you are (like the studio toggles), no outlines.
   const glass = surface === 'glass'
   const shellRow = (active: boolean, dim = false) =>
     cn(
-      'flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm transition-colors duration-150',
+      'flex items-center gap-3 h-10 px-3 rounded-full text-sm transition-colors duration-150',
       active
-        ? 'bg-white/[0.09] text-white font-semibold [&>svg:first-child]:text-[#39FF14]'
+        ? 'bg-[rgba(57,255,20,0.14)] text-[#39FF14] font-semibold'
         : dim
           ? 'text-white/60 hover:text-white hover:bg-white/[0.05]'
           : 'text-white/80 hover:text-white hover:bg-white/[0.05]'
@@ -704,17 +704,15 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          'hidden md:flex flex-col bg-neutral-800 border-r border-neutral-800 transition-all duration-300',
+          'hidden md:flex flex-col transition-all duration-300',
+          // Inside the app shell: a floating panel in the same violet frosted
+          // glass as the cards and bottom bar.
+          surface === 'glass'
+            ? 'vf-glass overflow-hidden rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(22,18,32,0.68)_100%)] shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150'
+            : 'bg-neutral-800 border-r border-neutral-800',
           collapsed ? 'w-16' : 'w-64',
           className
         )}
-        // Inside the app shell the sidebar is glass over the theme backdrop.
-        style={surface === 'glass' ? {
-          backgroundColor: 'var(--glass-fill-strong)',
-          borderColor: 'var(--glass-border)',
-          WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(140%)',
-          backdropFilter: 'blur(var(--glass-blur)) saturate(140%)',
-        } : undefined}
       >
         {renderSidebarContent(collapsed)}
       </div>

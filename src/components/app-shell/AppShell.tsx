@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <ThemeBackdrop />
           <div className="flex min-h-dvh">
             {/* The member sidebar members already know, regrouped and in glass. Desktop only. */}
-            <div className="shell-sidebar hidden lg:flex lg:sticky lg:top-0 lg:h-[calc(100dvh-var(--shell-player-h))] lg:shrink-0">
+            <div className="shell-sidebar hidden lg:flex lg:sticky lg:top-0 lg:h-[calc(100dvh-var(--shell-player-h))] lg:shrink-0 lg:py-3 lg:pl-3">
               <ShellUserSidebar />
             </div>
             <div className="min-w-0 flex-1">
