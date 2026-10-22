@@ -26,18 +26,14 @@ export function HomeHero({ firstName, action }: { firstName: string | null; acti
   React.useEffect(() => setGreeting(greetingFor(new Date())), [])
 
   return (
-    <section className="flex min-h-[52vh] flex-col justify-end pb-4 pt-6 md:min-h-[48vh] md:pb-6">
+    <section className="pb-2 pt-3 md:pt-4">
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
         Your world today
       </p>
-      <h1 className="text-[48px] font-extrabold leading-[0.95] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[72px]">
-        Choose
-        <br />
-        Activate
-        <br />
-        Align
+      <h1 className="text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[40px]">
+        Choose. Activate. Align.
       </h1>
-      <p className="mt-4 max-w-md text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)] md:text-lg">
+      <p className="mt-2 max-w-xl text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)] md:text-lg">
         {greeting}
         {firstName ? (
           <>
@@ -48,7 +44,7 @@ export function HomeHero({ firstName, action }: { firstName: string | null; acti
         )}{' '}
         Consciously create a life you love.
       </p>
-      <div className="mt-6 h-12">
+      <div className="mt-4 h-12">
         {action && (
           <Link href={action.href} className="btn btn-primary !py-3 !px-6 text-[15px]">
             {action.label}

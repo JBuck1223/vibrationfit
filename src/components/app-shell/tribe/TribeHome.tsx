@@ -61,17 +61,17 @@ export function TribeHome() {
         })}
       </nav>
 
-      <section className="flex min-h-[40vh] flex-col justify-end pb-2">
+      <section className="pb-1 pt-1">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
           Alignment Gym
         </p>
-        <h2 className="max-w-xl whitespace-pre-line text-[40px] font-extrabold leading-[0.98] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[56px]">
-          {next ? next.title : replay ? 'Catch the\nlast session' : 'Train your\nalignment live'}
+        <h2 className="text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[40px]">
+          {next ? next.title : replay ? 'Catch the last session' : 'Train your alignment live'}
         </h2>
-        <p className="mt-3 max-w-md text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)] md:text-lg">
+        <p className="mt-2 max-w-xl text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)] md:text-lg">
           {next ? when(next.scheduled_at) : replay ? replay.title : 'Live group sessions with coaching, every week.'}
         </p>
-        <div className="mt-5 h-12">
+        <div className="mt-4 h-12">
           {gymLoading ? null : next ? (
             <Link href={`/alignment-gym/${next.id}`} className="btn btn-primary !py-3 !px-6 text-[15px]">
               <Video className="mr-2 h-4 w-4" />

@@ -17,11 +17,11 @@ export function ShellSectionPlaceholder({ sectionId }: { sectionId: SectionId })
 
   return (
     <div className="space-y-6" data-section={section.accent === 'viva' ? 'viva' : undefined}>
-      <section className="flex min-h-[44vh] flex-col justify-end pb-4 pt-6">
+      <section className="pb-2 pt-3 md:pt-4">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
           {section.label}
         </p>
-        <h2 className="max-w-xl text-4xl font-bold leading-[1.05] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-5xl">
+        <h2 className="text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[40px]">
           {section.label} is on its way
         </h2>
         <p className="mt-3 max-w-md text-base text-white/85 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">

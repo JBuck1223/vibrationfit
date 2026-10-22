@@ -22,11 +22,11 @@ export function ToolsDirectory() {
 
   return (
     <div className="space-y-6">
-      <section className="flex min-h-[32vh] flex-col justify-end pb-2 pt-4">
+      <section className="pb-1 pt-3 md:pt-4">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
           Tools
         </p>
-        <h2 className="text-4xl font-bold leading-[1.05] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-5xl">
+        <h2 className="text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[40px]">
           Create something today
         </h2>
       </section>

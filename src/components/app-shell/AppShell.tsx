@@ -59,11 +59,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="lg:pl-[72px]">
             <ShellHeader />
             {fullHeight ? (
-              <main data-app-scroller className="shell-full-height mx-auto flex w-full max-w-[1200px] flex-col overflow-hidden">
+              <main data-app-scroller className="shell-full-height flex w-full flex-col overflow-hidden">
                 {children}
               </main>
             ) : (
-              <main data-app-scroller className="mx-auto w-full max-w-[1200px] px-4 pb-6 pt-2 md:px-6 lg:px-8 lg:pt-4">
+              <main data-app-scroller className="w-full px-4 pb-6 pt-2 md:px-6 lg:px-8 lg:pt-4">
                 {children}
                 <BottomClearance />
               </main>

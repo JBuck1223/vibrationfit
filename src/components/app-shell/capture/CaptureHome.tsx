@@ -67,21 +67,21 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
         })}
       </nav>
 
-      <section className="flex min-h-[40vh] flex-col justify-end pb-2">
-        <div className="mb-3 flex items-center gap-2">
+      <section className="pb-1 pt-1">
+        <div className="mb-2 flex items-center gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">Daily Paper</p>
           <span className="glass-chrome ml-auto flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-white/85">
             <Calendar className="h-3.5 w-3.5" />
             {todayLabel}
           </span>
         </div>
-        <h2 className="max-w-xl whitespace-pre-line text-[40px] font-extrabold leading-[0.98] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[56px]">
-          {paper ? 'Your Paper\nis Done' : 'Start Your\nDaily Paper'}
+        <h2 className="text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[40px]">
+          {paper ? 'Your Paper is Done' : 'Start Your Daily Paper'}
         </h2>
-        <p className="mt-3 max-w-md text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)] md:text-lg">
+        <p className="mt-2 max-w-xl text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)] md:text-lg">
           {paper ? 'Come back to it any time today, or add to your journal.' : 'Clear your mind, raise your vibration, and set your intentions for the day.'}
         </p>
-        <div className="mt-5 h-12">
+        <div className="mt-4 h-12">
           {paperLoading ? null : (
             <Link href={paper ? `/daily-paper/${paper.id}` : '/daily-paper/new'} className="btn btn-primary !py-3 !px-6 text-[15px]">
               {paper ? 'Open Today’s Paper' : 'Start Today’s Paper'}

@@ -53,12 +53,12 @@ export function VivaWelcome({ firstName, threads, onSuggest, onOpenThread }: Viv
   return (
     <div className="space-y-6" data-section="viva">
       <section className={inShell ? 'relative' : 'glass-panel relative overflow-hidden'}>
-        <div className="relative flex flex-col items-center px-6 pb-6 pt-8 text-center md:pt-12">
-          <span className="flex h-24 w-24 items-center justify-center rounded-full bg-[rgba(191,0,255,0.22)] shadow-[0_0_60px_rgba(191,0,255,0.45)] ring-1 ring-[#BF00FF]/60">
-            <span className="hp-display text-[40px] leading-none text-[#BF00FF]">viva</span>
+        <div className="relative flex flex-col items-center px-6 pb-4 pt-4 text-center md:pt-6">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(191,0,255,0.22)] shadow-[0_0_60px_rgba(191,0,255,0.45)] ring-1 ring-[#BF00FF]/60">
+            <span className="hp-display text-[28px] leading-none text-[#BF00FF]">viva</span>
           </span>
-          <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/75 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">Your Coach</p>
-          <h2 className="mt-1 text-4xl font-extrabold text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-5xl">VIVA</h2>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/75 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">Your Coach</p>
+          <h2 className="mt-1 text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[36px]">VIVA</h2>
           <p className="mt-3 max-w-md text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
             {firstName ? `${firstName}, I ` : 'I '}
             know your vision, your patterns, your journey. I&apos;m here to help you feel better now and create the

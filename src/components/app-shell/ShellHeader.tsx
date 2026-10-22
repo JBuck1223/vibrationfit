@@ -41,7 +41,7 @@ export function ShellHeader() {
       style={{ paddingTop: 'var(--native-inset-top, 0px)' }}
     >
       <div
-        className="mx-auto flex w-full max-w-[1200px] items-center gap-2 px-4 md:px-6 lg:px-8"
+        className="flex w-full items-center gap-2 px-4 md:px-6 lg:px-8"
         style={{ height: 'var(--shell-header-height)' }}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2" data-section={section.accent === 'viva' ? 'viva' : undefined}>

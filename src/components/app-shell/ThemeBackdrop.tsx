@@ -3,7 +3,7 @@
 import React from 'react'
 import { usePathname } from 'next/navigation'
 import { useThemeImage } from './ThemeProvider'
-import { BACKDROP_SLOT, type ThemeSlot } from '@/lib/app-shell/theme-slots'
+import type { ThemeSlot } from '@/lib/app-shell/theme-slots'
 import { isSectionRoot, sectionForPath } from '@/lib/app-shell/sections'
 
 interface Layer {
@@ -26,59 +26,40 @@ function useCrossfade(url: string | null): [Layer[], (key: number) => void] {
 }
 
 /**
- * The fixed full-viewport layer under every screen. Two pictures: the current
- * section's hero, sharp and full-bleed across the top of the viewport, fading
- * into the softly blurred theme backdrop that covers the rest. Neither
- * remounts between routes; each cross-fades when its image changes.
+ * The fixed layer under every screen: one picture, the current section's
+ * hero, covering the whole viewport edge to edge under a vertical scrim that
+ * is light at the top and heavy at the bottom. Pages inside a studio get a
+ * darker scrim than section roots. Never remounts between routes; cross-fades
+ * when the picture changes.
  */
 export function ThemeBackdrop() {
   const pathname = usePathname()
   const section = sectionForPath(pathname)
-  // Section roots get the big picture; pages inside a studio get a shorter, dimmer band
-  // so lists and forms stay legible while the place still looks like the section.
   const atRoot = isSectionRoot(pathname)
-  const heroUrl = useThemeImage(`${section.id}.hero` as ThemeSlot)
-  const backdropUrl = useThemeImage(BACKDROP_SLOT)
-  const [heroLayers, settleHero] = useCrossfade(heroUrl)
-  const [backLayers, settleBack] = useCrossfade(backdropUrl)
+  const url = useThemeImage(`${section.id}.hero` as ThemeSlot)
+  const [layers, settle] = useCrossfade(url)
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-black">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0b0b0d] to-[#111]" />
-
-      {/* Soft backdrop under everything */}
-      {backLayers.map((layer) => (
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#0b0b0d]">
+      {layers.map((layer) => (
         <div
-          key={`b${layer.key}`}
-          className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-out"
+          key={layer.key}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-700 ease-out"
           style={{
             backgroundImage: layer.url ? `url("${layer.url}")` : undefined,
-            opacity: layer.url ? 0.55 : 0,
-            filter: 'blur(18px) saturate(110%)',
-            transform: 'scale(1.08)',
+            opacity: layer.url ? 1 : 0,
           }}
-          onTransitionEnd={() => settleBack(layer.key)}
+          onTransitionEnd={() => settle(layer.key)}
         />
       ))}
-      <div className="absolute inset-0 bg-black/45" />
-
-      {/* Sharp section hero across the top, dissolving into the backdrop */}
-      {heroLayers.map((layer) => (
-        <div
-          key={`h${layer.key}`}
-          className={`absolute inset-x-0 top-0 bg-cover bg-center transition-[opacity,height] duration-700 ease-out ${atRoot ? 'h-[78vh] lg:h-[72vh]' : 'h-[42vh] lg:h-[40vh]'}`}
-          style={{
-            backgroundImage: layer.url ? `url("${layer.url}")` : undefined,
-            opacity: layer.url ? (atRoot ? 1 : 0.6) : 0,
-            maskImage: 'linear-gradient(to bottom, black 0%, black 55%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 55%, transparent 100%)',
-          }}
-          onTransitionEnd={() => settleHero(layer.key)}
-        />
-      ))}
-      {/* Keep the header legible and give the headline a floor to sit on */}
-      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/60 to-transparent" />
-      <div className={`absolute inset-x-0 top-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent ${atRoot ? 'h-[78vh] lg:h-[72vh]' : 'h-[42vh] lg:h-[40vh]'}`} />
+      <div
+        className="absolute inset-0 transition-opacity duration-500"
+        style={{
+          background: atRoot
+            ? 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 20%, rgba(0,0,0,0.4) 55%, rgba(0,0,0,0.85) 100%)'
+            : 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.55) 25%, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0.92) 100%)',
+        }}
+      />
       <div className="absolute inset-0" style={{ background: 'var(--theme-tint)' }} />
     </div>
   )
