@@ -12,6 +12,7 @@ import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import type { AudioContentCategory } from '@/lib/stores/global-audio-store'
 import { loadAudioSetTracks } from '@/components/dashboard/widgets/queries'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
+import { MIX_COVERS, mixTypeFor, type MixType } from '@/lib/audio/mix-covers'
 import { getPlaylistTracks, getUserPlaylists, playlistTracksToAudioTracks } from '@/lib/services/playlistService'
 
 export type AudioTab = 'life-vision' | 'stories' | 'music' | 'playlists' | 'songs'
@@ -48,6 +49,11 @@ function mixNumbers(mixRatio?: string) {
 
 const VOICES: Record<string, string> = { alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage' }
 
+export function lifeVisionMixType(set: { variant?: string; mixRatio?: string }): MixType {
+  const { voice, background } = mixNumbers(set.mixRatio)
+  return mixTypeFor(set.variant, voice, background)
+}
+
 /** Same naming the studio uses for a Life Vision set. */
 export function lifeVisionSetName(set: { name?: string; variant?: string; voice_id?: string; mixRatio?: string }): string {
   if (set.name && !set.name.includes('Version') && !set.name.includes(':')) return set.name
@@ -73,8 +79,8 @@ export function lifeVisionCollection(
     metadata?: { voice_volume?: number; bg_volume?: number } | null
   },
   visionTitle: string,
-  artwork: string | null,
 ): AudioCollection {
+  const artwork = MIX_COVERS[lifeVisionMixType(set)]
   const chips = [
     set.voice_id && set.variant !== 'personal' ? `Voice · ${VOICES[set.voice_id] ?? set.voice_id}` : set.variant === 'personal' ? 'Your voice' : null,
     set.backgroundTrack ?? null,

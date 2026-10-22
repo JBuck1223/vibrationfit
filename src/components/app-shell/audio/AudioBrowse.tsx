@@ -83,7 +83,6 @@ export function AudioBrowse() {
   const artRaw = CARD_SLOTS.map((s) => useThemeImage(s)) // eslint-disable-line react-hooks/rules-of-hooks
   const artKey = artRaw.join('|')
   const art = React.useMemo(() => artKey.split('|').map((u) => u || null), [artKey])
-  const heroArt = useThemeImage('studio.life-vision' as ThemeSlot)
 
   const songs = useQuery({ queryKey: ['audio-browse', 'songs'], queryFn: loadMySongs, enabled: tab === 'songs' })
   const artists = useQuery({ queryKey: ['audio-browse', 'artists'], queryFn: loadArtists, enabled: tab === 'music' })
@@ -99,7 +98,7 @@ export function AudioBrowse() {
         return {
           collections: audioSets
             .filter((s) => s.isReady && s.track_count > 0)
-            .map((s, i) => lifeVisionCollection(s, visionTitle, i === 0 ? heroArt ?? art[0] : art[i % art.length])),
+            .map((s) => lifeVisionCollection(s, visionTitle)),
           loading: audioSetsLoading,
         }
       case 'stories':
@@ -114,7 +113,7 @@ export function AudioBrowse() {
       case 'playlists':
         return { collections: (playlists.data ?? []).map((c, i) => ({ ...c, artwork: c.artwork ?? art[(i + 3) % art.length] })), loading: playlists.isLoading }
     }
-  }, [tab, audioSets, audioSetsLoading, storiesWithAudio, storiesWithAudioLoading, songs.data, songs.isLoading, artists.data, artists.isLoading, playlists.data, playlists.isLoading, visionTitle, heroArt, art])
+  }, [tab, audioSets, audioSetsLoading, storiesWithAudio, storiesWithAudioLoading, songs.data, songs.isLoading, artists.data, artists.isLoading, playlists.data, playlists.isLoading, visionTitle, art])
 
   // The open set lives in the URL (?open=<key>) so Back returns to the grid.
   const openKey = params.get('open')
