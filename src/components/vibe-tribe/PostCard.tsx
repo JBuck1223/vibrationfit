@@ -14,6 +14,7 @@ import { format, isToday, isYesterday } from 'date-fns'
 import { renderContentWithMentions, MentionedUser } from '@/lib/vibe-tribe/render-mentions'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { VoiceInputButton } from './VoiceInputButton'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 const EDIT_ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -43,6 +44,8 @@ export function PostCard({
   initialCommentsOpen = false,
   highlightCommentId = null,
 }: PostCardProps) {
+  // Inside the app shell each post is its own glass card over the backdrop.
+  const inShell = useInShell()
   const [hearted, setHearted] = useState(post.has_hearted || false)
   const [heartsCount, setHeartsCount] = useState(post.hearts_count)
   const [showComments, setShowComments] = useState(initialCommentsOpen || Boolean(highlightCommentId))
@@ -330,7 +333,7 @@ export function PostCard({
   }
 
   return (
-    <div className="py-4">
+    <div className={inShell ? 'glass-panel px-4 py-4 md:px-5' : 'py-4'}>
       {/* Post Row */}
       <div className="flex items-start gap-3">
         {/* Avatar — tap photo to enlarge */}
