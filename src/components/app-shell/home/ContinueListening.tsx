@@ -2,60 +2,149 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Headphones, Loader2, Pause, Play } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowRight, ChevronRight, Headphones, Loader2, Pause, Play } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { keys } from '@/lib/query/keys'
 import { loadAudioSetTracks, useListenSources, type ListenSource } from '@/components/dashboard/widgets/queries'
 import { useGlobalAudioStore, type AudioContentCategory } from '@/lib/stores/global-audio-store'
+import { setKeyFor, type ListenHistoryRow } from '@/lib/audio/listen-history'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
+import type { ThemeSlot } from '@/lib/app-shell/theme-slots'
 import { useThemeImage } from '../ThemeProvider'
 
-const CATEGORY: Record<ListenSource['kind'], AudioContentCategory> = {
+const CATEGORY_LABEL: Record<AudioContentCategory, string> = {
+  life_vision: 'Life Vision',
+  story: 'Story',
+  music: 'Song',
+  meditation: 'Meditation',
+}
+
+const SOURCE_CATEGORY: Record<ListenSource['kind'], AudioContentCategory> = {
   vision: 'life_vision',
   song: 'music',
   story: 'story',
 }
 
-const KIND_LABEL: Record<ListenSource['kind'], string> = {
-  vision: 'Life Vision',
-  song: 'Song',
-  story: 'Story',
-}
-
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
-  const m = Math.floor(seconds / 60)
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
+  return h > 0 ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}` : `${m}:${s.toString().padStart(2, '0')}`
+}
+
+/** The 1–3 audio sets this member played most recently, newest first. */
+function useRecentListens() {
+  return useQuery({
+    queryKey: [...keys.audioSets, 'listen-history', 'recent'],
+    queryFn: async (): Promise<ListenHistoryRow[]> => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('audio_listen_history')
+        .select('id, set_key, category, icon_key, title, artwork_url, tracks, track_index, position_seconds, duration_seconds, updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(3)
+      return (data ?? []) as ListenHistoryRow[]
+    },
+    staleTime: 15_000,
+  })
+}
+
+interface CardProps {
+  eyebrow: string
+  title: string
+  subtitle: string | null
+  artwork: string | null
+  progress: number | null
+  timeLabel: string | null
+  playing: boolean
+  loading: boolean
+  onPlay: () => void
+}
+
+function ListenCard({ eyebrow, title, subtitle, artwork, progress, timeLabel, playing, loading, onPlay }: CardProps) {
+  return (
+    <div className="glass-panel flex items-center gap-4 p-3 pr-4 md:p-4">
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/5 md:h-24 md:w-24">
+        {artwork && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={artwork} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">{eyebrow}</p>
+        <p className="truncate text-lg font-semibold leading-snug text-white">{title}</p>
+        {subtitle && <p className="truncate text-sm text-white/60">{subtitle}</p>}
+        {progress !== null && (
+          <div className="mt-2 flex items-center gap-3">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/15">
+              <div className="h-full rounded-full bg-[#39FF14]" style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
+            </div>
+            {timeLabel && <span className="shrink-0 text-xs tabular-nums text-white/60">{timeLabel}</span>}
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onPlay}
+        aria-label={playing ? `Pause ${title}` : `Play ${title}`}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white transition-colors hover:border-[#39FF14]/60 hover:text-[#39FF14] active:scale-95"
+      >
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : playing ? (
+          <Pause className="h-5 w-5" />
+        ) : (
+          <Play className="ml-0.5 h-5 w-5" />
+        )}
+      </button>
+    </div>
+  )
 }
 
 /**
- * The current track if something is playing, otherwise the best thing to
- * play next (active vision audio first). One tap plays through the global
- * player, so the mini player takes over as the member moves around.
+ * Continue Listening: the one to three audio sets the member played most
+ * recently, each resuming where they left off. With no history yet, it offers
+ * the best thing to start (their active vision audio first).
  */
 export function ContinueListening() {
-  const { data: sources = [], isLoading } = useListenSources()
+  const { data: history = [], isLoading: historyLoading } = useRecentListens()
+  const { data: sources = [], isLoading: sourcesLoading } = useListenSources()
   const tracks = useGlobalAudioStore((s) => s.tracks)
   const currentIndex = useGlobalAudioStore((s) => s.currentIndex)
+  const setName = useGlobalAudioStore((s) => s.setName)
   const isPlaying = useGlobalAudioStore((s) => s.isPlaying)
   const currentTime = useGlobalAudioStore((s) => s.currentTime)
   const duration = useGlobalAudioStore((s) => s.duration)
-  const setName = useGlobalAudioStore((s) => s.setName)
   const play = useGlobalAudioStore((s) => s.play)
   const togglePlayPause = useGlobalAudioStore((s) => s.togglePlayPause)
-  const fallbackArt = useThemeImage('listen.hero')
-  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const art = [
+    useThemeImage('card.1' as ThemeSlot),
+    useThemeImage('card.3' as ThemeSlot),
+    useThemeImage('card.5' as ThemeSlot),
+  ]
+  const [loadingKey, setLoadingKey] = useState<string | null>(null)
 
-  const current = tracks[currentIndex] ?? null
-  const playable = sources.filter((s) => s.trackUrl || s.audioSetId)
-  const next = playable[0] ?? null
-  const nowPlayingNext = next ? setName === `home:${next.id}` : false
+  const liveKey = tracks.length > 0 ? setKeyFor({ setName, tracks }) : null
 
-  const handlePlay = async (source: ListenSource) => {
-    if (setName === `home:${source.id}`) {
+  const resume = (row: ListenHistoryRow) => {
+    if (liveKey === row.set_key) {
       togglePlayPause()
       return
     }
-    setLoadingId(source.id)
+    if (!row.tracks?.length) return
+    const index = Math.min(row.track_index, row.tracks.length - 1)
+    play(row.tracks, index, row.set_key, row.icon_key ?? undefined, row.category, Number(row.position_seconds) || 0)
+  }
+
+  const startSource = async (source: ListenSource) => {
+    const key = `home:${source.id}`
+    if (liveKey === key) {
+      togglePlayPause()
+      return
+    }
+    setLoadingKey(key)
     try {
       let list: AudioTrack[] = []
       if (source.trackUrl) {
@@ -72,77 +161,75 @@ export function ContinueListening() {
           sectionKey: t.sectionKey,
         }))
       }
-      if (list.length === 0) return
-      play(list, 0, `home:${source.id}`, source.kind, CATEGORY[source.kind])
+      if (list.length > 0) play(list, 0, key, source.kind, SOURCE_CATEGORY[source.kind])
     } finally {
-      setLoadingId(null)
+      setLoadingKey(null)
     }
   }
 
-  const title = current ? current.title : next?.title
-  const subtitle = current ? 'Now playing' : next ? KIND_LABEL[next.kind] : null
-  const artwork = current?.thumbnail || next?.artwork || fallbackArt
-  const progress = current && duration > 0 ? (currentTime / duration) * 100 : 0
+  const loading = historyLoading || (history.length === 0 && sourcesLoading)
+  const starter = sources.find((s) => s.trackUrl || s.audioSetId) ?? null
 
   return (
-    <section className="glass-panel flex flex-col p-5 md:p-6">
-      <div className="mb-4 flex items-center justify-between">
+    <section className="flex flex-col">
+      <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-base font-semibold text-white">
           <Headphones className="h-4 w-4 text-[#39FF14]" />
-          {current ? 'Continue listening' : 'Listen'}
+          Continue Listening
         </h2>
         <Link href="/listen" className="flex items-center gap-1 text-sm text-white/60 hover:text-white">
-          See all <ArrowRight className="h-3.5 w-3.5" />
+          See all <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
 
-      {isLoading && !current ? (
-        <div className="h-24 animate-pulse rounded-2xl bg-white/5" />
-      ) : !title ? (
-        <div className="flex flex-col items-start gap-3 py-2">
+      {loading ? (
+        <div className="space-y-3">
+          <div className="h-[112px] animate-pulse rounded-3xl bg-white/5" />
+        </div>
+      ) : history.length > 0 ? (
+        <ul className="space-y-3">
+          {history.map((row, i) => {
+            const live = liveKey === row.set_key
+            const liveTrack = live ? tracks[currentIndex] : null
+            const position = live ? currentTime : Number(row.position_seconds) || 0
+            const length = live ? duration : Number(row.duration_seconds) || 0
+            const trackCount = row.tracks?.length ?? 0
+            const index = live ? currentIndex : row.track_index
+            return (
+              <li key={row.id}>
+                <ListenCard
+                  eyebrow={CATEGORY_LABEL[row.category] ?? 'Audio'}
+                  title={liveTrack?.title || row.title}
+                  subtitle={trackCount > 1 ? `Track ${index + 1} of ${trackCount}` : live ? 'Now playing' : null}
+                  artwork={row.artwork_url || art[i % art.length]}
+                  progress={length > 0 ? (position / length) * 100 : 0}
+                  timeLabel={length > 0 ? `${formatTime(position)} / ${formatTime(length)}` : null}
+                  playing={live && isPlaying}
+                  loading={false}
+                  onPlay={() => resume(row)}
+                />
+              </li>
+            )
+          })}
+        </ul>
+      ) : starter ? (
+        <ListenCard
+          eyebrow={starter.kind === 'vision' ? 'Life Vision' : starter.kind === 'song' ? 'Song' : 'Story'}
+          title={starter.title}
+          subtitle="Your personal activation"
+          artwork={starter.artwork ?? art[0]}
+          progress={null}
+          timeLabel={null}
+          playing={liveKey === `home:${starter.id}` && isPlaying}
+          loading={loadingKey === `home:${starter.id}`}
+          onPlay={() => void startSource(starter)}
+        />
+      ) : (
+        <div className="glass-panel flex flex-col items-start gap-3 p-5">
           <p className="text-sm text-white/70">Generate your Life Vision audio and it shows up here, ready for one tap.</p>
           <Link href="/audio" className="btn btn-outline !py-2 !px-4 text-sm">
-            Open Audio
+            Open Audio <ArrowRight className="ml-1.5 h-4 w-4" />
           </Link>
-        </div>
-      ) : (
-        <div className="flex items-center gap-4">
-          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/5 md:h-24 md:w-24">
-            {artwork && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={artwork} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">{subtitle}</p>
-            <p className="truncate text-lg font-semibold text-white">{title}</p>
-            {current ? (
-              <div className="mt-2 flex items-center gap-3">
-                <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/15">
-                  <div className="h-full bg-[#39FF14]" style={{ width: `${progress}%` }} />
-                </div>
-                <span className="text-xs tabular-nums text-white/60">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </span>
-              </div>
-            ) : (
-              <p className="mt-1 text-sm text-white/60">Your personal activation</p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => (current ? togglePlayPause() : next && handlePlay(next))}
-            aria-label={isPlaying && (current || nowPlayingNext) ? 'Pause' : 'Play'}
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#39FF14] text-black shadow-[0_6px_20px_rgba(57,255,20,0.35)] transition-transform active:scale-95"
-          >
-            {loadingId ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : isPlaying && (current || nowPlayingNext) ? (
-              <Pause className="h-6 w-6" />
-            ) : (
-              <Play className="ml-0.5 h-6 w-6" />
-            )}
-          </button>
         </div>
       )}
     </section>

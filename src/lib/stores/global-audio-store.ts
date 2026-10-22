@@ -19,7 +19,8 @@ interface GlobalAudioState {
   shuffleOrder: number[]
   isDrawerOpen: boolean
 
-  play: (tracks: AudioTrack[], startIndex?: number, setName?: string, setIconKey?: string, contentCategory?: AudioContentCategory) => void
+  /** `startAt` resumes the first track from that many seconds in (Continue Listening). */
+  play: (tracks: AudioTrack[], startIndex?: number, setName?: string, setIconKey?: string, contentCategory?: AudioContentCategory, startAt?: number) => void
   playTrack: (index: number) => void
   stop: () => void
   pause: () => void
@@ -91,9 +92,19 @@ function preloadNextTrack(nextTrack: AudioTrack | undefined) {
   })
 }
 
-async function loadAndPlay(audio: HTMLAudioElement, track: AudioTrack) {
+async function loadAndPlay(audio: HTMLAudioElement, track: AudioTrack, startAt = 0) {
   const url = await resolveTrackUrl(track)
   audio.src = url
+  if (startAt > 0) {
+    audio.addEventListener(
+      'loadedmetadata',
+      () => {
+        // Resume where they left off, unless that is the very end of the track.
+        if (!isFinite(audio.duration) || startAt < audio.duration - 5) audio.currentTime = startAt
+      },
+      { once: true },
+    )
+  }
   audio.play().catch(() => {})
   trackPlayEvent(track)
 }
@@ -212,7 +223,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
   shuffleOrder: [],
   isDrawerOpen: false,
 
-  play: (tracks, startIndex = 0, setName, setIconKey, contentCategory) => {
+  play: (tracks, startIndex = 0, setName, setIconKey, contentCategory, startAt) => {
     if (tracks.length === 0) return
     const audio = getAudio()
     set({
@@ -228,7 +239,7 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
       isShuffled: false,
       shuffleOrder: [],
     })
-    loadAndPlay(audio, tracks[startIndex])
+    loadAndPlay(audio, tracks[startIndex], startAt)
     preloadNextTrack(tracks[startIndex + 1])
   },
 
@@ -349,3 +360,8 @@ export const useGlobalAudioStore = create<GlobalAudioState>((set, get) => ({
   openDrawer: () => set({ isDrawerOpen: true }),
   closeDrawer: () => set({ isDrawerOpen: false }),
 }))
+
+// Remember what was played and where it stopped, for Continue Listening.
+if (typeof window !== 'undefined') {
+  void import('@/lib/audio/listen-history').then((m) => m.startListenHistory(useGlobalAudioStore))
+}
