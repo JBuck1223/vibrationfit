@@ -70,12 +70,11 @@ function usePlayedSets() {
     queryKey: [...keys.audioSets, 'listen-history', 'played-sets'],
     queryFn: async (): Promise<PlayedSet[]> => {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return []
+      // RLS returns the member's own tracks plus household sets they can
+      // listen to, which is where shared Life Vision audio lives.
       const { data: tracks } = await supabase
         .from('audio_tracks')
         .select('audio_set_id, section_key, updated_at')
-        .eq('user_id', user.id)
         .gt('play_count', 0)
         .not('audio_set_id', 'is', null)
         .order('updated_at', { ascending: false })
@@ -125,8 +124,8 @@ interface CardProps {
 
 function ListenCard({ eyebrow, title, subtitle, artwork, progress, timeLabel, playing, loading, onPlay }: CardProps) {
   return (
-    <div className="glass-panel flex items-center gap-4 p-3 pr-4 md:p-4">
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/5 md:h-24 md:w-24">
+    <div className="glass-panel flex h-full items-center gap-4 p-3 pr-4">
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/5">
         {artwork && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={artwork} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -134,7 +133,7 @@ function ListenCard({ eyebrow, title, subtitle, artwork, progress, timeLabel, pl
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">{eyebrow}</p>
-        <p className="truncate text-lg font-semibold leading-snug text-white">{title}</p>
+        <p className="truncate text-base font-semibold leading-snug text-white">{title}</p>
         {subtitle && <p className="truncate text-sm text-white/60">{subtitle}</p>}
         {progress !== null && (
           <div className="mt-2 flex items-center gap-3">
@@ -273,10 +272,10 @@ export function ContinueListening() {
 
       {loading ? (
         <div className="space-y-3">
-          <div className="h-[112px] animate-pulse rounded-3xl bg-white/5" />
+          <div className="h-[104px] animate-pulse rounded-3xl bg-white/5 md:max-w-md" />
         </div>
       ) : history.length + fillers.length > 0 ? (
-        <ul className="space-y-3">
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {history.map((row, i) => {
             const live = liveKey === row.set_key
             const liveTrack = live ? tracks[currentIndex] : null
@@ -321,6 +320,7 @@ export function ContinueListening() {
           })}
         </ul>
       ) : starter ? (
+        <div className="md:max-w-md">
         <ListenCard
           eyebrow={starter.kind === 'vision' ? 'Life Vision' : starter.kind === 'song' ? 'Song' : 'Story'}
           title={starter.title}
@@ -332,8 +332,9 @@ export function ContinueListening() {
           loading={loadingKey === `home:${starter.id}`}
           onPlay={() => void startSource(starter)}
         />
+        </div>
       ) : (
-        <div className="glass-panel flex flex-col items-start gap-3 p-5">
+        <div className="glass-panel flex flex-col items-start gap-3 p-5 md:max-w-md">
           <p className="text-sm text-white/70">Generate your Life Vision audio and it shows up here, ready for one tap.</p>
           <Link href="/audio" className="btn btn-outline !py-2 !px-4 text-sm">
             Open Audio <ArrowRight className="ml-1.5 h-4 w-4" />
