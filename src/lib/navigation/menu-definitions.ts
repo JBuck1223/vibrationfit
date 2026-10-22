@@ -995,7 +995,7 @@ export const shellNavigationPrimary: NavItem[] = [
 
 export const shellNavigationGroups: NavGroup[] = [
   {
-    name: 'Listen',
+    name: 'Audio',
     href: '/audio',
     isCollapsible: true,
     defaultCollapsed: false,

@@ -106,7 +106,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: 'listen',
-    label: 'Listen',
+    label: 'Audio',
     icon: Headphones,
     accent: 'brand',
     href: '/audio',

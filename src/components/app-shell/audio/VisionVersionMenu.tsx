@@ -58,7 +58,7 @@ export function VisionVersionMenu() {
   const groupOf = (v: Vision) => (v.is_household || v.is_mine === false ? 'The Life We Choose' : 'The Life I Choose')
 
   return (
-    <div ref={ref} className="relative w-full md:inline-block md:w-auto md:min-w-[340px]">
+    <div ref={ref} className="relative w-full md:mx-auto md:w-[360px]">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
