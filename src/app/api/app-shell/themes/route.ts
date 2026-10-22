@@ -12,7 +12,7 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
 
   const [{ data: themes }, { data: account }] = await Promise.all([
-    supabase.from('themes').select('id, slug, name, kind, tint, sort_order').order('sort_order'),
+    supabase.from('themes').select('id, slug, name, kind, tint, sort_order, mode').order('sort_order'),
     user ? supabase.from('user_accounts').select('theme_id').eq('id', user.id).maybeSingle() : Promise.resolve({ data: null }),
   ])
   const ids = (themes ?? []).map((t) => t.id)

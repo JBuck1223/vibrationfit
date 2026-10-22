@@ -33,7 +33,7 @@ export function PillNav() {
         'fixed inset-x-3 z-40 lg:hidden',
         'bottom-[calc(env(safe-area-inset-bottom,0px)+10px)]',
         // Matches Home's glass cards: violet-dark translucent fill, one hairline outline.
-        'rounded-[36px] border border-white/[0.14]',
+        'vf-glass rounded-[36px] border border-white/[0.14]',
         'bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(22,18,32,0.68)_100%)]',
         'shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150',
         'transition-transform duration-200 ease-out',

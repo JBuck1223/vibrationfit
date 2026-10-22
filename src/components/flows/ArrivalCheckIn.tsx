@@ -48,7 +48,7 @@ export function ArrivalCheckIn() {
                 <button
                   type="button"
                   onClick={() => setOpen(s.state)}
-                  className="flex h-full w-full flex-col items-start gap-2 rounded-3xl border p-4 text-left transition-transform active:scale-[0.98]"
+                  className="vf-glass-tint flex h-full w-full flex-col items-start gap-2 rounded-3xl border p-4 text-left transition-transform active:scale-[0.98]"
 style={{ ...glassTint(s.tint), borderColor: `${s.color}55` }}
                 >
                   <span className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: s.color }}>

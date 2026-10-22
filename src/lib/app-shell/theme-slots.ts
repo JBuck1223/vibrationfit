@@ -100,7 +100,7 @@ const THEME_STYLES: Record<string, string> = {
 }
 
 /** Themes that deliberately carry no images (the backdrop stays plain). */
-export const IMAGELESS_THEMES = ['dark'] as const
+export const IMAGELESS_THEMES = ['dark', 'light'] as const
 
 const SLOT_SUBJECTS: Record<ThemeSlot, string> = {
   'area.backdrop': 'a wide, soft, slightly out-of-focus landscape view with no single subject',

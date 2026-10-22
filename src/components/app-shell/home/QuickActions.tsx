@@ -92,7 +92,7 @@ export function QuickActions() {
             <li key={tool.id} className="w-[104px] shrink-0 md:w-auto">
               <Link
                 href={tool.href}
-                className="flex h-[104px] flex-col items-center justify-center gap-2 rounded-3xl border p-3 text-center transition-transform active:scale-[0.97] md:h-[112px]"
+                className="vf-glass-tint flex h-[104px] flex-col items-center justify-center gap-2 rounded-3xl border p-3 text-center transition-transform active:scale-[0.97] md:h-[112px]"
 style={{ ...glassTint(tool.tint), borderColor: `${tool.color}55` }}
               >
                 <Icon className="h-7 w-7" style={{ color: tool.color }} strokeWidth={1.75} />

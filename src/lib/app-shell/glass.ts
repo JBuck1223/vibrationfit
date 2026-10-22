@@ -7,7 +7,7 @@
  * Tailwind classes (not a stylesheet rule) so it ships with the component.
  */
 export const GLASS_CARD = [
-  'rounded-[22px] border border-white/[0.12]',
+  'vf-glass rounded-[22px] border border-white/[0.12]',
   'bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)]',
   'shadow-[0_10px_30px_rgba(0,0,0,0.28)]',
   'backdrop-blur-2xl backdrop-saturate-150',

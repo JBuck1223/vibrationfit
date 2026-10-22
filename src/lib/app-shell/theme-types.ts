@@ -7,6 +7,8 @@ export interface ThemeRecord {
   kind: 'system' | 'custom'
   owner_user_id: string | null
   tint: string | null
+  /** 'light' themes are the plain light mode: dark text on light glass, no imagery. */
+  mode?: 'dark' | 'light'
   is_published: boolean
   sort_order: number
 }

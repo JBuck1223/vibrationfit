@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import type { ResolvedTheme } from '@/lib/app-shell/theme-types'
 import { BACKDROP_SLOT, type ThemeSlot } from '@/lib/app-shell/theme-slots'
 import { getOverlay } from '@/lib/app-shell/overlays'
+import { LIGHT_MODE_CSS } from './lightMode'
 
 interface ThemeContextValue {
   theme: ResolvedTheme | null
@@ -73,13 +74,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement
     const backdrop = theme?.images[BACKDROP_SLOT]
     root.style.setProperty('--theme-backdrop', backdrop ? `url("${backdrop}")` : 'none')
+    // Light themes are the plain light mode: no overlay over a photo.
+    const mode = theme?.theme.mode === 'light' ? 'light' : 'dark'
+    root.dataset.shellMode = mode
     // A member's chosen overlay wins; otherwise the theme's own tint (if any).
     const chosen = theme?.overlayId ? getOverlay(theme.overlayId) : null
-    const tint = theme?.overlayId ? chosen?.css ?? 'rgba(0, 0, 0, 0)' : theme?.theme.tint ?? 'rgba(0, 0, 0, 0)'
+    const tint =
+      mode === 'light'
+        ? 'rgba(0, 0, 0, 0)'
+        : theme?.overlayId
+          ? chosen?.css ?? 'rgba(0, 0, 0, 0)'
+          : theme?.theme.tint ?? 'rgba(0, 0, 0, 0)'
     root.style.setProperty('--theme-tint', tint)
     return () => {
       root.style.removeProperty('--theme-backdrop')
       root.style.removeProperty('--theme-tint')
+      delete root.dataset.shellMode
     }
   }, [theme])
 
@@ -93,7 +103,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [theme, loading],
   )
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  return (
+    <ThemeContext.Provider value={value}>
+      {/* Scoped to html[data-shell-mode="light"]; inert for dark themes. */}
+      <style dangerouslySetInnerHTML={{ __html: LIGHT_MODE_CSS }} />
+      {children}
+    </ThemeContext.Provider>
+  )
 }
 
 export function useTheme(): ThemeContextValue {

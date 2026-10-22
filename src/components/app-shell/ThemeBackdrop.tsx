@@ -46,7 +46,7 @@ export function ThemeBackdrop() {
   const [layers, settle] = useCrossfade(url)
 
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#0b0b0d]">
+    <div aria-hidden data-theme-backdrop className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#0b0b0d]">
       {layers.map((layer) => (
         <div
           key={layer.key}
@@ -84,6 +84,8 @@ export function ThemeBackdrop() {
       <div
         className="absolute inset-0 transition-opacity duration-500"
         style={{
+          // The wash only exists to calm a photo; with no picture it would just gray the page.
+          opacity: url ? 1 : 0,
           background: atRoot
             ? 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.05) 18%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.45) 100%)'
             : 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.45) 30%, rgba(0,0,0,0.6) 100%)',

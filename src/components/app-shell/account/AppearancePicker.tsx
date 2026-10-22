@@ -13,6 +13,7 @@ interface ThemeOption {
   slug: string
   name: string
   kind: 'system' | 'custom'
+  mode?: 'dark' | 'light'
   preview: string | null
 }
 
@@ -115,11 +116,16 @@ export function AppearancePicker() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={t.preview} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
-                    // Imageless themes (Dark) preview as the plain charcoal they are.
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1d] via-[#0e0e10] to-black" />
+                    // Imageless themes preview as the plain mode they are.
+                    <div
+                      className={cn(
+                        'absolute inset-0 bg-gradient-to-br',
+                        t.mode === 'light' ? 'from-[#ffffff] via-[#f3eef9] to-[#e6dff0]' : 'from-[#1a1a1d] via-[#0e0e10] to-black',
+                      )}
+                    />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <span className="absolute bottom-3 left-4 text-[15px] font-semibold text-white">{t.name}</span>
+                  <span className={cn('absolute bottom-3 left-4 text-[15px] font-semibold', t.mode === 'light' && !t.preview ? 'text-[#1b1626]' : 'text-white')}>{t.name}</span>
                   {t.kind === 'custom' && (
                     <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/80">
                       Yours
