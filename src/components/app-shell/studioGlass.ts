@@ -28,4 +28,15 @@ ${sel(BORDERS)} {
   border-color: rgba(255,255,255,0.12) !important;
 }
 ${P} .${esc('ring-white/[0.08]')} { --tw-ring-color: rgba(255,255,255,0.12); }
+
+/* Small square tags (rounded + border + 10px text) read as soft pills. */
+${P} .rounded.${esc('text-[10px]')} {
+  border-radius: 9999px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+${sel(['bg-neutral-900/90', 'bg-neutral-900/60', 'bg-neutral-900/50', 'bg-neutral-900'])} { background: rgba(255,255,255,0.06) !important; }
+${sel(['border-neutral-600', 'border-neutral-700', 'border-neutral-800', 'border-[#1f1f1f]'])} { border-color: rgba(255,255,255,0.12) !important; }
 `
