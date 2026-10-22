@@ -7,6 +7,7 @@ import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import { formatPlayerTime } from '@/lib/design-system/components/media/global-audio/PlayerControls'
+import { TrackArtwork } from '@/lib/design-system/components/media/global-audio/TrackArtwork'
 import type { AudioCollection } from './sources'
 
 function Cover({ src, title, className }: { src: string | null; title: string; className?: string }) {
@@ -23,6 +24,16 @@ function Cover({ src, title, className }: { src: string | null; title: string; c
 }
 
 export { Cover as AudioCover }
+
+function Equalizer() {
+  return (
+    <span className="inline-flex items-end gap-[2px]" aria-label="Playing">
+      <span className="h-3 w-[3px] animate-pulse rounded bg-[#39FF14]" />
+      <span className="h-4 w-[3px] animate-pulse rounded bg-[#39FF14] [animation-delay:150ms]" />
+      <span className="h-2.5 w-[3px] animate-pulse rounded bg-[#39FF14] [animation-delay:300ms]" />
+    </span>
+  )
+}
 
 /**
  * A set's page: cover and title, Play / Shuffle / download, the mix details
@@ -56,6 +67,9 @@ export function AudioCollectionView({ collection, onBack }: { collection: AudioC
   const total = (tracks ?? []).reduce((sum, t) => sum + (t.duration || 0), 0)
   const allCached = !!tracks?.length && tracks.every((t) => cachedTrackIds.has(t.id))
   const downloading = downloadingTrackIds.size > 0
+  // Albums of songs carry each track's own cover; a Life Vision set repeats
+  // one image, so its rows stay numbered.
+  const showArt = new Set((tracks ?? []).map((t) => t.thumbnail).filter(Boolean)).size > 1
 
   const start = (index = 0, shuffle = false) => {
     if (!tracks?.length) return
@@ -146,17 +160,20 @@ export function AudioCollectionView({ collection, onBack }: { collection: AudioC
                     onClick={() => (current ? openDrawer() : start(i))}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.05]"
                   >
-                    <span className={cn('w-6 shrink-0 text-center text-sm tabular-nums', current ? 'text-[#39FF14]' : 'text-white/45')}>
-                      {current && isPlaying ? (
-                        <span className="inline-flex items-end gap-[2px]" aria-label="Playing">
-                          <span className="h-3 w-[3px] animate-pulse rounded bg-[#39FF14]" />
-                          <span className="h-4 w-[3px] animate-pulse rounded bg-[#39FF14] [animation-delay:150ms]" />
-                          <span className="h-2.5 w-[3px] animate-pulse rounded bg-[#39FF14] [animation-delay:300ms]" />
-                        </span>
-                      ) : (
-                        i + 1
-                      )}
-                    </span>
+                    {showArt ? (
+                      <span className="relative shrink-0">
+                        <TrackArtwork track={t} iconKey={collection.iconKey} size={44} className="overflow-hidden rounded-[10px]" />
+                        {current && isPlaying && (
+                          <span className="absolute inset-0 flex items-center justify-center rounded-[10px] bg-black/50">
+                            <Equalizer />
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className={cn('w-6 shrink-0 text-center text-sm tabular-nums', current ? 'text-[#39FF14]' : 'text-white/45')}>
+                        {current && isPlaying ? <Equalizer /> : i + 1}
+                      </span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className={cn('block truncate text-[15px]', current ? 'font-semibold text-[#39FF14]' : 'text-white')}>{t.title}</span>
                       {(t.versionLabel || t.artist) && <span className="block truncate text-xs text-white/50">{t.versionLabel || t.artist}</span>}
