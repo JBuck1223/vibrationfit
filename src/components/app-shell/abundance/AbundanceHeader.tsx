@@ -12,31 +12,27 @@ const BASE = '/abundance-tracker'
 
 /**
  * Abundance's header in the app shell, in place of the studio's top bar: a
- * centered Track | Insights | Goals toggle with that tab's "new" action under
- * it, and a back arrow on a single entry or a create form.
+ * centered Track | Create | Insights | Goals toggle (Goals adds a New goal
+ * button under it), and a back arrow on a single entry or the new-goal form.
  */
 export function AbundanceHeader() {
   const inShell = useInShell()
   const path = (usePathname() ?? BASE).replace(/\/$/, '')
   if (!inShell) return null
 
-  const top = [BASE, `${BASE}/reports`, `${BASE}/goals`]
+  const top = [BASE, `${BASE}/new`, `${BASE}/reports`, `${BASE}/goals`]
   if (top.includes(path)) {
-    const action =
-      path === BASE
-        ? { href: `${BASE}/new`, label: 'Log abundance' }
-        : path === `${BASE}/goals`
-          ? { href: `${BASE}/goals/new`, label: 'New goal' }
-          : null
+    const action = path === `${BASE}/goals` ? { href: `${BASE}/goals/new`, label: 'New goal' } : null
     return (
       <div className="mb-5 space-y-3">
         <h1 className="sr-only">Abundance Tracker</h1>
         <div className="flex justify-center">
           <StudioToggle
             label="Abundance Tracker"
-            className="w-full md:w-[380px]"
+            className="w-full md:w-[440px]"
             options={[
               { label: 'Track', href: BASE, active: path === BASE },
+              { label: 'Create', href: `${BASE}/new`, active: path === `${BASE}/new` },
               { label: 'Insights', href: `${BASE}/reports`, active: path === `${BASE}/reports` },
               { label: 'Goals', href: `${BASE}/goals`, active: path === `${BASE}/goals` },
             ]}
@@ -59,9 +55,7 @@ export function AbundanceHeader() {
 
   const id = path.split('/')[2]
   const { title, back } =
-    path === `${BASE}/new`
-      ? { title: 'Log abundance', back: BASE }
-      : path === `${BASE}/goals/new`
+    path === `${BASE}/goals/new`
         ? { title: 'New goal', back: `${BASE}/goals` }
         : path.endsWith('/edit')
           ? { title: 'Edit entry', back: `${BASE}/${id}` }
