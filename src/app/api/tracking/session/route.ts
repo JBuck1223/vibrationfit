@@ -8,6 +8,10 @@ const supabase = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
+function clip(value: string | undefined): string | null {
+  return value ? value.slice(0, 255) : null
+}
+
 export async function POST(request: NextRequest) {
   const limited = await rateLimit(request, 'tracking-session', 60)
   if (limited) return limited
@@ -52,13 +56,29 @@ export async function POST(request: NextRequest) {
     const msclkid = urlParams?.msclkid || null
     const ttclid = urlParams?.ttclid || null
 
+    // Google Ads Final URL suffix: kw={keyword}&mt={matchtype}&ag={adgroupid}&cr={creative}&dev={device}
+    const ppc = {
+      keyword: clip(urlParams?.kw),
+      matchType: clip(urlParams?.mt),
+      adGroupId: clip(urlParams?.ag),
+      creativeId: clip(urlParams?.cr),
+      device: clip(urlParams?.dev),
+    }
+    const firstPpc = {
+      first_ppc_keyword: ppc.keyword,
+      first_ppc_match_type: ppc.matchType,
+      first_ppc_ad_group_id: ppc.adGroupId,
+      first_ppc_creative_id: ppc.creativeId,
+      first_ppc_device: ppc.device,
+    }
+
     // Prefer request cookies (always same-origin) over body values
     const metaFbp = request.cookies.get('_fbp')?.value || fbp || null
     const metaFbc = request.cookies.get('_fbc')?.value || fbc || null
 
     const { data: existingVisitor } = await supabase
       .from('visitors')
-      .select('id, session_count, first_fbp, first_fbc')
+      .select('id, session_count, first_fbp, first_fbc, first_gclid')
       .eq('id', visitorId)
       .maybeSingle()
 
@@ -79,6 +99,7 @@ export async function POST(request: NextRequest) {
         first_ttclid: ttclid,
         first_fbp: metaFbp,
         first_fbc: metaFbc,
+        ...firstPpc,
         first_url_params: urlParams || {},
         last_utm_source: utmSource,
         last_utm_medium: utmMedium,
@@ -100,6 +121,12 @@ export async function POST(request: NextRequest) {
       // Backfill Meta identifiers (pixel cookies often appear after first visit)
       if (metaFbp && !existingVisitor.first_fbp) updates.first_fbp = metaFbp
       if (metaFbc && !existingVisitor.first_fbc) updates.first_fbc = metaFbc
+      // First paid Google click for a returning visitor -- needed for offline
+      // conversion uploads, which match on gclid.
+      if (gclid && !existingVisitor.first_gclid) {
+        updates.first_gclid = gclid
+        Object.assign(updates, firstPpc)
+      }
 
       if (isNewSession) {
         await supabase
@@ -135,6 +162,11 @@ export async function POST(request: NextRequest) {
         li_fat_id: urlParams?.li_fat_id || null,
         gbraid: urlParams?.gbraid || null,
         wbraid: urlParams?.wbraid || null,
+        ppc_keyword: ppc.keyword,
+        ppc_match_type: ppc.matchType,
+        ppc_ad_group_id: ppc.adGroupId,
+        ppc_creative_id: ppc.creativeId,
+        ppc_device: ppc.device,
         fbp: metaFbp,
         fbc: metaFbc,
         url_params: urlParams || {},

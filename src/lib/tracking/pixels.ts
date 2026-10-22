@@ -49,6 +49,15 @@ const TIKTOK_EVENT_MAP: Record<ConversionEvent, string> = {
   add_to_cart: 'AddToCart',
 }
 
+// Google Ads conversion labels (the part after the slash in send_to).
+// Unset label = no Google Ads conversion for that event.
+const GOOGLE_ADS_LABELS: Partial<Record<ConversionEvent, string | undefined>> = {
+  lead: process.env.NEXT_PUBLIC_GOOGLE_ADS_LEAD_LABEL,
+  purchase:
+    process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL ||
+    process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL,
+}
+
 function hasPixel(name: 'fbq' | 'gtag' | 'ttq'): boolean {
   return typeof window !== 'undefined' && typeof window[name] !== 'undefined'
 }
@@ -79,6 +88,9 @@ export function trackConversion(event: ConversionEvent, params: ConversionParams
 
   // Google Analytics 4 + Google Ads
   if (hasPixel('gtag')) {
+    // Enhanced conversions: gtag hashes the email before sending
+    if (params.email) window.gtag!('set', 'user_data', { email: params.email })
+
     const gtagParams: Record<string, unknown> = {}
     if (value != null) gtagParams.value = value
     if (currency) gtagParams.currency = currency
@@ -87,18 +99,16 @@ export function trackConversion(event: ConversionEvent, params: ConversionParams
 
     window.gtag!('event', GA4_EVENT_MAP[event], gtagParams)
 
-    // Also fire Google Ads conversion for purchases
-    if (event === 'purchase') {
-      const adsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
-      const adsLabel = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL
-      if (adsId && adsLabel) {
-        window.gtag!('event', 'conversion', {
-          send_to: `${adsId}/${adsLabel}`,
-          value: value ?? 0,
-          currency,
-          transaction_id: event_id,
-        })
-      }
+    // Google Ads conversion -- transaction_id matches the Meta event ID and
+    // the server-side offline upload's order ID
+    const adsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
+    const adsLabel = GOOGLE_ADS_LABELS[event]
+    if (adsId && adsLabel) {
+      const adsParams: Record<string, unknown> = { send_to: `${adsId}/${adsLabel}` }
+      if (value != null || event === 'purchase') adsParams.value = value ?? 0
+      if (currency) adsParams.currency = currency
+      if (event_id) adsParams.transaction_id = event_id
+      window.gtag!('event', 'conversion', adsParams)
     }
   }
 

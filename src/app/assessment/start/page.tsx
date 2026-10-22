@@ -253,7 +253,7 @@ export default function PublicAssessmentPage() {
       if (!newLeadId) throw new Error('No lead ID returned')
 
       setLeadId(newLeadId)
-      trackConversion('lead', { content_name: 'public_assessment', event_id: newLeadId })
+      trackConversion('lead', { content_name: 'public_assessment', event_id: newLeadId, email })
       saveState({ leadId: newLeadId, step: 'profile' })
       setStep('profile')
     } catch (err: any) {
