@@ -51,6 +51,66 @@ function useRecentListens() {
   })
 }
 
+interface PlayedSet {
+  setId: string
+  name: string
+  category: AudioContentCategory
+  lastPlayedAt: string
+  sectionKey: string | null
+}
+
+/**
+ * Audio sets played before listen history existed (or on a build without it):
+ * every play bumps the track's play_count and updated_at, so the member's most
+ * recently bumped tracks point at the sets they listened to last. No position,
+ * but it starts on the track they last played.
+ */
+function usePlayedSets() {
+  return useQuery({
+    queryKey: [...keys.audioSets, 'listen-history', 'played-sets'],
+    queryFn: async (): Promise<PlayedSet[]> => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return []
+      const { data: tracks } = await supabase
+        .from('audio_tracks')
+        .select('audio_set_id, section_key, updated_at')
+        .eq('user_id', user.id)
+        .gt('play_count', 0)
+        .not('audio_set_id', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(40)
+      const latest = new Map<string, { updated_at: string; section_key: string | null }>()
+      for (const t of tracks ?? []) {
+        if (t.audio_set_id && !latest.has(t.audio_set_id)) latest.set(t.audio_set_id, t)
+      }
+      const ids = [...latest.keys()].slice(0, 3)
+      if (ids.length === 0) return []
+      const { data: sets } = await supabase.from('audio_sets').select('id, name, content_type').in('id', ids)
+      return ids
+        .map((id): PlayedSet | null => {
+          const set = (sets ?? []).find((x) => x.id === id)
+          if (!set) return null
+          const hit = latest.get(id)!
+          const type = String(set.content_type ?? '')
+          const category: AudioContentCategory = type.includes('story') ? 'story' : type.includes('song') || type.includes('music') ? 'music' : 'life_vision'
+          return { setId: id, name: set.name || 'Life Vision', category, lastPlayedAt: hit.updated_at, sectionKey: hit.section_key }
+        })
+        .filter((x): x is PlayedSet => x !== null)
+    },
+    staleTime: 60_000,
+  })
+}
+
+function lastPlayed(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (mins < 60) return `Played ${Math.max(1, mins)}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `Played ${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return days === 1 ? 'Played yesterday' : `Played ${days} days ago`
+}
+
 interface CardProps {
   eyebrow: string
   title: string
@@ -111,6 +171,7 @@ function ListenCard({ eyebrow, title, subtitle, artwork, progress, timeLabel, pl
 export function ContinueListening() {
   const { data: history = [], isLoading: historyLoading } = useRecentListens()
   const { data: sources = [], isLoading: sourcesLoading } = useListenSources()
+  const { data: playedSets = [], isLoading: playedLoading } = usePlayedSets()
   const tracks = useGlobalAudioStore((s) => s.tracks)
   const currentIndex = useGlobalAudioStore((s) => s.currentIndex)
   const setName = useGlobalAudioStore((s) => s.setName)
@@ -167,7 +228,35 @@ export function ContinueListening() {
     }
   }
 
-  const loading = historyLoading || (history.length === 0 && sourcesLoading)
+  const startPlayedSet = async (set: PlayedSet) => {
+    const key = `set:${set.setId}`
+    if (liveKey === key) {
+      togglePlayPause()
+      return
+    }
+    setLoadingKey(key)
+    try {
+      const loaded = await loadAudioSetTracks(set.setId)
+      if (loaded.length === 0) return
+      const index = Math.max(0, loaded.findIndex((t) => t.sectionKey === set.sectionKey))
+      play(
+        loaded.map((t) => ({ id: t.id, title: t.title, artist: '', duration: t.duration, url: t.url, thumbnail: '', sectionKey: t.sectionKey })),
+        index,
+        key,
+        set.category === 'life_vision' ? 'vision' : set.category,
+        set.category,
+      )
+    } finally {
+      setLoadingKey(null)
+    }
+  }
+
+  // History first; top up to three with sets played before history existed.
+  const fillers = playedSets
+    .filter((p) => !history.some((h) => h.set_key.endsWith(p.setId)))
+    .slice(0, Math.max(0, 3 - history.length))
+
+  const loading = historyLoading || playedLoading || (history.length === 0 && fillers.length === 0 && sourcesLoading)
   const starter = sources.find((s) => s.trackUrl || s.audioSetId) ?? null
 
   return (
@@ -186,7 +275,7 @@ export function ContinueListening() {
         <div className="space-y-3">
           <div className="h-[112px] animate-pulse rounded-3xl bg-white/5" />
         </div>
-      ) : history.length > 0 ? (
+      ) : history.length + fillers.length > 0 ? (
         <ul className="space-y-3">
           {history.map((row, i) => {
             const live = liveKey === row.set_key
@@ -207,6 +296,25 @@ export function ContinueListening() {
                   playing={live && isPlaying}
                   loading={false}
                   onPlay={() => resume(row)}
+                />
+              </li>
+            )
+          })}
+          {fillers.map((set, i) => {
+            const key = `set:${set.setId}`
+            const live = liveKey === key
+            return (
+              <li key={key}>
+                <ListenCard
+                  eyebrow={CATEGORY_LABEL[set.category]}
+                  title={set.name}
+                  subtitle={live ? tracks[currentIndex]?.title ?? 'Now playing' : lastPlayed(set.lastPlayedAt)}
+                  artwork={art[(history.length + i) % art.length]}
+                  progress={live && duration > 0 ? (currentTime / duration) * 100 : null}
+                  timeLabel={live && duration > 0 ? `${formatTime(currentTime)} / ${formatTime(duration)}` : null}
+                  playing={live && isPlaying}
+                  loading={loadingKey === key}
+                  onPlay={() => void startPlayedSet(set)}
                 />
               </li>
             )

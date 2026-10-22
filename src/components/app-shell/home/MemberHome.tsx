@@ -8,6 +8,7 @@ import { ContinueListening } from './ContinueListening'
 import { TodayOnMap } from './TodayOnMap'
 import { ProgressStrip } from './ProgressStrip'
 import { AreaLinks } from '../AreaLinks'
+import { QuickActions } from './QuickActions'
 
 interface MemberHomeProps {
   firstName: string | null
@@ -42,11 +43,10 @@ export function MemberHome({ firstName, timezone }: MemberHomeProps) {
     <div className="space-y-6 md:space-y-8">
       <HomeHero firstName={firstName} action={action} />
       <AreaLinks sectionId="home" />
+      <ContinueListening />
+      <QuickActions />
       <ConceptStrip vision={vision ?? null} />
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] md:gap-8">
-        <ContinueListening />
-        <TodayOnMap occurrences={occurrences} date={today} />
-      </div>
+      <TodayOnMap occurrences={occurrences} date={today} />
       <ProgressStrip />
     </div>
   )
