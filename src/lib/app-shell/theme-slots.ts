@@ -134,7 +134,7 @@ export function buildSlotPrompt(themeSlug: string, slot: ThemeSlot, worldOverrid
   const style = THEME_STYLES[themeSlug] ?? THEME_STYLES.default
   return (
     `${subject}, set in ${world}. ${style} ` +
-    `No people, no text, no logos, no watermarks. ` +
+    `Full-bleed frame edge to edge: no letterboxing, no black bars, no borders. No people, no text, no logos, no watermarks. ` +
     `Keep the lower third and left side uncluttered with soft tones so text can sit on top.`
   )
 }

@@ -22,6 +22,7 @@ dotenv.config({ path: '.env.local' })
 import { createClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { trimLetterbox } from './letterbox'
 import { ALL_SLOTS, IMAGELESS_THEMES, THEME_WORLDS, buildSlotPrompt, slotDimension, type ThemeSlot } from '../../src/lib/app-shell/theme-slots'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -119,7 +120,11 @@ async function main() {
       }
       try {
         process.stdout.write(`  ${slot}: generating... `)
-        const { bytes, width, height } = await generate(prompt, slot)
+        const generated = await generate(prompt, slot)
+        const trimmed = await trimLetterbox(generated.bytes)
+        const bytes = trimmed.buffer
+        const width = generated.width
+        const height = generated.height ? generated.height - trimmed.top - trimmed.bottom : undefined
         const { key, url } = await upload(theme.slug, slot, bytes)
         if (force && have.has(slot)) {
           await supabase.from('theme_images').delete().eq('theme_id', theme.id).eq('slot', slot)
