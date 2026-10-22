@@ -118,6 +118,14 @@ export default function VivaPage() {
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get('model')
     if (m) setModelOverride(m)
+    // Capture's "Share with VIVA" hands over a draft; it waits in the composer.
+    const draft = new URLSearchParams(window.location.search).get('draft')
+    if (draft) {
+      setCurrentMessage(draft)
+      const next = new URL(window.location.href)
+      next.searchParams.delete('draft')
+      window.history.replaceState(null, '', next.pathname + next.search)
+    }
   }, [])
 
   const { data: threads = [] } = useQuery({

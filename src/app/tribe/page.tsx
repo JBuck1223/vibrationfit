@@ -1,7 +1,7 @@
-import { ShellSectionPlaceholder } from '@/components/app-shell/ShellSectionPlaceholder'
+import { TribeHome } from '@/components/app-shell/tribe/TribeHome'
 
 export const metadata = { title: 'Tribe | Vibration Fit' }
 
 export default function TribePage() {
-  return <ShellSectionPlaceholder sectionId="tribe" />
+  return <TribeHome />
 }

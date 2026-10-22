@@ -1,6 +1,6 @@
 'use client'
 
-import { User, LayoutGrid, CreditCard, Shield, Home } from 'lucide-react'
+import { User, LayoutGrid, CreditCard, Shield, Home, Palette } from 'lucide-react'
 import { AreaBar, type AreaBarTab } from '@/lib/design-system/components'
 
 const TABS: AreaBarTab[] = [
@@ -11,6 +11,7 @@ const TABS: AreaBarTab[] = [
     icon: User,
     matchPaths: ['/account/settings', '/account/settings/password', '/account/settings/delete'],
   },
+  { label: 'Appearance', path: '/account/appearance', icon: Palette },
   { label: 'Household', path: '/account/household', icon: Home },
   { label: 'Billing', path: '/account/billing', icon: CreditCard },
   { label: 'Privacy', path: '/account/privacy', icon: Shield },

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useLayoutEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { PageLayout } from '@/lib/design-system'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -171,6 +171,7 @@ function isPathAccessibleForIntensive(
 
 export function GlobalLayout({ children }: GlobalLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
   // Render tree is driven entirely by the session-level snapshot below.
   // We intentionally start with `null` (matches SSR) and fill in synchronously
   // from sessionStorage during the first mount effect, so subsequent navigations
@@ -181,8 +182,11 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   const [nextShell, setNextShell] = useState(false)
 
   useEffect(() => {
-    setNextShell(syncShellFlagFromUrl())
-  }, [pathname])
+    const on = syncShellFlagFromUrl()
+    setNextShell(on)
+    // The old member home moves to /home in the new shell.
+    if (on && pathname === '/dashboard') router.replace('/home')
+  }, [pathname, router])
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return
