@@ -30,15 +30,18 @@ export function PillNav() {
       aria-label="Primary"
       data-shell-pill
       className={cn(
-        'fixed inset-x-4 z-40 lg:hidden',
-        'bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]',
-        'glass-chrome rounded-full shadow-[0_12px_40px_rgba(0,0,0,0.55)]',
+        'fixed inset-x-3 z-40 lg:hidden',
+        'bottom-[calc(env(safe-area-inset-bottom,0px)+10px)]',
+        // Matches Home's glass cards: violet-dark translucent fill, one hairline outline.
+        'rounded-[36px] border border-white/[0.14]',
+        'bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(22,18,32,0.68)_100%)]',
+        'shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150',
         'transition-transform duration-200 ease-out',
         'data-[keyboard=open]:translate-y-[140%]',
       )}
       style={{ height: 'var(--shell-nav-height)' }}
     >
-      <ul className="flex h-full items-stretch justify-around px-1">
+      <ul className="flex h-full items-stretch justify-around px-2">
         {PILL_SECTIONS.map((section) => {
           const isActive = section.id === active.id
           const Icon = section.icon
@@ -49,21 +52,21 @@ export function PillNav() {
                 aria-current={isActive ? 'page' : undefined}
                 onClick={() => void tapHaptic()}
                 className={cn(
-                  'relative flex flex-1 flex-col items-center justify-center gap-1 rounded-full',
-                  'text-[11px] font-medium tracking-wide transition-colors',
-                  isActive ? 'text-[var(--section-accent)]' : 'text-white/70 active:text-white',
+                  'relative flex flex-1 flex-col items-center justify-center gap-1 pb-2 pt-1 rounded-[28px]',
+                  'text-[13px] font-medium transition-colors',
+                  isActive ? 'text-[var(--section-accent)]' : 'text-white/85 active:text-white',
                 )}
               >
                 <Icon
-                  className={cn('h-[22px] w-[22px] transition-transform', isActive && 'scale-105')}
-                  strokeWidth={isActive ? 2.25 : 1.75}
+                  className={cn('h-[26px] w-[26px] transition-transform', isActive && 'scale-105')}
+                  strokeWidth={isActive ? 2 : 1.5}
                   style={isActive ? { filter: 'drop-shadow(0 0 8px var(--section-accent-soft))' } : undefined}
                 />
                 <span>{section.label}</span>
                 <span
                   aria-hidden
                   className={cn(
-                    'absolute bottom-1.5 h-1 w-1 rounded-full bg-[var(--section-accent)] transition-opacity',
+                    'absolute bottom-1 h-[5px] w-[5px] rounded-full bg-[var(--section-accent)] transition-opacity',
                     isActive ? 'opacity-100' : 'opacity-0',
                   )}
                 />

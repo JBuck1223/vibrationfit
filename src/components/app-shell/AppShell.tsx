@@ -54,6 +54,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           data-section={section.accent === 'viva' ? 'viva' : undefined}
           // `isolate` keeps the -z-10 backdrop inside this stacking context, above the body's black.
           className="relative isolate min-h-dvh text-white"
+          // The bottom bar is taller now; everything that clears it reads this.
+          style={{ '--shell-nav-height': '76px' } as React.CSSProperties}
         >
           <ThemeBackdrop />
           <div className="flex min-h-dvh">

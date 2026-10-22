@@ -24,13 +24,14 @@ if (!email) {
 }
 
 const PROMPT =
-  'A woman seen from behind, long wavy golden-brown hair, wrapped in a soft cream knit blanket, sitting on a ' +
-  'terrace above the Mediterranean sea at golden hour. Whitewashed cliffside village and rocky coastline below, ' +
-  'the sun low on the horizon, sky glowing amber and peach fading into lavender and soft violet, warm haze over ' +
-  'the water, a few pink flowers in the soft-focus foreground. She sits slightly right of center, looking out ' +
-  'at the sunset. Photorealistic, cinematic, shallow depth of field, rich warm color grade, dreamy and serene, ' +
-  'premium wellness retreat mood. Full-bleed frame edge to edge: no letterboxing, no black bars, no borders. ' +
-  'No text, no logos, no watermarks. Keep the left side of the frame calm and uncluttered.'
+  'Twilight just after sunset, the scene dominated by deep purples, violet and indigo, dark and serene. ' +
+  'A woman seen from behind, long wavy hair catching a faint warm rim of light, wrapped in a soft knit blanket, ' +
+  'sitting on a terrace above a calm sea and dark cliffs. The last thin glow of a small sun on the far horizon, ' +
+  'a narrow band of muted amber under a violet and plum sky; the rest of the frame in shadowy purple tones. ' +
+  'Soft out-of-focus flowers in deep magenta in the dark foreground. Moody, quiet, dreamy, low-key lighting, ' +
+  'rich blacks, cinematic, shallow depth of field, photorealistic. She sits slightly right of center. ' +
+  'Full-bleed frame edge to edge: no letterboxing, no black bars, no borders. No text, no logos, no watermarks. ' +
+  'Keep the upper-left and left side dark, calm and uncluttered.'
 
 const BUCKET = 'vibration-fit-client-storage'
 const CDN = 'https://media.vibrationfit.com'
