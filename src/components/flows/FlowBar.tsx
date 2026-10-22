@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { getFlow, resolveHref } from '@/lib/flows/catalog'
 import type { FlowContext, FlowStep } from '@/lib/flows/types'
 import { useActiveFlow } from '@/hooks/useActiveFlow'
+import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { FlowComplete } from './FlowComplete'
 
 function stepTarget(step: FlowStep, ctx: FlowContext, choice?: string | null): string | null {
@@ -31,6 +32,8 @@ function samePage(pathname: string, href: string | null) {
  */
 export function FlowBar() {
   const pathname = usePathname() ?? ''
+  // The floating mini player sits just above the bottom bar; ride above it.
+  const hasPlayer = useGlobalAudioStore((st) => st.tracks.length > 0)
   const router = useRouter()
   const { data, update } = useActiveFlow()
   const [expanded, setExpanded] = React.useState(false)
@@ -85,7 +88,9 @@ export function FlowBar() {
         'fixed inset-x-3 z-40 lg:left-[280px] lg:right-6',
         atTop
           ? 'top-[calc(var(--native-inset-top,0px)+var(--shell-header-height)+8px)]'
-          : 'bottom-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+20px)] lg:bottom-6',
+          : hasPlayer
+            ? 'bottom-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+92px)] lg:bottom-[92px]'
+            : 'bottom-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+20px)] lg:bottom-6',
       )}
     >
       <div className="glass-chrome mx-auto max-w-xl overflow-hidden rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.5)]">

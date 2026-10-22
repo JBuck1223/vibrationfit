@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useRef, useCallback } from 'react'
+import React, { useRef, useCallback, useEffect, useState } from 'react'
 import { Play, Pause, SkipBack, SkipForward, X, Loader2 } from 'lucide-react'
 import { useGlobalAudioStore, getGlobalAudioElement } from '@/lib/stores/global-audio-store'
 import { useMediaSession } from '@/hooks/useMediaSession'
 import { TrackArtwork } from './TrackArtwork'
 import { isSongNowPlayingTrack } from './TrackArtistLine'
+import { isShellFlagOn } from '@/lib/app-shell/flag'
 
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
@@ -33,6 +34,14 @@ export function PersistentMiniPlayer() {
   const stop = useGlobalAudioStore(s => s.stop)
 
   const currentTrack = tracks[currentIndex] ?? null
+  // In the new app shell the player floats as a glass card above the bottom bar.
+  const [floating, setFloating] = useState(false)
+  useEffect(() => {
+    const sync = () => setFloating(isShellFlagOn() && !!document.querySelector('[data-app-shell]'))
+    sync()
+    const t = window.setInterval(sync, 1500)
+    return () => window.clearInterval(t)
+  }, [])
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   audioRef.current = getGlobalAudioElement()
@@ -68,6 +77,62 @@ export function PersistentMiniPlayer() {
     const target = e.target as HTMLElement
     if (target.closest('button')) return
     openDrawer()
+  }
+
+  const subtitle = isSongNowPlayingTrack(currentTrack, contentCategory)
+    ? ['Vibration Fit', currentTrack.performers?.map((p) => p.name).join(' · ') || currentTrack.artist].filter(Boolean).join(' · ')
+    : setName && !setName.includes(':') ? setName : currentTrack.artist || 'Vibration Fit'
+
+  if (floating) {
+    return (
+      <div
+        className="fixed inset-x-3 z-50 bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+18px)] lg:bottom-6 lg:left-[280px] lg:right-6 lg:mx-auto lg:max-w-xl"
+      >
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={handleBarClick}
+          onKeyDown={(e) => { if (e.key === 'Enter') openDrawer() }}
+          aria-label="Open Now Playing"
+          className="vf-glass relative cursor-pointer overflow-hidden rounded-[22px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(20,16,30,0.80)_100%)] shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150"
+        >
+          <div className="flex items-center gap-3 py-2 pl-2 pr-3">
+            <TrackArtwork track={currentTrack} iconKey={setIconKey} size={44} className="flex-shrink-0 overflow-hidden rounded-[14px]" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15px] font-semibold text-white">{currentTrack.title}</p>
+              <p className="truncate text-xs text-white/60">{subtitle}</p>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); isPlaying ? pause() : resume() }}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform active:scale-95"
+              aria-label={isBuffering ? 'Loading' : isPlaying ? 'Pause' : 'Play'}
+            >
+              {isBuffering ? <Loader2 className="h-4 w-4 animate-spin" /> : isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="ml-0.5 h-4 w-4" fill="currentColor" />}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); skipNext() }}
+              disabled={currentIndex >= tracks.length - 1}
+              className="flex h-10 w-9 flex-shrink-0 items-center justify-center text-white transition-opacity disabled:opacity-30"
+              aria-label="Next track"
+            >
+              <SkipForward className="h-5 w-5" fill="currentColor" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); stop() }}
+              className="flex h-10 w-7 flex-shrink-0 items-center justify-center text-white/45 hover:text-white"
+              aria-label="Stop"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {/* Progress hairline along the bottom edge; tap to seek */}
+          <div className="absolute inset-x-4 bottom-0 h-[3px] cursor-pointer" onClick={handleProgressClick}>
+            <div className="h-full rounded-full bg-white/15" />
+            <div className="absolute inset-y-0 left-0 rounded-full bg-[#39FF14]" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
