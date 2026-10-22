@@ -1001,7 +1001,7 @@ export const shellNavigationGroups: NavGroup[] = [
     defaultCollapsed: false,
     icon: Headphones,
     items: [
-      { name: 'Audio', href: '/audio', icon: Headphones, description: 'Your Life Vision audio' },
+      { name: 'Life Vision', href: '/audio', icon: Target, description: 'Your Life Vision audio' },
       { name: 'Meditations', href: '/meditations', icon: Wind, description: 'Breath-paced tracks' },
       { name: 'Stories', href: '/audio/stories', icon: Library, description: 'Listen to your stories' },
       { name: 'Songs', href: '/audio/songs', icon: Music2, description: 'Your songs' },

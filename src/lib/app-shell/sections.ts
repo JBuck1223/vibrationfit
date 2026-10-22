@@ -120,7 +120,7 @@ export const SECTIONS: Section[] = [
       { label: 'My Songs', href: '/audio/songs' },
     ],
     areas: [
-      { label: 'Audio', href: '/audio', icon: Headphones },
+      { label: 'Life Vision', href: '/audio', icon: Target },
       { label: 'Meditations', href: '/meditations', icon: Wind },
       { label: 'Stories', href: '/audio/stories', icon: Library },
       { label: 'Songs', href: '/audio/songs', icon: Music2 },

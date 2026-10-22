@@ -13,7 +13,6 @@ import { setKeyFor, type ListenHistoryRow } from '@/lib/audio/listen-history'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import type { ThemeSlot } from '@/lib/app-shell/theme-slots'
 import { useThemeImage } from '../ThemeProvider'
-import { MIX_COVERS, mixTypeFor } from '@/lib/audio/mix-covers'
 
 const CATEGORY_LABEL: Record<AudioContentCategory, string> = {
   life_vision: 'Life Vision',
@@ -100,30 +99,6 @@ function usePlayedSets() {
         .filter((x): x is PlayedSet => x !== null)
     },
     staleTime: 60_000,
-  })
-}
-
-/**
- * Life Vision sets always show their mix's fixed cover (Sleep, Power...), not
- * a theme image, so they look the same whatever theme is on.
- */
-function useMixCovers(setIds: string[]) {
-  return useQuery({
-    queryKey: [...keys.audioSets, 'mix-covers', setIds.join(',')],
-    enabled: setIds.length > 0,
-    queryFn: async (): Promise<Record<string, string>> => {
-      const supabase = createClient()
-      const { data } = await supabase.from('audio_sets').select('id, variant, content_type, metadata').in('id', setIds)
-      const covers: Record<string, string> = {}
-      for (const set of data ?? []) {
-        const type = String(set.content_type ?? '')
-        if (type && type !== 'life_vision') continue
-        const md = (set.metadata ?? {}) as { voice_volume?: number; bg_volume?: number }
-        covers[set.id] = MIX_COVERS[mixTypeFor(set.variant, md.voice_volume, md.bg_volume)]
-      }
-      return covers
-    },
-    staleTime: 5 * 60_000,
   })
 }
 
@@ -281,14 +256,8 @@ export function ContinueListening() {
     .filter((p) => !history.some((h) => h.set_key.endsWith(p.setId)))
     .slice(0, Math.max(0, 3 - history.length))
 
-  const setIdOf = (key: string) => key.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0] ?? null
-  const { data: mixCovers = {} } = useMixCovers(
-    [...history.map((h) => setIdOf(h.set_key)), ...fillers.map((f) => f.setId)].filter((x): x is string => !!x),
-  )
-  const coverFor = (key: string) => {
-    const id = setIdOf(key)
-    return id ? mixCovers[id] ?? null : null
-  }
+  // The fixed mix covers were retired; old history rows may still point at them.
+  const savedArt = (url: string | null) => (url && !url.includes('/audio/mix-covers/') ? url : null)
 
   const loading = historyLoading || playedLoading || (history.length === 0 && fillers.length === 0 && sourcesLoading)
   const starter = sources.find((s) => s.trackUrl || s.audioSetId) ?? null
@@ -324,7 +293,7 @@ export function ContinueListening() {
                   eyebrow={CATEGORY_LABEL[row.category] ?? 'Audio'}
                   title={liveTrack?.title || row.title}
                   subtitle={trackCount > 1 ? `Track ${index + 1} of ${trackCount}` : live ? 'Now playing' : null}
-                  artwork={coverFor(row.set_key) || row.artwork_url || art[i % art.length]}
+                  artwork={savedArt(row.artwork_url) || art[i % art.length]}
                   progress={length > 0 ? (position / length) * 100 : 0}
                   timeLabel={length > 0 ? `${formatTime(position)} / ${formatTime(length)}` : null}
                   playing={live && isPlaying}
@@ -343,7 +312,7 @@ export function ContinueListening() {
                   eyebrow={CATEGORY_LABEL[set.category]}
                   title={set.name}
                   subtitle={live ? tracks[currentIndex]?.title ?? 'Now playing' : lastPlayed(set.lastPlayedAt)}
-                  artwork={mixCovers[set.setId] || art[(history.length + i) % art.length]}
+                  artwork={art[(history.length + i) % art.length]}
                   progress={live && duration > 0 ? (currentTime / duration) * 100 : null}
                   timeLabel={live && duration > 0 ? `${formatTime(currentTime)} / ${formatTime(duration)}` : null}
                   playing={live && isPlaying}

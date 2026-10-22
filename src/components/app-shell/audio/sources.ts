@@ -12,7 +12,7 @@ import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import type { AudioContentCategory } from '@/lib/stores/global-audio-store'
 import { loadAudioSetTracks } from '@/components/dashboard/widgets/queries'
 import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
-import { MIX_COVERS, mixTypeFor, type MixType } from '@/lib/audio/mix-covers'
+import { mixTypeFor, type MixType } from '@/lib/audio/mix-type'
 import { getPlaylistTracks, getUserPlaylists, playlistTracksToAudioTracks } from '@/lib/services/playlistService'
 
 export type AudioTab = 'life-vision' | 'stories' | 'meditations' | 'music' | 'playlists' | 'songs'
@@ -82,9 +82,9 @@ export function lifeVisionCollection(
     metadata?: { voice_volume?: number; bg_volume?: number } | null
   },
   visionTitle: string,
+  artwork: string | null,
 ): AudioCollection {
   const mixType = lifeVisionMixType(set)
-  const artwork = MIX_COVERS[mixType]
   const chips = [
     set.voice_id && set.variant !== 'personal' ? `Voice · ${VOICES[set.voice_id] ?? set.voice_id}` : set.variant === 'personal' ? 'Your voice' : null,
     set.backgroundTrack ?? null,
