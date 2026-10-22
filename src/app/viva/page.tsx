@@ -39,6 +39,7 @@ import {
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { ensureJpegCompatible } from '@/lib/life-explorer/ensure-jpeg'
 import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
+import { ShellWalkthroughButton } from '@/components/app-shell/ShellWalkthroughButton'
 import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
 import { VivaWelcome } from '@/components/viva/VivaWelcome'
 import { useInShell } from '@/components/app-shell/ShellContext'
@@ -537,7 +538,7 @@ export default function VivaPage() {
       {/* ---- Main column ---- */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className={cn("flex items-center gap-3 pr-4 py-3 border-b md:px-4", inShell ? "pl-4 border-white/10" : "pl-16 border-neutral-900")}>
+        <header className={cn("flex items-center gap-3 pr-4 md:px-4", inShell ? "pl-4 py-2" : "pl-16 py-3 border-b border-neutral-900")}>
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
@@ -555,11 +556,18 @@ export default function VivaPage() {
               </span>
             )}
           </div>
-          <WalkthroughToggle
-            active={walkthrough.active}
-            onToggle={walkthrough.toggle}
-            pending={walkthrough.pending}
-          />
+          {inShell ? (
+            // In the app shell the walkthrough is the lightbulb in the top bar.
+            <ShellWalkthroughButton
+              walkthrough={{ active: walkthrough.active, onToggle: walkthrough.toggle, available: walkthrough.steps.length > 0 }}
+            />
+          ) : (
+            <WalkthroughToggle
+              active={walkthrough.active}
+              onToggle={walkthrough.toggle}
+              pending={walkthrough.pending}
+            />
+          )}
           <button
             onClick={() => setConstraintsOpen(true)}
             className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
@@ -654,8 +662,9 @@ export default function VivaPage() {
         </div>
 
         {/* Input */}
-        <div className={cn("border-t", inShell ? "border-white/10 pb-2" : "border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]")} data-tour="viva-composer">
-          <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
+        <div className={cn(inShell ? "pb-2" : "border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]")} data-tour="viva-composer">
+          <div className={cn("max-w-3xl mx-auto px-4 md:px-6", inShell ? "py-2" : "py-4")}>
+            {!inShell && (
             <div className="mb-3 flex items-center">
               <button
                 type="button"
@@ -677,6 +686,7 @@ export default function VivaPage() {
                 Suggest tools
               </button>
             </div>
+            )}
             <VivaChatInput
               value={currentMessage}
               onChange={setCurrentMessage}
@@ -684,6 +694,20 @@ export default function VivaPage() {
               disabled={isStreaming}
               placeholder="Talk to VIVA..."
               canSend={!isStreaming}
+              extraActions={
+                inShell ? (
+                  <button
+                    type="button"
+                    data-tour="viva-suggest-tools"
+                    disabled={isStreaming || messages.length === 0}
+                    onClick={() => sendMessage(undefined, SUGGEST_TOOLS_USER_MESSAGE, { suggestTools: true })}
+                    title={messages.length === 0 ? 'Talk first, then I can suggest from this conversation' : 'Review this conversation and suggest what we could do'}
+                    className="ml-1 truncate rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-white/75 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Suggest tools
+                  </button>
+                ) : undefined
+              }
             />
           </div>
         </div>

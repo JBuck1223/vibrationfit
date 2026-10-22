@@ -11,8 +11,14 @@ import { useWalkthroughChrome } from '@/components/tool-walkthrough'
  * it in their menu). It sits in the top bar beside search, so studio
  * headers stay centered. Renders nothing where a page has no walkthrough.
  */
-export function ShellWalkthroughButton() {
-  const chrome = useWalkthroughChrome()
+export function ShellWalkthroughButton({
+  walkthrough,
+}: {
+  /** For pages that run their own walkthrough instead of a studio host (VIVA). */
+  walkthrough?: { active: boolean; onToggle: () => void; available?: boolean }
+} = {}) {
+  const context = useWalkthroughChrome()
+  const chrome = walkthrough ? { available: walkthrough.available ?? true, ...walkthrough } : context
   const [slot, setSlot] = React.useState<HTMLElement | null>(null)
   React.useEffect(() => setSlot(document.getElementById('shell-header-actions')), [])
   if (!chrome?.available || !slot) return null
