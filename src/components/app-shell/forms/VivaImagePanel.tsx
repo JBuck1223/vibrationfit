@@ -5,12 +5,15 @@ import { Check, ChevronDown, Loader2, Pencil, RefreshCw, Sparkles, Upload, X } f
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-type Size = 'square' | 'landscape_4_3' | 'portrait_4_3'
+type Size = 'square' | 'landscape_4_3' | 'landscape_16_9' | 'portrait_4_3' | 'portrait_16_9'
 
-const SIZES: { id: Size; label: string; aspect: string }[] = [
-  { id: 'landscape_4_3', label: 'Wide', aspect: 'aspect-[4/3]' },
-  { id: 'square', label: 'Square', aspect: 'aspect-square' },
-  { id: 'portrait_4_3', label: 'Tall', aspect: 'aspect-[3/4]' },
+// The same five sizes as the full generator, each with a little shape preview.
+const SIZES: { id: Size; ratio: string; aspect: string; w: number; h: number }[] = [
+  { id: 'square', ratio: '1:1', aspect: 'aspect-square', w: 24, h: 24 },
+  { id: 'landscape_4_3', ratio: '4:3', aspect: 'aspect-[4/3]', w: 30, h: 22 },
+  { id: 'landscape_16_9', ratio: '16:9', aspect: 'aspect-video', w: 36, h: 20 },
+  { id: 'portrait_4_3', ratio: '3:4', aspect: 'aspect-[3/4]', w: 18, h: 24 },
+  { id: 'portrait_16_9', ratio: '9:16', aspect: 'aspect-[9/16]', w: 14, h: 24 },
 ]
 
 const STYLES: { id: string; label: string; hint: string }[] = [
@@ -58,7 +61,7 @@ export function VivaImagePanel({
 }) {
   const [description, setDescription] = React.useState('')
   const [style, setStyle] = React.useState<string | null>(null)
-  const [size, setSize] = React.useState<Size>('landscape_4_3')
+  const [size, setSize] = React.useState<Size>('square')
   const [moreOpen, setMoreOpen] = React.useState(false)
   const [editing, setEditing] = React.useState(false)
   const [editFile, setEditFile] = React.useState<File | null>(null)
@@ -245,24 +248,31 @@ export function VivaImagePanel({
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Image size">
+            {SIZES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                role="radio"
+                aria-checked={size === s.id}
+                onClick={() => setSize(s.id)}
+                className={cn(
+                  'flex h-14 w-12 flex-col items-center justify-between rounded-xl border p-1.5 transition-colors',
+                  size === s.id ? 'border-[#39FF14]/70 bg-[rgba(57,255,20,0.1)]' : 'border-white/15 hover:border-white/30',
+                )}
+              >
+                <span className="flex flex-1 items-center justify-center">
+                  <span className={cn('rounded-[3px]', size === s.id ? 'bg-[#39FF14]' : 'bg-white/40')} style={{ width: s.w * 0.75, height: s.h * 0.75 }} />
+                </span>
+                <span className={cn('text-[10px] font-medium', size === s.id ? 'text-[#39FF14]' : 'text-white/70')}>{s.ratio}</span>
+              </button>
+            ))}
+          </div>
           <button type="button" onClick={() => setMoreOpen((o) => !o)} className="flex items-center gap-1 text-xs text-white/55 hover:text-white">
             More options <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', moreOpen && 'rotate-180')} />
           </button>
           {moreOpen ? (
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {SIZES.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    aria-pressed={size === s.id}
-                    onClick={() => setSize(s.id)}
-                    className={cn(chip, size === s.id ? 'border-[#39FF14]/60 bg-[rgba(57,255,20,0.12)] text-[#39FF14]' : 'border-white/18 text-white/80 hover:text-white')}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
+            <div>
               <button
                 type="button"
                 onClick={() => setEditing(true)}
