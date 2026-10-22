@@ -73,7 +73,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {children}
                 </main>
               ) : (
-                <main data-app-scroller className="w-full px-4 pb-6 pt-2 md:px-6 lg:px-8 lg:pt-4">
+                <main data-app-scroller className="w-full px-4 pb-6 pt-2 md:px-6 lg:px-8 lg:pt-4 max-md:[&_main]:px-0">
+                  {/* Studio layouts wrap pages in their own <main> with phone gutters;
+                      the shell already gives those, so drop the second set. */}
                   {children}
                   <BottomClearance />
                 </main>
