@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [keyboardOpen])
 
   // VIVA scrolls its own thread, so its column is pinned to the viewport height.
-  const fullHeight = section.id === 'viva'
+  const fullHeight = section.id === 'viva' || (pathname ?? '').startsWith('/vibe-tribe')
 
   return (
     <ThemeProvider>
@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           <ThemeBackdrop />
           <RailNav />
-          <div className="lg:pl-[72px]">
+          <div className="lg:pl-[var(--shell-rail-width)]">
             <ShellHeader />
             {fullHeight ? (
               <main data-app-scroller className="shell-full-height flex w-full flex-col overflow-hidden">

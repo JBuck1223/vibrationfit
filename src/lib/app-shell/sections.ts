@@ -7,13 +7,35 @@
  */
 
 import {
-  Home,
-  Sparkles,
+  Activity,
+  Award,
+  BookOpen,
+  CreditCard,
+  DollarSign,
+  FileText,
+  Flame,
+  Globe,
   Headphones,
-  PenLine,
-  UsersRound,
+  Home,
+  Image as ImageIcon,
   LayoutGrid,
+  Library,
+  ListMusic,
+  Map as MapIcon,
+  Mic,
+  Music2,
+  Palette,
+  PenLine,
+  Settings,
+  Share2,
+  Shield,
+  Sparkles,
+  Target,
   UserRound,
+  Users,
+  UsersRound,
+  Video,
+  Wind,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -27,6 +49,15 @@ export interface SectionTab {
   href: string
 }
 
+/** A studio or page members know by name. Shown in the sidebar and on the section root. */
+export interface SectionArea {
+  label: string
+  href: string
+  icon: LucideIcon
+  /** Extra prefixes that count as being inside this area. */
+  matchPrefixes?: string[]
+}
+
 export interface Section {
   id: SectionId
   label: string
@@ -38,6 +69,8 @@ export interface Section {
   matchPrefixes: string[]
   /** Sub-tabs the section's AreaBar shows. */
   tabs: SectionTab[]
+  /** The areas (studios) that live under this section, in sidebar order. */
+  areas: SectionArea[]
   /** True for the five that sit in the pill. Tools and Account live in the header. */
   inPill: boolean
 }
@@ -51,6 +84,13 @@ export const SECTIONS: Section[] = [
     href: '/home',
     matchPrefixes: ['/home', '/dashboard', '/map', '/your-world', '/activity', '/tracking'],
     tabs: [],
+    areas: [
+      { label: 'MAP', href: '/map', icon: MapIcon },
+      { label: 'My World', href: '/your-world', icon: Globe },
+      { label: 'Activity', href: '/activity', icon: Activity },
+      { label: 'Streaks', href: '/tracking/streaks', icon: Flame },
+      { label: 'Badges', href: '/tracking/badges', icon: Award },
+    ],
     inPill: true,
   },
   {
@@ -61,6 +101,7 @@ export const SECTIONS: Section[] = [
     href: '/viva',
     matchPrefixes: ['/viva'],
     tabs: [],
+    areas: [],
     inPill: true,
   },
   {
@@ -69,15 +110,20 @@ export const SECTIONS: Section[] = [
     icon: Headphones,
     accent: 'brand',
     href: '/listen',
-    matchPrefixes: ['/listen', '/audio', '/meditations', '/story', '/life-vision', '/music'],
+    matchPrefixes: ['/listen', '/audio', '/meditations', '/music'],
     tabs: [
       { label: 'Life Vision', href: '/listen' },
       { label: 'Stories', href: '/listen/stories' },
       { label: 'Meditations', href: '/listen/meditations' },
       { label: 'Songs', href: '/listen/songs' },
-      { label: 'Incantations', href: '/listen/incantations' },
-      { label: 'Queries', href: '/listen/queries' },
       { label: 'Playlists', href: '/listen/playlists' },
+    ],
+    areas: [
+      { label: 'Audio', href: '/audio', icon: Headphones },
+      { label: 'Meditations', href: '/meditations', icon: Wind },
+      { label: 'Stories', href: '/audio/stories', icon: Library },
+      { label: 'Songs', href: '/audio/songs', icon: Music2 },
+      { label: 'Playlists', href: '/audio/playlists', icon: ListMusic },
     ],
     inPill: true,
   },
@@ -93,6 +139,11 @@ export const SECTIONS: Section[] = [
       { label: 'Journal', href: '/journal' },
       { label: 'Abundance', href: '/abundance-tracker' },
     ],
+    areas: [
+      { label: 'Daily Paper', href: '/daily-paper', icon: FileText },
+      { label: 'Journal', href: '/journal', icon: BookOpen },
+      { label: 'Abundance', href: '/abundance-tracker', icon: DollarSign },
+    ],
     inPill: true,
   },
   {
@@ -107,6 +158,11 @@ export const SECTIONS: Section[] = [
       { label: 'Alignment Gym', href: '/alignment-gym' },
       { label: 'Referrals', href: '/referral' },
     ],
+    areas: [
+      { label: 'Vibe Tribe', href: '/vibe-tribe', icon: UsersRound },
+      { label: 'Alignment Gym', href: '/alignment-gym', icon: Video, matchPrefixes: ['/sessions', '/session'] },
+      { label: 'Referrals', href: '/referral', icon: Share2 },
+    ],
     inPill: true,
   },
   {
@@ -115,8 +171,16 @@ export const SECTIONS: Section[] = [
     icon: LayoutGrid,
     accent: 'brand',
     href: '/tools',
-    matchPrefixes: ['/tools', '/manifestations', '/vision', '/scenes'],
+    matchPrefixes: ['/tools', '/manifestations', '/vision', '/scenes', '/life-vision', '/story'],
     tabs: [],
+    areas: [
+      { label: 'Manifestations', href: '/manifestations', icon: ImageIcon },
+      { label: 'Life Vision', href: '/life-vision', icon: Target },
+      { label: 'Stories', href: '/story', icon: Library },
+      { label: 'Incantations', href: '/story?kind=incantation', icon: Mic },
+      { label: 'Songwriter', href: '/audio/songwriter', icon: Music2 },
+      { label: 'Audio Studio', href: '/audio/create', icon: Headphones, matchPrefixes: ['/audio/create', '/audio/generate', '/audio/record', '/audio/mix'] },
+    ],
     inPill: false,
   },
   {
@@ -131,6 +195,13 @@ export const SECTIONS: Section[] = [
       { label: 'Settings', href: '/account/settings' },
       { label: 'Appearance', href: '/account/appearance' },
       { label: 'Household', href: '/account/household' },
+    ],
+    areas: [
+      { label: 'Settings', href: '/account/settings', icon: Settings },
+      { label: 'Appearance', href: '/account/appearance', icon: Palette },
+      { label: 'Household', href: '/account/household', icon: Users },
+      { label: 'Billing', href: '/account/billing', icon: CreditCard },
+      { label: 'Privacy', href: '/account/privacy', icon: Shield },
     ],
     inPill: false,
   },
@@ -167,4 +238,18 @@ export function sectionForPath(pathname: string | null | undefined): Section {
 export function isSectionRoot(pathname: string | null | undefined): boolean {
   const path = (pathname ?? '/').split('?')[0]
   return SECTIONS.some((s) => s.href === path)
+}
+
+/** Longest-prefix match over the section's areas, so the sidebar can highlight the one you are in. */
+export function areaForPath(section: Section, pathname: string | null | undefined): SectionArea | null {
+  const path = (pathname ?? '/').split('?')[0]
+  let best: { area: SectionArea; length: number } | null = null
+  for (const area of section.areas) {
+    const prefixes = [area.href.split('?')[0], ...(area.matchPrefixes ?? [])]
+    for (const prefix of prefixes) {
+      const hit = path === prefix || path.startsWith(`${prefix}/`)
+      if (hit && (!best || prefix.length > best.length)) best = { area, length: prefix.length }
+    }
+  }
+  return best?.area ?? null
 }

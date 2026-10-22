@@ -183,6 +183,7 @@ html[data-native-shell] .hide-in-native {
   --theme-tint: rgba(0, 0, 0, 0);
   --shell-nav-height: 64px;
   --shell-header-height: 56px;
+  --shell-rail-width: 240px;
 }
 [data-section='viva'] {
   --section-accent: #BF00FF;

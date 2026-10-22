@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ChevronRight, GraduationCap, Search } from 'lucide-react'
 import { searchTools } from '@/lib/app-shell/tools-catalog'
+import { AreaLinks } from '../AreaLinks'
 
 /**
  * The Tools section root: search and Training on top, then every creation
@@ -30,6 +31,8 @@ export function ToolsDirectory() {
           Create something today
         </h2>
       </section>
+
+      <AreaLinks sectionId="tools" />
 
       <label className="glass-panel flex items-center gap-3 px-4 py-3 focus-within:border-[#39FF14]/70">
         <Search className="h-5 w-5 shrink-0 text-white/60" />

@@ -2,14 +2,12 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { ArrowRight, Library, Loader2, Music2, Pause, Play } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { getSection } from '@/lib/app-shell/sections'
 import { useThemeImage } from '../ThemeProvider'
 import { ContinueListening } from '../home/ContinueListening'
 import { useRecentListenItems, useVisionAudioSets } from './queries'
 import { usePlayAudioSet } from './usePlayAudioSet'
+import { AreaLinks } from '../AreaLinks'
 
 function relative(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
@@ -24,8 +22,6 @@ function relative(iso: string): string {
  * reach for a vision set, or go back to what you had on.
  */
 export function ListenHome() {
-  const pathname = usePathname()
-  const section = getSection('listen')
   const { data: sets = [], isLoading: setsLoading } = useVisionAudioSets()
   const { data: recent = [] } = useRecentListenItems()
   const { playSet, loadingId, isCurrent, isPlaying } = usePlayAudioSet()
@@ -72,25 +68,7 @@ export function ListenHome() {
         </div>
       </section>
 
-      <nav aria-label="Listen" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
-        {[{ label: 'Life Vision', href: '/listen' }, ...section.tabs.filter((t) => t.href !== '/listen')].map((tab) => {
-          const active = pathname === tab.href
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={cn(
-                'shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
-                active
-                  ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
-                  : 'glass-chrome rounded-full text-white/80 hover:text-white',
-              )}
-            >
-              {tab.label}
-            </Link>
-          )
-        })}
-      </nav>
+      <AreaLinks sectionId="listen" />
 
       <section>
         <div className="mb-3 flex items-center justify-between">

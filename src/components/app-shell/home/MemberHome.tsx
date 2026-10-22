@@ -7,6 +7,7 @@ import { ConceptStrip } from './ConceptStrip'
 import { ContinueListening } from './ContinueListening'
 import { TodayOnMap } from './TodayOnMap'
 import { ProgressStrip } from './ProgressStrip'
+import { AreaLinks } from '../AreaLinks'
 
 interface MemberHomeProps {
   firstName: string | null
@@ -40,6 +41,7 @@ export function MemberHome({ firstName, timezone }: MemberHomeProps) {
   return (
     <div className="space-y-6 md:space-y-8">
       <HomeHero firstName={firstName} action={action} />
+      <AreaLinks sectionId="home" />
       <ConceptStrip vision={vision ?? null} />
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] md:gap-8">
         <ContinueListening />

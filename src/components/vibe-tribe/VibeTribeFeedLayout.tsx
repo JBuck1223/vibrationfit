@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { Search, Pin, ChevronDown, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, User, FileText, MessageCircle, HelpCircle, Filter } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { PostCard } from './PostCard'
@@ -38,6 +39,7 @@ interface VibeTribeFeedLayoutProps {
 }
 
 export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = 'all', userProfile, hasPostedBefore = true, onPostCreated: onPostCreatedProp }: VibeTribeFeedLayoutProps) {
+  const inShell = useInShell()
   const [posts, setPosts] = useState<VibePost[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -222,9 +224,9 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
   }
 
   return (
-    <div className="flex flex-col h-full min-h-screen md:min-h-0 md:h-full bg-black">
+    <div className={`flex flex-col h-full min-h-screen md:min-h-0 md:h-full ${inShell ? 'bg-transparent' : 'bg-black'}`}>
       {/* Sticky Top Bar */}
-      <div className="sticky top-0 z-30 bg-black border-b border-neutral-800 px-4 py-3">
+      <div className={`sticky top-0 z-30 border-b px-4 py-3 ${inShell ? 'glass-chrome rounded-none border-x-0 border-t-0' : 'bg-black border-neutral-800'}`}>
         <div className="flex items-center justify-between max-w-[772px] mx-auto">
           {/* Left side - Profile Picture + Title/Name */}
           {showSearch ? (
@@ -363,7 +365,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
 
       {/* Activity Filter Bar - shows when activity filter is active */}
       {activityFilter !== 'off' && (
-        <div className="bg-black border-b border-neutral-800 px-4 py-2">
+        <div className={`border-b px-4 py-2 ${inShell ? 'border-white/10' : 'bg-black border-neutral-800'}`}>
           <div className="flex items-center gap-2 max-w-[772px] mx-auto overflow-x-auto pb-1">
             <button
               onClick={() => setActivityFilter('posts')}

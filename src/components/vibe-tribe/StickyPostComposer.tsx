@@ -247,7 +247,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
       )}
 
       {/* Collapsed Bar — Facebook-style prompt */}
-      <div className="border-b border-neutral-800 bg-black">
+      <div className="border-b border-white/10 bg-[var(--glass-fill-strong,black)]">
         <div className="max-w-[772px] mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Profile Picture — links to own snapshot */}

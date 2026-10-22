@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
-// Listen sub-tab: the consume surface still lives on its studio route.
+// Listen sub-tab: the listening surface lives in the audio studio.
 export default function ListenQueriesPage() {
-  redirect('/story?kind=spark_query')
+  redirect('/audio/stories')
 }
