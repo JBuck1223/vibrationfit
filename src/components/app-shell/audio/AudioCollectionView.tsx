@@ -10,7 +10,7 @@ import { formatPlayerTime } from '@/lib/design-system/components/media/global-au
 import { TrackArtwork } from '@/lib/design-system/components/media/global-audio/TrackArtwork'
 import type { AudioCollection } from './sources'
 
-function Cover({ src, title, className }: { src: string | null; title: string; className?: string }) {
+function Cover({ src, title, badge, className }: { src: string | null; title: string; badge?: string; className?: string }) {
   return (
     <div className={cn('relative overflow-hidden bg-[linear-gradient(145deg,#4a2f6e,#1e1630)]', className)}>
       {src ? (
@@ -18,6 +18,9 @@ function Cover({ src, title, className }: { src: string | null; title: string; c
         <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <span className="absolute inset-0 flex items-center justify-center text-3xl font-semibold text-white/70">{title.charAt(0)}</span>
+      )}
+      {badge && (
+        <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">{badge}</span>
       )}
     </div>
   )
@@ -89,7 +92,7 @@ export function AudioCollectionView({ collection, onBack }: { collection: AudioC
       </button>
 
       <div className="flex items-center gap-4 md:gap-6">
-        <Cover src={collection.artwork} title={collection.title} className="h-28 w-28 shrink-0 rounded-[22px] shadow-[0_16px_40px_rgba(0,0,0,0.45)] md:h-40 md:w-40" />
+        <Cover src={collection.artwork} title={collection.title} badge={collection.badge} className="h-28 w-28 shrink-0 rounded-[22px] shadow-[0_16px_40px_rgba(0,0,0,0.45)] md:h-40 md:w-40" />
         <div className="min-w-0">
           <h2 className="text-2xl font-bold leading-tight text-white md:text-3xl">{collection.title}</h2>
           <p className="mt-1 text-sm text-white/65">

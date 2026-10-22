@@ -9,11 +9,11 @@ export type MixType = 'voice-only' | 'power' | 'meditation' | 'sleep' | 'persona
 const BASE = 'https://media.vibrationfit.com/site-assets/audio/mix-covers'
 
 export const MIX_COVERS: Record<MixType, string> = {
-  'voice-only': `${BASE}/voice-only-v1.jpg`,
-  power: `${BASE}/power-v1.jpg`,
-  meditation: `${BASE}/meditation-v1.jpg`,
-  sleep: `${BASE}/sleep-v1.jpg`,
-  personal: `${BASE}/personal-v1.jpg`,
+  'voice-only': `${BASE}/voice-only-v2.jpg`,
+  power: `${BASE}/power-v2.jpg`,
+  meditation: `${BASE}/meditation-v2.jpg`,
+  sleep: `${BASE}/sleep-v2.jpg`,
+  personal: `${BASE}/personal-v2.jpg`,
 }
 
 /** The studio's mix types from the voice / background split (same rules as /audio/mix). */

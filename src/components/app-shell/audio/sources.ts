@@ -37,6 +37,8 @@ export interface AudioCollection {
   artwork: string | null
   category: AudioContentCategory
   iconKey: string
+  /** A label on the cover itself, e.g. "Voice only" so nobody expects music. */
+  badge?: string
   /** Small facts shown on the set page (voice, background, frequency...). */
   chips?: string[]
   loadTracks: () => Promise<AudioTrack[]>
@@ -80,7 +82,8 @@ export function lifeVisionCollection(
   },
   visionTitle: string,
 ): AudioCollection {
-  const artwork = MIX_COVERS[lifeVisionMixType(set)]
+  const mixType = lifeVisionMixType(set)
+  const artwork = MIX_COVERS[mixType]
   const chips = [
     set.voice_id && set.variant !== 'personal' ? `Voice · ${VOICES[set.voice_id] ?? set.voice_id}` : set.variant === 'personal' ? 'Your voice' : null,
     set.backgroundTrack ?? null,
@@ -92,6 +95,7 @@ export function lifeVisionCollection(
     title: lifeVisionSetName(set),
     subtitle: `${visionTitle} · ${set.track_count} track${set.track_count === 1 ? '' : 's'}`,
     artwork,
+    badge: mixType === 'voice-only' ? 'Voice only' : undefined,
     category: 'life_vision',
     iconKey: 'life_vision',
     chips,

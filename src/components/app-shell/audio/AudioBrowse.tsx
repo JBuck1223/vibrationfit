@@ -21,6 +21,7 @@ import {
   type AudioCollection,
 } from './sources'
 import { AudioCollectionView, AudioCover } from './AudioCollectionView'
+import { VisionVersionMenu } from './VisionVersionMenu'
 
 const CARD_SLOTS: ThemeSlot[] = ['card.1', 'card.2', 'card.3', 'card.4', 'card.5', 'card.6']
 
@@ -51,7 +52,7 @@ function CollectionCard({ c, onOpen }: { c: AudioCollection; onOpen: () => void 
     <li>
       <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => e.key === 'Enter' && onOpen()} className="group cursor-pointer">
         <div className="relative">
-          <AudioCover src={c.artwork} title={c.title} className="aspect-square w-full rounded-[20px] shadow-[0_10px_28px_rgba(0,0,0,0.35)] transition-transform group-active:scale-[0.98]" />
+          <AudioCover src={c.artwork} title={c.title} badge={c.badge} className="aspect-square w-full rounded-[20px] shadow-[0_10px_28px_rgba(0,0,0,0.35)] transition-transform group-active:scale-[0.98]" />
           <button
             type="button"
             onClick={quickPlay}
@@ -79,7 +80,7 @@ export function AudioBrowse() {
   const router = useRouter()
   const params = useSearchParams()
   const tab = tabForPath(pathname)
-  const { visionId, vision, visionLoading, allVisions, switchVision, audioSets, audioSetsLoading: setsPending, storiesWithAudio, storiesWithAudioLoading } = useAudioStudio()
+  const { visionId, vision, visionLoading, audioSets, audioSetsLoading: setsPending, storiesWithAudio, storiesWithAudioLoading } = useAudioStudio()
   const artRaw = CARD_SLOTS.map((s) => useThemeImage(s)) // eslint-disable-line react-hooks/rules-of-hooks
   const artKey = artRaw.join('|')
   const art = React.useMemo(() => artKey.split('|').map((u) => u || null), [artKey])
@@ -154,24 +155,7 @@ export function AudioBrowse() {
         })}
       </nav>
 
-      {tab === 'life-vision' && allVisions.length > 1 && (
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0">
-          {allVisions.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => switchVision(v.id)}
-              className={cn(
-                'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                v.id === vision?.id ? 'bg-white/15 text-white' : 'text-white/60 hover:text-white',
-              )}
-            >
-              {v.title || (v.is_household ? 'The Life We Choose' : 'The Life I Choose')}
-              {v.version_number ? ` · v${v.version_number}` : ''}
-            </button>
-          ))}
-        </div>
-      )}
+      {tab === 'life-vision' && <VisionVersionMenu />}
 
       {loading ? (
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

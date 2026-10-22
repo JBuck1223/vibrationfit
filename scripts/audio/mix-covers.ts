@@ -8,6 +8,8 @@
  *   npx tsx scripts/audio/mix-covers.ts              # every type
  *   npx tsx scripts/audio/mix-covers.ts sleep power  # only these
  *   npx tsx scripts/audio/mix-covers.ts --version=v2 # new keys (CDN caches a year)
+ *   npx tsx scripts/audio/mix-covers.ts --preview    # generate locally only, no upload
+ *   npx tsx scripts/audio/mix-covers.ts --upload-only --version=v2  # upload approved previews
  *
  * Writes local previews to the path in MIX_COVER_OUT (default ./tmp-mix-covers)
  * and uploads to S3 at site-assets/audio/mix-covers/{type}-{version}.jpg.
@@ -30,19 +32,22 @@ const CDN = 'https://media.vibrationfit.com'
 const FAL_MODEL = process.env.THEME_IMAGE_MODEL || 'fal-ai/nano-banana'
 
 const STYLE =
-  'Cinematic square album cover photograph. Pure natural landscape only: no buildings, structures, boats, roads, people or animals. ' +
-  'No text, letters, logos or borders. Full-bleed frame edge to edge: no letterboxing. Serene, premium, slightly dreamy, rich color, soft film grain, deep shadows.'
+  'Premium square album cover art, cinematic and luminous, deep near-black violet background, soft volumetric light, subtle film grain. ' +
+  'Abstract and symbolic: no landscapes, no scenery, no buildings, no people, no faces. No text, letters, logos or borders. Full-bleed edge to edge.'
 
 const COVERS: Record<string, string> = {
-  'voice-only': 'Clear early-morning light over a perfectly calm alpine lake, crisp air, soft blue and silver tones with a hint of violet, focused and clear.',
-  power: 'The sun bursting over a dramatic mountain ridge at sunrise, rays of gold and electric light across the sky, bold, energizing and expansive.',
-  meditation: 'A mirror-still lake at twilight reflecting lavender and violet clouds, perfect symmetry, deep calm, a faint glow on the horizon.',
-  sleep: 'A quiet moonlit night over gentle sand dunes beneath a deep indigo sky full of soft stars, a calm crescent moon, restful and hushed.',
-  personal: 'Warm golden-hour light across a soft wildflower meadow with gentle rolling hills, intimate, tender and glowing.',
+  'voice-only': 'A classic studio microphone drawn in glowing white and soft silver light lines, centered in darkness, elegant and minimal, a single clear voice with no instruments.',
+  power: 'A radiant burst of golden and electric orange energy exploding outward from the center, streaks of light, bold and energizing.',
+  meditation: 'A softly glowing lotus flower made of violet and lavender light floating in darkness, symmetrical, calm, gentle halo.',
+  sleep: 'A large luminous crescent moon in deep indigo darkness with a few soft stars and a faint misty glow, restful and hushed.',
+  personal: 'A glowing fingerprint whose ridges are flowing neon green sound waves of light, centered in darkness, unique and personal, elegant and minimal.',
 }
 
 const args = process.argv.slice(2)
 const version = args.find((a) => a.startsWith('--version='))?.slice('--version='.length) ?? 'v1'
+const preview = args.includes('--preview')
+// Upload the previews already in the output folder instead of generating new ones.
+const uploadOnly = args.includes('--upload-only')
 const only = args.filter((a) => !a.startsWith('--'))
 const outDir = process.env.MIX_COVER_OUT || path.resolve('tmp-mix-covers')
 
@@ -56,6 +61,13 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true })
   const types = only.length ? only : Object.keys(COVERS)
   for (const type of types) {
+    if (uploadOnly) {
+      const jpg = fs.readFileSync(path.join(outDir, `${type}.jpg`))
+      const key = `site-assets/audio/mix-covers/${type}-${version}.jpg`
+      await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: jpg, ContentType: 'image/jpeg', CacheControl: 'max-age=31536000' }))
+      console.log(`${type}: ${CDN}/${key}`)
+      continue
+    }
     const prompt = `${COVERS[type]} ${STYLE}`
     const result = await fal.subscribe(FAL_MODEL, {
       input: { prompt, aspect_ratio: '1:1', num_images: 1, output_format: 'png' },
@@ -68,6 +80,10 @@ async function main() {
     const { buffer: trimmed } = await trimLetterbox(raw)
     const jpg = await sharp(trimmed).resize(900, 900, { fit: 'cover' }).jpeg({ quality: 84, mozjpeg: true }).toBuffer()
     fs.writeFileSync(path.join(outDir, `${type}.jpg`), jpg)
+    if (preview) {
+      console.log(`${type}: ${path.join(outDir, `${type}.jpg`)}`)
+      continue
+    }
     const key = `site-assets/audio/mix-covers/${type}-${version}.jpg`
     await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: jpg, ContentType: 'image/jpeg', CacheControl: 'max-age=31536000' }))
     console.log(`${type}: ${CDN}/${key}`)
