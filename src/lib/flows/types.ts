@@ -20,8 +20,18 @@ export type FlowSignal =
   | 'abundance_logged'
   | 'vibe_post_created'
   | 'viva_action'
+  | 'meditation_completed'
 
 /** What a step link can depend on from the run so far. */
+/** A finer "what's it like?" choice inside an arrival state, routed to one flow. */
+export interface FeelingOption {
+  id: string
+  state: ArrivalState
+  label: string
+  /** The flow this feeling starts; null means "not sure" (hand off to VIVA). */
+  flowId: string | null
+}
+
 export interface FlowContext {
   manifestationId?: string
   manifestationName?: string
@@ -82,6 +92,7 @@ export interface FlowRunRow {
 export interface CheckinRow {
   id: string
   state: ArrivalState
+  feeling?: string | null
   flow_id: string | null
   created_at: string
 }

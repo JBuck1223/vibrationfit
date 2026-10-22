@@ -1,5 +1,6 @@
 'use client'
 
+import { reportFlowSignal } from '@/hooks/useActiveFlow'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Bell, BellOff, Minus, Play, Plus, Save, X } from 'lucide-react'
 import { Button, Container, Input, Stack } from '@/lib/design-system/components'
@@ -309,6 +310,8 @@ export function BreathPacer() {
   // The closing chime is already booked on the audio clock with the rest.
   const handleComplete = useCallback(() => {
     audioRef.current?.fadeOut(END_FADE_SECONDS)
+    // A finished session can complete a step in a guided flow (e.g. Settle First).
+    reportFlowSignal('meditation_completed', '/meditations')
   }, [])
 
   function loadIntoComposer(card: MeditationCard, asCopy: boolean) {

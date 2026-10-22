@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Check, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ARRIVAL_STATES, flowsForState } from '@/lib/flows/catalog'
+import { ARRIVAL_STATES, feelingsForState, getFlow } from '@/lib/flows/catalog'
 import type { ArrivalState, FlowContext, FlowDefinition } from '@/lib/flows/types'
 import { useManifestationsSnapshot } from '@/components/dashboard/widgets/queries'
 import { useActiveFlow } from '@/hooks/useActiveFlow'
@@ -109,7 +109,10 @@ export function FlowSheet({ state, onClose }: FlowSheetProps) {
   const router = useRouter()
   const { checkIn } = useActiveFlow()
   const meta = ARRIVAL_STATES.find((s) => s.state === state)!
-  const flows = flowsForState(state)
+  const feelings = feelingsForState(state)
+  const [feelingId, setFeelingId] = React.useState<string | null>(null)
+  const feeling = feelings.find((f) => f.id === feelingId) ?? null
+  const flow = feeling?.flowId ? getFlow(feeling.flowId) : null
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -118,7 +121,7 @@ export function FlowSheet({ state, onClose }: FlowSheetProps) {
   }, [onClose])
 
   const start = async (flow: FlowDefinition, ctx: FlowContext) => {
-    await checkIn.mutateAsync({ state, flowId: flow.id, context: ctx })
+    await checkIn.mutateAsync({ state, feeling: feeling?.id, flowId: flow.id, context: ctx })
     onClose()
     const first = flow.steps[0]
     // A first step with choices is picked in the flow bar; otherwise go straight there.
@@ -127,8 +130,15 @@ export function FlowSheet({ state, onClose }: FlowSheetProps) {
     }
   }
 
+  // "Not sure": record the check-in and let VIVA help them name it.
+  const notSure = async () => {
+    await checkIn.mutateAsync({ state, feeling: feeling?.id })
+    onClose()
+    router.push(`/viva?draft=${encodeURIComponent('I\u2019m not sure exactly what I\u2019m feeling right now. Can you help me figure it out?')}`)
+  }
+
   const exploreOnly = async () => {
-    await checkIn.mutateAsync({ state })
+    await checkIn.mutateAsync({ state, feeling: feeling?.id })
     onClose()
     router.push('/tools')
   }
@@ -149,16 +159,48 @@ export function FlowSheet({ state, onClose }: FlowSheetProps) {
           </button>
         </div>
 
-        <div className="space-y-3">
-          {flows.map((flow) => (
-            <FlowCard
-              key={flow.id}
-              flow={flow}
-              starting={checkIn.isPending && checkIn.variables?.flowId === flow.id}
-              onStart={(ctx) => void start(flow, ctx)}
-            />
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/55">What&apos;s it like right now?</p>
+        <ul className="mb-4 flex flex-wrap gap-2">
+          {feelings.map((f) => (
+            <li key={f.id}>
+              <button
+                type="button"
+                onClick={() => setFeelingId(f.id)}
+                aria-pressed={feelingId === f.id}
+                className={cn(
+                  'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                  feelingId === f.id ? 'text-white' : 'border-white/15 text-white/80 hover:border-white/35 hover:text-white',
+                )}
+                style={feelingId === f.id ? { borderColor: meta.color, background: meta.tint } : undefined}
+              >
+                {f.label}
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
+
+        {feeling && flow && (
+          <FlowCard
+            key={flow.id}
+            flow={flow}
+            starting={checkIn.isPending && checkIn.variables?.flowId === flow.id}
+            onStart={(ctx) => void start(flow, ctx)}
+          />
+        )}
+        {feeling && !flow && (
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+            <h3 className="text-lg font-semibold text-white">Let&apos;s figure it out together</h3>
+            <p className="mt-1 text-sm text-white/70">VIVA will help you name what you&apos;re feeling, then point you to what will help most.</p>
+            <button
+              type="button"
+              onClick={() => void notSure()}
+              disabled={checkIn.isPending}
+              className="btn btn-accent mt-5 w-full !py-3 text-[15px] disabled:opacity-50"
+            >
+              Talk with VIVA <ArrowRight className="ml-2 h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         <button
           type="button"

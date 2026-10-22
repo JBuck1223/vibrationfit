@@ -168,13 +168,24 @@ export function FlowBar() {
             )}
 
             <div className="mt-3 flex items-center justify-between text-xs">
-              <button
-                type="button"
-                onClick={() => void update.mutateAsync({ runId: run.id, action: 'skip_step', stepId: step.id })}
-                className="text-white/55 hover:text-white"
-              >
-                Skip this step
-              </button>
+              {step.optional && index === flow.steps.length - 1 ? (
+                // An optional last step (e.g. "talk it through, if you want"): stopping here is a complete path.
+                <button
+                  type="button"
+                  onClick={() => void update.mutateAsync({ runId: run.id, action: 'complete' })}
+                  className="text-white/55 hover:text-white"
+                >
+                  I&apos;m good, finish here
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void update.mutateAsync({ runId: run.id, action: 'skip_step', stepId: step.id })}
+                  className="text-white/55 hover:text-white"
+                >
+                  Skip this step
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => void update.mutateAsync({ runId: run.id, action: 'complete_step', stepId: step.id })}

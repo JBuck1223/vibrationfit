@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getFlow, nextStepId } from '@/lib/flows/catalog'
+import { FEELINGS, getFlow, nextStepId } from '@/lib/flows/catalog'
 import { applySignal } from '@/lib/flows/server'
 import type { ArrivalState, FlowContext, FlowRunRow, FlowSignal, FlowsResponse } from '@/lib/flows/types'
 
@@ -10,7 +10,7 @@ const RUN_COLUMNS = 'id, flow_id, current_step, branch, steps, context, started_
 const STATES: ArrivalState[] = ['below', 'on', 'above']
 const SIGNALS: FlowSignal[] = [
   'journal_saved', 'story_created', 'incantation_created', 'spark_query_created', 'manifestation_created', 'daily_paper_saved', 'vision_audio_played', 'vision_read',
-  'vision_updated', 'manifestation_touched', 'abundance_logged', 'vibe_post_created', 'viva_action',
+  'vision_updated', 'manifestation_touched', 'abundance_logged', 'vibe_post_created', 'viva_action', 'meditation_completed',
 ]
 
 async function load(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<FlowsResponse> {
@@ -24,7 +24,7 @@ async function load(supabase: Awaited<ReturnType<typeof createClient>>, userId: 
     supabase.from('flow_runs').select(RUN_COLUMNS).eq('user_id', userId)
       .gte('completed_at', tenMinutesAgo).is('context->>completion_seen', null)
       .order('completed_at', { ascending: false }).limit(1).maybeSingle(),
-    supabase.from('green_line_checkins').select('id, state, flow_id, created_at').eq('user_id', userId)
+    supabase.from('green_line_checkins').select('id, state, feeling, flow_id, created_at').eq('user_id', userId)
       .gte('created_at', startOfDay.toISOString())
       .order('created_at', { ascending: false }).limit(1).maybeSingle(),
   ])
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
   const body = (await request.json().catch(() => null)) as
-    | { state?: string; flowId?: string; context?: FlowContext }
+    | { state?: string; feeling?: string; flowId?: string; context?: FlowContext }
     | null
   const state = body?.state as ArrivalState
   if (!STATES.includes(state)) return NextResponse.json({ error: 'state required' }, { status: 400 })
@@ -59,7 +59,12 @@ export async function POST(request: Request) {
 
   const { data: checkin, error: checkinError } = await supabase
     .from('green_line_checkins')
-    .insert({ user_id: user.id, state, flow_id: flow?.id ?? null })
+    .insert({
+      user_id: user.id,
+      state,
+      feeling: FEELINGS.some((f) => f.id === body?.feeling && f.state === state) ? body!.feeling : null,
+      flow_id: flow?.id ?? null,
+    })
     .select('id')
     .single()
   if (checkinError) return NextResponse.json({ error: checkinError.message }, { status: 500 })

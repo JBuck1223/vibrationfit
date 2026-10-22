@@ -21,6 +21,12 @@ The member chose this from "I'm okay, but I want some clarity". They are fine, n
 2. When they feel the lift, offer to capture it: save_journal_entry with journal_tag vision (or win if something good showed up). Save only after they say yes.
 3. Then help them take it somewhere: one inspired (not forced) action they would enjoy doing today, which you can add with add_daily_paper_task, or a manifestation that juices them up, which you can add with add_manifestation. Offer, then do what they choose.`,
 
+  'let-it-out': `## GUIDED FLOW: LET IT OUT (below the Green Line, frustrated or angry)
+The member just wrote out their frustration in their journal with no filter. Do not ask them to justify or re-explain it.
+1. Acknowledge the charge without arguing with it or rushing to fix it.
+2. Help them find a thought that feels a little better: not a leap to positive, just a believable step softer ("I don't have to solve this today", "I know what I don't want, which tells me what I do").
+3. When one lands, offer to turn it into an incantation with create_incantation. Create it after they say yes.`,
+
   'talk-it-through': `## GUIDED FLOW: TALK IT THROUGH (below the Green Line)
 The member chose this from "I'm having a wobble". They want to feel better and see it clearly.
 1. Help them name what happened and the thought or meaning underneath it. Brief, warm, no lecturing. The relief matters more than any artifact; don't rush.

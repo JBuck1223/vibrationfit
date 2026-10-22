@@ -62,7 +62,7 @@ export function useActiveFlow() {
   const setData = (data: FlowsResponse) => queryClient.setQueryData(FLOWS_KEY, data)
 
   const checkIn = useMutation({
-    mutationFn: (input: { state: ArrivalState; flowId?: string; context?: FlowContext }) => call('POST', input),
+    mutationFn: (input: { state: ArrivalState; feeling?: string; flowId?: string; context?: FlowContext }) => call('POST', input),
     onSuccess: setData,
   })
 
