@@ -42,7 +42,7 @@ export function ShellHeader() {
         'sticky top-0 z-30 transition-[background-color,border-color,backdrop-filter] duration-200',
         // Same violet frosted glass as the cards and bottom bar.
         scrolled
-          ? 'vf-glass border-b border-white/[0.10] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(26,21,37,0.70)_100%)] shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-2xl backdrop-saturate-150'
+          ? 'vf-glass rounded-b-[24px] border border-t-0 border-white/[0.10] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(26,21,37,0.70)_100%)] shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-2xl backdrop-saturate-150'
           : 'border-b border-transparent',
       )}
       style={{ paddingTop: 'var(--native-inset-top, 0px)' }}
