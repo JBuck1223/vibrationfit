@@ -5,6 +5,9 @@
  * that member with only `home.hero` replaced, and makes it their active theme.
  *
  *   npx tsx scripts/themes/home-hero-test.ts <member-email> [base-theme-slug]
+ *   npx tsx scripts/themes/home-hero-test.ts <member-email> [base-theme-slug] --image <path>
+ *
+ * With --image, uses that file instead of generating one.
  */
 
 import * as dotenv from 'dotenv'
@@ -14,10 +17,13 @@ import { createClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { execFileSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { trimLetterbox } from './letterbox'
 
-const [email, baseSlug = 'sunset'] = process.argv.slice(2)
+const argv = process.argv.slice(2)
+const imageFlag = argv.indexOf('--image')
+const imagePath = imageFlag >= 0 ? argv[imageFlag + 1] : null
+const [email, baseSlug = 'sunset'] = argv.filter((a, i) => !a.startsWith('--') && (imageFlag < 0 || i !== imageFlag + 1))
 if (!email) {
   console.error('Usage: npx tsx scripts/themes/home-hero-test.ts <member-email> [base-theme-slug]')
   process.exit(1)
@@ -52,20 +58,29 @@ async function main() {
   const { data: base } = await supabase.from('themes').select('id, name').eq('slug', baseSlug).maybeSingle()
   if (!base) throw new Error(`No theme "${baseSlug}"`)
 
-  console.log('Generating image...')
-  fal.config({ credentials: process.env.FAL_KEY })
-  const result = await fal.subscribe(process.env.THEME_IMAGE_MODEL || 'fal-ai/nano-banana', {
-    input: { prompt: PROMPT, aspect_ratio: '16:9', num_images: 1, output_format: 'png' },
-    logs: false,
-  })
-  const imageUrl = ((result as any)?.data ?? result)?.images?.[0]?.url
-  if (!imageUrl) throw new Error('No image returned')
-  const raw = execFileSync('curl', ['-sf', imageUrl], { maxBuffer: 64 * 1024 * 1024 })
-  const { buffer } = await trimLetterbox(raw)
-  writeFileSync(process.env.PREVIEW_PATH || '/tmp/home-hero-test.png', buffer)
+  let buffer: Buffer
+  let ext = 'png'
+  let contentType = 'image/png'
+  if (imagePath) {
+    buffer = readFileSync(imagePath)
+    ext = imagePath.split('.').pop()?.toLowerCase() || 'png'
+    contentType = ext === 'webp' ? 'image/webp' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png'
+  } else {
+    console.log('Generating image...')
+    fal.config({ credentials: process.env.FAL_KEY })
+    const result = await fal.subscribe(process.env.THEME_IMAGE_MODEL || 'fal-ai/nano-banana', {
+      input: { prompt: PROMPT, aspect_ratio: '16:9', num_images: 1, output_format: 'png' },
+      logs: false,
+    })
+    const imageUrl = ((result as any)?.data ?? result)?.images?.[0]?.url
+    if (!imageUrl) throw new Error('No image returned')
+    const raw = execFileSync('curl', ['-sf', imageUrl], { maxBuffer: 64 * 1024 * 1024 })
+    buffer = (await trimLetterbox(raw)).buffer
+    writeFileSync(process.env.PREVIEW_PATH || '/tmp/home-hero-test.png', buffer)
+  }
 
-  const key = `site-assets/themes/tests/home-hero-${member.id.slice(0, 8)}-${Date.now()}.png`
-  await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: buffer, ContentType: 'image/png', CacheControl: 'max-age=31536000' }))
+  const key = `site-assets/themes/tests/home-hero-${member.id.slice(0, 8)}-${Date.now()}.${ext}`
+  await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: buffer, ContentType: contentType, CacheControl: 'max-age=31536000' }))
   const heroUrl = `${CDN}/${key}`
 
   // A private copy of the base theme: same images everywhere except Home.
@@ -89,7 +104,7 @@ async function main() {
   const rows = (baseImages ?? [])
     .filter((r) => r.slot !== 'home.hero')
     .map((r) => ({ ...r, theme_id: themeId }))
-  rows.push({ theme_id: themeId, slot: 'home.hero', image_url: heroUrl, s3_key: key, prompt: PROMPT, width: null, height: null, sort_order: 0 })
+  rows.push({ theme_id: themeId, slot: 'home.hero', image_url: heroUrl, s3_key: key, prompt: imagePath ? 'Uploaded image' : PROMPT, width: null, height: null, sort_order: 0 })
   const { error: insertError } = await supabase.from('theme_images').insert(rows)
   if (insertError) throw insertError
 
