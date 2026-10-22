@@ -7,6 +7,7 @@ import { ChevronLeft } from 'lucide-react'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { useJournalStudio } from '@/components/journal-studio'
 import { StudioToggle } from '../StudioToggle'
+import { ShellWalkthroughButton } from '../ShellWalkthroughButton'
 
 const SUBPAGE_TITLES: Record<string, string> = {
   '/journal/about': 'About the Journal',
@@ -33,10 +34,11 @@ export function JournalHeader() {
           label="Journal"
           className="w-full md:w-[320px]"
           options={[
-            { label: 'My Journal', href: '/journal', active: path === '/journal' },
-            { label: 'Write', href: '/journal/new', active: path === '/journal/new' },
+            { label: 'My Journal', href: '/journal', active: path === '/journal', dataTour: 'studio-tab-journal-view' },
+            { label: 'Write', href: '/journal/new', active: path === '/journal/new', dataTour: 'studio-tab-journal-create' },
           ]}
         />
+        <ShellWalkthroughButton />
       </div>
     )
   }
@@ -52,6 +54,7 @@ export function JournalHeader() {
         <ChevronLeft className="h-6 w-6" />
       </Link>
       <h1 className="min-w-0 flex-1 truncate text-2xl font-bold text-white">{title}</h1>
+      <ShellWalkthroughButton />
     </div>
   )
 }

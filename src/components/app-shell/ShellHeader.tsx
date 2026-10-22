@@ -69,6 +69,9 @@ export function ShellHeader() {
           <h1 className="truncate text-[17px] font-semibold text-white">{area?.label ?? section.label}</h1>
         </div>
 
+        {/* Studios drop their Walkthrough button in here (ShellWalkthroughButton). */}
+        <div id="shell-header-actions" className="flex items-center" />
+
         <Link
           href="/tools?focus=search"
           aria-label="Search"

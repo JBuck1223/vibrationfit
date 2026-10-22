@@ -8,6 +8,8 @@ export interface StudioToggleOption {
   label: string
   href: string
   active: boolean
+  /** Walkthrough anchor (data-tour), kept from the studio's old tab. */
+  dataTour?: string
 }
 
 /**
@@ -28,6 +30,7 @@ export function StudioToggle({ options, label, className }: { options: StudioTog
           href={o.href}
           role="tab"
           aria-selected={o.active}
+          data-tour={o.dataTour}
           className={cn(
             'rounded-full py-2 text-center text-sm font-semibold transition-colors',
             o.active ? 'bg-[#39FF14] text-black' : 'text-white/75 hover:text-white',

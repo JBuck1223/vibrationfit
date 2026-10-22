@@ -44,7 +44,7 @@ export function CreateAudioHome() {
         })}
       </div>
 
-      <section>
+      <section data-tour="audio-create-queue">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-base font-semibold text-white">In progress</h2>
           <Link href={QUEUE_HREF} className="text-sm text-white/60 hover:text-white">

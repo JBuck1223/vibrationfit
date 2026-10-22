@@ -13,6 +13,7 @@ import { useJournalStudio } from '@/components/journal-studio'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { cn } from '@/lib/utils'
+import { CategorySheet, LIFE_CATEGORIES } from '@/components/app-shell/forms/CategorySheet'
 import { useEffect, useState, useRef, useMemo } from 'react'
 
 function JournalImage({ src, alt, className, onClick, loading }: {
@@ -430,12 +431,12 @@ export default function JournalPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowFilters(!showFilters)}
+                onClick={() => setShowFilters(true)}
                 aria-label="Filter by category"
-                aria-pressed={showFilters}
+                aria-pressed={!selectedCategories.includes('all')}
                 className={cn(
                   'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors',
-                  showFilters || !selectedCategories.includes('all') ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/75 hover:text-white',
+                  !selectedCategories.includes('all') ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/75 hover:text-white',
                 )}
               >
                 <Filter className="h-4 w-4" />
@@ -484,6 +485,44 @@ export default function JournalPage() {
           </div>
           )}
 
+          {inShell && !selectedCategories.includes('all') && selectedCategories.length > 0 ? (
+            // Active category filters, each removable.
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedCategories.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSelectedCategories((prev) => {
+                    const next = prev.filter((c) => c !== key)
+                    return next.length ? next : ['all']
+                  })}
+                  className="flex items-center gap-1 rounded-full border border-[#39FF14]/50 bg-[rgba(57,255,20,0.1)] px-3 py-1 text-xs text-[#39FF14]"
+                >
+                  {LIFE_CATEGORIES.find((c) => c.key === key)?.label ?? key}
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+              <button type="button" onClick={() => setSelectedCategories(['all'])} className="text-xs text-white/55 hover:text-white">
+                Clear
+              </button>
+            </div>
+          ) : null}
+
+          {inShell ? (
+            <CategorySheet
+              open={showFilters}
+              onClose={() => setShowFilters(false)}
+              title="Filter by category"
+              selected={selectedCategories.includes('all') ? [] : selectedCategories}
+              onToggle={(key) => setSelectedCategories((prev) => {
+                const current = prev.filter((c) => c !== 'all')
+                const next = current.includes(key) ? current.filter((c) => c !== key) : [...current, key]
+                return next.length ? next : ['all']
+              })}
+              onClear={() => setSelectedCategories(['all'])}
+            />
+          ) : null}
+
           {!inShell && searchOpen && (
             <div className="relative animate-in slide-in-from-top-2 duration-200">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
@@ -508,7 +547,7 @@ export default function JournalPage() {
         </div>
 
         {/* Filters */}
-        {showFilters && (
+        {!inShell && showFilters && (
           <div id="filters" className="space-y-6 animate-in slide-in-from-top duration-300">
             <Card variant="elevated" className="p-4">
               <div className="flex items-center justify-between mb-4">

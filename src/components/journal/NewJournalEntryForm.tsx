@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import {
   Card,
   Input,
@@ -30,6 +29,7 @@ import { useInShell } from '@/lib/app-shell/shell-context'
 import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { DateSheetField } from '@/components/app-shell/forms/DateSheetField'
 import { VivaImagePanel } from '@/components/app-shell/forms/VivaImagePanel'
+import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 
 const RESTORE_SESSION_KEY = 'vf_restore_transcript'
 /** Unsaved title/text/tags for a new entry, kept on this device until it's saved. */
@@ -479,6 +479,7 @@ export function NewJournalEntryForm({
               <button
                 type="submit"
                 disabled={loading}
+                data-tour="journal-create-save"
                 className="rounded-full bg-[#39FF14] px-5 py-2 text-sm font-semibold text-black transition-transform active:scale-[0.98] disabled:opacity-60"
               >
                 {loading ? 'Saving...' : 'Save'}
@@ -610,48 +611,12 @@ export function NewJournalEntryForm({
           </button>
         </div>
 
-        {categorySheetOpen && typeof document !== 'undefined' ? createPortal(
-          <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 md:items-center" onClick={() => setCategorySheetOpen(false)}>
-            <div
-              role="dialog"
-              aria-label="Life categories"
-              onClick={e => e.stopPropagation()}
-              className="vf-glass w-full max-w-lg rounded-t-[26px] border border-white/[0.14] bg-[rgba(28,22,38,0.97)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] backdrop-blur-2xl md:rounded-[26px]"
-            >
-              <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-white/25 md:hidden" />
-              <p className="mb-3 text-base font-semibold text-white">Life categories</p>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {ENTRY_CATEGORIES.map(category => {
-                  const selected = formData.categories.includes(category.key)
-                  const Icon = category.icon
-                  return (
-                    <button
-                      key={category.key}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => handleCategoryToggle(category.key)}
-                      className={cn(
-                        'flex flex-col items-center gap-1 rounded-2xl border px-1 py-2.5 text-xs transition-colors',
-                        selected ? 'border-[#39FF14] bg-[rgba(57,255,20,0.12)] text-[#39FF14]' : 'border-white/15 text-white/80 hover:text-white',
-                      )}
-                    >
-                      {Icon ? <Icon className="h-4 w-4" aria-hidden /> : null}
-                      {category.label}
-                    </button>
-                  )
-                })}
-              </div>
-              <button
-                type="button"
-                onClick={() => setCategorySheetOpen(false)}
-                className="mt-4 h-11 w-full rounded-full bg-white/10 text-sm font-medium text-white hover:bg-white/15"
-              >
-                Done
-              </button>
-            </div>
-          </div>,
-          document.body,
-        ) : null}
+        <CategorySheet
+          open={categorySheetOpen}
+          onClose={() => setCategorySheetOpen(false)}
+          selected={formData.categories}
+          onToggle={handleCategoryToggle}
+        />
       </form>
     )
   }
