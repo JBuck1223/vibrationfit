@@ -445,11 +445,19 @@ export function VivaChatInput({
     setAttachments([])
   }
 
+  // On phones and tablets Return makes a new line, like other chat apps;
+  // the send button sends. On a keyboard, Enter sends and Shift+Enter
+  // (or Alt/Option+Enter) starts a new line.
+  const [touchKeyboard, setTouchKeyboard] = useState(false)
+  useEffect(() => {
+    setTouchKeyboard(window.matchMedia?.('(pointer: coarse)').matches ?? false)
+  }, [])
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey && value.trim() && canSend && !disabled) {
-      e.preventDefault()
-      handleSend()
-    }
+    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+    if (touchKeyboard || e.shiftKey || e.altKey) return // newline
+    e.preventDefault()
+    if (value.trim() && canSend && !disabled) handleSend()
   }
 
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
@@ -500,6 +508,7 @@ export function VivaChatInput({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
+          enterKeyHint={touchKeyboard ? 'enter' : 'send'}
           rows={2}
           disabled={disabled || isRecording || isTranscribing}
           className={cn(

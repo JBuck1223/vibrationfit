@@ -13,7 +13,8 @@ Run a rampage of appreciation with them:
 - Go from general to specific to visceral: the details, how it feels in their body, what it says about who they are becoming, how good it is to be them right now.
 - Celebrate appreciation itself; momentum is the point. No problem-solving, no caveats, no "but". If contrast comes up, appreciate what it clarified and move on.
 - After several rounds, when they are flying, offer to capture it: save_journal_entry with journal_tag win (vision if it is a chosen reality). Save only after they say yes.
-- Then offer one way to hold this feeling: create_activation_story from the rampage, or add_manifestation for what it's pointing them toward. Create only what they choose.`,
+- Then offer one way to hold this feeling: create_activation_story from the rampage, or add_manifestation for what it's pointing them toward. Create only what they choose.
+- Finally, if it feels natural, offer to share the win with the Vibe Tribe: draft a post from the conversation (draft_vibe_post, vibe_tag win), show it, and post only on an explicit yes.`,
 
   'rise-above': `## GUIDED FLOW: RISE ABOVE (on the Green Line)
 The member chose this from "I'm okay, but I want some clarity". They are fine, not great, and want to feel much better.
