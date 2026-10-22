@@ -23,6 +23,12 @@ import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { DateSheetField } from '@/components/app-shell/forms/DateSheetField'
+import { VivaImagePanel } from '@/components/app-shell/forms/VivaImagePanel'
+import { CategorySheet, LIFE_CATEGORIES } from '@/components/app-shell/forms/CategorySheet'
+import { ImageIcon, Plus, X } from 'lucide-react'
 
 const visionCategoriesForAbundance = VISION_CATEGORIES.filter(
   (cat) => cat.key !== 'forward' && cat.key !== 'conclusion'
@@ -70,6 +76,8 @@ export default function AbundanceNewEntryPage() {
   const [aiGeneratedImageUrl, setAiGeneratedImageUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const inShell = useInShell()
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false)
 
   const ACCEPT_IMAGES = 'image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif'
 
@@ -143,6 +151,222 @@ export default function AbundanceNewEntryPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (inShell) {
+    // App shell: an amount card, a note card and a slim attachments toolbar,
+    // all glass, with Save in reach. Same fields and saving as below.
+    const chip = 'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors'
+    const toggleCategory = (key: string) =>
+      setVisionCategories((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))
+    return (
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex items-center gap-3">
+          <DateSheetField value={date} onChange={setDate} />
+          <div className="ml-auto hidden items-center gap-2 md:flex">
+            <button type="button" onClick={() => router.push('/abundance-tracker')} className="rounded-full px-3 py-1.5 text-sm text-white/60 hover:text-white">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-full bg-[#39FF14] px-5 py-2 text-sm font-semibold text-black transition-transform active:scale-[0.98] disabled:opacity-60"
+            >
+              {isSubmitting ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        <section className={cn(GLASS_CARD, 'p-4 md:p-5')}>
+          <div className="flex items-center justify-center gap-2">
+            <div role="radiogroup" aria-label="Money or value" className="grid grid-cols-2 rounded-full border border-white/15 bg-white/[0.05] p-1">
+              {(['money', 'value'] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={valueType === v}
+                  onClick={() => setValueType(v)}
+                  className={cn(
+                    'rounded-full px-5 py-1.5 text-sm font-semibold transition-colors',
+                    valueType === v ? 'bg-[#39FF14] text-black' : 'text-white/75 hover:text-white',
+                  )}
+                >
+                  {v === 'money' ? 'Money' : 'Value'}
+                </button>
+              ))}
+            </div>
+            <button type="button" onClick={() => setHelpOpen(true)} aria-label="Help: Money vs Value" className="text-white/50 hover:text-white">
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 flex items-baseline justify-center gap-1">
+            <span className="text-3xl font-bold text-[#39FF14]/70">$</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              aria-label="Amount"
+              placeholder="0"
+              value={formatAmountWithCommas(amount)}
+              onChange={(event) => setAmount(parseAmountInput(event.target.value))}
+              required={valueType === 'money'}
+              size={Math.max(2, formatAmountWithCommas(amount).length + 1)}
+              className="max-w-full !border-0 !bg-transparent !p-0 text-center !text-5xl !font-bold !leading-tight tabular-nums !text-[#39FF14] placeholder:!text-[#39FF14]/30 !shadow-none focus:!outline-none focus:!ring-0"
+            />
+          </div>
+          <p className="mt-1 text-center text-xs text-white/45">{valueType === 'money' ? 'How much came to you?' : 'Optional: put a number on it'}</p>
+
+          <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:justify-center md:px-0">
+            {ABUNDANCE_ENTRY_CATEGORIES.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={entryCategory === value}
+                onClick={() => setEntryCategory(entryCategory === value ? '' : value)}
+                className={cn(
+                  chip,
+                  entryCategory === value ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 text-white/75 hover:text-white',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className={cn(GLASS_CARD, 'p-4 md:p-5')}>
+          <p className="mb-1 flex items-center gap-2 text-sm font-semibold text-white">
+            <Sparkles className="h-4 w-4 text-[#FFB020]" aria-hidden />
+            What's flowing to you
+          </p>
+          <div className="[&_textarea]:!border-0 [&_textarea]:!bg-transparent [&_textarea]:!px-0 [&_textarea]:!text-[15px] [&_textarea]:!leading-relaxed [&_textarea]:!text-white [&_textarea]:placeholder:!text-white/40 [&_textarea]:focus:!ring-0 [&_textarea]:!shadow-none">
+            <RecordingTextarea
+              value={note}
+              onChange={(value) => {
+                setNote(value)
+                if (noteError) setNoteError(null)
+              }}
+              placeholder="Describe it in present-tense appreciation. Or tap the mic and talk."
+              rows={4}
+              storageFolder="profile"
+              instanceId="abundance-note"
+              recordingPurpose="quick"
+              category="abundance"
+              onAudioSaved={(audioUrl, transcript) => {
+                setAudioRecordings((prev) => [
+                  ...prev,
+                  { url: audioUrl, transcript, type: 'audio' as const, category: 'abundance', created_at: new Date().toISOString() },
+                ])
+              }}
+            />
+          </div>
+          {noteError ? <p className="mt-1 text-xs text-red-400" role="alert">{noteError}</p> : null}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {visionCategories.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleCategory(key)}
+                aria-label={`Remove ${LIFE_CATEGORIES.find((c) => c.key === key)?.label ?? key}`}
+                className={cn(chip, 'border-[#39FF14]/50 bg-[rgba(57,255,20,0.1)] text-[#39FF14]')}
+              >
+                {LIFE_CATEGORIES.find((c) => c.key === key)?.label ?? key}
+                <X className="h-3 w-3" />
+              </button>
+            ))}
+            <button type="button" onClick={() => setCategorySheetOpen(true)} className={cn(chip, 'border-dashed border-white/30 text-white/75 hover:text-white')}>
+              <Plus className="h-3.5 w-3.5" /> Categories
+            </button>
+          </div>
+
+          <div className="mt-4 flex items-center gap-5 border-t border-white/[0.08] pt-3 text-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setImageSource(imageSource === 'upload' ? null : 'upload')
+                setAiGeneratedImageUrl(null)
+              }}
+              className={cn('flex items-center gap-1.5', imageSource === 'upload' ? 'text-[#39FF14]' : 'text-white/70 hover:text-white')}
+            >
+              <ImageIcon className="h-4 w-4" /> Photo
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setImageSource(imageSource === 'ai' ? null : 'ai')
+                setFile(null)
+              }}
+              className={cn('flex items-center gap-1.5', imageSource === 'ai' ? 'text-[#BF00FF]' : 'text-white/70 hover:text-white')}
+            >
+              <Sparkles className="h-4 w-4 text-[#d68bff]" /> VIVA image
+            </button>
+          </div>
+          {imageSource === 'upload' ? (
+            <div className="mt-3">
+              <FileUpload
+                dragDrop
+                accept={ACCEPT_IMAGES}
+                multiple={false}
+                maxFiles={1}
+                maxSize={10}
+                value={file ? [file] : []}
+                onChange={(files) => setFile(files[0] || null)}
+                onUpload={(files) => setFile(files[0] || null)}
+                dragDropText="Click to upload or drag and drop"
+                dragDropSubtext="PNG, JPG, WEBP, or HEIC (max 10MB)"
+                previewSize="lg"
+              />
+            </div>
+          ) : null}
+          {imageSource === 'ai' ? (
+            <div className="mt-3">
+              <VivaImagePanel
+                journalText={note || 'An abundance moment to celebrate.'}
+                onUse={(url) => setAiGeneratedImageUrl(url || null)}
+                onClose={() => {
+                  setImageSource(null)
+                  setAiGeneratedImageUrl(null)
+                }}
+              />
+            </div>
+          ) : null}
+        </section>
+
+        {errorMessage && (
+          <div className="rounded-xl border border-[#D03739]/40 bg-[#D03739]/10 px-4 py-3 text-sm text-[#FFB4B4]">{errorMessage}</div>
+        )}
+        {successMessage && (
+          <div className="rounded-xl border border-[#199D67]/40 bg-[#199D67]/10 px-4 py-3 text-sm text-[#A8E5CE]">{successMessage}</div>
+        )}
+
+        {/* Phones: Save stays in reach above the bottom bar. */}
+        <div className="sticky bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+16px)] z-20 md:hidden">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-[15px] font-semibold text-black shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98] disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {isSubmitting ? 'Saving...' : 'Save abundance'}
+          </button>
+        </div>
+
+        <CategorySheet open={categorySheetOpen} onClose={() => setCategorySheetOpen(false)} selected={visionCategories} onToggle={toggleCategory} />
+
+        <Modal isOpen={helpOpen} onClose={() => setHelpOpen(false)} title="Money vs Value" size="md">
+          <div className="space-y-4 text-sm text-neutral-300">
+            <p>
+              <strong className="text-white">Money</strong> entries require an amount.
+            </p>
+            <p>
+              <strong className="text-white">Value</strong> entries celebrate intangible abundance—share the story in the note and add an amount if you want to track it numerically.
+            </p>
+          </div>
+        </Modal>
+      </form>
+    )
   }
 
   return (
