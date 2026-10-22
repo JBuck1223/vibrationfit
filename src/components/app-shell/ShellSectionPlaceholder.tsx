@@ -4,8 +4,6 @@ import React from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { getSection, type SectionId } from '@/lib/app-shell/sections'
-import { useThemeImage } from './ThemeProvider'
-import type { ThemeSlot } from '@/lib/app-shell/theme-slots'
 
 /**
  * Phase 0 stand-in for a section root: the section hero on its theme image
@@ -15,28 +13,20 @@ import type { ThemeSlot } from '@/lib/app-shell/theme-slots'
  */
 export function ShellSectionPlaceholder({ sectionId }: { sectionId: SectionId }) {
   const section = getSection(sectionId)
-  const hero = useThemeImage(`${sectionId}.hero` as ThemeSlot)
   const Icon = section.icon
 
   return (
     <div className="space-y-6" data-section={section.accent === 'viva' ? 'viva' : undefined}>
-      <section className="glass-panel relative min-h-[360px] overflow-hidden">
-        {hero && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        )}
-        <div className="scrim-text absolute inset-0" />
-        <div className="relative flex min-h-[360px] flex-col justify-end p-6 md:p-10">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
-            {section.label}
-          </p>
-          <h2 className="max-w-xl text-4xl font-bold leading-[1.05] text-white md:text-5xl">
-            {section.label} is on its way
-          </h2>
-          <p className="mt-3 max-w-md text-base text-white/80">
-            This is the new shell. The {section.label} experience arrives in Phase 1; everything below still works today.
-          </p>
-        </div>
+      <section className="flex min-h-[44vh] flex-col justify-end pb-4 pt-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
+          {section.label}
+        </p>
+        <h2 className="max-w-xl text-4xl font-bold leading-[1.05] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-5xl">
+          {section.label} is on its way
+        </h2>
+        <p className="mt-3 max-w-md text-base text-white/85 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
+          This is the new shell. The {section.label} experience arrives in Phase 1; everything below still works today.
+        </p>
       </section>
 
       {section.tabs.length > 0 && (

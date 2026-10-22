@@ -40,6 +40,8 @@ import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3
 import { ensureJpegCompatible } from '@/lib/life-explorer/ensure-jpeg'
 import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
+import { VivaWelcome } from '@/components/viva/VivaWelcome'
+import { useInShell } from '@/components/app-shell/ShellContext'
 
 function vivaQuery(): URLSearchParams {
   if (typeof window === 'undefined') return new URLSearchParams()
@@ -102,6 +104,7 @@ export default function VivaPage() {
   const [isThinking, setIsThinking] = useState(false)
 
   // --- UI state ---
+  const inShell = useInShell()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [constraintsOpen, setConstraintsOpen] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -462,12 +465,13 @@ export default function VivaPage() {
   )
 
   return (
-    <div className="flex-1 min-h-0 bg-black flex flex-col overflow-hidden">
+    <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden", inShell ? "bg-transparent" : "bg-black")}>
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* ---- Thread sidebar ---- */}
       <aside
         className={cn(
-          'w-72 max-w-[85vw] shrink-0 border-r border-neutral-900 bg-black flex-col transition-all duration-300',
+          'w-72 max-w-[85vw] shrink-0 border-r flex-col transition-all duration-300',
+          inShell ? 'glass-chrome border-y-0 border-l-0 rounded-none md:mr-4 md:rounded-2xl md:border' : 'border-neutral-900 bg-black',
           sidebarOpen
             ? 'flex fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top)] md:static md:z-auto md:pt-0'
             : 'hidden md:flex'
@@ -518,7 +522,7 @@ export default function VivaPage() {
       {/* ---- Main column ---- */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="flex items-center gap-3 pl-16 pr-4 py-3 border-b border-neutral-900 md:px-4">
+        <header className={cn("flex items-center gap-3 pr-4 py-3 border-b md:px-4", inShell ? "pl-4 border-white/10" : "pl-16 border-neutral-900")}>
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
@@ -528,7 +532,7 @@ export default function VivaPage() {
           </button>
           <div className="flex-1 min-w-0 flex items-center gap-2">
             <h1 className="text-sm font-medium text-white truncate">
-              {activeThread?.title || 'VIVA'}
+              {activeThread?.title || (inShell ? 'New conversation' : 'VIVA')}
             </h1>
             {modelOverride && (
               <span className="shrink-0 px-2 py-0.5 rounded-full border border-neutral-800 text-[11px] text-neutral-500">
@@ -559,14 +563,13 @@ export default function VivaPage() {
 
         {/* Thread */}
         <div className="flex-1 overflow-y-auto" data-tour="viva-thread">
-          <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-8">
+          <div className={cn("max-w-3xl mx-auto px-4 md:px-6 space-y-8", messages.length === 0 && !isThinking ? "py-4 md:py-6" : "py-8")}>
             {messages.length === 0 && !isThinking && (
-              <div className="pt-24 text-center space-y-2">
-                <p className="text-xl text-white">What&apos;s on your mind?</p>
-                <p className="text-sm text-neutral-500">
-                  I know your vision, your patterns, your journey.
-                </p>
-              </div>
+              <VivaWelcome
+                threads={threads}
+                onSuggest={(text) => sendMessage(undefined, text)}
+                onOpenThread={(id) => void openThread(id)}
+              />
             )}
 
             {messages.map((message, index) => {
@@ -636,7 +639,7 @@ export default function VivaPage() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]" data-tour="viva-composer">
+        <div className={cn("border-t", inShell ? "border-white/10 pb-2" : "border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]")} data-tour="viva-composer">
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
             <div className="mb-3 flex items-center">
               <button

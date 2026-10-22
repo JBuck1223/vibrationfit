@@ -396,3 +396,14 @@ input:-webkit-autofill:active {
   }
 }
 
+
+/* App shell: a section that scrolls internally (VIVA) gets the viewport minus header, inset and pill. */
+.shell-full-height {
+  height: calc(100dvh - var(--native-inset-top, 0px) - var(--shell-header-height));
+  padding-bottom: calc(var(--shell-nav-height) + env(safe-area-inset-bottom, 0px) + 12px);
+}
+@media (min-width: 1024px) {
+  .shell-full-height {
+    padding-bottom: 0;
+  }
+}

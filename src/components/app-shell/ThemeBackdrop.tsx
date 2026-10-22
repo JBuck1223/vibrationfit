@@ -1,48 +1,82 @@
 'use client'
 
 import React from 'react'
+import { usePathname } from 'next/navigation'
 import { useThemeImage } from './ThemeProvider'
-import { BACKDROP_SLOT } from '@/lib/app-shell/theme-slots'
+import { BACKDROP_SLOT, type ThemeSlot } from '@/lib/app-shell/theme-slots'
+import { sectionForPath } from '@/lib/app-shell/sections'
 
-/**
- * The fixed full-viewport layer under every screen. It never remounts between
- * routes, so moving from Home into a studio only changes the content column.
- * Cross-fades when the backdrop url changes (theme switch).
- */
-export function ThemeBackdrop() {
-  const url = useThemeImage(BACKDROP_SLOT)
-  const [layers, setLayers] = React.useState<{ key: number; url: string | null }[]>([{ key: 0, url }])
+interface Layer {
+  key: number
+  url: string | null
+}
 
+function useCrossfade(url: string | null): [Layer[], (key: number) => void] {
+  const [layers, setLayers] = React.useState<Layer[]>([{ key: 0, url }])
   React.useEffect(() => {
     setLayers((prev) => {
       const last = prev[prev.length - 1]
       if (last?.url === url) return prev
-      const next = [...prev, { key: (last?.key ?? 0) + 1, url }]
-      return next.slice(-2)
+      return [...prev, { key: (last?.key ?? 0) + 1, url }].slice(-2)
     })
   }, [url])
+  const settle = (key: number) =>
+    setLayers((prev) => (prev.length > 1 && prev[0].key === key ? prev.slice(-1) : prev))
+  return [layers, settle]
+}
+
+/**
+ * The fixed full-viewport layer under every screen. Two pictures: the current
+ * section's hero, sharp and full-bleed across the top of the viewport, fading
+ * into the softly blurred theme backdrop that covers the rest. Neither
+ * remounts between routes; each cross-fades when its image changes.
+ */
+export function ThemeBackdrop() {
+  const pathname = usePathname()
+  const section = sectionForPath(pathname)
+  const heroUrl = useThemeImage(`${section.id}.hero` as ThemeSlot)
+  const backdropUrl = useThemeImage(BACKDROP_SLOT)
+  const [heroLayers, settleHero] = useCrossfade(heroUrl)
+  const [backLayers, settleBack] = useCrossfade(backdropUrl)
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-black">
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-[#0b0b0d] to-[#111]" />
-      {layers.map((layer) => (
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0b0b0d] to-[#111]" />
+
+      {/* Soft backdrop under everything */}
+      {backLayers.map((layer) => (
         <div
-          key={layer.key}
+          key={`b${layer.key}`}
           className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-out"
           style={{
             backgroundImage: layer.url ? `url("${layer.url}")` : undefined,
-            opacity: layer.url ? 1 : 0,
-            filter: 'blur(14px) saturate(110%)',
-            transform: 'scale(1.06)',
+            opacity: layer.url ? 0.55 : 0,
+            filter: 'blur(18px) saturate(110%)',
+            transform: 'scale(1.08)',
           }}
-          onTransitionEnd={() => {
-            setLayers((prev) => (prev.length > 1 && prev[0].key === layer.key ? prev : prev.slice(-1)))
-          }}
+          onTransitionEnd={() => settleBack(layer.key)}
         />
       ))}
-      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-black/45" />
+
+      {/* Sharp section hero across the top, dissolving into the backdrop */}
+      {heroLayers.map((layer) => (
+        <div
+          key={`h${layer.key}`}
+          className="absolute inset-x-0 top-0 h-[78vh] bg-cover bg-center transition-opacity duration-700 ease-out lg:h-[72vh]"
+          style={{
+            backgroundImage: layer.url ? `url("${layer.url}")` : undefined,
+            opacity: layer.url ? 1 : 0,
+            maskImage: 'linear-gradient(to bottom, black 0%, black 55%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 55%, transparent 100%)',
+          }}
+          onTransitionEnd={() => settleHero(layer.key)}
+        />
+      ))}
+      {/* Keep the header legible and give the headline a floor to sit on */}
+      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/60 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-[78vh] bg-gradient-to-t from-black/70 via-black/10 to-transparent lg:h-[72vh]" />
       <div className="absolute inset-0" style={{ background: 'var(--theme-tint)' }} />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
     </div>
   )
 }

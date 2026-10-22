@@ -11,6 +11,7 @@ import { ShellHeader } from './ShellHeader'
 import { PillNav } from './PillNav'
 import { RailNav } from './RailNav'
 import { useKeyboardOpen } from './useKeyboardOpen'
+import { ShellContextProvider } from './ShellContext'
 
 /**
  * Space under the content so the last card clears the pill (and the mini
@@ -41,24 +42,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (pill) pill.dataset.keyboard = keyboardOpen ? 'open' : 'closed'
   }, [keyboardOpen])
 
+  // VIVA scrolls its own thread, so its column is pinned to the viewport height.
+  const fullHeight = section.id === 'viva'
+
   return (
     <ThemeProvider>
-      <div
-        data-app-shell
-        data-section={section.accent === 'viva' ? 'viva' : undefined}
-        className="relative min-h-dvh text-white"
-      >
-        <ThemeBackdrop />
-        <RailNav />
-        <div className="lg:pl-[72px]">
-          <ShellHeader />
-          <main data-app-scroller className="mx-auto w-full max-w-[1200px] px-4 pb-6 pt-2 md:px-6 lg:px-8 lg:pt-4">
-            {children}
-            <BottomClearance />
-          </main>
+      <ShellContextProvider>
+        <div
+          data-app-shell
+          data-section={section.accent === 'viva' ? 'viva' : undefined}
+          // `isolate` keeps the -z-10 backdrop inside this stacking context, above the body's black.
+          className="relative isolate min-h-dvh text-white"
+        >
+          <ThemeBackdrop />
+          <RailNav />
+          <div className="lg:pl-[72px]">
+            <ShellHeader />
+            {fullHeight ? (
+              <main data-app-scroller className="shell-full-height mx-auto flex w-full max-w-[1200px] flex-col overflow-hidden">
+                {children}
+              </main>
+            ) : (
+              <main data-app-scroller className="mx-auto w-full max-w-[1200px] px-4 pb-6 pt-2 md:px-6 lg:px-8 lg:pt-4">
+                {children}
+                <BottomClearance />
+              </main>
+            )}
+          </div>
+          <PillNav />
         </div>
-        <PillNav />
-      </div>
+      </ShellContextProvider>
     </ThemeProvider>
   )
 }
