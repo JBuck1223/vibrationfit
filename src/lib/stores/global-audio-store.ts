@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import { getCachedAudio } from '@/lib/storage/audio-offline-cache'
 
-export type AudioContentCategory = 'life_vision' | 'story' | 'music'
+export type AudioContentCategory = 'life_vision' | 'story' | 'music' | 'meditation'
 
 interface GlobalAudioState {
   tracks: AudioTrack[]
@@ -102,6 +102,7 @@ const CATEGORY_TO_AREA: Record<AudioContentCategory, string> = {
   life_vision: 'vision_audio',
   story: 'story_listen',
   music: 'music_listen',
+  meditation: 'meditation_listen',
 }
 
 async function trackPlayEvent(track: AudioTrack) {

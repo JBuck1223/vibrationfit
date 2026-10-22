@@ -82,7 +82,7 @@ interface EmbeddedPlayerProps {
   setIcon?: React.ReactNode
   setName?: string
   setIconKey?: string
-  contentCategory?: 'life_vision' | 'story' | 'music'
+  contentCategory?: 'life_vision' | 'story' | 'music' | 'meditation'
   trackCount?: number
   createdDate?: string
   onRename?: (newName: string) => void

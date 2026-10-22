@@ -4,7 +4,7 @@ import React from 'react'
 import { usePathname } from 'next/navigation'
 import { useThemeImage } from './ThemeProvider'
 import { BACKDROP_SLOT, type ThemeSlot } from '@/lib/app-shell/theme-slots'
-import { sectionForPath } from '@/lib/app-shell/sections'
+import { isSectionRoot, sectionForPath } from '@/lib/app-shell/sections'
 
 interface Layer {
   key: number
@@ -34,6 +34,9 @@ function useCrossfade(url: string | null): [Layer[], (key: number) => void] {
 export function ThemeBackdrop() {
   const pathname = usePathname()
   const section = sectionForPath(pathname)
+  // Section roots get the big picture; pages inside a studio get a shorter, dimmer band
+  // so lists and forms stay legible while the place still looks like the section.
+  const atRoot = isSectionRoot(pathname)
   const heroUrl = useThemeImage(`${section.id}.hero` as ThemeSlot)
   const backdropUrl = useThemeImage(BACKDROP_SLOT)
   const [heroLayers, settleHero] = useCrossfade(heroUrl)
@@ -63,10 +66,10 @@ export function ThemeBackdrop() {
       {heroLayers.map((layer) => (
         <div
           key={`h${layer.key}`}
-          className="absolute inset-x-0 top-0 h-[78vh] bg-cover bg-center transition-opacity duration-700 ease-out lg:h-[72vh]"
+          className={`absolute inset-x-0 top-0 bg-cover bg-center transition-[opacity,height] duration-700 ease-out ${atRoot ? 'h-[78vh] lg:h-[72vh]' : 'h-[42vh] lg:h-[40vh]'}`}
           style={{
             backgroundImage: layer.url ? `url("${layer.url}")` : undefined,
-            opacity: layer.url ? 1 : 0,
+            opacity: layer.url ? (atRoot ? 1 : 0.6) : 0,
             maskImage: 'linear-gradient(to bottom, black 0%, black 55%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 55%, transparent 100%)',
           }}
@@ -75,7 +78,7 @@ export function ThemeBackdrop() {
       ))}
       {/* Keep the header legible and give the headline a floor to sit on */}
       <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/60 to-transparent" />
-      <div className="absolute inset-x-0 top-0 h-[78vh] bg-gradient-to-t from-black/70 via-black/10 to-transparent lg:h-[72vh]" />
+      <div className={`absolute inset-x-0 top-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent ${atRoot ? 'h-[78vh] lg:h-[72vh]' : 'h-[42vh] lg:h-[40vh]'}`} />
       <div className="absolute inset-0" style={{ background: 'var(--theme-tint)' }} />
     </div>
   )

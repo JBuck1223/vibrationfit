@@ -78,6 +78,12 @@ export const PAGE_CLASSIFICATIONS = {
     // App shell section roots (Phase 0 placeholders; Phase 1 fills them)
     '/home',
     '/listen',
+    '/listen/stories',
+    '/listen/meditations',
+    '/listen/songs',
+    '/listen/incantations',
+    '/listen/queries',
+    '/listen/playlists',
     '/capture',
     '/tribe',
     '/tools',
