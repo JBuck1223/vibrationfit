@@ -13,7 +13,8 @@ export async function GET() {
     return NextResponse.json({ theme: null, images: {} })
   }
   return NextResponse.json(resolved, {
-    headers: { 'Cache-Control': 'private, max-age=300' },
+    // Never cache: a theme change (or a test image) should show on the next load.
+    headers: { 'Cache-Control': 'no-store' },
   })
 }
 

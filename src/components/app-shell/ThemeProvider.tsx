@@ -45,7 +45,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const load = async () => {
     try {
-      const res = await fetch('/api/app-shell/theme', { credentials: 'include' })
+      const res = await fetch('/api/app-shell/theme', { credentials: 'include', cache: 'no-store' })
       if (!res.ok) throw new Error(String(res.status))
       const data = (await res.json()) as ResolvedTheme | { theme: null }
       const next = data.theme ? (data as ResolvedTheme) : null

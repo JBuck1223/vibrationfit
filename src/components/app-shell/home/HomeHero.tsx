@@ -35,8 +35,7 @@ export function HomeHero({ firstName, action }: { firstName: string | null; acti
           </>
         ) : (
           '.'
-        )}{' '}
-        Consciously create a life you love.
+        )}
       </h1>
       <div className="mt-4 h-12">
         {action && (
