@@ -1,5 +1,6 @@
 'use client'
 
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import React from 'react'
 import Link from 'next/link'
 import { Award, ChevronRight, Flame, Sparkles } from 'lucide-react'
@@ -34,7 +35,7 @@ export function ProgressStrip() {
   return (
     <section aria-label="Progress" className="grid gap-3 sm:grid-cols-3">
       {items.map(({ icon: Icon, label, value, done, href }) => (
-        <Link key={label} href={href} className="glass-panel flex items-center gap-3 px-4 py-3 transition-colors hover:border-[#39FF14]/60">
+        <Link key={label} href={href} className={`${GLASS_CARD} flex items-center gap-3 px-4 py-3 transition-colors hover:border-[#39FF14]/60`}>
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.16)] text-[#39FF14]">
             <Icon className="h-4 w-4" />
           </span>

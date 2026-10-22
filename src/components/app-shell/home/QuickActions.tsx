@@ -1,5 +1,6 @@
 'use client'
 
+import { glassTint } from '@/lib/app-shell/glass'
 import React from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -91,13 +92,8 @@ export function QuickActions() {
             <li key={tool.id} className="w-[104px] shrink-0 md:w-auto">
               <Link
                 href={tool.href}
-                className="flex h-[104px] flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition-transform active:scale-[0.97] md:h-[112px]"
-                style={{
-                  background: `linear-gradient(160deg, ${tool.tint}, rgba(14,14,16,0.72))`,
-                  borderColor: `${tool.color}40`,
-                  WebkitBackdropFilter: 'blur(var(--glass-blur))',
-                  backdropFilter: 'blur(var(--glass-blur))',
-                }}
+                className="flex h-[104px] flex-col items-center justify-center gap-2 rounded-3xl border p-3 text-center transition-transform active:scale-[0.97] md:h-[112px]"
+style={{ ...glassTint(tool.tint), borderColor: `${tool.color}55` }}
               >
                 <Icon className="h-7 w-7" style={{ color: tool.color }} strokeWidth={1.75} />
                 <span className="text-[13px] font-medium leading-tight text-white">{tool.label}</span>

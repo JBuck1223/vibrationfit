@@ -1,5 +1,6 @@
 'use client'
 
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import React from 'react'
 import Link from 'next/link'
 import { ChevronRight, Globe, Image as ImageIcon, Target } from 'lucide-react'
@@ -21,7 +22,7 @@ function ConceptCard({ eyebrow, title, body, href, icon: Icon, image }: ConceptC
   return (
     <Link
       href={href}
-      className="glass-panel group relative flex min-h-[150px] items-stretch overflow-hidden transition-colors hover:border-[#39FF14]/60"
+      className={`${GLASS_CARD} group relative flex min-h-[150px] items-stretch overflow-hidden transition-colors hover:border-[#39FF14]/60`}
     >
       <div className="relative w-[112px] shrink-0 md:w-[128px]">
         {image ? (

@@ -1,5 +1,6 @@
 'use client'
 
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import React from 'react'
 import Link from 'next/link'
 import { ArrowRight, Check, Map as MapIcon } from 'lucide-react'
@@ -37,7 +38,7 @@ export function TodayOnMap({ occurrences, date }: TodayOnMapProps) {
   })
 
   return (
-    <section className="glass-panel flex flex-col p-5 md:p-6">
+    <section className={`${GLASS_CARD} flex flex-col p-5 md:p-6`}>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-base font-semibold text-white">
           <MapIcon className="h-4 w-4 text-[#39FF14]" />

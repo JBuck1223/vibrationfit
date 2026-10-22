@@ -1,5 +1,6 @@
 'use client'
 
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -124,7 +125,7 @@ interface CardProps {
 
 function ListenCard({ eyebrow, title, subtitle, artwork, progress, timeLabel, playing, loading, onPlay }: CardProps) {
   return (
-    <div className="glass-panel flex h-full items-center gap-4 p-3 pr-4">
+    <div className={`${GLASS_CARD} flex h-full items-center gap-4 p-3 pr-4`}>
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/5">
         {artwork && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -334,7 +335,7 @@ export function ContinueListening() {
         />
         </div>
       ) : (
-        <div className="glass-panel flex flex-col items-start gap-3 p-5 md:max-w-md">
+        <div className={`${GLASS_CARD} flex flex-col items-start gap-3 p-5 md:max-w-md`}>
           <p className="text-sm text-white/70">Generate your Life Vision audio and it shows up here, ready for one tap.</p>
           <Link href="/audio" className="btn btn-outline !py-2 !px-4 text-sm">
             Open Audio <ArrowRight className="ml-1.5 h-4 w-4" />

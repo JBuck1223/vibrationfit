@@ -1,5 +1,6 @@
 'use client'
 
+import { GLASS_CARD, glassTint } from '@/lib/app-shell/glass'
 import React from 'react'
 import { ArrowRight, Compass } from 'lucide-react'
 import { ARRIVAL_STATES, getFlow } from '@/lib/flows/catalog'
@@ -47,13 +48,8 @@ export function ArrivalCheckIn() {
                 <button
                   type="button"
                   onClick={() => setOpen(s.state)}
-                  className="flex h-full w-full flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-transform active:scale-[0.98]"
-                  style={{
-                    background: `linear-gradient(160deg, ${s.tint}, rgba(14,14,16,0.72))`,
-                    borderColor: `${s.color}40`,
-                    WebkitBackdropFilter: 'blur(var(--glass-blur))',
-                    backdropFilter: 'blur(var(--glass-blur))',
-                  }}
+                  className="flex h-full w-full flex-col items-start gap-2 rounded-3xl border p-4 text-left transition-transform active:scale-[0.98]"
+style={{ ...glassTint(s.tint), borderColor: `${s.color}55` }}
                 >
                   <span className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: s.color }}>
                     {s.greenLine}
@@ -65,7 +61,7 @@ export function ArrivalCheckIn() {
           </ul>
         </>
       ) : run && flow ? (
-        <div className="glass-panel flex items-center gap-4 p-4">
+        <div className={`${GLASS_CARD} flex items-center gap-4 p-4`}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.16)] text-[#39FF14]">
             <Compass className="h-5 w-5" />
           </span>
@@ -80,7 +76,7 @@ export function ArrivalCheckIn() {
           </button>
         </div>
       ) : (
-        <div className="glass-panel flex items-center gap-4 p-4">
+        <div className={`${GLASS_CARD} flex items-center gap-4 p-4`}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
             <Compass className="h-5 w-5" />
           </span>
