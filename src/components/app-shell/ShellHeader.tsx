@@ -71,7 +71,7 @@ export function ShellHeader() {
         </Link>
         <Link
           href={tools.href}
-          aria-label="Tools"
+          aria-label="Tool Box"
           className="flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10"
         >
           <LayoutGrid className="h-5 w-5" />

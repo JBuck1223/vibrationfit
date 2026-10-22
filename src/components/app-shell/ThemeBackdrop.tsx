@@ -17,11 +17,14 @@ function useCrossfade(url: string | null): [Layer[], (key: number) => void] {
     setLayers((prev) => {
       const last = prev[prev.length - 1]
       if (last?.url === url) return prev
+      // No picture (e.g. the Dark theme): drop the old one outright rather than
+      // waiting for a fade that never fires.
+      if (!url) return [{ key: (last?.key ?? 0) + 1, url: null }]
       return [...prev, { key: (last?.key ?? 0) + 1, url }].slice(-2)
     })
   }, [url])
-  const settle = (key: number) =>
-    setLayers((prev) => (prev.length > 1 && prev[0].key === key ? prev.slice(-1) : prev))
+  // Once a newer layer has faded in, everything under it can go.
+  const settle = (key: number) => setLayers((prev) => prev.filter((l) => l.key >= key))
   return [layers, settle]
 }
 

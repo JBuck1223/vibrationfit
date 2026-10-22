@@ -167,7 +167,7 @@ export const SECTIONS: Section[] = [
   },
   {
     id: 'tools',
-    label: 'Tools',
+    label: 'Tool Box',
     icon: LayoutGrid,
     accent: 'brand',
     href: '/tools',

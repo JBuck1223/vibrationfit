@@ -1033,7 +1033,7 @@ export const shellNavigationGroups: NavGroup[] = [
     ],
   },
   {
-    name: 'Tools',
+    name: 'Tool Box',
     href: '/tools',
     isCollapsible: true,
     defaultCollapsed: false,
