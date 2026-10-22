@@ -18,6 +18,8 @@ export function CategorySheet({
   onToggle,
   title = 'Life categories',
   onClear,
+  children,
+  showCategories = true,
 }: {
   open: boolean
   onClose: () => void
@@ -26,6 +28,10 @@ export function CategorySheet({
   title?: string
   /** Shows a "Clear" action when given and something is selected. */
   onClear?: () => void
+  /** Extra controls above the categories (e.g. a date range). */
+  children?: React.ReactNode
+  /** False hides the category grid (a sheet with only the extra controls). */
+  showCategories?: boolean
 }) {
   React.useEffect(() => {
     if (!open) return
@@ -53,6 +59,8 @@ export function CategorySheet({
             </button>
           ) : null}
         </div>
+        {children}
+        {showCategories ? (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {LIFE_CATEGORIES.map((category) => {
             const isOn = selected.includes(category.key)
@@ -74,6 +82,7 @@ export function CategorySheet({
             )
           })}
         </div>
+        ) : null}
         <button
           type="button"
           onClick={onClose}

@@ -21,6 +21,10 @@ import { DailyPaperEntry, useDailyPaperEntries } from '@/hooks/useDailyPaper'
 import { createClient } from '@/lib/supabase/client'
 import { DailyPaperEditModal } from '@/components/daily-paper'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
+import { cn } from '@/lib/utils'
 
 function looksLikeImageUrl(url: string | null | undefined): boolean {
   if (!url) return false
@@ -119,6 +123,7 @@ export default function DailyPaperIndexPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { stats: practiceStats } = useAreaStats('daily-paper')
+  const inShell = useInShell()
   const { entries, isLoading, error, refresh } = useDailyPaperEntries()
   const [showFilters, setShowFilters] = useState(false)
   const [dateFilter, setDateFilter] = useState<DateFilter>('all')
@@ -228,6 +233,39 @@ export default function DailyPaperIndexPage() {
 
         {/* Action Bar */}
         <div className="space-y-3">
+          {inShell ? (
+            // App shell: one search field with a filter button; Write is in the header toggle.
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search your Daily Papers"
+                  className="h-11 w-full rounded-full border border-white/15 bg-white/[0.06] pl-10 pr-10 text-sm text-white placeholder:text-white/45 focus:border-[#39FF14]/40 focus:outline-none"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search" className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFilters(true)}
+                aria-label="Filter"
+                aria-pressed={dateFilter !== 'all'}
+                className={cn(
+                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors',
+                  dateFilter !== 'all' ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/75 hover:text-white',
+                )}
+              >
+                <Filter className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-start gap-2">
               <button
@@ -268,8 +306,47 @@ export default function DailyPaperIndexPage() {
               </button>
             </div>
           </div>
+          )}
 
-          {searchOpen && (
+          {inShell && dateFilter !== 'all' ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setDateFilter('all')} className="flex items-center gap-1 rounded-full border border-[#39FF14]/50 bg-[rgba(57,255,20,0.1)] px-3 py-1 text-xs text-[#39FF14]">
+                {dateFilter === '7' ? 'Last 7 days' : 'Last 30 days'}
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ) : null}
+
+          {inShell ? (
+            <CategorySheet
+              open={showFilters}
+              onClose={() => setShowFilters(false)}
+              title="Show papers from"
+              // Daily Papers aren't tagged with categories, so only the date range applies.
+              showCategories={false}
+              selected={[]}
+              onToggle={() => {}}
+            >
+              <div className="flex gap-2">
+                {(['all', '7', '30'] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={dateFilter === key}
+                    onClick={() => setDateFilter(key)}
+                    className={cn(
+                      'flex-1 rounded-full border py-2 text-xs font-medium transition-colors',
+                      dateFilter === key ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 text-white/80 hover:text-white',
+                    )}
+                  >
+                    {key === 'all' ? 'All time' : key === '7' ? 'Last 7 days' : 'Last 30 days'}
+                  </button>
+                ))}
+              </div>
+            </CategorySheet>
+          ) : null}
+
+          {!inShell && searchOpen && (
             <div className="relative animate-in slide-in-from-top-2 duration-200">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
               <input
@@ -292,7 +369,7 @@ export default function DailyPaperIndexPage() {
           )}
         </div>
 
-        {showFilters && (
+        {!inShell && showFilters && (
           <div className="space-y-6 animate-in slide-in-from-top duration-300">
             <Card variant="elevated" className="p-4">
               <div className="flex items-center justify-between mb-4">
@@ -410,7 +487,7 @@ export default function DailyPaperIndexPage() {
         ) : (
           /* List View */
           <div
-            className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]"
+            className={inShell ? cn(GLASS_CARD, 'overflow-hidden divide-y divide-white/[0.07]') : 'rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]'}
             data-tour="daily-paper-today"
           >
             {filteredEntries.map((entry) => {

@@ -817,7 +817,7 @@ export default function JournalPage() {
 
         {/* Load More */}
         {filteredEntries && filteredEntries.length > 0 && hasMore && (
-          <div className="flex justify-center py-6 mt-6">
+          <div className={inShell ? 'flex justify-center -mt-3 pb-2' : 'flex justify-center py-6 mt-6'}>
             <Button
               onClick={() => setPage(page + 1)}
               variant="outline"
