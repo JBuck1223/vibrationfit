@@ -500,7 +500,7 @@ export function EmbeddedPlayer({
           {headerContent}
         </div>
       ) : (setIcon || setName) ? (
-        <div className="relative bg-black/40 px-5 pt-5 pb-4 border-b border-neutral-800/60">
+        <div className={cn('relative border-b', inShell ? 'border-white/10 px-5 pt-4 pb-3' : 'bg-black/40 px-5 pt-5 pb-4 border-neutral-800/60')}>
           {(onRename || onDelete) && (
             <div className="absolute top-3 right-3 flex items-center gap-0.5">
               {onRename && (
@@ -523,7 +523,7 @@ export function EmbeddedPlayer({
               )}
             </div>
           )}
-          {setIcon && (
+          {setIcon && !inShell && (
             <div className="flex justify-center mb-3">{setIcon}</div>
           )}
           {setName && (
@@ -594,7 +594,9 @@ export function EmbeddedPlayer({
       )}
 
       {/* ── Now Playing section (explicit panel so it never diverges from header / list) ── */}
-      <div className={cn(panelBg, 'flex flex-col items-center px-6 pt-6 pb-4')}>
+      <div className={cn(panelBg, 'flex flex-col items-center', inShell ? 'px-4 pt-4 pb-3' : 'px-6 pt-6 pb-4')}>
+        {/* In the shell: artwork and title side by side, like an app's player bar */}
+        <div className={inShell ? 'mb-3 flex w-full items-center gap-4' : 'contents'}>
         {!hideArtwork && (() => {
           const displayTrack = activeTrack || tracks[0]
 
@@ -603,14 +605,14 @@ export function EmbeddedPlayer({
               <button
                 type="button"
                 onClick={() => setArtworkLightboxOpen(true)}
-                className="group relative mb-6 flex-shrink-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                className={cn('group relative flex-shrink-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50', !inShell && 'mb-6')}
                 aria-label="View album art full size"
               >
                 <TrackArtwork
                   track={displayTrack}
                   iconKey={setIconKey}
-                  size={inShell ? 260 : 200}
-                  className="rounded-[24px] overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+                  size={inShell ? 76 : 200}
+                  className={inShell ? 'rounded-2xl overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.4)]' : 'rounded-2xl overflow-hidden shadow-2xl'}
                 />
                 <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-black/0 opacity-0 transition-opacity group-hover:bg-black/30 group-hover:opacity-100">
                   <span className="rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white">
@@ -625,14 +627,14 @@ export function EmbeddedPlayer({
             <TrackArtwork
               track={displayTrack}
               iconKey={setIconKey}
-              size={inShell ? 260 : 200}
-              className="rounded-[24px] overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.5)] mb-6 flex-shrink-0"
+              size={inShell ? 76 : 200}
+              className={inShell ? 'rounded-2xl overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.4)] flex-shrink-0' : 'rounded-2xl overflow-hidden shadow-2xl mb-6 flex-shrink-0'}
             />
           )
         })()}
 
-        <div className="text-center mb-5 w-full">
-          <h3 className="text-xl font-semibold text-white truncate">
+        <div className={inShell ? 'min-w-0 flex-1 text-left' : 'text-center mb-5 w-full'}>
+          <h3 className={cn('font-semibold text-white truncate', inShell ? 'text-lg' : 'text-xl')}>
             {activeTrack?.title || tracks[0]?.title || 'Select a track'}
           </h3>
           {nowPlayingAccessory ? (
@@ -643,14 +645,15 @@ export function EmbeddedPlayer({
               <TrackNowPlayingMeta track={activeTrack} />
             </div>
           ) : contentCategory !== 'story' ? (
-            <p className="text-sm text-neutral-400 mt-1 truncate text-center">
+            <p className={cn('text-sm text-neutral-400 mt-1 truncate', !inShell && 'text-center')}>
               {setName || activeTrack?.artist || 'Vibration Fit'}
             </p>
           ) : null}
         </div>
+        </div>
 
         {/* Seek bar */}
-        <div className="mb-3 w-full">
+        <div className={cn('w-full', inShell ? 'mb-1' : 'mb-3')}>
           <PlayerScrubber
             currentTime={isThisSetActive ? currentTime : 0}
             duration={isThisSetActive ? duration : 0}
@@ -660,8 +663,9 @@ export function EmbeddedPlayer({
         </div>
 
         {/* Transport: shuffle, previous, play, next, repeat */}
-        <div className="mb-2 w-full max-w-sm">
+        <div className={cn('w-full max-w-sm', inShell ? 'mb-0' : 'mb-2')}>
           <TransportControls
+            compact={inShell}
             isPlaying={isActivePlaying}
             isBuffering={isActiveBuffering}
             onPlayPause={() => {

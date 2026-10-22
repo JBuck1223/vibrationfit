@@ -75,6 +75,7 @@ export function TransportControls({
   onShuffle,
   repeatMode,
   onRepeat,
+  compact = false,
 }: {
   isPlaying: boolean
   isBuffering?: boolean
@@ -87,6 +88,8 @@ export function TransportControls({
   onShuffle?: () => void
   repeatMode?: 'off' | 'all' | 'one'
   onRepeat?: () => void
+  /** Smaller buttons for in-page players. */
+  compact?: boolean
 }) {
   const RepeatIcon = repeatMode === 'one' ? Repeat1 : Repeat
   return (
@@ -108,20 +111,23 @@ export function TransportControls({
         aria-label="Previous"
         className="flex h-12 w-12 items-center justify-center rounded-full text-white transition-opacity active:scale-95 disabled:opacity-30"
       >
-        <SkipBack className="h-7 w-7" fill="currentColor" />
+        <SkipBack className={compact ? 'h-6 w-6' : 'h-7 w-7'} fill="currentColor" />
       </button>
       <button
         type="button"
         onClick={onPlayPause}
         aria-label={isBuffering ? 'Loading' : isPlaying ? 'Pause' : 'Play'}
-        className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
+        className={cn(
+          'flex items-center justify-center rounded-full bg-white text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-transform active:scale-95',
+          compact ? 'h-14 w-14' : 'h-[72px] w-[72px]',
+        )}
       >
         {isBuffering ? (
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Loader2 className={cn('animate-spin', compact ? 'h-6 w-6' : 'h-8 w-8')} />
         ) : isPlaying ? (
-          <Pause className="h-8 w-8" fill="currentColor" />
+          <Pause className={compact ? 'h-6 w-6' : 'h-8 w-8'} fill="currentColor" />
         ) : (
-          <Play className="ml-1 h-8 w-8" fill="currentColor" />
+          <Play className={cn('ml-1', compact ? 'h-6 w-6' : 'h-8 w-8')} fill="currentColor" />
         )}
       </button>
       <button
@@ -131,7 +137,7 @@ export function TransportControls({
         aria-label="Next"
         className="flex h-12 w-12 items-center justify-center rounded-full text-white transition-opacity active:scale-95 disabled:opacity-30"
       >
-        <SkipForward className="h-7 w-7" fill="currentColor" />
+        <SkipForward className={compact ? 'h-6 w-6' : 'h-7 w-7'} fill="currentColor" />
       </button>
       <button
         type="button"
