@@ -107,6 +107,30 @@ export default function VivaPage() {
   // --- UI state ---
   const inShell = useInShell()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  // Desktop: the thread list can be collapsed; remembered on this device.
+  const [threadsCollapsed, setThreadsCollapsed] = useState(false)
+  useEffect(() => {
+    try {
+      setThreadsCollapsed(localStorage.getItem('vf_viva_threads_collapsed') === '1')
+    } catch {
+      /* storage unavailable */
+    }
+  }, [])
+  const toggleThreads = () => {
+    // Phones open the list as a drawer; desktop collapses or expands it.
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+      setSidebarOpen(true)
+      return
+    }
+    setThreadsCollapsed((prev) => {
+      try {
+        localStorage.setItem('vf_viva_threads_collapsed', prev ? '0' : '1')
+      } catch {
+        /* storage unavailable */
+      }
+      return !prev
+    })
+  }
   const [constraintsOpen, setConstraintsOpen] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -490,7 +514,8 @@ export default function VivaPage() {
           inShell ? 'glass-chrome border-y-0 border-l-0 rounded-none md:mr-4 md:rounded-2xl md:border' : 'border-neutral-900 bg-black',
           sidebarOpen
             ? 'flex fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top)] md:static md:z-auto md:pt-0'
-            : 'hidden md:flex'
+            : 'hidden md:flex',
+          threadsCollapsed && 'md:hidden'
         )}
       >
         <div className="flex items-center justify-between px-4 py-4">
@@ -506,8 +531,17 @@ export default function VivaPage() {
             <button
               onClick={() => setSidebarOpen(false)}
               className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
+              aria-label="Close threads"
             >
               <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={toggleThreads}
+              className="hidden p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:block"
+              title="Collapse threads"
+              aria-label="Collapse threads"
+            >
+              <PanelLeft className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -540,9 +574,13 @@ export default function VivaPage() {
         {/* Header */}
         <header className={cn("flex items-center gap-3 pr-4 md:px-4", inShell ? "pl-4 py-2" : "pl-16 py-3 border-b border-neutral-900")}>
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
-            aria-label="Open threads"
+            onClick={toggleThreads}
+            className={cn(
+              "p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors",
+              !threadsCollapsed && "md:hidden",
+            )}
+            aria-label="Show threads"
+            title="Show threads"
           >
             <PanelLeft className="w-4 h-4" />
           </button>
