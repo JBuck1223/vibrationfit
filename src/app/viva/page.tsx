@@ -113,11 +113,15 @@ export default function VivaPage() {
   // Admin model testing: /viva?model=anthropic/claude-sonnet-4-5
   // The API only honors this override for admin accounts.
   const [modelOverride, setModelOverride] = useState<string | null>(null)
+  const [flowIntent, setFlowIntent] = useState<string | null>(null)
   const [focusKitId, setFocusKitId] = useState<string | null>(null)
   const focusStartedRef = useRef(false)
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get('model')
     if (m) setModelOverride(m)
+    // A guided flow tells the coach which path the member chose.
+    const flow = new URLSearchParams(window.location.search).get('flow')
+    if (flow && /^[a-z-]{3,40}$/.test(flow)) setFlowIntent(`flow:${flow}`)
     // Capture's "Share with VIVA" hands over a draft; it waits in the composer.
     const draft = new URLSearchParams(window.location.search).get('draft')
     if (draft) {
@@ -314,6 +318,7 @@ export default function VivaPage() {
           modeHint: 'auto',
           ...(persisted.length > 0 ? { attachments: persisted } : {}),
           ...(modelOverride ? { modelOverride } : {}),
+          ...(flowIntent ? { userIntent: flowIntent } : {}),
           ...(options?.suggestTools ? { suggestTools: true } : {}),
           ...(options?.kitId || focusKitId ? { kitId: options?.kitId || focusKitId } : {}),
         },
@@ -345,6 +350,8 @@ export default function VivaPage() {
       }
 
       refreshThreads()
+      // Coach tools may have completed a flow step on the server.
+      if (flowIntent) window.dispatchEvent(new CustomEvent('vf:flow-refresh'))
     } catch (err) {
       console.error('VIVA chat error:', err)
       const fallback =

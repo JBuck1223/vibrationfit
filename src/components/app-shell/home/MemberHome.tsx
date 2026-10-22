@@ -9,6 +9,7 @@ import { TodayOnMap } from './TodayOnMap'
 import { ProgressStrip } from './ProgressStrip'
 import { AreaLinks } from '../AreaLinks'
 import { QuickActions } from './QuickActions'
+import { ArrivalCheckIn } from '@/components/flows/ArrivalCheckIn'
 
 interface MemberHomeProps {
   firstName: string | null
@@ -42,6 +43,7 @@ export function MemberHome({ firstName, timezone }: MemberHomeProps) {
   return (
     <div className="space-y-6 md:space-y-8">
       <HomeHero firstName={firstName} action={action} />
+      <ArrivalCheckIn />
       <AreaLinks sectionId="home" />
       <ContinueListening />
       <QuickActions />

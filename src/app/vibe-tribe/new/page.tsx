@@ -58,7 +58,12 @@ export default function VibeTribeNewPage() {
   
   // Post composer state
   const [content, setContent] = useState('')
-  const [selectedTag, setSelectedTag] = useState<VibeTag>('vision')
+  // Guided flows open this with ?tag=win (or another tag) already chosen.
+  const [selectedTag, setSelectedTag] = useState<VibeTag>(() => {
+    if (typeof window === 'undefined') return 'vision'
+    const tag = new URLSearchParams(window.location.search).get('tag') as VibeTag | null
+    return tag && (VIBE_TAGS as readonly string[]).includes(tag) ? tag : 'vision'
+  })
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showCategories, setShowCategories] = useState(false)
   const [files, setFiles] = useState<File[]>([])

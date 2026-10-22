@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { reportFlowSignal } from '@/hooks/useActiveFlow'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -506,6 +507,7 @@ export default function NewStoryWizardPage() {
       if (newStoryId) {
         setCreatedStoryId(newStoryId)
         setTimeout(() => {
+          reportFlowSignal('story_created', `/story/${newStoryId}`)
           router.push(`/story/${newStoryId}`)
         }, 2000)
       }
@@ -608,6 +610,7 @@ export default function NewStoryWizardPage() {
         .single()
 
       if (storyError) throw storyError
+      reportFlowSignal('story_created', `/story/${storyData.id}`)
       router.push(`/story/${storyData.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create story')
@@ -790,6 +793,7 @@ export default function NewStoryWizardPage() {
         .single()
 
       if (insertError) throw insertError
+      reportFlowSignal('story_created', `/story/${storyData.id}`)
       router.push(`/story/${storyData.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save incantation')
@@ -932,6 +936,7 @@ export default function NewStoryWizardPage() {
         .single()
 
       if (insertError) throw insertError
+      reportFlowSignal('story_created', `/story/${storyData.id}`)
       router.push(`/story/${storyData.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save SparkQuery™')

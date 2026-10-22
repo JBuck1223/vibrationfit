@@ -13,6 +13,10 @@ export default function NewJournalEntryPage() {
   const searchParams = useSearchParams()
   const isIntensiveUrlParam = searchParams.get('intensive') === 'true'
   const manifestationParam = searchParams.get('manifestation')
+  // Guided flows open the form already tagged (wobble / win), optionally with opening text.
+  const tagParam = searchParams.get('tag')
+  const initialTag = tagParam === 'wobble' || tagParam === 'win' || tagParam === 'vision' ? tagParam : null
+  const initialContent = searchParams.get('prefill') ?? undefined
   const supabase = createClient()
   const { refreshEntries } = useJournalStudio()
 
@@ -121,6 +125,8 @@ export default function NewJournalEntryPage() {
             onCancel={() => router.back()}
             onSuccess={handleSuccess}
             showRecoverableBanner
+            initialTag={initialTag}
+            initialContent={initialContent}
           />
         </div>
       </Stack>

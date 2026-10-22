@@ -12,6 +12,7 @@ import { PillNav } from './PillNav'
 import { ShellUserSidebar } from '@/components/SidebarClient'
 import { useKeyboardOpen } from './useKeyboardOpen'
 import { ShellContextProvider } from './ShellContext'
+import { FlowBar } from '@/components/flows/FlowBar'
 
 /**
  * Space under the content so the last card clears the pill (and the mini
@@ -74,6 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </div>
+          <FlowBar />
           <PillNav />
         </div>
       </ShellContextProvider>

@@ -50,9 +50,13 @@ export interface NewJournalEntryFormProps {
   showRecoverableBanner?: boolean
   cardClassName?: string
   categoryGridBleedClass?: string
+  /** Preset the tag (e.g. a guided flow opening a wobble or a win). */
+  initialTag?: JournalTag | null
+  /** Opening text for the entry. */
+  initialContent?: string
 }
 
-function buildInitialForm(mapLink?: MapJournalLink) {
+function buildInitialForm(mapLink?: MapJournalLink, initialTag?: JournalTag | null, initialContent?: string) {
   if (mapLink) {
     return {
       date: mapLink.occurredOn,
@@ -65,8 +69,8 @@ function buildInitialForm(mapLink?: MapJournalLink) {
   return {
     date: '',
     title: '',
-    content: '',
-    journal_tag: null as JournalTag | null,
+    content: initialContent ?? '',
+    journal_tag: (initialTag ?? null) as JournalTag | null,
     categories: [] as string[],
   }
 }
@@ -78,6 +82,8 @@ export function NewJournalEntryForm({
   showRecoverableBanner = true,
   cardClassName,
   categoryGridBleedClass,
+  initialTag,
+  initialContent,
 }: NewJournalEntryFormProps) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -94,7 +100,7 @@ export function NewJournalEntryForm({
   const [audioRecordings, setAudioRecordings] = useState<JournalAudioRecording[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [formData, setFormData] = useState(() => buildInitialForm(mapLink))
+  const [formData, setFormData] = useState(() => buildInitialForm(mapLink, initialTag, initialContent))
 
   const applyRestoredTranscript = (item: RecoverableTranscriptItem) => {
     setFormData(prev => ({

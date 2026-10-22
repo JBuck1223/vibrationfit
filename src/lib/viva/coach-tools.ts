@@ -12,6 +12,7 @@
  */
 
 import { tool, generateText } from 'ai'
+import { recordFlowSignal, signalForCoachTool } from '@/lib/flows/server'
 import { z } from 'zod'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { gateway, gatewayGenerationId } from '@/lib/ai/gateway'
@@ -72,6 +73,31 @@ function filterToolsByMode<T extends Record<string, unknown>>(
   return Object.fromEntries(
     Object.entries(tools).filter(([name]) => allow.has(name))
   ) as Partial<T>
+}
+
+/**
+ * A successful write tool (journal saved, incantation created, ...) can also
+ * complete a step in the member's guided flow. Wraps each tool's execute.
+ */
+function withFlowSignals<T extends Record<string, unknown>>(tools: T, userId: string): T {
+  const wrapped: Record<string, unknown> = {}
+  for (const [name, t] of Object.entries(tools)) {
+    const signal = signalForCoachTool(name)
+    const original = t as { execute?: (...args: unknown[]) => Promise<unknown> }
+    if (!signal || typeof original.execute !== 'function') {
+      wrapped[name] = t
+      continue
+    }
+    wrapped[name] = {
+      ...original,
+      execute: async (...args: unknown[]) => {
+        const result = (await original.execute!(...args)) as { success?: boolean; link?: string } | undefined
+        if (result?.success) await recordFlowSignal(userId, signal, result.link ?? null)
+        return result
+      },
+    }
+  }
+  return wrapped as T
 }
 
 export function buildCoachTools(ctx: CoachToolsContext) {
@@ -583,7 +609,7 @@ export function buildCoachTools(ctx: CoachToolsContext) {
   const kitTools = buildKitCoachTools(kitCtx)
   const readTools = buildCoachReadTools({ supabase, userId, householdId: ctx.householdId })
   const allTools = { ...coreTools, ...kitTools, ...readTools }
-  return filterToolsByMode(allTools, ctx.selectedMode || 'auto', ctx.overlay)
+  return filterToolsByMode(withFlowSignals(allTools, userId), ctx.selectedMode || 'auto', ctx.overlay)
 }
 
 /**

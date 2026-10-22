@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { toDateString } from '@/lib/map/cadence'
+import { recordFlowSignal, signalForActivity } from '@/lib/flows/server'
 
 /**
  * Maps activity_type values on commitments to legacy area keys (area-stats / client).
@@ -80,6 +81,9 @@ export async function autoVerifyOccurrenceByActivityType(
   activityType: string,
   occurredOn?: string,
 ): Promise<{ verified: boolean; occurrenceId?: string }> {
+  // The same activity can also complete a step in a guided flow.
+  await recordFlowSignal(userId, signalForActivity(activityType))
+
   const supabase = createAdminClient()
   const date = occurredOn ?? toDateString(new Date())
 
@@ -117,6 +121,8 @@ export async function autoVerifyOccurrence(
   areaKey: string,
   occurredOn?: string,
 ): Promise<{ verified: boolean; occurrenceId?: string }> {
+  await recordFlowSignal(userId, signalForActivity(areaKey))
+
   const activityTypes = getActivityTypesForArea(areaKey)
   if (activityTypes.length === 0) return { verified: false }
 
