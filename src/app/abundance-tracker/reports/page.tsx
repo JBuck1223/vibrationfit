@@ -104,11 +104,13 @@ function DonutBreakdown({ data, fmt }: { data: Array<{ name: string; value: numb
           const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
           return (
             <li key={d.name}>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.color, boxShadow: `0 0 8px ${d.color}66` }} />
-                <span className="min-w-0 flex-1 truncate text-white/85">{d.name}</span>
+              <div className="flex items-start gap-2 text-sm">
+                <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.color, boxShadow: `0 0 8px ${d.color}66` }} />
+                {/* Long names wrap instead of being cut off. */}
+                <span className="min-w-0 flex-1 break-words text-white/85">
+                  {d.name} <span className="tabular-nums text-white/45">({pct}%)</span>
+                </span>
                 <span className="shrink-0 font-semibold tabular-nums text-white">{fmt(d.value)}</span>
-                <span className="w-10 shrink-0 text-right text-xs tabular-nums text-white/45">{pct}%</span>
               </div>
               <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.08]">
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: d.color }} />
