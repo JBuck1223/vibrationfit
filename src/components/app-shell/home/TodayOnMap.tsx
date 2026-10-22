@@ -178,7 +178,7 @@ export function TodayOnMap({ occurrences, date }: TodayOnMapProps) {
           )}
 
           {visiblePending.length > 0 && (
-            <ul className="mt-3 space-y-0.5">
+            <ul className="mt-3 grid gap-0.5 md:grid-cols-2 md:gap-x-4">
               {visiblePending.map((occ) => (
                 <Row key={occ.id} occ={occ} busy={toggle.isPending} onToggle={() => toggle.mutate(occ)} />
               ))}
@@ -207,7 +207,7 @@ export function TodayOnMap({ occurrences, date }: TodayOnMapProps) {
                 <ChevronDown className={cn('ml-auto h-4 w-4 transition-transform', showDone && 'rotate-180')} />
               </button>
               {showDone && (
-                <ul className="space-y-0.5">
+                <ul className="grid gap-0.5 md:grid-cols-2 md:gap-x-4">
                   {done.map((occ) => (
                     <Row key={occ.id} occ={occ} busy={toggle.isPending} onToggle={() => toggle.mutate(occ)} />
                   ))}
