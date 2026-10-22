@@ -351,28 +351,34 @@ export default function AbundanceGoalsOverviewPage() {
 
   const goalMet = summary != null && summary.goalAmount > 0 && summary.totalAmount >= summary.goalAmount
 
+  // With no active goals, the empty card holds the button and opens the form inside itself.
+  const emptyCard = inShell && goalsFetchDone && activeGoals.length === 0
+  const newGoalForm = (
+    <>
+      <div className="mb-3 flex items-center justify-between text-left">
+        <h2 className="text-base font-semibold text-white">New money goal</h2>
+        <button type="button" onClick={() => setNewGoalOpen(false)} aria-label="Close" className="text-white/55 hover:text-white">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <SetGoalForm
+        onSaved={() => {
+          setNewGoalOpen(false)
+          void fetchGoalsList()
+        }}
+      />
+    </>
+  )
+
   return (
     <Container size="xl">
       <Stack gap="lg">
         <h1 className="sr-only">Money Goals — Overview</h1>
 
-        {inShell ? (
+        {inShell && !emptyCard ? (
           // App shell: add a goal right here; the tabs stay at the top.
           newGoalOpen ? (
-            <div className={`${GLASS_CARD} relative p-4 md:p-6`}>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-white">New money goal</h2>
-                <button type="button" onClick={() => setNewGoalOpen(false)} aria-label="Close" className="text-white/55 hover:text-white">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <SetGoalForm
-                onSaved={() => {
-                  setNewGoalOpen(false)
-                  void fetchGoalsList()
-                }}
-              />
-            </div>
+            <div className={`${GLASS_CARD} relative p-4 md:p-6`}>{newGoalForm}</div>
           ) : (
             <div className="flex justify-center">
               <button
@@ -389,6 +395,8 @@ export default function AbundanceGoalsOverviewPage() {
             <div className={`${shellCard} w-full p-4 md:p-6 lg:p-8`}>
               {!goalsFetchDone ? (
                 <ProgressPickerSkeleton />
+              ) : emptyCard && newGoalOpen ? (
+                newGoalForm
               ) : activeGoals.length === 0 ? (
                 <div className="mx-auto max-w-xl px-2 py-4 text-center md:py-6">
                   <p className="text-sm text-neutral-400">
@@ -398,13 +406,20 @@ export default function AbundanceGoalsOverviewPage() {
                     Set a goal for this week, month, or another period to track progress here.
                   </p>
                   <div className="mt-5 flex justify-center">
-                    <Link
-                      href="/abundance-tracker/goals/new"
-                      className={emptyStateNewGoalCtaClassName}
-                    >
-                      <Plus className="h-5 w-5 shrink-0" aria-hidden />
-                      Make a new money goal
-                    </Link>
+                    {inShell ? (
+                      <button type="button" onClick={() => setNewGoalOpen(true)} className={emptyStateNewGoalCtaClassName}>
+                        <Plus className="h-5 w-5 shrink-0" aria-hidden />
+                        Make a new money goal
+                      </button>
+                    ) : (
+                      <Link
+                        href="/abundance-tracker/goals/new"
+                        className={emptyStateNewGoalCtaClassName}
+                      >
+                        <Plus className="h-5 w-5 shrink-0" aria-hidden />
+                        Make a new money goal
+                      </Link>
+                    )}
                   </div>
                 </div>
               ) : (
