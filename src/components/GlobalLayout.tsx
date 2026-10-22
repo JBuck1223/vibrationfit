@@ -21,6 +21,8 @@ import {
   type IntensiveSnapshot,
 } from '@/lib/intensive/intensive-snapshot'
 import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight'
+import { AppShell } from '@/components/app-shell/AppShell'
+import { syncShellFlagFromUrl } from '@/lib/app-shell/flag'
 
 function VivaShell({ children }: { children: React.ReactNode }) {
   const viewportHeight = useVisualViewportHeight()
@@ -174,6 +176,13 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   // from sessionStorage during the first mount effect, so subsequent navigations
   // inside the same session never re-query the database.
   const [snapshot, setSnapshot] = useState<IntensiveSnapshot | null>(null)
+  // The new member shell (Phase 0+) renders only behind the `shell=next` cookie.
+  // Resolved after mount so SSR and the first client paint match.
+  const [nextShell, setNextShell] = useState(false)
+
+  useEffect(() => {
+    setNextShell(syncShellFlagFromUrl())
+  }, [pathname])
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined') return
@@ -284,6 +293,12 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
       return <>{children}</>
     }
     
+    // New member shell, flag only. Studio pages keep their own top padding off;
+    // VIVA and Vibe Tribe keep their full-height internals inside the shell column.
+    if (nextShell && pageType === 'USER') {
+      return <AppShell>{children}</AppShell>
+    }
+
     // VIVA: full-height conversational layout with internal scroll.
     // Use the visual viewport so iOS keyboard open/close does not freeze the thread.
     if (pathname === '/viva' || pathname?.startsWith('/viva/')) {

@@ -163,6 +163,60 @@ html[data-native-shell] .hide-in-native {
   --color-status-warning: #FFB701;
   --color-status-error: #D03739;
   --color-status-premium: #BF00FF;
+
+  /* App shell (Phase 0). Glass surfaces and the section accent the new shell paints with. */
+  --color-glass-fill: var(--glass-fill);
+  --color-glass-border: var(--glass-border);
+  --color-section-accent: var(--section-accent);
+}
+
+/* App shell tokens. Green by default; a Coach/VIVA container swaps the accent to purple. */
+:root {
+  --glass-fill: rgba(20, 20, 22, 0.62);
+  --glass-fill-strong: rgba(14, 14, 16, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-blur: 20px;
+  --section-accent: #39FF14;
+  --section-accent-ink: #000000;
+  --section-accent-soft: rgba(57, 255, 20, 0.16);
+  --theme-backdrop: none;
+  --theme-tint: rgba(0, 0, 0, 0);
+  --shell-nav-height: 64px;
+  --shell-header-height: 56px;
+}
+[data-section='viva'] {
+  --section-accent: #BF00FF;
+  --section-accent-ink: #ffffff;
+  --section-accent-soft: rgba(191, 0, 255, 0.18);
+}
+
+.glass-panel {
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+}
+.glass-chrome {
+  background: var(--glass-fill-strong);
+  border: 1px solid var(--glass-border);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass-panel,
+  .glass-chrome {
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  }
+}
+/* Older Android WebViews: no blur, so lean on a more opaque fill. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel {
+    background: rgba(18, 18, 20, 0.9);
+  }
+  .glass-chrome {
+    background: rgba(12, 12, 14, 0.96);
+  }
+}
+.scrim-text {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 45%, rgba(0, 0, 0, 0) 100%);
 }
 
 @media (prefers-color-scheme: dark) {

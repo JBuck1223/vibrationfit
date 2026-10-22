@@ -74,6 +74,13 @@ export const PAGE_CLASSIFICATIONS = {
     '/begin/intake',
     '/begin/world',
     '/your-world',
+
+    // App shell section roots (Phase 0 placeholders; Phase 1 fills them)
+    '/home',
+    '/listen',
+    '/capture',
+    '/tribe',
+    '/tools',
     
     // Legacy Vision Board routes (redirect to /manifestations)
     '/vision-board',
