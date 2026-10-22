@@ -22,7 +22,7 @@ dotenv.config({ path: '.env.local' })
 import { createClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { ALL_SLOTS, THEME_WORLDS, buildSlotPrompt, slotDimension, type ThemeSlot } from '../../src/lib/app-shell/theme-slots'
+import { ALL_SLOTS, IMAGELESS_THEMES, THEME_WORLDS, buildSlotPrompt, slotDimension, type ThemeSlot } from '../../src/lib/app-shell/theme-slots'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -98,6 +98,7 @@ async function main() {
   }
 
   for (const theme of targets) {
+    if ((IMAGELESS_THEMES as readonly string[]).includes(theme.slug)) continue
     if (!THEME_WORLDS[theme.slug]) {
       console.warn(`Skipping ${theme.slug}: no world description in THEME_WORLDS`)
       continue

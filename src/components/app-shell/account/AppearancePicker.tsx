@@ -91,9 +91,12 @@ export function AppearancePicker() {
                     selected ? 'border-[#39FF14]' : 'hover:border-white/40',
                   )}
                 >
-                  {t.preview && (
+                  {t.preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={t.preview} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    // Imageless themes (Dark) preview as the plain charcoal they are.
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1d] via-[#0e0e10] to-black" />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                   <span className="absolute bottom-3 left-4 text-[15px] font-semibold text-white">{t.name}</span>

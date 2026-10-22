@@ -82,7 +82,25 @@ export const THEME_WORLDS: Record<string, string> = {
   tropical: 'a lush tropical coast, palms, deep green foliage, warm light through leaves',
   mountains: 'high alpine mountains at dawn, pine forest, mist in the valleys, cool blue light',
   snow: 'a calm snowy landscape at blue hour, soft drifts, pine trees, quiet winter light',
+  light: 'a bright, airy coastal morning, pale sky, white sand and soft sea mist, gentle diffuse daylight',
+  watercolor: 'a dreamy coastal landscape with hills, sea and sky in soft pastel washes',
 }
+
+/**
+ * How each theme is rendered. Photographic by default; some themes are a
+ * different medium or key. Dark has no imagery at all (plain charcoal).
+ */
+const THEME_STYLES: Record<string, string> = {
+  default:
+    'Photorealistic, cinematic lighting, rich blacks and deep shadows, premium wellness retreat mood.',
+  light:
+    'Photorealistic, high-key bright daylight, soft whites and pale pastels, airy and serene, gentle contrast.',
+  watercolor:
+    'Loose hand-painted watercolor on textured cold-press paper, soft bleeding pigments, visible paper grain, gentle granulation, painterly and calm.',
+}
+
+/** Themes that deliberately carry no images (the backdrop stays plain). */
+export const IMAGELESS_THEMES = ['dark'] as const
 
 const SLOT_SUBJECTS: Record<ThemeSlot, string> = {
   'area.backdrop': 'a wide, soft, slightly out-of-focus landscape view with no single subject',
@@ -113,9 +131,10 @@ const SLOT_SUBJECTS: Record<ThemeSlot, string> = {
 export function buildSlotPrompt(themeSlug: string, slot: ThemeSlot, worldOverride?: string): string {
   const world = worldOverride ?? THEME_WORLDS[themeSlug] ?? THEME_WORLDS.sunset
   const subject = SLOT_SUBJECTS[slot]
+  const style = THEME_STYLES[themeSlug] ?? THEME_STYLES.default
   return (
-    `${subject}, set in ${world}. Photorealistic, cinematic lighting, rich blacks and deep shadows, ` +
-    `premium wellness retreat mood. No people, no text, no logos, no watermarks. ` +
-    `Keep the lower third and left side uncluttered with soft dark tones so text can sit on top.`
+    `${subject}, set in ${world}. ${style} ` +
+    `No people, no text, no logos, no watermarks. ` +
+    `Keep the lower third and left side uncluttered with soft tones so text can sit on top.`
   )
 }
