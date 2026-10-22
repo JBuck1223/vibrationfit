@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Container, Stack, Card } from '@/lib/design-system/components'
 import { AudioLines, ChevronRight, Mic, Sliders, Clock, Music2 } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { CreateAudioHome } from '@/components/app-shell/audio/CreateAudioHome'
 
 interface CreateTile {
   title: string
@@ -65,7 +67,10 @@ const CREATE_TILES: CreateTile[] = [
 ]
 
 export default function CreatePage() {
+  const inShell = useInShell()
   const pathname = usePathname()
+  if (inShell && !pathname.startsWith('/intensive/')) return <CreateAudioHome />
+
   const pathPrefix = pathname.startsWith('/intensive/') ? '/intensive' : ''
 
   return (

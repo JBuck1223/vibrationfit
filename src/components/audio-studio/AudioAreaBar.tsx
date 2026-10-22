@@ -83,9 +83,9 @@ export function AudioAreaBar() {
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
   const isOnSecondaryPage = SECONDARY_TABS.some(t => pathname === t.path || pathname.startsWith(t.path + '/'))
 
-  // In the app shell the listen pages are the app-style library, which has
-  // its own tabs and vision switcher.
-  if (inShell && isListen) return null
+  // In the app shell the listen pages are the app-style library and the
+  // create pages have their own header (CreateToolHeader).
+  if (inShell && (isListen || isCreateArea)) return null
 
   let contextNav: AreaBarContextNavItem[] | undefined
   let contextText: string | undefined
