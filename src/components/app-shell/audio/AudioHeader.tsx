@@ -36,7 +36,7 @@ export function AudioHeader({ aside }: { aside?: React.ReactNode }) {
     <div className="space-y-4">
       {/* The top bar already says Audio. */}
       <h1 className="sr-only">Audio</h1>
-      <div className="flex items-center gap-3 pt-1 md:justify-center">
+      <div className="flex items-center gap-3 md:justify-center">
         <div role="tablist" aria-label="Listen or create" className="grid flex-1 grid-cols-2 rounded-full border border-white/15 bg-white/[0.05] p-1 md:w-[320px] md:flex-none">
           {[
             { label: 'Listen', href: '/audio', active: !creating },
