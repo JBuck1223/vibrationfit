@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { ChevronLeft, ChevronRight, Check, CalendarDays } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { fieldControlClass, fieldErrorClass } from './field-styles'
@@ -55,6 +56,8 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       return `${year}-${month}-${day}`
     }
     
+    // In the app shell the calendar uses the shell's glass (shellPopover CSS).
+    const inShell = useInShell()
     const [isOpen, setIsOpen] = useState(false)
     const [selectedDate, setSelectedDate] = useState<Date | null>(value ? parseLocalDate(value) : null)
     const [currentMonth, setCurrentMonth] = useState<Date>(value ? parseLocalDate(value) : new Date())
@@ -379,6 +382,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
         {isOpen && dropdownPosition && typeof document !== 'undefined' && createPortal(
           <div
             ref={dropdownRef}
+            data-shell-popover={inShell || undefined}
             className="fixed z-[9999] w-[min(calc(100vw-2rem),360px)] md:w-[360px] bg-[#1F1F1F] border-2 border-[#333] rounded-2xl overflow-y-auto shadow-xl"
             style={{ top: dropdownPosition.top, left: dropdownPosition.left, maxHeight: 'calc(100vh - 16px)' }}
           >

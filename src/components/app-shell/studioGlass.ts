@@ -64,3 +64,33 @@ ${P} .rounded.${esc('text-[10px]')} {
 ${sel(['bg-neutral-900/90', 'bg-neutral-900/60', 'bg-neutral-900/50', 'bg-neutral-900'])} { background: rgba(255,255,255,0.06) !important; }
 ${sel(['border-neutral-600', 'border-neutral-700', 'border-neutral-800', 'border-[#1f1f1f]'])} { border-color: rgba(255,255,255,0.12) !important; }
 `
+
+/**
+ * Shared dropdowns and calendars (Select, DatePicker) open in a portal outside
+ * the page, so they carry data-shell-popover / data-shell-field in the app
+ * shell and get the same violet glass here.
+ */
+const POP = '[data-shell-popover]'
+export const SHELL_POPOVER_CSS = `
+${POP} {
+  background: rgba(28,22,38,0.97) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  border-radius: 20px !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5) !important;
+}
+${POP} .${esc('bg-[#1F1F1F]')} {
+  background: rgba(36,29,50,0.98) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+}
+${POP} .${esc('border-[#333]')}, ${POP} .${esc('border-neutral-800')}, ${POP} .${esc('border-neutral-700')} { border-color: rgba(255,255,255,0.14) !important; }
+${POP} .${esc('hover:bg-[#333]')}:hover { background: rgba(255,255,255,0.08) !important; }
+${POP} .${esc('bg-primary-500/20')} { background: rgba(57,255,20,0.14) !important; color: #39FF14 !important; }
+${POP} button { border-radius: 10px; }
+[data-app-shell] [data-shell-field] {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  border-radius: 9999px !important;
+}
+`

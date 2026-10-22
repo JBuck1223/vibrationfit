@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { Container, Stack, Button, Select, DatePicker, HouseholdScopeToggle, type HouseholdScope } from '@/lib/design-system/components'
 import { colors } from '@/lib/design-system/tokens'
 import { getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
@@ -136,6 +137,10 @@ export default function AbundanceReportsPage() {
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(false)
   const [categoryView, setCategoryView] = useState<'entry' | 'vision'>('entry')
+  // In the app shell the shared dropdown and date fields bring their own glass style.
+  const inShell = useInShell()
+  const selectClass = inShell ? 'mx-auto w-full max-w-md' : periodSelectClassName
+  const dateClass = inShell ? 'w-full' : customRangeDateClassName
   const [scope, setScope] = useState<HouseholdScope>('me')
 
   useEffect(() => {
@@ -260,7 +265,7 @@ export default function AbundanceReportsPage() {
         {/* Period selector — app shell aligned with Abundance Tracker overview */}
         <div className={shellCard}>
           <div className="border-b border-[#252525] px-4 pb-4 pt-5 md:px-6 md:pb-5 md:pt-6">
-            <p className={sectionLabel}>Time period</p>
+            <p className={inShell ? 'mb-3 text-center text-sm font-medium text-white/60' : sectionLabel}>Time period</p>
             <div className="mx-auto w-full max-w-xl" role="group" aria-label="Report period type">
               <div className={segmentTrackFour}>
                 {(['month', 'quarter', 'year', 'custom'] as const).map((p, index, arr) => {
@@ -315,7 +320,7 @@ export default function AbundanceReportsPage() {
                         onChange={(value) => setPeriodKey(value)}
                         placeholder="Select month..."
                         options={options}
-                        className={periodSelectClassName}
+                        className={selectClass}
                       />
                     )
                   })()}
@@ -336,7 +341,7 @@ export default function AbundanceReportsPage() {
                         onChange={(value) => setPeriodKey(value)}
                         placeholder="Select quarter..."
                         options={options}
-                        className={periodSelectClassName}
+                        className={selectClass}
                       />
                     )
                   })()}
@@ -349,7 +354,7 @@ export default function AbundanceReportsPage() {
                       const y = now.getFullYear() + i
                       return { value: String(y), label: String(y) }
                     })}
-                    className={periodSelectClassName}
+                    className={selectClass}
                   />
                 )}
               </div>
@@ -380,7 +385,7 @@ export default function AbundanceReportsPage() {
                       <DatePicker
                         value={customStart}
                         onChange={(dateString) => setCustomStart(dateString)}
-                        className={customRangeDateClassName}
+                        className={dateClass}
                       />
                     </div>
                     <span className="flex justify-center text-xs font-medium uppercase tracking-wider text-neutral-500">
@@ -394,7 +399,7 @@ export default function AbundanceReportsPage() {
                         value={customEnd}
                         onChange={(dateString) => setCustomEnd(dateString)}
                         minDate={customStart || undefined}
-                        className={customRangeDateClassName}
+                        className={dateClass}
                       />
                     </div>
                   </div>

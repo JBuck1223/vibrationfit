@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { StudioToggle } from '../StudioToggle'
 import { ShellWalkthroughButton } from '../ShellWalkthroughButton'
@@ -12,8 +12,8 @@ const BASE = '/abundance-tracker'
 
 /**
  * Abundance's header in the app shell, in place of the studio's top bar: a
- * centered Track | Create | Insights | Goals toggle (Goals adds a New goal
- * button under it), and a back arrow on a single entry or the new-goal form.
+ * centered Track | Create | Insights | Goals toggle, and a back arrow on a
+ * single entry. Goals adds new goals on its own page, under the tabs.
  */
 export function AbundanceHeader() {
   const inShell = useInShell()
@@ -22,7 +22,6 @@ export function AbundanceHeader() {
 
   const top = [BASE, `${BASE}/new`, `${BASE}/reports`, `${BASE}/goals`]
   if (top.includes(path)) {
-    const action = path === `${BASE}/goals` ? { href: `${BASE}/goals/new`, label: 'New goal' } : null
     return (
       <div className="mb-5 space-y-3">
         <h1 className="sr-only">Abundance Tracker</h1>
@@ -39,16 +38,6 @@ export function AbundanceHeader() {
           />
           <ShellWalkthroughButton />
         </div>
-        {action ? (
-          <div className="flex justify-center">
-            <Link
-              href={action.href}
-              className="flex h-10 items-center gap-1.5 rounded-full bg-[#39FF14] px-5 text-sm font-semibold text-black transition-transform active:scale-[0.98]"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} /> {action.label}
-            </Link>
-          </div>
-        ) : null}
       </div>
     )
   }
