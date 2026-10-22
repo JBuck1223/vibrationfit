@@ -7,6 +7,7 @@
  *   npx tsx scripts/themes/seed-themes.ts beach           # one theme
  *   npx tsx scripts/themes/seed-themes.ts beach --force   # regenerate every slot
  *   npx tsx scripts/themes/seed-themes.ts --dry-run       # print prompts, generate nothing
+ *   npx tsx scripts/themes/seed-themes.ts --force --slots=hero   # only slots containing "hero"
  *
  * For each theme and slot it generates one image with fal.ai (nano-banana, the
  * same model the app uses), uploads it to S3 under site-assets/themes/{slug}/,
@@ -36,6 +37,7 @@ const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
 const force = args.includes('--force')
 const onlySlug = args.find((a) => !a.startsWith('--'))
+const slotFilter = args.find((a) => a.startsWith('--slots='))?.slice('--slots='.length) ?? null
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
   console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
@@ -109,6 +111,7 @@ async function main() {
 
     console.log(`\n== ${theme.name} (${theme.slug}) ==`)
     for (const slot of ALL_SLOTS) {
+      if (slotFilter && !slot.includes(slotFilter)) continue
       if (have.has(slot) && !force) {
         console.log(`  ${slot}: exists, skipping`)
         continue

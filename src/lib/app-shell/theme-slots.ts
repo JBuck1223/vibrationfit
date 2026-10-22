@@ -102,22 +102,24 @@ const THEME_STYLES: Record<string, string> = {
 /** Themes that deliberately carry no images (the backdrop stays plain). */
 export const IMAGELESS_THEMES = ['dark', 'light'] as const
 
+// Every slot is pure landscape. Content sits on top of these pictures, so
+// buildings, terraces, furniture and other structures read as clutter.
 const SLOT_SUBJECTS: Record<ThemeSlot, string> = {
   'area.backdrop': 'a wide, soft, slightly out-of-focus landscape view with no single subject',
-  'home.hero': 'a cinematic wide view from a comfortable vantage point looking out at the horizon',
-  'viva.hero': 'a serene, intimate scene with deep violet and magenta tones in the sky',
-  'listen.hero': 'a peaceful overlook where someone might sit and listen, headphones-worthy calm',
-  'capture.hero': 'a quiet writing spot outdoors, a journal-friendly table or ledge in soft light',
-  'tribe.hero': 'a welcoming gathering place outdoors, warm lanterns or a fire pit, no people',
-  'tools.hero': 'an organized creative studio space open to the landscape, natural materials',
-  'account.hero': 'a minimal, calm corner of the landscape with lots of negative space',
-  'studio.daily-paper': 'early morning light, a clean surface ready for the day, fresh and clear',
-  'studio.journal': 'a cozy reflective nook with soft diffused light',
-  'studio.abundance': 'a generous, golden, flourishing view suggesting plenty',
-  'studio.map': 'a winding path or trail leading toward the horizon',
+  'home.hero': 'a cinematic wide landscape looking out to the horizon, open sky above',
+  'viva.hero': 'a serene open landscape under a sky of deep violet and magenta tones',
+  'listen.hero': 'a peaceful, still landscape at the quietest moment of the day',
+  'capture.hero': 'a calm, clear landscape in soft morning light with lots of open sky',
+  'tribe.hero': 'a warm, welcoming landscape at golden hour, soft glowing light across the land',
+  'tools.hero': 'a bright, open landscape with gentle layered hills or shoreline and a clear horizon',
+  'account.hero': 'a minimal, calm landscape with lots of negative space',
+  'studio.daily-paper': 'early morning light over the landscape, fresh and clear',
+  'studio.journal': 'a soft, reflective landscape in diffused light',
+  'studio.abundance': 'a generous, golden, flourishing landscape suggesting plenty',
+  'studio.map': 'a natural trail or ridge line winding toward the horizon',
   'studio.manifestations': 'the landscape at its most colorful moment, rich saturated sky and reflections',
   'studio.life-vision': 'an expansive vista at the brightest moment of the day',
-  'studio.story': 'a scene with narrative depth, layered foreground and distant light',
+  'studio.story': 'a landscape with narrative depth, layered foreground and distant light',
   'studio.meditations': 'perfectly still water or air, symmetrical calm',
   'studio.songs': 'a rhythmic natural pattern, waves or ridgelines, musical in feel',
   'card.1': 'a close-up of natural texture from the landscape: sand, stone, bark or snow',
@@ -125,7 +127,7 @@ const SLOT_SUBJECTS: Record<ThemeSlot, string> = {
   'card.3': 'light on water or snow or leaves, abstract and soft',
   'card.4': 'a sky study with gentle gradients',
   'card.5': 'a shoreline, ridgeline or treeline in soft focus',
-  'card.6': 'a small sheltered spot in the landscape lit by warm evening light',
+  'card.6': 'a quiet natural hollow in the landscape lit by warm evening light',
 }
 
 export function buildSlotPrompt(themeSlug: string, slot: ThemeSlot, worldOverride?: string): string {
@@ -134,6 +136,7 @@ export function buildSlotPrompt(themeSlug: string, slot: ThemeSlot, worldOverrid
   const style = THEME_STYLES[themeSlug] ?? THEME_STYLES.default
   return (
     `${subject}, set in ${world}. ${style} ` +
+    `Pure natural landscape only: no buildings, houses, terraces, pergolas, furniture, fences, boats, roads or any man-made structures. ` +
     `Full-bleed frame edge to edge: no letterboxing, no black bars, no borders. No people, no text, no logos, no watermarks. ` +
     `Keep the lower third and left side uncluttered with soft tones so text can sit on top.`
   )

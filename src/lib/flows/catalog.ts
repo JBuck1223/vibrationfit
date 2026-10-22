@@ -26,13 +26,13 @@ export const FLOWS: FlowDefinition[] = [
       {
         id: 'share',
         title: 'Talk about the awesome stuff',
-        body: 'Tell VIVA everything that\u2019s going right, or write it straight into your Journal. Either way it gets saved as a win.',
+        body: 'Go on a rampage of appreciation with VIVA and milk the good feeling, or write it straight into your Journal. Either way it gets saved as a win.',
         choices: [
           {
             id: 'viva',
-            label: 'Talk with VIVA',
-            description: 'Celebrate it out loud; VIVA saves it to your Journal.',
-            href: vivaHref('celebrate-and-expand', 'So much good is happening right now and I want to talk about it: '),
+            label: 'Rampage of Appreciation',
+            description: 'Celebrate it out loud with VIVA and let the good feeling build.',
+            href: vivaHref('celebrate-and-expand', 'Let\u2019s do a rampage of appreciation. Here\u2019s what I\u2019m loving right now: '),
           },
           { id: 'journal', label: 'Write it in my Journal', description: 'Capture the win and how it feels.', href: '/journal/new?tag=win' },
         ],
