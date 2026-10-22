@@ -235,10 +235,14 @@ export function sectionForPath(pathname: string | null | undefined): Section {
   return best?.section ?? getSection('home')
 }
 
+const AUDIO_CREATE_ROOTS = ['/audio/create', '/audio/generate', '/audio/record', '/audio/mix', '/audio/songwriter', '/audio/queue']
+
 /** True when the path is the section's root rather than a page inside it. */
 export function isSectionRoot(pathname: string | null | undefined): boolean {
   const path = (pathname ?? '/').split('?')[0]
-  // Listen's tabs are pills on one Audio page, so each is a root too.
+  // Listen's tabs and the Create side's top pages are all one Audio page
+  // (switched by the Listen | Create toggle), so each is a root too.
+  if (AUDIO_CREATE_ROOTS.includes(path)) return true
   return SECTIONS.some((s) => s.href === path || (s.id === 'listen' && s.tabs.some((t) => t.href === path)))
 }
 

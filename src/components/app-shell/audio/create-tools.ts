@@ -38,3 +38,9 @@ export function batchTitle(batch: { metadata?: Record<string, unknown>; variant_
 }
 
 export const isRunning = (status: string) => status === 'pending' || status === 'processing'
+
+/** The Create side of Audio: the Create page, each tool, and the queue. */
+export function isCreatePath(pathname: string | null): boolean {
+  const path = pathname ?? ''
+  return ['/audio/create', QUEUE_HREF, ...CREATE_TOOLS.map((t) => t.href)].some((p) => path === p || path.startsWith(`${p}/`))
+}

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { CheckCircle2, ChevronLeft, Loader2, XCircle } from 'lucide-react'
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { useAudioStudio } from '@/components/audio-studio/AudioStudioContext'
 import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { cn } from '@/lib/utils'
@@ -24,14 +24,6 @@ export function CreateAudioHome() {
 
   return (
     <div className="space-y-5">
-      <div className="pt-1">
-        <Link href="/audio" className="-ml-1 inline-flex items-center gap-1 text-white">
-          <ChevronLeft className="h-6 w-6" />
-          <h1 className="text-[28px] font-bold leading-tight">Create audio</h1>
-        </Link>
-        <p className="ml-7 text-xs text-white/55">Back to Audio</p>
-      </div>
-
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-tour="audio-create-tiles">
         {CREATE_TOOLS.map((t) => {
           const Icon = t.icon
