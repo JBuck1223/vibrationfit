@@ -91,7 +91,7 @@ export const FLOWS: FlowDefinition[] = [
     state: 'below',
     title: 'Talk It Through',
     bestFor: 'When something has you off center and you want to feel better and see it clearly.',
-    promise: 'Talk it through with VIVA, capture what you find in your Journal, and turn it into an activation kit: a Story, an Incantation and a SparkQuery.',
+    promise: 'Talk it through with VIVA, capture what you find in your Journal, and turn it into an Alignment Kit: a Story, an Incantation and a SparkQuery.',
     steps: [
       {
         id: 'talk',
@@ -123,7 +123,7 @@ export const FLOWS: FlowDefinition[] = [
       },
     ],
     completion: {
-      headline: 'You turned a wobble into an activation kit.',
+      headline: 'You turned a wobble into an Alignment Kit.',
       body: 'Your Story, Incantation and SparkQuery are ready whenever you want to step back into the truer thought.',
     },
     nextFlowIds: ['rise-above'],
