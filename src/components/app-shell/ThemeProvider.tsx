@@ -5,6 +5,7 @@ import type { ResolvedTheme } from '@/lib/app-shell/theme-types'
 import { BACKDROP_SLOT, type ThemeSlot } from '@/lib/app-shell/theme-slots'
 import { getOverlay } from '@/lib/app-shell/overlays'
 import { LIGHT_MODE_CSS } from './lightMode'
+import { STUDIO_GLASS_CSS } from './studioGlass'
 
 interface ThemeContextValue {
   theme: ResolvedTheme | null
@@ -106,7 +107,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={value}>
       {/* Scoped to html[data-shell-mode="light"]; inert for dark themes. */}
-      <style dangerouslySetInnerHTML={{ __html: LIGHT_MODE_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: STUDIO_GLASS_CSS + LIGHT_MODE_CSS }} />
       {children}
     </ThemeContext.Provider>
   )
