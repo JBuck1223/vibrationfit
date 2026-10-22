@@ -109,14 +109,15 @@ export const SECTIONS: Section[] = [
     label: 'Listen',
     icon: Headphones,
     accent: 'brand',
-    href: '/listen',
+    href: '/audio',
     matchPrefixes: ['/listen', '/audio', '/meditations', '/music'],
     tabs: [
-      { label: 'Life Vision', href: '/listen' },
-      { label: 'Stories', href: '/listen/stories' },
-      { label: 'Meditations', href: '/listen/meditations' },
-      { label: 'Songs', href: '/listen/songs' },
-      { label: 'Playlists', href: '/listen/playlists' },
+      { label: 'Life Vision', href: '/audio' },
+      { label: 'Stories', href: '/audio/stories' },
+      { label: 'Meditations', href: '/meditations' },
+      { label: 'Music', href: '/audio/music' },
+      { label: 'Playlists', href: '/audio/playlists' },
+      { label: 'My Songs', href: '/audio/songs' },
     ],
     areas: [
       { label: 'Audio', href: '/audio', icon: Headphones },
@@ -237,7 +238,8 @@ export function sectionForPath(pathname: string | null | undefined): Section {
 /** True when the path is the section's root rather than a page inside it. */
 export function isSectionRoot(pathname: string | null | undefined): boolean {
   const path = (pathname ?? '/').split('?')[0]
-  return SECTIONS.some((s) => s.href === path)
+  // Listen's tabs are pills on one Audio page, so each is a root too.
+  return SECTIONS.some((s) => s.href === path || (s.id === 'listen' && s.tabs.some((t) => t.href === path)))
 }
 
 /** Longest-prefix match over the section's areas, so the sidebar can highlight the one you are in. */

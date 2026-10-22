@@ -3,8 +3,21 @@
 import React from 'react'
 import { Wind } from 'lucide-react'
 import { AreaBar } from '@/lib/design-system/components'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { AudioHeader } from '@/components/app-shell/audio/AudioHeader'
 
 export default function MeditationsLayout({ children }: { children: React.ReactNode }) {
+  // In the app shell, Meditations is a tab of Audio and shares its header.
+  if (useInShell()) {
+    return (
+      <main className="flex-1">
+        <div className="mb-5">
+          <AudioHeader />
+        </div>
+        {children}
+      </main>
+    )
+  }
   return (
     <>
       <AreaBar

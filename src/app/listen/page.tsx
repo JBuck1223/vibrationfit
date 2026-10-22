@@ -1,7 +1,6 @@
-import { ListenHome } from '@/components/app-shell/listen/ListenHome'
+import { redirect } from 'next/navigation'
 
-export const metadata = { title: 'Listen | Vibration Fit' }
-
+// Listen and Audio were the same library; Listen now opens Audio.
 export default function ListenPage() {
-  return <ListenHome />
+  redirect('/audio')
 }

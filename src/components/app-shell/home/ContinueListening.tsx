@@ -300,7 +300,7 @@ export function ContinueListening() {
           <Headphones className="h-4 w-4 text-[#39FF14]" />
           Continue Listening
         </h2>
-        <Link href="/listen" className="flex items-center gap-1 text-sm text-white/60 hover:text-white">
+        <Link href="/audio" className="flex items-center gap-1 text-sm text-white/60 hover:text-white">
           See all <ChevronRight className="h-4 w-4" />
         </Link>
       </div>

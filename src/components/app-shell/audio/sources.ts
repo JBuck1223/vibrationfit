@@ -15,11 +15,12 @@ import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 import { MIX_COVERS, mixTypeFor, type MixType } from '@/lib/audio/mix-covers'
 import { getPlaylistTracks, getUserPlaylists, playlistTracksToAudioTracks } from '@/lib/services/playlistService'
 
-export type AudioTab = 'life-vision' | 'stories' | 'music' | 'playlists' | 'songs'
+export type AudioTab = 'life-vision' | 'stories' | 'meditations' | 'music' | 'playlists' | 'songs'
 
 export const AUDIO_TABS: { id: AudioTab; label: string; href: string }[] = [
   { id: 'life-vision', label: 'Life Vision', href: '/audio' },
   { id: 'stories', label: 'Stories', href: '/audio/stories' },
+  { id: 'meditations', label: 'Meditations', href: '/meditations' },
   { id: 'music', label: 'Music', href: '/audio/music' },
   { id: 'playlists', label: 'Playlists', href: '/audio/playlists' },
   { id: 'songs', label: 'My Songs', href: '/audio/songs' },
