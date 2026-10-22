@@ -10,7 +10,7 @@ import { ShellWalkthroughButton } from '../ShellWalkthroughButton'
 
 /**
  * Daily Paper's header in the app shell, in place of the studio's top bar:
- * a centered My Papers | Create | About toggle, and a back arrow on a
+ * a centered My Papers | Create | Resources toggle, and a back arrow on a
  * single paper. The walkthrough button goes up into the top bar.
  */
 export function DailyPaperHeader() {
@@ -29,7 +29,7 @@ export function DailyPaperHeader() {
           options={[
             { label: 'My Papers', href: '/daily-paper', active: pathname === '/daily-paper', dataTour: 'studio-tab-daily-paper-view' },
             { label: 'Create', href: '/daily-paper/new', active: pathname === '/daily-paper/new', dataTour: 'studio-tab-daily-paper-create' },
-            { label: 'About', href: '/daily-paper/resources', active: pathname === '/daily-paper/resources', dataTour: 'studio-tab-daily-paper-resources' },
+            { label: 'Resources', href: '/daily-paper/resources', active: pathname === '/daily-paper/resources', dataTour: 'studio-tab-daily-paper-resources' },
           ]}
         />
         <ShellWalkthroughButton />

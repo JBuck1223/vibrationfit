@@ -501,7 +501,7 @@ export default function NewDailyPaperPage() {
         <p className="text-center text-xs text-white/50" data-tour="daily-paper-create-resources">
           Need a refresher?{' '}
           <Link href="/daily-paper/resources" className="text-white/80 underline-offset-2 hover:underline">
-            About the Daily Paper
+            See the Daily Paper resources
           </Link>
         </p>
 
