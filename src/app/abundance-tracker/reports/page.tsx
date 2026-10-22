@@ -61,36 +61,63 @@ const periodSelectClassName =
 const customRangeDateClassName =
   'w-full [&_input]:!min-h-[3rem] [&_input]:!rounded-xl [&_input]:!border [&_input]:!border-solid [&_input]:!border-[#282828] [&_input]:!bg-[#1A1A1A] [&_input]:!py-3 [&_input]:!pl-4 [&_input]:!pr-10 [&_input]:!text-white [&_input]:placeholder:!text-neutral-500 [&_input]:shadow-[0_1px_0_rgba(255,255,255,0.04)_inset] [&_input]:transition-colors [&_input]:hover:!border-primary-500/40 [&_svg]:!text-neutral-400'
 
-function pieLegendPayload(entries: { name: string; value: number; color: string }[]) {
-  return entries.map((d) => ({
-    value: d.name,
-    color: d.color,
-    payload: { value: d.value },
-  }))
-}
-
-function ChartLegend(props: { payload?: Array<{ value: string; color: string; payload?: { value?: number } }>; formatCurrency?: (n: number) => string }) {
-  const { payload = [], formatCurrency: fmt = formatCurrency } = props
+/**
+ * A ring chart with the total in the middle and a ranked legend underneath
+ * (color, name, amount, share and a thin bar), used for both Insights cards.
+ */
+function DonutBreakdown({ data, fmt }: { data: Array<{ name: string; value: number; color: string }>; fmt: (n: number) => string }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0)
   return (
-    <ul className="flex flex-wrap justify-center gap-2 pt-2 list-none p-0 m-0">
-      {payload.map((entry, i) => (
-        <li
-          key={`legend-${i}`}
-          className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-sm text-white transition hover:border-white/[0.12] hover:bg-white/[0.06]"
-        >
-          <span
-            className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-            style={{
-              backgroundColor: entry.color,
-              boxShadow: `0 0 8px ${entry.color}40`,
-            }}
-          />
-          <span>
-            {entry.value}: {fmt(entry.payload?.value ?? 0)}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+      <div className="relative mx-auto h-[190px] w-[190px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius="70%"
+              outerRadius="100%"
+              startAngle={90}
+              endAngle={-270}
+              paddingAngle={data.length > 1 ? 3 : 0}
+              cornerRadius={data.length > 1 ? 6 : 0}
+              dataKey="value"
+              nameKey="name"
+              label={false}
+              stroke="none"
+              isAnimationActive
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-bold tabular-nums text-white">{fmt(total)}</span>
+          <span className="text-[11px] text-white/50">total</span>
+        </div>
+      </div>
+      <ul className="m-0 min-w-0 flex-1 list-none space-y-2.5 p-0">
+        {data.map((d) => {
+          const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
+          return (
+            <li key={d.name}>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.color, boxShadow: `0 0 8px ${d.color}66` }} />
+                <span className="min-w-0 flex-1 truncate text-white/85">{d.name}</span>
+                <span className="shrink-0 font-semibold tabular-nums text-white">{fmt(d.value)}</span>
+                <span className="w-10 shrink-0 text-right text-xs tabular-nums text-white/45">{pct}%</span>
+              </div>
+              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.08]">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: d.color }} />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }
 
@@ -403,37 +430,13 @@ export default function AbundanceReportsPage() {
             {/* Money vs Value pie */}
             <div className={`${shellCard} flex min-h-0 flex-col`}>
               <div className={`${chartHeaderBar} justify-start`}>
-                <p className="text-left text-[10px] font-medium uppercase tracking-[0.22em] text-neutral-500">
+                <p className="text-left text-sm font-semibold text-white">
                   Money vs value
                 </p>
               </div>
               <div className="flex min-h-0 flex-1 flex-col px-4 py-4 md:px-6 md:py-5">
               {moneyValuePieData.length > 0 ? (
-                <div className="flex w-full flex-col">
-                  <div className="h-[260px] w-full min-w-0 sm:h-[280px] lg:h-[270px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                        <Pie
-                          data={moneyValuePieData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="34%"
-                          outerRadius="52%"
-                          paddingAngle={0}
-                          dataKey="value"
-                          nameKey="name"
-                          label={false}
-                          stroke="none"
-                        >
-                          {moneyValuePieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <ChartLegend payload={pieLegendPayload(moneyValuePieData)} formatCurrency={formatCurrency} />
-                </div>
+                <DonutBreakdown data={moneyValuePieData} fmt={formatCurrency} />
               ) : (
                 <p className="text-neutral-400 py-6 text-center">No money or value in this period.</p>
               )}
@@ -443,7 +446,7 @@ export default function AbundanceReportsPage() {
             {/* By category pie */}
             <div className={`${shellCard} flex min-h-0 flex-col`}>
               <div className={`${chartHeaderBar} justify-between gap-3`}>
-                <p className="min-w-0 flex-1 text-left text-[10px] font-medium uppercase tracking-[0.22em] text-neutral-500 leading-none">
+                <p className="min-w-0 flex-1 text-left text-sm font-semibold leading-none text-white">
                   By category
                 </p>
                 <div
@@ -479,31 +482,7 @@ export default function AbundanceReportsPage() {
               </div>
               <div className="flex min-h-0 flex-1 flex-col px-4 py-4 md:px-6 md:py-5">
               {categoryPieData.length > 0 ? (
-                <div className="flex w-full flex-col">
-                  <div className="h-[280px] w-full min-w-0 sm:h-[300px] lg:h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-                        <Pie
-                          data={categoryPieData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="32%"
-                          outerRadius="50%"
-                          paddingAngle={0}
-                          dataKey="value"
-                          nameKey="name"
-                          label={false}
-                          stroke="none"
-                        >
-                          {categoryPieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <ChartLegend payload={pieLegendPayload(categoryPieData)} formatCurrency={formatCurrency} />
-                </div>
+                <DonutBreakdown data={categoryPieData} fmt={formatCurrency} />
               ) : (
                 <p className="text-neutral-400 py-6 text-center">No category data in this period.</p>
               )}
