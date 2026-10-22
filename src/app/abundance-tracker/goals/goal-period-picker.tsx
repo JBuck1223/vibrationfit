@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { Select, DatePicker } from '@/lib/design-system/components'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { getPeriodKey, type PeriodType } from '@/lib/abundance/period-utils'
 import {
   sectionLabel,
@@ -26,6 +27,10 @@ export type GoalPeriodPickerProps = {
 }
 
 export function GoalPeriodPicker(props: GoalPeriodPickerProps) {
+  // In the app shell the shared dropdown and date fields bring their own glass style.
+  const inShell = useInShell()
+  const selectClass = inShell ? 'mx-auto w-full max-w-md' : periodSelectClassName
+  const dateClass = inShell ? 'w-full' : customRangeDateClassName
   const {
     now,
     periodType,
@@ -100,7 +105,7 @@ export function GoalPeriodPicker(props: GoalPeriodPickerProps) {
                   onChange={(value) => onPeriodKeyChange(value)}
                   placeholder="Select month..."
                   options={options}
-                  className={periodSelectClassName}
+                  className={selectClass}
                 />
               )
             })()}
@@ -121,7 +126,7 @@ export function GoalPeriodPicker(props: GoalPeriodPickerProps) {
                   onChange={(value) => onPeriodKeyChange(value)}
                   placeholder="Select quarter..."
                   options={options}
-                  className={periodSelectClassName}
+                  className={selectClass}
                 />
               )
             })()}
@@ -134,7 +139,7 @@ export function GoalPeriodPicker(props: GoalPeriodPickerProps) {
                 const y = now.getFullYear() + i
                 return { value: String(y), label: String(y) }
               })}
-              className={periodSelectClassName}
+              className={selectClass}
             />
           )}
         </div>
@@ -162,7 +167,7 @@ export function GoalPeriodPicker(props: GoalPeriodPickerProps) {
                 <DatePicker
                   value={customStart}
                   onChange={(dateString: string) => onCustomStartChange(dateString)}
-                  className={customRangeDateClassName}
+                  className={dateClass}
                 />
               </div>
               <span className="flex justify-center text-xs font-medium uppercase tracking-wider text-neutral-500">
@@ -176,7 +181,7 @@ export function GoalPeriodPicker(props: GoalPeriodPickerProps) {
                   value={customEnd}
                   onChange={(dateString: string) => onCustomEndChange(dateString)}
                   minDate={customStart || undefined}
-                  className={customRangeDateClassName}
+                  className={dateClass}
                 />
               </div>
             </div>

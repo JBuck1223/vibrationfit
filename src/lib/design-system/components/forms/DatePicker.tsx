@@ -357,6 +357,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
             <>
               <input
                 ref={ref}
+                data-shell-field={inShell || undefined}
                 type="text"
                 readOnly
                 disabled={disabled}
