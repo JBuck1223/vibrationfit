@@ -443,6 +443,24 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           if (isCollapsed) {
             return (
               <div key={group.name} className="pt-2 mt-2 border-t border-neutral-800 space-y-1">
+                {group.href && group.icon && (() => {
+                  const GroupIcon = group.icon
+                  const here = pathname === group.href
+                  return (
+                    <Link
+                      href={group.href}
+                      title={group.name}
+                      className={cn(
+                        'flex justify-center p-2 rounded-lg transition-all duration-200',
+                        here
+                          ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
+                          : 'text-white hover:bg-neutral-800'
+                      )}
+                    >
+                      <GroupIcon className="w-5 h-5 flex-shrink-0" />
+                    </Link>
+                  )
+                })()}
                 {group.items.map((item) => {
                   const Icon = item.icon
                   const isActive = itemIsActive(item)
@@ -468,6 +486,39 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
 
           return (
             <div key={group.name} className="pt-3">
+              {group.href ? (
+                (() => {
+                  const GroupIcon = group.icon
+                  const here = pathname === group.href
+                  return (
+                    <div
+                      className={cn(
+                        'flex items-center rounded-lg border transition-all duration-200',
+                        here
+                          ? 'bg-[#39FF14]/20 border-[#39FF14]/30 text-[#39FF14]'
+                          : 'border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] hover:border-white/20'
+                      )}
+                    >
+                      <Link href={group.href} className="flex flex-1 items-center gap-3 px-3 py-2.5 min-w-0">
+                        {GroupIcon && <GroupIcon className="w-[18px] h-[18px] flex-shrink-0" />}
+                        <span className="flex-1 truncate text-sm font-semibold">{group.name}</span>
+                        <ChevronRight className="w-4 h-4 flex-shrink-0 opacity-50" />
+                      </Link>
+                      <button
+                        onClick={() => toggleGroup(group.name)}
+                        aria-label={isGroupExpanded ? `Hide ${group.name} areas` : `Show ${group.name} areas`}
+                        aria-expanded={isGroupExpanded}
+                        className="p-2.5 border-l border-white/10 text-neutral-400 hover:text-white transition-colors"
+                      >
+                        <ChevronDown className={cn(
+                          'w-4 h-4 transition-transform duration-200',
+                          isGroupExpanded ? 'rotate-180' : ''
+                        )} />
+                      </button>
+                    </div>
+                  )
+                })()
+              ) : (
               <button
                 onClick={() => toggleGroup(group.name)}
                 className="flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
@@ -480,9 +531,10 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                   isGroupExpanded ? 'rotate-180' : ''
                 )} />
               </button>
+              )}
               
               {isGroupExpanded && (
-                <div className="mt-1 space-y-1">
+                <div className={cn('mt-1 space-y-1', group.href && 'ml-3 pl-2 border-l border-white/10')}>
                   {group.items.map((item) => {
                     const isActive = itemIsActive(item)
                     const isExpanded = expandedItems.includes(item.name)

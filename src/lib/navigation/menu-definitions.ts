@@ -111,6 +111,8 @@ export interface NavGroup {
   isCollapsible: boolean
   defaultCollapsed: boolean
   icon?: LucideIcon
+  /** When set, the group header is itself a link to this area (its section root). */
+  href?: string
 }
 
 /**
@@ -994,6 +996,7 @@ export const shellNavigationPrimary: NavItem[] = [
 export const shellNavigationGroups: NavGroup[] = [
   {
     name: 'Listen',
+    href: '/listen',
     isCollapsible: true,
     defaultCollapsed: false,
     icon: Headphones,
@@ -1007,6 +1010,7 @@ export const shellNavigationGroups: NavGroup[] = [
   },
   {
     name: 'Capture',
+    href: '/capture',
     isCollapsible: true,
     defaultCollapsed: false,
     icon: Edit,
@@ -1018,6 +1022,7 @@ export const shellNavigationGroups: NavGroup[] = [
   },
   {
     name: 'Tribe',
+    href: '/tribe',
     isCollapsible: true,
     defaultCollapsed: false,
     icon: UsersRound,
@@ -1029,6 +1034,7 @@ export const shellNavigationGroups: NavGroup[] = [
   },
   {
     name: 'Tools',
+    href: '/tools',
     isCollapsible: true,
     defaultCollapsed: false,
     icon: Wrench,
@@ -1044,6 +1050,7 @@ export const shellNavigationGroups: NavGroup[] = [
   },
   {
     name: 'Account',
+    href: '/account',
     isCollapsible: true,
     defaultCollapsed: true,
     icon: User,
