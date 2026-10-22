@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Card,
   Input,
@@ -27,6 +28,8 @@ import { JOURNAL_TAGS, JOURNAL_TAG_CONFIG, type JournalTag } from '@/lib/journal
 import { cn } from '@/lib/utils'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { DateSheetField } from '@/components/app-shell/forms/DateSheetField'
+import { VivaImagePanel } from '@/components/app-shell/forms/VivaImagePanel'
 
 const RESTORE_SESSION_KEY = 'vf_restore_transcript'
 /** Unsaved title/text/tags for a new entry, kept on this device until it's saved. */
@@ -465,16 +468,8 @@ export function NewJournalEntryForm({
 
         <div className={cn(GLASS_CARD, 'p-4 md:p-5', cardClassName)}>
           <div className="mb-2 flex items-center gap-3">
-            <div
-              data-tour="journal-create-date"
-              className="min-w-0 [&_input]:!w-auto [&_input]:!min-w-[150px] [&_input]:!bg-transparent [&_input]:!border-0 [&_input]:!rounded-none [&_input]:!px-0 [&_input]:!py-0 [&_input]:!pr-8 [&_input]:!text-xs [&_input]:!text-white/60 [&_input]:focus:!ring-0 [&_svg]:!text-white/50"
-            >
-              <DatePicker
-                value={formData.date}
-                onChange={(dateString: string) => setFormData({ ...formData, date: dateString })}
-                className="w-auto"
-                required
-              />
+            <div data-tour="journal-create-date">
+              <DateSheetField value={formData.date} onChange={date => setFormData({ ...formData, date })} />
             </div>
             {useDraft && draftSaved ? <span className="text-xs text-white/40">Draft saved</span> : null}
             <div className="ml-auto hidden items-center gap-2 md:flex">
@@ -585,7 +580,19 @@ export function NewJournalEntryForm({
               <Sparkles className="h-4 w-4 text-[#d68bff]" /> VIVA image
             </button>
           </div>
-          {imageSource ? <div className="mt-3">{imagePanels}</div> : null}
+          {imageSource === 'upload' ? <div className="mt-3">{imagePanels}</div> : null}
+          {imageSource === 'ai' ? (
+            <div className="mt-3">
+              <VivaImagePanel
+                journalText={[formData.title, formData.content].filter(Boolean).join('. ')}
+                onUse={url => setAiGeneratedImageUrls(url ? [url] : [])}
+                onClose={() => {
+                  setImageSource(null)
+                  setAiGeneratedImageUrls([])
+                }}
+              />
+            </div>
+          ) : null}
         </div>
 
         {statusArea}
@@ -603,7 +610,7 @@ export function NewJournalEntryForm({
           </button>
         </div>
 
-        {categorySheetOpen ? (
+        {categorySheetOpen && typeof document !== 'undefined' ? createPortal(
           <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 md:items-center" onClick={() => setCategorySheetOpen(false)}>
             <div
               role="dialog"
@@ -642,7 +649,8 @@ export function NewJournalEntryForm({
                 Done
               </button>
             </div>
-          </div>
+          </div>,
+          document.body,
         ) : null}
       </form>
     )
