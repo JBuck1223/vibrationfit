@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { AUDIO_TABS, tabForPath } from './sources'
 import { CREATE_TOOLS, isCreatePath, toolForPath } from './create-tools'
+import { StudioToggle } from '../StudioToggle'
 
 function Pill({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
@@ -37,25 +38,14 @@ export function AudioHeader({ aside }: { aside?: React.ReactNode }) {
       {/* The top bar already says Audio. */}
       <h1 className="sr-only">Audio</h1>
       <div className="flex items-center gap-3 md:justify-center">
-        <div role="tablist" aria-label="Listen or create" className="grid flex-1 grid-cols-2 rounded-full border border-white/15 bg-white/[0.05] p-1 md:w-[320px] md:flex-none">
-          {[
+        <StudioToggle
+          label="Listen or create"
+          className="flex-1 md:flex-none"
+          options={[
             { label: 'Listen', href: '/audio', active: !creating },
             { label: 'Create', href: '/audio/create', active: creating },
-          ].map((m) => (
-            <Link
-              key={m.label}
-              href={m.href}
-              role="tab"
-              aria-selected={m.active}
-              className={cn(
-                'rounded-full py-2 text-center text-sm font-semibold transition-colors',
-                m.active ? 'bg-[#39FF14] text-black' : 'text-white/75 hover:text-white',
-              )}
-            >
-              {m.label}
-            </Link>
-          ))}
-        </div>
+          ]}
+        />
         {aside}
       </div>
 

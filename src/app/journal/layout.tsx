@@ -3,6 +3,7 @@ import React from 'react'
 import { JournalStudioProvider } from '@/components/journal-studio/JournalStudioContext'
 import { JournalAreaBar } from '@/components/journal-studio/JournalAreaBar'
 import { StudioWalkthroughHost } from '@/components/tool-walkthrough'
+import { JournalHeader } from '@/components/app-shell/journal/JournalHeader'
 
 export const metadata: Metadata = {
   title: {
@@ -17,9 +18,10 @@ export default function JournalLayout({ children }: { children: React.ReactNode 
       <StudioWalkthroughHost>
         <JournalAreaBar />
         <main
-          className="min-w-0 flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
+          className="min-w-0 flex-1 pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0 [[data-app-shell]_&]:pt-0"
           style={{ '--content-px': '1rem' } as React.CSSProperties}
         >
+          <JournalHeader />
           {children}
         </main>
       </StudioWalkthroughHost>

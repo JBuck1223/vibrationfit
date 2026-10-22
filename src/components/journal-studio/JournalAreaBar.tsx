@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useJournalStudio } from './JournalStudioContext'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 const TABS = [
   { label: 'My Journal', path: '/journal', icon: BookOpen, dataTour: 'studio-tab-journal-view' },
@@ -17,6 +18,7 @@ export function JournalAreaBar() {
   const router = useRouter()
   const { entries } = useJournalStudio()
   const walkthroughMenu = useAreaBarWalkthrough()
+  const inShell = useInShell()
 
   const isJournalList = pathname === '/journal' || pathname === '/journal/'
   const isJournalDetail = !isJournalList
@@ -54,6 +56,9 @@ export function JournalAreaBar() {
       },
     }]
   }
+
+  // In the app shell the journal has its own header (JournalHeader).
+  if (inShell) return null
 
   return (
     <AreaBar
