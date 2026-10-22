@@ -12,6 +12,13 @@ import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { useDailyPaperMutation } from '@/hooks/useDailyPaper'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
+import { DateSheetField } from '@/components/app-shell/forms/DateSheetField'
+import { VivaImagePanel } from '@/components/app-shell/forms/VivaImagePanel'
+import Link from 'next/link'
+import { FileText, Heart, ImageIcon, PartyPopper } from 'lucide-react'
 
 const TASK_LABELS = ['Task 1', 'Task 2', 'Task 3']
 
@@ -43,6 +50,8 @@ export default function NewDailyPaperPage() {
   const router = useRouter()
   const supabase = createClient()
   const { saveDailyPaper, isSaving } = useDailyPaperMutation()
+  const inShell = useInShell()
+  const [scanOpen, setScanOpen] = useState(false)
 
   const [entryDate, setEntryDate] = useState('')
 
@@ -285,6 +294,227 @@ export default function NewDailyPaperPage() {
     }
   }
 
+  if (inShell) {
+    // App shell: the same paper as a stack of glass cards, one per part,
+    // with borderless writing, a slim attachments toolbar and Save in reach.
+    const bare = '[&_textarea]:!border-0 [&_textarea]:!bg-transparent [&_textarea]:!px-0 [&_textarea]:!text-[15px] [&_textarea]:!leading-relaxed [&_textarea]:!text-white [&_textarea]:placeholder:!text-white/40 [&_textarea]:focus:!ring-0 [&_textarea]:!shadow-none'
+    const saving = isSubmitting || isSaving
+    const record = (category: string) => (audioUrl: string, transcript: string) =>
+      setAudioRecordings(prev => [...prev, { url: audioUrl, transcript, type: 'audio' as const, category, created_at: new Date().toISOString() }])
+    const heading = (Icon: React.ElementType, text: string, color: string) => (
+      <p className="mb-1 flex items-center gap-2 text-sm font-semibold text-white">
+        <Icon className="h-4 w-4" style={{ color }} aria-hidden />
+        {text}
+      </p>
+    )
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div data-tour="daily-paper-create-date">
+            <DateSheetField value={entryDate} onChange={setEntryDate} />
+          </div>
+          <div className="ml-auto hidden items-center gap-2 md:flex">
+            <button type="button" onClick={() => router.back()} className="rounded-full px-3 py-1.5 text-sm text-white/60 hover:text-white">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              data-tour="daily-paper-create-save"
+              className="rounded-full bg-[#39FF14] px-5 py-2 text-sm font-semibold text-black transition-transform active:scale-[0.98] disabled:opacity-60"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        <section className={cn(GLASS_CARD, 'p-4 md:p-5', bare)} data-tour="daily-paper-create-gratitude">
+          {heading(Heart, "I'm grateful for", '#FF6FB5')}
+          <RecordingTextarea
+            label=""
+            value={gratitude}
+            onChange={setGratitude}
+            rows={4}
+            placeholder="Today I feel grateful for... Or tap the mic and talk."
+            storageFolder="dailyPaper"
+            recordingPurpose="quick"
+            category="daily-paper"
+            instanceId="dailyPaperGratitude"
+            onAudioSaved={record('daily-paper-gratitude')}
+          />
+        </section>
+
+        <section className={cn(GLASS_CARD, 'p-4 md:p-5', bare)} data-tour="daily-paper-create-actions">
+          {heading(Sparkles, 'Three aligned actions', '#39FF14')}
+          <div className="divide-y divide-white/[0.07]">
+            {TASK_LABELS.map((label, index) => (
+              <div key={label} className="flex items-start gap-3 py-1">
+                <span className="mt-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.14)] text-xs font-semibold text-[#39FF14]">
+                  {index + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <RecordingTextarea
+                    label=""
+                    value={tasks[index]}
+                    onChange={(value) => handleTaskChange(index, value)}
+                    placeholder={index === 0 ? 'One thing I will do today' : 'Another aligned action'}
+                    rows={2}
+                    storageFolder="dailyPaper"
+                    recordingPurpose="quick"
+                    category="daily-paper"
+                    instanceId={`dailyPaperTask${index + 1}`}
+                    onAudioSaved={record(`daily-paper-task-${index + 1}`)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className={cn(GLASS_CARD, 'p-4 md:p-5', bare)} data-tour="daily-paper-create-fun">
+          {heading(PartyPopper, 'Fun promise', '#FFB020')}
+          <RecordingTextarea
+            label=""
+            value={funPlan}
+            onChange={setFunPlan}
+            rows={2}
+            placeholder="Something fun I will do today"
+            storageFolder="dailyPaper"
+            recordingPurpose="quick"
+            category="daily-paper"
+            instanceId="dailyPaperFun"
+            onAudioSaved={record('daily-paper-fun')}
+          />
+        </section>
+
+        {audioRecordings.length > 0 && (
+          <SavedRecordings
+            recordings={audioRecordings}
+            onDelete={(index) => setAudioRecordings(prev => prev.filter((_, i) => i !== index))}
+          />
+        )}
+
+        <section className={cn(GLASS_CARD, 'p-4')}>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm" data-tour="daily-paper-create-evidence">
+            <button
+              type="button"
+              onClick={() => {
+                setImageSource(imageSource === 'upload' ? null : 'upload')
+                setAiGeneratedImageUrls([])
+              }}
+              className={cn('flex items-center gap-1.5', imageSource === 'upload' ? 'text-[#39FF14]' : 'text-white/70 hover:text-white')}
+            >
+              <ImageIcon className="h-4 w-4" /> Photo
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setImageSource(imageSource === 'ai' ? null : 'ai')
+                setImageFiles([])
+              }}
+              className={cn('flex items-center gap-1.5', imageSource === 'ai' ? 'text-[#BF00FF]' : 'text-white/70 hover:text-white')}
+            >
+              <Sparkles className="h-4 w-4 text-[#d68bff]" /> VIVA image
+            </button>
+            <button
+              type="button"
+              data-tour="daily-paper-create-scan"
+              onClick={() => setScanOpen((o) => !o)}
+              className={cn('flex items-center gap-1.5', scanOpen || hasAttachment ? 'text-[#39FF14]' : 'text-white/70 hover:text-white')}
+            >
+              <FileText className="h-4 w-4" /> Printed paper
+            </button>
+          </div>
+
+          {imageSource === 'upload' && (
+            <div className="mt-3">
+              <FileUpload
+                dragDrop
+                accept="image/*,video/*,audio/*"
+                multiple
+                maxFiles={5}
+                maxSize={500}
+                value={imageFiles}
+                onChange={setImageFiles}
+                onUpload={setImageFiles}
+                dragDropText="Click to upload or drag and drop"
+                dragDropSubtext="Images, videos, or audio (max 5 files, 500MB each)"
+                previewSize="lg"
+              />
+            </div>
+          )}
+          {imageSource === 'ai' && (
+            <div className="mt-3">
+              <VivaImagePanel
+                journalText={[gratitude, ...tasks, funPlan].filter(Boolean).join('. ')}
+                onUse={(url) => setAiGeneratedImageUrls(url ? [url] : [])}
+                onClose={() => {
+                  setImageSource(null)
+                  setAiGeneratedImageUrls([])
+                }}
+              />
+            </div>
+          )}
+          {(scanOpen || hasAttachment) && (
+            <div className="mt-3 space-y-3">
+              <p className="text-xs text-white/55">Add a photo or PDF if you filled in the printable Daily Paper.</p>
+              <FileUpload
+                accept="image/*,application/pdf"
+                multiple={false}
+                maxFiles={1}
+                maxSize={50}
+                label={hasAttachment ? 'Replace file' : 'Upload scan'}
+                variant="ghost"
+                className="flex flex-col items-start"
+                onUpload={(files) => {
+                  setAttachmentFiles(files.slice(0, 1))
+                  resetUploadState()
+                }}
+              />
+              {attachmentPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element -- blob preview URL
+                <img src={attachmentPreview} alt="Daily Paper preview" className="h-48 w-full rounded-xl object-cover" />
+              ) : hasAttachment ? (
+                <p className="text-sm text-white/75">Selected: {attachmentFiles[0]?.name}</p>
+              ) : null}
+              <UploadProgress {...attachmentUpload} />
+            </div>
+          )}
+        </section>
+
+        {submitError && (
+          <div className="rounded-xl border border-[#D03739]/40 bg-[#D03739]/10 px-4 py-3 text-sm text-[#FFB4B4]">{submitError}</div>
+        )}
+        {submitSuccess && (
+          <div className="rounded-xl border border-[#199D67]/40 bg-[#199D67]/10 px-4 py-3 text-sm text-[#A8E5CE]">
+            Daily Paper saved. Returning to your archive...
+          </div>
+        )}
+
+        <p className="text-center text-xs text-white/50" data-tour="daily-paper-create-resources">
+          Need a refresher?{' '}
+          <Link href="/daily-paper/resources" className="text-white/80 underline-offset-2 hover:underline">
+            See the Daily Paper resources
+          </Link>
+        </p>
+
+        {/* Phones: Save stays in reach above the bottom bar while writing. */}
+        <div className="sticky bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+16px)] z-20 md:hidden">
+          <button
+            type="submit"
+            disabled={saving}
+            data-tour="daily-paper-create-save"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-[15px] font-semibold text-black shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98] disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {saving ? 'Saving...' : 'Save Daily Paper'}
+          </button>
+        </div>
+      </form>
+    )
+  }
+
   return (
     <Container size="xl">
       <form onSubmit={handleSubmit}>
@@ -317,7 +547,7 @@ export default function NewDailyPaperPage() {
                     onChange={setGratitude}
                     rows={5}
                     placeholder="Today I feel grateful for… Type or tap the mic to record."
-                    storageFolder="journal"
+                    storageFolder="dailyPaper"
                     recordingPurpose="quick"
                     category="daily-paper"
                     instanceId="dailyPaperGratitude"
@@ -350,7 +580,7 @@ export default function NewDailyPaperPage() {
                           onChange={(value) => handleTaskChange(index, value)}
                           placeholder="Type or tap the mic to record."
                           rows={3}
-                          storageFolder="journal"
+                          storageFolder="dailyPaper"
                           recordingPurpose="quick"
                           category="daily-paper"
                           instanceId={`dailyPaperTask${index + 1}`}
@@ -380,7 +610,7 @@ export default function NewDailyPaperPage() {
                     onChange={setFunPlan}
                     placeholder="Something fun I will do today. Type or tap the mic to record."
                     rows={3}
-                    storageFolder="journal"
+                    storageFolder="dailyPaper"
                     recordingPurpose="quick"
                     category="daily-paper"
                     instanceId="dailyPaperFun"

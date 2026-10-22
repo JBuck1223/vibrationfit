@@ -8,6 +8,7 @@ export const USER_FOLDERS = {
   visionBoardGenerated: 'vision-board/generated',
   visionBoardUploaded: 'vision-board/uploaded',
   visionBoardAudioRecordings: 'vision-board/audio-recordings',
+  dailyPaperAudioRecordings: 'daily-paper/audio-recordings',
   journal: 'journal/uploads',
   journalAudioRecordings: 'journal/audio-recordings',
   journalVideoRecordings: 'journal/video-recordings',
@@ -682,6 +683,10 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
     visionBoardAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    dailyPaperAudioRecordings: {
       maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },
