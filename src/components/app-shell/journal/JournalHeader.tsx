@@ -16,7 +16,7 @@ const SUBPAGE_TITLES: Record<string, string> = {
 
 /**
  * Journal's header in the app shell, in place of the studio's top bar:
- * a My Journal | Write toggle on the two main pages, and a back arrow
+ * a My Journal | Create toggle on the two main pages, and a back arrow
  * with the entry's title anywhere deeper.
  */
 export function JournalHeader() {
@@ -35,7 +35,7 @@ export function JournalHeader() {
           className="w-full md:w-[320px]"
           options={[
             { label: 'My Journal', href: '/journal', active: path === '/journal', dataTour: 'studio-tab-journal-view' },
-            { label: 'Write', href: '/journal/new', active: path === '/journal/new', dataTour: 'studio-tab-journal-create' },
+            { label: 'Create', href: '/journal/new', active: path === '/journal/new', dataTour: 'studio-tab-journal-create' },
           ]}
         />
         <ShellWalkthroughButton />

@@ -113,7 +113,7 @@ export default function DailyPaperResourcesPage() {
           href="/daily-paper/new"
           className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-[15px] font-semibold text-black transition-transform active:scale-[0.98] md:mx-auto md:w-80"
         >
-          <PenLine className="h-4 w-4" /> Write today's paper
+          <PenLine className="h-4 w-4" /> Create today's paper
         </Link>
       </div>
     )
