@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ResolvedTheme } from '@/lib/app-shell/theme-types'
 import { BACKDROP_SLOT, type ThemeSlot } from '@/lib/app-shell/theme-slots'
+import { getOverlay } from '@/lib/app-shell/overlays'
 
 interface ThemeContextValue {
   theme: ResolvedTheme | null
@@ -72,7 +73,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement
     const backdrop = theme?.images[BACKDROP_SLOT]
     root.style.setProperty('--theme-backdrop', backdrop ? `url("${backdrop}")` : 'none')
-    root.style.setProperty('--theme-tint', theme?.theme.tint ?? 'rgba(0, 0, 0, 0)')
+    // A member's chosen overlay wins; otherwise the theme's own tint (if any).
+    const chosen = theme?.overlayId ? getOverlay(theme.overlayId) : null
+    const tint = theme?.overlayId ? chosen?.css ?? 'rgba(0, 0, 0, 0)' : theme?.theme.tint ?? 'rgba(0, 0, 0, 0)'
+    root.style.setProperty('--theme-tint', tint)
     return () => {
       root.style.removeProperty('--theme-backdrop')
       root.style.removeProperty('--theme-tint')

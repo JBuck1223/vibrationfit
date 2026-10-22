@@ -6,6 +6,7 @@ import { Check, Loader2, Palette } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useTheme } from '../ThemeProvider'
+import { OVERLAY_PRESETS } from '@/lib/app-shell/overlays'
 
 interface ThemeOption {
   id: string
@@ -51,7 +52,26 @@ export function AppearancePicker() {
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Could not save your theme'),
   })
 
+  const chooseOverlay = useMutation({
+    mutationFn: async (overlay: string) => {
+      const res = await fetch('/api/app-shell/theme', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overlay }),
+      })
+      if (!res.ok) throw new Error('Could not save your overlay')
+    },
+    onSuccess: async () => {
+      await refresh()
+      toast.success('Overlay updated')
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Could not save your overlay'),
+  })
+
   const activeId = data?.activeThemeId ?? current?.theme.id ?? null
+  const activeOverlay = current?.overlayId ?? 'default'
+  // Preview overlays on the picture they'll actually sit on.
+  const overlayPreview = current?.images['home.hero'] ?? current?.images['area.backdrop'] ?? null
   const themes = data?.themes ?? []
   // Nothing chosen yet means the default (sunset) is what they see.
   const effectiveId = activeId ?? themes.find((t) => t.slug === 'sunset')?.id ?? null
@@ -119,6 +139,47 @@ export function AppearancePicker() {
           })}
         </ul>
       )}
+
+      <div className="pt-2">
+        <h2 className="text-lg font-semibold text-white">Overlay</h2>
+        <p className="mt-1 text-sm text-white/65">A color wash over your theme&apos;s pictures. It keeps text easy to read and sets the mood.</p>
+      </div>
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[{ id: 'default', label: 'Theme default', description: 'Whatever this theme uses.', css: current?.theme.tint ?? null }, ...OVERLAY_PRESETS].map((o) => {
+          const selected = activeOverlay === o.id
+          const saving = chooseOverlay.isPending && chooseOverlay.variables === o.id
+          return (
+            <li key={o.id}>
+              <button
+                type="button"
+                onClick={() => chooseOverlay.mutate(o.id)}
+                disabled={chooseOverlay.isPending}
+                aria-pressed={selected}
+                title={o.description}
+                className={cn(
+                  'glass-panel relative block h-28 w-full overflow-hidden text-left transition-colors',
+                  selected ? 'border-[#39FF14]' : 'hover:border-white/40',
+                )}
+              >
+                {overlayPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={overlayPreview} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                )}
+                <div className="absolute inset-0" style={{ background: o.css ?? 'transparent' }} />
+                <span className="absolute bottom-3 left-3 text-sm font-semibold text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">{o.label}</span>
+                <span
+                  className={cn(
+                    'absolute right-2.5 top-2.5 flex h-6 w-6 items-center justify-center rounded-full transition-opacity',
+                    selected ? 'bg-[#39FF14] text-black opacity-100' : 'opacity-0',
+                  )}
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
 
       <p className="text-xs text-white/50">Creating your own theme from a mood of your choosing arrives in a later release.</p>
     </div>

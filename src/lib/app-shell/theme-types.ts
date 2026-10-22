@@ -25,4 +25,6 @@ export interface ThemeImageRecord {
 export interface ResolvedTheme {
   theme: ThemeRecord
   images: Partial<Record<ThemeSlot, string>>
+  /** The member's chosen overlay preset id, or null to use the theme's own tint. */
+  overlayId?: string | null
 }

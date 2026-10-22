@@ -15,13 +15,15 @@ export async function resolveThemeForUser(
   userId: string | null,
 ): Promise<ResolvedTheme | null> {
   let themeId: string | null = null
+  let overlayId: string | null = null
   if (userId) {
     const { data: account } = await supabase
       .from('user_accounts')
-      .select('theme_id')
+      .select('theme_id, theme_overlay')
       .eq('id', userId)
       .maybeSingle()
     themeId = (account as { theme_id?: string | null } | null)?.theme_id ?? null
+    overlayId = (account as { theme_overlay?: string | null } | null)?.theme_overlay ?? null
   }
 
   const themeQuery = themeId
@@ -45,6 +47,7 @@ export async function resolveThemeForUser(
   return {
     theme: theme as ThemeRecord,
     images: applyFallbacks((rows ?? []) as ThemeImageRecord[]),
+    overlayId,
   }
 }
 
