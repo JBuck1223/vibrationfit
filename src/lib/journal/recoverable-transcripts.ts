@@ -63,7 +63,21 @@ async function loadLinkedFingerprints(
     .order('created_at', { ascending: false })
     .limit(200)
 
+  // Manifestation voice notes used to be saved in the journal folder too;
+  // they're already saved, so they never count as unsaved journal notes.
+  const { data: manifestations } = await supabase
+    .from('manifestations')
+    .select('id, audio_recordings')
+    .eq('user_id', userId)
+    .not('audio_recordings', 'is', null)
+    .limit(500)
+
   const map = new Map<string, string>()
+  for (const m of manifestations ?? []) {
+    for (const recording of (m.audio_recordings ?? []) as Array<{ url?: string }>) {
+      if (recording?.url) map.set(recordingFingerprint(recording.url), `manifestation:${m.id}`)
+    }
+  }
   for (const entry of entries ?? []) {
     const recordings = (entry.audio_recordings ?? []) as Array<{ url?: string }>
     for (const recording of recordings) {

@@ -17,11 +17,13 @@ type UserFolder = keyof typeof USER_FOLDERS
 
 const AUDIO_FOLDER_MAP: Partial<Record<string, keyof typeof USER_FOLDERS>> = {
   journal: 'journalAudioRecordings',
-  visionBoard: 'journalAudioRecordings',
+  // Each tool keeps its own folder: the journal's unsaved-notes check lists
+  // everything in the journal folder.
+  visionBoard: 'visionBoardAudioRecordings',
   lifeVision: 'lifeVisionAudioRecordings',
   alignmentPlan: 'alignmentPlanAudioRecordings',
   profile: 'profileAudioRecordings',
-  customTracks: 'journalAudioRecordings',
+  customTracks: 'customTracksAudioRecordings',
 }
 
 type QuickUploadPhase = 'idle' | 'saving' | 'transcribing' | 'done' | 'error' | 'recovered'
