@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { cleanVisionTitle } from '@/lib/vision/title'
 
 /**
  * POST /api/vision/draft/create
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         household_id: householdId,
-        title: sourceVision.title ? `${sourceVision.title} (Draft)` : 'Draft Vision',
+        title: cleanVisionTitle(sourceVision.title) ?? 'Draft Vision',
         perspective: sourceVision.perspective || (householdId ? 'plural' : 'singular'),
         forward: sourceVision.forward || '',
         fun: sourceVision.fun || '',

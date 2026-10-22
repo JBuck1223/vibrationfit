@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { normalizeText } from '@/lib/audio/content-normalize'
 import { pluralizeVisionSections } from '@/lib/viva/pluralize-vision'
+import { cleanVisionTitle } from '@/lib/vision/title'
 
 // Pluralizing all 14 sections runs parallel AI calls; allow time for long visions
 export const maxDuration = 300
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
         // Perspective
         perspective: 'plural',                  // "we/our" language
         
-        title: sourceVision.title ? `${sourceVision.title} (Household)` : 'Our Vision',
+        title: cleanVisionTitle(sourceVision.title) ?? 'Our Vision',
         ...pluralizedSections,
         
         // State: Auto-activate if first household vision (activation happens
