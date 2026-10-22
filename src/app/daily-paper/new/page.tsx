@@ -402,6 +402,7 @@ export default function NewDailyPaperPage() {
               onClick={() => {
                 setImageSource(imageSource === 'upload' ? null : 'upload')
                 setAiGeneratedImageUrls([])
+                setScanOpen(false)
               }}
               className={cn('flex items-center gap-1.5', imageSource === 'upload' ? 'text-[#39FF14]' : 'text-white/70 hover:text-white')}
             >
@@ -412,6 +413,7 @@ export default function NewDailyPaperPage() {
               onClick={() => {
                 setImageSource(imageSource === 'ai' ? null : 'ai')
                 setImageFiles([])
+                setScanOpen(false)
               }}
               className={cn('flex items-center gap-1.5', imageSource === 'ai' ? 'text-[#BF00FF]' : 'text-white/70 hover:text-white')}
             >
@@ -420,7 +422,11 @@ export default function NewDailyPaperPage() {
             <button
               type="button"
               data-tour="daily-paper-create-scan"
-              onClick={() => setScanOpen((o) => !o)}
+              onClick={() => {
+                // One panel at a time; a picked image or scan stays chosen.
+                setImageSource(null)
+                setScanOpen((o) => !o)
+              }}
               className={cn('flex items-center gap-1.5', scanOpen || hasAttachment ? 'text-[#39FF14]' : 'text-white/70 hover:text-white')}
             >
               <FileText className="h-4 w-4" /> Printed paper
@@ -456,7 +462,7 @@ export default function NewDailyPaperPage() {
               />
             </div>
           )}
-          {(scanOpen || hasAttachment) && (
+          {scanOpen && (
             <div className="mt-3 space-y-3">
               <p className="text-xs text-white/55">Add a photo or PDF if you filled in the printable Daily Paper.</p>
               <FileUpload
