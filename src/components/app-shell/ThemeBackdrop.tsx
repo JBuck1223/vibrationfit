@@ -25,7 +25,7 @@ function useCrossfade(url: string | null): [Layer[], (key: number) => void] {
   return [layers, settle]
 }
 
-const SHARP_MASK = 'linear-gradient(to bottom, black 0%, black 30%, rgba(0,0,0,0.6) 50%, transparent 72%)'
+const SHARP_MASK = 'linear-gradient(to bottom, black 0%, black 50%, rgba(0,0,0,0.6) 72%, transparent 92%)'
 
 /**
  * The fixed layer under every screen, built from ONE picture (the section's
@@ -58,8 +58,8 @@ export function ThemeBackdrop() {
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
                   backgroundImage: `url("${layer.url}")`,
-                  filter: 'blur(48px) saturate(140%) brightness(0.7)',
-                  transform: 'scale(1.2)',
+                  filter: 'blur(14px) saturate(125%) brightness(0.75)',
+                  transform: 'scale(1.06)',
                 }}
               />
               {/* Sharp picture across the top, dissolving into the blur */}
@@ -67,7 +67,7 @@ export function ThemeBackdrop() {
                 className="absolute inset-x-0 top-0 bg-cover bg-top bg-no-repeat transition-[height,opacity] duration-500"
                 style={{
                   backgroundImage: `url("${layer.url}")`,
-                  height: atRoot ? '75vh' : '45vh',
+                  height: atRoot ? '90vh' : '55vh',
                   opacity: atRoot ? 1 : 0.55,
                   maskImage: SHARP_MASK,
                   WebkitMaskImage: SHARP_MASK,
