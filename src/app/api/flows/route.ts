@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 const RUN_COLUMNS = 'id, flow_id, current_step, branch, steps, context, started_at, completed_at, abandoned_at'
 const STATES: ArrivalState[] = ['below', 'on', 'above']
 const SIGNALS: FlowSignal[] = [
-  'journal_saved', 'story_created', 'daily_paper_saved', 'vision_audio_played', 'vision_read',
+  'journal_saved', 'story_created', 'incantation_created', 'spark_query_created', 'manifestation_created', 'daily_paper_saved', 'vision_audio_played', 'vision_read',
   'vision_updated', 'manifestation_touched', 'abundance_logged', 'vibe_post_created', 'viva_action',
 ]
 

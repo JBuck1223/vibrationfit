@@ -507,7 +507,7 @@ export default function NewStoryWizardPage() {
       if (newStoryId) {
         setCreatedStoryId(newStoryId)
         setTimeout(() => {
-          reportFlowSignal('story_created', `/story/${newStoryId}`)
+          reportFlowSignal(outputType === 'incantation' ? 'incantation_created' : outputType === 'spark_query' ? 'spark_query_created' : 'story_created', `/story/${newStoryId}`)
           router.push(`/story/${newStoryId}`)
         }, 2000)
       }
@@ -610,7 +610,7 @@ export default function NewStoryWizardPage() {
         .single()
 
       if (storyError) throw storyError
-      reportFlowSignal('story_created', `/story/${storyData.id}`)
+      reportFlowSignal(outputType === 'incantation' ? 'incantation_created' : outputType === 'spark_query' ? 'spark_query_created' : 'story_created', `/story/${storyData.id}`)
       router.push(`/story/${storyData.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create story')
@@ -793,7 +793,7 @@ export default function NewStoryWizardPage() {
         .single()
 
       if (insertError) throw insertError
-      reportFlowSignal('story_created', `/story/${storyData.id}`)
+      reportFlowSignal(outputType === 'incantation' ? 'incantation_created' : outputType === 'spark_query' ? 'spark_query_created' : 'story_created', `/story/${storyData.id}`)
       router.push(`/story/${storyData.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save incantation')
@@ -936,7 +936,7 @@ export default function NewStoryWizardPage() {
         .single()
 
       if (insertError) throw insertError
-      reportFlowSignal('story_created', `/story/${storyData.id}`)
+      reportFlowSignal(outputType === 'incantation' ? 'incantation_created' : outputType === 'spark_query' ? 'spark_query_created' : 'story_created', `/story/${storyData.id}`)
       router.push(`/story/${storyData.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save SparkQuery™')

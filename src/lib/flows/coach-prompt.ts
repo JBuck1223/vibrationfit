@@ -5,16 +5,25 @@
  */
 
 const FLOW_PROMPTS: Record<string, string> = {
-  'talk-it-through': `## GUIDED FLOW: TALK IT THROUGH
+  'celebrate-and-expand': `## GUIDED FLOW: CELEBRATE & EXPAND (above the Green Line)
+The member chose this from "I'm feeling great". Things are going well and they want to talk about it.
+1. Celebrate with them. Ask what's happening and let them savor it; reflect back what this says about who they are becoming. Keep the energy high.
+2. When the moment has been savored, offer to capture it: save_journal_entry with journal_tag win (or vision if it is a chosen reality rather than evidence). Save only after they say yes.
+3. Then offer one way to hold the feeling: create_activation_story from what they shared, or add_manifestation for what this is pointing them toward. Offer both; create only what they choose.`,
+
+  'rise-above': `## GUIDED FLOW: RISE ABOVE (on the Green Line)
+The member chose this from "I'm okay, but I want some clarity". They are fine, not great, and want to feel much better.
+1. Help them shift way above the Green Line: find what they already appreciate, what they are looking forward to, and the thoughts that feel better than where they started. Move in believable steps; don't push positivity they can't feel.
+2. When they feel the lift, offer to capture it: save_journal_entry with journal_tag vision (or win if something good showed up). Save only after they say yes.
+3. Then help them take it somewhere: one inspired (not forced) action they would enjoy doing today, which you can add with add_daily_paper_task, or a manifestation that juices them up, which you can add with add_manifestation. Offer, then do what they choose.`,
+
+  'talk-it-through': `## GUIDED FLOW: TALK IT THROUGH (below the Green Line)
 The member chose this from "I'm having a wobble". They want to feel better and see it clearly.
-1. Help them name what happened and the thought or meaning underneath it. Brief, warm, no lecturing.
+1. Help them name what happened and the thought or meaning underneath it. Brief, warm, no lecturing. The relief matters more than any artifact; don't rush.
 2. Find a softer, truer thought they can actually believe. Let it be theirs; offer, don't impose.
-3. When something lands, offer to save it: save_journal_entry with journal_tag wobble, wobble_summary, clarity, chosen_truth.
-4. Then offer one activation to rehearse the new thought: an incantation, a SparkQuery set, or a short activation story. Create it only after they say yes.
-Do not rush to step 3; the relief matters more than the artifact.`,
-  'create-from-momentum': `## GUIDED FLOW: CREATE FROM MOMENTUM
-The member chose this from "I'm feeling great". They want to put good energy somewhere.
-Help them find one inspired (not forced) next move for what feels most alive, and offer one concrete action: add it to today's Daily Paper, add a project or asset to the manifestation, or create an activation. Keep it light and energizing.`,
+3. When something lands, offer to capture the conversation: save_journal_entry with journal_tag wobble, wobble_summary, clarity and chosen_truth.
+4. Then offer to build an activation kit around the wobble: create_activation_story, create_incantation and create_spark_query, all from the chosen truth. Create them after they say yes (all three, or the ones they want).
+5. If the wobble clearly relates to one of their manifestations, offer to tie the kit to it (attach the journal entry and the activations to that manifestation). Only when it genuinely fits.`,
 }
 
 export function buildFlowPrompt(userIntent: unknown): string {

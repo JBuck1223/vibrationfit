@@ -12,143 +12,121 @@ export const ARRIVAL_STATES: { state: ArrivalState; label: string; greenLine: st
   { state: 'below', label: 'I’m having a wobble — I need support', greenLine: 'Below the Green Line', tint: 'rgba(191,0,255,0.16)', color: '#D58BFF' },
 ]
 
-const WOBBLE_DRAFT = 'I’m having a wobble. Here’s what’s going on: '
+const vivaHref = (flowId: string, draft: string) => () =>
+  `/viva?flow=${flowId}&draft=${encodeURIComponent(draft)}`
 
 export const FLOWS: FlowDefinition[] = [
+  {
+    id: 'celebrate-and-expand',
+    state: 'above',
+    title: 'Celebrate & Expand',
+    bestFor: 'When good things are happening and you want to savor them and build on them.',
+    promise: 'Talk about everything that\u2019s going right, then turn that feeling into a Story or a Manifestation you can come back to.',
+    steps: [
+      {
+        id: 'share',
+        title: 'Talk about the awesome stuff',
+        body: 'Tell VIVA everything that\u2019s going right, or write it straight into your Journal. Either way it gets saved as a win.',
+        choices: [
+          {
+            id: 'viva',
+            label: 'Talk with VIVA',
+            description: 'Celebrate it out loud; VIVA saves it to your Journal.',
+            href: vivaHref('celebrate-and-expand', 'So much good is happening right now and I want to talk about it: '),
+          },
+          { id: 'journal', label: 'Write it in my Journal', description: 'Capture the win and how it feels.', href: '/journal/new?tag=win' },
+        ],
+        doneWhen: ['journal_saved'],
+      },
+      {
+        id: 'capture',
+        title: 'Capture the clarity and the feeling',
+        body: 'Turn this moment into something you can return to: a Story that holds the feeling, or a Manifestation for what it\u2019s pointing you toward.',
+        choices: [
+          { id: 'story', label: 'Create a Story', description: 'An activation story of this reality.', href: storyCreateHref() },
+          { id: 'manifestation', label: 'Add a Manifestation', description: 'Give what you\u2019re calling in a home.', href: '/manifestations/new' },
+        ],
+        doneWhen: ['story_created', 'manifestation_created'],
+      },
+    ],
+    completion: {
+      headline: 'You captured the good stuff.',
+      body: 'This feeling is saved where you can step back into it any time. Let it raise what you expect next.',
+    },
+    nextFlowIds: ['rise-above'],
+  },
+  {
+    id: 'rise-above',
+    state: 'on',
+    title: 'Rise Above',
+    bestFor: 'When you\u2019re okay, but you\u2019d like to feel a whole lot better.',
+    promise: 'Let VIVA help you shift way above the Green Line, capture it, and leave with one inspired action or a manifestation that juices you up.',
+    steps: [
+      {
+        id: 'shift',
+        title: 'Shift with VIVA',
+        body: 'Talk with VIVA until you feel the lift. When it lands, VIVA saves it to your Journal.',
+        href: vivaHref('rise-above', 'I\u2019m feeling okay, but I want to feel way better. Here\u2019s where I am: '),
+        doneWhen: ['journal_saved'],
+      },
+      {
+        id: 'act',
+        title: 'Take it somewhere',
+        body: 'Choose one inspired action for today, or add a manifestation that gets you excited.',
+        choices: [
+          { id: 'action', label: 'An inspired action', description: 'Put one aligned move on today\u2019s Daily Paper.', href: '/daily-paper/new' },
+          { id: 'manifestation', label: 'A manifestation', description: 'Add something that juices you up.', href: '/manifestations/new' },
+        ],
+        doneWhen: ['daily_paper_saved', 'manifestation_created', 'viva_action'],
+      },
+    ],
+    completion: {
+      headline: 'You lifted yourself up.',
+      body: 'You chose a better-feeling place, wrote it down, and gave it somewhere to go. That\u2019s deliberate creating.',
+    },
+    nextFlowIds: ['celebrate-and-expand'],
+  },
   {
     id: 'talk-it-through',
     state: 'below',
     title: 'Talk It Through',
     bestFor: 'When something has you off center and you want to feel better and see it clearly.',
-    promise: 'Name the wobble, find what’s underneath it, and turn it into something that supports you.',
+    promise: 'Talk it through with VIVA, capture what you find in your Journal, and turn it into an activation kit: a Story, an Incantation and a SparkQuery.',
     steps: [
       {
-        id: 'capture',
-        title: 'Get it out',
-        body: 'Talk it through with VIVA, or write it down. Either way you’ll land on what feels truer now.',
-        choices: [
-          {
-            id: 'viva',
-            label: 'Talk it through',
-            description: 'VIVA helps you name it and find a softer, truer thought.',
-            href: () => `/viva?flow=talk-it-through&draft=${encodeURIComponent(WOBBLE_DRAFT)}`,
-          },
-          {
-            id: 'journal',
-            label: 'Write it down',
-            description: 'Capture the wobble in your Journal, then choose what feels truer.',
-            href: '/journal/new?tag=wobble',
-          },
-        ],
+        id: 'talk',
+        title: 'Talk it through with VIVA',
+        body: 'Name what happened and what\u2019s underneath it. When something truer lands, VIVA captures the conversation in your Journal.',
+        href: vivaHref('talk-it-through', 'I\u2019m having a wobble. Here\u2019s what\u2019s going on: '),
         doneWhen: ['journal_saved'],
       },
       {
-        id: 'activate',
-        title: 'Make it something you can return to',
-        body: 'Turn the truer thought into an Incantation, a SparkQuery, or a short Story.',
-        choices: [
-          { id: 'incantation', label: 'Incantation', description: 'A few spoken lines to embody it.', href: storyCreateHref('incantation') },
-          { id: 'spark_query', label: 'SparkQuery', description: 'Questions that point your mind at evidence.', href: storyCreateHref('spark_query') },
-          { id: 'story', label: 'Story', description: 'A short story of the new reality.', href: storyCreateHref() },
-        ],
+        id: 'story',
+        title: 'Turn it into a Story',
+        body: 'A short story of the truer reality, to rehearse it. VIVA can make it for you, or use the Story studio.',
+        href: storyCreateHref(),
         doneWhen: ['story_created'],
-        optional: true,
+      },
+      {
+        id: 'incantation',
+        title: 'Make an Incantation',
+        body: 'A few spoken lines to embody the new thought.',
+        href: storyCreateHref('incantation'),
+        doneWhen: ['incantation_created'],
+      },
+      {
+        id: 'spark-query',
+        title: 'Make a SparkQuery',
+        body: 'Questions that point your mind at evidence of what you want.',
+        href: storyCreateHref('spark_query'),
+        doneWhen: ['spark_query_created'],
       },
     ],
     completion: {
-      headline: 'You turned a wobble into clarity.',
-      body: 'What you found is saved where you can come back to it. That’s you choosing your next thought on purpose.',
+      headline: 'You turned a wobble into an activation kit.',
+      body: 'Your Story, Incantation and SparkQuery are ready whenever you want to step back into the truer thought.',
     },
-    nextFlowIds: ['return-to-vision'],
-  },
-  {
-    id: 'return-to-vision',
-    state: 'on',
-    title: 'Return to My Vision',
-    bestFor: 'When you’re okay but a little flat, unclear, or disconnected.',
-    promise: 'Remember what you’re creating, notice what feels alive, and choose today on purpose.',
-    steps: [
-      {
-        id: 'immerse',
-        title: 'Listen to your Life Vision',
-        body: 'Press play on your vision. Notice what feels alive, and what feels tight.',
-        href: '/listen',
-        doneWhen: ['vision_audio_played', 'vision_read'],
-      },
-      {
-        id: 'refine',
-        title: 'Let it evolve',
-        body: 'If details feel expansive, add more. If they feel tight, broaden the language. Your vision is alive because you are.',
-        href: '/life-vision/update',
-        doneWhen: ['vision_updated'],
-        optional: true,
-      },
-      {
-        id: 'today',
-        title: 'Choose today on purpose',
-        body: 'Gratitude, your top three, and one fun or nourishing thing.',
-        href: '/daily-paper/new',
-        doneWhen: ['daily_paper_saved'],
-      },
-    ],
-    completion: {
-      headline: 'You’re reconnected and pointed somewhere.',
-      body: 'Your vision is fresh in you, and today has a shape. Let it be easy.',
-    },
-    nextFlowIds: ['create-from-momentum'],
-  },
-  {
-    id: 'create-from-momentum',
-    state: 'above',
-    title: 'Create from Momentum',
-    bestFor: 'When you feel good and want to put that energy somewhere.',
-    promise: 'Pick what feels most alive, move it forward, and capture the evidence.',
-    needs: 'manifestation',
-    steps: [
-      {
-        id: 'activate',
-        title: 'Move it forward',
-        body: 'Explore it with VIVA, or add an inspired action to today.',
-        choices: [
-          {
-            id: 'viva',
-            label: 'Explore with VIVA',
-            description: 'Find the next inspired action, or create an activation for it.',
-            href: (ctx: FlowContext) =>
-              ctx.manifestationId ? `/viva?flow=create-from-momentum&manifestation=${ctx.manifestationId}&t=${Date.now()}` : '/viva?flow=create-from-momentum',
-          },
-          { id: 'paper', label: 'Add it to today', description: 'Put one aligned action on your Daily Paper.', href: '/daily-paper/new' },
-          {
-            id: 'manifestation',
-            label: 'Open the manifestation',
-            description: 'Add detail or a visual while it feels good.',
-            href: (ctx: FlowContext) => (ctx.manifestationId ? `/manifestations/${ctx.manifestationId}` : '/manifestations'),
-          },
-        ],
-        doneWhen: ['viva_action', 'daily_paper_saved', 'story_created', 'manifestation_touched'],
-      },
-      {
-        id: 'evidence',
-        title: 'Capture the evidence',
-        body: 'Mark what’s arriving so it doesn’t slip by unnoticed.',
-        choices: [
-          {
-            id: 'journal',
-            label: 'Journal a win',
-            description: 'Write what showed up and how it felt.',
-            href: (ctx: FlowContext) => `/journal/new?tag=win${ctx.manifestationId ? `&manifestation=${ctx.manifestationId}` : ''}`,
-          },
-          { id: 'tribe', label: 'Share it with the Tribe', description: 'Let your people celebrate with you.', href: '/vibe-tribe/new?tag=win' },
-          { id: 'abundance', label: 'Log abundance', description: 'Money or value that arrived.', href: '/abundance-tracker/new' },
-        ],
-        doneWhen: ['journal_saved', 'vibe_post_created', 'abundance_logged'],
-      },
-    ],
-    completion: {
-      headline: 'Momentum, meet motion.',
-      body: 'You moved something forward and marked the evidence. Let it update what you expect next.',
-    },
-    nextFlowIds: ['return-to-vision'],
+    nextFlowIds: ['rise-above'],
   },
 ]
 

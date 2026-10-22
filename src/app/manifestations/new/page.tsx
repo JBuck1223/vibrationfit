@@ -10,6 +10,7 @@ import { SavedRecordings } from '@/components/SavedRecordings'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, CheckCircle, XCircle, ImageIcon, Home } from 'lucide-react'
+import { reportFlowSignal } from '@/hooks/useActiveFlow'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 
 const STATUS_OPTIONS = [
@@ -209,6 +210,7 @@ export default function NewVisionBoardItemPage() {
         })
 
       if (error) throw error
+      reportFlowSignal('manifestation_created', '/manifestations')
 
       // Update user stats
       await supabase.rpc('increment_vision_board_stats', { 

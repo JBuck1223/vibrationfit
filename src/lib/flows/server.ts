@@ -34,8 +34,9 @@ const ACTIVITY_TO_SIGNAL: Record<string, FlowSignal> = {
 const COACH_TOOL_TO_SIGNAL: Record<string, FlowSignal> = {
   save_journal_entry: 'journal_saved',
   create_activation_story: 'story_created',
-  create_incantation: 'story_created',
-  create_spark_query: 'story_created',
+  create_incantation: 'incantation_created',
+  create_spark_query: 'spark_query_created',
+  add_manifestation: 'manifestation_created',
   add_daily_paper_task: 'daily_paper_saved',
   save_daily_paper_gratitude: 'daily_paper_saved',
   log_abundance_event: 'abundance_logged',
@@ -58,8 +59,9 @@ export function signalForCoachTool(toolName: string): FlowSignal | null {
 /**
  * Apply a signal to a run. The first unfinished step (from the current one
  * on) that this signal completes is marked done; optional steps passed over
- * on the way are marked skipped. Returns the updated fields, or null when
- * the signal completes nothing.
+ * on the way are skipped, required ones stay open. The run then points at the
+ * first unfinished step. Returns the updated fields, or null when the signal
+ * completes nothing.
  */
 export function applySignal(run: FlowRunRow, signal: FlowSignal, artifactLink?: string | null) {
   const flow = getFlow(run.flow_id)
@@ -73,15 +75,17 @@ export function applySignal(run: FlowRunRow, signal: FlowSignal, artifactLink?: 
     const record = steps[step.id]
     if (record?.done_at || record?.skipped_at) continue
     if (step.doneWhen.includes(signal)) {
+      // Optional steps passed over are skipped. Required ones stay open: the
+      // member can do steps out of order (e.g. VIVA makes the Incantation
+      // before the Story) and the path waits on whatever is still missing.
       for (let j = startIndex; j < i; j++) {
         const earlier = flow.steps[j]
-        if (!steps[earlier.id]?.done_at && !steps[earlier.id]?.skipped_at) {
-          if (!earlier.optional) return null // a required step is still ahead of this one
+        if (earlier.optional && !steps[earlier.id]?.done_at && !steps[earlier.id]?.skipped_at) {
           steps[earlier.id] = { ...steps[earlier.id], skipped_at: now }
         }
       }
       steps[step.id] = { ...record, done_at: now, artifact_link: artifactLink ?? record?.artifact_link ?? null }
-      const next = nextStepId(flow, steps, step.id)
+      const next = nextStepId(flow, steps)
       return { steps, current_step: next, completed_at: next ? null : now }
     }
   }
