@@ -17,7 +17,8 @@ interface TodayOnMapProps {
   date: string
 }
 
-const PENDING_LIMIT = 5
+// Even, so the two desktop columns stay balanced.
+const PENDING_LIMIT = 6
 
 function ProgressRing({ done, total }: { done: number; total: number }) {
   const r = 22
