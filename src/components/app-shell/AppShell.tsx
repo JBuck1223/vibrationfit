@@ -9,7 +9,7 @@ import { ThemeProvider } from './ThemeProvider'
 import { ThemeBackdrop } from './ThemeBackdrop'
 import { ShellHeader } from './ShellHeader'
 import { PillNav } from './PillNav'
-import { RailNav } from './RailNav'
+import { ShellUserSidebar } from '@/components/SidebarClient'
 import { useKeyboardOpen } from './useKeyboardOpen'
 import { ShellContextProvider } from './ShellContext'
 
@@ -55,19 +55,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className="relative isolate min-h-dvh text-white"
         >
           <ThemeBackdrop />
-          <RailNav />
-          <div className="lg:pl-[var(--shell-rail-width)]">
-            <ShellHeader />
-            {fullHeight ? (
-              <main data-app-scroller className="shell-full-height flex w-full flex-col overflow-hidden">
-                {children}
-              </main>
-            ) : (
-              <main data-app-scroller className="w-full px-4 pb-6 pt-2 md:px-6 lg:px-8 lg:pt-4">
-                {children}
-                <BottomClearance />
-              </main>
-            )}
+          <div className="flex min-h-dvh">
+            {/* The member sidebar members already know, regrouped and in glass. Desktop only. */}
+            <div className="shell-sidebar hidden lg:flex lg:sticky lg:top-0 lg:h-dvh lg:shrink-0">
+              <ShellUserSidebar />
+            </div>
+            <div className="min-w-0 flex-1">
+              <ShellHeader />
+              {fullHeight ? (
+                <main data-app-scroller className="shell-full-height flex w-full flex-col overflow-hidden">
+                  {children}
+                </main>
+              ) : (
+                <main data-app-scroller className="w-full px-4 pb-6 pt-2 md:px-6 lg:px-8 lg:pt-4">
+                  {children}
+                  <BottomClearance />
+                </main>
+              )}
+            </div>
           </div>
           <PillNav />
         </div>

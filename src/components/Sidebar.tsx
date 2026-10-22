@@ -18,7 +18,7 @@ import {
   Menu,
   Home,
 } from 'lucide-react'
-import { userNavigationPrimary, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
+import { userNavigationPrimary, userNavigationGroups, shellNavigationPrimary, shellNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
@@ -40,7 +40,7 @@ function getDefaultExpandedGroups(groups: NavGroup[]): string[] {
 }
 
 // Shared Sidebar Base Component
-function SidebarBase({ className, navigation, primaryNavigation = [], groups = [], isAdmin = false }: SidebarProps & { navigation: NavItem[], primaryNavigation?: NavItem[], groups?: NavGroup[] }) {
+function SidebarBase({ className, navigation, primaryNavigation = [], groups = [], isAdmin = false, surface = 'solid' }: SidebarProps & { navigation: NavItem[], primaryNavigation?: NavItem[], groups?: NavGroup[], surface?: 'solid' | 'glass' }) {
   // Initialize with default value for SSR consistency, then sync with localStorage
   const [collapsed, setCollapsed] = useState(false) // Default: expanded
   const [hasMounted, setHasMounted] = useState(false)
@@ -634,11 +634,20 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       </aside>
 
       {/* Desktop Sidebar */}
-      <div className={cn(
-        'hidden md:flex flex-col bg-neutral-800 border-r border-neutral-800 transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64',
-        className
-      )}>
+      <div
+        className={cn(
+          'hidden md:flex flex-col bg-neutral-800 border-r border-neutral-800 transition-all duration-300',
+          collapsed ? 'w-16' : 'w-64',
+          className
+        )}
+        // Inside the app shell the sidebar is glass over the theme backdrop.
+        style={surface === 'glass' ? {
+          backgroundColor: 'var(--glass-fill-strong)',
+          borderColor: 'var(--glass-border)',
+          WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(140%)',
+          backdropFilter: 'blur(var(--glass-blur)) saturate(140%)',
+        } : undefined}
+      >
         {renderSidebarContent(collapsed)}
       </div>
     </>
@@ -654,6 +663,24 @@ export function UserSidebar({ className }: { className?: string }) {
       primaryNavigation={userNavigationPrimary}
       groups={userNavigationGroups}
       isAdmin={false}
+    />
+  )
+}
+
+/**
+ * The same member sidebar inside the new app shell: regrouped to the seven
+ * sections and painted as glass over the theme backdrop. Desktop only; phones
+ * use the shell's pill nav, so its hamburger and drawer never show here.
+ */
+export function ShellUserSidebar() {
+  return (
+    <SidebarBase
+      className="h-full"
+      navigation={[]}
+      primaryNavigation={shellNavigationPrimary}
+      groups={shellNavigationGroups}
+      isAdmin={false}
+      surface="glass"
     />
   )
 }

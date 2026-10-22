@@ -407,6 +407,7 @@ export const adminNavigation: NavItem[] = [
     children: [
       { name: 'CRM Dashboard', href: '/admin/crm/dashboard', icon: LayoutDashboard, description: 'CRM overview and metrics' },
       { name: 'Ad Performance', href: '/admin/crm/marketing', icon: BarChart3, description: 'Campaign funnel: visitors, engagement, video, leads, revenue' },
+      { name: 'SEO & PPC', href: '/admin/seo', icon: Globe, description: 'Landing pages, readiness for SEO, AI search and PPC, keywords, ads and results' },
       { name: 'Leads', href: '/admin/crm/leads', icon: UserPlus, description: 'Lead management' },
       { name: 'Leads Board', href: '/admin/crm/leads/board', icon: Kanban, description: 'Kanban board for leads' },
       { name: 'Campaigns', href: '/admin/crm/campaigns', icon: Megaphone, description: 'Marketing campaigns and tracking' },
@@ -980,3 +981,79 @@ export function isNavItemActive(
   return false
 }
 
+/**
+ * APP SHELL NAVIGATION — the member sidebar regrouped to the seven sections
+ * of the new shell. Same Sidebar component, same behaviour; only the grouping
+ * changes. The legacy groups above stay for the old layout until it retires.
+ */
+export const shellNavigationPrimary: NavItem[] = [
+  { name: 'Home', href: '/home', icon: Home, description: 'Your world today' },
+  { name: 'VIVA', href: '/viva', icon: Sparkles, description: 'Talk with VIVA' },
+]
+
+export const shellNavigationGroups: NavGroup[] = [
+  {
+    name: 'Listen',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    icon: Headphones,
+    items: [
+      { name: 'Audio', href: '/audio', icon: Headphones, description: 'Your Life Vision audio' },
+      { name: 'Meditations', href: '/meditations', icon: Wind, description: 'Breath-paced tracks' },
+      { name: 'Stories', href: '/audio/stories', icon: Library, description: 'Listen to your stories' },
+      { name: 'Songs', href: '/audio/songs', icon: Music2, description: 'Your songs' },
+      { name: 'Playlists', href: '/audio/playlists', icon: Music, description: 'Sets you have built' },
+    ],
+  },
+  {
+    name: 'Capture',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    icon: Edit,
+    items: [
+      { name: 'Daily Paper', href: '/daily-paper', icon: FileText, description: 'Start your day on paper' },
+      { name: 'Journal', href: '/journal', icon: BookOpen, description: 'Capture what is on your mind' },
+      { name: 'Abundance', href: '/abundance-tracker', icon: DollarSign, description: 'Notice and record your wins' },
+    ],
+  },
+  {
+    name: 'Tribe',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    icon: UsersRound,
+    items: [
+      { name: 'Vibe Tribe', href: '/vibe-tribe', icon: UsersRound, description: 'The community feed' },
+      { name: 'Alignment Gym', href: '/alignment-gym', icon: Video, description: 'Live group sessions' },
+      { name: 'Referrals', href: '/referral', icon: Share2, description: 'Bring someone with you' },
+    ],
+  },
+  {
+    name: 'Tools',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    icon: Wrench,
+    items: [
+      { name: 'MAP', href: '/map', icon: Map, description: 'My Alignment Plan' },
+      { name: 'Manifestations', href: '/manifestations', icon: Image, description: 'What you are calling in' },
+      { name: 'Life Vision', href: '/life-vision', icon: Target, description: 'The life you choose' },
+      { name: 'Stories', href: '/story', icon: Library, description: 'Write future-self stories' },
+      { name: 'Incantations', href: '/story?kind=incantation', icon: Mic, description: 'Spoken lines that shift state' },
+      { name: 'Queries', href: '/story?kind=spark_query', icon: Lightbulb, description: 'Questions that spark' },
+      { name: 'Songwriter', href: '/audio/songwriter', icon: Music2, description: 'Write and generate a song' },
+    ],
+  },
+  {
+    name: 'Account',
+    isCollapsible: true,
+    defaultCollapsed: true,
+    icon: User,
+    items: [
+      { name: 'My World', href: '/your-world', icon: Globe, description: 'Your name, people, home, and work' },
+      { name: 'Activity', href: '/activity', icon: Activity, description: 'Everything you have done' },
+      { name: 'Streaks & Badges', href: '/tracking/streaks', icon: Award, description: 'Your momentum' },
+      { name: 'Appearance', href: '/account/appearance', icon: Palette, description: 'Pick your theme' },
+      { name: 'Billing', href: '/account/billing', icon: CreditCard, description: 'Plan and payments' },
+      { name: 'Settings', href: '/account', icon: Settings, description: 'Profile and preferences' },
+    ],
+  },
+]
