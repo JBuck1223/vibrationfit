@@ -23,7 +23,7 @@ function BottomClearance() {
   return (
     <div
       aria-hidden
-      className={cn('lg:hidden', hasPlayer ? 'h-[calc(var(--shell-nav-height)+5rem+env(safe-area-inset-bottom,0px)+24px)]' : 'h-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+24px)]')}
+      className={cn('lg:h-[var(--shell-player-h)]', hasPlayer ? 'h-[calc(var(--shell-nav-height)+5rem+env(safe-area-inset-bottom,0px)+24px)]' : 'h-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+24px)]')}
     />
   )
 }
@@ -37,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const section = sectionForPath(pathname)
   const keyboardOpen = useKeyboardOpen()
+  const hasPlayer = useGlobalAudioStore((s) => s.tracks.length > 0)
 
   React.useEffect(() => {
     const pill = document.querySelector<HTMLElement>('[data-shell-pill]')
@@ -55,18 +56,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           // `isolate` keeps the -z-10 backdrop inside this stacking context, above the body's black.
           className="relative isolate min-h-dvh text-white"
           // The bottom bar is taller now; everything that clears it reads this.
-          style={{ '--shell-nav-height': '76px' } as React.CSSProperties}
+          // On desktop the player is a full-width bar along the bottom; the
+          // sidebar and content stop above it.
+          style={{ '--shell-nav-height': '76px', '--shell-player-h': hasPlayer ? '84px' : '0px' } as React.CSSProperties}
         >
           <ThemeBackdrop />
           <div className="flex min-h-dvh">
             {/* The member sidebar members already know, regrouped and in glass. Desktop only. */}
-            <div className="shell-sidebar hidden lg:flex lg:sticky lg:top-0 lg:h-dvh lg:shrink-0">
+            <div className="shell-sidebar hidden lg:flex lg:sticky lg:top-0 lg:h-[calc(100dvh-var(--shell-player-h))] lg:shrink-0">
               <ShellUserSidebar />
             </div>
             <div className="min-w-0 flex-1">
               <ShellHeader />
               {fullHeight ? (
-                <main data-app-scroller className="shell-full-height flex w-full flex-col overflow-hidden">
+                <main data-app-scroller className="shell-full-height flex w-full flex-col overflow-hidden lg:pb-[var(--shell-player-h)]">
                   {children}
                 </main>
               ) : (

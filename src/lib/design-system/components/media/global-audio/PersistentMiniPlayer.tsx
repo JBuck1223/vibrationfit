@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useRef, useCallback, useEffect, useState } from 'react'
-import { Play, Pause, SkipBack, SkipForward, X, Loader2 } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, X, Loader2, ChevronUp, Volume2, VolumeX } from 'lucide-react'
 import { useGlobalAudioStore, getGlobalAudioElement } from '@/lib/stores/global-audio-store'
 import { useMediaSession } from '@/hooks/useMediaSession'
 import { TrackArtwork } from './TrackArtwork'
 import { isSongNowPlayingTrack } from './TrackArtistLine'
 import { isShellFlagOn } from '@/lib/app-shell/flag'
+import { PlayerScrubber, TransportControls } from './PlayerControls'
 
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
@@ -32,6 +33,11 @@ export function PersistentMiniPlayer() {
   const skipNext = useGlobalAudioStore(s => s.skipNext)
   const skipPrev = useGlobalAudioStore(s => s.skipPrev)
   const stop = useGlobalAudioStore(s => s.stop)
+  const isShuffled = useGlobalAudioStore(s => s.isShuffled)
+  const toggleShuffle = useGlobalAudioStore(s => s.toggleShuffle)
+  const repeatMode = useGlobalAudioStore(s => s.repeatMode)
+  const setRepeatMode = useGlobalAudioStore(s => s.setRepeatMode)
+  const [volume, setVolume] = useState(1)
 
   const currentTrack = tracks[currentIndex] ?? null
   // In the new app shell the player floats as a glass card above the bottom bar.
@@ -84,9 +90,76 @@ export function PersistentMiniPlayer() {
     : setName && !setName.includes(':') ? setName : currentTrack.artist || 'Vibration Fit'
 
   if (floating) {
+    const changeVolume = (v: number) => {
+      setVolume(v)
+      const el = getGlobalAudioElement()
+      if (el) el.volume = v
+    }
+    const nextRepeat = repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off'
     return (
+      <>
+      {/* Desktop: a full-width bar along the bottom, like a desktop music app. */}
+      <div className="fixed inset-x-0 bottom-0 z-50 hidden h-[84px] lg:block">
+        <div className="vf-glass grid h-full grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-6 border-t border-white/[0.12] bg-[linear-gradient(180deg,rgba(36,29,50,0.82)_0%,rgba(18,14,26,0.92)_100%)] px-5 backdrop-blur-2xl backdrop-saturate-150">
+          <button type="button" onClick={openDrawer} className="flex min-w-0 items-center gap-3 text-left" aria-label="Open Now Playing">
+            <TrackArtwork track={currentTrack} iconKey={setIconKey} size={56} className="flex-shrink-0 overflow-hidden rounded-[12px]" />
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold text-white">{currentTrack.title}</span>
+              <span className="block truncate text-xs text-white/60">{subtitle}</span>
+            </span>
+          </button>
+          <div className="flex min-w-0 flex-col items-center">
+            <div className="w-[300px] max-w-full [&>div]:!px-0 [&_button]:!h-9 [&_button]:!w-9">
+              <TransportControls
+                compact
+                isPlaying={isPlaying}
+                isBuffering={isBuffering}
+                onPlayPause={() => (isPlaying ? pause() : resume())}
+                onPrev={skipPrev}
+                onNext={skipNext}
+                canPrev={!(currentIndex === 0 && currentTime < 3)}
+                canNext={currentIndex < tracks.length - 1 || repeatMode === 'all'}
+                shuffle={isShuffled}
+                onShuffle={tracks.length > 1 ? toggleShuffle : undefined}
+                repeatMode={repeatMode}
+                onRepeat={() => setRepeatMode(nextRepeat)}
+              />
+            </div>
+            <div className="-mt-1 flex w-full max-w-[560px] items-center gap-2 text-[11px] tabular-nums text-white/55">
+              <span className="w-10 text-right">{formatTime(currentTime)}</span>
+              <div className="flex-1 [&>div>div:last-child]:hidden">
+                <PlayerScrubber currentTime={currentTime} duration={duration} onSeek={seekTo} />
+              </div>
+              <span className="w-10">{formatTime(duration)}</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <button type="button" onClick={() => changeVolume(volume > 0 ? 0 : 1)} className="flex h-9 w-9 items-center justify-center text-white/60 hover:text-white" aria-label={volume > 0 ? 'Mute' : 'Unmute'}>
+              {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => changeVolume(parseFloat(e.target.value))}
+              aria-label="Volume"
+              className="h-1 w-24 cursor-pointer accent-[#39FF14]"
+            />
+            <button type="button" onClick={openDrawer} className="flex h-9 w-9 items-center justify-center text-white/60 hover:text-white" aria-label="Open Now Playing">
+              <ChevronUp className="h-5 w-5" />
+            </button>
+            <button type="button" onClick={stop} className="flex h-9 w-9 items-center justify-center text-white/45 hover:text-white" aria-label="Stop">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Phones and tablets: a floating glass card above the bottom bar. */}
       <div
-        className="fixed inset-x-3 z-50 bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+18px)] lg:bottom-6 lg:left-[280px] lg:right-6 lg:mx-auto lg:max-w-xl"
+        className="fixed inset-x-3 z-50 bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+18px)] lg:hidden"
       >
         <div
           role="button"
@@ -132,6 +205,7 @@ export function PersistentMiniPlayer() {
           </div>
         </div>
       </div>
+      </>
     )
   }
 

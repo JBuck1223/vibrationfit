@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { AudioBrowse } from '@/components/app-shell/audio/AudioBrowse'
 import { Container, Stack, Card, Button, Spinner, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
@@ -310,6 +312,11 @@ function ListenPracticeStatsRow({
 }
 
 export default function AudioListenPage() {
+  const inShell = useInShell()
+  return inShell ? <AudioBrowse /> : <LegacyAudioListenPage />
+}
+
+function LegacyAudioListenPage() {
   const {
     visionId, vision, visionLoading,
     audioSets, audioSetsLoading, refreshAudioSets,
