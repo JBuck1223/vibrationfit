@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft, LayoutGrid, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getSection, isSectionRoot, sectionForPath } from '@/lib/app-shell/sections'
+import { areaForPath, getSection, isSectionRoot, sectionForPath } from '@/lib/app-shell/sections'
 import { useShellProfile } from './useShellProfile'
 
 /**
@@ -22,7 +22,11 @@ export function ShellHeader() {
   const profile = useShellProfile()
   const tools = getSection('tools')
   const account = getSection('account')
-  const Icon = section.icon
+  // Inside a studio (Journal, Daily Paper...) the bar names that studio with
+  // its icon; the studio's own header handles going back from deeper pages.
+  const area = atRoot ? null : areaForPath(section, pathname)
+  const Icon = area?.icon ?? section.icon
+  const showIcon = atRoot || !!area
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -45,7 +49,7 @@ export function ShellHeader() {
         style={{ height: 'var(--shell-header-height)' }}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2" data-section={section.accent === 'viva' ? 'viva' : undefined}>
-          {atRoot ? (
+          {showIcon ? (
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--section-accent-soft)] text-[var(--section-accent)]">
               <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
             </span>
@@ -59,7 +63,7 @@ export function ShellHeader() {
               <ChevronLeft className="h-5 w-5" />
             </button>
           )}
-          <h1 className="truncate text-[17px] font-semibold text-white">{section.label}</h1>
+          <h1 className="truncate text-[17px] font-semibold text-white">{area?.label ?? section.label}</h1>
         </div>
 
         <Link
