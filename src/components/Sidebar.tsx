@@ -326,7 +326,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           <button
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={cn('hidden md:block p-1.5 rounded-lg transition-colors', glass ? 'text-white/40 hover:text-white hover:bg-white/[0.06]' : 'hover:bg-neutral-800')}
+            className={cn('hidden md:block p-1.5 rounded-lg transition-colors', glass ? 'rounded-full bg-white/[0.08] text-white/85 hover:bg-white/[0.14] hover:text-white' : 'hover:bg-neutral-800')}
           >
             {collapsed ? (
               <ChevronRight className={cn('w-4 h-4', !glass && 'text-neutral-400')} />
