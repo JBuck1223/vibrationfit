@@ -455,12 +455,9 @@ export default function StoryUpdatePage() {
         <Card>
           <Stack gap="md">
             <div className="flex flex-col items-center gap-2 text-center">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary-500" />
-                <h2 className="text-base font-semibold text-white">
-                  {story.title || 'Untitled Story'}
-                </h2>
-              </div>
+              <h2 className="text-lg font-semibold text-white">
+                {story.title || 'Untitled Story'}
+              </h2>
               <p className="text-xs text-neutral-400">
                 {story.word_count ? `${story.word_count.toLocaleString()} words` : 'No content'}
               </p>
