@@ -14,7 +14,10 @@ import {
   Minimize,
   Gauge,
   Film,
+  SlidersHorizontal,
+  CheckCircle,
 } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 export interface SlideshowItem {
   id: string
@@ -99,6 +102,9 @@ export function VisionBoardSlideshow({
   const [controlsVisible, setControlsVisible] = useState(true)
   const [speedMenuOpen, setSpeedMenuOpen] = useState(false)
   const [layers, setLayers] = useState<SlideLayer[]>([])
+  const inShell = useInShell()
+  // Shell, phones: speed, shuffle, captions and motion live in one options sheet.
+  const [optionsOpen, setOptionsOpen] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -195,6 +201,7 @@ export function VisionBoardSlideshow({
     hideControlsTimer.current = setTimeout(() => {
       setControlsVisible(false)
       setSpeedMenuOpen(false)
+      setOptionsOpen(false)
     }, CONTROLS_HIDE_DELAY_MS)
   }, [])
 
@@ -271,6 +278,298 @@ export function VisionBoardSlideshow({
   }
 
   if (!isOpen || typeof document === 'undefined') return null
+
+  if (inShell) {
+    const glass = 'border border-white/[0.14] bg-[rgba(28,22,38,0.62)] backdrop-blur-2xl backdrop-saturate-150'
+    const iconBtn = (on = false) =>
+      `flex h-10 w-10 items-center justify-center rounded-full transition-colors ${on ? 'bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'text-white/80 hover:bg-white/10 hover:text-white'}`
+    const fade = controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+    const options = [
+      { key: 'shuffle', label: 'Shuffle', icon: Shuffle, on: shuffled, toggle: toggleShuffle },
+      { key: 'captions', label: 'Captions', icon: Type, on: showCaptions, toggle: () => setShowCaptions((c) => !c) },
+      { key: 'motion', label: 'Motion', icon: Film, on: motionEnabled, toggle: () => setMotionEnabled((m) => !m) },
+    ]
+    const speedChips = (
+      <div className="flex flex-wrap gap-1.5">
+        {SPEED_OPTIONS.map((option) => (
+          <button
+            key={option.seconds}
+            type="button"
+            onClick={() => { setIntervalSec(option.seconds); setSpeedMenuOpen(false); wakeControls() }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              intervalSec === option.seconds
+                ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
+                : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white'
+            }`}
+          >
+            {option.label} <span className="opacity-60">{option.seconds}s</span>
+          </button>
+        ))}
+      </div>
+    )
+
+    return createPortal(
+      <div
+        ref={containerRef}
+        className="fixed inset-0 z-[500] flex select-none items-center justify-center overflow-hidden bg-[#0b0910]"
+        onMouseMove={wakeControls}
+        onTouchStart={(e) => {
+          wakeControls()
+          touchStartX.current = e.touches[0].clientX
+        }}
+        onTouchEnd={(e) => {
+          if (touchStartX.current === null) return
+          const delta = e.changedTouches[0].clientX - touchStartX.current
+          if (Math.abs(delta) > 50) {
+            delta < 0 ? goNext() : goPrev()
+          }
+          touchStartX.current = null
+        }}
+        style={{ cursor: controlsVisible ? 'default' : 'none' }}
+      >
+        <style>{`
+          @keyframes vb-slideshow-fade-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes vb-slideshow-fade-out { from { opacity: 1; } to { opacity: 0; } }
+          @keyframes vb-slideshow-kenburns-a { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.08) translate(-1%, 1%); } }
+          @keyframes vb-slideshow-kenburns-b { from { transform: scale(1.08) translate(1%, -1%); } to { transform: scale(1) translate(0, 0); } }
+          @keyframes vb-slideshow-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        `}</style>
+
+        {slides.length === 0 ? (
+          <div className={`mx-6 max-w-sm rounded-[26px] p-6 text-center ${glass}`}>
+            <Film className="mx-auto mb-3 h-10 w-10 text-white/40" />
+            <p className="text-sm text-white/70">No images to play yet. Add creations with images to your board first.</p>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="mt-5 rounded-full bg-[#39FF14] px-6 py-2.5 text-sm font-semibold text-black"
+            >
+              Close
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Each slide: a soft blurred wash of the image fills the screen,
+                with the whole image on top, so nothing reads as black bars. */}
+            <div className="absolute inset-0">
+              {layers.map((layer) => (
+                <div
+                  key={layer.key}
+                  className="absolute inset-0"
+                  style={{
+                    animationName: layer.state === 'in' ? 'vb-slideshow-fade-in' : 'vb-slideshow-fade-out',
+                    animationDuration: `${CROSSFADE_MS}ms`,
+                    animationTimingFunction: 'ease',
+                    animationFillMode: 'both',
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={layer.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-3xl saturate-150" />
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(11,9,16,0.75)_100%)]" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={layer.url}
+                    alt={layer.alt}
+                    className="absolute inset-0 h-full w-full object-contain"
+                    style={
+                      motionEnabled
+                        ? {
+                            animationName: layer.parity === 0 ? 'vb-slideshow-kenburns-a' : 'vb-slideshow-kenburns-b',
+                            animationDuration: `${layer.motionDurationSec}s`,
+                            animationTimingFunction: 'ease-out',
+                            animationFillMode: 'both',
+                            animationPlayState: playing ? 'running' : 'paused',
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Top: time left on this slide, the count, and close. */}
+            <div
+              className={`absolute inset-x-0 top-0 px-4 transition-opacity duration-300 ${fade}`}
+              style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+            >
+              {slides.length > 1 && (
+                <div className="mb-3 h-[3px] overflow-hidden rounded-full bg-white/15">
+                  <div
+                    key={`${pos}-${intervalSec}-${order[pos]}`}
+                    className="h-full origin-left rounded-full bg-[#39FF14]"
+                    style={{
+                      animationName: 'vb-slideshow-progress',
+                      animationDuration: `${intervalSec}s`,
+                      animationTimingFunction: 'linear',
+                      animationFillMode: 'both',
+                      animationPlayState: playing ? 'running' : 'paused',
+                    }}
+                  />
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className={`rounded-full px-3 py-1.5 text-xs font-medium tabular-nums text-white/85 ${glass}`}>
+                  {pos + 1} of {slides.length}
+                </span>
+                <button type="button" onClick={handleClose} aria-label="Close slideshow" className={`flex h-10 w-10 items-center justify-center rounded-full text-white/85 hover:text-white ${glass}`}>
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Side arrows on larger screens; phones swipe. */}
+            {slides.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => { goPrev(); wakeControls() }}
+                  aria-label="Previous"
+                  className={`absolute left-6 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-white/80 transition-opacity duration-300 hover:text-white md:flex ${glass} ${fade}`}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { goNext(); wakeControls() }}
+                  aria-label="Next"
+                  className={`absolute right-6 top-1/2 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-white/80 transition-opacity duration-300 hover:text-white md:flex ${glass} ${fade}`}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              </>
+            )}
+
+            {/* Bottom: caption over a soft fade, then the controls. */}
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0b0910]/90 via-[#0b0910]/45 to-transparent px-5 pt-28 md:px-12"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)' }}
+            >
+              {showCaptions && currentSlide && (
+                <div className="mx-auto max-w-3xl text-center">
+                  {currentSlide.item.status === 'actualized' && (
+                    <span className="mb-2 inline-flex items-center gap-1 rounded-full bg-[rgba(191,0,255,0.25)] px-2.5 py-0.5 text-xs font-medium text-[#e2b3ff]">
+                      <CheckCircle className="h-3 w-3" /> Actualized
+                    </span>
+                  )}
+                  <h3 className="text-2xl font-bold leading-tight text-white drop-shadow-lg md:text-4xl">{currentSlide.item.name}</h3>
+                  {currentSlide.item.description && (
+                    <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-white/75 line-clamp-3 drop-shadow md:text-base">
+                      {currentSlide.item.description}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`absolute inset-x-0 bottom-0 flex justify-center px-4 transition-all duration-300 ${controlsVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'}`}
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)' }}
+            >
+              <div className={`relative flex items-center gap-1 rounded-full px-2 py-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.45)] ${glass}`}>
+                <button type="button" onClick={() => { goPrev(); wakeControls() }} aria-label="Previous" className={iconBtn()}>
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPlaying((p) => !p); wakeControls() }}
+                  aria-label={playing ? 'Pause' : 'Play'}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[#39FF14] text-black shadow-[0_0_18px_rgba(57,255,20,0.4)] transition-transform active:scale-95"
+                >
+                  {playing ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="ml-0.5 h-5 w-5" fill="currentColor" />}
+                </button>
+                <button type="button" onClick={() => { goNext(); wakeControls() }} aria-label="Next" className={iconBtn()}>
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+
+                <div className="mx-1 h-6 w-px bg-white/15" />
+
+                {/* Phones: one options button. */}
+                <button
+                  type="button"
+                  onClick={() => { setOptionsOpen((o) => !o); wakeControls() }}
+                  aria-label="Slideshow options"
+                  aria-expanded={optionsOpen}
+                  className={`${iconBtn(optionsOpen)} md:hidden`}
+                >
+                  <SlidersHorizontal className="h-5 w-5" />
+                </button>
+
+                {/* Larger screens: every option inline. */}
+                <div className="relative hidden md:block">
+                  <button
+                    type="button"
+                    onClick={() => { setSpeedMenuOpen((o) => !o); wakeControls() }}
+                    aria-label="Slideshow speed"
+                    className={`${iconBtn(speedMenuOpen)} w-auto gap-1.5 px-3`}
+                  >
+                    <Gauge className="h-5 w-5" />
+                    <span className="text-xs font-semibold tabular-nums">{intervalSec}s</span>
+                  </button>
+                  {speedMenuOpen && (
+                    <div className={`absolute bottom-full left-1/2 mb-3 w-[300px] -translate-x-1/2 rounded-[20px] p-3 shadow-2xl ${glass} bg-[rgba(28,22,38,0.92)]`}>
+                      <p className="mb-2 text-xs font-medium text-white/55">Time on each slide</p>
+                      {speedChips}
+                    </div>
+                  )}
+                </div>
+                {options.map((o) => {
+                  const OptionIcon = o.icon
+                  return (
+                    <button
+                      key={o.key}
+                      type="button"
+                      onClick={() => { o.toggle(); wakeControls() }}
+                      aria-label={o.label}
+                      aria-pressed={o.on}
+                      title={o.label}
+                      className={`${iconBtn(o.on)} hidden md:flex`}
+                    >
+                      <OptionIcon className="h-5 w-5" />
+                    </button>
+                  )
+                })}
+                <button
+                  type="button"
+                  onClick={() => { toggleFullscreen(); wakeControls() }}
+                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                  className={`${iconBtn()} hidden md:flex`}
+                >
+                  {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                </button>
+
+                {optionsOpen && (
+                  <div className={`absolute bottom-full left-1/2 mb-3 w-[min(calc(100vw-2rem),340px)] -translate-x-1/2 rounded-[22px] p-4 shadow-2xl md:hidden ${glass} bg-[rgba(28,22,38,0.92)]`}>
+                    <p className="mb-2 text-xs font-medium text-white/55">Time on each slide</p>
+                    {speedChips}
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      {options.map((o) => {
+                        const OptionIcon = o.icon
+                        return (
+                          <button
+                            key={o.key}
+                            type="button"
+                            onClick={() => { o.toggle(); wakeControls() }}
+                            aria-pressed={o.on}
+                            className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-2.5 text-xs transition-colors ${
+                              o.on ? 'border-[#39FF14] bg-[rgba(57,255,20,0.12)] text-[#39FF14]' : 'border-white/15 text-white/75'
+                            }`}
+                          >
+                            <OptionIcon className="h-4 w-4" />
+                            {o.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>,
+      document.body
+    )
+  }
 
   const controlButtonClass =
     'p-2.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors'
