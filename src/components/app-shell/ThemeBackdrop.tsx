@@ -42,7 +42,9 @@ export function ThemeBackdrop() {
   const pathname = usePathname()
   const section = sectionForPath(pathname)
   const atRoot = isSectionRoot(pathname)
-  const url = useThemeImage(`${section.id}.hero` as ThemeSlot)
+  // Themes have no Vision hero yet; Life Vision and Manifestations keep the
+  // Tool Box picture they have always shown.
+  const url = useThemeImage((section.id === 'vision' ? 'tools.hero' : `${section.id}.hero`) as ThemeSlot)
   const [layers, settle] = useCrossfade(url)
 
   return (

@@ -995,6 +995,17 @@ export const shellNavigationPrimary: NavItem[] = [
 
 export const shellNavigationGroups: NavGroup[] = [
   {
+    name: 'Vision',
+    href: '/vision',
+    isCollapsible: true,
+    defaultCollapsed: false,
+    icon: Target,
+    items: [
+      { name: 'Life Vision', href: '/life-vision', icon: Target, description: 'The life you choose' },
+      { name: 'Manifestations', href: '/manifestations', icon: Image, description: 'What you are calling in' },
+    ],
+  },
+  {
     name: 'Audio',
     href: '/audio',
     isCollapsible: true,
@@ -1040,8 +1051,6 @@ export const shellNavigationGroups: NavGroup[] = [
     icon: Wrench,
     items: [
       { name: 'MAP', href: '/map', icon: Map, description: 'My Alignment Plan' },
-      { name: 'Manifestations', href: '/manifestations', icon: Image, description: 'What you are calling in' },
-      { name: 'Life Vision', href: '/life-vision', icon: Target, description: 'The life you choose' },
       { name: 'Stories', href: '/story', icon: Library, description: 'Write future-self stories' },
       { name: 'Incantations', href: '/story?kind=incantation', icon: Mic, description: 'Spoken lines that shift state' },
       { name: 'Queries', href: '/story?kind=spark_query', icon: Lightbulb, description: 'Questions that spark' },

@@ -39,7 +39,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-export type SectionId = 'home' | 'viva' | 'listen' | 'capture' | 'tribe' | 'tools' | 'account'
+export type SectionId = 'home' | 'vision' | 'viva' | 'listen' | 'capture' | 'tribe' | 'tools' | 'account'
 
 /** Which brand color the section paints with. Only VIVA is purple. */
 export type SectionAccent = 'brand' | 'viva'
@@ -71,7 +71,7 @@ export interface Section {
   tabs: SectionTab[]
   /** The areas (studios) that live under this section, in sidebar order. */
   areas: SectionArea[]
-  /** True for the five that sit in the pill. Tools and Account live in the header. */
+  /** True for the six that sit in the pill. Tools and Account live in the header. */
   inPill: boolean
 }
 
@@ -90,6 +90,26 @@ export const SECTIONS: Section[] = [
       { label: 'Activity', href: '/activity', icon: Activity },
       { label: 'Streaks', href: '/tracking/streaks', icon: Flame },
       { label: 'Badges', href: '/tracking/badges', icon: Award },
+    ],
+    inPill: true,
+  },
+  {
+    // Life Vision and Manifestations: the life the member chooses and what
+    // they are calling in. Stories stay under Tool Box; ones made from the
+    // Life Vision also show on the Vision page.
+    id: 'vision',
+    label: 'Vision',
+    icon: Target,
+    accent: 'brand',
+    href: '/vision',
+    matchPrefixes: ['/vision', '/life-vision', '/manifestations'],
+    tabs: [
+      { label: 'Life Vision', href: '/life-vision' },
+      { label: 'Manifestations', href: '/manifestations' },
+    ],
+    areas: [
+      { label: 'Life Vision', href: '/life-vision', icon: Target },
+      { label: 'Manifestations', href: '/manifestations', icon: ImageIcon },
     ],
     inPill: true,
   },
@@ -172,11 +192,9 @@ export const SECTIONS: Section[] = [
     icon: LayoutGrid,
     accent: 'brand',
     href: '/tools',
-    matchPrefixes: ['/tools', '/manifestations', '/vision', '/scenes', '/life-vision', '/story'],
+    matchPrefixes: ['/tools', '/scenes', '/story'],
     tabs: [],
     areas: [
-      { label: 'Manifestations', href: '/manifestations', icon: ImageIcon },
-      { label: 'Life Vision', href: '/life-vision', icon: Target },
       { label: 'Stories', href: '/story', icon: Library },
       { label: 'Incantations', href: '/story?kind=incantation', icon: Mic },
       { label: 'Songwriter', href: '/audio/songwriter', icon: Music2 },

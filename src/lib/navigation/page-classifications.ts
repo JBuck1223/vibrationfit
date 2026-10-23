@@ -86,6 +86,7 @@ export const PAGE_CLASSIFICATIONS = {
     '/listen/incantations',
     '/listen/queries',
     '/listen/playlists',
+    '/vision',
     '/capture',
     '/tribe',
     '/tools',

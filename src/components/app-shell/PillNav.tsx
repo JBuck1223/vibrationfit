@@ -41,7 +41,7 @@ export function PillNav() {
       )}
       style={{ height: 'var(--shell-nav-height)' }}
     >
-      <ul className="flex h-full items-stretch justify-around px-2">
+      <ul className="flex h-full items-stretch justify-around px-1.5">
         {PILL_SECTIONS.map((section) => {
           const isActive = section.id === active.id
           const Icon = section.icon
@@ -53,16 +53,16 @@ export function PillNav() {
                 onClick={() => void tapHaptic()}
                 className={cn(
                   'relative flex flex-1 flex-col items-center justify-center gap-1 pb-2 pt-1 rounded-[28px]',
-                  'text-[13px] font-medium transition-colors',
+                  'text-[12px] font-medium transition-colors',
                   isActive ? 'text-[var(--section-accent)]' : 'text-white/85 active:text-white',
                 )}
               >
                 <Icon
-                  className={cn('h-[26px] w-[26px] transition-transform', isActive && 'scale-105')}
+                  className={cn('h-6 w-6 transition-transform', isActive && 'scale-105')}
                   strokeWidth={isActive ? 2 : 1.5}
                   style={isActive ? { filter: 'drop-shadow(0 0 8px var(--section-accent-soft))' } : undefined}
                 />
-                <span>{section.label}</span>
+                <span className="whitespace-nowrap">{section.label}</span>
                 <span
                   aria-hidden
                   className={cn(
