@@ -29,7 +29,7 @@ export function AreaLinks({ sectionId, className }: { sectionId: SectionId; clas
               'flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
               here
                 ? 'border-[var(--section-accent)] bg-[var(--section-accent-soft)] text-[var(--section-accent)]'
-                : 'glass-chrome rounded-full text-white/85 hover:text-white',
+                : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/90 backdrop-blur-xl hover:text-white',
             )}
           >
             <Icon className="h-4 w-4" strokeWidth={1.75} />

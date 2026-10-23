@@ -39,9 +39,12 @@ export function HomeHero({ firstName, action }: { firstName: string | null; acti
       </h1>
       <div className="mt-4 h-12">
         {action && (
-          <Link href={action.href} className="btn btn-primary !py-3 !px-6 text-[15px]">
+          <Link
+            href={action.href}
+            className="inline-flex h-12 items-center gap-2 rounded-full bg-[#39FF14] px-6 text-[15px] font-semibold text-black shadow-[0_0_24px_rgba(57,255,20,0.4)] transition-transform active:scale-[0.98]"
+          >
             {action.label}
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <ArrowRight className="h-4 w-4" />
           </Link>
         )}
       </div>

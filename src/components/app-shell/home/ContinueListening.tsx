@@ -340,7 +340,7 @@ export function ContinueListening() {
       ) : (
         <div className={`${GLASS_CARD} flex flex-col items-start gap-3 p-5 md:max-w-md`}>
           <p className="text-sm text-white/70">Generate your Life Vision audio and it shows up here, ready for one tap.</p>
-          <Link href="/audio" className="btn btn-outline !py-2 !px-4 text-sm">
+          <Link href="/audio" className="inline-flex h-9 items-center rounded-full border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-white transition-colors hover:border-white/30">
             Open Audio <ArrowRight className="ml-1.5 h-4 w-4" />
           </Link>
         </div>

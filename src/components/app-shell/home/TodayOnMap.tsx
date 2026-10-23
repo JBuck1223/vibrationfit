@@ -168,7 +168,7 @@ export function TodayOnMap({ occurrences, date }: TodayOnMapProps) {
           <p className="text-sm text-white/70">
             {hasMap ? 'Nothing is scheduled today. Rest counts too.' : 'Your MAP turns your vision into a simple daily practice.'}
           </p>
-          <Link href={hasMap ? '/map/week' : '/map/new'} className="btn btn-outline !py-2 !px-4 text-sm">
+          <Link href={hasMap ? '/map/week' : '/map/new'} className="inline-flex h-9 items-center rounded-full border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-white transition-colors hover:border-white/30">
             {hasMap ? 'See this week' : 'Build my MAP'}
           </Link>
         </div>

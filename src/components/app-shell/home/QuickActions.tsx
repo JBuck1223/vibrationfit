@@ -81,7 +81,7 @@ export function QuickActions() {
     <section>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-base font-semibold text-white">Quick Actions</h2>
-        <Link href="/tools" className="flex items-center gap-1 text-sm text-white/60 hover:text-white">
+        <Link href="/tools" className="flex items-center gap-1 text-sm text-white/75 hover:text-white">
           See all <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
