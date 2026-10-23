@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { cn } from '../shared-utils'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 // ============================================================================
 // TOGGLE COMPONENT
@@ -42,6 +43,7 @@ export function Toggle<T extends string>({
   className = '',
   ...props
 }: ToggleProps<T>) {
+  const inShell = useInShell()
   const sizes = {
     sm: 'px-3 py-2 text-sm',
     md: 'px-3 py-2.5 text-sm sm:px-4 sm:py-3.5 sm:text-base',
@@ -60,6 +62,52 @@ export function Toggle<T extends string>({
     const g = parseInt(hex.slice(3, 5), 16)
     const b = parseInt(hex.slice(5, 7), 16)
     return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+
+  // App shell: an in-page choice is a glass pill with a soft white highlight,
+  // so it never reads as the studio's green header toggle.
+  if (inShell) {
+    const shellSizes = { sm: 'px-3 py-1.5 text-xs', md: 'px-4 py-2 text-sm', lg: 'px-5 py-2.5 text-base' }
+    return (
+      <div
+        className={cn(
+          'items-center gap-0.5 rounded-full border border-white/15 bg-white/[0.05] p-1',
+          fullWidth ? 'flex w-full' : 'inline-flex max-w-full',
+          className
+        )}
+        role="radiogroup"
+        {...props}
+      >
+        {options.map((option) => {
+          const isActive = value === option.value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => onChange(option.value)}
+              className={cn(
+                'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-colors',
+                segmentedField ? 'min-h-[40px] flex-1 px-3 text-sm' : shellSizes[size],
+                fullWidth && 'min-w-0 flex-1',
+                isActive ? 'bg-white/[0.16] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]' : 'text-white/60 hover:text-white'
+              )}
+            >
+              {option.label}
+              {option.badge && isActive && (
+                <span
+                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold text-black"
+                  style={{ backgroundColor: option.badgeColor || '#FFB701' }}
+                >
+                  {option.badge}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    )
   }
 
   return (

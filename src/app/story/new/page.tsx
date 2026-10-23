@@ -25,6 +25,7 @@ import {
   Plus,
   X,
 } from 'lucide-react'
+import { useRevealAboveNav } from '@/lib/app-shell/useRevealAboveNav'
 import { createClient } from '@/lib/supabase/client'
 import {
   Button,
@@ -181,6 +182,10 @@ export default function NewStoryWizardPage() {
   const [customSelectedCategories, setCustomSelectedCategories] = useState<LifeCategoryKey[]>([])
   const [customCategoryData, setCustomCategoryData] = useState<CategoryFocusData[]>([])
   const [isCustomVisionDropdownOpen, setIsCustomVisionDropdownOpen] = useState(false)
+  // Open menus scroll clear of the phone's bottom bar.
+  const sourceMenuRef = useRevealAboveNav(isSourceDropdownOpen)
+  const entityMenuRef = useRevealAboveNav(isEntityDropdownOpen)
+  const customVisionMenuRef = useRevealAboveNav(isCustomVisionDropdownOpen)
 
   // Generation state
   const [generating, setGenerating] = useState(false)
@@ -1239,7 +1244,7 @@ export default function NewStoryWizardPage() {
                   {isSourceDropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setIsSourceDropdownOpen(false)} />
-                      <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-80 overflow-y-auto">
+                      <div ref={sourceMenuRef} className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-80 overflow-y-auto">
                         {SOURCE_TYPES.map(source => {
                           const IconComp = source.icon
                           return (
@@ -1305,7 +1310,7 @@ export default function NewStoryWizardPage() {
                       {isEntityDropdownOpen && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => { setIsEntityDropdownOpen(false); setEntitySearchQuery('') }} />
-                          <div className="absolute z-20 w-full mt-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl overflow-hidden">
+                          <div ref={entityMenuRef} className="absolute z-20 w-full mt-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl overflow-hidden">
                             {isSearchableEntity && !entityLoading && entities.length > 0 && (
                               <div className="p-2 border-b border-[#333]">
                                 <div className="relative">
@@ -1575,7 +1580,7 @@ export default function NewStoryWizardPage() {
                                         {isCustomVisionDropdownOpen && (
                                           <>
                                             <div className="fixed inset-0 z-10" onClick={() => setIsCustomVisionDropdownOpen(false)} />
-                                            <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                                            <div ref={customVisionMenuRef} className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-60 overflow-y-auto">
                                               {customVisionEntities.map((entity: any) => {
                                                 const isSelected = customVisionId === entity.id
                                                 return (
