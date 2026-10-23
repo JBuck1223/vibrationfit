@@ -32,6 +32,12 @@ export const BEAT_LABEL: Record<AreaBeat, string> = {
   dream: 'Unleash your imagination',
 }
 
+/** Phone-width labels for the beat switch, where the full ones don't fit. */
+const BEAT_SHORT_LABEL: Record<AreaBeat, string> = {
+  now: 'Right now',
+  dream: 'Imagination',
+}
+
 export const AREA_EXPLAINER: Record<LifeCategoryKey, string> = {
   fun: 'Play, hobbies, entertainment, and the things you do simply because you enjoy them.',
   health: 'Your physical and mental well-being, including energy, fitness, nutrition, rest, and caring for yourself.',
@@ -283,6 +289,7 @@ export function ScratchAreaRow({
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  aria-label={BEAT_LABEL[b]}
                   onClick={() => switchBeat(b)}
                   className={
                     inShell
@@ -296,8 +303,15 @@ export function ScratchAreaRow({
                         }`
                   }
                 >
-                  <span className={`h-1.5 w-1.5 rounded-full ${done ? 'bg-[#39FF14]' : 'bg-[#3a3a3a]'}`} />
-                  {BEAT_LABEL[b]}
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${done ? 'bg-[#39FF14]' : 'bg-[#3a3a3a]'}`} />
+                  {inShell ? (
+                    <>
+                      <span className="whitespace-nowrap sm:hidden">{BEAT_SHORT_LABEL[b]}</span>
+                      <span className="hidden whitespace-nowrap sm:inline">{BEAT_LABEL[b]}</span>
+                    </>
+                  ) : (
+                    BEAT_LABEL[b]
+                  )}
                 </button>
               )
             })}
