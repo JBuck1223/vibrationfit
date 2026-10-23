@@ -716,15 +716,14 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       >
         {renderSidebarContent(collapsed)}
         {surface === 'glass' && (
-          // A small round tab on the panel's right edge: always there when
-          // collapsed, otherwise it fades in while you hover the sidebar.
+          // A small round tab on the panel's right edge, always visible.
           <button
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className={cn(
               'absolute -right-2.5 top-7 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-[rgba(36,29,50,0.9)] text-white/75 transition-all duration-200 hover:border-white/30 hover:text-white focus-visible:opacity-100',
-              collapsed ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100',
+              'opacity-100',
             )}
           >
             {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
