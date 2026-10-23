@@ -65,9 +65,11 @@ export interface NewJournalEntryFormProps {
   initialTag?: JournalTag | null
   /** Opening text for the entry. */
   initialContent?: string
+  /** Opening title (e.g. from a VIVA-drafted entry). */
+  initialTitle?: string
 }
 
-function buildInitialForm(mapLink?: MapJournalLink, initialTag?: JournalTag | null, initialContent?: string) {
+function buildInitialForm(mapLink?: MapJournalLink, initialTag?: JournalTag | null, initialContent?: string, initialTitle?: string) {
   if (mapLink) {
     return {
       date: mapLink.occurredOn,
@@ -79,7 +81,7 @@ function buildInitialForm(mapLink?: MapJournalLink, initialTag?: JournalTag | nu
   }
   return {
     date: '',
-    title: '',
+    title: initialTitle ?? '',
     content: initialContent ?? '',
     journal_tag: (initialTag ?? null) as JournalTag | null,
     categories: [] as string[],
@@ -95,6 +97,7 @@ export function NewJournalEntryForm({
   categoryGridBleedClass,
   initialTag,
   initialContent,
+  initialTitle,
 }: NewJournalEntryFormProps) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -111,7 +114,7 @@ export function NewJournalEntryForm({
   const [audioRecordings, setAudioRecordings] = useState<JournalAudioRecording[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [formData, setFormData] = useState(() => buildInitialForm(mapLink, initialTag, initialContent))
+  const [formData, setFormData] = useState(() => buildInitialForm(mapLink, initialTag, initialContent, initialTitle))
   const inShell = useInShell()
   const [categorySheetOpen, setCategorySheetOpen] = useState(false)
   const [draftSaved, setDraftSaved] = useState(false)

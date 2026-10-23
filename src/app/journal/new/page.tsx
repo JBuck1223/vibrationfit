@@ -16,7 +16,13 @@ export default function NewJournalEntryPage() {
   // Guided flows open the form already tagged (wobble / win), optionally with opening text.
   const tagParam = searchParams.get('tag')
   const initialTag = tagParam === 'wobble' || tagParam === 'win' || tagParam === 'vision' ? tagParam : null
-  const initialContent = searchParams.get('prefill') ?? undefined
+  const prefillParam = searchParams.get('prefill') ?? undefined
+  // ?fromViva=<threadId>: VIVA drafts this entry from that conversation.
+  const fromViva = searchParams.get('fromViva')
+  const [vivaDraft, setVivaDraft] = useState<{ title: string; content: string } | null>(null)
+  const [vivaDrafting, setVivaDrafting] = useState(!!fromViva)
+  const [vivaDraftFailed, setVivaDraftFailed] = useState(false)
+  const initialContent = vivaDraft?.content ?? prefillParam
   const supabase = createClient()
   const { refreshEntries } = useJournalStudio()
 
@@ -40,6 +46,35 @@ export default function NewJournalEntryPage() {
     }
     void loadName()
   }, [manifestationParam, supabase])
+
+  useEffect(() => {
+    if (!fromViva) return
+    let cancelled = false
+    setVivaDrafting(true)
+    void fetch('/api/viva/journal-draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ threadId: fromViva, tag: initialTag }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('draft failed')
+        const data = (await res.json()) as { title: string; content: string }
+        if (!cancelled) {
+          setVivaDraft({ title: data.title, content: data.content })
+          setFormKey((k) => k + 1)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setVivaDraftFailed(true)
+      })
+      .finally(() => {
+        if (!cancelled) setVivaDrafting(false)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromViva])
 
   useEffect(() => {
     const checkIntensiveMode = async () => {
@@ -119,6 +154,16 @@ export default function NewJournalEntryPage() {
             This entry will be added to the journey of <span className="text-[#D46BFF] font-medium">{manifestationName}</span>.
           </p>
         )}
+        {fromViva && (vivaDrafting || vivaDraft || vivaDraftFailed) ? (
+          <p className="flex items-center gap-2 rounded-xl border border-[#BF00FF]/30 bg-[#BF00FF]/10 px-4 py-2.5 text-xs text-[#E0A3FF]">
+            {vivaDrafting
+              ? 'VIVA is writing this entry from your conversation...'
+              : vivaDraft
+                ? 'VIVA drafted this from your conversation. Make it yours, then save.'
+                : 'VIVA couldn’t draft this one. Write it in your own words.'}
+          </p>
+        ) : null}
+        {vivaDrafting ? null : (
         <div data-tour="journal-create-form">
           <NewJournalEntryForm
             key={formKey}
@@ -127,8 +172,10 @@ export default function NewJournalEntryPage() {
             showRecoverableBanner
             initialTag={initialTag}
             initialContent={initialContent}
+            initialTitle={vivaDraft?.title}
           />
         </div>
+        )}
       </Stack>
 
       <IntensiveStepCompleteModal

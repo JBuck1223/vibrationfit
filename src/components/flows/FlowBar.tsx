@@ -1,5 +1,6 @@
 'use client'
 
+import { toast } from 'sonner'
 import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -70,6 +71,20 @@ export function FlowBar() {
   if (!run || !flow || !step) return null
 
   const onThisStep = samePage(pathname, target)
+  // On a VIVA step in the chat itself, the way forward is saving the
+  // conversation to the Journal (VIVA drafts the entry from it).
+  const vivaStepHere = onThisStep && !!target?.startsWith('/viva')
+  const journalTag = flow.state === 'below' ? 'wobble' : flow.state === 'above' ? 'win' : null
+  const saveChatToJournal = () => {
+    const thread = new URLSearchParams(window.location.search).get('thread')
+    if (!thread) {
+      toast('Talk with VIVA first, then save it to your Journal.')
+      return
+    }
+    const q = new URLSearchParams({ fromViva: thread })
+    if (journalTag) q.set('tag', journalTag)
+    router.push(`/journal/new?${q.toString()}`)
+  }
   // On full-height pages with a composer at the bottom (VIVA), ride at the top instead.
   const atTop = pathname.startsWith('/viva')
 
@@ -115,6 +130,11 @@ export function FlowBar() {
             </p>
             <p className="truncate text-sm font-semibold text-white">{step.title}</p>
           </button>
+          {!expanded && vivaStepHere && (
+            <button type="button" onClick={saveChatToJournal} className="flex shrink-0 items-center gap-1 rounded-full bg-[#39FF14] px-3 py-1.5 text-xs font-semibold text-black">
+              Save to Journal <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
           {!expanded && target && !onThisStep && (
             <Link href={target} className="flex shrink-0 items-center gap-1 rounded-full bg-[#39FF14] px-3 py-1.5 text-xs font-semibold text-black">
               Go <ArrowRight className="h-3.5 w-3.5" />
@@ -163,6 +183,10 @@ export function FlowBar() {
                   </li>
                 ))}
               </ul>
+            ) : vivaStepHere ? (
+              <button type="button" onClick={saveChatToJournal} className="btn btn-primary mt-3 w-full !py-2.5 text-sm">
+                Save this to my Journal <ArrowRight className="ml-2 h-4 w-4" />
+              </button>
             ) : (
               target &&
               !onThisStep && (
