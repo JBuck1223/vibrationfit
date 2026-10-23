@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { asIdentity, loadWorldIdentity, saveWorldIdentity } from '@/lib/your-world/identity'
 import { diffSnapshots } from '@/lib/your-world/snapshot'
 import { commitNewVersion, loadWorldState } from '@/lib/your-world/store'
 import type { YourWorldSnapshot } from '@/lib/your-world/types'
@@ -19,11 +20,11 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const [state, { data: account }] = await Promise.all([
+  const [state, identity] = await Promise.all([
     loadWorldState(supabase, user.id),
-    supabase.from('user_accounts').select('first_name').eq('id', user.id).maybeSingle(),
+    loadWorldIdentity(supabase, user.id),
   ])
-  return NextResponse.json({ ...state, firstName: account?.first_name || '' })
+  return NextResponse.json({ ...state, identity, firstName: identity.firstName })
 }
 
 export async function POST(req: Request) {
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
 
   try {
     const state = await loadWorldState(supabase, user.id)
+    const identity = asIdentity(body.identity)
+    if (identity) await saveWorldIdentity(supabase, user.id, identity)
     if (state.active && diffSnapshots(state.active.snapshot, snapshot).length === 0) {
       return NextResponse.json({ version: state.active, changed: false })
     }

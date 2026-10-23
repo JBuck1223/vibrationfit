@@ -24,6 +24,8 @@ export {
   userNavigation,
   userNavigationPrimary,
   userNavigationGroups,
+  shellNavigationPrimary,
+  shellNavigationGroups,
   adminNavigation,
   mobileNavigation,
   headerAccountMenu,

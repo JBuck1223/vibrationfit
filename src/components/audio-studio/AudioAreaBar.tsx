@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useAudioStudio } from './AudioStudioContext'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useMultiMemberHousehold, visionOwnerName } from '@/components/life-vision/useMultiMemberHousehold'
 
 const TABS = [
@@ -76,10 +77,15 @@ export function AudioAreaBar() {
   } = useAudioStudio()
   const { data: household } = useMultiMemberHousehold()
   const walkthroughMenu = useAreaBarWalkthrough()
+  const inShell = useInShell()
 
   const isListen = LISTEN_AREA_ROUTES.some(r => pathname === r || pathname === r + '/')
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
   const isOnSecondaryPage = SECONDARY_TABS.some(t => pathname === t.path || pathname.startsWith(t.path + '/'))
+
+  // In the app shell the listen pages are the app-style library and the
+  // create pages have their own header (CreateToolHeader).
+  if (inShell && (isListen || isCreateArea)) return null
 
   let contextNav: AreaBarContextNavItem[] | undefined
   let contextText: string | undefined

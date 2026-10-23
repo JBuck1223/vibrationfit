@@ -7,7 +7,8 @@ export function MapCompleteIndicator({ compact = false }: { compact?: boolean })
   const iconSize = compact ? 'w-[16px] h-[16px]' : 'w-[18px] h-[18px]'
   return (
     <span className="inline-flex items-center gap-1 shrink-0 text-primary-500 font-medium text-[11px]">
-      <span>Complete</span>
+      {/* Compact rows show just the check (the word still reads to screen readers). */}
+      <span className={compact ? 'sr-only' : undefined}>Complete</span>
       <CheckCircle2 className={iconSize} strokeWidth={2} aria-hidden />
     </span>
   )

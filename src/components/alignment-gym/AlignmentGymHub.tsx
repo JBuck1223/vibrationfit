@@ -1,5 +1,6 @@
 'use client'
 
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { cn } from '@/lib/design-system/components/shared-utils'
 
@@ -47,6 +48,7 @@ import {
   Apple,
   Eye,
 } from 'lucide-react'
+import { addGymSessionToAppleCalendar, googleCalendarUrlForGymSession, gymRelativeTime } from '@/lib/alignment-gym/calendar'
 import { 
   Container, 
   Stack,
@@ -114,6 +116,7 @@ export function AlignmentGymHub({
   forceCoachingOpen = false,
   onCoachingClose,
 }: AlignmentGymHubProps = {}) {
+  const inShell = useInShell()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const { stats: livePracticeStats } = useAreaStats('alignment-gym', {
@@ -294,60 +297,9 @@ export function AlignmentGymHub({
   const isLive = nextSession?.status === 'live'
   const sessionsLocked = statsUntilGraduation
 
-  // Format relative time
-  const getRelativeTime = (dateStr: string) => {
-    const date = new Date(dateStr)
-    const diffMs = date.getTime() - now.getTime()
-    const diffMins = Math.floor(diffMs / (1000 * 60))
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-    
-    if (diffMins < 0) return 'Starting soon'
-    if (diffMins < 60) return `In ${diffMins} minutes`
-    if (diffHours < 24) return `In ${diffHours} hours`
-    if (diffDays === 1) return 'Tomorrow'
-    return `In ${diffDays} days`
-  }
-
-  // Add to Calendar helpers
-  const formatICSDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-
-  const handleAddToAppleCalendar = (session: SessionWithParticipants) => {
-    const start = new Date(session.scheduled_at)
-    const end = new Date(start.getTime() + (session.scheduled_duration_minutes || 60) * 60 * 1000)
-    const title = session.title || 'The Alignment Gym'
-    const joinLink = `${window.location.origin}/session/${session.id}`
-    const desc = `Weekly group coaching session. Join: ${joinLink}`
-    const ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Vibration Fit//Alignment Gym//EN',
-      'BEGIN:VEVENT',
-      `DTSTART:${formatICSDate(start)}`,
-      `DTEND:${formatICSDate(end)}`,
-      `SUMMARY:${title.replace(/,/g, '\\,').replace(/;/g, '\\;')}`,
-      `DESCRIPTION:${desc.replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n')}`,
-      `URL:${joinLink}`,
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\r\n')
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'Alignment-Gym.ics'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const getGoogleCalendarUrl = (session: SessionWithParticipants) => {
-    const start = new Date(session.scheduled_at)
-    const end = new Date(start.getTime() + (session.scheduled_duration_minutes || 60) * 60 * 1000)
-    const title = encodeURIComponent(session.title || 'The Alignment Gym')
-    const joinLink = `${window.location.origin}/session/${session.id}`
-    const details = encodeURIComponent(`Weekly group coaching session. Join: ${joinLink}`)
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatICSDate(start)}/${formatICSDate(end)}&details=${details}`
-  }
+  const getRelativeTime = (dateStr: string) => gymRelativeTime(dateStr, now)
+  const handleAddToAppleCalendar = addGymSessionToAppleCalendar
+  const getGoogleCalendarUrl = googleCalendarUrlForGymSession
 
   // Loading state
   if (loading) {
@@ -366,7 +318,9 @@ export function AlignmentGymHub({
         <div
           data-alignment-gym-tour="stats"
           className={cn(
-            'relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#14B8A6]/[0.04] via-[#111] to-[#111]',
+            inShell
+              ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 relative'
+              : 'relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#14B8A6]/[0.04] via-[#111] to-[#111]',
             tourClass('stats'),
           )}
         >
@@ -374,7 +328,7 @@ export function AlignmentGymHub({
           <div className="relative p-5 md:p-6">
             <div className="flex items-center justify-center gap-2.5 mb-4">
               <Video className="w-4 h-4 text-[#14B8A6]" />
-              <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Alignment Gym</h3>
+              <h3 className={inShell ? 'text-base font-semibold text-white' : 'text-neutral-300 font-medium text-sm tracking-wide uppercase'}>{inShell ? 'Your Gym practice' : 'Alignment Gym'}</h3>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -443,7 +397,9 @@ export function AlignmentGymHub({
         <div
           data-alignment-gym-tour="what-is"
           className={cn(
-            'rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]',
+            inShell
+              ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 overflow-hidden transition-colors hover:border-white/25'
+              : 'rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]',
             tourClass('what-is'),
           )}
         >

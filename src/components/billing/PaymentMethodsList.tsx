@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { Card, Button } from '@/lib/design-system/components'
-import { CreditCard, Trash2, Star, Plus } from 'lucide-react'
+import { CreditCard, Trash2, Star, Plus, Wallet } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { toast } from 'sonner'
 
 type PaymentMethod = {
@@ -30,6 +31,7 @@ function brandIcon(brand: string | null) {
 }
 
 export default function PaymentMethodsList({ paymentMethods, onRefresh, onAddCard }: Props) {
+  const inShell = useInShell()
   const [actionId, setActionId] = useState<string | null>(null)
 
   const handleSetDefault = async (pmId: string) => {
@@ -77,6 +79,24 @@ export default function PaymentMethodsList({ paymentMethods, onRefresh, onAddCar
 
   return (
     <Card variant="outlined" className="p-4 md:p-5 border-neutral-800 bg-neutral-900/30">
+      {inShell ? (
+        // App shell: the same centered heading as the other billing cards,
+        // with Add card as a soft pill under it.
+        <div className="mb-4 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <Wallet className="h-5 w-5 shrink-0 text-neutral-500" aria-hidden />
+            <h3 className="text-lg font-semibold leading-snug text-white md:text-xl">Payment methods</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onAddCard}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] px-4 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
+          >
+            <Plus className="h-4 w-4" />
+            Add card
+          </button>
+        </div>
+      ) : (
       <div className="mb-4 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg md:text-xl font-semibold text-white leading-snug text-center sm:text-left">Payment methods</h3>
         <Button variant="outline" size="sm" className="w-full justify-center sm:w-auto shrink-0" onClick={onAddCard}>
@@ -84,6 +104,7 @@ export default function PaymentMethodsList({ paymentMethods, onRefresh, onAddCar
           Add card
         </Button>
       </div>
+      )}
 
       {paymentMethods.length === 0 ? (
         <p className="text-neutral-500 text-sm text-center py-6">No saved payment methods</p>

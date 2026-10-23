@@ -71,13 +71,13 @@ export const ONBOARDING_STEPS: JourneyStep<OnboardingStepId>[] = [
   {
     id: 'world',
     number: 3,
-    title: 'Your World',
-    description: 'Your people, home, work, and money. Every field is optional.',
+    title: 'My World',
+    description: 'Your name, birthday, and phone, plus your people, home, work, and money.',
     phase: 'Start',
     href: '/begin/world',
     viewHref: '/your-world',
-    doneWhen: 'You saved Your World',
-    actionLabel: 'Open Your World',
+    doneWhen: 'You saved My World',
+    actionLabel: 'Open My World',
   },
   {
     id: 'vision',

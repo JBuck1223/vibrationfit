@@ -14,6 +14,7 @@ import { format, isToday, isYesterday } from 'date-fns'
 import { renderContentWithMentions, MentionedUser } from '@/lib/vibe-tribe/render-mentions'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { VoiceInputButton } from './VoiceInputButton'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 const EDIT_ICON_MAP: Record<VibeTag, any> = {
   win: Trophy,
@@ -43,6 +44,8 @@ export function PostCard({
   initialCommentsOpen = false,
   highlightCommentId = null,
 }: PostCardProps) {
+  // Inside the app shell each post is its own glass card over the backdrop.
+  const inShell = useInShell()
   const [hearted, setHearted] = useState(post.has_hearted || false)
   const [heartsCount, setHeartsCount] = useState(post.hearts_count)
   const [showComments, setShowComments] = useState(initialCommentsOpen || Boolean(highlightCommentId))
@@ -297,7 +300,7 @@ export function PostCard({
                   {post.user?.full_name || 'Anonymous'}
                 </Link>
                 {isGuide && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[10px] font-bold text-[#BF00FF] tracking-wide uppercase">
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 font-bold text-[#BF00FF] ${inShell ? 'text-[11px]' : 'text-[10px] tracking-wide uppercase'}`}>
                 Guide
               </span>
                 )}
@@ -330,7 +333,7 @@ export function PostCard({
   }
 
   return (
-    <div className="py-4">
+    <div className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] px-4 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 md:px-5' : 'py-4'}>
       {/* Post Row */}
       <div className="flex items-start gap-3">
         {/* Avatar — tap photo to enlarge */}
@@ -362,16 +365,19 @@ export function PostCard({
           {/* Mobile: Name on row 1, Tag + Time on row 2 */}
           {/* Desktop: All on one row */}
           
+          {/* Name rows fill the photo's height, so the full-width body below
+              starts under the photo with a gap instead of touching it. */}
+          <div className={inShell ? 'flex min-h-[40px] flex-col justify-center' : undefined}>
           {/* Row 1: Name + Menu */}
           <div className="flex items-center gap-1.5 md:gap-2">
             <Link 
               href={`/snapshot/${post.user_id}`}
-              className="text-sm md:text-base font-bold text-white hover:text-primary-400 transition-colors leading-none"
+              className={`${inShell ? 'text-[15px] font-semibold' : 'text-sm font-bold'} md:text-base text-white hover:text-primary-400 transition-colors leading-none`}
             >
               {post.user?.full_name || 'Anonymous'}
             </Link>
             {isGuide && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[10px] font-bold text-[#BF00FF] tracking-wide uppercase">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 font-bold text-[#BF00FF] ${inShell ? 'text-[11px]' : 'text-[10px] tracking-wide uppercase'}`}>
                 Guide
               </span>
             )}
@@ -384,7 +390,7 @@ export function PostCard({
                   <span className="text-xs font-medium">Pinned</span>
                 </div>
               )}
-              <span className="text-sm text-neutral-500 leading-none">{timeDisplay}</span>
+              <span className={`text-sm leading-none ${inShell ? 'text-white/55' : 'text-neutral-500'}`}>{timeDisplay}</span>
             </div>
             
             {/* Menu */}
@@ -442,9 +448,12 @@ export function PostCard({
                 <span className="text-[10px] font-medium">Pinned</span>
               </div>
             )}
-            <span className="text-xs text-neutral-500 leading-none">{timeDisplay}</span>
+            <span className={`text-xs leading-none ${inShell ? 'text-white/55' : 'text-neutral-500'}`}>{timeDisplay}</span>
           </div>
-          {/* Content - directly under name line */}
+          </div>
+          {/* Content - directly under name line. In the app shell the body runs
+              the full card width under the name (no avatar indent). */}
+          <div className={inShell ? '-ml-[52px] mt-1' : undefined}>
           {isEditing ? (
             <div className="mt-2 space-y-3">
               <textarea
@@ -539,7 +548,7 @@ export function PostCard({
             </div>
           ) : (
             post.content && (
-              <p className="text-sm md:text-base text-white whitespace-pre-wrap leading-normal mt-1.5 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+              <p className={`${inShell ? 'text-[15px] leading-relaxed text-white/90 mt-2' : 'text-sm text-white leading-normal mt-1.5'} md:text-base whitespace-pre-wrap min-w-0 max-w-full break-words [overflow-wrap:anywhere]`}>
                 {renderContentWithMentions(post.content, mentionedUsers)}
               </p>
             )
@@ -632,6 +641,7 @@ export function PostCard({
               highlightCommentId={highlightCommentId}
             />
           )}
+          </div>
         </div>
       </div>
 

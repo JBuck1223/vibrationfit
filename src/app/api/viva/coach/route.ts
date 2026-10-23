@@ -10,6 +10,7 @@
  */
 
 import { streamText, generateText, stepCountIs, type ModelMessage } from 'ai'
+import { buildFlowPrompt } from '@/lib/flows/coach-prompt'
 import { after } from 'next/server'
 import { gateway } from '@/lib/ai/gateway'
 import { createClient } from '@/lib/supabase/server'
@@ -24,6 +25,7 @@ import {
 import { loadMemories, extractMemories, saveMemories, saveConstraints, loadConstraints } from '@/lib/viva/memory-extractor'
 import { searchMemberContext, syncMemberEmbeddings } from '@/lib/viva/embeddings'
 import { buildCoachTools, COACH_TOOLS_PROMPT } from '@/lib/viva/coach-tools'
+import { loadConversationHistory, mergeHistoryWithIncoming } from '@/lib/viva/conversation-history'
 import { buildCoachSpokenReply } from '@/lib/viva/coach-action-reply'
 import { getVivaHouseholdLens } from '@/lib/viva/household-lens'
 import { checkIsAdmin } from '@/middleware/admin'
@@ -439,6 +441,7 @@ async function runCoachTurn({
       PLATFORM_MAP_PROMPT,
       COACH_TOOLS_PROMPT,
       suggestToolsTurn ? SUGGEST_TOOLS_PROMPT : '',
+      buildFlowPrompt(userIntent),
       overlaySection,
       interpretationSection,
     ]
@@ -457,19 +460,7 @@ async function runCoachTurn({
     // Load conversation history
     let conversationHistory: CoachChatMessage[] = []
     if (currentConversationId) {
-      const { data: historyMessages } = await supabase
-        .from('ai_conversations')
-        .select('role, message')
-        .eq('conversation_id', currentConversationId)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(20)
-
-      if (historyMessages && historyMessages.length > 0) {
-        conversationHistory = historyMessages.map(msg =>
-          toCoachChatMessage(msg.role, msg.message)
-        )
-      }
+      conversationHistory = await loadConversationHistory(supabase, currentConversationId, user.id)
     }
 
     // Token validation
@@ -486,8 +477,8 @@ async function runCoachTurn({
     }
 
     // Build chat messages
-    const chatMessages = conversationHistory.length > 0
-      ? [...conversationHistory.slice(0, -1), ...messages.slice(-2)]
+    const chatMessages: CoachChatMessage[] = conversationHistory.length > 0
+      ? mergeHistoryWithIncoming(conversationHistory, messages)
       : messages
 
     if (!chatMessages || chatMessages.length === 0) {

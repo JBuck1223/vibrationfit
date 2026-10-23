@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useRouter } from 'next/navigation'
 import { Save } from 'lucide-react'
 import { Button, Input } from '@/lib/design-system/components'
@@ -10,8 +11,10 @@ import { useGoalPeriodSummary } from './use-goal-period-summary'
 import { shellCard, sectionLabel } from './ui-constants'
 import { formatAmountWithCommas, parseAmountInput } from './amount-input'
 
-export function SetGoalForm() {
+/** onSaved: when given (the form is shown in place), called instead of going to Goals. */
+export function SetGoalForm({ onSaved }: { onSaved?: () => void } = {}) {
   const router = useRouter()
+  const inShell = useInShell()
   const now = new Date()
   const [periodType, setPeriodType] = useState<PeriodType>('month')
   const [periodKey, setPeriodKey] = useState(() => getPeriodKey(now, 'month'))
@@ -48,7 +51,8 @@ export function SetGoalForm() {
       })
       if (!res.ok) throw new Error('Failed to save')
       await refetch()
-      router.push('/abundance-tracker/goals')
+      if (onSaved) onSaved()
+      else router.push('/abundance-tracker/goals')
     } catch (e) {
       console.error(e)
     } finally {
@@ -84,7 +88,7 @@ export function SetGoalForm() {
                 value={formatAmountWithCommas(goalInput)}
                 onChange={(e) => setGoalInput(parseAmountInput(e.target.value))}
                 prefix="$"
-                className="!bg-[#1A1A1A] !border-[#282828]"
+                className={inShell ? '!rounded-full !border-white/15 !bg-white/[0.06]' : '!bg-[#1A1A1A] !border-[#282828]'}
               />
             </div>
           </div>

@@ -1,6 +1,8 @@
 'use client'
 
+import { cn } from '@/lib/utils'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import Link from 'next/link'
 import { Image as ImageIcon, Video, Send, X, Trophy, Heart, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
@@ -36,6 +38,8 @@ interface StickyPostComposerProps {
 }
 
 export function StickyPostComposer({ userId, userProfile, onPostCreated }: StickyPostComposerProps) {
+  // In the app shell the prompt is a glass card in the feed column.
+  const inShell = useInShell()
   const [content, setContent] = useState('')
   const [selectedTag, setSelectedTag] = useState<VibeTag | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -234,7 +238,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
       {/* Upload Progress Overlay */}
       {uploadProgress.isVisible && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-          <div className="bg-neutral-900 rounded-2xl p-6 w-full max-w-sm">
+          <div className={inShell ? 'w-full max-w-sm rounded-[24px] border border-white/[0.14] bg-[rgba(28,22,38,0.97)] p-6' : 'bg-neutral-900 rounded-2xl p-6 w-full max-w-sm'}>
             <UploadProgress
               progress={uploadProgress.progress}
               status={uploadProgress.status}
@@ -247,8 +251,8 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
       )}
 
       {/* Collapsed Bar — Facebook-style prompt */}
-      <div className="border-b border-neutral-800 bg-black">
-        <div className="max-w-[772px] mx-auto px-4 py-3">
+      <div className={inShell ? 'mx-auto mt-2 w-full max-w-[772px]' : 'border-b border-white/10 bg-[var(--glass-fill-strong,black)]'}>
+        <div className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] px-3 py-3 backdrop-blur-2xl' : 'max-w-[772px] mx-auto px-4 py-3'}>
           <div className="flex items-center gap-3">
             {/* Profile Picture — links to own snapshot */}
             <ProfilePictureClickable
@@ -266,7 +270,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
             {/* Clickable placeholder */}
             <button
               onClick={() => setFocusOpen(true)}
-              className="flex-1 h-10 bg-neutral-900 border border-neutral-700 rounded-full px-4 text-left text-sm text-neutral-500 hover:bg-neutral-800 hover:border-neutral-600 transition-colors"
+              className={inShell ? 'h-10 min-w-0 flex-1 truncate rounded-full border border-white/15 bg-white/[0.06] px-4 text-left text-sm text-white/50 transition-colors hover:text-white/80' : 'flex-1 h-10 bg-neutral-900 border border-neutral-700 rounded-full px-4 text-left text-sm text-neutral-500 hover:bg-neutral-800 hover:border-neutral-600 transition-colors'}
             >
               What&apos;s on your mind, {firstName}?
             </button>
@@ -278,30 +282,13 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                   setFocusOpen(true)
                   setTimeout(() => fileInputRef.current?.click(), 200)
                 }}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                aria-label="Add photo"
+                // Desktop shows only the photo button here; on phones the prompt stands alone.
+                // Video and the mic are in Create Post.
+                className="hidden w-9 h-9 rounded-full items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors md:flex"
               >
                 <ImageIcon className="w-5 h-5" />
               </button>
-              <button
-                onClick={() => {
-                  setFocusOpen(true)
-                  setTimeout(() => fileInputRef.current?.click(), 200)
-                }}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
-                aria-label="Add video"
-              >
-                <Video className="w-5 h-5" />
-              </button>
-              <VoiceInputButton
-                value={content}
-                onChange={(next) => {
-                  setContent(next)
-                  setFocusOpen(true)
-                }}
-                join="paragraph"
-                disabled={submitting || focusOpen}
-                stopWhenDisabled
-              />
             </div>
           </div>
         </div>
@@ -322,15 +309,18 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
           {/* Modal — flexes vertically so the scrollable middle fills available space */}
           <div 
             ref={modalRef}
-            className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl flex flex-col mt-4 md:mt-0"
+            className={inShell
+              ? 'relative mt-4 flex w-full max-w-2xl flex-col rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(40,32,56,0.98)_0%,rgba(22,18,32,0.99)_100%)] shadow-[0_18px_50px_rgba(0,0,0,0.55)] md:mt-0'
+              : 'relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl flex flex-col mt-4 md:mt-0'}
             style={{ maxHeight: viewportHeight ? `${viewportHeight - 16}px` : 'calc(100dvh - 16px)' }}
           >
             {/* Header — pinned */}
-            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-neutral-800">
+            <div className={cn('flex-shrink-0 flex items-center justify-between px-5 py-3 border-b', inShell ? 'border-white/10' : 'border-neutral-800')}>
               <h2 className="text-base font-semibold text-white">Create Post</h2>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors"
+                aria-label="Close"
+                className={inShell ? 'flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/15 hover:text-white' : 'w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors'}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -370,9 +360,21 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                   onChange={mentionHandleChange}
                   onKeyDown={mentionHandleKeyDown}
                   placeholder={`What's on your mind, ${firstName}?`}
-                  className="w-full bg-transparent text-white text-base placeholder-neutral-500 focus:outline-none resize-none"
+                  className="w-full bg-transparent pr-12 pb-10 text-white text-base placeholder-neutral-500 focus:outline-none resize-none"
                   style={{ minHeight: '100px' }}
                 />
+                {/* Speak instead of typing: the mic sits in the writing area's corner. */}
+                <div className="absolute bottom-3 right-5">
+                  <VoiceInputButton
+                    value={content}
+                    onChange={setContent}
+                    textareaRef={textareaRef}
+                    join="paragraph"
+                    autoResize
+                    disabled={submitting}
+                    iconClassName="w-[18px] h-[18px]"
+                  />
+                </div>
               </div>
 
               {/* File Previews */}
@@ -463,7 +465,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
             </div>
 
             {/* Bottom Action Bar — pinned */}
-            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-t border-neutral-800">
+            <div className={cn('flex-shrink-0 flex items-center justify-between px-5 py-3 border-t', inShell ? 'border-white/10' : 'border-neutral-800')}>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -479,14 +481,6 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                 >
                   <Video className="w-5 h-5" />
                 </button>
-                <VoiceInputButton
-                  value={content}
-                  onChange={setContent}
-                  textareaRef={textareaRef}
-                  join="paragraph"
-                  autoResize
-                  disabled={submitting}
-                />
                 <EmojiPickerButton
                   textareaRef={textareaRef}
                   onInsert={(val) => setContent(val)}

@@ -1,5 +1,6 @@
 'use client'
 
+import { RichText } from '@/components/RichText'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Card, Button, DeleteConfirmationDialog, Container, Stack, PageHero, Spinner, Text } from '@/lib/design-system'
@@ -610,7 +611,7 @@ export default function JournalEntryPage({ params }: { params: Promise<{ id: str
                 Journal entry
               </Text>
               {entry.content ? (
-                <p className="text-neutral-300 whitespace-pre-wrap">{entry.content}</p>
+                <RichText text={entry.content} className="text-neutral-300" />
               ) : (
                 <p className="text-neutral-500 italic">No content</p>
               )}

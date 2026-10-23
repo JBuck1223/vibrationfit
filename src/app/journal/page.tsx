@@ -10,6 +10,12 @@ import Link from 'next/link'
 import { Plus, FileText, ChevronDown, Filter, BookOpen, Flame, Shield, Search, X, Edit, Trash2, ImageOff, Play } from 'lucide-react'
 import { JournalEditModal, RecoverableTranscriptsBanner, type JournalEditEntry } from '@/components/journal'
 import { useJournalStudio } from '@/components/journal-studio'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
+import { RichText } from '@/components/RichText'
+import { stripMarkdown } from '@/lib/audio/content-normalize'
+import { CategorySheet, LIFE_CATEGORIES } from '@/components/app-shell/forms/CategorySheet'
 import { useEffect, useState, useRef, useMemo } from 'react'
 
 function JournalImage({ src, alt, className, onClick, loading }: {
@@ -149,6 +155,7 @@ export default function JournalPage() {
   const searchParams = useSearchParams()
   const { stats: practiceStats } = useAreaStats('journal')
   const { refreshEntries } = useJournalStudio()
+  const inShell = useInShell()
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -405,6 +412,39 @@ export default function JournalPage() {
             }}
           />
 
+          {inShell ? (
+            // App shell: one search field with a filter button; Create is in the header toggle.
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search your journal"
+                  className="h-11 w-full rounded-full border border-white/15 bg-white/[0.06] pl-10 pr-10 text-sm text-white placeholder:text-white/45 focus:border-[#39FF14]/40 focus:outline-none"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search" className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFilters(true)}
+                aria-label="Filter by category"
+                aria-pressed={!selectedCategories.includes('all')}
+                className={cn(
+                  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors',
+                  !selectedCategories.includes('all') ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/75 hover:text-white',
+                )}
+              >
+                <Filter className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-start gap-2">
               <button
@@ -445,8 +485,47 @@ export default function JournalPage() {
               </button>
             </div>
           </div>
+          )}
 
-          {searchOpen && (
+          {inShell && !selectedCategories.includes('all') && selectedCategories.length > 0 ? (
+            // Active category filters, each removable.
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedCategories.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSelectedCategories((prev) => {
+                    const next = prev.filter((c) => c !== key)
+                    return next.length ? next : ['all']
+                  })}
+                  className="flex items-center gap-1 rounded-full border border-[#39FF14]/50 bg-[rgba(57,255,20,0.1)] px-3 py-1 text-xs text-[#39FF14]"
+                >
+                  {LIFE_CATEGORIES.find((c) => c.key === key)?.label ?? key}
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+              <button type="button" onClick={() => setSelectedCategories(['all'])} className="text-xs text-white/55 hover:text-white">
+                Clear
+              </button>
+            </div>
+          ) : null}
+
+          {inShell ? (
+            <CategorySheet
+              open={showFilters}
+              onClose={() => setShowFilters(false)}
+              title="Filter by category"
+              selected={selectedCategories.includes('all') ? [] : selectedCategories}
+              onToggle={(key) => setSelectedCategories((prev) => {
+                const current = prev.filter((c) => c !== 'all')
+                const next = current.includes(key) ? current.filter((c) => c !== key) : [...current, key]
+                return next.length ? next : ['all']
+              })}
+              onClear={() => setSelectedCategories(['all'])}
+            />
+          ) : null}
+
+          {!inShell && searchOpen && (
             <div className="relative animate-in slide-in-from-top-2 duration-200">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
               <input
@@ -470,7 +549,7 @@ export default function JournalPage() {
         </div>
 
         {/* Filters */}
-        {showFilters && (
+        {!inShell && showFilters && (
           <div id="filters" className="space-y-6 animate-in slide-in-from-top duration-300">
             <Card variant="elevated" className="p-4">
               <div className="flex items-center justify-between mb-4">
@@ -523,7 +602,7 @@ export default function JournalPage() {
           </Card>
         ) : filteredEntries && filteredEntries.length > 0 ? (
           <div
-            className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]"
+            className={inShell ? cn(GLASS_CARD, 'overflow-hidden divide-y divide-white/[0.07]') : 'rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]'}
             data-tour="journal-entries"
           >
             {filteredEntries.map((entry) => {
@@ -559,7 +638,7 @@ export default function JournalPage() {
                             <p className="text-base font-medium text-white truncate mb-0.5">{entry.title}</p>
                           )}
                           <p className="w-full min-w-0 text-[13px] text-neutral-300 leading-relaxed line-clamp-2 md:line-clamp-1">
-                            {entry.content || '\u2014'}
+                            {entry.content ? stripMarkdown(entry.content) : '\u2014'}
                           </p>
                         </div>
 
@@ -631,9 +710,11 @@ export default function JournalPage() {
 
                           <section className="space-y-2">
                             <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Entry</p>
-                            <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line">
-                              {entry.content || '\u2014'}
-                            </p>
+                            {entry.content ? (
+                              <RichText text={entry.content} className="text-[13px] text-neutral-300" />
+                            ) : (
+                              <p className="text-[13px] text-neutral-300">{'\u2014'}</p>
+                            )}
                           </section>
 
                           {entry.categories && entry.categories.length > 0 && (
@@ -740,7 +821,7 @@ export default function JournalPage() {
 
         {/* Load More */}
         {filteredEntries && filteredEntries.length > 0 && hasMore && (
-          <div className="flex justify-center py-6 mt-6">
+          <div className={inShell ? 'flex justify-center -mt-3 pb-2' : 'flex justify-center py-6 mt-6'}>
             <Button
               onClick={() => setPage(page + 1)}
               variant="outline"

@@ -1,11 +1,14 @@
 'use client'
 
-import React, { useRef, useCallback } from 'react'
-import { Play, Pause, SkipBack, SkipForward, X, Loader2 } from 'lucide-react'
+import React, { useRef, useCallback, useEffect, useState } from 'react'
+import { Play, Pause, SkipBack, SkipForward, X, Loader2, ChevronUp, Volume2, VolumeX } from 'lucide-react'
 import { useGlobalAudioStore, getGlobalAudioElement } from '@/lib/stores/global-audio-store'
+import { useShellNavStore } from '@/lib/stores/shell-nav-store'
 import { useMediaSession } from '@/hooks/useMediaSession'
 import { TrackArtwork } from './TrackArtwork'
 import { isSongNowPlayingTrack } from './TrackArtistLine'
+import { isShellFlagOn } from '@/lib/app-shell/flag'
+import { PlayerScrubber, TransportControls } from './PlayerControls'
 
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
@@ -31,8 +34,22 @@ export function PersistentMiniPlayer() {
   const skipNext = useGlobalAudioStore(s => s.skipNext)
   const skipPrev = useGlobalAudioStore(s => s.skipPrev)
   const stop = useGlobalAudioStore(s => s.stop)
+  const isShuffled = useGlobalAudioStore(s => s.isShuffled)
+  const toggleShuffle = useGlobalAudioStore(s => s.toggleShuffle)
+  const repeatMode = useGlobalAudioStore(s => s.repeatMode)
+  const setRepeatMode = useGlobalAudioStore(s => s.setRepeatMode)
+  const [volume, setVolume] = useState(1)
+  const navCollapsedSide = useShellNavStore(s => s.collapsedSide)
 
   const currentTrack = tracks[currentIndex] ?? null
+  // In the new app shell the player floats as a glass card above the bottom bar.
+  const [floating, setFloating] = useState(false)
+  useEffect(() => {
+    const sync = () => setFloating(isShellFlagOn() && !!document.querySelector('[data-app-shell]'))
+    sync()
+    const t = window.setInterval(sync, 1500)
+    return () => window.clearInterval(t)
+  }, [])
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   audioRef.current = getGlobalAudioElement()
@@ -68,6 +85,137 @@ export function PersistentMiniPlayer() {
     const target = e.target as HTMLElement
     if (target.closest('button')) return
     openDrawer()
+  }
+
+  const subtitle = isSongNowPlayingTrack(currentTrack, contentCategory)
+    ? ['Vibration Fit', currentTrack.performers?.map((p) => p.name).join(' · ') || currentTrack.artist].filter(Boolean).join(' · ')
+    : setName && !setName.includes(':') ? setName : currentTrack.artist || 'Vibration Fit'
+
+  if (floating) {
+    const changeVolume = (v: number) => {
+      setVolume(v)
+      const el = getGlobalAudioElement()
+      if (el) el.volume = v
+    }
+    const nextRepeat = repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off'
+    return (
+      <>
+      {/* Desktop: a full-width bar along the bottom, like a desktop music app. */}
+      <div className="fixed inset-x-0 bottom-0 z-50 hidden h-[84px] lg:block">
+        <div className="vf-glass grid h-full grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-6 border-t border-white/[0.12] bg-[linear-gradient(180deg,rgba(36,29,50,0.82)_0%,rgba(18,14,26,0.92)_100%)] px-5 backdrop-blur-2xl backdrop-saturate-150">
+          <button type="button" onClick={openDrawer} className="flex min-w-0 items-center gap-3 text-left" aria-label="Open Now Playing">
+            <TrackArtwork track={currentTrack} iconKey={setIconKey} size={56} className="flex-shrink-0 overflow-hidden rounded-[12px]" />
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold text-white">{currentTrack.title}</span>
+              <span className="block truncate text-xs text-white/60">{subtitle}</span>
+            </span>
+          </button>
+          <div className="flex min-w-0 flex-col items-center">
+            <div className="w-[300px] max-w-full [&>div]:!px-0 [&_button]:!h-9 [&_button]:!w-9">
+              <TransportControls
+                compact
+                isPlaying={isPlaying}
+                isBuffering={isBuffering}
+                onPlayPause={() => (isPlaying ? pause() : resume())}
+                onPrev={skipPrev}
+                onNext={skipNext}
+                canPrev={!(currentIndex === 0 && currentTime < 3)}
+                canNext={currentIndex < tracks.length - 1 || repeatMode === 'all'}
+                shuffle={isShuffled}
+                onShuffle={tracks.length > 1 ? toggleShuffle : undefined}
+                repeatMode={repeatMode}
+                onRepeat={() => setRepeatMode(nextRepeat)}
+              />
+            </div>
+            <div className="-mt-1 flex w-full max-w-[560px] items-center gap-2 text-[11px] tabular-nums text-white/55">
+              <span className="w-10 text-right">{formatTime(currentTime)}</span>
+              <div className="flex-1 [&>div>div:last-child]:hidden">
+                <PlayerScrubber currentTime={currentTime} duration={duration} onSeek={seekTo} />
+              </div>
+              <span className="w-10">{formatTime(duration)}</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <button type="button" onClick={() => changeVolume(volume > 0 ? 0 : 1)} className="flex h-9 w-9 items-center justify-center text-white/60 hover:text-white" aria-label={volume > 0 ? 'Mute' : 'Unmute'}>
+              {volume > 0 ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => changeVolume(parseFloat(e.target.value))}
+              aria-label="Volume"
+              className="h-1 w-24 cursor-pointer accent-[#39FF14]"
+            />
+            <button type="button" onClick={openDrawer} className="flex h-9 w-9 items-center justify-center text-white/60 hover:text-white" aria-label="Open Now Playing">
+              <ChevronUp className="h-5 w-5" />
+            </button>
+            <button type="button" onClick={stop} className="flex h-9 w-9 items-center justify-center text-white/45 hover:text-white" aria-label="Stop">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Phones and tablets: a floating glass card above the pill (10px pill offset + 14px gap),
+          or beside the plus button when the member has collapsed the pill. */}
+      <div
+        className={
+          navCollapsedSide === 'right'
+            ? 'fixed left-3 right-[84px] z-50 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] lg:hidden'
+            : navCollapsedSide === 'left'
+              ? 'fixed left-[84px] right-3 z-50 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] lg:hidden'
+              : 'fixed inset-x-3 z-50 bottom-[calc(var(--shell-nav-height,64px)+env(safe-area-inset-bottom,0px)+24px)] lg:hidden'
+        }
+      >
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={handleBarClick}
+          onKeyDown={(e) => { if (e.key === 'Enter') openDrawer() }}
+          aria-label="Open Now Playing"
+          className="vf-glass relative cursor-pointer overflow-hidden rounded-[22px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(20,16,30,0.80)_100%)] shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150"
+        >
+          <div className="flex items-center gap-3 py-2 pl-2 pr-3">
+            <TrackArtwork track={currentTrack} iconKey={setIconKey} size={44} className="flex-shrink-0 overflow-hidden rounded-[14px]" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15px] font-semibold text-white">{currentTrack.title}</p>
+              <p className="truncate text-xs text-white/60">{subtitle}</p>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); isPlaying ? pause() : resume() }}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform active:scale-95"
+              aria-label={isBuffering ? 'Loading' : isPlaying ? 'Pause' : 'Play'}
+            >
+              {isBuffering ? <Loader2 className="h-4 w-4 animate-spin" /> : isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="ml-0.5 h-4 w-4" fill="currentColor" />}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); skipNext() }}
+              disabled={currentIndex >= tracks.length - 1}
+              className="flex h-10 w-9 flex-shrink-0 items-center justify-center text-white transition-opacity disabled:opacity-30"
+              aria-label="Next track"
+            >
+              <SkipForward className="h-5 w-5" fill="currentColor" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); stop() }}
+              className="flex h-10 w-7 flex-shrink-0 items-center justify-center text-white/45 hover:text-white"
+              aria-label="Stop"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {/* Progress hairline along the bottom edge; tap to seek */}
+          <div className="absolute inset-x-4 bottom-0 h-[3px] cursor-pointer" onClick={handleProgressClick}>
+            <div className="h-full rounded-full bg-white/15" />
+            <div className="absolute inset-y-0 left-0 rounded-full bg-[#39FF14]" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      </div>
+      </>
+    )
   }
 
   return (

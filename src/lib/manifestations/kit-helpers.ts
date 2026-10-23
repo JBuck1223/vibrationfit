@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { KitAssetStatus, KitLayer, KitSlot, Manifestation } from './types'
 import { HANDOFF_SLOTS, SLOT_TO_TRACKING_AREA } from './types'
+import { cleanVisionTitle } from '@/lib/vision/title'
 export { assetLink } from './types'
 
 const LIFE_CATEGORIES = [
@@ -325,7 +326,7 @@ export async function ensureVisionDraft(
     .insert({
       user_id: userId,
       household_id: null,
-      title: source?.title ? `${source.title} (Draft)` : 'Draft Vision',
+      title: cleanVisionTitle(source?.title) ?? 'Draft Vision',
       perspective: source?.perspective || 'singular',
       forward: source?.forward || '',
       fun: source?.fun || '',

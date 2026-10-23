@@ -5,6 +5,7 @@ import { MapAreaBar } from '@/components/map-studio/MapAreaBar'
 import { BeginCompleteCelebration } from '@/components/life-activation/BeginCompleteCelebration'
 import { StudioLifeActivationBanner } from '@/components/life-activation/StudioLifeActivationBanner'
 import { StudioWalkthroughHost } from '@/components/tool-walkthrough'
+import { MapHeader } from '@/components/app-shell/map/MapHeader'
 
 export const metadata: Metadata = {
   title: {
@@ -21,9 +22,11 @@ export default function MapStudioLayout({ children }: { children: React.ReactNod
           <MapAreaBar />
         </Suspense>
         <main
-          className="flex-1 min-w-0 overflow-x-hidden pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0"
+          className="flex-1 min-w-0 overflow-x-hidden pt-6 pb-3 md:pt-8 md:pb-3 lg:pt-6 px-4 md:px-0 [[data-app-shell]_&]:pt-0"
+          data-studio-glass
           style={{ '--content-px': '1rem' } as React.CSSProperties}
         >
+          <MapHeader />
           <BeginCompleteCelebration />
           <StudioLifeActivationBanner />
           {children}

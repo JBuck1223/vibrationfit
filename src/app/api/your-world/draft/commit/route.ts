@@ -2,6 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { asIdentity, saveWorldIdentity } from '@/lib/your-world/identity'
 import { commitDraft } from '@/lib/your-world/store'
 
 export const dynamic = 'force-dynamic'
@@ -16,6 +17,8 @@ export async function POST(req: Request) {
 
   try {
     const notes = typeof body.notes === 'string' && body.notes.trim() ? body.notes.trim() : null
+    const identity = asIdentity(body.identity)
+    if (identity) await saveWorldIdentity(supabase, user.id, identity)
     return NextResponse.json({ version: await commitDraft(supabase, user.id, body.id, notes) })
   } catch (error) {
     console.error('[YourWorld API] commit error:', error)

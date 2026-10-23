@@ -9,7 +9,11 @@ import {
   Text,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
-import { Download, Heart, Target, Sparkles } from 'lucide-react'
+import { Download, Heart, Target, Sparkles, PartyPopper, FileText, PenLine } from 'lucide-react'
+import Link from 'next/link'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
 
 const HALF_PAGE_PDF =
   'https://media.vibrationfit.com/site-assets/processes/daily-paper/daily-paper-2-per-page.pdf'
@@ -18,7 +22,103 @@ const FULL_PAGE_PDF =
 const DAILY_PAPER_VIDEO =
   'https://media.vibrationfit.com/site-assets/video/resources/daily-paper-1080p.mp4'
 
+const PARTS = [
+  {
+    icon: Heart,
+    color: '#FF6FB5',
+    title: 'Gratitude',
+    body: 'Starting with what you feel grateful for puts you in the receiving mode for all great things, and sets a positive tone that dominoes into the rest of your day.',
+  },
+  {
+    icon: Sparkles,
+    color: '#39FF14',
+    title: 'Three aligned actions',
+    body: "Three actions for the day keep you on What's Important Now, so you feel the satisfying pull of real progress and WIN at creating your life by choice.",
+  },
+  {
+    icon: PartyPopper,
+    color: '#FFB020',
+    title: 'Fun promise',
+    body: 'Something fun so you stay focused on the fun: a walk, the sunset, a bath, a favorite meal, a project that excites you, anything that feels good.',
+  },
+]
+
 export default function DailyPaperResourcesPage() {
+  const inShell = useInShell()
+
+  if (inShell) {
+    // App shell: the same guide as glass cards, with the printables up front.
+    return (
+      <div className="space-y-4">
+        <div className="mx-auto w-full max-w-3xl overflow-hidden rounded-[22px] border border-white/[0.12]">
+          <OptimizedVideo url={DAILY_PAPER_VIDEO} context="single" className="w-full" />
+        </div>
+
+        <section className={cn(GLASS_CARD, 'p-5')}>
+          <h2 className="text-lg font-semibold text-white">What is the Daily Paper?</h2>
+          <p className="mt-1.5 text-sm leading-relaxed text-white/75">
+            A simple daily process that sets a positive vibe while you move on purpose toward your desires. It takes about 5 to 15 minutes.
+          </p>
+        </section>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          {PARTS.map(({ icon: Icon, color, title, body }, i) => (
+            <section key={title} className={cn(GLASS_CARD, 'p-4')}>
+              <div className="mb-2 flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: `${color}22` }}>
+                  <Icon className="h-[18px] w-[18px]" style={{ color }} aria-hidden />
+                </span>
+                <span className="text-xs text-white/50">Part {i + 1}</span>
+              </div>
+              <h3 className="text-[15px] font-semibold text-white">{title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-white/70">{body}</p>
+            </section>
+          ))}
+        </div>
+
+        <section className={cn(GLASS_CARD, 'p-5')} data-tour="daily-paper-resources-print">
+          <h2 className="text-lg font-semibold text-white">Prefer pen and paper?</h2>
+          <p className="mt-1 text-sm text-white/70">Print a page, write by hand, then add a photo of it with Printed paper when you save.</p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            {[
+              { href: HALF_PAGE_PDF, title: 'Half page', note: 'Two papers per sheet' },
+              { href: FULL_PAGE_PDF, title: 'Full page', note: 'More room to write' },
+            ].map((pdf) => (
+              <a
+                key={pdf.title}
+                href={pdf.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/[0.04] p-3 transition-colors hover:border-[#39FF14]/50"
+              >
+                <FileText className="h-6 w-6 shrink-0 text-[#39FF14]" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-white">{pdf.title}</span>
+                  <span className="block truncate text-xs text-white/55">{pdf.note}</span>
+                </span>
+                <Download className="h-4 w-4 shrink-0 text-white/60" aria-hidden />
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section className={cn(GLASS_CARD, 'p-5')}>
+          <h2 className="text-lg font-semibold text-white">Your story over time</h2>
+          <p className="mt-1.5 text-sm leading-relaxed text-white/75">
+            Looking back at Daily Papers from months or years ago shows how far you've come. They become your story: evidence of the thoughts and feelings that came before your manifestations. Everything you save stays in your account, for your eyes only.
+          </p>
+        </section>
+
+        <Link
+          href="/daily-paper/new"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-[15px] font-semibold text-black transition-transform active:scale-[0.98] md:mx-auto md:w-80"
+        >
+          <PenLine className="h-4 w-4" /> Create today's paper
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <Container size="xl">
       <Stack gap="lg">

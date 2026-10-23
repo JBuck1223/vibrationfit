@@ -45,6 +45,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { ENTRY_LABELS, ABUNDANCE_ENTRY_CATEGORIES, getEntryCategoryDisplay } from '@/lib/abundance/entry-categories'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
+import { cn } from '@/lib/utils'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 
 interface AbundanceEvent {
   id: string
@@ -130,6 +134,7 @@ function parseStoredPeriodKey(raw: string | null): AbundancePeriodKey | null {
 
 export default function AbundanceDashboardPage() {
   const router = useRouter()
+  const inShell = useInShell()
   const { stats: practiceStats } = useAreaStats('abundance-tracker')
   const [data, setData] = useState<AbundanceData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -418,21 +423,22 @@ export default function AbundanceDashboardPage() {
             <div className="overflow-hidden rounded-2xl border border-[#282828] bg-[#101010] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset]">
               {/* Period segmented control */}
               <div className="border-b border-[#252525] px-4 pb-4 pt-5 md:px-6 md:pb-5 md:pt-6">
-                <p className="mb-3 text-center text-[10px] font-medium uppercase tracking-[0.22em] text-neutral-500">
-                  Total abundance for
+                <p className={inShell ? 'mb-3 text-center text-sm font-medium text-white/60' : 'mb-3 text-center text-[10px] font-medium uppercase tracking-[0.22em] text-neutral-500'}>
+                  {inShell ? 'Total abundance' : 'Total abundance for'}
                 </p>
                 <div
                   className="mx-auto w-full max-w-xl"
                   role="group"
                   aria-label="Total abundance time range"
                 >
-                  <div className="grid grid-cols-4 gap-0 overflow-hidden rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]">
+                  <div className={inShell ? 'grid grid-cols-4 rounded-full border border-white/15 bg-white/[0.05] p-1' : 'grid grid-cols-4 gap-0 overflow-hidden rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]'}>
                     {(['all', 'week', 'month', 'year'] as const).map((key, index, arr) => {
                       const label =
                         key === 'all' ? 'All' : key === 'week' ? 'Week' : key === 'month' ? 'Month' : 'Year'
                       const selected = totalsPeriod === key
-                      const endCaps =
-                        index === 0 ? 'rounded-l-lg' : index === arr.length - 1 ? 'rounded-r-lg' : ''
+                      const endCaps = inShell
+                        ? 'rounded-full'
+                        : index === 0 ? 'rounded-l-lg' : index === arr.length - 1 ? 'rounded-r-lg' : ''
                       return (
                         <button
                           key={key}
@@ -448,10 +454,12 @@ export default function AbundanceDashboardPage() {
                                   ? 'This month'
                                   : 'This year'
                           }
-                          className={`min-h-[2.75rem] overflow-hidden px-1 py-2 text-center text-[11px] font-medium leading-tight transition-colors sm:min-h-11 sm:px-2 sm:text-sm ${endCaps} ${
+                          className={`overflow-hidden px-1 text-center font-medium leading-tight transition-colors sm:px-2 ${endCaps} ${
+                            inShell ? 'py-1.5 text-xs sm:text-sm' : 'min-h-[2.75rem] py-2 text-[11px] sm:min-h-11 sm:text-sm'
+                          } ${
                             selected
-                              ? 'bg-zinc-900/85 font-semibold text-primary-400'
-                              : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
+                              ? inShell ? 'bg-[#39FF14] font-semibold text-black' : 'bg-zinc-900/85 font-semibold text-primary-400'
+                              : inShell ? 'text-white/70 hover:text-white' : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200'
                           }`}
                         >
                           <span className="hidden sm:inline">
@@ -541,7 +549,39 @@ export default function AbundanceDashboardPage() {
             </div>
             </div>
 
-            {/* Action bar — no card shell; view toggles are a segmented control (matches period strip) */}
+            {inShell ? (
+              // App shell: a heading with a filter button and a list/grid switch; Create is a tab.
+              <div className="flex items-center gap-2 pt-1">
+                <h2 className="flex-1 text-base font-semibold text-white">Your moments</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(true)}
+                  aria-label="Filter"
+                  className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-full border transition-colors',
+                    dateFilter !== 'all' || valueTypeFilter !== 'all' || !selectedEntryCategories.includes('all') || !selectedCategories.includes('all')
+                      ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
+                      : 'border-white/15 bg-white/[0.06] text-white/75 hover:text-white',
+                  )}
+                >
+                  <Filter className="h-4 w-4" />
+                </button>
+                <div role="group" aria-label="Layout" className="flex rounded-full border border-white/15 bg-white/[0.05] p-1">
+                  {(['list', 'grid'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setViewMode(mode)}
+                      aria-pressed={viewMode === mode}
+                      aria-label={mode === 'list' ? 'List view' : 'Grid view'}
+                      className={cn('flex h-8 w-9 items-center justify-center rounded-full transition-colors', viewMode === mode ? 'bg-[#39FF14] text-black' : 'text-white/70 hover:text-white')}
+                    >
+                      {mode === 'list' ? <List className="h-4 w-4" /> : <Grid className="h-4 w-4" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
             <div className="flex items-center justify-between py-3">
               <div className="flex flex-1 justify-start">
                 <button
@@ -597,8 +637,78 @@ export default function AbundanceDashboardPage() {
                 </div>
               </div>
             </div>
+            )}
 
-            {showFilters && (
+            {inShell ? (
+              <CategorySheet
+                open={showFilters}
+                onClose={() => setShowFilters(false)}
+                title="Filter"
+                selected={selectedCategories.includes('all') ? [] : selectedCategories}
+                onToggle={(key) => setSelectedCategories((prev) => {
+                  const current = prev.filter((c) => c !== 'all')
+                  const next = current.includes(key) ? current.filter((c) => c !== key) : [...current, key]
+                  return next.length ? next : ['all']
+                })}
+                onClear={() => {
+                  setDateFilter('all')
+                  setValueTypeFilter('all')
+                  setSelectedEntryCategories(['all'])
+                  setSelectedCategories(['all'])
+                }}
+              >
+                {(() => {
+                  const pill = (on: boolean) =>
+                    cn('rounded-full border px-3 py-1.5 text-xs font-medium transition-colors', on ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 text-white/80 hover:text-white')
+                  const kinds = selectedEntryCategories.includes('all') ? [] : selectedEntryCategories
+                  return (
+                    <div className="mb-4 max-h-[45vh] space-y-4 overflow-y-auto">
+                      <div>
+                        <p className="mb-2 text-xs font-medium text-white/55">When</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(['all', 'week', 'month', 'year'] as const).map((key) => (
+                            <button key={key} type="button" onClick={() => setDateFilter(key)} className={pill(dateFilter === key)}>
+                              {key === 'all' ? 'All time' : key === 'week' ? 'This week' : key === 'month' ? 'This month' : 'This year'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-2 text-xs font-medium text-white/55">Money or value</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(['all', 'money', 'value'] as const).map((key) => (
+                            <button key={key} type="button" onClick={() => setValueTypeFilter(key)} className={pill(valueTypeFilter === key)}>
+                              {key === 'all' ? 'Both' : key === 'money' ? 'Money' : 'Value'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-2 text-xs font-medium text-white/55">Type</p>
+                        <div className="flex flex-wrap gap-2">
+                          {ABUNDANCE_ENTRY_CATEGORIES.map(({ value: key, label }) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => setSelectedEntryCategories(() => {
+                                const next = kinds.includes(key) ? kinds.filter((k) => k !== key) : [...kinds, key]
+                                return next.length ? next : ['all']
+                              })}
+                              className={pill(kinds.includes(key))}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs font-medium text-white/55">Life categories</p>
+                    </div>
+                  )
+                })()}
+              </CategorySheet>
+            ) : null}
+
+            {!inShell && showFilters && (
               <div className="mt-2 w-full animate-in slide-in-from-top duration-200 rounded-xl border border-[#282828] bg-[#101010]/90 p-3 shadow-[0_4px_24px_rgba(0,0,0,0.22)] md:p-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6 lg:items-end">
                       <div className="space-y-1.5">
@@ -1027,7 +1137,7 @@ export default function AbundanceDashboardPage() {
                     })}
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-[#333] bg-[#0c0c0c]">
+                  <div className={inShell ? cn(GLASS_CARD, 'overflow-hidden') : 'overflow-hidden rounded-xl border border-[#333] bg-[#0c0c0c]'}>
                     {filteredRecentEvents.map((event) => {
                       const eventVisionCategories = event.vision_category
                         ? event.vision_category.split(',').map((s) => s.trim()).filter(Boolean)
@@ -1042,12 +1152,12 @@ export default function AbundanceDashboardPage() {
                         <div
                           key={event.id}
                           id={`abundance-entry-${event.id}`}
-                          className="border-b border-[#1f1f1f] last:border-b-0"
+                          className={inShell ? 'border-b border-white/[0.07] last:border-b-0' : 'border-b border-[#1f1f1f] last:border-b-0'}
                         >
                           <div
                             role="button"
                             tabIndex={0}
-                            className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 hover:bg-white/[0.03] md:gap-3 md:px-3.5 md:py-2.5 ${
+                            className={`flex w-full cursor-pointer items-center gap-2 hover:bg-white/[0.03] md:gap-3 ${inShell ? 'px-4 py-2.5 md:px-5' : 'px-3 py-2 md:px-3.5 md:py-2.5'} ${
                               isExpanded ? 'bg-white/[0.04]' : ''
                             }`}
                             onClick={() => setExpandedId(isExpanded ? null : event.id)}
@@ -1058,7 +1168,40 @@ export default function AbundanceDashboardPage() {
                               }
                             }}
                           >
-                            {!isExpanded ? (
+                            {!isExpanded && inShell ? (
+                              // App shell: the same row shape as Journal and Daily Paper.
+                              (() => {
+                                const d = new Date(event.date + 'T12:00:00')
+                                const tag = 'inline-flex max-w-[9rem] shrink-0 items-center truncate rounded-full px-2 py-0.5 text-[11px] font-medium'
+                                return (
+                                  <div className="flex w-full min-w-0 items-center gap-4 py-1">
+                                    <div className="w-11 shrink-0 text-center">
+                                      <p className="text-[10px] uppercase leading-none tracking-wider text-white/45">{d.toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                                      <p className="text-xl font-semibold leading-tight text-white">{d.getDate()}</p>
+                                      <p className="text-[10px] uppercase leading-none tracking-wider text-white/45">{d.toLocaleDateString('en-US', { month: 'short' })}</p>
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-[14px] text-white/90">{event.note?.trim() || getEntryCategoryDisplay(event.entry_category).label || 'Abundance moment'}</p>
+                                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                        {scope !== 'me' && event.member && !event.member.isSelf && (
+                                          <span className={cn(tag, 'bg-[#00FFFF]/12 text-[#7FFFFF]')}>{event.member.displayName}</span>
+                                        )}
+                                        <span className={cn(tag, event.value_type === 'money' ? 'bg-[rgba(57,255,20,0.12)] text-[#39FF14]' : 'bg-[rgba(191,0,255,0.16)] text-[#e0a3ff]')}>
+                                          {event.value_type === 'money' ? 'Money' : 'Value'}
+                                        </span>
+                                        {event.entry_category && (
+                                          <span className={cn(tag, 'bg-white/[0.07] text-white/70')}>{getEntryCategoryDisplay(event.entry_category).label}</span>
+                                        )}
+                                        {eventVisionCategories.slice(0, 2).map((catKey) => (
+                                          <span key={catKey} className={cn(tag, 'hidden bg-white/[0.05] text-white/55 sm:inline-flex')}>{getVisionLabel(catKey)}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <span className="shrink-0 text-right text-[15px] font-semibold tabular-nums text-[#39FF14]">{amountDisplay}</span>
+                                  </div>
+                                )
+                              })()
+                            ) : !isExpanded ? (
                               <>
                                 <time
                                   className="w-[3.25rem] shrink-0 text-[11px] text-neutral-500 tabular-nums md:w-[4.5rem]"

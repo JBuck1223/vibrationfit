@@ -7,6 +7,8 @@ import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useStoryStudio } from './StoryStudioContext'
 import { storyCreateHref, type Story } from '@/lib/stories/types'
 import { useState, useEffect } from 'react'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { ShellStudioBar } from '@/components/app-shell/ShellStudioBar'
 
 const SOURCE_FILTERS = [
   { label: 'All Types', value: 'all', icon: Library },
@@ -29,6 +31,7 @@ export function StoryAreaBar() {
   const router = useRouter()
   const { stories, updateTargetId, setUpdateTargetId } = useStoryStudio()
   const walkthroughMenu = useAreaBarWalkthrough()
+  const inShell = useInShell()
   const tabs = [
     { label: 'All Stories', path: '/story', icon: Library, dataTour: 'studio-tab-stories-view' },
     { label: 'Create', path: storyCreateHref(searchParams.get('kind')), icon: PenLine, dataTour: 'studio-tab-stories-create' },
@@ -110,6 +113,24 @@ export function StoryAreaBar() {
         },
       },
     ]
+  }
+
+  if (inShell) {
+    // The app shell: an All Stories | Create | Update toggle, with the type
+    // and story pickers under it on a story and on Update.
+    const onCreate = pathname === '/story/new' || pathname.startsWith('/story/new/')
+    return (
+      <ShellStudioBar
+        label="My Stories"
+        toggle={tabs.map((t) => ({
+          label: t.label,
+          href: t.path,
+          dataTour: t.dataTour,
+          active: t.label === 'Create' ? onCreate : t.label === 'Update' ? isUpdatePage : !onCreate && !isUpdatePage,
+        }))}
+        versionSelectors={versionSelectors}
+      />
+    )
   }
 
   return (

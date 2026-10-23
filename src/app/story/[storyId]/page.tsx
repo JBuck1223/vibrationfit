@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { RichText } from '@/components/RichText'
 import {
   ChevronLeft,
   Mic,
@@ -18,6 +19,7 @@ import {
   Play,
   Pause,
   Headphones,
+  Music2,
   Check,
   Edit,
   Save,
@@ -25,6 +27,7 @@ import {
   Home,
   Layers,
 } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import {
   Container,
   Stack,
@@ -38,7 +41,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useStory } from '@/lib/stories'
 import type { UpdateStoryPayload } from '@/lib/stories'
 import { useStoryStudio } from '@/components/story-studio'
-import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
+import { loadStoryAudioVersions, outdatedNote } from '@/lib/audio/story-versions'
 import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
@@ -50,15 +53,13 @@ const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badg
   schedule_block: { label: 'Schedule', icon: Clock, badgeColor: 'text-orange-400 bg-orange-500/20 border-orange-500/30' },
 }
 
-const VOICE_DISPLAY_NAMES: Record<string, string> = {
-  alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral',
-  echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage',
-}
 
 interface AudioOption {
   id: string
   label: string
   sublabel: string
+  /** Set when the audio was made before the story's last edit. */
+  note?: string | null
   url: string
   icon: React.ElementType
   iconColor: string
@@ -70,6 +71,8 @@ export default function StoryDetailPage({
   params: Promise<{ storyId: string }>
 }) {
   const router = useRouter()
+  // App shell: the story sits in a glass card with a real title, no dark wells.
+  const inShell = useInShell()
   const supabase = createClient()
   const [storyId, setStoryId] = useState<string>('')
   const [deleting, setDeleting] = useState(false)
@@ -148,60 +151,22 @@ export default function StoryDetailPage({
 
   async function loadAudioOptions() {
     if (!story) return
-    const options: AudioOption[] = []
-
-    const setFilter = story.audio_set_id
-      ? `and(content_type.eq.story,content_id.eq.${story.id}),id.eq.${story.audio_set_id}`
-      : `and(content_type.eq.story,content_id.eq.${story.id})`
-    const { data: audioSets } = await supabase
-      .from('audio_sets')
-      .select('id, name, voice_id, variant, created_at')
-      .or(setFilter)
-      .order('created_at', { ascending: false })
-
-    const orderedSets = [...(audioSets || [])].sort((a, b) =>
-      Number(b.id === story.audio_set_id) - Number(a.id === story.audio_set_id)
-    )
-
-    if (orderedSets.length > 0) {
-      const { data: tracks } = await supabase
-        .from('audio_tracks')
-        .select('id, audio_set_id, audio_url, mixed_audio_url, mix_status, text_content, created_at')
-        .in('audio_set_id', orderedSets.map(set => set.id))
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-
-      for (const audioSet of orderedSets) {
-        const setTracks = (tracks || []).filter(track =>
-          track.audio_set_id === audioSet.id && storyTextMatchesTrack(story.content, track.text_content)
-        )
-        const voiceName = audioSet.voice_id ? (VOICE_DISPLAY_NAMES[audioSet.voice_id] || audioSet.voice_id) : 'VIVA'
-        const setName = audioSet.name || 'Generated Audio'
-
-        setTracks.forEach((track, idx) => {
-          const hasMix = track.mix_status === 'completed' && !!track.mixed_audio_url
-          options.push({
-            id: `generated-${track.id}`,
-            label: setTracks.length > 1 ? `${setName} (${idx + 1}/${setTracks.length})` : setName,
-            sublabel: hasMix ? `${voiceName} narration + music` : `${voiceName} narration`,
-            url: hasMix ? track.mixed_audio_url! : track.audio_url,
-            icon: Headphones,
-            iconColor: 'bg-primary-500/20 text-primary-500',
-          })
-        })
-      }
-    }
-
-    if (story.user_audio_url) {
-      options.push({
-        id: 'user-recording',
-        label: 'Personal Recording',
-        sublabel: 'Your voice',
-        url: story.user_audio_url,
-        icon: Mic,
-        iconColor: 'bg-teal-500/20 text-teal-400',
-      })
-    }
+    // Every version: each VIVA voice, your own recording, each music mix.
+    const versions = await loadStoryAudioVersions(supabase, story)
+    const options: AudioOption[] = versions.map((v) => ({
+      id: v.id === 'user-recording' ? 'user-recording' : `version-${v.id}`,
+      label: v.label,
+      sublabel: v.sublabel,
+      note: outdatedNote(v),
+      url: v.url,
+      icon: v.kind === 'personal' ? Mic : v.kind === 'mix' ? Music2 : Headphones,
+      iconColor:
+        v.kind === 'personal'
+          ? 'bg-teal-500/20 text-teal-400'
+          : v.kind === 'mix'
+            ? 'bg-[#BF00FF]/20 text-[#d68bff]'
+            : 'bg-primary-500/20 text-primary-500',
+    }))
 
     setAudioOptions(options)
     setSelectedAudioId(prev => {
@@ -382,8 +347,16 @@ export default function StoryDetailPage({
     (typeof story.metadata?.source_entity_id === 'string' && story.metadata.source_entity_id) ||
     (sourceEntityType && sourceEntityType !== 'custom' ? story.entity_id : null) ||
     null
-  const sourceHref =
-    sourceEntityType === 'journal_entry' && sourceEntityId
+  // Stories saved from VIVA (or made by VIVA's tools) link back to their conversation.
+  const vivaThreadId =
+    typeof story.metadata?.viva_thread_id === 'string'
+      ? story.metadata.viva_thread_id
+      : story.metadata?.created_by === 'viva_coach' && story.entity_type === 'custom'
+        ? story.entity_id
+        : null
+  const sourceHref = vivaThreadId
+    ? `/viva?thread=${encodeURIComponent(vivaThreadId)}`
+    : sourceEntityType === 'journal_entry' && sourceEntityId
       ? `/journal?expand=${encodeURIComponent(sourceEntityId)}`
       : sourceEntityType === 'life_vision' && sourceEntityId
         ? `/life-vision/${sourceEntityId}`
@@ -412,7 +385,7 @@ export default function StoryDetailPage({
       <Stack gap="md">
         <Card
           variant="outlined"
-          className="!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]"
+          className={inShell ? '!p-5 md:!p-6 lg:!p-8' : '!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]'}
         >
           <Stack gap="lg">
             <div className="flex justify-between items-center gap-4 flex-wrap">
@@ -429,16 +402,20 @@ export default function StoryDetailPage({
 
             {!isEditing && (
               <>
+                {inShell ? (
+                  <h1 className="text-center text-2xl font-bold leading-tight text-white md:text-3xl">{story.title || 'Untitled Story'}</h1>
+                ) : (
                 <section className="space-y-3 text-center">
                   <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                     <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Story title</p>
-                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                   </div>
                   <p className="text-base font-medium text-white text-center rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3">
                     {story.title || 'Untitled Story'}
                   </p>
                 </section>
+                )}
 
                 <section className="space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Details</p>
@@ -522,22 +499,22 @@ export default function StoryDetailPage({
               <>
                 <section className="space-y-3 text-center">
                   <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                     <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Story title</p>
-                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                   </div>
                   <Input
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     placeholder="Story title"
-                    className="!bg-[#1A1A1A] !border-[#282828] !text-base !font-medium !text-center"
+                    className={`${inShell ? '' : '!bg-[#1A1A1A] !border-[#282828]'} !text-base !font-medium !text-center`}
                   />
                 </section>
 
                 <section className="space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Story</p>
-                  <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                  <div className={inShell ? '' : '[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]'}>
                     <AutoResizeTextarea
                       value={editContent}
                       onChange={setEditContent}
@@ -602,6 +579,9 @@ export default function StoryDetailPage({
                                 <div className="text-left flex-1 min-w-0">
                                   <div className="font-medium text-sm truncate">{selectedOption?.label || 'Select audio'}</div>
                                   <div className="text-xs text-neutral-500">{selectedOption?.sublabel}</div>
+                                  {selectedOption?.note && (
+                                    <div className="text-[11px] font-medium text-[#FFB020]">{selectedOption.note}</div>
+                                  )}
                                 </div>
                               </div>
                               <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${isAudioDropdownOpen ? 'rotate-180' : ''}`} />
@@ -628,6 +608,11 @@ export default function StoryDetailPage({
                                           <div className="flex-1 min-w-0">
                                             <div className="font-medium text-sm text-white truncate">{option.label}</div>
                                             <div className="text-xs text-neutral-500">{option.sublabel}</div>
+                                            {option.note && (
+                                              <div className="mt-0.5 inline-flex items-center rounded-full bg-[#FFB020]/15 px-2 py-0.5 text-[11px] font-medium text-[#FFB020]">
+                                                {option.note}
+                                              </div>
+                                            )}
                                           </div>
                                           {selectedAudioId === option.id && (
                                             <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
@@ -694,7 +679,7 @@ export default function StoryDetailPage({
                   </div>
 
                   {story.content ? (
-                    <p className="text-neutral-300 whitespace-pre-wrap leading-relaxed">{story.content}</p>
+                    <RichText text={story.content} className="text-neutral-300" />
                   ) : (
                     <p className="text-neutral-500 italic">No content yet. Click Edit to add your story.</p>
                   )}
@@ -738,9 +723,9 @@ export default function StoryDetailPage({
             {!isEditing && hasGenerationDetails && (
               <section className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                   <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Generation details</p>
-                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                 </div>
                 <div className="rounded-xl border border-[#282828] bg-[#131313] overflow-hidden">
                   <button

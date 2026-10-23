@@ -381,6 +381,13 @@ export default function RecordVisionAudioPage() {
           setActiveSection(VISION_CATEGORIES[currentIndex + 1].key)
         }
       } else if (activeSourceType === 'story') {
+        // The story list, the Audio library and the story player all find a
+        // member's own reading through the story's user_audio_url.
+        const { error: storyError } = await supabase
+          .from('stories')
+          .update({ user_audio_url: s3Url })
+          .eq('id', activeSourceId)
+        if (storyError) throw storyError
         setStoryRecording({ url: s3Url, duration: validDuration })
       }
 

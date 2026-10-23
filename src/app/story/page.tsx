@@ -1,5 +1,6 @@
 'use client'
 
+import { stripMarkdown } from '@/lib/audio/content-normalize'
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -31,6 +32,9 @@ import {
 import { useStoryStudio } from '@/components/story-studio'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { getStoryKind, getStoryKindLabel, storyCreateHref, type StoryKind, type StoryMetadata } from '@/lib/stories/types'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 
 const ENTITY_TYPE_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
   life_vision: { label: 'Life Vision', badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30', icon: Target },
@@ -90,6 +94,8 @@ export default function StoryHubPage() {
   const [kindFilter, setKindFilterState] = useState<'all' | StoryKind>(initialKind)
   const [scope, setScope] = useState<HouseholdScope>('me')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const inShell = useInShell()
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
 
   const setKindFilter = useCallback((kind: 'all' | StoryKind) => {
     setKindFilterState(kind)
@@ -146,9 +152,123 @@ export default function StoryHubPage() {
   }
 
   return (
-    <Container size="xl" className="pt-6">
+    <Container size="xl" className={inShell ? '' : 'pt-6'}>
       <Stack gap="lg">
+        {inShell && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => router.push(storyCreateHref(kindFilter))}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#39FF14] text-black shadow-[0_0_16px_rgba(57,255,20,0.35)] transition-transform active:scale-95"
+                aria-label={kindFilter === 'spark_query' ? 'New SparkQuery' : kindFilter === 'incantation' ? 'New Incantation' : 'New Story'}
+                data-tour="stories-new"
+              >
+                <Plus className="h-5 w-5" strokeWidth={2.5} />
+              </button>
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search"
+                  aria-label="Search stories"
+                  className="h-10 w-full rounded-full border border-white/15 bg-white/[0.05] pl-10 pr-9 text-base text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none md:text-sm"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setFilterSheetOpen(true)}
+                aria-label="Filter stories"
+                className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors ${
+                  kindFilter !== 'all' || activePill !== 'all' || scope !== 'me'
+                    ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
+                    : 'border-white/15 bg-white/[0.05] text-white/85 hover:text-white'
+                }`}
+              >
+                <Filter className="h-4 w-4" />
+                <span className="hidden sm:inline">Filter</span>
+              </button>
+            </div>
+            {(kindFilter !== 'all' || activePill !== 'all') && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {kindFilter !== 'all' && (
+                  <button type="button" onClick={() => setKindFilter('all')} className="inline-flex items-center gap-1 rounded-full bg-[rgba(57,255,20,0.12)] px-2.5 py-1 text-xs text-[#39FF14]">
+                    {KIND_FILTER_OPTIONS.find((o) => o.value === kindFilter)?.label}
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+                {activePill !== 'all' && (
+                  <button type="button" onClick={() => setActivePill('all')} className="inline-flex items-center gap-1 rounded-full bg-[rgba(57,255,20,0.12)] px-2.5 py-1 text-xs text-[#39FF14]">
+                    {FILTER_OPTIONS.find((o) => o.value === activePill)?.label}
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            )}
+            <CategorySheet
+              open={filterSheetOpen}
+              onClose={() => setFilterSheetOpen(false)}
+              title="Show stories"
+              showCategories={false}
+              selected={[]}
+              onToggle={() => {}}
+            >
+              <div className="space-y-4">
+                {household?.isMultiMember && (
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-white/55">Whose stories</p>
+                    <HouseholdScopeToggle
+                      members={household.members.map(m => ({
+                        userId: m.userId,
+                        displayName: m.firstName || m.displayName,
+                        avatarUrl: m.avatarUrl,
+                        isSelf: m.isSelf,
+                      }))}
+                      value={scope}
+                      onChange={setScope}
+                      className="w-full !bg-white/[0.05] border border-white/15 [&>button]:flex-1 [&>button]:justify-center"
+                    />
+                  </div>
+                )}
+                {[
+                  { title: 'Format', options: KIND_FILTER_OPTIONS, value: kindFilter as string, set: (v: string) => setKindFilter(v as 'all' | StoryKind) },
+                  { title: 'Made from', options: FILTER_OPTIONS, value: activePill as string, set: (v: string) => setActivePill(v as typeof activePill) },
+                ].map((group) => (
+                  <div key={group.title}>
+                    <p className="mb-2 text-xs font-medium text-white/55">{group.title}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.options.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => group.set(opt.value)}
+                          data-tour={opt.value === 'incantation' ? 'spoken-incantations' : opt.value === 'spark_query' ? 'spoken-spark' : undefined}
+                          className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
+                            group.value === opt.value
+                              ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
+                              : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CategorySheet>
+          </div>
+        )}
+
         {/* Action Bar */}
+        {!inShell && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-start gap-2">
@@ -236,9 +356,10 @@ export default function StoryHubPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Filter Panel */}
-        {showFilters && (
+        {!inShell && showFilters && (
           <div className="animate-in slide-in-from-top duration-300">
             <Card variant="elevated" className="p-4 space-y-5">
               <div>
@@ -354,7 +475,7 @@ export default function StoryHubPage() {
           </Card>
         ) : (
           <div
-            className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]"
+            className={`overflow-hidden divide-y divide-white/[0.06] ${inShell ? GLASS_CARD : 'rounded-2xl border border-white/[0.06] bg-[#111]'}`}
             data-tour={kindFilter === 'incantation' || kindFilter === 'spark_query' ? 'spoken-open' : 'stories-list'}
           >
             {filtered.map(story => {
@@ -426,7 +547,7 @@ export default function StoryHubPage() {
                         </div>
                         {story.content && (
                           <p className="hidden md:line-clamp-1 text-[13px] text-neutral-300 leading-relaxed mb-1.5">
-                            {story.content}
+                            {stripMarkdown(story.content)}
                           </p>
                         )}
                         {/* Stats row */}

@@ -325,7 +325,7 @@ export function DailyPaperEditForm({
                 onChange={setGratitude}
                 rows={5}
                 placeholder="Today I feel grateful for… Type or tap the mic to record."
-                storageFolder="journal"
+                storageFolder="dailyPaper"
                 recordingPurpose="quick"
                 category="daily-paper"
                 instanceId="dailyPaperEditGratitude"
@@ -358,7 +358,7 @@ export function DailyPaperEditForm({
                       onChange={(value) => handleTaskChange(index, value)}
                       placeholder="Type or tap the mic to record."
                       rows={3}
-                      storageFolder="journal"
+                      storageFolder="dailyPaper"
                       recordingPurpose="quick"
                       category="daily-paper"
                       instanceId={`dailyPaperEditTask${index + 1}`}
@@ -388,7 +388,7 @@ export function DailyPaperEditForm({
                 onChange={setFunPlan}
                 placeholder="Something fun I will do today. Type or tap the mic to record."
                 rows={3}
-                storageFolder="journal"
+                storageFolder="dailyPaper"
                 recordingPurpose="quick"
                 category="daily-paper"
                 instanceId="dailyPaperEditFun"

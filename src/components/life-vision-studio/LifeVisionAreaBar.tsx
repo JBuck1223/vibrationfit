@@ -6,6 +6,8 @@ import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from
 import { useAreaBarWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { useLifeVisionStudio } from './LifeVisionStudioContext'
 import { useMultiMemberHousehold, visionOwnerName } from '@/components/life-vision/useMultiMemberHousehold'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { ShellStudioBar } from '@/components/app-shell/ShellStudioBar'
 
 const VOICE_DISPLAY_NAMES: Record<string, string> = {
   alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral',
@@ -30,6 +32,7 @@ export function LifeVisionAreaBar() {
   const router = useRouter()
   const { visions, activeVisionId, draftId, audioSets, selectedAudioSetId, setSelectedAudioSetId, studioAreaChrome, hasHousehold, refreshVisions } = useLifeVisionStudio()
   const { data: household } = useMultiMemberHousehold()
+  const inShell = useInShell()
 
   const isVisionList = pathname === '/life-vision' || pathname === '/life-vision/'
   const isAboutPage = pathname === '/life-vision/about' || pathname === '/life-vision/about/'
@@ -583,6 +586,26 @@ export function LifeVisionAreaBar() {
   if (versionSelectors) {
     versionSelectors = versionSelectors.map((sel) =>
       sel.id === 'vision-version' ? { ...sel, dataTour: sel.dataTour ?? 'studio-versions' } : sel,
+    )
+  }
+
+  if (inShell) {
+    // The app shell: a View | Update toggle and one row of the same pickers
+    // and actions. The shell's own page padding sets the sides.
+    return (
+      <div>
+        <ShellStudioBar
+          label="Life Vision"
+          toggle={[
+            { label: 'View', href: '/life-vision', active: !isUpdatePage && !isOnCreateSubPage, dataTour: 'studio-tab-vision-view' },
+            { label: 'Update', href: '/life-vision/update', active: isUpdatePage || isOnCreateSubPage, dataTour: 'studio-tab-vision-update' },
+          ]}
+          contextNav={contextNav}
+          subNav={subNav}
+          versionSelectors={versionSelectors}
+          walkthrough={pageWalkthrough}
+        />
+      </div>
     )
   }
 

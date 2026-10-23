@@ -3,6 +3,9 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { AudioBrowse } from '@/components/app-shell/audio/AudioBrowse'
+import { AudioHeader } from '@/components/app-shell/audio/AudioHeader'
 import { Container, Stack, Card, Button, Spinner, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
@@ -13,6 +16,7 @@ import {
   Clock, ChevronRight, Library, AlertTriangle, RefreshCw,
   Users, ArrowLeft, Search, Share2,
 } from 'lucide-react'
+import { loadStoryAudioVersions, outdatedNote } from '@/lib/audio/story-versions'
 import { useAudioStudio, type AudioSetItem, QueueStatusBanner } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
 import {
@@ -29,7 +33,6 @@ import { convertMurekaLyrics, type SyncedLyrics } from '@/lib/utils/lyrics-align
 import { PlaylistsView } from '@/components/audio-studio/PlaylistsView'
 import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet'
 import type { SourceType } from '@/lib/services/playlistService'
-import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 import { musicCatalogArtistFallback, musicCatalogPerformerLinks } from '@/lib/audio/music-performers'
 import {
   compareMusicCatalogByTitle,
@@ -310,6 +313,24 @@ function ListenPracticeStatsRow({
 }
 
 export default function AudioListenPage() {
+  const inShell = useInShell()
+  const params = useSearchParams()
+  if (!inShell) return <LegacyAudioListenPage />
+  // In the app shell, opening one of My Songs shows the full song view
+  // (favorite, library, share, publish, more versions) under the Audio header.
+  if (params.get('open')?.startsWith('song:')) {
+    return (
+      <div className="space-y-4">
+        <AudioHeader />
+        <LegacyAudioListenPage />
+      </div>
+    )
+  }
+  return <AudioBrowse />
+}
+
+function LegacyAudioListenPage() {
+  const inShell = useInShell()
   const {
     visionId, vision, visionLoading,
     audioSets, audioSetsLoading, refreshAudioSets,
@@ -490,58 +511,19 @@ export default function AudioListenPage() {
       const entityLabel = `${kindLabel} · ${meta.label}`
       const sectionKey = story.entity_type || 'custom'
 
-      let audioSetId = story.audio_set_id
-      if (!audioSetId) {
-        const { data: linkedSet } = await supabase
-          .from('audio_sets')
-          .select('id')
-          .eq('content_type', 'story')
-          .eq('content_id', story.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        if (linkedSet) audioSetId = linkedSet.id
-      }
-
-      if (audioSetId) {
-        const { data: trackRows } = await supabase
-          .from('audio_tracks')
-          .select('id, audio_url, text_content')
-          .eq('audio_set_id', audioSetId)
-          .eq('status', 'completed')
-          .order('created_at', { ascending: false })
-
-        const currentTracks = (trackRows || []).filter(track =>
-          storyTextMatchesTrack(story.content, track.text_content),
-        )
-
-        currentTracks.forEach((track, idx) => {
-          if (!track.audio_url) return
-          tracks.push({
-            id: `${story.id}:track:${track.id}`,
-            title: currentTracks.length > 1
-              ? `${storyTitle} (${idx + 1}/${currentTracks.length})`
-              : storyTitle,
-            artist: entityLabel,
-            duration: 0,
-            url: track.audio_url,
-            thumbnail: '',
-            sectionKey,
-          })
-        })
-      }
-
-      if (story.user_audio_url) {
+      // Every version: each VIVA voice, your own recording, each music mix.
+      const versions = await loadStoryAudioVersions(supabase, story)
+      versions.forEach((v) => {
         tracks.push({
-          id: `${story.id}:user-recording`,
-          title: `${storyTitle} · Personal Recording`,
-          artist: `${kindLabel} · Your voice`,
-          duration: 0,
-          url: story.user_audio_url,
+          id: `${story.id}:${v.id}`,
+          title: versions.length > 1 ? `${storyTitle} · ${v.label}` : storyTitle,
+          artist: [v.kind === 'personal' ? `${kindLabel} · Your voice` : `${entityLabel} · ${v.sublabel}`, outdatedNote(v)].filter(Boolean).join(' · '),
+          duration: v.duration,
+          url: v.url,
           thumbnail: '',
           sectionKey,
         })
-      }
+      })
 
       return tracks
     }
@@ -672,7 +654,10 @@ export default function AudioListenPage() {
       .limit(50)
     if (data) {
       setUserSongs(data)
-      if (data.length > 0 && !selectedSongId) setSelectedSongId(data[0].id)
+      // A song opened from the app-shell library (?open=song:<id>) comes first.
+      const openSongId = searchParams.get('open')?.startsWith('song:') ? searchParams.get('open')!.slice('song:'.length) : null
+      const preferred = openSongId && data.some((song) => song.id === openSongId) ? openSongId : null
+      if (data.length > 0 && (preferred || !selectedSongId)) setSelectedSongId(preferred ?? data[0].id)
     }
     // Saved-but-not-finished songs (drafts / ready-to-generate) so members can
     // return and pick up where they left off instead of re-pasting content.
@@ -1777,8 +1762,10 @@ export default function AudioListenPage() {
                 </Button>
               </Card>
             ) : (
-              <div className="w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center">
-                <div className="hidden lg:block" />
+              <div className={inShell
+                ? 'w-full lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,22rem)] lg:gap-6 lg:justify-center'
+                : 'w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center'}>
+                {!inShell && <div className="hidden lg:block" />}
                 <div className="max-w-2xl mx-auto w-full lg:mx-0 lg:max-w-none">
                 {songTracksLoading ? (
                   <div className="rounded-2xl bg-embedded-panel border border-neutral-800 flex items-center justify-center py-12"><Spinner size="lg" /></div>
@@ -1800,7 +1787,51 @@ export default function AudioListenPage() {
                     onShareTrack={(track) => handleSongShare(track)}
                     onSubmitForPublishing={(track) => handleSongSubmitForPublishing(track)}
                     onRemoveTrack={(track) => setSongDeleteTarget(track)}
-                    headerContent={
+                    headerContent={inShell ? (
+                      // App shell: the song as a header with its actions as pills;
+                      // switching songs happens in the My Songs grid.
+                      (() => {
+                        const cover = songTracks.find((t) => t.thumbnail)?.thumbnail
+                        const pill = 'inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white'
+                        return (
+                          <div className="px-4 pb-4 pt-4 md:px-5">
+                            <div className="flex items-center gap-3">
+                              {cover ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={cover} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover shadow-[0_8px_22px_rgba(0,0,0,0.4)]" />
+                              ) : (
+                                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[rgba(57,255,20,0.12)]">
+                                  <Music2 className="h-6 w-6 text-[#39FF14]" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <h2 className="line-clamp-2 text-lg font-bold leading-snug text-white">{selectedSong?.title || 'Untitled Song'}</h2>
+                                <p className="mt-0.5 text-xs text-white/55">
+                                  {songTracks.length} version{songTracks.length !== 1 ? 's' : ''}
+                                  {selectedSong?.created_at ? ` · ${new Date(selectedSong.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Link href={`/audio/songwriter/${selectedSongId}`} className={pill}>
+                                <RefreshCw className="h-3.5 w-3.5" /> More versions
+                              </Link>
+                              <Link href={`/audio/songwriter/${selectedSongId}#story`} className={pill}>
+                                <BookOpen className="h-3.5 w-3.5" /> {selectedSong?.story_media_url ? 'The story' : 'Tell the story'}
+                              </Link>
+                              <button type="button" onClick={() => setRenameModalOpen(true)} className={pill}>
+                                <Edit2 className="h-3.5 w-3.5" /> Rename
+                              </button>
+                              {selectedSong?.lyrics && (
+                                <button type="button" onClick={() => setAlbumArtModalOpen(true)} className={pill}>
+                                  <Image className="h-3.5 w-3.5" /> {songTracks.some(t => t.thumbnail) ? 'Album art' : 'Add album art'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()
+                    ) : (
                       <div>
                         <div className="bg-[#0c0c0c] px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
                           <h3 className="text-center text-lg font-semibold text-white">Play My Songs</h3>
@@ -1905,7 +1936,7 @@ export default function AudioListenPage() {
                           </div>
                         </div>
                       </div>
-                    }
+                    )}
                   />
                   </div>
                   {/* Mobile: synced lyrics below player */}

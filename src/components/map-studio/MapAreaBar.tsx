@@ -5,6 +5,7 @@ import { Map, Eye, PenLine, Calendar, CalendarDays, LayoutGrid } from 'lucide-re
 import { AreaBar, type AreaBarContextNavItem } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
 import { useMapStudio } from './MapStudioContext'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 const TABS = [
   { label: 'View', path: '/map', icon: Eye, dataTour: 'studio-tab-map-view' },
@@ -15,6 +16,7 @@ export function MapAreaBar() {
   const pathname = usePathname()
   const { viewMode, setViewMode } = useMapStudio()
   const walkthroughMenu = useAreaBarWalkthrough()
+  const inShell = useInShell()
   const isMapTab = pathname === '/map' || pathname === '/map/'
   const isUpdateArea = pathname.startsWith('/map/update')
 
@@ -49,6 +51,9 @@ export function MapAreaBar() {
   } else if (isUpdateArea) {
     contextText = 'Choose your rituals and personal commitments.'
   }
+
+  // In the app shell MAP has its own header (MapHeader).
+  if (inShell) return null
 
   return (
     <AreaBar

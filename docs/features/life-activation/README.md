@@ -1,11 +1,11 @@
 # Life Activation
 
-**Last Updated:** October 17, 2026
+**Last Updated:** October 21, 2026
 **Status:** Active
 
 Paid continuation of the public Activation. Two chosen journeys, neither locked.
 
-- **Onboarding** (`/begin`) — take a baseline survey, save a Life Profile (personal information plus optional current state), write the Life Vision, hear it, meet Vibe Tribe, find Alignment Gym, create and activate MAP, then a closing survey
+- **Onboarding** (`/begin`) — take a baseline survey, save My World (name, birthday, phone, plus people, home, work, and money), write the Life Vision, hear it, meet Vibe Tribe, find Alignment Gym, create and activate MAP, then a closing survey
 - **Tools Training** (`/begin/training`) — optional studio walk-throughs. One tour per studio, tab by tab. The Walkthrough icon stays on every tool page. First Finish checks that tool off; later visits replay only.
 
 Admin inspector: `/admin/begin` (includes a member-sidebar preview). Copy: `src/lib/life-activation/copy.ts`. Walk-through text: `/admin/walkthroughs` writes `src/lib/life-activation/walkthrough-overrides.json` on top of defaults in `src/lib/life-activation/walkthroughs.ts`.
@@ -15,8 +15,8 @@ Sidebar: while onboarding is open, the member sidebar lists the Getting Started 
 ## Onboarding
 
 1. Welcome — `/begin/welcome` (explainer video + what a first Activation is)
-2. Baseline Intake — `/begin/intake` (same questions as the Intensive pre survey). Saving goes straight to Life Profile.
-3. Life Profile — `/profile/create`. Replaces the old Account step: the profile's Personal Information section saves name, birthday, and phone to `user_accounts`. With no profile yet, the page creates one and opens the editor. Continue requires a saved profile with those fields. The 12 current-state fields are optional. People who already finished Getting Started are not sent back.
+2. Baseline Intake — `/begin/intake` (same questions as the Intensive pre survey). Saving goes to My World.
+3. My World — `/begin/world`. Account and the old Your World, together. Name, birthday, and phone are required. People, home, work, and money are optional. Later edits live at `/your-world`.
 4. Write Life Vision — `/life-vision/start`. Each area's "What's going on now" opens with the profile's current-state text for that area, if they wrote one. Only untouched areas are filled (`src/lib/life-vision/profile-now-prefill.ts`).
 5. Create your Activation Kit — voice, a mix, and at least one board scene. There is no skip.
 6. Record your voice — `/audio/record`. Record the Life Vision in your own voice, or skip. Same optional step as the Intensive.

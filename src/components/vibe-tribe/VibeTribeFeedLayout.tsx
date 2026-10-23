@@ -3,7 +3,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
-import { Search, Pin, ChevronDown, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, User, FileText, MessageCircle, HelpCircle, Filter } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
+import { Search, Pin, ChevronDown, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, User, FileText, MessageCircle, HelpCircle, Filter, SlidersHorizontal } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { PostCard } from './PostCard'
 import { StickyPostComposer } from './StickyPostComposer'
@@ -38,6 +40,16 @@ interface VibeTribeFeedLayoutProps {
 }
 
 export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = 'all', userProfile, hasPostedBefore = true, onPostCreated: onPostCreatedProp }: VibeTribeFeedLayoutProps) {
+  const inShell = useInShell()
+  // Phones get the short search placeholder.
+  const [isPhone, setIsPhone] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const sync = () => setIsPhone(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
   const [posts, setPosts] = useState<VibePost[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -222,9 +234,157 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
   }
 
   return (
-    <div className="flex flex-col h-full min-h-screen md:min-h-0 md:h-full bg-black">
+    <div
+      // In the app shell the page itself scrolls, so the top bar, search and
+      // chips all scroll away with the posts; nothing stays pinned.
+      className={inShell ? 'flex flex-col bg-transparent' : 'flex flex-col h-full min-h-screen md:min-h-0 md:h-full bg-black'}
+      // In the app shell, older dark fields inside posts (comment boxes...) pick up the glass style.
+      data-studio-glass={inShell || undefined}
+    >
+      {inShell && (() => {
+        // App shell: search, one filter button and help. What to show (post
+        // type, just my activity, pinned) lives in a filter sheet.
+        const filtersOn = activeFilter !== 'all' || activityFilter !== 'off' || showPinned
+        const pill = (on: boolean) =>
+          `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${on ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 text-white/80 hover:text-white'}`
+        const chip = 'flex items-center gap-1 rounded-full border border-[#39FF14]/50 bg-[rgba(57,255,20,0.1)] px-3 py-1 text-xs text-[#39FF14]'
+        const activityLabel = activityFilter === 'posts' ? 'My posts' : activityFilter === 'hearts' ? 'My hearts' : 'My comments'
+        return (
+          <div className="mx-auto w-full max-w-[772px] space-y-3 pb-1 pt-1">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={isPhone ? 'Search' : 'Search Vibe Tribe'}
+                  className="h-11 w-full rounded-full border border-white/15 bg-white/[0.06] pl-10 pr-10 text-base text-white placeholder:text-white/45 focus:border-[#39FF14]/40 focus:outline-none md:text-sm"
+                />
+                {isSearching ? (
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2"><Spinner size="sm" /></div>
+                ) : searchQuery ? (
+                  <button type="button" onClick={clearSearch} aria-label="Clear search" className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/55 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFilterDropdown(true)}
+                aria-label="Filter posts"
+                title="Filter posts"
+                aria-pressed={filtersOn}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                  filtersOn ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/80 hover:text-white'
+                }`}
+              >
+                <SlidersHorizontal className="h-[18px] w-[18px]" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowHowToVibe(true)}
+                aria-label="How to Vibe"
+                title="How to Vibe"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/80 transition-colors hover:text-white"
+              >
+                <span className="text-sm font-bold">?</span>
+              </button>
+            </div>
+
+            {filtersOn ? (
+              // What the feed is filtered to, each removable.
+              <div className="flex flex-wrap items-center gap-2">
+                {activeFilter !== 'all' && (
+                  <button type="button" onClick={() => handleFilterSelect('all')} className={chip}>
+                    {VIBE_TAG_CONFIG[activeFilter].label} <X className="h-3 w-3" />
+                  </button>
+                )}
+                {activityFilter !== 'off' && (
+                  <button type="button" onClick={() => setActivityFilter('off')} className={chip}>
+                    {activityLabel} <X className="h-3 w-3" />
+                  </button>
+                )}
+                {showPinned && (
+                  <button type="button" onClick={() => setShowPinned(false)} className={chip}>
+                    Pinned <X className="h-3 w-3" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFilterSelect('all')
+                    setActivityFilter('off')
+                    setShowPinned(false)
+                  }}
+                  className="text-xs text-white/55 hover:text-white"
+                >
+                  Clear
+                </button>
+              </div>
+            ) : null}
+
+            <CategorySheet
+              open={showFilterDropdown}
+              onClose={() => setShowFilterDropdown(false)}
+              title="Show posts"
+              showCategories={false}
+              selected={[]}
+              onToggle={() => {}}
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-2 text-xs font-medium text-white/55">Type</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => setActiveFilter('all')} className={pill(activeFilter === 'all')}>
+                      All
+                    </button>
+                    {VIBE_TAGS.map((tag) => {
+                      const config = VIBE_TAG_CONFIG[tag]
+                      const Icon = ICON_MAP[tag]
+                      return (
+                        <button key={tag} type="button" onClick={() => setActiveFilter(tag)} className={`flex items-center gap-1.5 ${pill(activeFilter === tag)}`}>
+                          <Icon className="h-3.5 w-3.5" style={{ color: config.color }} />
+                          {config.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-white/55">Just mine</p>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { key: 'posts', label: 'My posts', Icon: FileText },
+                      { key: 'hearts', label: 'Hearts', Icon: Heart },
+                      { key: 'comments', label: 'Comments', Icon: MessageCircle },
+                    ] as const).map(({ key, label, Icon }) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setActivityFilter(activityFilter === key ? 'off' : key)}
+                        className={`flex items-center gap-1.5 ${pill(activityFilter === key)}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" /> {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <button type="button" onClick={() => setShowPinned(!showPinned)} className={`flex items-center gap-1.5 ${pill(showPinned)}`}>
+                    <Pin className="h-3.5 w-3.5" /> Pinned only
+                  </button>
+                </div>
+              </div>
+            </CategorySheet>
+          </div>
+        )
+      })()}
+
       {/* Sticky Top Bar */}
-      <div className="sticky top-0 z-30 bg-black border-b border-neutral-800 px-4 py-3">
+      {!inShell && (
+      <div className={`sticky top-0 z-30 border-b px-4 py-3 ${inShell ? 'glass-chrome rounded-none border-x-0 border-t-0' : 'bg-black border-neutral-800'}`}>
         <div className="flex items-center justify-between max-w-[772px] mx-auto">
           {/* Left side - Profile Picture + Title/Name */}
           {showSearch ? (
@@ -360,10 +520,11 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
           )}
         </div>
       </div>
+      )}
 
       {/* Activity Filter Bar - shows when activity filter is active */}
-      {activityFilter !== 'off' && (
-        <div className="bg-black border-b border-neutral-800 px-4 py-2">
+      {!inShell && activityFilter !== 'off' && (
+        <div className={`border-b px-4 py-2 ${inShell ? 'border-white/10' : 'bg-black border-neutral-800'}`}>
           <div className="flex items-center gap-2 max-w-[772px] mx-auto overflow-x-auto pb-1">
             <button
               onClick={() => setActivityFilter('posts')}
@@ -411,8 +572,8 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
 
       {/* Onboarding Banner - shows when user hasn't posted yet */}
       {!hasPostedBefore && (
-        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#BF00FF]/10 border-b border-neutral-800">
-          <div className="max-w-[772px] mx-auto px-4 py-4">
+        <div className={inShell ? 'mx-auto mt-2 w-full max-w-[772px]' : 'bg-gradient-to-r from-[#39FF14]/10 to-[#BF00FF]/10 border-b border-neutral-800'}>
+          <div className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(120deg,rgba(57,255,20,0.10),rgba(191,0,255,0.12))] px-4 py-4' : 'max-w-[772px] mx-auto px-4 py-4'}>
             <Link 
               href="/vibe-tribe/new"
               className="flex items-center justify-between gap-4 group"
@@ -440,8 +601,8 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       )}
 
       {/* Feed */}
-      <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-8">
-        <div className="max-w-[772px] min-w-0 mx-auto px-4 py-4">
+      <div className={inShell ? 'min-w-0 shrink-0 pb-8' : 'flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-8'}>
+        <div className={inShell ? 'max-w-[772px] min-w-0 mx-auto py-4' : 'max-w-[772px] min-w-0 mx-auto px-4 py-4'}>
           {(loading || refreshing) ? (
             <div className="flex justify-center py-12">
               <Spinner size="lg" />
@@ -527,9 +688,11 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
             className="absolute inset-0 bg-black/80"
             onClick={() => setShowHowToVibe(false)}
           />
-          <div className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl overflow-hidden">
+          <div className={inShell
+            ? 'relative w-full max-w-2xl overflow-hidden rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(40,32,56,0.98)_0%,rgba(22,18,32,0.99)_100%)] shadow-[0_18px_50px_rgba(0,0,0,0.55)]'
+            : 'relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl overflow-hidden'}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800">
+            <div className={`flex items-center justify-between px-5 py-3 border-b ${inShell ? 'border-white/10' : 'border-neutral-800'}`}>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#BF00FF]/20 flex items-center justify-center">
                   <HelpCircle className="w-4 h-4 text-[#BF00FF]" />

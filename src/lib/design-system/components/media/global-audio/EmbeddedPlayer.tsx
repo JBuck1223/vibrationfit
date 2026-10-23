@@ -27,6 +27,8 @@ import { useAudioOffline } from '@/hooks/useAudioOffline'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { colors } from '../../../tokens'
 import { TrackArtwork } from './TrackArtwork'
+import { PlayerScrubber, TransportControls } from './PlayerControls'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { TrackArtistLine, TrackNowPlayingMeta, MusicTrackListSubtitle, isSongNowPlayingTrack } from './TrackArtistLine'
 import { ImageLightbox } from '../ImageLightbox'
 import type { AudioTrack } from '../types'
@@ -82,7 +84,7 @@ interface EmbeddedPlayerProps {
   setIcon?: React.ReactNode
   setName?: string
   setIconKey?: string
-  contentCategory?: 'life_vision' | 'story' | 'music'
+  contentCategory?: 'life_vision' | 'story' | 'music' | 'meditation'
   trackCount?: number
   createdDate?: string
   onRename?: (newName: string) => void
@@ -330,6 +332,7 @@ export function EmbeddedPlayer({
   const isActivePlaying = isThisSetActive && storeIsPlaying
   const isBuffering = useGlobalAudioStore(s => s.isBuffering)
   const isActiveBuffering = isThisSetActive && isBuffering
+  const inShell = useInShell()
   const currentTime = isThisSetActive ? storeCurrentTime : 0
   const duration = isThisSetActive ? storeDuration : 0
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
@@ -486,17 +489,18 @@ export function EmbeddedPlayer({
   const hasAnyMixDetail = !!(resolvedVoiceName || mixDetails?.backgroundName || mixDetails?.binauralName)
 
   /** Same as `bg-embedded-panel` / `colors.neutral.embeddedPanel` — one surface for the whole card. */
-  const panelBg = 'bg-embedded-panel'
+  // Inside the app shell the whole player is one glass card over the backdrop.
+  const panelBg = inShell ? 'bg-transparent' : 'bg-embedded-panel'
 
   return (
-    <div className={cn(`${panelBg} border border-neutral-800 rounded-2xl overflow-hidden`, className)}>
+    <div className={cn(inShell ? 'vf-glass rounded-[28px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(18,14,28,0.72)_100%)] shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl overflow-hidden' : `${panelBg} border border-neutral-800 rounded-2xl overflow-hidden`, className)}>
       {/* ── Header (custom slot or default set header) ── */}
       {headerContent ? (
-        <div className="border-b border-neutral-800/60">
+        <div className={cn('border-b', inShell ? 'border-white/10' : 'border-neutral-800/60')}>
           {headerContent}
         </div>
       ) : (setIcon || setName) ? (
-        <div className="relative bg-black/40 px-5 pt-5 pb-4 border-b border-neutral-800/60">
+        <div className={cn('relative border-b', inShell ? 'border-white/10 px-5 pt-4 pb-3' : 'bg-black/40 px-5 pt-5 pb-4 border-neutral-800/60')}>
           {(onRename || onDelete) && (
             <div className="absolute top-3 right-3 flex items-center gap-0.5">
               {onRename && (
@@ -519,7 +523,7 @@ export function EmbeddedPlayer({
               )}
             </div>
           )}
-          {setIcon && (
+          {setIcon && !inShell && (
             <div className="flex justify-center mb-3">{setIcon}</div>
           )}
           {setName && (
@@ -590,7 +594,9 @@ export function EmbeddedPlayer({
       )}
 
       {/* ── Now Playing section (explicit panel so it never diverges from header / list) ── */}
-      <div className={cn(panelBg, 'flex flex-col items-center px-6 pt-6 pb-4')}>
+      <div className={cn(panelBg, 'flex flex-col items-center', inShell ? 'px-4 pt-4 pb-3' : 'px-6 pt-6 pb-4')}>
+        {/* In the shell: artwork and title side by side, like an app's player bar */}
+        <div className={inShell ? 'mb-3 flex w-full items-center gap-4' : 'contents'}>
         {!hideArtwork && (() => {
           const displayTrack = activeTrack || tracks[0]
 
@@ -599,14 +605,14 @@ export function EmbeddedPlayer({
               <button
                 type="button"
                 onClick={() => setArtworkLightboxOpen(true)}
-                className="group relative mb-6 flex-shrink-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                className={cn('group relative flex-shrink-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50', !inShell && 'mb-6')}
                 aria-label="View album art full size"
               >
                 <TrackArtwork
                   track={displayTrack}
                   iconKey={setIconKey}
-                  size={200}
-                  className="rounded-2xl overflow-hidden shadow-2xl"
+                  size={inShell ? 76 : 200}
+                  className={inShell ? 'rounded-2xl overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.4)]' : 'rounded-2xl overflow-hidden shadow-2xl'}
                 />
                 <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-black/0 opacity-0 transition-opacity group-hover:bg-black/30 group-hover:opacity-100">
                   <span className="rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white">
@@ -621,14 +627,14 @@ export function EmbeddedPlayer({
             <TrackArtwork
               track={displayTrack}
               iconKey={setIconKey}
-              size={200}
-              className="rounded-2xl overflow-hidden shadow-2xl mb-6 flex-shrink-0"
+              size={inShell ? 76 : 200}
+              className={inShell ? 'rounded-2xl overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.4)] flex-shrink-0' : 'rounded-2xl overflow-hidden shadow-2xl mb-6 flex-shrink-0'}
             />
           )
         })()}
 
-        <div className="text-center mb-5 w-full">
-          <h3 className="text-xl font-semibold text-white truncate">
+        <div className={inShell ? 'min-w-0 flex-1 text-left' : 'text-center mb-5 w-full'}>
+          <h3 className={cn('font-semibold text-white truncate', inShell ? 'text-lg' : 'text-xl')}>
             {activeTrack?.title || tracks[0]?.title || 'Select a track'}
           </h3>
           {nowPlayingAccessory ? (
@@ -639,85 +645,43 @@ export function EmbeddedPlayer({
               <TrackNowPlayingMeta track={activeTrack} />
             </div>
           ) : contentCategory !== 'story' ? (
-            <p className="text-sm text-neutral-400 mt-1 truncate text-center">
+            <p className={cn('text-sm text-neutral-400 mt-1 truncate', !inShell && 'text-center')}>
               {setName || activeTrack?.artist || 'Vibration Fit'}
             </p>
           ) : null}
         </div>
-
-        {/* Seek bar */}
-        <div className="w-full mb-4">
-          <input
-            type="range"
-            min={0}
-            max={duration || 0}
-            value={currentTime}
-            onChange={handleSeek}
-            className="w-full h-1.5 bg-neutral-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg"
-            style={{
-              background: `linear-gradient(to right, ${colors.primary[500]} ${progress}%, ${colors.neutral.inputBg} ${progress}%)`,
-            }}
-          />
-          <div className="flex justify-between text-xs text-neutral-500 mt-1.5">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
         </div>
 
-        {/* Transport controls */}
-        <div className="flex items-center justify-center gap-6 mb-3">
-          <button
-            onClick={() => { if (isThisSetActive) skipPrev() }}
-            className="p-3 text-neutral-400 hover:text-white transition-colors"
-            aria-label="Previous"
-          >
-            <SkipBack className="w-6 h-6" />
-          </button>
+        {/* Seek bar */}
+        <div className={cn('w-full', inShell ? 'mb-1' : 'mb-3')}>
+          <PlayerScrubber
+            currentTime={isThisSetActive ? currentTime : 0}
+            duration={isThisSetActive ? duration : 0}
+            onSeek={(t) => { if (isThisSetActive) seekTo(t) }}
+            disabled={!isThisSetActive}
+          />
+        </div>
 
-          <button
-            onClick={() => {
+        {/* Transport: shuffle, previous, play, next, repeat */}
+        <div className={cn('w-full max-w-sm', inShell ? 'mb-0' : 'mb-2')}>
+          <TransportControls
+            compact={inShell}
+            isPlaying={isActivePlaying}
+            isBuffering={isActiveBuffering}
+            onPlayPause={() => {
               if (isThisSetActive) {
                 isActivePlaying ? pauseAction() : resumeAction()
               } else {
                 handlePlayAll()
               }
             }}
-            className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center hover:bg-neutral-200 transition-colors shadow-lg"
-            aria-label={isActiveBuffering ? 'Loading' : isActivePlaying ? 'Pause' : 'Play'}
-          >
-            {isActiveBuffering ? (
-              <Loader2 className="w-7 h-7 animate-spin" />
-            ) : isActivePlaying ? (
-              <Pause className="w-7 h-7" fill="currentColor" />
-            ) : (
-              <Play className="w-7 h-7 ml-1" fill="currentColor" />
-            )}
-          </button>
-
-          <button
-            onClick={() => { if (isThisSetActive) skipNext() }}
-            className="p-3 text-neutral-400 hover:text-white transition-colors"
-            aria-label="Next"
-          >
-            <SkipForward className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Shuffle + Repeat */}
-        <div className="flex items-center justify-center gap-4 mb-2">
-          <button
-            onClick={() => { if (isThisSetActive) toggleShuffle() }}
-            className={cn('p-2 rounded-lg transition-colors', isShuffled && isThisSetActive ? 'text-primary-500 bg-primary-500/20' : 'text-neutral-400 hover:text-white')}
-          >
-            <Shuffle className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleToggleRepeat}
-            className={cn('relative p-2 rounded-lg transition-colors', repeatMode !== 'off' && isThisSetActive ? 'text-primary-500 bg-primary-500/20' : 'text-neutral-400 hover:text-white')}
-          >
-            <Repeat className="w-4 h-4" />
-            {repeatMode === 'one' && isThisSetActive && <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold leading-none text-primary-500">1</span>}
-          </button>
+            onPrev={() => { if (isThisSetActive) skipPrev() }}
+            onNext={() => { if (isThisSetActive) skipNext() }}
+            shuffle={isShuffled && isThisSetActive}
+            onShuffle={() => { if (isThisSetActive) toggleShuffle() }}
+            repeatMode={isThisSetActive ? repeatMode : 'off'}
+            onRepeat={handleToggleRepeat}
+          />
         </div>
       </div>
 

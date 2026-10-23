@@ -18,7 +18,7 @@ import {
   Menu,
   Home,
 } from 'lucide-react'
-import { userNavigationPrimary, userNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
+import { userNavigationPrimary, userNavigationGroups, shellNavigationPrimary, shellNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
@@ -40,7 +40,7 @@ function getDefaultExpandedGroups(groups: NavGroup[]): string[] {
 }
 
 // Shared Sidebar Base Component
-function SidebarBase({ className, navigation, primaryNavigation = [], groups = [], isAdmin = false }: SidebarProps & { navigation: NavItem[], primaryNavigation?: NavItem[], groups?: NavGroup[] }) {
+function SidebarBase({ className, navigation, primaryNavigation = [], groups = [], isAdmin = false, surface = 'solid' }: SidebarProps & { navigation: NavItem[], primaryNavigation?: NavItem[], groups?: NavGroup[], surface?: 'solid' | 'glass' }) {
   // Initialize with default value for SSR consistency, then sync with localStorage
   const [collapsed, setCollapsed] = useState(false) // Default: expanded
   const [hasMounted, setHasMounted] = useState(false)
@@ -243,6 +243,19 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
     )
   }
 
+  // Inside the app shell: one app-like row for everything, a green pill for
+  // where you are (like the studio toggles), no outlines.
+  const glass = surface === 'glass'
+  const shellRow = (active: boolean, dim = false) =>
+    cn(
+      'flex items-center gap-3 h-10 px-3 rounded-full text-sm transition-colors duration-150',
+      active
+        ? 'bg-[rgba(57,255,20,0.14)] text-[#39FF14] font-semibold'
+        : dim
+          ? 'text-white/60 hover:text-white hover:bg-white/[0.05]'
+          : 'text-white/80 hover:text-white hover:bg-white/[0.05]'
+    )
+
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev =>
       prev.includes(groupName)
@@ -254,7 +267,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
   const renderSidebarContent = (isCollapsed: boolean) => (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
+      <div className={cn('flex items-center justify-between', glass ? 'px-4 pt-4 pb-3' : 'px-4 py-3 border-b border-neutral-800')}>
         {!isCollapsed && (
           <div className="flex items-center gap-3 min-w-0">
             {loading ? (
@@ -268,7 +281,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                 <img
                   src={profile?.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
                   alt=""
-                  className="h-8 w-8 rounded-full border-2 border-primary-500 object-cover"
+                  className={cn('h-8 w-8 rounded-full object-cover', glass ? 'ring-1 ring-white/20' : 'border-2 border-primary-500')}
                   loading="eager"
                 />
               </ProfilePictureClickable>
@@ -276,7 +289,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
             {loading ? (
               <div className="w-24 h-4 bg-neutral-700 rounded animate-pulse" />
             ) : profile?.first_name ? (
-              <span className="text-white font-medium truncate">
+              <span className={cn('text-white truncate', glass ? 'text-sm font-semibold' : 'font-medium')}>
                 {profile.first_name}
               </span>
             ) : (
@@ -309,25 +322,33 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
               )}
             </Link>
           )}
-          {/* Desktop: collapse toggle */}
+          {/* Desktop: collapse toggle (in the app shell: here when open, an edge tab when collapsed) */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden md:block p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={cn(
+              'transition-colors',
+              glass
+                ? isCollapsed
+                  ? 'hidden'
+                  : 'hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-[rgba(36,29,50,0.9)] text-white/75 hover:border-white/30 hover:text-white'
+                : 'hidden md:block p-1.5 rounded-lg hover:bg-neutral-800',
+            )}
           >
             {collapsed ? (
-              <ChevronRight className="w-4 h-4 text-neutral-400" />
+              <ChevronRight className={cn('w-4 h-4', !glass && 'text-neutral-400')} />
             ) : (
-              <ChevronLeft className="w-4 h-4 text-neutral-400" />
+              <ChevronLeft className={cn('w-4 h-4', !glass && 'text-neutral-400')} />
             )}
           </button>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 min-h-0 px-4 pt-1 pb-4 space-y-1 overflow-y-auto">
+      <nav className={cn('flex-1 min-h-0 overflow-y-auto', glass ? 'px-3 pt-1 pb-4 space-y-0.5' : 'px-4 pt-1 pb-4 space-y-1')}>
         {!isAdmin && <LifeActivationSidebarCard collapsed={isCollapsed} />}
         {!gettingStartedOnly && primaryNavigation.length > 0 && (
-          <div className="mb-3 space-y-1">
+          <div className={glass ? 'space-y-0.5' : 'mb-3 space-y-1'}>
             {primaryNavigation.map((item) => {
               const Icon = item.icon
               const isActive = itemIsActive(item)
@@ -337,15 +358,17 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                   key={item.name}
                   href={item.href}
                   title={item.description || item.name}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200',
-                    isCollapsed ? 'justify-center p-2' : 'px-3 py-2.5',
-                    isActive
-                      ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
-                      : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
-                  )}
+                  className={glass
+                    ? cn(shellRow(isActive), isCollapsed && 'justify-center px-0')
+                    : cn(
+                      'flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200',
+                      isCollapsed ? 'justify-center p-2' : 'px-3 py-2.5',
+                      isActive
+                        ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
+                        : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                    )}
                 >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <Icon className={cn('flex-shrink-0', glass ? 'w-[18px] h-[18px]' : 'w-5 h-5')} />
                   {!isCollapsed && <span className="flex-1">{item.name}</span>}
                 </Link>
               )
@@ -442,7 +465,27 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           
           if (isCollapsed) {
             return (
-              <div key={group.name} className="pt-2 mt-2 border-t border-neutral-800 space-y-1">
+              <div key={group.name} className={glass ? 'pt-3 space-y-0.5' : 'pt-2 mt-2 border-t border-neutral-800 space-y-1'}>
+                {group.href && group.icon && (() => {
+                  const GroupIcon = group.icon
+                  const here = pathname === group.href
+                  return (
+                    <Link
+                      href={group.href}
+                      title={group.name}
+                      className={glass
+                        ? cn(shellRow(here), 'justify-center px-0')
+                        : cn(
+                          'flex justify-center p-2 rounded-lg transition-all duration-200',
+                          here
+                            ? 'bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30'
+                            : 'text-white hover:bg-neutral-800'
+                        )}
+                    >
+                      <GroupIcon className={cn('flex-shrink-0', glass ? 'w-[18px] h-[18px]' : 'w-5 h-5')} />
+                    </Link>
+                  )
+                })()}
                 {group.items.map((item) => {
                   const Icon = item.icon
                   const isActive = itemIsActive(item)
@@ -451,14 +494,16 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                       key={item.name}
                       href={item.href}
                       title={item.name}
-                      className={cn(
-                        'flex justify-center p-2 rounded-lg transition-all duration-200',
-                        isActive
-                          ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
-                          : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
-                      )}
+                      className={glass
+                        ? cn(shellRow(isActive, true), 'justify-center px-0')
+                        : cn(
+                          'flex justify-center p-2 rounded-lg transition-all duration-200',
+                          isActive
+                            ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
+                            : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                        )}
                     >
-                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      <Icon className={cn('flex-shrink-0', glass ? 'w-4 h-4' : 'w-5 h-5')} />
                     </Link>
                   )
                 })}
@@ -467,7 +512,32 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           }
 
           return (
-            <div key={group.name} className="pt-3">
+            <div key={group.name} className={glass ? 'pt-3' : 'pt-3'}>
+              {group.href ? (
+                (() => {
+                  const GroupIcon = group.icon
+                  const here = pathname === group.href
+                  return (
+                    <div className="group/section relative">
+                      <Link href={group.href} className={cn(shellRow(here), 'pr-10')}>
+                        {GroupIcon && <GroupIcon className="w-[18px] h-[18px] flex-shrink-0" />}
+                        <span className="flex-1 truncate">{group.name}</span>
+                      </Link>
+                      <button
+                        onClick={() => toggleGroup(group.name)}
+                        aria-label={isGroupExpanded ? `Hide ${group.name} areas` : `Show ${group.name} areas`}
+                        aria-expanded={isGroupExpanded}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-lg text-white/40 opacity-0 transition-opacity hover:bg-white/[0.08] hover:text-white focus-visible:opacity-100 group-hover/section:opacity-100"
+                      >
+                        <ChevronDown className={cn(
+                          'w-4 h-4 transition-transform duration-200',
+                          isGroupExpanded ? 'rotate-180' : ''
+                        )} />
+                      </button>
+                    </div>
+                  )
+                })()
+              ) : (
               <button
                 onClick={() => toggleGroup(group.name)}
                 className="flex items-center gap-2 px-3 py-1.5 w-full text-left rounded-lg hover:bg-neutral-800/50 transition-colors"
@@ -480,9 +550,10 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                   isGroupExpanded ? 'rotate-180' : ''
                 )} />
               </button>
+              )}
               
               {isGroupExpanded && (
-                <div className="mt-1 space-y-1">
+                <div className={cn(group.href ? 'mt-0.5 space-y-0.5 pl-[30px]' : 'mt-1 space-y-1')}>
                   {group.items.map((item) => {
                     const isActive = itemIsActive(item)
                     const isExpanded = expandedItems.includes(item.name)
@@ -540,12 +611,14 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                         ) : (
                           <Link
                             href={item.href}
-                            className={cn(
-                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
-                              isActive
-                                ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
-                                : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
-                            )}
+                            className={glass
+                              ? cn(shellRow(isActive, true), 'h-9')
+                              : cn(
+                                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
+                                isActive
+                                  ? 'bg-[#00CC44]/20 text-[#00CC44] border border-[#00CC44]/30'
+                                  : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
+                              )}
                           >
                             <Icon className="w-4 h-4 flex-shrink-0" />
                             <span className="flex-1">{item.name}</span>
@@ -563,7 +636,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
 
       {/* Footer */}
       {!isCollapsed && (
-        <div className="p-4 border-t border-neutral-800 space-y-3">
+        <div className={cn('space-y-3', glass ? 'px-3 pb-4 pt-2' : 'p-4 border-t border-neutral-800')}>
           <div className="flex items-center gap-2">
             <button
               onClick={async () => {
@@ -572,7 +645,9 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
                 window.location.href = '/auth/login'
               }}
               className={cn(
-                'flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-all duration-200',
+                glass
+                  ? 'flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm text-white/60 hover:text-white hover:bg-white/[0.05] transition-colors'
+                  : 'flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-all duration-200',
                 isSuperAdmin ? 'flex-1' : 'w-full'
               )}
             >
@@ -634,12 +709,33 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       </aside>
 
       {/* Desktop Sidebar */}
-      <div className={cn(
-        'hidden md:flex flex-col bg-neutral-800 border-r border-neutral-800 transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64',
-        className
-      )}>
+      <div
+        className={cn(
+          'hidden md:flex flex-col transition-all duration-300',
+          // Inside the app shell: a floating panel in the same violet frosted
+          // glass as the cards and bottom bar.
+          surface === 'glass'
+            ? 'group/sidebar vf-glass relative rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(22,18,32,0.68)_100%)] shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150'
+            : 'bg-neutral-800 border-r border-neutral-800',
+          collapsed ? 'w-16' : 'w-64',
+          className
+        )}
+      >
         {renderSidebarContent(collapsed)}
+        {surface === 'glass' && collapsed && (
+          // Collapsed: a small round tab on the panel's edge (open, the toggle sits in the header).
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={cn(
+              'absolute z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-[rgba(36,29,50,0.9)] text-white/75 transition-all duration-200 hover:border-white/30 hover:text-white',
+              '-right-2.5 top-7',
+            )}
+          >
+            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+          </button>
+        )}
       </div>
     </>
   )
@@ -654,6 +750,24 @@ export function UserSidebar({ className }: { className?: string }) {
       primaryNavigation={userNavigationPrimary}
       groups={userNavigationGroups}
       isAdmin={false}
+    />
+  )
+}
+
+/**
+ * The same member sidebar inside the new app shell: regrouped to the seven
+ * sections and painted as glass over the theme backdrop. Desktop only; phones
+ * use the shell's pill nav, so its hamburger and drawer never show here.
+ */
+export function ShellUserSidebar() {
+  return (
+    <SidebarBase
+      className="h-full"
+      navigation={[]}
+      primaryNavigation={shellNavigationPrimary}
+      groups={shellNavigationGroups}
+      isAdmin={false}
+      surface="glass"
     />
   )
 }

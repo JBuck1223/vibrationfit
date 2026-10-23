@@ -7,6 +7,8 @@ export const USER_FOLDERS = {
   visionBoard: 'vision-board',
   visionBoardGenerated: 'vision-board/generated',
   visionBoardUploaded: 'vision-board/uploaded',
+  visionBoardAudioRecordings: 'vision-board/audio-recordings',
+  dailyPaperAudioRecordings: 'daily-paper/audio-recordings',
   journal: 'journal/uploads',
   journalAudioRecordings: 'journal/audio-recordings',
   journalVideoRecordings: 'journal/video-recordings',
@@ -21,6 +23,7 @@ export const USER_FOLDERS = {
   profileAudioRecordings: 'profile/audio-recordings',
   profileVideoRecordings: 'profile/video-recordings',
   customTracks: 'custom-tracks',
+  customTracksAudioRecordings: 'custom-tracks/audio-recordings',
   voiceCloneSamples: 'voice-clone-samples',
   // Intensive testimonials
   intensiveTestimonials: 'intensive/testimonials',
@@ -676,6 +679,18 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
       ],
     },
     journalAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    visionBoardAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    dailyPaperAudioRecordings: {
+      maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
+      types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
+    },
+    customTracksAudioRecordings: {
       maxSize: 1024 * 1024 * 1024, // 1GB for audio recordings
       types: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg'],
     },

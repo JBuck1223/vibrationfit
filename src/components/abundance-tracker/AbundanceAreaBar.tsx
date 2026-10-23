@@ -3,6 +3,7 @@
 import { DollarSign, Coins, BarChart3, Flag, NotebookText, Plus } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem } from '@/lib/design-system/components'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 const TABS = [
   { label: 'Track', path: '/abundance-tracker', icon: Coins },
@@ -19,6 +20,7 @@ const CONTEXT_GOALS_NEW = 'Choose a period and amount, then save your goal.'
 
 export function AbundanceAreaBar() {
   const pathname = usePathname()
+  const inShell = useInShell()
 
   const isReports =
     pathname === '/abundance-tracker/reports' ||
@@ -77,6 +79,9 @@ export function AbundanceAreaBar() {
   else if (onNewEntry) contextText = CONTEXT_TRACK_NEW_ENTRY
   else if (isTrackSection) contextText = CONTEXT_TRACK_OVERVIEW
   else contextText = CONTEXT_TRACK_OVERVIEW
+
+  // In the app shell Abundance has its own header (AbundanceHeader).
+  if (inShell) return null
 
   return (
     <AreaBar

@@ -43,17 +43,23 @@ export function VivaAssistantMessage({
   markdown,
   copyText,
   hideCopy = false,
+  actions,
 }: {
   children?: ReactNode
   markdown?: string
   copyText?: string
   hideCopy?: boolean
+  /** Extra controls beside Copy (e.g. Save as Story / Journal). */
+  actions?: ReactNode
 }) {
   return (
     <div className="space-y-2">
       {markdown != null ? <VivaMarkdown>{markdown}</VivaMarkdown> : children}
       {!hideCopy && copyText?.trim() ? (
-        <MessageCopyButton text={copyText} />
+        <div className="flex items-center gap-1">
+          <MessageCopyButton text={copyText} />
+          {actions}
+        </div>
       ) : null}
     </div>
   )

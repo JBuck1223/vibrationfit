@@ -14,6 +14,9 @@ import { Button } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { keys } from '@/lib/query/keys'
 import { CommitVisionDialog } from './CommitVisionDialog'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
 
 interface AssetState {
   state?: 'pending' | 'generating' | 'ready' | 'failed'
@@ -59,6 +62,7 @@ export function ActivationKitProgressCard({ visionId }: { visionId: string }) {
   const supabase = useMemo(() => createClient(), [])
   const queryClient = useQueryClient()
   const [showKitDialog, setShowKitDialog] = useState(false)
+  const inShell = useInShell()
 
   const { data: run, isLoading } = useQuery<KitRun | null>({
     queryKey: [...keys.activationKitRuns, visionId],
@@ -100,6 +104,26 @@ export function ActivationKitProgressCard({ visionId }: { visionId: string }) {
   if (!run || runIsStale) {
     return (
       <>
+        {inShell ? (
+          <div className={cn(GLASS_CARD, 'flex flex-col gap-4 p-4 sm:flex-row sm:items-center md:p-5')}>
+            <div className="flex flex-1 items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(191,0,255,0.16)]">
+                <Package className="h-5 w-5 text-[#d68bff]" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[15px] font-semibold text-white">Activation Kit</p>
+                <p className="mt-0.5 text-sm text-white/60">Voice tracks, audio mixes and board images, made from this vision.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowKitDialog(true)}
+              className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-[#BF00FF] px-5 text-sm font-semibold text-white shadow-[0_0_18px_rgba(191,0,255,0.35)] transition-transform active:scale-[0.98]"
+            >
+              Generate Kit
+            </button>
+          </div>
+        ) : (
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border-2 border-[#333] bg-[#1F1F1F] px-6 py-4">
           <div className="flex items-center gap-3 flex-1">
             <Package className="w-5 h-5 text-[#BF00FF] shrink-0" />
@@ -111,6 +135,7 @@ export function ActivationKitProgressCard({ visionId }: { visionId: string }) {
             Generate Kit
           </Button>
         </div>
+        )}
         <CommitVisionDialog
           isOpen={showKitDialog}
           onClose={() => setShowKitDialog(false)}
@@ -132,9 +157,15 @@ export function ActivationKitProgressCard({ visionId }: { visionId: string }) {
   if (visible.length === 0) return null
 
   return (
-    <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-6">
+    <div className={inShell ? cn(GLASS_CARD, 'p-4 md:p-5') : 'rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-6'}>
       <div className="flex items-center gap-3 mb-4">
+        {inShell ? (
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(191,0,255,0.16)]">
+            <Package className="h-5 w-5 text-[#d68bff]" />
+          </span>
+        ) : (
         <Package className="w-5 h-5 text-[#BF00FF]" />
+        )}
         <h3 className="text-white font-semibold">
           {run.status === 'running' ? 'Your Activation Kit is generating' : 'Your Activation Kit'}
         </h3>
@@ -149,12 +180,12 @@ export function ActivationKitProgressCard({ visionId }: { visionId: string }) {
 
           const inner = (
             <div
-              className={`flex items-center gap-3 rounded-xl border-2 p-3 transition-colors ${
+              className={`flex items-center gap-3 p-3 transition-colors ${inShell ? 'rounded-2xl border' : 'rounded-xl border-2'} ${
                 ready
                   ? 'border-[#39FF14]/40 bg-[#39FF14]/5 hover:border-[#39FF14]'
                   : failed
                     ? 'border-[#FF0040]/40 bg-[#FF0040]/5'
-                    : 'border-[#333] bg-[#0A0A0A]'
+                    : inShell ? 'border-white/10 bg-white/[0.04]' : 'border-[#333] bg-[#0A0A0A]'
               }`}
             >
               <Icon className={`w-4 h-4 shrink-0 ${ready ? 'text-[#39FF14]' : failed ? 'text-[#FF0040]' : 'text-neutral-500'}`} />
@@ -174,7 +205,7 @@ export function ActivationKitProgressCard({ visionId }: { visionId: string }) {
       </div>
 
       {run.status === 'partial' && (
-        <p className="mt-3 text-xs text-neutral-500">
+        <p className={`mt-3 text-xs ${inShell ? 'text-white/50' : 'text-neutral-500'}`}>
           Some assets did not finish — you can generate them anytime from the Audio studio.
         </p>
       )}

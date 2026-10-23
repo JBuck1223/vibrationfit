@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { VIVALoadingOverlay } from '@/lib/design-system/components/overlays'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { cn } from '@/lib/utils'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 const AUDIO_MIME_CANDIDATES = [
   'audio/webm;codecs=opus',
@@ -67,6 +68,8 @@ interface VivaChatInputProps {
   isLoading?: boolean
   /** Ignored — textarea auto-grows */
   multiline?: boolean
+  /** Extra controls in the bottom row after attach and mic (e.g. Suggest tools). */
+  extraActions?: React.ReactNode
 }
 
 export function VivaChatInput({
@@ -80,8 +83,11 @@ export function VivaChatInput({
   isLoading = false,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   multiline,
+  extraActions,
 }: VivaChatInputProps) {
   const disabled = disabledProp || isLoading
+  // In the app shell the box is a rounded violet glass pill with quiet icons.
+  const inShell = useInShell()
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [voicePhase, setVoicePhase] = useState<VoicePhase>('idle')
@@ -445,11 +451,19 @@ export function VivaChatInput({
     setAttachments([])
   }
 
+  // On phones and tablets Return makes a new line, like other chat apps;
+  // the send button sends. On a keyboard, Enter sends and Shift+Enter
+  // (or Alt/Option+Enter) starts a new line.
+  const [touchKeyboard, setTouchKeyboard] = useState(false)
+  useEffect(() => {
+    setTouchKeyboard(window.matchMedia?.('(pointer: coarse)').matches ?? false)
+  }, [])
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey && value.trim() && canSend && !disabled) {
-      e.preventDefault()
-      handleSend()
-    }
+    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+    if (touchKeyboard || e.shiftKey || e.altKey) return // newline
+    e.preventDefault()
+    if (value.trim() && canSend && !disabled) handleSend()
   }
 
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
@@ -490,8 +504,13 @@ export function VivaChatInput({
 
       {/* Main input container — single bordered box with textarea on top, buttons on bottom */}
       <div className={cn(
-        'relative flex flex-col bg-neutral-900 border border-neutral-700 px-4 pt-3 pb-2',
-        attachments.length > 0 ? 'rounded-b-xl' : 'rounded-xl'
+        'relative flex flex-col px-4 pt-3 pb-2',
+        inShell
+          ? 'vf-glass border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(24,20,34,0.72)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.3)] backdrop-blur-2xl backdrop-saturate-150 focus-within:border-[#BF00FF]/45'
+          : 'bg-neutral-900 border border-neutral-700',
+        inShell
+          ? attachments.length > 0 ? 'rounded-b-[24px]' : 'rounded-[24px]'
+          : attachments.length > 0 ? 'rounded-b-xl' : 'rounded-xl'
       )}>
         {/* Raw textarea — top aligned */}
         <textarea
@@ -500,10 +519,12 @@ export function VivaChatInput({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          rows={2}
+          enterKeyHint={touchKeyboard ? 'enter' : 'send'}
+          rows={inShell ? 1 : 2}
           disabled={disabled || isRecording || isTranscribing}
           className={cn(
-            'w-full bg-transparent border-0 outline-none resize-none text-white placeholder-neutral-500 text-base min-h-[48px] max-h-[160px] disabled:opacity-50',
+            'w-full bg-transparent border-0 outline-none resize-none text-white text-base max-h-[160px] disabled:opacity-50',
+            inShell ? 'min-h-[28px] placeholder:text-white/45' : 'min-h-[48px] placeholder-neutral-500',
             isRecording && 'opacity-30'
           )}
         />
@@ -511,16 +532,20 @@ export function VivaChatInput({
         {/* Bottom row — normal state: attach + mic on left, send on right */}
         {!isRecording && (
           <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               {/* Attach */}
               <button
                 type="button"
                 onClick={openFilePicker}
                 disabled={disabled || isTranscribing}
-                className="w-8 h-8 rounded-full bg-accent-500 hover:bg-accent-500/80 flex items-center justify-center transition-colors disabled:opacity-40"
+                className={cn(
+                  'w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-colors disabled:opacity-40',
+                  inShell ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'bg-accent-500 hover:bg-accent-500/80',
+                )}
                 title="Attach file"
+                aria-label="Attach file"
               >
-                <Paperclip className="w-4 h-4 text-white" />
+                <Paperclip className={cn('w-4 h-4', !inShell && 'text-white')} />
               </button>
 
               {/* Mic */}
@@ -528,11 +553,17 @@ export function VivaChatInput({
                 type="button"
                 onClick={startRecording}
                 disabled={disabled || isTranscribing}
-                className="w-8 h-8 rounded-full bg-accent-500 hover:bg-accent-500/80 flex items-center justify-center transition-colors disabled:opacity-40"
+                className={cn(
+                  'w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-colors disabled:opacity-40',
+                  inShell ? 'text-white/70 hover:bg-white/10 hover:text-white' : 'bg-accent-500 hover:bg-accent-500/80',
+                )}
                 title="Record voice"
+                aria-label="Record voice"
               >
-                <Mic className="w-4 h-4 text-white" />
+                <Mic className={cn('w-4 h-4', !inShell && 'text-white')} />
               </button>
+
+              {extraActions}
             </div>
 
             {/* Send */}
@@ -540,17 +571,20 @@ export function VivaChatInput({
               type="button"
               onClick={handleSend}
               disabled={!showSendEnabled}
+              aria-label="Send"
               className={cn(
-                'w-8 h-8 rounded-full bg-accent-500 flex items-center justify-center transition-all',
-                showSendEnabled
-                  ? 'hover:bg-accent-500/80 cursor-pointer'
-                  : 'opacity-40 cursor-not-allowed'
+                'rounded-full flex shrink-0 items-center justify-center transition-all',
+                inShell
+                  ? showSendEnabled || disabled
+                    ? 'h-9 w-9 bg-[#BF00FF] shadow-[0_4px_16px_rgba(191,0,255,0.45)] hover:bg-[#BF00FF]/85 active:scale-95'
+                    : 'h-9 w-9 bg-white/10 cursor-not-allowed'
+                  : cn('w-8 h-8 bg-accent-500', showSendEnabled ? 'hover:bg-accent-500/80 cursor-pointer' : 'opacity-40 cursor-not-allowed'),
               )}
             >
               {disabled ? (
                 <Loader2 className="w-4 h-4 text-white animate-spin" />
               ) : (
-                <ArrowUp className="w-4 h-4 text-white" />
+                <ArrowUp className={cn('w-4 h-4', inShell && !showSendEnabled ? 'text-white/40' : 'text-white')} />
               )}
             </button>
           </div>

@@ -39,7 +39,11 @@ import {
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 import { ensureJpegCompatible } from '@/lib/life-explorer/ensure-jpeg'
 import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
+import { ShellWalkthroughButton } from '@/components/app-shell/ShellWalkthroughButton'
+import { MessageSaveMenu } from '@/components/viva/MessageSaveMenu'
 import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
+import { VivaWelcome } from '@/components/viva/VivaWelcome'
+import { useInShell } from '@/components/app-shell/ShellContext'
 
 function vivaQuery(): URLSearchParams {
   if (typeof window === 'undefined') return new URLSearchParams()
@@ -102,7 +106,32 @@ export default function VivaPage() {
   const [isThinking, setIsThinking] = useState(false)
 
   // --- UI state ---
+  const inShell = useInShell()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  // Desktop: the thread list can be collapsed; remembered on this device.
+  const [threadsCollapsed, setThreadsCollapsed] = useState(false)
+  useEffect(() => {
+    try {
+      setThreadsCollapsed(localStorage.getItem('vf_viva_threads_collapsed') === '1')
+    } catch {
+      /* storage unavailable */
+    }
+  }, [])
+  const toggleThreads = () => {
+    // Phones open the list as a drawer; desktop collapses or expands it.
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+      setSidebarOpen(true)
+      return
+    }
+    setThreadsCollapsed((prev) => {
+      try {
+        localStorage.setItem('vf_viva_threads_collapsed', prev ? '0' : '1')
+      } catch {
+        /* storage unavailable */
+      }
+      return !prev
+    })
+  }
   const [constraintsOpen, setConstraintsOpen] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -110,11 +139,23 @@ export default function VivaPage() {
   // Admin model testing: /viva?model=anthropic/claude-sonnet-4-5
   // The API only honors this override for admin accounts.
   const [modelOverride, setModelOverride] = useState<string | null>(null)
+  const [flowIntent, setFlowIntent] = useState<string | null>(null)
   const [focusKitId, setFocusKitId] = useState<string | null>(null)
   const focusStartedRef = useRef(false)
   useEffect(() => {
     const m = new URLSearchParams(window.location.search).get('model')
     if (m) setModelOverride(m)
+    // A guided flow tells the coach which path the member chose.
+    const flow = new URLSearchParams(window.location.search).get('flow')
+    if (flow && /^[a-z-]{3,40}$/.test(flow)) setFlowIntent(`flow:${flow}`)
+    // Capture's "Share with VIVA" hands over a draft; it waits in the composer.
+    const draft = new URLSearchParams(window.location.search).get('draft')
+    if (draft) {
+      setCurrentMessage(draft)
+      const next = new URL(window.location.href)
+      next.searchParams.delete('draft')
+      window.history.replaceState(null, '', next.pathname + next.search)
+    }
   }, [])
 
   const { data: threads = [] } = useQuery({
@@ -303,6 +344,7 @@ export default function VivaPage() {
           modeHint: 'auto',
           ...(persisted.length > 0 ? { attachments: persisted } : {}),
           ...(modelOverride ? { modelOverride } : {}),
+          ...(flowIntent ? { userIntent: flowIntent } : {}),
           ...(options?.suggestTools ? { suggestTools: true } : {}),
           ...(options?.kitId || focusKitId ? { kitId: options?.kitId || focusKitId } : {}),
         },
@@ -334,6 +376,8 @@ export default function VivaPage() {
       }
 
       refreshThreads()
+      // Coach tools may have completed a flow step on the server.
+      if (flowIntent) window.dispatchEvent(new CustomEvent('vf:flow-refresh'))
     } catch (err) {
       console.error('VIVA chat error:', err)
       const fallback =
@@ -402,8 +446,10 @@ export default function VivaPage() {
       key={thread.id}
       onClick={() => openThread(thread.id)}
       className={cn(
-        'group flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors duration-200',
-        thread.id === threadId ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200'
+        'group flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors duration-200',
+        inShell
+          ? cn('rounded-full', thread.id === threadId ? 'bg-[rgba(191,0,255,0.18)] text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white')
+          : cn('rounded-lg', thread.id === threadId ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200')
       )}
     >
       {renamingId === thread.id ? (
@@ -416,7 +462,7 @@ export default function VivaPage() {
               if (e.key === 'Enter') commitRename(thread.id)
               if (e.key === 'Escape') setRenamingId(null)
             }}
-            className="flex-1 min-w-0 bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white outline-none focus:border-neutral-500"
+            className={cn('flex-1 min-w-0 px-2 py-1 text-sm text-white outline-none', inShell ? 'rounded-full border border-white/20 bg-white/[0.06] focus:border-[#BF00FF]/50' : 'bg-neutral-800 border border-neutral-700 rounded focus:border-neutral-500')}
           />
           <button onClick={() => commitRename(thread.id)} className="text-neutral-400 hover:text-white shrink-0">
             <Check className="w-3.5 h-3.5" />
@@ -462,19 +508,23 @@ export default function VivaPage() {
   )
 
   return (
-    <div className="flex-1 min-h-0 bg-black flex flex-col overflow-hidden">
+    <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden", inShell ? "bg-transparent" : "bg-black")}>
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* ---- Thread sidebar ---- */}
       <aside
         className={cn(
-          'w-72 max-w-[85vw] shrink-0 border-r border-neutral-900 bg-black flex-col transition-all duration-300',
+          'w-72 max-w-[85vw] shrink-0 border-r flex-col transition-all duration-300',
+          inShell
+            ? 'vf-glass border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(22,18,32,0.78)_100%)] backdrop-blur-2xl backdrop-saturate-150 md:my-2 md:ml-2 md:mr-4 md:rounded-[26px] md:border md:shadow-[0_14px_40px_rgba(0,0,0,0.35)]'
+            : 'border-neutral-900 bg-black',
           sidebarOpen
             ? 'flex fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top)] md:static md:z-auto md:pt-0'
-            : 'hidden md:flex'
+            : 'hidden md:flex',
+          threadsCollapsed && 'md:hidden'
         )}
       >
         <div className="flex items-center justify-between px-4 py-4">
-          <span className="text-sm font-medium text-neutral-500">Threads</span>
+          <span className={cn('text-sm font-medium', inShell ? 'text-white/80' : 'text-neutral-500')}>Threads</span>
           <div className="flex items-center gap-1">
             <button
               onClick={startNewThread}
@@ -486,22 +536,31 @@ export default function VivaPage() {
             <button
               onClick={() => setSidebarOpen(false)}
               className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
+              aria-label="Close threads"
             >
               <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={toggleThreads}
+              className="hidden p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:block"
+              title="Collapse threads"
+              aria-label="Collapse threads"
+            >
+              <PanelLeft className="w-4 h-4" />
             </button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-4">
           {pinnedThreads.length > 0 && (
             <div>
-              <p className="px-3 pb-1 text-[11px] uppercase tracking-wide text-neutral-600">Pinned</p>
+              <p className={cn('px-3 pb-1', inShell ? 'text-xs font-medium text-white/45' : 'text-[11px] uppercase tracking-wide text-neutral-600')}>Pinned</p>
               <div className="space-y-0.5">{pinnedThreads.map(renderThreadRow)}</div>
             </div>
           )}
           {recentThreads.length > 0 && (
             <div>
               {pinnedThreads.length > 0 && (
-                <p className="px-3 pb-1 text-[11px] uppercase tracking-wide text-neutral-600">Recent</p>
+                <p className={cn('px-3 pb-1', inShell ? 'text-xs font-medium text-white/45' : 'text-[11px] uppercase tracking-wide text-neutral-600')}>Recent</p>
               )}
               <div className="space-y-0.5">{recentThreads.map(renderThreadRow)}</div>
             </div>
@@ -518,17 +577,21 @@ export default function VivaPage() {
       {/* ---- Main column ---- */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="flex items-center gap-3 pl-16 pr-4 py-3 border-b border-neutral-900 md:px-4">
+        <header className={cn("flex items-center gap-3 pr-4 md:px-4", inShell ? "pl-4 py-2" : "pl-16 py-3 border-b border-neutral-900")}>
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
-            aria-label="Open threads"
+            onClick={toggleThreads}
+            className={cn(
+              "p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors",
+              !threadsCollapsed && "md:hidden",
+            )}
+            aria-label="Show threads"
+            title="Show threads"
           >
             <PanelLeft className="w-4 h-4" />
           </button>
           <div className="flex-1 min-w-0 flex items-center gap-2">
             <h1 className="text-sm font-medium text-white truncate">
-              {activeThread?.title || 'VIVA'}
+              {activeThread?.title || (inShell ? 'New conversation' : 'VIVA')}
             </h1>
             {modelOverride && (
               <span className="shrink-0 px-2 py-0.5 rounded-full border border-neutral-800 text-[11px] text-neutral-500">
@@ -536,11 +599,18 @@ export default function VivaPage() {
               </span>
             )}
           </div>
-          <WalkthroughToggle
-            active={walkthrough.active}
-            onToggle={walkthrough.toggle}
-            pending={walkthrough.pending}
-          />
+          {inShell ? (
+            // In the app shell the walkthrough is the lightbulb in the top bar.
+            <ShellWalkthroughButton
+              walkthrough={{ active: walkthrough.active, onToggle: walkthrough.toggle, available: walkthrough.steps.length > 0 }}
+            />
+          ) : (
+            <WalkthroughToggle
+              active={walkthrough.active}
+              onToggle={walkthrough.toggle}
+              pending={walkthrough.pending}
+            />
+          )}
           <button
             onClick={() => setConstraintsOpen(true)}
             className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
@@ -559,14 +629,13 @@ export default function VivaPage() {
 
         {/* Thread */}
         <div className="flex-1 overflow-y-auto" data-tour="viva-thread">
-          <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-8">
+          <div className={cn("max-w-3xl mx-auto px-4 md:px-6 space-y-8", messages.length === 0 && !isThinking ? "py-4 md:py-6" : "py-8")}>
             {messages.length === 0 && !isThinking && (
-              <div className="pt-24 text-center space-y-2">
-                <p className="text-xl text-white">What&apos;s on your mind?</p>
-                <p className="text-sm text-neutral-500">
-                  I know your vision, your patterns, your journey.
-                </p>
-              </div>
+              <VivaWelcome
+                threads={threads}
+                onSuggest={(text) => sendMessage(undefined, text)}
+                onOpenThread={(id) => void openThread(id)}
+              />
             )}
 
             {messages.map((message, index) => {
@@ -614,6 +683,7 @@ export default function VivaPage() {
                       markdown={message.content}
                       copyText={message.content}
                       hideCopy={hideCopy}
+                      actions={<MessageSaveMenu text={message.content} threadId={threadId} />}
                     />
                   )}
                 </div>
@@ -636,8 +706,9 @@ export default function VivaPage() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]" data-tour="viva-composer">
-          <div className="max-w-3xl mx-auto px-4 md:px-6 py-4">
+        <div className={cn(inShell ? "pb-2" : "border-t border-neutral-900 pb-[max(0px,env(safe-area-inset-bottom))]")} data-tour="viva-composer">
+          <div className={cn("max-w-3xl mx-auto px-4 md:px-6", inShell ? "py-2" : "py-4")}>
+            {!inShell && (
             <div className="mb-3 flex items-center">
               <button
                 type="button"
@@ -659,6 +730,7 @@ export default function VivaPage() {
                 Suggest tools
               </button>
             </div>
+            )}
             <VivaChatInput
               value={currentMessage}
               onChange={setCurrentMessage}
@@ -666,6 +738,20 @@ export default function VivaPage() {
               disabled={isStreaming}
               placeholder="Talk to VIVA..."
               canSend={!isStreaming}
+              extraActions={
+                inShell ? (
+                  <button
+                    type="button"
+                    data-tour="viva-suggest-tools"
+                    disabled={isStreaming || messages.length === 0}
+                    onClick={() => sendMessage(undefined, SUGGEST_TOOLS_USER_MESSAGE, { suggestTools: true })}
+                    title={messages.length === 0 ? 'Talk first, then I can suggest from this conversation' : 'Review this conversation and suggest what we could do'}
+                    className="ml-1 truncate rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-white/75 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Suggest tools
+                  </button>
+                ) : undefined
+              }
             />
           </div>
         </div>
@@ -675,17 +761,23 @@ export default function VivaPage() {
       {constraintsOpen && (
         <>
           <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setConstraintsOpen(false)} />
-          <aside className="fixed inset-y-0 right-0 w-full sm:w-96 bg-neutral-950 border-l border-neutral-900 z-50 flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-900">
+          <aside className={cn(
+            'fixed z-50 flex flex-col',
+            inShell
+              ? 'vf-glass inset-y-0 right-0 w-full border-l border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.92)_0%,rgba(22,18,32,0.96)_100%)] backdrop-blur-2xl sm:inset-y-3 sm:right-3 sm:w-96 sm:rounded-[26px] sm:border sm:shadow-[0_18px_50px_rgba(0,0,0,0.5)]'
+              : 'inset-y-0 right-0 w-full sm:w-96 bg-neutral-950 border-l border-neutral-900',
+          )}>
+            <div className={cn('flex items-center justify-between px-5 py-4', inShell ? 'pt-[max(1rem,env(safe-area-inset-top))] sm:pt-4' : 'border-b border-neutral-900')}>
               <div>
-                <h2 className="text-sm font-medium text-white">My Constraints</h2>
-                <p className="text-xs text-neutral-500 mt-0.5">
+                <h2 className={cn('font-medium text-white', inShell ? 'text-base font-semibold' : 'text-sm')}>My Constraints</h2>
+                <p className={cn('text-xs mt-0.5', inShell ? 'text-white/55' : 'text-neutral-500')}>
                   Beliefs uncovered in coaching, and their journey to dissolved
                 </p>
               </div>
               <button
                 onClick={() => setConstraintsOpen(false)}
-                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+                aria-label="Close"
+                className={cn('p-1.5 transition-colors', inShell ? 'rounded-full text-white/60 hover:bg-white/10 hover:text-white' : 'rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900')}
               >
                 <X className="w-4 h-4" />
               </button>

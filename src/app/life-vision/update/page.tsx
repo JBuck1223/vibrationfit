@@ -19,6 +19,8 @@ import {
   Sparkles, CheckCircle, ChevronDown, ChevronUp, X, Check,
   MessageCircle, FileText, Loader2,
 } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { Button, Card, Spinner, Container, AutoResizeTextarea, Badge, Modal, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
@@ -224,6 +226,7 @@ async function openDraftFromVision(visionId: string): Promise<string> {
 }
 
 export default function VisionUpdatePage() {
+  const inShell = useInShell()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -882,21 +885,23 @@ export default function VisionUpdatePage() {
   // Both panes share this height on desktop so the columns always match;
   // each scrolls independently inside its own shell.
   const paneHeight = 'lg:h-[calc(100dvh-13rem)] lg:min-h-[480px]'
+  // App shell: both panes and every category card in the shell's glass.
+  const shellCard = `${GLASS_CARD} !rounded-[20px]`
   const thinScrollbar =
     '[scrollbar-width:thin] [scrollbar-color:#2c2c2c_transparent] ' +
     '[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent ' +
     '[&::-webkit-scrollbar-thumb]:bg-[#2c2c2c] [&::-webkit-scrollbar-thumb]:rounded-full'
 
   const chatPane = (
-    <div data-tour="chat" className={`rounded-3xl p-px bg-gradient-to-b from-[#BF00FF]/50 via-[#2a2a2a] to-[#00FFFF]/30 h-[70vh] ${paneHeight}`}>
-      <div className="flex h-full flex-col overflow-hidden rounded-[calc(1.5rem-1px)] bg-[#0D0D0D]">
+    <div data-tour="chat" className={inShell ? `${GLASS_CARD} !rounded-[24px] !border-[#BF00FF]/30 h-[70vh] overflow-hidden ${paneHeight}` : `rounded-3xl p-px bg-gradient-to-b from-[#BF00FF]/50 via-[#2a2a2a] to-[#00FFFF]/30 h-[70vh] ${paneHeight}`}>
+      <div className={`flex h-full flex-col overflow-hidden ${inShell ? '' : 'rounded-[calc(1.5rem-1px)] bg-[#0D0D0D]'}`}>
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur">
           <div className="relative shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#BF00FF] to-[#00FFFF] shadow-[0_0_18px_rgba(191,0,255,0.35)]">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0D0D0D] bg-[#39FF14]" />
+            <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 bg-[#39FF14] ${inShell ? 'border-[#1c1626]' : 'border-[#0D0D0D]'}`} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold leading-tight text-white">VIVA</div>
@@ -980,7 +985,7 @@ export default function VisionUpdatePage() {
   )
 
   const draftPane = (
-    <div data-tour="draft" className={`flex flex-col lg:overflow-hidden lg:rounded-3xl lg:border lg:border-[#262626] lg:bg-[#0D0D0D] ${paneHeight}`}>
+    <div data-tour="draft" className={`flex flex-col ${inShell ? 'lg:overflow-hidden lg:rounded-[24px] lg:border lg:border-white/[0.12] lg:bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] lg:shadow-[0_10px_30px_rgba(0,0,0,0.28)] lg:backdrop-blur-2xl' : 'lg:overflow-hidden lg:rounded-3xl lg:border lg:border-[#262626] lg:bg-[#0D0D0D]'} ${paneHeight}`}>
       {/* Header — fixed above the scrolling category list */}
       <div className="flex items-center justify-between gap-3 pb-3 lg:border-b lg:border-white/5 lg:bg-white/[0.03] lg:px-5 lg:py-3.5 lg:pb-3.5">
         <div className="min-w-0">
@@ -1073,12 +1078,12 @@ export default function VisionUpdatePage() {
             key={key}
             id={`vision-cat-${key}`}
             data-tour={isTourDemo ? 'proposal' : undefined}
-            className={`rounded-2xl border bg-[#161616] transition-all ${
+            className={`transition-all ${inShell ? shellCard : 'rounded-2xl border bg-[#161616]'} ${
               proposal
-                ? 'border-[#BF00FF]/60 shadow-[0_0_20px_rgba(191,0,255,0.12)]'
+                ? '!border-[#BF00FF]/60 shadow-[0_0_20px_rgba(191,0,255,0.12)]'
                 : isChanged
-                  ? 'border-[#FFFF00]/40'
-                  : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
+                  ? '!border-[#FFFF00]/40'
+                  : inShell ? 'hover:!border-white/25' : 'border-[#2a2a2a] hover:border-[#3a3a3a]'
             }`}
           >
             <div className="flex items-center gap-2 px-4 py-3">
@@ -1088,7 +1093,7 @@ export default function VisionUpdatePage() {
                 className="flex min-w-0 flex-1 items-center gap-3 text-left"
               >
                 <Icon className={`w-4 h-4 shrink-0 ${
-                  proposal ? 'text-[#BF00FF]' : isChanged ? 'text-[#FFFF00]' : 'text-neutral-500'
+                  proposal ? 'text-[#BF00FF]' : isChanged ? 'text-[#FFFF00]' : inShell ? 'text-[#39FF14]' : 'text-neutral-500'
                 }`} />
                 <span className="text-sm font-medium text-white truncate">{category.label}</span>
                 {composing?.pending.includes(key) && (
@@ -1199,7 +1204,7 @@ export default function VisionUpdatePage() {
                         </div>
                       )}
 
-                      <div className="rounded-xl border border-[#333] bg-[#0A0A0A] p-3">
+                      <div className={`rounded-xl border p-3 ${inShell ? 'border-white/[0.12] bg-white/[0.04]' : 'border-[#333] bg-[#0A0A0A]'}`}>
                         <DiffText oldText={savedText} newText={proposal.editedText} />
                       </div>
 
@@ -1214,7 +1219,7 @@ export default function VisionUpdatePage() {
                     data-tour={isTourViews ? 'views' : undefined}
                     className="flex flex-wrap items-center justify-between gap-2"
                   >
-                    <div className="inline-flex rounded-lg border border-[#2a2a2a] bg-[#0A0A0A] p-0.5">
+                    <div className={inShell ? 'inline-flex rounded-full border border-white/15 bg-white/[0.05] p-0.5' : 'inline-flex rounded-lg border border-[#2a2a2a] bg-[#0A0A0A] p-0.5'}>
                       {([
                         ...(hasEdits || isTourViews ? [['edits', 'Edits'] as const] : []),
                         ['draft', 'Draft'] as const,
@@ -1224,11 +1229,11 @@ export default function VisionUpdatePage() {
                           key={value}
                           type="button"
                           onClick={() => setViewMode((prev) => ({ ...prev, [key]: value }))}
-                          className={`rounded-md px-3 py-1 text-xs transition-colors ${
+                          className={`${inShell ? 'rounded-full' : 'rounded-md'} px-3 py-1 text-xs transition-colors ${
                             view === value
                               ? value === 'edits'
                                 ? 'bg-[#FFFF00]/15 text-[#FFFF00]'
-                                : 'bg-[#333] text-white'
+                                : inShell ? 'bg-white/15 text-white' : 'bg-[#333] text-white'
                               : 'text-neutral-400 hover:text-white'
                           }`}
                         >
@@ -1282,7 +1287,7 @@ export default function VisionUpdatePage() {
 
                 {/* Active: read-only committed version */}
                 {!proposal && view === 'active' && (
-                  <div className="rounded-xl border border-[#333] bg-[#0A0A0A] p-3">
+                  <div className={`rounded-xl border p-3 ${inShell ? 'border-white/[0.12] bg-white/[0.04]' : 'border-[#333] bg-[#0A0A0A]'}`}>
                     <p className="text-sm text-neutral-400 whitespace-pre-wrap leading-relaxed">
                       {activeText || '(empty)'}
                     </p>
@@ -1295,7 +1300,7 @@ export default function VisionUpdatePage() {
                     <AutoResizeTextarea
                       value={editorText}
                       onChange={(value) => setManualEdits((prev) => ({ ...prev, [key]: value }))}
-                      className="w-full bg-[#0A0A0A] border border-[#333] rounded-lg p-3 text-sm text-neutral-100 leading-relaxed"
+                      className={`w-full rounded-lg p-3 text-sm leading-relaxed text-neutral-100 border ${inShell ? 'bg-white/[0.04] border-white/[0.12]' : 'bg-[#0A0A0A] border-[#333]'}`}
                       minHeight={100}
                       placeholder="Nothing written for this category yet"
                     />
@@ -1336,16 +1341,16 @@ export default function VisionUpdatePage() {
   return (
     <Container size="xl">
       {/* Mobile pane switcher */}
-      <div className="lg:hidden flex rounded-xl border-2 border-[#333] bg-[#141414] p-1 mb-4">
+      <div className={inShell ? 'lg:hidden mx-auto mb-4 flex w-full max-w-[280px] rounded-full border border-white/15 bg-white/[0.05] p-1' : 'lg:hidden flex rounded-xl border-2 border-[#333] bg-[#141414] p-1 mb-4'}>
         <button
           onClick={() => setMobilePane('chat')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm transition-colors ${mobilePane === 'chat' ? 'bg-[#333] text-white' : 'text-neutral-400'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm transition-colors ${inShell ? 'rounded-full' : 'rounded-lg'} ${mobilePane === 'chat' ? (inShell ? 'bg-white/15 text-white' : 'bg-[#333] text-white') : 'text-neutral-400'}`}
         >
           <MessageCircle className="w-4 h-4" />Chat
         </button>
         <button
           onClick={() => setMobilePane('draft')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm transition-colors ${mobilePane === 'draft' ? 'bg-[#333] text-white' : 'text-neutral-400'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm transition-colors ${inShell ? 'rounded-full' : 'rounded-lg'} ${mobilePane === 'draft' ? (inShell ? 'bg-white/15 text-white' : 'bg-[#333] text-white') : 'text-neutral-400'}`}
         >
           <FileText className="w-4 h-4" />{showGatheringBoard ? 'Session' : 'Draft'}
           {pendingProposalCount > 0 && (
@@ -1486,7 +1491,7 @@ export default function VisionUpdatePage() {
                       )}
                       <div
                         className={`rounded-xl border p-3 transition-colors ${
-                          checked ? 'border-[#39FF14]/40 bg-[#39FF14]/[0.04]' : 'border-[#2a2a2a] bg-[#0A0A0A]'
+                          checked ? 'border-[#39FF14]/40 bg-[#39FF14]/[0.04]' : inShell ? 'border-white/[0.12] bg-white/[0.04]' : 'border-[#2a2a2a] bg-[#0A0A0A]'
                         }`}
                       >
                         <button

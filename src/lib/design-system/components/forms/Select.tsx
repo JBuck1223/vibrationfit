@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '../shared-utils'
 import { fieldControlClass, fieldErrorClass } from './field-styles'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 interface SelectOption {
   value: string
@@ -24,6 +25,8 @@ interface SelectProps {
 
 export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
   ({ label, options, placeholder = 'Select...', value, onChange, error, helperText, disabled = false, className = '' }, ref) => {
+    // In the app shell the field and its menu use the shell's glass (shellPopover CSS).
+    const inShell = useInShell()
     const [isOpen, setIsOpen] = useState(false)
     const [dropdownRect, setDropdownRect] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -101,6 +104,7 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
         
         <div className="relative" ref={triggerRef}>
           <button
+            data-shell-field={inShell || undefined}
             type="button"
             onClick={() => !disabled && setIsOpen(!isOpen)}
             disabled={disabled}
@@ -132,6 +136,7 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
             {dropdownRect && (
               <div
                 ref={dropdownRef}
+                data-shell-popover={inShell || undefined}
                 className="fixed z-[221] py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain"
                 style={{
                   top: dropdownRect.top,

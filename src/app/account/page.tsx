@@ -20,6 +20,7 @@ import {
   Share2,
   Bell,
 } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import type { LucideIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatPhoneDisplay, phoneToDigits } from '@/lib/phone-format'
@@ -152,6 +153,8 @@ export default function AccountDashboardPage() {
     profile_picture_url?: string | null
   } | null>(null)
   const [imageLoadError, setImageLoadError] = useState(false)
+  // App shell: brighter secondary text so it reads on the glass.
+  const inShell = useInShell()
   const supabase = createClient()
 
   useEffect(() => {
@@ -229,10 +232,10 @@ export default function AccountDashboardPage() {
               </ProfilePictureClickable>
 
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">Signed in as</p>
+                <p className={`text-[11px] font-medium uppercase tracking-[0.2em] ${inShell ? 'text-white/50' : 'text-neutral-500'}`}>Signed in as</p>
                 <p className="truncate text-lg font-semibold text-white">{displayName}</p>
                 {account?.email && (
-                  <p className="mt-1 flex items-center gap-2 truncate text-sm text-neutral-400">
+                  <p className={`mt-1 flex items-center gap-2 truncate text-sm ${inShell ? 'text-white/70' : 'text-neutral-400'}`}>
                     <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" aria-hidden />
                     <span className="truncate">{account.email}</span>
                   </p>
@@ -280,7 +283,7 @@ export default function AccountDashboardPage() {
                   </div>
                   <div className="min-w-0 flex-1 py-0.5">
                     <h3 className="text-sm font-semibold leading-snug text-white">{link.title}</h3>
-                    <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-neutral-500">{link.description}</p>
+                    <p className={`mt-0.5 line-clamp-2 text-xs leading-snug ${inShell ? 'text-white/60' : 'text-neutral-500'}`}>{link.description}</p>
                   </div>
                   <ChevronRight
                     className={`mt-2 h-5 w-5 shrink-0 text-neutral-600 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-400 ${

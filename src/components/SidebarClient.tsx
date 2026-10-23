@@ -20,6 +20,11 @@ export const UserSidebar = dynamic(
   { ssr: false, loading: () => <SidebarPlaceholder /> }
 )
 
+export const ShellUserSidebar = dynamic(
+  () => import('./Sidebar').then((mod) => mod.ShellUserSidebar),
+  { ssr: false, loading: () => <SidebarPlaceholder className="!bg-transparent" /> }
+)
+
 export const AdminSidebar = dynamic(
   () => import('./Sidebar').then((mod) => mod.AdminSidebar),
   { ssr: false, loading: () => <SidebarPlaceholder /> }

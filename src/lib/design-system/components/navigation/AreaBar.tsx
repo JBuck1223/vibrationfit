@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { ChevronDown, Check, X, Filter, Search } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { ScriptTitle } from '../typography/ScriptTitle'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 // ─── Types ───
 
@@ -153,7 +154,12 @@ const APP_LIKE_TAB_NAV_DEFAULT =
 const APP_LIKE_TAB_NAV_FLUID =
   'w-full min-w-0 grid gap-0 overflow-x-auto overflow-y-hidden rounded-xl bg-zinc-950/90 ring-1 ring-inset ring-white/[0.08]'
 
-function appLikeStateClass(isSelected: boolean, walkthroughPending = false) {
+function appLikeStateClass(isSelected: boolean, walkthroughPending = false, glass = false) {
+  if (glass && !walkthroughPending) {
+    return isSelected
+      ? 'border-[var(--section-accent)] bg-[var(--section-accent-soft)] font-semibold text-[var(--section-accent)]'
+      : 'border-transparent text-white/60 hover:bg-white/[0.06] hover:text-white active:text-white'
+  }
   if (walkthroughPending) {
     return isSelected
       ? 'border-[#00FFFF] bg-zinc-900/85 font-semibold text-[#00FFFF]'
@@ -169,19 +175,20 @@ function appLikePrimaryLinkClassName(
   size: 'compact' | 'default' = 'compact',
   denseNav = false,
   walkthroughPending = false,
+  glass = false,
 ) {
   if (!denseNav) {
     const sizeCls =
       size === 'compact'
         ? 'min-h-[2.75rem] flex-col items-center justify-center gap-0.5 px-1.5 py-2 text-xs sm:min-h-11 sm:flex-row sm:gap-2 sm:px-2 sm:text-sm'
         : 'min-h-10 flex-row items-center justify-center gap-1.5 px-2.5 py-2.5 text-sm'
-    return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${appLikeStateClass(isSelected, walkthroughPending)}`
+    return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${appLikeStateClass(isSelected, walkthroughPending, glass)}`
   }
   const sizeCls =
     size === 'compact'
       ? 'min-h-[2.75rem] flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] leading-tight sm:min-h-11 sm:flex-row sm:gap-1 sm:px-1.5 sm:text-xs'
       : 'min-h-10 flex-row items-center justify-center gap-1 px-1.5 py-2 text-xs'
-  return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${appLikeStateClass(isSelected, walkthroughPending)}`
+  return `flex w-full min-w-0 border-b-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/40 ${sizeCls} ${appLikeStateClass(isSelected, walkthroughPending, glass)}`
 }
 
 function useClickOutside(ref: React.RefObject<HTMLDivElement | null>, onClose: () => void, active: boolean) {
@@ -547,8 +554,10 @@ export function AreaBar({
   const hasTabs = tabs.length > 0
   const tabGridCols = GRID_COLS[tabs.length] || 'grid-cols-3'
   const isHero = variant === 'hero'
+  const inShell = useInShell()
 
-  const appLikeTabNavClass = fluidAppLikeTabs ? APP_LIKE_TAB_NAV_FLUID : APP_LIKE_TAB_NAV_DEFAULT
+  const appLikeTabNavClass = (fluidAppLikeTabs ? APP_LIKE_TAB_NAV_FLUID : APP_LIKE_TAB_NAV_DEFAULT) +
+    (inShell ? ' !bg-black/25 !ring-white/10' : '')
   const useFluidAccountTabs = appLikePrimaryTabs && fluidAppLikeTabs
 
   const topRightSelectors = versionSelectors?.filter(v => v.position === 'topRight') ?? []
@@ -786,7 +795,7 @@ export function AreaBar({
           data-tour={tab.dataTour}
           className={
             appLikePrimaryTabs
-              ? `relative ${appLikePrimaryLinkClassName(isSelected, size, denseAppTabs, pending)}`
+              ? `relative ${appLikePrimaryLinkClassName(isSelected, size, denseAppTabs, pending, inShell)}`
               : `relative flex items-center ${size === 'compact' ? 'justify-center gap-1.5 py-2 text-xs' : 'gap-1.5 px-4 py-2 text-sm whitespace-nowrap'} font-medium rounded-lg transition-all ${
                   pending
                     ? 'bg-[#00FFFF]/15 text-[#00FFFF]'
@@ -839,7 +848,9 @@ export function AreaBar({
             </div>
           </div>
         ) : (
-          <div className="sticky top-0 z-30 w-full min-w-0 border-b border-neutral-800/60 bg-neutral-850">
+          <div className={inShell
+            ? 'sticky top-[var(--shell-header-height)] z-20 mb-3 w-full min-w-0 rounded-2xl glass-chrome'
+            : 'sticky top-0 z-30 w-full min-w-0 border-b border-neutral-800/60 bg-neutral-850'}>
             {/* Title row — centered when no right-side actions; split layout when selectors/menuItems exist */}
             <div className={mobileTitleRowClass} style={mobileTitlePaddingTop}>
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#39FF14]/10">
@@ -936,7 +947,7 @@ export function AreaBar({
           </div>
         </div>
       ) : (
-        <div className="hidden md:block rounded-2xl border-2 border-[#333] bg-neutral-850">
+        <div className={inShell ? 'hidden md:block glass-panel' : 'hidden md:block rounded-2xl border-2 border-[#333] bg-neutral-850'}>
           {/* Row 1: Title | Tabs | Right */}
           <div className="px-6">
             {!hasTabs ? (

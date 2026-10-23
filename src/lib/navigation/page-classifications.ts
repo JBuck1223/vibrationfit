@@ -9,6 +9,8 @@
  * - Use getPageType(pathname) to determine which layout to show
  */
 
+import { isSeoRoute } from '@/content/seo/routes'
+
 export type PageType = 'USER' | 'ADMIN' | 'PUBLIC'
 
 /**
@@ -74,6 +76,21 @@ export const PAGE_CLASSIFICATIONS = {
     '/begin/intake',
     '/begin/world',
     '/your-world',
+
+    // App shell section roots (Phase 0 placeholders; Phase 1 fills them)
+    '/home',
+    '/listen',
+    '/listen/stories',
+    '/listen/meditations',
+    '/listen/songs',
+    '/listen/incantations',
+    '/listen/queries',
+    '/listen/playlists',
+    '/vision',
+    '/capture',
+    '/tribe',
+    '/tools',
+    '/account/appearance',
     
     // Legacy Vision Board routes (redirect to /manifestations)
     '/vision-board',
@@ -480,6 +497,8 @@ export const STUDIO_ROUTE_PREFIXES = [
  */
 export function isStudioRoute(pathname: string): boolean {
   const normalized = pathname.split('?')[0]
+  // SEO landing pages share prefixes with studio routes (/vision-boards, /journaling).
+  if (isSeoRoute(normalized)) return false
   return STUDIO_ROUTE_PREFIXES.some(prefix => normalized.startsWith(prefix))
 }
 

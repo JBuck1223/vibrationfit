@@ -27,6 +27,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { VoiceInputButton } from '@/components/vibe-tribe/VoiceInputButton'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import { firstIncompleteOnboarding } from '@/lib/life-activation/steps'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
@@ -58,7 +59,12 @@ export default function VibeTribeNewPage() {
   
   // Post composer state
   const [content, setContent] = useState('')
-  const [selectedTag, setSelectedTag] = useState<VibeTag>('vision')
+  // Guided flows open this with ?tag=win (or another tag) already chosen.
+  const [selectedTag, setSelectedTag] = useState<VibeTag>(() => {
+    if (typeof window === 'undefined') return 'vision'
+    const tag = new URLSearchParams(window.location.search).get('tag') as VibeTag | null
+    return tag && (VIBE_TAGS as readonly string[]).includes(tag) ? tag : 'vision'
+  })
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showCategories, setShowCategories] = useState(false)
   const [files, setFiles] = useState<File[]>([])
@@ -390,6 +396,8 @@ export default function VibeTribeNewPage() {
                   />
                   {/* Image upload icon positioned at bottom right of textarea */}
                   <div className="absolute bottom-5 right-4 flex items-center gap-2">
+                    {/* Speak instead of typing: transcribes into the post */}
+                    <VoiceInputButton value={content} onChange={setContent} iconClassName="w-5 h-5" />
                     {files.length > 0 && (
                       <span className="text-xs text-neutral-400">
                         {files.length} file{files.length > 1 ? 's' : ''}

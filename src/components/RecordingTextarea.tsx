@@ -17,11 +17,14 @@ type UserFolder = keyof typeof USER_FOLDERS
 
 const AUDIO_FOLDER_MAP: Partial<Record<string, keyof typeof USER_FOLDERS>> = {
   journal: 'journalAudioRecordings',
-  visionBoard: 'journalAudioRecordings',
+  // Each tool keeps its own folder: the journal's unsaved-notes check lists
+  // everything in the journal folder.
+  visionBoard: 'visionBoardAudioRecordings',
+  dailyPaper: 'dailyPaperAudioRecordings',
   lifeVision: 'lifeVisionAudioRecordings',
   alignmentPlan: 'alignmentPlanAudioRecordings',
   profile: 'profileAudioRecordings',
-  customTracks: 'journalAudioRecordings',
+  customTracks: 'customTracksAudioRecordings',
 }
 
 type QuickUploadPhase = 'idle' | 'saving' | 'transcribing' | 'done' | 'error' | 'recovered'
@@ -94,7 +97,7 @@ interface RecordingTextareaProps {
   className?: string
   disabled?: boolean
   onRecordingSaved?: (url: string, transcript: string, type: 'audio' | 'video', updatedText: string) => Promise<void>
-  storageFolder?: 'journal' | 'visionBoard' | 'lifeVision' | 'alignmentPlan' | 'profile' | 'customTracks'
+  storageFolder?: 'journal' | 'visionBoard' | 'dailyPaper' | 'lifeVision' | 'alignmentPlan' | 'profile' | 'customTracks'
   category?: string // Category for IndexedDB persistence (e.g., 'fun', 'health', 'journal')
   instanceId?: string // Unique identifier for this field (prevents recordings from bleeding across fields)
   onUploadProgress?: (progress: number, status: string, fileName: string, fileSize: number) => void
