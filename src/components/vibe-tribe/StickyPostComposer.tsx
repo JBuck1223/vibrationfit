@@ -283,31 +283,11 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                   setTimeout(() => fileInputRef.current?.click(), 200)
                 }}
                 aria-label="Add photo"
-                // On phones only the mic shows here; photo and video live in Create Post.
-                className="hidden w-9 h-9 rounded-full items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors md:flex"
+                // The prompt shows only the photo button; video and the mic are in Create Post.
+                className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
               >
                 <ImageIcon className="w-5 h-5" />
               </button>
-              <button
-                onClick={() => {
-                  setFocusOpen(true)
-                  setTimeout(() => fileInputRef.current?.click(), 200)
-                }}
-                className="hidden w-9 h-9 rounded-full items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors md:flex"
-                aria-label="Add video"
-              >
-                <Video className="w-5 h-5" />
-              </button>
-              <VoiceInputButton
-                value={content}
-                onChange={(next) => {
-                  setContent(next)
-                  setFocusOpen(true)
-                }}
-                join="paragraph"
-                disabled={submitting || focusOpen}
-                stopWhenDisabled
-              />
             </div>
           </div>
         </div>
