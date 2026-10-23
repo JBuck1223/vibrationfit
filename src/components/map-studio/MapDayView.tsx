@@ -577,6 +577,16 @@ function LifeCategoryHeader({
   label: string
   icon?: ComponentType<{ className?: string }>
 }) {
+  // In the app shell: a bright, readable label over the glass, no dark strip.
+  const inShell = useInShell()
+  if (inShell) {
+    return (
+      <div className="mb-1.5 mt-1 flex items-center gap-1.5 px-1">
+        {Icon ? <Icon className="h-4 w-4 shrink-0 text-[#39FF14]" aria-hidden /> : null}
+        <p className="text-[13px] font-semibold text-white">{label}</p>
+      </div>
+    )
+  }
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg mb-1 bg-neutral-800/60">
       {Icon ? (
