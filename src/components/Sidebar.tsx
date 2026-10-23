@@ -322,11 +322,18 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
               )}
             </Link>
           )}
-          {/* Desktop: collapse toggle (in the app shell it's a tab on the panel's edge instead) */}
+          {/* Desktop: collapse toggle (in the app shell: here when open, an edge tab when collapsed) */}
           <button
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={cn('p-1.5 rounded-lg transition-colors', glass ? 'hidden' : 'hidden md:block hover:bg-neutral-800')}
+            className={cn(
+              'transition-colors',
+              glass
+                ? isCollapsed
+                  ? 'hidden'
+                  : 'hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-[rgba(36,29,50,0.9)] text-white/75 hover:border-white/30 hover:text-white'
+                : 'hidden md:block p-1.5 rounded-lg hover:bg-neutral-800',
+            )}
           >
             {collapsed ? (
               <ChevronRight className={cn('w-4 h-4', !glass && 'text-neutral-400')} />
@@ -715,15 +722,15 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
         )}
       >
         {renderSidebarContent(collapsed)}
-        {surface === 'glass' && (
-          // A small round tab on the panel's right edge, always visible.
+        {surface === 'glass' && collapsed && (
+          // Collapsed: a small round tab on the panel's edge (open, the toggle sits in the header).
           <button
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className={cn(
-              'absolute -right-2.5 top-7 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-[rgba(36,29,50,0.9)] text-white/75 transition-all duration-200 hover:border-white/30 hover:text-white focus-visible:opacity-100',
-              'opacity-100',
+              'absolute z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-[rgba(36,29,50,0.9)] text-white/75 transition-all duration-200 hover:border-white/30 hover:text-white',
+              '-right-2.5 top-7',
             )}
           >
             {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
