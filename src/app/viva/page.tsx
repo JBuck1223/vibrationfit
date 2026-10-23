@@ -446,8 +446,10 @@ export default function VivaPage() {
       key={thread.id}
       onClick={() => openThread(thread.id)}
       className={cn(
-        'group flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors duration-200',
-        thread.id === threadId ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200'
+        'group flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors duration-200',
+        inShell
+          ? cn('rounded-full', thread.id === threadId ? 'bg-[rgba(191,0,255,0.18)] text-white' : 'text-white/70 hover:bg-white/[0.06] hover:text-white')
+          : cn('rounded-lg', thread.id === threadId ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200')
       )}
     >
       {renamingId === thread.id ? (
@@ -460,7 +462,7 @@ export default function VivaPage() {
               if (e.key === 'Enter') commitRename(thread.id)
               if (e.key === 'Escape') setRenamingId(null)
             }}
-            className="flex-1 min-w-0 bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white outline-none focus:border-neutral-500"
+            className={cn('flex-1 min-w-0 px-2 py-1 text-sm text-white outline-none', inShell ? 'rounded-full border border-white/20 bg-white/[0.06] focus:border-[#BF00FF]/50' : 'bg-neutral-800 border border-neutral-700 rounded focus:border-neutral-500')}
           />
           <button onClick={() => commitRename(thread.id)} className="text-neutral-400 hover:text-white shrink-0">
             <Check className="w-3.5 h-3.5" />
@@ -512,7 +514,9 @@ export default function VivaPage() {
       <aside
         className={cn(
           'w-72 max-w-[85vw] shrink-0 border-r flex-col transition-all duration-300',
-          inShell ? 'glass-chrome border-y-0 border-l-0 rounded-none md:mr-4 md:rounded-2xl md:border' : 'border-neutral-900 bg-black',
+          inShell
+            ? 'vf-glass border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(22,18,32,0.78)_100%)] backdrop-blur-2xl backdrop-saturate-150 md:my-2 md:ml-2 md:mr-4 md:rounded-[26px] md:border md:shadow-[0_14px_40px_rgba(0,0,0,0.35)]'
+            : 'border-neutral-900 bg-black',
           sidebarOpen
             ? 'flex fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top)] md:static md:z-auto md:pt-0'
             : 'hidden md:flex',
@@ -520,7 +524,7 @@ export default function VivaPage() {
         )}
       >
         <div className="flex items-center justify-between px-4 py-4">
-          <span className="text-sm font-medium text-neutral-500">Threads</span>
+          <span className={cn('text-sm font-medium', inShell ? 'text-white/80' : 'text-neutral-500')}>Threads</span>
           <div className="flex items-center gap-1">
             <button
               onClick={startNewThread}
@@ -549,14 +553,14 @@ export default function VivaPage() {
         <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-4">
           {pinnedThreads.length > 0 && (
             <div>
-              <p className="px-3 pb-1 text-[11px] uppercase tracking-wide text-neutral-600">Pinned</p>
+              <p className={cn('px-3 pb-1', inShell ? 'text-xs font-medium text-white/45' : 'text-[11px] uppercase tracking-wide text-neutral-600')}>Pinned</p>
               <div className="space-y-0.5">{pinnedThreads.map(renderThreadRow)}</div>
             </div>
           )}
           {recentThreads.length > 0 && (
             <div>
               {pinnedThreads.length > 0 && (
-                <p className="px-3 pb-1 text-[11px] uppercase tracking-wide text-neutral-600">Recent</p>
+                <p className={cn('px-3 pb-1', inShell ? 'text-xs font-medium text-white/45' : 'text-[11px] uppercase tracking-wide text-neutral-600')}>Recent</p>
               )}
               <div className="space-y-0.5">{recentThreads.map(renderThreadRow)}</div>
             </div>
