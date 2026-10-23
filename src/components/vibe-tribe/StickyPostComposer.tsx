@@ -282,7 +282,9 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                   setFocusOpen(true)
                   setTimeout(() => fileInputRef.current?.click(), 200)
                 }}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                aria-label="Add photo"
+                // On phones only the mic shows here; photo and video live in Create Post.
+                className="hidden w-9 h-9 rounded-full items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors md:flex"
               >
                 <ImageIcon className="w-5 h-5" />
               </button>
@@ -291,7 +293,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                   setFocusOpen(true)
                   setTimeout(() => fileInputRef.current?.click(), 200)
                 }}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                className="hidden w-9 h-9 rounded-full items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors md:flex"
                 aria-label="Add video"
               >
                 <Video className="w-5 h-5" />
