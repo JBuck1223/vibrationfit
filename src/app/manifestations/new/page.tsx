@@ -379,32 +379,7 @@ export default function NewVisionBoardItemPage() {
 
     return (
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-full border border-white/15 bg-white/[0.05] p-1" role="group" aria-label="Status">
-            {STATUS_OPTIONS.map((status) => {
-              const on = formData.status === status.value
-              return (
-                <button
-                  key={status.value}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => setFormData({
-                    ...formData,
-                    status: status.value,
-                    actualization_story: status.value === 'actualized' ? formData.actualization_story : '',
-                  })}
-                  className={cn(
-                    'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:text-sm',
-                    on
-                      ? status.value === 'actualized' ? 'bg-[#BF00FF] text-white' : status.value === 'inactive' ? 'bg-white/20 text-white' : 'bg-[#39FF14] text-black'
-                      : 'text-white/70 hover:text-white',
-                  )}
-                >
-                  {status.label}
-                </button>
-              )
-            })}
-          </div>
+        <div className="hidden items-center gap-2 md:flex">
           <div className="ml-auto hidden items-center gap-2 md:flex">
             <button type="button" onClick={() => router.back()} className="rounded-full px-3 py-1.5 text-sm text-white/60 hover:text-white">
               Cancel
@@ -420,6 +395,35 @@ export default function NewVisionBoardItemPage() {
         </div>
 
         <section className={cn(GLASS_CARD, 'p-4 md:p-5', bare)}>
+          {/* Status lives in the card as separate chips, so it reads as part
+              of the creation rather than another page toggle. */}
+          <div className="mb-4 flex flex-wrap justify-center gap-2" role="radiogroup" aria-label="Status">
+            {STATUS_OPTIONS.map((status) => {
+              const on = formData.status === status.value
+              const color = status.value === 'actualized' ? '#D68BFF' : status.value === 'inactive' ? '#9CA3AF' : '#39FF14'
+              return (
+                <button
+                  key={status.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => setFormData({
+                    ...formData,
+                    status: status.value,
+                    actualization_story: status.value === 'actualized' ? formData.actualization_story : '',
+                  })}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    on ? 'text-white' : 'border-white/12 text-white/55 hover:text-white',
+                  )}
+                  style={on ? { borderColor: `${color}99`, background: `${color}1f` } : undefined}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: color, opacity: on ? 1 : 0.5 }} />
+                  {status.label}
+                </button>
+              )
+            })}
+          </div>
           <input
             type="text"
             value={formData.name}
