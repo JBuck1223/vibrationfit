@@ -40,17 +40,20 @@ export function ShellHeader() {
       data-shell-header
       className={cn(
         // Vibe Tribe's top bar scrolls away with the feed; everywhere else it sticks.
-        (pathname ?? '').startsWith('/vibe-tribe') ? 'relative z-30' : 'sticky top-0 z-30',
+        (pathname ?? '').startsWith('/vibe-tribe') ? 'relative z-30' : 'sticky top-0 z-30 lg:top-3',
         'transition-[background-color,border-color,backdrop-filter] duration-200',
+        // Desktop: lines up with the floating sidebar (same top inset) and
+        // floats as a rounded panel like it; phones keep a full-width bar.
+        'lg:mx-3 lg:mt-3 lg:rounded-[22px]',
         // Same violet frosted glass as the cards and bottom bar.
         scrolled
-          ? 'vf-glass border-b border-white/[0.10] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(26,21,37,0.70)_100%)] shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-2xl backdrop-saturate-150'
-          : 'border-b border-transparent',
+          ? 'vf-glass border-b border-white/[0.10] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(26,21,37,0.70)_100%)] shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-2xl backdrop-saturate-150 lg:border'
+          : 'border-b border-transparent lg:border',
       )}
       style={{ paddingTop: 'var(--native-inset-top, 0px)' }}
     >
       <div
-        className="flex w-full items-center gap-2 px-4 md:px-6 lg:px-8"
+        className="flex w-full items-center gap-2 px-4 md:px-6 lg:px-5"
         style={{ height: 'var(--shell-header-height)' }}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2" data-section={section.accent === 'viva' ? 'viva' : undefined}>
