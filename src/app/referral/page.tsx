@@ -1,5 +1,6 @@
 'use client'
 
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useState, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Container, Stack, Card, Button, Input, Badge, Spinner } from '@/lib/design-system/components'
@@ -45,6 +46,16 @@ export default function ReferralPage() {
 
   // Warm intro
   const [activeTab, setActiveTab] = useState<'message' | 'share' | 'intro'>('message')
+  const inShell = useInShell()
+  // In the app shell the inner tabs are small pills; otherwise underlined tabs.
+  const innerTabClass = (active: boolean) =>
+    inShell
+      ? `shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${
+          active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 text-white/75 hover:text-white'
+        }`
+      : `px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+          active ? 'border-[#39FF14] text-[#39FF14]' : 'border-transparent text-neutral-400 hover:text-white'
+        }`
   const [introName, setIntroName] = useState('')
   const [introEmail, setIntroEmail] = useState('')
   const [introInterest, setIntroInterest] = useState(INTEREST_OPTIONS[0])
@@ -356,36 +367,24 @@ export default function ReferralPage() {
 
         {/* My Message / Share / Warm Intro */}
         <Card className="p-4 md:p-6 lg:p-8">
-          <div className="flex gap-1 mb-6 border-b border-[#333] overflow-x-auto">
+          <div className={inShell ? 'mb-5 flex gap-2 overflow-x-auto [scrollbar-width:none]' : 'flex gap-1 mb-6 border-b border-[#333] overflow-x-auto'}>
             <button
               onClick={() => setActiveTab('message')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'message'
-                  ? 'border-[#39FF14] text-[#39FF14]'
-                  : 'border-transparent text-neutral-400 hover:text-white'
-              }`}
+              className={innerTabClass(activeTab === 'message')}
             >
               <Pen className="w-4 h-4 inline mr-1.5" />
               My Message
             </button>
             <button
               onClick={() => setActiveTab('share')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'share'
-                  ? 'border-[#39FF14] text-[#39FF14]'
-                  : 'border-transparent text-neutral-400 hover:text-white'
-              }`}
+              className={innerTabClass(activeTab === 'share')}
             >
               <Share2 className="w-4 h-4 inline mr-1.5" />
               Quick Share
             </button>
             <button
               onClick={() => setActiveTab('intro')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'intro'
-                  ? 'border-[#39FF14] text-[#39FF14]'
-                  : 'border-transparent text-neutral-400 hover:text-white'
-              }`}
+              className={innerTabClass(activeTab === 'intro')}
             >
               <Send className="w-4 h-4 inline mr-1.5" />
               Warm Intro

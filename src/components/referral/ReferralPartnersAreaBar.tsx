@@ -3,6 +3,7 @@
 import { Handshake, Share2, Users, Wallet, Receipt } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AreaBar } from '@/lib/design-system/components'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 const TABS = [
   { label: 'Share', path: '/referral', icon: Share2 },
@@ -21,6 +22,8 @@ const CONTEXT_TEXT: Record<string, string> = {
 export function ReferralPartnersAreaBar() {
   const pathname = usePathname()
   const path = pathname.replace(/\/$/, '') || '/referral'
+  // In the app shell Referrals has its own header (ReferralHeader).
+  if (useInShell()) return null
 
   return (
     <AreaBar

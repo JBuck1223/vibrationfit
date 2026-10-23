@@ -14,7 +14,7 @@ const sel = (classes: string[]) => classes.map((c) => `${P} .${esc(c)}`).join(',
 // Main panels: the same glass as Home's cards.
 const PANELS = ['bg-embedded-panel', 'bg-[#101010]', 'bg-[#0c0c0c]', 'bg-[#111111]', 'bg-[#111]', 'bg-[#101010]/90', 'md:!bg-[#101010]']
 // Insets inside a panel: a faint lift instead of a darker well.
-const INSETS = ['bg-[#0a0a0a]', 'bg-[#131313]', 'bg-[#0c0c0c]/50', 'bg-[#1A1A1A]', '!bg-[#1A1A1A]']
+const INSETS = ['bg-[#0a0a0a]', 'bg-[#131313]', 'bg-[#0c0c0c]/50', 'bg-[#1A1A1A]', 'bg-[#1a1a1a]', '!bg-[#1A1A1A]']
 const BORDERS = ['border-[#282828]', 'border-[#252525]', 'border-[#2a2a2a]', 'border-[#333]', 'border-[#1F1F1F]', 'md:!border-[#1F1F1F]', '!border-[#282828]']
 
 export const STUDIO_GLASS_CSS = `
