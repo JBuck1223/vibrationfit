@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Local dev only: the on-disk Turbopack cache grew to 8+ GB here and made
+    // first page loads hang. Off = slightly slower first load after a restart.
+    turbopackFileSystemCacheForDev: false,
+  },
   serverExternalPackages: ['@aws-sdk/client-s3', '@sparticuz/chromium', 'puppeteer-core', 'puppeteer', 'ffmpeg-static'],
   // Ensure the static ffmpeg binary is shipped to the serverless function.
   outputFileTracingIncludes: {
