@@ -40,6 +40,15 @@ interface VibeTribeFeedLayoutProps {
 
 export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = 'all', userProfile, hasPostedBefore = true, onPostCreated: onPostCreatedProp }: VibeTribeFeedLayoutProps) {
   const inShell = useInShell()
+  // Phones get the short search placeholder.
+  const [isPhone, setIsPhone] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const sync = () => setIsPhone(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
   const [posts, setPosts] = useState<VibePost[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -243,7 +252,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                 type="search"
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search Vibe Tribe"
+                placeholder={isPhone ? 'Search' : 'Search Vibe Tribe'}
                 className="h-11 w-full rounded-full border border-white/15 bg-white/[0.06] pl-10 pr-10 text-base text-white placeholder:text-white/45 focus:border-[#39FF14]/40 focus:outline-none md:text-sm"
               />
               {isSearching ? (
