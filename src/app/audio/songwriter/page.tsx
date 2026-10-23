@@ -12,6 +12,7 @@ import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreemen
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
 import { extractYoutubeAudio } from '@/lib/songs/extract-youtube-client'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import {
   VISION_CATEGORIES,
   LIFE_CATEGORY_KEYS,
@@ -62,6 +63,24 @@ export default function SongwriterPage() {
 
   // Form state
   const [songTitle, setSongTitle] = useState('')
+  // App shell: numbered steps, glass fields and a glowing Create button.
+  const inShell = useInShell()
+  const field = inShell
+    ? 'border-white/[0.12] bg-white/[0.05] placeholder:text-white/35'
+    : 'border-neutral-700 bg-black/40 placeholder:text-neutral-600'
+  const stepLabel = (n: number, text: string, extra?: React.ReactNode) =>
+    inShell ? (
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.14)] text-xs font-semibold text-[#39FF14]">{n}</span>
+        <span className="flex-1 text-[15px] font-semibold text-white">{text}</span>
+        {extra}
+      </div>
+    ) : (
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-neutral-200">{text}</label>
+        {extra}
+      </div>
+    )
   const [songIdea, setSongIdea] = useState('')
   const [context, setContext] = useState('')
   const [lyrics, setLyrics] = useState('')
@@ -639,13 +658,13 @@ export default function SongwriterPage() {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white">Songwriter</h1>
-          <p className="mt-1 text-sm text-neutral-400">Create original music from an idea.</p>
+          <p className={`mt-1 text-sm ${inShell ? 'text-white/60' : 'text-neutral-400'}`}>Create original music from an idea.</p>
         </div>
 
         {/* Source Picker */}
         <Card variant="glass" className="relative z-10 p-5 overflow-visible">
           <Stack gap="sm">
-            <label className="text-sm font-medium text-neutral-200">Source</label>
+            {stepLabel(1, 'Source')}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {SOURCE_OPTIONS.map(opt => {
                 const Icon = opt.icon
@@ -683,7 +702,7 @@ export default function SongwriterPage() {
                     <button
                       type="button"
                       onClick={() => setEntityDropdownOpen(!entityDropdownOpen)}
-                      className="w-full px-4 py-3 rounded-xl bg-neutral-900/80 border border-neutral-700/50 hover:border-neutral-600 transition-colors flex items-center gap-3 text-left"
+                      className={`w-full px-4 py-3 rounded-xl border transition-colors flex items-center gap-3 text-left ${inShell ? 'border-white/[0.12] bg-white/[0.05] hover:border-white/25' : 'bg-neutral-900/80 border-neutral-700/50 hover:border-neutral-600'}`}
                     >
                       {source === 'life_vision' && <Target className="w-4 h-4 text-purple-400 flex-shrink-0" />}
                       {source === 'vision_board_item' && <Image className="w-4 h-4 text-pink-400 flex-shrink-0" />}
@@ -705,7 +724,7 @@ export default function SongwriterPage() {
                     </button>
 
                     {entityDropdownOpen && (
-                      <div className="absolute z-50 left-0 right-0 mt-2 bg-[#1A1A1A] border border-neutral-700 rounded-xl shadow-2xl overflow-hidden">
+                      <div className={`absolute z-50 left-0 right-0 mt-2 overflow-hidden shadow-2xl ${inShell ? 'rounded-2xl border border-white/[0.14] bg-[rgba(28,22,38,0.97)] backdrop-blur-2xl' : 'rounded-xl border border-neutral-700 bg-[#1A1A1A]'}`}>
                         {entities.length > 5 && (
                           <div className="p-2 border-b border-neutral-700/50">
                             <div className="relative">
@@ -736,7 +755,7 @@ export default function SongwriterPage() {
                                   type="button"
                                   onClick={() => handleEntitySelect(entity)}
                                   className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${
-                                    isSel ? 'bg-[#39FF14]/10' : 'hover:bg-neutral-800'
+                                    isSel ? 'bg-[#39FF14]/10' : inShell ? 'hover:bg-white/[0.07]' : 'hover:bg-neutral-800'
                                   }`}
                                 >
                                   <div className="flex-1 min-w-0">
@@ -808,7 +827,7 @@ export default function SongwriterPage() {
         {context && (
           <Card variant="glass" className="p-5">
             <Stack gap="sm">
-              <label className="text-sm font-medium text-neutral-200">Context</label>
+              {inShell ? <p className="text-[15px] font-semibold text-white">Context</p> : <label className="text-sm font-medium text-neutral-200">Context</label>}
               <p className="text-xs text-neutral-500">VIVA uses this as emotional source material. Edit freely.</p>
               <Textarea
                 value={context}
@@ -823,19 +842,20 @@ export default function SongwriterPage() {
         {/* Song Title + Idea */}
         <Card variant="glass" className="p-5">
           <Stack gap="sm">
+            {inShell && stepLabel(2, 'Your song')}
             <div>
-              <label className="text-sm font-medium text-neutral-200">Song Title</label>
+              <label className={inShell ? 'text-xs font-medium text-white/60' : 'text-sm font-medium text-neutral-200'}>Song Title</label>
               <input
                 type="text"
                 value={songTitle}
                 onChange={e => setSongTitle(e.target.value)}
                 placeholder="e.g. Wide Open, Let It Burn, Golden Hour"
-                className="mt-1.5 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-sm text-white placeholder:text-neutral-600 focus:border-[#39FF14]/50 focus:outline-none"
+                className={`mt-1.5 w-full rounded-xl border px-3.5 py-2.5 text-base text-white focus:border-[#39FF14]/50 focus:outline-none md:text-sm ${field}`}
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-neutral-200">What's this song about?</label>
-              <div className="mt-1.5 [&_textarea]:!bg-black/40 [&_textarea]:!border-neutral-700">
+              <label className={inShell ? 'text-xs font-medium text-white/60' : 'text-sm font-medium text-neutral-200'}>What's this song about?</label>
+              <div className={`mt-1.5 ${inShell ? '' : '[&_textarea]:!bg-black/40 [&_textarea]:!border-neutral-700'}`}>
                 <RecordingTextarea
                   value={songIdea}
                   onChange={setSongIdea}
@@ -868,7 +888,7 @@ export default function SongwriterPage() {
             estimatedDuration={20000}
           />
           <Stack gap="sm">
-            <label className="text-sm font-medium text-neutral-200">Lyrics</label>
+            {stepLabel(3, 'Lyrics')}
 
             {(lyricsMode === 'none' || lyricsMode === 'generating') && (
               <div className="flex gap-3">
@@ -937,8 +957,8 @@ export default function SongwriterPage() {
             estimatedDuration={30000}
           />
           <Stack gap="sm" className="min-w-0">
-            <label className="text-sm font-medium text-neutral-200">Reference Track</label>
-            <p className="text-xs text-neutral-500">Paste a YouTube URL, pick a Vibration Fit song, or reuse one from your library. Select 30 seconds to set the musical vibe.</p>
+            {stepLabel(4, 'Reference track')}
+            <p className={`text-xs ${inShell ? 'text-white/50' : 'text-neutral-500'}`}>Paste a YouTube URL, pick a Vibration Fit song, or reuse one from your library. Select 30 seconds to set the musical vibe.</p>
 
             <div className="grid min-w-0 grid-cols-1 gap-2 md:grid-cols-2">
               <ReferenceLibraryPicker
@@ -1020,7 +1040,7 @@ export default function SongwriterPage() {
                   value={youtubeUrl}
                   onChange={e => setYoutubeUrl(e.target.value)}
                   placeholder={referenceId ? 'Paste a YouTube URL to replace this reference...' : 'https://youtube.com/watch?v=...'}
-                  className="w-full rounded-lg border border-neutral-700 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-neutral-600 focus:border-[#39FF14]/50 focus:outline-none"
+                  className={`w-full rounded-xl border py-2.5 pl-9 pr-3 text-base text-white focus:border-[#39FF14]/50 focus:outline-none md:text-sm ${field}`}
                   onKeyDown={e => { if (e.key === 'Enter') loadYoutubeAudio() }}
                 />
               </div>
@@ -1046,7 +1066,7 @@ export default function SongwriterPage() {
                 )}
                 <div
                   ref={waveformRef}
-                  className="min-w-0 overflow-hidden rounded-lg border border-neutral-700 bg-black/40 p-2"
+                  className={`min-w-0 overflow-hidden rounded-xl border p-2 ${field}`}
                 />
                 <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1">
                   <button
@@ -1074,13 +1094,10 @@ export default function SongwriterPage() {
         {/* Life Categories (source-agnostic tagging for filtering) */}
         <Card variant="glass" className="p-5">
           <Stack gap="sm">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-neutral-200">Life Categories</label>
-              {categoryTags.length > 0 && (
-                <span className="text-xs text-[#39FF14]">{categoryTags.length} tagged</span>
-              )}
-            </div>
-            <p className="text-xs text-neutral-500">
+            {stepLabel(5, 'Life categories', categoryTags.length > 0 ? (
+              <span className="text-xs text-[#39FF14]">{categoryTags.length} tagged</span>
+            ) : null)}
+            <p className={`text-xs ${inShell ? 'text-white/50' : 'text-neutral-500'}`}>
               Tag as many life categories as this song speaks to. A song made from one area can still apply to others — this makes it easy to filter and find later.
             </p>
             <CategoryGrid
@@ -1126,6 +1143,21 @@ export default function SongwriterPage() {
           </Card>
         ) : (
           <div className="flex flex-col items-center gap-2">
+            {inShell ? (
+              <button
+                type="button"
+                onClick={handleCreateClick}
+                disabled={!hasLyrics || generating || savingDraft}
+                className={`flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-semibold transition-transform active:scale-[0.98] md:w-[360px] ${
+                  hasLyrics && !generating && !savingDraft
+                    ? 'bg-[#39FF14] text-black shadow-[0_0_28px_rgba(57,255,20,0.4)]'
+                    : 'cursor-not-allowed bg-white/[0.07] text-white/45'
+                }`}
+              >
+                <Music2 className="h-5 w-5" />
+                Create My Track
+              </button>
+            ) : (
             <Button
               variant="primary"
               size="lg"
@@ -1136,9 +1168,21 @@ export default function SongwriterPage() {
               <Music2 className="mr-2 h-5 w-5" />
               Create My Track
             </Button>
+            )}
             {categoryError && (
               <p className="text-sm text-[#FF0040]">{categoryError}</p>
             )}
+            {inShell ? (
+              <button
+                type="button"
+                onClick={handleSaveForLater}
+                disabled={!hasLyrics || generating || savingDraft}
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save for later
+              </button>
+            ) : (
             <Button
               variant="ghost"
               onClick={handleSaveForLater}
@@ -1147,7 +1191,10 @@ export default function SongwriterPage() {
               {savingDraft ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />}
               Save for later
             </Button>
-            <p className="text-xs text-neutral-500">Saved songs live in My Songs — return anytime to generate.</p>
+            )}
+            <p className={`text-xs ${inShell ? 'text-white/50' : 'text-neutral-500'}`}>
+              {hasLyrics ? 'Saved songs live in My Songs — return anytime to generate.' : 'Add lyrics (step 3) to create your track.'}
+            </p>
           </div>
         )}
       </Stack>

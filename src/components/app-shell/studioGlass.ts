@@ -34,7 +34,7 @@ ${P} .${esc('ring-white/[0.08]')} { --tw-ring-color: rgba(255,255,255,0.12); }
 ${P} .${esc('bg-[#1c1c1c]/95')} { background: rgba(32,26,45,0.94) !important; }
 /* Dropdown menus drawn in #1F1F1F float over the page: solid glass, so
    their text reads over whatever is underneath. */
-${P} .absolute.${esc('bg-[#1F1F1F]')} {
+${P} .absolute.${esc('bg-[#1F1F1F]')}, ${P} .absolute.${esc('bg-[#1A1A1A]')}, ${P} .absolute.${esc('bg-[#1a1a1a]')} {
   background: rgba(28,22,38,0.97) !important;
   border: 1px solid rgba(255,255,255,0.14) !important;
   -webkit-backdrop-filter: blur(24px) saturate(150%);
