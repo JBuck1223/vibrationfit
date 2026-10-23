@@ -44,7 +44,7 @@ export function TribeHome() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <nav aria-label="Tribe" className="flex gap-2 pt-2">
+      <nav aria-label="Tribe" className="-mx-4 flex gap-2 overflow-x-auto px-4 pt-2 scrollbar-hide md:mx-0 md:px-0">
         {section.tabs.map((tab) => {
           const active = pathname === tab.href
           return (
@@ -52,7 +52,7 @@ export function TribeHome() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                'flex-1 rounded-full border px-3 py-2 text-center text-sm font-medium transition-colors',
+                'shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-center text-sm font-medium transition-colors md:flex-1',
                 active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/90 backdrop-blur-xl hover:text-white',
               )}
             >
