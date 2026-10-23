@@ -11,6 +11,8 @@ import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { User, Calendar, ArrowLeft, Award, Pencil, Check, X, Quote, UsersRound, Flame, Shield, ChevronDown, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { MemberProfile as MemberProfileView } from '@/components/app-shell/profile/MemberProfile'
 
 interface MemberProfile {
   id: string
@@ -22,9 +24,12 @@ interface MemberProfile {
   favorite_quote: string | null
   role: string | null
   isOwner: boolean
+  cover_image_url?: string | null
+  stats?: { posts: number; hearts: number }
 }
 
 export default function SnapshotPage() {
+  const inShell = useInShell()
   const params = useParams()
   const userId = params.id as string
   
@@ -288,6 +293,9 @@ export default function SnapshotPage() {
 
   const displayName = member.full_name || member.first_name || 'Community Member'
   const isMemberGuide = member.role === 'admin' || member.role === 'super_admin'
+
+  // App shell: the app-style member profile (cover, tabs, Edit profile).
+  if (inShell) return <MemberProfileView member={member} onChange={(next) => setMember(next)} />
 
   return (
     <Container size="xl">

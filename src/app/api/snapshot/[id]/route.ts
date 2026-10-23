@@ -25,12 +25,12 @@ export async function GET(
 
     let { data: member, error: memberError } = await supabase
       .from('user_accounts')
-      .select('id, full_name, first_name, profile_picture_url, created_at, about_me, favorite_quote, role')
+      .select('id, full_name, first_name, profile_picture_url, cover_image_url, created_at, about_me, favorite_quote, role')
       .eq('id', id)
       .maybeSingle()
 
     // Fallback if favorite_quote column doesn't exist yet
-    if (memberError?.code === 'PGRST204' || memberError?.message?.includes('favorite_quote')) {
+    if (memberError?.code === 'PGRST204' || memberError?.message?.includes('favorite_quote') || memberError?.message?.includes('cover_image_url')) {
       ({ data: member, error: memberError } = await supabase
         .from('user_accounts')
         .select('id, full_name, first_name, profile_picture_url, created_at, about_me, role')
@@ -47,7 +47,24 @@ export async function GET(
       return NextResponse.json({ error: 'Member not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ ...member, favorite_quote: (member as any).favorite_quote ?? null, isOwner: user.id === id })
+    // Profile stats: posts shared and hearts those posts received.
+    const { data: postRows } = await supabase
+      .from('vibe_posts')
+      .select('hearts_count')
+      .eq('user_id', id)
+      .eq('is_deleted', false)
+    const stats = {
+      posts: postRows?.length ?? 0,
+      hearts: (postRows ?? []).reduce((sum, p) => sum + (Number((p as { hearts_count?: number }).hearts_count) || 0), 0),
+    }
+
+    return NextResponse.json({
+      ...member,
+      favorite_quote: (member as any).favorite_quote ?? null,
+      cover_image_url: (member as any).cover_image_url ?? null,
+      stats,
+      isOwner: user.id === id,
+    })
   } catch (error) {
     console.error('Error in snapshot API:', error)
     return NextResponse.json(
@@ -60,7 +77,8 @@ export async function GET(
 /**
  * PATCH /api/snapshot/[id]
  * 
- * Updates the authenticated user's own about_me blurb.
+ * Updates the authenticated user's own profile: about_me, favorite_quote,
+ * full_name, profile_picture_url and cover_image_url.
  * Users can only update their own profile.
  */
 export async function PATCH(
@@ -98,6 +116,24 @@ export async function PATCH(
       const quote = typeof body.favorite_quote === 'string' ? body.favorite_quote.trim().slice(0, 300) : null
       updates.favorite_quote = quote || null
       result.favorite_quote = updates.favorite_quote
+    }
+
+    if ('full_name' in body) {
+      const name = typeof body.full_name === 'string' ? body.full_name.trim().replace(/\s+/g, ' ').slice(0, 80) : ''
+      if (!name) return NextResponse.json({ error: 'Your name can\'t be empty' }, { status: 400 })
+      updates.full_name = name
+      updates.first_name = name.split(' ')[0]
+      result.full_name = name
+    }
+
+    // Image URLs must be https links (uploads land on the media CDN).
+    for (const key of ['profile_picture_url', 'cover_image_url'] as const) {
+      if (key in body) {
+        const url = typeof body[key] === 'string' ? body[key].trim() : ''
+        if (url && !/^https:\/\//.test(url)) return NextResponse.json({ error: 'Invalid image link' }, { status: 400 })
+        updates[key] = url || null
+        result[key] = updates[key]
+      }
     }
 
     if (Object.keys(updates).length === 0) {
