@@ -5,11 +5,13 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ChevronRight, GraduationCap, Search } from 'lucide-react'
 import { TOOL_GROUPS, searchTools, type ToolEntry } from '@/lib/app-shell/tools-catalog'
-import { AreaLinks } from '../AreaLinks'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
 
 /**
  * The Tools section root: search and Training on top, then every creation
  * surface as a tile. Listen is for enjoying content; this is for making it.
+ * The top bar already names Tool Box, so the page opens straight on search.
  */
 export function ToolsDirectory() {
   const params = useSearchParams()
@@ -23,18 +25,9 @@ export function ToolsDirectory() {
 
   return (
     <div className="space-y-6">
-      <section className="pb-1 pt-3 md:pt-4">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
-          Tool Box
-        </p>
-        <h2 className="text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[40px]">
-          Create something today
-        </h2>
-      </section>
-
-      <AreaLinks sectionId="tools" />
-
-      <label className="glass-panel flex items-center gap-3 px-4 py-3 focus-within:border-[#39FF14]/70">
+      <h2 className="sr-only">Tool Box</h2>
+      <div className="space-y-3">
+      <label className="flex h-12 items-center gap-3 rounded-full border border-white/15 bg-white/[0.06] px-4 backdrop-blur-2xl transition-colors focus-within:border-[#39FF14]/70">
         <Search className="h-5 w-5 shrink-0 text-white/60" />
         <input
           ref={inputRef}
@@ -48,7 +41,7 @@ export function ToolsDirectory() {
 
       <Link
         href="/begin/training"
-        className="glass-panel flex items-center gap-4 px-5 py-4 transition-colors hover:border-[#39FF14]/60"
+        className={cn(GLASS_CARD, 'flex items-center gap-4 px-5 py-4 transition-colors hover:border-[#39FF14]/60')}
       >
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.16)] text-[#39FF14]">
           <GraduationCap className="h-5 w-5" />
@@ -59,6 +52,7 @@ export function ToolsDirectory() {
         </span>
         <ChevronRight className="h-5 w-5 shrink-0 text-white/40" />
       </Link>
+      </div>
 
       {results.length === 0 ? (
         <p className="px-1 text-sm text-white/60">Nothing matches &ldquo;{query}&rdquo; yet.</p>
@@ -81,7 +75,7 @@ export function ToolsDirectory() {
                       <li key={tool.id} data-section={viva ? 'viva' : undefined}>
                         <Link
                           href={tool.href}
-                          className="glass-panel flex h-full flex-col gap-3 p-4 transition-colors hover:border-[var(--section-accent)]/70"
+                          className={cn(GLASS_CARD, 'flex h-full flex-col gap-3 !rounded-[20px] p-4 transition-colors hover:border-[var(--section-accent)]/70')}
                         >
                           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--section-accent-soft)] text-[var(--section-accent)]">
                             <Icon className="h-5 w-5" />
