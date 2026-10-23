@@ -125,7 +125,7 @@ interface CardProps {
 
 function ListenCard({ eyebrow, title, subtitle, artwork, progress, timeLabel, playing, loading, onPlay }: CardProps) {
   return (
-    <div className={`${GLASS_CARD} flex h-full items-center gap-4 p-3 pr-4`}>
+    <div className={`${GLASS_CARD} flex h-full min-w-0 items-center gap-4 p-3 pr-4`}>
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/5">
         {artwork && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -263,7 +263,7 @@ export function ContinueListening() {
   const starter = sources.find((s) => s.trackUrl || s.audioSetId) ?? null
 
   return (
-    <section className="flex flex-col">
+    <section className="flex min-w-0 flex-col">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-base font-semibold text-white">
           <Headphones className="h-4 w-4 text-[#39FF14]" />
@@ -279,7 +279,7 @@ export function ContinueListening() {
           <div className="h-[104px] animate-pulse rounded-3xl bg-white/5 md:max-w-md" />
         </div>
       ) : history.length + fillers.length > 0 ? (
-        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {history.map((row, i) => {
             const live = liveKey === row.set_key
             const liveTrack = live ? tracks[currentIndex] : null
@@ -288,7 +288,7 @@ export function ContinueListening() {
             const trackCount = row.tracks?.length ?? 0
             const index = live ? currentIndex : row.track_index
             return (
-              <li key={row.id}>
+              <li key={row.id} className="min-w-0">
                 <ListenCard
                   eyebrow={CATEGORY_LABEL[row.category] ?? 'Audio'}
                   title={liveTrack?.title || row.title}
@@ -307,7 +307,7 @@ export function ContinueListening() {
             const key = `set:${set.setId}`
             const live = liveKey === key
             return (
-              <li key={key}>
+              <li key={key} className="min-w-0">
                 <ListenCard
                   eyebrow={CATEGORY_LABEL[set.category]}
                   title={set.name}

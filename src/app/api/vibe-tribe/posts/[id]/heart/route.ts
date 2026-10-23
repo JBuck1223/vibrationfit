@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { isVibeTribeUnlocked } from '@/lib/access/member-access'
 import { autoVerifyOccurrenceByActivityType } from '@/lib/map/auto-verify'
 import { createVibeNotifications } from '@/lib/vibe-tribe/notifications'
 
@@ -18,6 +19,11 @@ export async function POST(
     
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Vibe Tribe is for members, once Getting Started opens its step.
+    if (!(await isVibeTribeUnlocked(supabase, user.id))) {
+      return NextResponse.json({ error: 'Vibe Tribe opens for members at its Getting Started step' }, { status: 403 })
     }
 
     // Check if post exists

@@ -83,7 +83,7 @@ export default function ContactPage() {
       }
 
       const lead = await response.json()
-      trackConversion('lead', { content_name: 'contact_form', event_id: lead?.lead?.id })
+      trackConversion('lead', { content_name: 'contact_form', event_id: lead?.lead?.id, email: formData.email })
       setSubmitted(true)
     } catch (error: any) {
       console.error('Error submitting form:', error)

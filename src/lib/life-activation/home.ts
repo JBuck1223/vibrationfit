@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { hasMemberAccess, NON_MEMBER_HOME } from '@/lib/access/member-access'
 
 export const BEGIN_HOME = '/begin'
 export const MEMBER_HOME = '/dashboard'
+export { NON_MEMBER_HOME }
 
-export type MemberHome = typeof BEGIN_HOME | typeof MEMBER_HOME
+export type MemberHome = typeof BEGIN_HOME | typeof MEMBER_HOME | typeof NON_MEMBER_HOME
 
 /**
  * Where a signed-in member lands: Getting Started (/begin) until Life
@@ -13,6 +15,8 @@ export type MemberHome = typeof BEGIN_HOME | typeof MEMBER_HOME
  * same rule drives the auth redirects and the /dashboard gate.
  *
  * Resolution order:
+ *  0. Not a member (no paid access, e.g. a Free Activation account): /join.
+ *     Getting Started is part of the member app, never a free one.
  *  1. A life_activation_progress row is authoritative: in the flow until
  *     onboarding_completed_at is set.
  *  2. No row yet + an open legacy Intensive: still onboarding.
@@ -25,6 +29,8 @@ export async function resolveMemberHome(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<MemberHome> {
+  if (!(await hasMemberAccess(supabase, userId))) return NON_MEMBER_HOME
+
   const { data: progress } = await supabase
     .from('life_activation_progress')
     .select('onboarding_completed_at, onboarding')

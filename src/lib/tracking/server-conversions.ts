@@ -8,6 +8,14 @@ const GA4_MEASUREMENT_ID = process.env.GA4_MEASUREMENT_ID || process.env.NEXT_PU
 const GA4_API_SECRET = process.env.GA4_API_SECRET
 const TIKTOK_PIXEL_ID = process.env.TIKTOK_PIXEL_ID || process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID
 const TIKTOK_ACCESS_TOKEN = process.env.TIKTOK_ACCESS_TOKEN
+const GOOGLE_ADS_DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
+const GOOGLE_ADS_CLIENT_ID = process.env.GOOGLE_ADS_CLIENT_ID
+const GOOGLE_ADS_CLIENT_SECRET = process.env.GOOGLE_ADS_CLIENT_SECRET
+const GOOGLE_ADS_REFRESH_TOKEN = process.env.GOOGLE_ADS_REFRESH_TOKEN
+// Account IDs are digits only -- strip the dashes Google shows in the UI
+const GOOGLE_ADS_CUSTOMER_ID = process.env.GOOGLE_ADS_CUSTOMER_ID?.replace(/-/g, '')
+const GOOGLE_ADS_LOGIN_CUSTOMER_ID = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID?.replace(/-/g, '')
+const GOOGLE_ADS_API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v24'
 
 type ServerEvent = 'lead' | 'purchase' | 'initiate_checkout'
 
@@ -208,6 +216,110 @@ async function sendTikTokConversion(event: ServerEvent, data: ServerConversionDa
   }
 }
 
+// ─── Google Ads Offline Click Conversions ───────────────────────────────────
+
+// Conversion action IDs (numeric, from the action's URL in Google Ads). Must be
+// "Import > Clicks" actions, separate from the website-tag actions the browser fires.
+const GOOGLE_ADS_CONVERSION_ACTIONS: Partial<Record<ServerEvent, string | undefined>> = {
+  lead: process.env.GOOGLE_ADS_LEAD_CONVERSION_ACTION_ID,
+  purchase: process.env.GOOGLE_ADS_PURCHASE_CONVERSION_ACTION_ID,
+}
+
+let googleAdsAccessToken: { token: string; expiresAt: number } | null = null
+
+async function getGoogleAdsAccessToken(): Promise<string | null> {
+  if (googleAdsAccessToken && googleAdsAccessToken.expiresAt > Date.now() + 60_000) {
+    return googleAdsAccessToken.token
+  }
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: GOOGLE_ADS_CLIENT_ID!,
+      client_secret: GOOGLE_ADS_CLIENT_SECRET!,
+      refresh_token: GOOGLE_ADS_REFRESH_TOKEN!,
+      grant_type: 'refresh_token',
+    }),
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    console.error('[Google Ads] OAuth error:', res.status, body)
+    return null
+  }
+
+  const json = (await res.json()) as { access_token: string; expires_in: number }
+  googleAdsAccessToken = { token: json.access_token, expiresAt: Date.now() + json.expires_in * 1000 }
+  return json.access_token
+}
+
+/** Google Ads wants "yyyy-mm-dd hh:mm:ss+00:00". */
+function googleAdsDateTime(date: Date): string {
+  return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '+00:00')
+}
+
+async function sendGoogleAdsConversion(event: ServerEvent, data: ServerConversionData) {
+  const conversionActionId = GOOGLE_ADS_CONVERSION_ACTIONS[event]
+  if (
+    !data.gclid ||
+    !conversionActionId ||
+    !GOOGLE_ADS_DEVELOPER_TOKEN ||
+    !GOOGLE_ADS_CLIENT_ID ||
+    !GOOGLE_ADS_CLIENT_SECRET ||
+    !GOOGLE_ADS_REFRESH_TOKEN ||
+    !GOOGLE_ADS_CUSTOMER_ID
+  ) {
+    return
+  }
+
+  const accessToken = await getGoogleAdsAccessToken()
+  if (!accessToken) return
+
+  const conversion: Record<string, unknown> = {
+    gclid: data.gclid,
+    conversionAction: `customers/${GOOGLE_ADS_CUSTOMER_ID}/conversionActions/${conversionActionId}`,
+    conversionDateTime: googleAdsDateTime(new Date()),
+  }
+  if (data.value != null) {
+    conversion.conversionValue = data.value
+    conversion.currencyCode = (data.currency || 'USD').toUpperCase()
+  }
+  // The dedup event ID (payment intent id / lead id) is what the browser sends
+  // as transaction_id, and Google dedups repeat uploads on it -- so the Stripe
+  // checkout.session + payment_intent webhooks count once
+  const orderId = data.eventId || data.orderId
+  if (orderId) conversion.orderId = orderId
+  if (data.email) conversion.userIdentifiers = [{ hashedEmail: sha256(data.email) }]
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+    'developer-token': GOOGLE_ADS_DEVELOPER_TOKEN,
+  }
+  if (GOOGLE_ADS_LOGIN_CUSTOMER_ID) headers['login-customer-id'] = GOOGLE_ADS_LOGIN_CUSTOMER_ID
+
+  const res = await fetch(
+    `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${GOOGLE_ADS_CUSTOMER_ID}:uploadClickConversions`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ conversions: [conversion], partialFailure: true }),
+    }
+  )
+
+  const body = await res.text()
+  if (!res.ok) {
+    console.error('[Google Ads] Upload error:', res.status, body)
+    return
+  }
+  // With partialFailure, rejected rows (expired gclid, duplicate order ID...)
+  // come back as a 200 with partialFailureError set
+  if (body.includes('partialFailureError')) {
+    console.error('[Google Ads] Conversion rejected:', body)
+  }
+}
+
 // ─── Unified Entry Point ─────────────────────────────────────────────────────
 
 /**
@@ -220,6 +332,7 @@ export async function sendServerConversion(event: ServerEvent, data: ServerConve
     sendMetaConversion(event, data),
     sendGA4Conversion(event, data),
     sendTikTokConversion(event, data),
+    sendGoogleAdsConversion(event, data),
   ])
 
   for (const result of results) {

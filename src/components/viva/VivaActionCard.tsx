@@ -67,16 +67,16 @@ export function VivaActionCard({ href, label, kind }: VivaActionCardModel) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-2xl border border-neutral-800 bg-neutral-950 px-4 py-3 hover:border-neutral-600 transition-colors"
+      className="flex items-center gap-3 rounded-2xl border border-white/[0.14] bg-white/[0.06] px-4 py-3 backdrop-blur-xl transition-colors hover:border-white/25 hover:bg-white/[0.10]"
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-900 text-[#39FF14]">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-[#39FF14]">
         <Icon className="h-4 w-4" />
       </span>
       <span className="flex-1 min-w-0">
-        <span className="block text-[11px] uppercase tracking-wide text-neutral-500">{meta.title}</span>
+        <span className="block text-[11px] uppercase tracking-wide text-white/55">{meta.title}</span>
         <span className="block text-sm text-white truncate">{label}</span>
       </span>
-      <ArrowUpRight className="h-4 w-4 text-neutral-500 shrink-0" />
+      <ArrowUpRight className="h-4 w-4 text-white/50 shrink-0" />
     </Link>
   )
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { isAdminRoute, checkIsAdmin, createAdminResponse } from './middleware/admin'
+import { gateMemberPage } from './middleware/member-access'
+import { getPageType } from './lib/navigation/page-classifications'
 import { getSeoPage, resolveKeywordVariantPath } from './content/seo/registry'
 
 export async function proxy(req: NextRequest) {
@@ -82,8 +84,15 @@ export async function proxy(req: NextRequest) {
   }
 
   // Non-admin routes: refresh session cookie without a network call
-  await supabase.auth.getSession()
-  
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // Member pages are for paying members; Vibe Tribe opens with its Getting
+  // Started step. Signed-out visitors are left to each page's login redirect.
+  if (session?.user && !isApiRoute && getPageType(pathname) === 'USER') {
+    const gated = await gateMemberPage(req, res, supabase, session.user.id)
+    if (gated) return gated
+  }
+
   return res
 }
 
