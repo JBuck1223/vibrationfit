@@ -42,6 +42,11 @@ ${P} .absolute.${esc('bg-[#1F1F1F]')}, ${P} .absolute.${esc('bg-[#1A1A1A]')}, ${
   box-shadow: 0 16px 40px rgba(0,0,0,0.5) !important;
 }
 ${P} .${esc('hover:bg-[#2A2A2A]')}:hover, ${P} .${esc('hover:bg-[#333]')}:hover { background: rgba(255,255,255,0.08) !important; }
+/* Mid-gray text was picked for flat black; on glass over a bright photo it
+   disappears. Lift it to white at a matching strength (hover colors still win). */
+${P} .text-neutral-400:not(:hover) { color: rgba(255,255,255,0.68); }
+${P} .text-neutral-500:not(:hover) { color: rgba(255,255,255,0.55); }
+${P} .text-neutral-600:not(:hover) { color: rgba(255,255,255,0.42); }
 /* Small empty-state dots. */
 ${P} .${esc('bg-[#3a3a3a]')} { background: rgba(255,255,255,0.2) !important; }
 /* Fades drawn in the old panel color (lyrics scroll edges) blend with the glass. */
