@@ -4,6 +4,7 @@ import React, { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Button } from '../forms/Button'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
   isOpen: boolean
@@ -29,6 +30,8 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     className,
     ...props 
   }, ref) => {
+    // App shell: the violet glass sheet; the dark tiles inside map to glass too.
+    const inShell = useInShell()
     useEffect(() => {
       if (!isOpen) return
       // Member pages scroll inside the app shell's <main>, not the body, so lock both.
@@ -54,22 +57,29 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 
     return (
       <div 
-        className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className={cn(
+          'fixed inset-0 z-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]',
+          inShell ? 'bg-black/60 backdrop-blur-sm' : 'bg-black/80',
+        )}
         onClick={onClose}
       >
         <div
           ref={ref}
           className={cn(
-            'bg-[#1F1F1F] border-2 border-[#333] rounded-2xl w-full relative max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden',
+            inShell
+              ? 'vf-glass rounded-[24px] border border-white/[0.14] bg-[rgba(28,22,38,0.97)] shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl'
+              : 'bg-[#1F1F1F] border-2 border-[#333] rounded-2xl',
+            'w-full relative max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden',
             sizeClasses[size],
             className
           )}
           onClick={(e) => e.stopPropagation()}
+          data-studio-glass={inShell || undefined}
           {...props}
         >
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b border-[#333] shrink-0">
+            <div className={cn('flex items-center justify-between gap-3 p-4 sm:p-6 border-b shrink-0', inShell ? 'border-white/10' : 'border-[#333]')}>
               {title && (
                 <h2 className="min-w-0 break-words text-xl font-semibold text-white">{title}</h2>
               )}
@@ -91,7 +101,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 
           {/* Footer */}
           {footer && (
-            <div className="p-4 sm:p-6 border-t border-[#333] shrink-0">
+            <div className={cn('p-4 sm:p-6 border-t shrink-0', inShell ? 'border-white/10' : 'border-[#333]')}>
               {footer}
             </div>
           )}
