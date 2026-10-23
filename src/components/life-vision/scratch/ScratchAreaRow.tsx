@@ -274,7 +274,7 @@ export function ScratchAreaRow({
       )}
 
       {expanded && !writtenText && (
-        <div className={inShell ? 'px-3 pb-3' : 'mx-3 mb-3 overflow-hidden rounded-xl border border-[#2e2e2e]'}>
+        <div className={inShell ? 'px-2.5 pb-2.5 sm:px-3 sm:pb-3' : 'mx-3 mb-3 overflow-hidden rounded-xl border border-[#2e2e2e]'}>
           <div
             role="tablist"
             aria-label={`${label} beats`}
@@ -317,8 +317,9 @@ export function ScratchAreaRow({
             })}
           </div>
 
-          <div className={inShell ? 'overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] [&_textarea]:!border-0 [&_textarea]:!bg-transparent [&_textarea]:!shadow-none [&_textarea]:focus:!ring-0 [&_textarea]:!text-white [&_textarea]:placeholder:!text-white/35' : 'bg-[#1c1c1c]'}>
-          <div className="px-3 pt-3" onBlurCapture={() => { void flushBeat(beat) }}>
+          <div className={inShell ? 'overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] [&_textarea]:!border-0 [&_textarea]:!bg-transparent [&_textarea]:!shadow-none [&_textarea]:focus:!ring-0 [&_textarea]:!text-white [&_textarea]:placeholder:!text-white/35 [&_textarea]:!px-3.5' : 'bg-[#1c1c1c]'}>
+          {/* Shell: one layer of side padding, on the text itself. */}
+          <div className={inShell ? 'pt-1' : 'px-3 pt-3'} onBlurCapture={() => { void flushBeat(beat) }}>
             <RecordingTextarea
               value={state[beat]}
               onChange={(text) => onChange(beat, text)}
@@ -334,8 +335,9 @@ export function ScratchAreaRow({
             />
           </div>
 
-          <div className={`sticky z-10 mt-2 flex items-center justify-between gap-3 border-t border-white/5 px-4 py-3 backdrop-blur ${
-            inShell ? 'bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+12px)] bg-[rgba(32,26,45,0.94)] lg:bottom-0' : 'bottom-0 bg-[#1c1c1c]/95'
+          {/* Shell: a plain footer under the text, so it never covers what you wrote. */}
+          <div className={`flex items-center justify-between gap-3 border-t border-white/5 px-4 py-3 ${
+            inShell ? 'mt-1 px-3.5' : 'sticky bottom-0 z-10 mt-2 bg-[#1c1c1c]/95 backdrop-blur'
           }`}>
             <div className="flex min-w-0 items-center gap-2">
               <WordMeter words={countWords(state[beat])} />
