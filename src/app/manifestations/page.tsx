@@ -38,6 +38,9 @@ import { BoardDragHandle, BoardMouseSensor, BoardPhotoTile, BoardTouchSensor, So
 import { compareBoardOrder, reorderOwnedItems } from '@/lib/manifestations/board-order'
 import { resolveEditedTimestamp, toLocalDateInput, todayDateInput } from '@/lib/manifestations/dates'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { CategorySheet, LIFE_CATEGORIES } from '@/components/app-shell/forms/CategorySheet'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
 import { VisionBoardSlideshow } from '@/components/VisionBoardSlideshow'
@@ -84,6 +87,13 @@ const STATUS_OPTIONS = [
   { value: 'actualized', label: 'Actualized', color: 'warning' },
   { value: 'inactive', label: 'Inactive', color: 'neutral' },
 ]
+
+/** A pill button in the shell's board toolbar and filter sheet; green when on. */
+function shellToolClass(on: boolean) {
+  return `inline-flex h-10 items-center justify-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors disabled:opacity-40 sm:px-4 ${
+    on ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/85 hover:text-white'
+  }`
+}
 
 const BOARD_FILTERS_STORAGE_KEY = 'vf-manifestations-board-filters'
 const PHONE_BOARD_MODE_KEY = 'vf-manifestations-phone-board-mode'
@@ -275,6 +285,9 @@ export default function VisionBoardPage() {
   const [slideshowOpen, setSlideshowOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
+  const inShell = useInShell()
+  // The shell's filters open as a sheet on tap, never on their own.
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editFormData, setEditFormData] = useState<{
@@ -2163,7 +2176,103 @@ export default function VisionBoardPage() {
           </div>
         )}
 
-        {/* Filter Toggle Button and View Toggle */}
+        {inShell ? (
+          <div className="flex items-center gap-2">
+            {!isSnapshotMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const query = scope !== 'me' && household?.isMultiMember ? '?household=1' : ''
+                  router.push((isIntensivePath ? '/intensive/vision-board/new' : '/manifestations/new') + query)
+                }}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#39FF14] text-black shadow-[0_0_16px_rgba(57,255,20,0.35)] transition-transform active:scale-95"
+                aria-label="Add Creation"
+                data-tour="manifestations-open"
+              >
+                <Plus className="h-5 w-5" strokeWidth={2.5} />
+              </button>
+            ) : null}
+            <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 sm:gap-2">
+              {!isSnapshotMode && (
+                <button
+                  type="button"
+                  onClick={toggleBulkMode}
+                  aria-pressed={bulkMode}
+                  aria-label={bulkMode ? 'Cancel selection mode' : 'Select items'}
+                  className={shellToolClass(bulkMode)}
+                >
+                  {bulkMode ? <X className="h-4 w-4" /> : <ListChecks className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{bulkMode ? 'Cancel' : 'Select'}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setFilterSheetOpen(true)}
+                aria-label="Filter items"
+                className={shellToolClass(getActiveFilterCount() > 0)}
+              >
+                <Filter className="h-4 w-4" />
+                <span className="hidden sm:inline">Filter</span>
+                {getActiveFilterCount() > 0 && (
+                  <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#39FF14] px-1.5 text-xs font-semibold text-black">
+                    {getActiveFilterCount()}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const params = new URLSearchParams()
+                  if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
+                    params.set('categories', selectedCategories.join(','))
+                  }
+                  if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
+                    params.set('statuses', selectedStatuses.join(','))
+                  }
+                  router.push(`${isIntensivePath ? '/intensive/vision-board/export' : '/manifestations/export'}${params.toString() ? '?' + params.toString() : ''}`)
+                }}
+                aria-label="Download PDF"
+                className={shellToolClass(false)}
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSlideshowOpen(true)}
+                disabled={filteredItems.length === 0}
+                aria-label="Play slideshow"
+                className={shellToolClass(false)}
+              >
+                <Play className="h-4 w-4" />
+                <span className="hidden sm:inline">Play</span>
+              </button>
+            </div>
+            <div className="flex shrink-0 rounded-full border border-white/15 bg-white/[0.05] p-1" role="group" aria-label="Board view">
+              {([
+                { mode: 'clean' as const, icon: Grid, label: 'Clean view' },
+                { mode: 'detail' as const, icon: List, label: 'Detail view' },
+              ]).map(({ mode, icon: ModeIcon, label }) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-label={label}
+                  aria-pressed={boardMode === mode}
+                  onClick={() => {
+                    setBoardMode(mode)
+                    persistPhoneBoardMode(mode)
+                    if (mode === 'clean') { setExpandedItemId(null); cancelEditing() }
+                  }}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+                    boardMode === mode ? 'bg-[#39FF14] text-black' : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  <ModeIcon className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
         <div className="flex items-center justify-between">
           <div className="flex-1 flex justify-start">
             {!isSnapshotMode ? (
@@ -2271,9 +2380,72 @@ export default function VisionBoardPage() {
             </div>
           </div>
         </div>
+        )}
+
+        {inShell && (
+          <CategorySheet
+            open={filterSheetOpen}
+            onClose={() => setFilterSheetOpen(false)}
+            title="Show creations"
+            selected={selectedCategories.includes('all') ? [] : selectedCategories}
+            onToggle={(key) => {
+              setSelectedCategories((prev) => {
+                const current = prev.filter((c) => c !== 'all')
+                const next = current.includes(key) ? current.filter((c) => c !== key) : [...current, key]
+                return next.length === 0 || next.length === LIFE_CATEGORIES.length ? ['all'] : next
+              })
+            }}
+            onClear={() => setSelectedCategories(['all'])}
+          >
+            <div className="mb-4 space-y-4">
+              <div>
+                <p className="mb-2 text-xs font-medium text-white/55">Status</p>
+                <div className="flex flex-wrap gap-2">
+                  {STATUS_OPTIONS.map((status) => {
+                    const on = selectedStatuses.includes('all') || selectedStatuses.includes(status.value)
+                    return (
+                      <button
+                        key={status.value}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleStatus(status.value)}
+                        className={shellToolClass(on)}
+                      >
+                        {status.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              {!isIntensivePath && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-medium text-white/55">Time travel</p>
+                    {isSnapshotMode && (
+                      <button type="button" onClick={() => setSnapshotDate(null)} className="text-xs text-white/60 hover:text-white">
+                        Back to today
+                      </button>
+                    )}
+                  </div>
+                  {snapshotMinDate ? (
+                    <DatePicker
+                      value={snapshotDate ?? ''}
+                      onChange={(date) => setSnapshotDate(date || null)}
+                      minDate={snapshotMinDate}
+                      maxDate={todayLocalDate}
+                    />
+                  ) : (
+                    <p className="text-sm text-white/50">Add a creation to your board to use time travel.</p>
+                  )}
+                </div>
+              )}
+              <p className="text-xs font-medium text-white/55">Life categories</p>
+            </div>
+          </CategorySheet>
+        )}
 
         {/* Filters */}
-        {showFilters && (
+        {!inShell && showFilters && (
           <div id="filters" className="space-y-6 animate-in slide-in-from-top duration-300">
           {/* Category Filter */}
           <Card variant="elevated" className="p-4">
@@ -2480,8 +2652,10 @@ export default function VisionBoardPage() {
                         return (
                           <div
                             key={item.id}
-                            className={`rounded-2xl overflow-hidden bg-neutral-800 border-2 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 relative max-w-full ${
-                              bulkMode && isSelected ? 'border-[#39FF14] ring-2 ring-[#39FF14]/30' : 'border-[#333]'
+                            className={`rounded-2xl overflow-hidden shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 relative max-w-full ${
+                              inShell ? `${GLASS_CARD} !rounded-[20px]` : 'bg-neutral-800 border-2'
+                            } ${
+                              bulkMode && isSelected ? '!border-[#39FF14] ring-2 ring-[#39FF14]/30' : inShell ? '' : 'border-[#333]'
                             }`}
                             onClick={() => bulkMode ? toggleItemSelection(item.id) : openItem(item)}
                           >
@@ -2517,8 +2691,10 @@ export default function VisionBoardPage() {
                       }
 
                       return (
-                        <div key={item.id} className={`rounded-2xl overflow-hidden bg-neutral-800 border-2 shadow-lg transition-all duration-300 max-w-full ${
-                          bulkMode && selectedItemIds.has(item.id) ? 'border-[#39FF14] ring-2 ring-[#39FF14]/30' : 'border-[#333]'
+                        <div key={item.id} className={`rounded-2xl overflow-hidden shadow-lg transition-all duration-300 max-w-full ${
+                          inShell ? `${GLASS_CARD} !rounded-[20px]` : 'bg-neutral-800 border-2'
+                        } ${
+                          bulkMode && selectedItemIds.has(item.id) ? '!border-[#39FF14] ring-2 ring-[#39FF14]/30' : inShell ? '' : 'border-[#333]'
                         }`}>
                           {/* Image - tap for lightbox or select */}
                           <div

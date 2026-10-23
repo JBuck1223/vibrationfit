@@ -4,6 +4,7 @@ import { Clock, PenLine, Plus, Sparkles, Wand2 } from 'lucide-react'
 import { usePathname, useRouter, useSelectedLayoutSegment } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useManifestationsStudio } from './ManifestationsStudioContext'
 
 const TABS = [
@@ -33,6 +34,7 @@ export function ManifestationsAreaBar() {
   const segment = useSelectedLayoutSegment()
   const { manifestations } = useManifestationsStudio()
   const walkthroughMenu = useAreaBarWalkthrough()
+  const inShell = useInShell()
 
   const isCreateArea = CREATE_AREA_ROUTES.some(r => pathname === r || pathname.startsWith(r + '/'))
   const isOnSecondaryPage = SECONDARY_TABS.some(t => pathname === t.path || pathname.startsWith(t.path + '/'))
@@ -76,6 +78,9 @@ export function ManifestationsAreaBar() {
       },
     }]
   }
+
+  // The app shell shows ManifestationsHeader instead.
+  if (inShell) return null
 
   return (
     <AreaBar

@@ -11,6 +11,7 @@ import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Upload, CheckCircle, XCircle, ImageIcon, Home } from 'lucide-react'
 import { reportFlowSignal } from '@/hooks/useActiveFlow'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { VISION_CATEGORIES, LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
 
 const STATUS_OPTIONS = [
@@ -21,6 +22,10 @@ const STATUS_OPTIONS = [
 
 export default function NewVisionBoardItemPage() {
   const router = useRouter()
+  // In the app shell the form keeps the shell's glass instead of forced dark fields.
+  const inShell = useInShell()
+  const darkField = inShell ? '' : '!bg-[#1A1A1A] !border-[#282828]'
+  const darkTextarea = inShell ? '' : '[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]'
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const isIntensivePage = pathname.startsWith('/intensive/')
@@ -262,21 +267,21 @@ export default function NewVisionBoardItemPage() {
     <Container size="xl">
       <form onSubmit={handleSubmit}>
         <Stack gap="md">
-          <Card variant="outlined" className="!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]">
+          <Card variant="outlined" className={inShell ? '!p-5 md:!p-6 lg:!p-8' : '!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]'}>
             <Stack gap="lg">
               {/* Creation Name */}
               <section className="space-y-3 text-center">
                 <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                   <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Creation name</p>
-                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                 </div>
                 <Input
                   type="text"
                   placeholder="What do you choose to create?"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="!bg-[#1A1A1A] !border-[#282828] !text-base !font-medium !text-center"
+                  className={`${darkField} !text-base !font-medium !text-center`}
                   required
                 />
               </section>
@@ -471,7 +476,7 @@ export default function NewVisionBoardItemPage() {
               {/* Description */}
               <section className="space-y-3">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Description</p>
-                <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                <div className={darkTextarea}>
                   <RecordingTextarea
                     label=""
                     value={formData.description}
@@ -502,7 +507,7 @@ export default function NewVisionBoardItemPage() {
                   onChange={(e) => setFormData({ ...formData, why_it_matters: e.target.value })}
                   placeholder="Why this matters to you — your Life Vision can seed the language, then this text is yours."
                   rows={3}
-                  className="!bg-[#1A1A1A] !border-[#282828]"
+                  className={darkField}
                 />
                 <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">What it feels like (optional)</p>
                 <Textarea
@@ -510,7 +515,7 @@ export default function NewVisionBoardItemPage() {
                   onChange={(e) => setFormData({ ...formData, what_it_feels_like: e.target.value })}
                   placeholder="The feeling of already living this reality."
                   rows={3}
-                  className="!bg-[#1A1A1A] !border-[#282828]"
+                  className={darkField}
                 />
               </section>
 
@@ -618,7 +623,7 @@ export default function NewVisionBoardItemPage() {
               {formData.status === 'actualized' && (
                 <section className="space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Actualization story</p>
-                  <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                  <div className={darkTextarea}>
                     <RecordingTextarea
                       label=""
                       value={formData.actualization_story}
