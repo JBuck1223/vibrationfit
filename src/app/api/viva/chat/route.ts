@@ -9,6 +9,7 @@ import { buildVivaSystemPrompt } from '@/lib/viva/prompts/chat-system-prompt'
 import { getVisionCategoryKeys } from '@/lib/design-system/vision-categories'
 import { loadMemberWorld, toLegacyProfile } from '@/lib/your-world/load'
 import { buildMemberWorldBlock } from '@/lib/viva/prompts/shared/member-world'
+import { loadConversationHistory, mergeHistoryWithIncoming, type HistoryMessage } from '@/lib/viva/conversation-history'
 
 // Using Node.js runtime instead of Edge for proper onFinish callback support
 // Edge runtime terminates the response before onFinish can run
@@ -128,23 +129,10 @@ export async function POST(req: Request) {
       }
     }
     
-    // Load conversation history for context (last 20 messages)
-    let conversationHistory: any[] = []
+    // Load conversation history for context (most recent messages, oldest dropped past the budget)
+    let conversationHistory: HistoryMessage[] = []
     if (currentConversationId) {
-      const { data: historyMessages } = await supabase
-        .from('ai_conversations')
-        .select('*')
-        .eq('conversation_id', currentConversationId)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(20)
-      
-      if (historyMessages && historyMessages.length > 0) {
-        conversationHistory = historyMessages.map(msg => ({
-          role: msg.role,
-          content: msg.message
-        }))
-      }
+      conversationHistory = await loadConversationHistory(supabase, currentConversationId, user.id)
     }
 
     // Check if this is master assistant mode
@@ -445,7 +433,7 @@ export async function POST(req: Request) {
     // Combine conversation history with new messages for context
     // Use conversation history if available, otherwise use the messages from request
     const allMessagesForContext = conversationHistory.length > 0 && currentConversationId
-      ? [...conversationHistory.slice(0, -1), ...messages.slice(-2)] // Last messages from history + new messages
+      ? mergeHistoryWithIncoming(conversationHistory, messages) // DB history + current exchange, deduped
       : messages
 
     // Filter out the START_SESSION message if present

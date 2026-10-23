@@ -104,7 +104,7 @@ export function FlowBar() {
         atTop
           ? 'top-[calc(var(--native-inset-top,0px)+var(--shell-header-height)+8px)]'
           : hasPlayer
-            ? 'bottom-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+92px)] lg:bottom-[92px]'
+            ? 'bottom-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+100px)] lg:bottom-[92px]'
             : 'bottom-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+20px)] lg:bottom-6',
       )}
     >

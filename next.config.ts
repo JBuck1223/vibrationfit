@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Hides the floating "N" dev badge; it sat on top of the mobile pill and player.
+  devIndicators: false,
   experimental: {
     // Local dev only: the on-disk Turbopack cache grew to 8+ GB here and made
     // first page loads hang. Off = slightly slower first load after a restart.

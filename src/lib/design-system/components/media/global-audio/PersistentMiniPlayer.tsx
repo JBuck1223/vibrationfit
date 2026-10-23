@@ -3,6 +3,7 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react'
 import { Play, Pause, SkipBack, SkipForward, X, Loader2, ChevronUp, Volume2, VolumeX } from 'lucide-react'
 import { useGlobalAudioStore, getGlobalAudioElement } from '@/lib/stores/global-audio-store'
+import { useShellNavStore } from '@/lib/stores/shell-nav-store'
 import { useMediaSession } from '@/hooks/useMediaSession'
 import { TrackArtwork } from './TrackArtwork'
 import { isSongNowPlayingTrack } from './TrackArtistLine'
@@ -38,6 +39,7 @@ export function PersistentMiniPlayer() {
   const repeatMode = useGlobalAudioStore(s => s.repeatMode)
   const setRepeatMode = useGlobalAudioStore(s => s.setRepeatMode)
   const [volume, setVolume] = useState(1)
+  const navCollapsedSide = useShellNavStore(s => s.collapsedSide)
 
   const currentTrack = tracks[currentIndex] ?? null
   // In the new app shell the player floats as a glass card above the bottom bar.
@@ -157,9 +159,16 @@ export function PersistentMiniPlayer() {
         </div>
       </div>
 
-      {/* Phones and tablets: a floating glass card above the bottom bar. */}
+      {/* Phones and tablets: a floating glass card above the pill (10px pill offset + 14px gap),
+          or beside the plus button when the member has collapsed the pill. */}
       <div
-        className="fixed inset-x-3 z-50 bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+18px)] lg:hidden"
+        className={
+          navCollapsedSide === 'right'
+            ? 'fixed left-3 right-[84px] z-50 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] lg:hidden'
+            : navCollapsedSide === 'left'
+              ? 'fixed left-[84px] right-3 z-50 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] lg:hidden'
+              : 'fixed inset-x-3 z-50 bottom-[calc(var(--shell-nav-height,64px)+env(safe-area-inset-bottom,0px)+24px)] lg:hidden'
+        }
       >
         <div
           role="button"

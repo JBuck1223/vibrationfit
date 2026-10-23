@@ -67,7 +67,7 @@ function Row({
     : '/map'
 
   return (
-    <li className="flex items-center gap-3">
+    <li className="flex min-w-0 items-center gap-3">
       <Link
         href={href}
         className="group flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-white/[0.05]"
@@ -137,7 +137,7 @@ export function TodayOnMap({ occurrences, date }: TodayOnMapProps) {
   })
 
   return (
-    <section className={`${GLASS_CARD} flex flex-col p-5 md:p-6`}>
+    <section className={`${GLASS_CARD} flex min-w-0 flex-col overflow-hidden p-5 md:p-6`}>
       <div className="flex items-center gap-4">
         {occurrences.length > 0 ? (
           <ProgressRing done={done.length} total={occurrences.length} />
@@ -179,7 +179,7 @@ export function TodayOnMap({ occurrences, date }: TodayOnMapProps) {
           )}
 
           {visiblePending.length > 0 && (
-            <ul className="mt-3 grid gap-0.5 md:grid-cols-2 md:gap-x-4">
+            <ul className="mt-3 grid min-w-0 gap-0.5 md:grid-cols-2 md:gap-x-4">
               {visiblePending.map((occ) => (
                 <Row key={occ.id} occ={occ} busy={toggle.isPending} onToggle={() => toggle.mutate(occ)} />
               ))}
@@ -208,7 +208,7 @@ export function TodayOnMap({ occurrences, date }: TodayOnMapProps) {
                 <ChevronDown className={cn('ml-auto h-4 w-4 transition-transform', showDone && 'rotate-180')} />
               </button>
               {showDone && (
-                <ul className="grid gap-0.5 md:grid-cols-2 md:gap-x-4">
+                <ul className="grid min-w-0 gap-0.5 md:grid-cols-2 md:gap-x-4">
                   {done.map((occ) => (
                     <Row key={occ.id} occ={occ} busy={toggle.isPending} onToggle={() => toggle.mutate(occ)} />
                   ))}

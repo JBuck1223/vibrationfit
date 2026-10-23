@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { isAdminRoute, checkIsAdmin, createAdminResponse } from './middleware/admin'
+import { getSeoPage, resolveKeywordVariantPath } from './content/seo/registry'
 
 export async function proxy(req: NextRequest) {
   const url = req.nextUrl
   const pathname = url.pathname
+
+  // SEO pages: Markdown twins (/<page>.md) and keyword-matched PPC variants.
+  // `kw` is Google Ads' ValueTrack {keyword}; only allowlisted ad group
+  // keywords map to a pre-rendered variant, so the raw param is never shown.
+  if (pathname.endsWith('.md') && getSeoPage(pathname.slice(0, -3))) {
+    return NextResponse.rewrite(new URL(`/seo-md${pathname.slice(0, -3)}`, url.origin))
+  }
+  const keyword = url.searchParams.get('kw')
+  if (keyword) {
+    const variantPath = resolveKeywordVariantPath(pathname, keyword)
+    if (variantPath) {
+      const target = url.clone()
+      target.pathname = variantPath
+      return NextResponse.rewrite(target)
+    }
+  }
 
   // Handle auth params redirect (existing logic)
   // `type` alone is used by app filters (e.g. /projects?type=project); only treat as auth when paired with token_hash or when `code` is present (PKCE).

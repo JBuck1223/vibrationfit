@@ -116,6 +116,8 @@ const CATEGORY_TO_AREA: Record<AudioContentCategory, string> = {
   meditation: 'meditation_listen',
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 async function trackPlayEvent(track: AudioTrack) {
   try {
     const { createClient } = await import('@/lib/supabase/client')
@@ -124,7 +126,11 @@ async function trackPlayEvent(track: AudioTrack) {
     const user = session?.user
     if (!user) return
 
-    await supabase.rpc('increment_audio_play', { p_track_id: track.id })
+    // Story versions use `storyId:trackId`; the play count lives on the audio track.
+    const audioTrackId = track.id.split(':').pop() ?? ''
+    if (UUID_RE.test(audioTrackId)) {
+      await supabase.rpc('increment_audio_play', { p_track_id: audioTrackId })
+    }
 
     const category = useGlobalAudioStore.getState().contentCategory
     const area = CATEGORY_TO_AREA[category]

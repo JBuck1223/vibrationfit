@@ -61,6 +61,11 @@ function slimTracks(tracks: AudioTrack[]): AudioTrack[] {
   }))
 }
 
+/** Streams report Infinity until the length is known, which JSON turns into null. */
+function wholeSeconds(value: number | undefined): number {
+  return value && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
+}
+
 async function save(state: PlayerSnapshot) {
   const key = setKeyFor(state)
   const track = state.tracks[state.currentIndex]
@@ -80,8 +85,8 @@ async function save(state: PlayerSnapshot) {
         artwork_url: track.thumbnail || state.tracks.find((t) => t.thumbnail)?.thumbnail || null,
         tracks: slimTracks(state.tracks),
         track_index: state.currentIndex,
-        position_seconds: Math.max(0, Math.floor(state.currentTime || 0)),
-        duration_seconds: Math.max(0, Math.floor(state.duration || track.duration || 0)),
+        position_seconds: wholeSeconds(state.currentTime),
+        duration_seconds: wholeSeconds(state.duration) || wholeSeconds(track.duration),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id,set_key' },

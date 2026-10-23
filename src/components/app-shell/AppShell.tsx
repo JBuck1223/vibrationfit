@@ -4,6 +4,7 @@ import React from 'react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
+import { useShellNavStore } from '@/lib/stores/shell-nav-store'
 import { sectionForPath } from '@/lib/app-shell/sections'
 import { ThemeProvider } from './ThemeProvider'
 import { ThemeBackdrop } from './ThemeBackdrop'
@@ -20,10 +21,12 @@ import { FlowBar } from '@/components/flows/FlowBar'
  */
 function BottomClearance() {
   const hasPlayer = useGlobalAudioStore((s) => s.tracks.length > 0)
+  // Collapsed, the player shares the bottom row with the plus button.
+  const collapsed = useShellNavStore((s) => s.collapsedSide !== null)
   return (
     <div
       aria-hidden
-      className={cn('lg:h-[var(--shell-player-h)]', hasPlayer ? 'h-[calc(var(--shell-nav-height)+5rem+env(safe-area-inset-bottom,0px)+24px)]' : 'h-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+24px)]')}
+      className={cn('lg:h-[var(--shell-player-h)]', hasPlayer && !collapsed ? 'h-[calc(var(--shell-nav-height)+5rem+env(safe-area-inset-bottom,0px)+24px)]' : 'h-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+24px)]')}
     />
   )
 }
@@ -38,11 +41,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const section = sectionForPath(pathname)
   const keyboardOpen = useKeyboardOpen()
   const hasPlayer = useGlobalAudioStore((s) => s.tracks.length > 0)
+  const navCollapsed = useShellNavStore((s) => s.collapsedSide !== null)
+  const hydrateNav = useShellNavStore((s) => s.hydrate)
+
+  React.useEffect(() => {
+    hydrateNav()
+  }, [hydrateNav])
 
   React.useEffect(() => {
     const pill = document.querySelector<HTMLElement>('[data-shell-pill]')
     if (pill) pill.dataset.keyboard = keyboardOpen ? 'open' : 'closed'
-  }, [keyboardOpen])
+  }, [keyboardOpen, navCollapsed])
 
   // VIVA scrolls its own thread, so its column is pinned to the viewport height.
   const fullHeight = section.id === 'viva'
@@ -55,10 +64,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           data-section={section.accent === 'viva' ? 'viva' : undefined}
           // `isolate` keeps the -z-10 backdrop inside this stacking context, above the body's black.
           className="relative isolate min-h-dvh text-white"
-          // The bottom bar is taller now; everything that clears it reads this.
+          // Everything that clears the pill reads --shell-nav-height. Expanded it
+          // uses the :root value, which the mini player (rendered outside this
+          // tree) also reads, so the two never disagree. Collapsed it is the
+          // plus button's size.
           // On desktop the player is a full-width bar along the bottom; the
           // sidebar and content stop above it.
-          style={{ '--shell-nav-height': '76px', '--shell-player-h': hasPlayer ? '84px' : '0px' } as React.CSSProperties}
+          style={{ ...(navCollapsed ? { '--shell-nav-height': '60px' } : {}), '--shell-player-h': hasPlayer ? '84px' : '0px' } as React.CSSProperties}
         >
           <ThemeBackdrop />
           <div className="flex min-h-dvh">
