@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Check, ChevronDown, MoreHorizontal } from 'lucide-react'
+import { Check, ChevronDown, MoreHorizontal, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AreaBarContextNavItem, AreaBarVersionSelector } from '@/lib/design-system/components'
 import { StudioToggle, type StudioToggleOption } from './StudioToggle'
@@ -37,9 +37,12 @@ function useDismiss(open: boolean, setOpen: (o: boolean) => void) {
 /** A studio's version picker (Life Vision versions, audio sets...) as a glass dropdown. */
 function ShellVersionSelect({ selector }: { selector: AreaBarVersionSelector }) {
   const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState('')
   const ref = useDismiss(open, setOpen)
   const selected = selector.options.find((o) => o.id === selector.selectedId) ?? selector.options[0]
   const Icon = selector.icon
+  const q = query.trim().toLowerCase()
+  const options = q ? selector.options.filter((o) => `${o.label} ${o.sublabel ?? ''}`.toLowerCase().includes(q)) : selector.options
   let lastGroup: string | undefined
 
   return (
@@ -67,7 +70,20 @@ function ShellVersionSelect({ selector }: { selector: AreaBarVersionSelector }) 
       </button>
       {open && (
         <div role="listbox" aria-label={selector.label} className={cn(MENU, 'left-1/2 w-[280px] -translate-x-1/2')}>
-          {selector.options.map((o) => {
+          {selector.searchable && selector.options.length > 6 ? (
+            <div className="mb-1 flex items-center gap-2 rounded-xl bg-white/[0.06] px-3 py-2">
+              <Search className="h-4 w-4 shrink-0 text-white/45" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search"
+                aria-label={`Search ${selector.label.toLowerCase()}`}
+                className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
+              />
+            </div>
+          ) : null}
+          {options.length === 0 ? <p className="px-3 py-2 text-sm text-white/50">Nothing matches</p> : null}
+          {options.map((o) => {
             const header = o.group && o.group !== lastGroup ? o.group : null
             lastGroup = o.group
             const OptionIcon = o.icon
@@ -91,6 +107,7 @@ function ShellVersionSelect({ selector }: { selector: AreaBarVersionSelector }) 
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       <span className="truncate">{o.label}</span>
+                      {typeof o.count === 'number' ? <span className="text-xs text-white/40">{o.count}</span> : null}
                       {OptionIcon ? <OptionIcon className="h-3.5 w-3.5 shrink-0 text-white/50" /> : null}
                       {o.badge ? (
                         <span

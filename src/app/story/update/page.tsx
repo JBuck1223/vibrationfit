@@ -19,6 +19,7 @@ import {
   Copy,
   AlertCircle,
 } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import {
   Container,
   Stack,
@@ -46,6 +47,9 @@ interface ProofreadEdit {
 }
 
 export default function StoryUpdatePage() {
+  // App shell: fields keep the glass instead of forced dark wells.
+  const inShell = useInShell()
+  const darkWell = inShell ? '!bg-white/[0.05] !border-white/[0.12]' : '!bg-[#101010] !border-neutral-800'
   const supabase = createClient()
   const { stories, updateTargetId, refreshStories } = useStoryStudio()
 
@@ -655,7 +659,7 @@ export default function StoryUpdatePage() {
                     placeholder={vivaGenerateMode === 'rewrite'
                       ? 'e.g., Rewrite as a quiet evening narrative focused on creative work and family dinner...'
                       : 'e.g., Make the morning routine more detailed, add more sensory language about the ocean view, shorten the work section...'}
-                    className="min-h-[150px] w-full !bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                    className={`min-h-[150px] w-full ${darkWell} !border focus-within:!border-accent-500 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]`}
                     minHeight={150}
                   />
                   <div className="flex justify-center gap-3 pt-6">
@@ -711,7 +715,7 @@ export default function StoryUpdatePage() {
                       value={currentContent}
                       onChange={() => {}}
                       readOnly
-                      className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                      className={`${darkWell} text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]`}
                       minHeight={200}
                     />
                   </div>
@@ -754,7 +758,7 @@ export default function StoryUpdatePage() {
                         value={manualText}
                         onChange={setManualText}
                         placeholder="Type your updated story here..."
-                        className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        className={`${darkWell} text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]`}
                         minHeight={200}
                       />
                     )}
@@ -886,7 +890,7 @@ export default function StoryUpdatePage() {
                       value={manualText}
                       onChange={() => {}}
                       readOnly
-                      className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                      className={`${darkWell} text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]`}
                       minHeight={200}
                     />
                   </div>
@@ -928,7 +932,7 @@ export default function StoryUpdatePage() {
                         value={polishText}
                         onChange={setPolishText}
                         placeholder="Your polished story..."
-                        className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        className={`${darkWell} text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]`}
                         minHeight={200}
                       />
                     )}
@@ -1042,7 +1046,7 @@ export default function StoryUpdatePage() {
                       value={currentContent}
                       onChange={() => {}}
                       readOnly
-                      className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                      className={`${darkWell} text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]`}
                       minHeight={200}
                     />
                   </div>
@@ -1086,7 +1090,7 @@ export default function StoryUpdatePage() {
                             value={proposedText}
                             onChange={() => {}}
                             readOnly
-                            className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                            className={`${darkWell} text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]`}
                             minHeight={200}
                           />
                         ))
@@ -1098,7 +1102,7 @@ export default function StoryUpdatePage() {
                             setManualText(val)
                           }}
                           placeholder="Your updated story will appear here..."
-                          className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                          className={`${darkWell} text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]`}
                           minHeight={200}
                         />
                       )}

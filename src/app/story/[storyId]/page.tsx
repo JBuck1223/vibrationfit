@@ -26,6 +26,7 @@ import {
   Home,
   Layers,
 } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import {
   Container,
   Stack,
@@ -71,6 +72,8 @@ export default function StoryDetailPage({
   params: Promise<{ storyId: string }>
 }) {
   const router = useRouter()
+  // App shell: the story sits in a glass card with a real title, no dark wells.
+  const inShell = useInShell()
   const supabase = createClient()
   const [storyId, setStoryId] = useState<string>('')
   const [deleting, setDeleting] = useState(false)
@@ -421,7 +424,7 @@ export default function StoryDetailPage({
       <Stack gap="md">
         <Card
           variant="outlined"
-          className="!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]"
+          className={inShell ? '!p-5 md:!p-6 lg:!p-8' : '!p-0 md:!p-6 lg:!p-8 !bg-transparent !border-transparent !rounded-none md:!rounded-2xl md:!bg-[#101010] md:!border-[#1F1F1F]'}
         >
           <Stack gap="lg">
             <div className="flex justify-between items-center gap-4 flex-wrap">
@@ -438,16 +441,20 @@ export default function StoryDetailPage({
 
             {!isEditing && (
               <>
+                {inShell ? (
+                  <h1 className="text-center text-2xl font-bold leading-tight text-white md:text-3xl">{story.title || 'Untitled Story'}</h1>
+                ) : (
                 <section className="space-y-3 text-center">
                   <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                     <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Story title</p>
-                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                   </div>
                   <p className="text-base font-medium text-white text-center rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3">
                     {story.title || 'Untitled Story'}
                   </p>
                 </section>
+                )}
 
                 <section className="space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Details</p>
@@ -531,22 +538,22 @@ export default function StoryDetailPage({
               <>
                 <section className="space-y-3 text-center">
                   <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                     <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Story title</p>
-                    <div className="h-px flex-1 bg-[#2A2A2A]" />
+                    <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                   </div>
                   <Input
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     placeholder="Story title"
-                    className="!bg-[#1A1A1A] !border-[#282828] !text-base !font-medium !text-center"
+                    className={`${inShell ? '' : '!bg-[#1A1A1A] !border-[#282828]'} !text-base !font-medium !text-center`}
                   />
                 </section>
 
                 <section className="space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Story</p>
-                  <div className="[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]">
+                  <div className={inShell ? '' : '[&_textarea]:!bg-[#1A1A1A] [&_textarea]:!border-[#282828]'}>
                     <AutoResizeTextarea
                       value={editContent}
                       onChange={setEditContent}
@@ -747,9 +754,9 @@ export default function StoryDetailPage({
             {!isEditing && hasGenerationDetails && (
               <section className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                   <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Generation details</p>
-                  <div className="h-px flex-1 bg-[#2A2A2A]" />
+                  <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                 </div>
                 <div className="rounded-xl border border-[#282828] bg-[#131313] overflow-hidden">
                   <button
