@@ -606,7 +606,7 @@ export function NewJournalEntryForm({
         {statusArea}
 
         {/* Phones: Save stays in reach above the bottom bar while writing. */}
-        <div className="sticky bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+16px)] z-20 md:hidden">
+        <div className="sticky bottom-[calc(var(--shell-nav-height,76px)+var(--shell-nav-bottom,10px)+6px)] z-20 md:hidden">
           <button
             type="submit"
             disabled={loading}

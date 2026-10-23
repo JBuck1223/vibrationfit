@@ -58,7 +58,7 @@ export function PillNav() {
           glass,
           'fixed z-40 flex items-center justify-center rounded-full text-white lg:hidden',
           collapsedSide === 'left' ? 'left-3' : 'right-3',
-          'bottom-[calc(env(safe-area-inset-bottom,0px)+10px)]',
+          'bottom-[var(--shell-nav-bottom)]',
           'h-[var(--shell-nav-height)] w-[var(--shell-nav-height)] active:scale-95',
         )}
       >
@@ -74,7 +74,7 @@ export function PillNav() {
       className={cn(
         glass,
         'fixed inset-x-3 z-40 rounded-[32px] lg:hidden',
-        'bottom-[calc(env(safe-area-inset-bottom,0px)+10px)]',
+        'bottom-[var(--shell-nav-bottom)]',
       )}
       style={{ height: 'var(--shell-nav-height)' }}
     >

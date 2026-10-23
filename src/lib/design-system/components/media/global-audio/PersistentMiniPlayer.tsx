@@ -167,10 +167,10 @@ export function PersistentMiniPlayer() {
       <div
         className={
           navCollapsedSide === 'right'
-            ? 'fixed left-3 right-[84px] z-50 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] lg:hidden'
+            ? 'fixed left-3 right-[84px] z-50 bottom-[var(--shell-nav-bottom)] lg:hidden'
             : navCollapsedSide === 'left'
-              ? 'fixed left-[84px] right-3 z-50 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)] lg:hidden'
-              : 'fixed inset-x-3 z-50 bottom-[calc(var(--shell-nav-height,64px)+env(safe-area-inset-bottom,0px)+24px)] lg:hidden'
+              ? 'fixed left-[84px] right-3 z-50 bottom-[var(--shell-nav-bottom)] lg:hidden'
+              : 'fixed inset-x-3 z-50 bottom-[calc(var(--shell-nav-height,64px)+var(--shell-nav-bottom,10px)+14px)] lg:hidden'
         }
       >
         <div

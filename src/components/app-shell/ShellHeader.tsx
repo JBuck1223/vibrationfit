@@ -50,7 +50,6 @@ export function ShellHeader() {
           ? 'vf-glass border-b border-white/[0.10] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(26,21,37,0.70)_100%)] shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-2xl backdrop-saturate-150 lg:border'
           : 'border-b border-transparent lg:border',
       )}
-      style={{ paddingTop: 'var(--native-inset-top, 0px)' }}
     >
       <div
         className="flex w-full items-center gap-2 px-4 md:px-6 lg:px-5"

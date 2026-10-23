@@ -26,7 +26,7 @@ function BottomClearance() {
   return (
     <div
       aria-hidden
-      className={cn('lg:h-[var(--shell-player-h)]', hasPlayer && !collapsed ? 'h-[calc(var(--shell-nav-height)+5rem+env(safe-area-inset-bottom,0px)+24px)]' : 'h-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+24px)]')}
+      className={cn('lg:h-[var(--shell-player-h)]', hasPlayer && !collapsed ? 'h-[calc(var(--shell-nav-height)+5rem+var(--shell-nav-bottom)+14px)]' : 'h-[calc(var(--shell-nav-height)+var(--shell-nav-bottom)+14px)]')}
     />
   )
 }

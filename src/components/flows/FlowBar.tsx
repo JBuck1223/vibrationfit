@@ -104,8 +104,8 @@ export function FlowBar() {
         atTop
           ? 'top-[calc(var(--native-inset-top,0px)+var(--shell-header-height)+8px)]'
           : hasPlayer
-            ? 'bottom-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+100px)] lg:bottom-[92px]'
-            : 'bottom-[calc(var(--shell-nav-height)+env(safe-area-inset-bottom,0px)+20px)] lg:bottom-6',
+            ? 'bottom-[calc(var(--shell-nav-height)+var(--shell-nav-bottom)+90px)] lg:bottom-[92px]'
+            : 'bottom-[calc(var(--shell-nav-height)+var(--shell-nav-bottom)+10px)] lg:bottom-6',
       )}
     >
       <div className="glass-chrome mx-auto max-w-xl overflow-hidden rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.5)]">

@@ -85,7 +85,7 @@ export function QuickActions() {
           See all <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
-      <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-5 md:overflow-visible md:px-0">
+      <ul className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-3 md:mx-0 md:grid md:grid-cols-5 md:overflow-visible md:px-0">
         {ranked.map((tool) => {
           const Icon = tool.icon
           return (

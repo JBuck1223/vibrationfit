@@ -499,7 +499,7 @@ export default function VisionBoardIdeasPage() {
         })}
 
         {selectedItems.size > 0 && (
-          <div className="sticky bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+16px)] z-20 flex justify-center md:bottom-6">
+          <div className="sticky bottom-[calc(var(--shell-nav-height,76px)+var(--shell-nav-bottom,10px)+6px)] z-20 flex justify-center md:bottom-6">
             <button
               type="button"
               onClick={handleAddToBoard}

@@ -183,6 +183,9 @@ html[data-native-shell] .hide-in-native {
   --theme-tint: rgba(0, 0, 0, 0);
   --shell-nav-height: 64px;
   --shell-header-height: 56px;
+  /* Gap from the viewport bottom to the pill. Sits on the home-indicator inset where there is one
+     (the inset already keeps it clear of the indicator); 10px on screens without one. */
+  --shell-nav-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
 }
 [data-section='viva'] {
   --section-accent: #BF00FF;
@@ -400,7 +403,7 @@ input:-webkit-autofill:active {
 /* App shell: a section that scrolls internally (VIVA) gets the viewport minus header, inset and pill. */
 .shell-full-height {
   height: calc(100dvh - var(--native-inset-top, 0px) - var(--shell-header-height));
-  padding-bottom: calc(var(--shell-nav-height) + env(safe-area-inset-bottom, 0px) + 12px);
+  padding-bottom: calc(var(--shell-nav-height) + var(--shell-nav-bottom) + 2px);
 }
 @media (min-width: 1024px) {
   .shell-full-height {
