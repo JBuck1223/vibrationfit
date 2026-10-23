@@ -52,7 +52,7 @@ export function PixelScripts() {
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               ${GA4_MEASUREMENT_ID ? `gtag('config', '${GA4_MEASUREMENT_ID}');` : ''}
-              ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : ''}
+              ${GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}', { allow_enhanced_conversions: true });` : ''}
             `}
           </Script>
         </>

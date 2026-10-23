@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Server-side conversion events (Meta CAPI, GA4 MP, TikTok Events API).
+    // Server-side conversion events (Meta CAPI, GA4 MP, TikTok Events API, Google Ads).
     // Live request cookies beat stored visitor values for Meta identifiers.
     sendServerConversion('lead', {
       email: body.email,

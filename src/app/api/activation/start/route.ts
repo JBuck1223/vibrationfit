@@ -226,19 +226,6 @@ export async function POST(request: NextRequest) {
         event_data: { source: 'activation' },
       })
 
-      sendServerConversion('lead', {
-        email,
-        firstName: firstName || undefined,
-        contentName: 'activation',
-        eventId: leadId || undefined,
-        eventSourceUrl: 'https://vibrationfit.com/activation',
-        fbc: request.cookies.get('_fbc')?.value,
-        fbp: request.cookies.get('_fbp')?.value,
-        ip: request.headers.get('x-forwarded-for') || undefined,
-        userAgent: request.headers.get('user-agent') || undefined,
-        visitorId: body.visitor_id || undefined,
-      }).catch((err) => console.error('[activation/start] server conversion error:', err))
-
       triggerEvent('lead.created', {
         email,
         firstName: firstName || undefined,
@@ -248,6 +235,34 @@ export async function POST(request: NextRequest) {
     }
 
     const { activation, created } = await resumeOrCreateActivation(admin, userId)
+
+    if (isNewUser) {
+      // eventId = activation id, matching the browser pixel (ActivationStartForm)
+      // so Meta dedups and Google Ads gets one order ID for both sides
+      let gclid: string | undefined
+      if (body.visitor_id) {
+        const { data: visitor } = await admin
+          .from('visitors')
+          .select('first_gclid')
+          .eq('id', body.visitor_id)
+          .maybeSingle()
+        gclid = visitor?.first_gclid || undefined
+      }
+      sendServerConversion('lead', {
+        email,
+        firstName: firstName || undefined,
+        contentName: 'activation',
+        eventId: activation.id,
+        eventSourceUrl: 'https://vibrationfit.com/activation',
+        fbc: request.cookies.get('_fbc')?.value,
+        fbp: request.cookies.get('_fbp')?.value,
+        gclid,
+        ip: request.headers.get('x-forwarded-for') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+        visitorId: body.visitor_id || undefined,
+      }).catch((err) => console.error('[activation/start] server conversion error:', err))
+    }
+
     if (created) {
       await recordActivationEvent(admin, {
         eventType: 'activation_started',

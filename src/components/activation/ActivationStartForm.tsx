@@ -61,7 +61,7 @@ export function ActivationStartForm({
       }
 
       if (data.isNewUser && data.activationId) {
-        trackConversion('lead', { content_name: 'activation', event_id: data.activationId })
+        trackConversion('lead', { content_name: 'activation', event_id: data.activationId, email })
       }
       router.push(data.resumePath || `/activation/experience?id=${data.activationId}`)
     } catch (err) {
