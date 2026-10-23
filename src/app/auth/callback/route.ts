@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { recordActivationEvent } from '@/lib/activation/events'
-import { BEGIN_HOME, resolveMemberHome } from '@/lib/life-activation/home'
+import { BEGIN_HOME, NON_MEMBER_HOME, resolveMemberHome } from '@/lib/life-activation/home'
 
 function getAdminClient() {
   return createSupabaseAdmin(
@@ -47,9 +47,12 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${returnTo}`)
   }
 
-  // Members still in Getting Started land on /begin (or the begin page they asked for)
+  // Non-members land on /join; members still in Getting Started land on
+  // /begin (or the begin page they asked for)
   async function honorBeginFlow(userId: string) {
-    if ((await resolveMemberHome(getAdminClient(), userId)) !== BEGIN_HOME) return null
+    const home = await resolveMemberHome(getAdminClient(), userId)
+    if (home === NON_MEMBER_HOME) return NextResponse.redirect(`${origin}${NON_MEMBER_HOME}`)
+    if (home !== BEGIN_HOME) return null
     const stayOnBeginPage = !!returnTo && returnTo.startsWith(`${BEGIN_HOME}/`) && !returnTo.startsWith('//')
     return NextResponse.redirect(`${origin}${stayOnBeginPage ? returnTo : BEGIN_HOME}`)
   }

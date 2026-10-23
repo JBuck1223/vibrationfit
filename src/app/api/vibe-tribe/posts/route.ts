@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { isVibeTribeUnlocked } from '@/lib/access/member-access'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VibeTag, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { extractAndStoreMentions, getMentionedUsersForPosts } from '@/lib/vibe-tribe/mention-utils'
@@ -185,6 +186,11 @@ export async function POST(request: NextRequest) {
     
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Vibe Tribe is for members, once Getting Started opens its step.
+    if (!(await isVibeTribeUnlocked(supabase, user.id))) {
+      return NextResponse.json({ error: 'Vibe Tribe opens for members at its Getting Started step' }, { status: 403 })
     }
 
     const body = await request.json()

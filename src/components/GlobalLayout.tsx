@@ -177,9 +177,10 @@ export function GlobalLayout({ children }: GlobalLayoutProps) {
   // from sessionStorage during the first mount effect, so subsequent navigations
   // inside the same session never re-query the database.
   const [snapshot, setSnapshot] = useState<IntensiveSnapshot | null>(null)
-  // The new member shell (Phase 0+) renders only behind the `shell=next` cookie.
-  // Resolved after mount so SSR and the first client paint match.
-  const [nextShell, setNextShell] = useState(false)
+  // The new member shell is the default for everyone. It starts on so SSR and
+  // the first paint already show it; a browser that opted out (?shell=off)
+  // switches back after mount.
+  const [nextShell, setNextShell] = useState(true)
 
   useEffect(() => {
     const on = syncShellFlagFromUrl()
