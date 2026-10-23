@@ -8,6 +8,8 @@
  * Quiet, minimal presentation designed for the VIVA drawer.
  */
 
+import { cn } from '@/lib/utils'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { keys } from '@/lib/query/keys'
 import { Sparkles, ArrowRight } from 'lucide-react'
@@ -47,6 +49,8 @@ async function fetchConstraints(): Promise<Constraint[]> {
 }
 
 export function ConstraintsPanel() {
+  // In the app shell the cards are glass to match the drawer.
+  const inShell = useInShell()
   const queryClient = useQueryClient()
 
   const { data: constraints = [], isLoading } = useQuery({
@@ -86,14 +90,14 @@ export function ConstraintsPanel() {
       {constraints.map(constraint => (
         <div
           key={constraint.id}
-          className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4"
+          className={inShell ? 'rounded-2xl border border-white/[0.10] bg-white/[0.05] p-4' : 'rounded-xl border border-neutral-800 bg-neutral-900/50 p-4'}
         >
           <div className="flex items-start justify-between gap-3">
-            <p className="text-sm text-neutral-200 leading-relaxed">
+            <p className={cn('text-sm leading-relaxed', inShell ? 'text-white/90' : 'text-neutral-200')}>
               &ldquo;{constraint.statement}&rdquo;
             </p>
             <span
-              className={`shrink-0 text-[11px] uppercase tracking-wide border rounded-full px-2 py-0.5 ${STATUS_STYLES[constraint.status]}`}
+              className={`shrink-0 border rounded-full px-2 py-0.5 ${inShell ? 'text-xs font-medium' : 'text-[11px] uppercase tracking-wide'} ${STATUS_STYLES[constraint.status]}`}
             >
               {STATUS_LABELS[constraint.status]}
             </span>

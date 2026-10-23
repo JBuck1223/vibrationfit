@@ -761,17 +761,23 @@ export default function VivaPage() {
       {constraintsOpen && (
         <>
           <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setConstraintsOpen(false)} />
-          <aside className="fixed inset-y-0 right-0 w-full sm:w-96 bg-neutral-950 border-l border-neutral-900 z-50 flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-900">
+          <aside className={cn(
+            'fixed z-50 flex flex-col',
+            inShell
+              ? 'vf-glass inset-y-0 right-0 w-full border-l border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.92)_0%,rgba(22,18,32,0.96)_100%)] backdrop-blur-2xl sm:inset-y-3 sm:right-3 sm:w-96 sm:rounded-[26px] sm:border sm:shadow-[0_18px_50px_rgba(0,0,0,0.5)]'
+              : 'inset-y-0 right-0 w-full sm:w-96 bg-neutral-950 border-l border-neutral-900',
+          )}>
+            <div className={cn('flex items-center justify-between px-5 py-4', inShell ? 'pt-[max(1rem,env(safe-area-inset-top))] sm:pt-4' : 'border-b border-neutral-900')}>
               <div>
-                <h2 className="text-sm font-medium text-white">My Constraints</h2>
-                <p className="text-xs text-neutral-500 mt-0.5">
+                <h2 className={cn('font-medium text-white', inShell ? 'text-base font-semibold' : 'text-sm')}>My Constraints</h2>
+                <p className={cn('text-xs mt-0.5', inShell ? 'text-white/55' : 'text-neutral-500')}>
                   Beliefs uncovered in coaching, and their journey to dissolved
                 </p>
               </div>
               <button
                 onClick={() => setConstraintsOpen(false)}
-                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+                aria-label="Close"
+                className={cn('p-1.5 transition-colors', inShell ? 'rounded-full text-white/60 hover:bg-white/10 hover:text-white' : 'rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900')}
               >
                 <X className="w-4 h-4" />
               </button>
