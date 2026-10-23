@@ -87,7 +87,7 @@ export function TribeHome() {
               {next ? (
                 <>
                   <Video className="h-4 w-4" />
-                  {when(next.scheduled_at) === 'Live now' ? 'Join now' : 'Reserve my spot'}
+                  {when(next.scheduled_at) === 'Live now' ? 'Join now' : 'View session'}
                 </>
               ) : replay?.recording_url ? (
                 <>
