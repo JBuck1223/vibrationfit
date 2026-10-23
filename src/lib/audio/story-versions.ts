@@ -7,9 +7,10 @@
  * Rules:
  * - A story can have many audio sets (content_type 'story', content_id = the
  *   story). stories.audio_set_id is only the one played first.
- * - VIVA narration (and mixes made from it) only count while their text still
- *   matches the story, so an edited story never plays out-of-date words.
- * - The member's own recording always counts: it is their voice.
+ * - VIVA narration (and mixes made from it) made before the story was last
+ *   edited stays playable, flagged `outdated` so the member can tell it reads
+ *   the earlier words. Current versions come first.
+ * - The member's own recording is never flagged: it is their voice.
  * - A mix counts once its music is ready; until then it is the same narration
  *   already listed, so it is left out rather than shown twice.
  */
@@ -31,6 +32,9 @@ export interface StoryAudioVersion {
   url: string
   duration: number
   audioSetId: string | null
+  /** Made before the story's last edit, so it reads the earlier text. */
+  outdated: boolean
+  createdAt: string | null
 }
 
 export interface StoryForAudio {
@@ -117,16 +121,16 @@ export async function loadStoryAudioVersions(
     const tracks = tracksBySet.get(set.id) ?? []
     const isPersonal = set.variant === 'personal'
     const madeFromPersonal = set.voice_id === 'user_voice' || personalSetIds.has(set.metadata?.source_audio_set_id ?? '')
-    const current = isPersonal || madeFromPersonal ? tracks : tracks.filter((t) => storyTextMatchesTrack(story.content, t.text_content))
-
-    for (const track of current) {
+    for (const track of tracks) {
       const duration = Number(track.duration_seconds) || 0
+      const outdated = !(isPersonal || madeFromPersonal) && !storyTextMatchesTrack(story.content, track.text_content)
+      const when = { outdated, createdAt: track.created_at }
       if (isPersonal) {
         if (!track.audio_url) continue
-        personal.push({ id: track.id, kind: 'personal', label: 'Your voice', sublabel: 'Personal recording', url: track.audio_url, duration, audioSetId: set.id })
+        personal.push({ id: track.id, kind: 'personal', label: 'Your voice', sublabel: 'Personal recording', url: track.audio_url, duration, audioSetId: set.id, ...when })
       } else if (set.variant === 'standard') {
         if (!track.audio_url) continue
-        viva.push({ id: track.id, kind: 'viva', label: `VIVA · ${storyVoiceName(set.voice_id)}`, sublabel: 'Voice only', url: track.audio_url, duration, audioSetId: set.id })
+        viva.push({ id: track.id, kind: 'viva', label: `VIVA · ${storyVoiceName(set.voice_id)}`, sublabel: 'Voice only', url: track.audio_url, duration, audioSetId: set.id, ...when })
       } else {
         // Music mixes (custom-…, and the older sleep / meditation / energy sets).
         if (track.mix_status !== 'completed' || !track.mixed_audio_url) continue
@@ -140,6 +144,7 @@ export async function loadStoryAudioVersions(
           url: track.mixed_audio_url,
           duration,
           audioSetId: set.id,
+          ...when,
         })
       }
     }
@@ -148,14 +153,25 @@ export async function loadStoryAudioVersions(
   // A recording saved straight onto the story (older recordings, and the
   // link the recorder keeps) when no personal set already lists it.
   if (story.user_audio_url && !personal.some((v) => v.url === story.user_audio_url)) {
-    personal.unshift({ id: 'user-recording', kind: 'personal', label: 'Your voice', sublabel: 'Personal recording', url: story.user_audio_url, duration: 0, audioSetId: null })
+    personal.unshift({ id: 'user-recording', kind: 'personal', label: 'Your voice', sublabel: 'Personal recording', url: story.user_audio_url, duration: 0, audioSetId: null, outdated: false, createdAt: null })
   }
 
-  // The version the story points at plays first; then VIVA voices, the
-  // member's own voice, and the mixes. No URL appears twice.
+  // Current versions before ones made before the last edit; among those, the
+  // version the story points at plays first, then VIVA voices, the member's
+  // own voice, and the mixes (sort is stable). No URL appears twice.
+  const isPointer = (v: StoryAudioVersion) => v.audioSetId === story.audio_set_id && v.kind !== 'mix'
   const ordered = [...viva, ...personal, ...mixes].sort(
-    (a, b) => Number(b.audioSetId === story.audio_set_id && b.kind !== 'mix') - Number(a.audioSetId === story.audio_set_id && a.kind !== 'mix'),
+    (a, b) => Number(a.outdated) - Number(b.outdated) || Number(isPointer(b)) - Number(isPointer(a)),
   )
   const seen = new Set<string>()
   return ordered.filter((v) => (seen.has(v.url) ? false : (seen.add(v.url), true)))
+}
+
+/** "Before your last edit · Oct 22" for a version made before the story changed. */
+export function outdatedNote(version: Pick<StoryAudioVersion, 'outdated' | 'createdAt'>): string | null {
+  if (!version.outdated) return null
+  const made = version.createdAt
+    ? new Date(version.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    : null
+  return made ? `Before your last edit · ${made}` : 'Before your last edit'
 }

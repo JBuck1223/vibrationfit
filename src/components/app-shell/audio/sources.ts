@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import type { AudioContentCategory } from '@/lib/stores/global-audio-store'
 import { loadAudioSetTracks } from '@/components/dashboard/widgets/queries'
-import { loadStoryAudioVersions } from '@/lib/audio/story-versions'
+import { loadStoryAudioVersions, outdatedNote } from '@/lib/audio/story-versions'
 import { mixTypeFor, type MixType } from '@/lib/audio/mix-type'
 import { getPlaylistTracks, getUserPlaylists, playlistTracksToAudioTracks } from '@/lib/services/playlistService'
 
@@ -144,7 +144,7 @@ export function storyCollection(story: StoryLike, artwork: string | null): Audio
       const tracks: AudioTrack[] = versions.map((v) => ({
         id: `${story.id}:${v.id}`,
         title: versions.length > 1 ? `${title} · ${v.label}` : title,
-        artist: `${storyKind(story)} · ${v.sublabel}`,
+        artist: [storyKind(story), v.sublabel, outdatedNote(v)].filter(Boolean).join(' · '),
         duration: v.duration,
         url: v.url,
         thumbnail: artwork ?? '',

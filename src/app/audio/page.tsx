@@ -16,7 +16,7 @@ import {
   Clock, ChevronRight, Library, AlertTriangle, RefreshCw,
   Users, ArrowLeft, Search, Share2,
 } from 'lucide-react'
-import { loadStoryAudioVersions } from '@/lib/audio/story-versions'
+import { loadStoryAudioVersions, outdatedNote } from '@/lib/audio/story-versions'
 import { useAudioStudio, type AudioSetItem, QueueStatusBanner } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
 import {
@@ -517,7 +517,7 @@ function LegacyAudioListenPage() {
         tracks.push({
           id: `${story.id}:${v.id}`,
           title: versions.length > 1 ? `${storyTitle} · ${v.label}` : storyTitle,
-          artist: v.kind === 'personal' ? `${kindLabel} · Your voice` : `${entityLabel} · ${v.sublabel}`,
+          artist: [v.kind === 'personal' ? `${kindLabel} · Your voice` : `${entityLabel} · ${v.sublabel}`, outdatedNote(v)].filter(Boolean).join(' · '),
           duration: v.duration,
           url: v.url,
           thumbnail: '',

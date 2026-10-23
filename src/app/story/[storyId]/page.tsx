@@ -41,7 +41,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useStory } from '@/lib/stories'
 import type { UpdateStoryPayload } from '@/lib/stories'
 import { useStoryStudio } from '@/components/story-studio'
-import { loadStoryAudioVersions } from '@/lib/audio/story-versions'
+import { loadStoryAudioVersions, outdatedNote } from '@/lib/audio/story-versions'
 import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
@@ -58,6 +58,8 @@ interface AudioOption {
   id: string
   label: string
   sublabel: string
+  /** Set when the audio was made before the story's last edit. */
+  note?: string | null
   url: string
   icon: React.ElementType
   iconColor: string
@@ -155,6 +157,7 @@ export default function StoryDetailPage({
       id: v.id === 'user-recording' ? 'user-recording' : `version-${v.id}`,
       label: v.label,
       sublabel: v.sublabel,
+      note: outdatedNote(v),
       url: v.url,
       icon: v.kind === 'personal' ? Mic : v.kind === 'mix' ? Music2 : Headphones,
       iconColor:
@@ -576,6 +579,9 @@ export default function StoryDetailPage({
                                 <div className="text-left flex-1 min-w-0">
                                   <div className="font-medium text-sm truncate">{selectedOption?.label || 'Select audio'}</div>
                                   <div className="text-xs text-neutral-500">{selectedOption?.sublabel}</div>
+                                  {selectedOption?.note && (
+                                    <div className="text-[11px] font-medium text-[#FFB020]">{selectedOption.note}</div>
+                                  )}
                                 </div>
                               </div>
                               <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform flex-shrink-0 ml-2 ${isAudioDropdownOpen ? 'rotate-180' : ''}`} />
@@ -602,6 +608,11 @@ export default function StoryDetailPage({
                                           <div className="flex-1 min-w-0">
                                             <div className="font-medium text-sm text-white truncate">{option.label}</div>
                                             <div className="text-xs text-neutral-500">{option.sublabel}</div>
+                                            {option.note && (
+                                              <div className="mt-0.5 inline-flex items-center rounded-full bg-[#FFB020]/15 px-2 py-0.5 text-[11px] font-medium text-[#FFB020]">
+                                                {option.note}
+                                              </div>
+                                            )}
                                           </div>
                                           {selectedAudioId === option.id && (
                                             <Check className="w-4 h-4 text-primary-500 flex-shrink-0" />
