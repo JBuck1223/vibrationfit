@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
 import { useInShell } from '@/lib/app-shell/shell-context'
-import { Search, Pin, ChevronDown, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, User, FileText, MessageCircle, HelpCircle, Filter } from 'lucide-react'
+import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
+import { Search, Pin, ChevronDown, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, User, FileText, MessageCircle, HelpCircle, Filter, SlidersHorizontal } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { PostCard } from './PostCard'
 import { StickyPostComposer } from './StickyPostComposer'
@@ -240,108 +241,146 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       // In the app shell, older dark fields inside posts (comment boxes...) pick up the glass style.
       data-studio-glass={inShell || undefined}
     >
-      {inShell && (
-        // App shell: one compact control area under the app's top bar instead
-        // of a second dark sticky bar.
-        <div className="mx-auto w-full max-w-[772px] space-y-3 pb-1 pt-1">
-          <div className="flex items-center gap-2">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
-              <input
-                ref={searchInputRef}
-                type="search"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={isPhone ? 'Search' : 'Search Vibe Tribe'}
-                className="h-11 w-full rounded-full border border-white/15 bg-white/[0.06] pl-10 pr-10 text-base text-white placeholder:text-white/45 focus:border-[#39FF14]/40 focus:outline-none md:text-sm"
-              />
-              {isSearching ? (
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2"><Spinner size="sm" /></div>
-              ) : searchQuery ? (
-                <button type="button" onClick={clearSearch} aria-label="Clear search" className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/55 hover:text-white">
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
-            {[
-              { label: activityFilter !== 'off' ? 'Show all posts' : 'Show my activity', on: activityFilter !== 'off', onClick: () => setActivityFilter(activityFilter === 'off' ? 'posts' : 'off'), icon: <User className="h-[18px] w-[18px]" /> },
-              { label: showPinned ? 'Show all posts' : 'Show pinned posts', on: showPinned, onClick: () => setShowPinned(!showPinned), icon: <Pin className="h-[18px] w-[18px]" /> },
-              { label: 'How to Vibe', on: false, onClick: () => setShowHowToVibe(true), icon: <span className="text-sm font-bold">?</span> },
-            ].map((b) => (
+      {inShell && (() => {
+        // App shell: search, one filter button and help. What to show (post
+        // type, just my activity, pinned) lives in a filter sheet.
+        const filtersOn = activeFilter !== 'all' || activityFilter !== 'off' || showPinned
+        const pill = (on: boolean) =>
+          `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${on ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 text-white/80 hover:text-white'}`
+        const chip = 'flex items-center gap-1 rounded-full border border-[#39FF14]/50 bg-[rgba(57,255,20,0.1)] px-3 py-1 text-xs text-[#39FF14]'
+        const activityLabel = activityFilter === 'posts' ? 'My posts' : activityFilter === 'hearts' ? 'My hearts' : 'My comments'
+        return (
+          <div className="mx-auto w-full max-w-[772px] space-y-3 pb-1 pt-1">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={isPhone ? 'Search' : 'Search Vibe Tribe'}
+                  className="h-11 w-full rounded-full border border-white/15 bg-white/[0.06] pl-10 pr-10 text-base text-white placeholder:text-white/45 focus:border-[#39FF14]/40 focus:outline-none md:text-sm"
+                />
+                {isSearching ? (
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2"><Spinner size="sm" /></div>
+                ) : searchQuery ? (
+                  <button type="button" onClick={clearSearch} aria-label="Clear search" className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/55 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
               <button
-                key={b.label}
                 type="button"
-                onClick={b.onClick}
-                aria-label={b.label}
-                title={b.label}
-                aria-pressed={b.on}
+                onClick={() => setShowFilterDropdown(true)}
+                aria-label="Filter posts"
+                title="Filter posts"
+                aria-pressed={filtersOn}
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                  b.on ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/80 hover:text-white'
+                  filtersOn ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/80 hover:text-white'
                 }`}
               >
-                {b.icon}
+                <SlidersHorizontal className="h-[18px] w-[18px]" />
               </button>
-            ))}
-          </div>
-
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:px-0">
-            <button
-              type="button"
-              onClick={() => handleFilterSelect('all')}
-              className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                activeFilter === 'all' ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white'
-              }`}
-            >
-              All
-            </button>
-            {VIBE_TAGS.map((tag) => {
-              const config = VIBE_TAG_CONFIG[tag]
-              const Icon = ICON_MAP[tag]
-              const on = activeFilter === tag
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleFilterSelect(tag)}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
-                  style={{
-                    borderColor: on ? config.color : 'rgba(255,255,255,0.15)',
-                    backgroundColor: on ? `${config.color}26` : 'rgba(255,255,255,0.05)',
-                    color: on ? config.color : 'rgba(255,255,255,0.8)',
-                  }}
-                >
-                  <Icon className="h-4 w-4" style={{ color: config.color }} />
-                  {config.label}
-                </button>
-              )
-            })}
-          </div>
-
-          {activityFilter !== 'off' && (
-            <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none]">
-              {([
-                { key: 'posts', label: 'My Posts', Icon: FileText },
-                { key: 'hearts', label: 'Hearts', Icon: Heart },
-                { key: 'comments', label: 'Comments', Icon: MessageCircle },
-              ] as const).map(({ key, label, Icon }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActivityFilter(key)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                    activityFilter === key ? 'bg-[#39FF14] text-black' : 'border border-white/15 text-white/75 hover:text-white'
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" /> {label}
-                </button>
-              ))}
-              <button type="button" onClick={() => setActivityFilter('off')} aria-label="Close my activity" className="ml-auto p-1.5 text-white/55 hover:text-white">
-                <X className="h-4 w-4" />
+              <button
+                type="button"
+                onClick={() => setShowHowToVibe(true)}
+                aria-label="How to Vibe"
+                title="How to Vibe"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/80 transition-colors hover:text-white"
+              >
+                <span className="text-sm font-bold">?</span>
               </button>
             </div>
-          )}
-        </div>
-      )}
+
+            {filtersOn ? (
+              // What the feed is filtered to, each removable.
+              <div className="flex flex-wrap items-center gap-2">
+                {activeFilter !== 'all' && (
+                  <button type="button" onClick={() => handleFilterSelect('all')} className={chip}>
+                    {VIBE_TAG_CONFIG[activeFilter].label} <X className="h-3 w-3" />
+                  </button>
+                )}
+                {activityFilter !== 'off' && (
+                  <button type="button" onClick={() => setActivityFilter('off')} className={chip}>
+                    {activityLabel} <X className="h-3 w-3" />
+                  </button>
+                )}
+                {showPinned && (
+                  <button type="button" onClick={() => setShowPinned(false)} className={chip}>
+                    Pinned <X className="h-3 w-3" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleFilterSelect('all')
+                    setActivityFilter('off')
+                    setShowPinned(false)
+                  }}
+                  className="text-xs text-white/55 hover:text-white"
+                >
+                  Clear
+                </button>
+              </div>
+            ) : null}
+
+            <CategorySheet
+              open={showFilterDropdown}
+              onClose={() => setShowFilterDropdown(false)}
+              title="Show posts"
+              showCategories={false}
+              selected={[]}
+              onToggle={() => {}}
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-2 text-xs font-medium text-white/55">Type</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => setActiveFilter('all')} className={pill(activeFilter === 'all')}>
+                      All
+                    </button>
+                    {VIBE_TAGS.map((tag) => {
+                      const config = VIBE_TAG_CONFIG[tag]
+                      const Icon = ICON_MAP[tag]
+                      return (
+                        <button key={tag} type="button" onClick={() => setActiveFilter(tag)} className={`flex items-center gap-1.5 ${pill(activeFilter === tag)}`}>
+                          <Icon className="h-3.5 w-3.5" style={{ color: config.color }} />
+                          {config.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-white/55">Just mine</p>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { key: 'posts', label: 'My posts', Icon: FileText },
+                      { key: 'hearts', label: 'Hearts', Icon: Heart },
+                      { key: 'comments', label: 'Comments', Icon: MessageCircle },
+                    ] as const).map(({ key, label, Icon }) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setActivityFilter(activityFilter === key ? 'off' : key)}
+                        className={`flex items-center gap-1.5 ${pill(activityFilter === key)}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" /> {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <button type="button" onClick={() => setShowPinned(!showPinned)} className={`flex items-center gap-1.5 ${pill(showPinned)}`}>
+                    <Pin className="h-3.5 w-3.5" /> Pinned only
+                  </button>
+                </div>
+              </div>
+            </CategorySheet>
+          </div>
+        )
+      })()}
 
       {/* Sticky Top Bar */}
       {!inShell && (
