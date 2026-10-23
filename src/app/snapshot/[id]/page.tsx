@@ -26,6 +26,9 @@ interface MemberProfile {
   isOwner: boolean
   cover_image_url?: string | null
   stats?: { posts: number; hearts: number }
+  occupation?: string | null
+  social_links?: Record<string, string>
+  suggested_occupation?: string | null
 }
 
 export default function SnapshotPage() {

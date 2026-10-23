@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { cleanSocialLinks } from '@/lib/profile/social-links'
 
 /**
  * GET /api/snapshot/[id]
@@ -25,12 +26,12 @@ export async function GET(
 
     let { data: member, error: memberError } = await supabase
       .from('user_accounts')
-      .select('id, full_name, first_name, profile_picture_url, cover_image_url, created_at, about_me, favorite_quote, role')
+      .select('id, full_name, first_name, profile_picture_url, cover_image_url, occupation, social_links, created_at, about_me, favorite_quote, role')
       .eq('id', id)
       .maybeSingle()
 
     // Fallback if favorite_quote column doesn't exist yet
-    if (memberError?.code === 'PGRST204' || memberError?.message?.includes('favorite_quote') || memberError?.message?.includes('cover_image_url')) {
+    if (memberError?.code === 'PGRST204' || memberError?.message?.includes('favorite_quote') || memberError?.message?.includes('cover_image_url') || memberError?.message?.includes('occupation') || memberError?.message?.includes('social_links')) {
       ({ data: member, error: memberError } = await supabase
         .from('user_accounts')
         .select('id, full_name, first_name, profile_picture_url, created_at, about_me, role')
@@ -58,10 +59,28 @@ export async function GET(
       hearts: (postRows ?? []).reduce((sum, p) => sum + (Number((p as { hearts_count?: number }).hearts_count) || 0), 0),
     }
 
+    // Owner only: their private life-profile occupation, offered as a suggestion
+    // in Edit profile. Never shown to others unless they save it publicly.
+    let suggestedOccupation: string | null = null
+    if (user.id === id && !(member as any).occupation) {
+      const { data: lifeProfile } = await supabase
+        .from('user_profiles')
+        .select('occupation')
+        .eq('user_id', id)
+        .not('occupation', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      suggestedOccupation = (lifeProfile as { occupation?: string } | null)?.occupation?.trim() || null
+    }
+
     return NextResponse.json({
       ...member,
+      suggested_occupation: suggestedOccupation,
       favorite_quote: (member as any).favorite_quote ?? null,
       cover_image_url: (member as any).cover_image_url ?? null,
+      occupation: (member as any).occupation ?? null,
+      social_links: cleanSocialLinks((member as any).social_links),
       stats,
       isOwner: user.id === id,
     })
@@ -126,6 +145,12 @@ export async function PATCH(
       result.full_name = name
     }
 
+    if ('occupation' in body) {
+      const occupation = typeof body.occupation === 'string' ? body.occupation.trim().replace(/\s+/g, ' ').slice(0, 80) : ''
+      updates.occupation = occupation || null
+      result.occupation = updates.occupation
+    }
+
     // Image URLs must be https links (uploads land on the media CDN).
     for (const key of ['profile_picture_url', 'cover_image_url'] as const) {
       if (key in body) {
@@ -136,13 +161,16 @@ export async function PATCH(
       }
     }
 
-    if (Object.keys(updates).length === 0) {
+    // Social handles are a JSON object; stored apart from the text fields.
+    const socialLinks = 'social_links' in body ? cleanSocialLinks(body.social_links) : null
+
+    if (Object.keys(updates).length === 0 && !socialLinks) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
     }
 
     let { error: updateError } = await supabase
       .from('user_accounts')
-      .update(updates)
+      .update(socialLinks ? { ...updates, social_links: socialLinks } : updates)
       .eq('id', id)
 
     // If favorite_quote column doesn't exist yet, retry without it
@@ -163,7 +191,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, ...result })
+    return NextResponse.json({ success: true, ...result, ...(socialLinks ? { social_links: socialLinks } : {}) })
   } catch (error) {
     console.error('Error in snapshot PATCH:', error)
     return NextResponse.json(

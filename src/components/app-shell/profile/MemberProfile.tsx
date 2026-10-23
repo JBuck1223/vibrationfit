@@ -2,7 +2,8 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Camera, Loader2, Music2, Pause, Pencil, Play, Quote, Sparkles, X } from 'lucide-react'
+import { Briefcase, Camera, Facebook, Globe, Instagram, Linkedin, Loader2, Music2, Pause, Pencil, Play, Quote, Sparkles, X, Youtube, AtSign, type LucideIcon } from 'lucide-react'
+import { SOCIAL_PLATFORMS, cleanSocial, socialDisplay, socialHref, type SocialLinks, type SocialPlatform } from '@/lib/profile/social-links'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -32,6 +33,47 @@ export interface ProfileMember {
   role: string | null
   isOwner: boolean
   stats?: { posts: number; hearts: number }
+  occupation?: string | null
+  social_links?: SocialLinks
+  /** Owner only: occupation from their private life profile, offered in Edit profile. */
+  suggested_occupation?: string | null
+}
+
+const SOCIAL_ICONS: Record<SocialPlatform, LucideIcon> = {
+  instagram: Instagram,
+  tiktok: Music2,
+  youtube: Youtube,
+  facebook: Facebook,
+  linkedin: Linkedin,
+  x: AtSign,
+  website: Globe,
+}
+
+/** The member's public social links as small round icons with handles. */
+function SocialRow({ links }: { links: SocialLinks }) {
+  const entries = SOCIAL_PLATFORMS.filter((p) => links[p.id])
+  if (entries.length === 0) return null
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {entries.map(({ id, label }) => {
+        const Icon = SOCIAL_ICONS[id]
+        const value = links[id]!
+        return (
+          <a
+            key={id}
+            href={socialHref(id, value)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={label}
+            className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs text-white/80 transition-colors hover:border-white/30 hover:text-white"
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden />
+            <span className="max-w-[10rem] truncate">{socialDisplay(id, value)}</span>
+          </a>
+        )
+      })}
+    </div>
+  )
 }
 
 type Tab = 'posts' | 'music' | 'about' | 'badges'
@@ -89,11 +131,17 @@ export function MemberProfile({ member, onChange }: { member: ProfileMember; onC
             )}
           </div>
           <h1 className="mt-3 text-2xl font-bold text-white">{name}</h1>
+          {member.occupation ? (
+            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-white/80">
+              <Briefcase className="h-3.5 w-3.5 text-white/55" aria-hidden /> {member.occupation}
+            </p>
+          ) : null}
           <p className="text-sm text-white/55">
             Member since {memberSince(member.created_at)}
             {isGuide ? <span className="text-[#d68bff]"> · Guide</span> : null}
           </p>
           {member.about_me ? <p className="mt-2 line-clamp-3 text-[15px] leading-relaxed text-white/85">{member.about_me}</p> : null}
+          <SocialRow links={member.social_links ?? {}} />
 
           <div className="mt-4 grid grid-cols-2 gap-2 md:max-w-sm">
             {[
@@ -289,6 +337,15 @@ function EditProfileSheet({ member, onClose, onSaved }: { member: ProfileMember;
   const [quote, setQuote] = React.useState(member.favorite_quote || '')
   const [photo, setPhoto] = React.useState(member.profile_picture_url || '')
   const [cover, setCover] = React.useState(member.cover_image_url || '')
+  const [occupation, setOccupation] = React.useState(member.occupation || '')
+  const [socials, setSocials] = React.useState<Record<string, string>>(() => {
+    const out: Record<string, string> = {}
+    for (const p of SOCIAL_PLATFORMS) {
+      const v = member.social_links?.[p.id]
+      out[p.id] = v ? (p.id === 'website' ? v : `${p.id === 'facebook' || p.id === 'linkedin' ? '' : '@'}${v}`) : ''
+    }
+    return out
+  })
   const [uploadingCover, setUploadingCover] = React.useState(false)
   const [drafting, setDrafting] = React.useState(false)
   const [saving, setSaving] = React.useState(false)
@@ -339,6 +396,8 @@ function EditProfileSheet({ member, onClose, onSaved }: { member: ProfileMember;
           favorite_quote: quote,
           profile_picture_url: photo || null,
           cover_image_url: cover || null,
+          occupation,
+          social_links: socials,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -351,6 +410,9 @@ function EditProfileSheet({ member, onClose, onSaved }: { member: ProfileMember;
         favorite_quote: data.favorite_quote ?? null,
         profile_picture_url: data.profile_picture_url ?? null,
         cover_image_url: data.cover_image_url ?? null,
+        occupation: data.occupation ?? null,
+        social_links: data.social_links ?? {},
+        suggested_occupation: null,
       })
       toast.success('Profile saved')
       onClose()
@@ -415,6 +477,18 @@ function EditProfileSheet({ member, onClose, onSaved }: { member: ProfileMember;
           </label>
 
           <div>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-white/55">Occupation (optional)</span>
+              <input value={occupation} onChange={(e) => setOccupation(e.target.value)} maxLength={80} placeholder="What you do" className={field} />
+            </label>
+            {!occupation && member.suggested_occupation ? (
+              <button type="button" onClick={() => setOccupation(member.suggested_occupation!)} className="mt-1.5 text-xs text-[#d68bff] hover:text-[#e8b8ff]">
+                Use “{member.suggested_occupation}” from your profile
+              </button>
+            ) : null}
+          </div>
+
+          <div>
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-xs font-medium text-white/55">About me</span>
               <button type="button" onClick={() => void draftAbout()} disabled={drafting} className="flex items-center gap-1 text-xs text-[#d68bff] hover:text-[#e8b8ff] disabled:opacity-60">
@@ -429,6 +503,32 @@ function EditProfileSheet({ member, onClose, onSaved }: { member: ProfileMember;
             <span className="mb-1.5 block text-xs font-medium text-white/55">Favorite quote</span>
             <textarea value={quote} onChange={(e) => setQuote(e.target.value)} maxLength={300} rows={2} placeholder="A quote that inspires you" className={cn(field, 'resize-none')} />
           </label>
+
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-white/55">Social (optional) · shown on your profile</p>
+            <div className="space-y-2">
+              {SOCIAL_PLATFORMS.map(({ id, label, placeholder }) => {
+                const Icon = SOCIAL_ICONS[id]
+                const invalid = !!socials[id]?.trim() && !cleanSocial(id, socials[id])
+                return (
+                  <label key={id} className="flex items-center gap-2">
+                    <span className="flex w-24 shrink-0 items-center gap-1.5 text-xs text-white/70">
+                      <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
+                    </span>
+                    <input
+                      value={socials[id] ?? ''}
+                      onChange={(e) => setSocials((prev) => ({ ...prev, [id]: e.target.value }))}
+                      placeholder={placeholder}
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      className={cn(field, 'rounded-full py-2 text-sm', invalid && 'border-[#FF0040]/60')}
+                    />
+                  </label>
+                )
+              })}
+            </div>
+            <p className="mt-1.5 text-[11px] text-white/40">Type a handle or paste a link. Leave any blank to hide it.</p>
+          </div>
 
           <button
             type="button"
