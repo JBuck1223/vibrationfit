@@ -9,6 +9,7 @@ import { TrackArtwork } from './TrackArtwork'
 import { isSongNowPlayingTrack } from './TrackArtistLine'
 import { isShellFlagOn } from '@/lib/app-shell/flag'
 import { PlayerScrubber, TransportControls } from './PlayerControls'
+import { MarqueeGroup, MarqueeText } from './MarqueeText'
 
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
@@ -106,8 +107,10 @@ export function PersistentMiniPlayer() {
           <button type="button" onClick={openDrawer} className="flex min-w-0 items-center gap-3 text-left" aria-label="Open Now Playing">
             <TrackArtwork track={currentTrack} iconKey={setIconKey} size={56} className="flex-shrink-0 overflow-hidden rounded-[12px]" />
             <span className="min-w-0">
-              <span className="block truncate text-[15px] font-semibold text-white">{currentTrack.title}</span>
-              <span className="block truncate text-xs text-white/60">{subtitle}</span>
+              <MarqueeGroup>
+              <MarqueeText active={isPlaying} title={currentTrack.title} className="text-[15px] font-semibold text-white">{currentTrack.title}</MarqueeText>
+              <MarqueeText active={isPlaying} title={subtitle} className="text-xs text-white/60">{subtitle}</MarqueeText>
+              </MarqueeGroup>
             </span>
           </button>
           <div className="flex min-w-0 flex-col items-center">
@@ -181,8 +184,10 @@ export function PersistentMiniPlayer() {
           <div className="flex items-center gap-3 py-2 pl-2 pr-3">
             <TrackArtwork track={currentTrack} iconKey={setIconKey} size={44} className="flex-shrink-0 overflow-hidden rounded-[14px]" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-semibold text-white">{currentTrack.title}</p>
-              <p className="truncate text-xs text-white/60">{subtitle}</p>
+              <MarqueeGroup>
+              <MarqueeText active={isPlaying} className="text-[15px] font-semibold text-white">{currentTrack.title}</MarqueeText>
+              <MarqueeText active={isPlaying} className="text-xs text-white/60">{subtitle}</MarqueeText>
+              </MarqueeGroup>
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); isPlaying ? pause() : resume() }}
@@ -243,11 +248,12 @@ export function PersistentMiniPlayer() {
               className="rounded-lg overflow-hidden flex-shrink-0 md:!w-12 md:!h-12"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white truncate">
+              <MarqueeGroup>
+              <MarqueeText active={isPlaying} className="text-sm font-medium text-white">
                 {currentTrack.title}
-              </p>
+              </MarqueeText>
               {isSongNowPlayingTrack(currentTrack, contentCategory) ? (
-                <p className="text-xs text-neutral-400 truncate">
+                <MarqueeText active={isPlaying} className="text-xs text-neutral-400">
                   Vibration Fit
                   {(currentTrack.performers?.length || currentTrack.artist) && (
                     <>
@@ -258,12 +264,13 @@ export function PersistentMiniPlayer() {
                         : currentTrack.artist}
                     </>
                   )}
-                </p>
+                </MarqueeText>
               ) : (
-                <p className="text-xs text-neutral-400 truncate">
+                <MarqueeText active={isPlaying} className="text-xs text-neutral-400">
                   {setName || currentTrack.artist || 'Vibration Fit'}
-                </p>
+                </MarqueeText>
               )}
+              </MarqueeGroup>
             </div>
           </div>
 
