@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, ChevronDown, ChevronUp, Loader2, Check } from 'lucide-react'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import {
   getVisionCategoryIcon,
   getVisionCategoryLabel,
@@ -113,6 +114,9 @@ export function ScratchAreaRow({
 }: ScratchAreaRowProps) {
   const Icon = getVisionCategoryIcon(category)
   const label = getVisionCategoryLabel(category)
+  // App shell: a glass card with a tinted icon bubble, a Ready tag, and a
+  // pill switch between the two things VIVA needs.
+  const inShell = useInShell()
 
   const nowDone = state.now.trim().length > 0
   const dreamDone = state.dream.trim().length > 0
@@ -194,7 +198,9 @@ export function ScratchAreaRow({
   return (
     <div
       id={`scratch-area-${category}`}
-      className={`scroll-mt-24 rounded-2xl border bg-[#161616] transition-all ${borderClass}`}
+      className={`scroll-mt-24 transition-all ${inShell ? 'rounded-[20px] border bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl' : 'rounded-2xl border bg-[#161616]'} ${
+        inShell && !writtenText && !expanded && !ready ? 'border-white/[0.12] hover:border-white/25' : borderClass
+      }`}
     >
       <button
         type="button"
@@ -202,12 +208,26 @@ export function ScratchAreaRow({
         aria-expanded={expanded}
         className="flex w-full items-center gap-3 px-4 py-3 text-left"
       >
+        {inShell ? (
+          <span
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+              writtenText || ready
+                ? 'bg-[rgba(57,255,20,0.14)] text-[#39FF14]'
+                : expanded
+                  ? 'bg-[rgba(191,0,255,0.18)] text-[#d68bff]'
+                  : 'bg-white/[0.06] text-white/60'
+            }`}
+          >
+            <Icon className="h-[18px] w-[18px]" />
+          </span>
+        ) : (
         <Icon className={`h-4 w-4 shrink-0 ${
           writtenText ? 'text-[#39FF14]' : expanded ? 'text-[#BF00FF]' : ready ? 'text-[#39FF14]/80' : 'text-neutral-500'
         }`} />
+        )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-white">{label}</span>
-          <span title={AREA_EXPLAINER[category]} className="block truncate text-xs font-normal text-neutral-500">{AREA_EXPLAINER[category]}</span>
+          <span className={`block truncate text-white ${inShell ? 'text-[15px] font-semibold' : 'text-sm font-medium'}`}>{label}</span>
+          <span title={AREA_EXPLAINER[category]} className={`block truncate text-xs font-normal ${inShell ? 'text-white/50' : 'text-neutral-500'}`}>{AREA_EXPLAINER[category]}</span>
         </span>
         {writing && (
           <span className="inline-flex items-center gap-1 text-[11px] text-[#d580ff]">
@@ -223,10 +243,14 @@ export function ScratchAreaRow({
                 {totalWords > 0 && (
                   <span className="hidden text-[11px] text-neutral-500 sm:inline">{totalWords} words</span>
                 )}
+                {inShell && ready ? (
+                  <span className="rounded-full bg-[rgba(57,255,20,0.14)] px-2.5 py-0.5 text-[11px] font-semibold text-[#39FF14]">Ready</span>
+                ) : (
                 <span className="flex items-center gap-1">
                   <BeatDot done={nowDone} label={BEAT_LABEL.now} />
                   <BeatDot done={dreamDone || state.unknown} label={BEAT_LABEL.dream} />
                 </span>
+                )}
               </>
             )}
           </span>
@@ -244,8 +268,12 @@ export function ScratchAreaRow({
       )}
 
       {expanded && !writtenText && (
-        <div className="mx-3 mb-3 overflow-hidden rounded-xl border border-[#2e2e2e]">
-          <div role="tablist" aria-label={`${label} beats`} className="grid grid-cols-2 bg-[#101010]">
+        <div className={inShell ? 'px-3 pb-3' : 'mx-3 mb-3 overflow-hidden rounded-xl border border-[#2e2e2e]'}>
+          <div
+            role="tablist"
+            aria-label={`${label} beats`}
+            className={inShell ? 'mb-3 grid grid-cols-2 gap-0.5 rounded-full border border-white/15 bg-white/[0.05] p-1' : 'grid grid-cols-2 bg-[#101010]'}
+          >
             {(['now', 'dream'] as AreaBeat[]).map((b) => {
               const active = beat === b
               const done = b === 'now' ? nowDone : dreamDone
@@ -256,11 +284,17 @@ export function ScratchAreaRow({
                   role="tab"
                   aria-selected={active}
                   onClick={() => switchBeat(b)}
-                  className={`flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-[#1c1c1c] text-white shadow-[inset_0_-2px_0_#39FF14]'
-                      : 'text-neutral-500 hover:text-neutral-300'
-                  }`}
+                  className={
+                    inShell
+                      ? `flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors ${
+                          active ? 'bg-white/[0.16] text-white' : 'text-white/60 hover:text-white'
+                        }`
+                      : `flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-colors ${
+                          active
+                            ? 'bg-[#1c1c1c] text-white shadow-[inset_0_-2px_0_#39FF14]'
+                            : 'text-neutral-500 hover:text-neutral-300'
+                        }`
+                  }
                 >
                   <span className={`h-1.5 w-1.5 rounded-full ${done ? 'bg-[#39FF14]' : 'bg-[#3a3a3a]'}`} />
                   {BEAT_LABEL[b]}
@@ -269,7 +303,7 @@ export function ScratchAreaRow({
             })}
           </div>
 
-          <div className="bg-[#1c1c1c]">
+          <div className={inShell ? 'overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] [&_textarea]:!border-0 [&_textarea]:!bg-transparent [&_textarea]:!shadow-none [&_textarea]:focus:!ring-0 [&_textarea]:!text-white [&_textarea]:placeholder:!text-white/35' : 'bg-[#1c1c1c]'}>
           <div className="px-3 pt-3" onBlurCapture={() => { void flushBeat(beat) }}>
             <RecordingTextarea
               value={state[beat]}
@@ -286,7 +320,9 @@ export function ScratchAreaRow({
             />
           </div>
 
-          <div className="sticky bottom-0 z-10 mt-2 flex items-center justify-between gap-3 border-t border-white/5 bg-[#1c1c1c]/95 px-4 py-3 backdrop-blur">
+          <div className={`sticky z-10 mt-2 flex items-center justify-between gap-3 border-t border-white/5 px-4 py-3 backdrop-blur ${
+            inShell ? 'bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+12px)] bg-[rgba(32,26,45,0.94)] lg:bottom-0' : 'bottom-0 bg-[#1c1c1c]/95'
+          }`}>
             <div className="flex min-w-0 items-center gap-2">
               <WordMeter words={countWords(state[beat])} />
               {saving && <Loader2 className="h-3 w-3 animate-spin text-neutral-500" />}

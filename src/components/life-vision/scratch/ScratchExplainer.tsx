@@ -7,6 +7,7 @@
 
 import { ChevronDown, ChevronUp, PlayCircle } from 'lucide-react'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 export const SCRATCH_EXPLAINER_VIDEO =
   'https://media.vibrationfit.com/site-assets/onboarding/vision-from-scratch-mode-1080p.mp4'
@@ -19,6 +20,7 @@ interface ScratchExplainerProps {
 }
 
 export function ScratchExplainer({ open, onToggle }: ScratchExplainerProps) {
+  const inShell = useInShell()
   return (
     <div className="rounded-2xl border border-[#2a2a2a] bg-[#161616] transition-all hover:border-[#3a3a3a]">
       <button
@@ -27,8 +29,22 @@ export function ScratchExplainer({ open, onToggle }: ScratchExplainerProps) {
         aria-expanded={open}
         className="flex w-full items-center gap-3 px-4 py-3 text-left"
       >
+        {inShell ? (
+          <>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(191,0,255,0.16)]">
+              <PlayCircle className="h-5 w-5 text-[#d68bff]" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[15px] font-semibold text-white">How this works</span>
+              <span className="block truncate text-xs text-white/50">A short video and the two things VIVA needs from you</span>
+            </span>
+          </>
+        ) : (
+          <>
         <PlayCircle className="h-4 w-4 shrink-0 text-[#BF00FF]" />
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-white">How this works</span>
+          </>
+        )}
         {open
           ? <ChevronUp className="h-4 w-4 shrink-0 text-neutral-500" />
           : <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" />}
@@ -43,7 +59,7 @@ export function ScratchExplainer({ open, onToggle }: ScratchExplainerProps) {
               context="single"
               className="aspect-video w-full overflow-hidden rounded-xl"
             />
-            <div className="space-y-3 text-sm leading-relaxed text-neutral-300">
+            <div className={`space-y-3 text-sm leading-relaxed ${inShell ? 'text-white/75' : 'text-neutral-300'}`}>
               <h2 className="text-base font-semibold text-white">Bring Your Life Vision to Life</h2>
               <p>VIVA turns your raw material into your Life Vision. For each category, give her two things:</p>
               <p>
