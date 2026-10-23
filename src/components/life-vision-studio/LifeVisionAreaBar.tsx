@@ -591,9 +591,9 @@ export function LifeVisionAreaBar() {
 
   if (inShell) {
     // The app shell: a View | Update toggle and one row of the same pickers
-    // and actions, with the page padding the studio's main area has.
+    // and actions. The shell's own page padding sets the sides.
     return (
-      <div className="px-4 md:px-0">
+      <div>
         <ShellStudioBar
           label="Life Vision"
           toggle={[
