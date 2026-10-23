@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ArrowRight, Heart, MessageCircle, Play, Share2, UsersRound, Video } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { getSection } from '@/lib/app-shell/sections'
 import { useGymSessions, useLatestVibePosts } from '@/components/dashboard/widgets/queries'
 
@@ -52,7 +53,7 @@ export function TribeHome() {
               href={tab.href}
               className={cn(
                 'flex-1 rounded-full border px-3 py-2 text-center text-sm font-medium transition-colors',
-                active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'glass-chrome rounded-full text-white/80 hover:text-white',
+                active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/90 backdrop-blur-xl hover:text-white',
               )}
             >
               {tab.label}
@@ -61,31 +62,44 @@ export function TribeHome() {
         })}
       </nav>
 
-      <section className="pb-1 pt-1">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">
-          Alignment Gym
-        </p>
-        <h2 className="text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[40px]">
-          {next ? next.title : replay ? 'Catch the last session' : 'Train your alignment live'}
-        </h2>
-        <p className="mt-2 max-w-xl text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)] md:text-lg">
-          {next ? when(next.scheduled_at) : replay ? replay.title : 'Live group sessions with coaching, every week.'}
-        </p>
-        <div className="mt-4 h-12">
-          {gymLoading ? null : next ? (
-            <Link href={`/alignment-gym/${next.id}`} className="btn btn-primary !py-3 !px-6 text-[15px]">
-              <Video className="mr-2 h-4 w-4" />
-              {when(next.scheduled_at) === 'Live now' ? 'Join now' : 'Reserve my spot'}
-            </Link>
-          ) : replay?.recording_url ? (
-            <Link href={`/alignment-gym/${replay.id}`} className="btn btn-primary !py-3 !px-6 text-[15px]">
-              <Play className="mr-2 h-4 w-4" />
-              Watch the replay
-            </Link>
-          ) : (
-            <Link href="/alignment-gym" className="btn btn-primary !py-3 !px-6 text-[15px]">
-              See the schedule
-              <ArrowRight className="ml-2 h-4 w-4" />
+      {/* The next Alignment Gym session as one compact card. */}
+      <section className={cn(GLASS_CARD, 'p-4 md:p-5')} aria-label="Alignment Gym">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.14)] text-[#39FF14]">
+            <Video className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-white/55">Alignment Gym</p>
+            <h2 className="text-lg font-semibold leading-tight text-white">
+              {next ? next.title : replay ? 'Catch the last session' : 'Train your alignment live'}
+            </h2>
+            <p className="mt-1 text-sm text-white/65">
+              {next ? when(next.scheduled_at) : replay ? replay.title : 'Live group sessions with coaching, every week.'}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 h-11">
+          {gymLoading ? null : (
+            <Link
+              href={next ? `/alignment-gym/${next.id}` : replay?.recording_url ? `/alignment-gym/${replay.id}` : '/alignment-gym'}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-[15px] font-semibold text-black shadow-[0_0_20px_rgba(57,255,20,0.35)] transition-transform active:scale-[0.98] md:w-auto md:px-6"
+            >
+              {next ? (
+                <>
+                  <Video className="h-4 w-4" />
+                  {when(next.scheduled_at) === 'Live now' ? 'Join now' : 'Reserve my spot'}
+                </>
+              ) : replay?.recording_url ? (
+                <>
+                  <Play className="h-4 w-4" />
+                  Watch the replay
+                </>
+              ) : (
+                <>
+                  See the schedule
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Link>
           )}
         </div>
@@ -97,7 +111,7 @@ export function TribeHome() {
             <UsersRound className="h-4 w-4 text-[#39FF14]" />
             Vibe Tribe
           </h3>
-          <Link href="/vibe-tribe" className="flex items-center gap-1 text-sm text-white/60 hover:text-white">
+          <Link href="/vibe-tribe" className="flex items-center gap-1 text-sm text-white/75 hover:text-white">
             Open the feed <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -108,9 +122,9 @@ export function TribeHome() {
             ))}
           </div>
         ) : posts.length === 0 ? (
-          <div className="glass-panel flex flex-col items-start gap-3 p-5">
+          <div className={cn(GLASS_CARD, 'flex flex-col items-start gap-3 p-5')}>
             <p className="text-sm text-white/70">Be the first to share a win, a wobble or a vision today.</p>
-            <Link href="/vibe-tribe/new" className="btn btn-outline !py-2 !px-4 text-sm">
+            <Link href="/vibe-tribe/new" className="inline-flex h-9 items-center rounded-full border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-white transition-colors hover:border-white/30">
               Post to the Tribe
             </Link>
           </div>
@@ -118,7 +132,7 @@ export function TribeHome() {
           <ul className="space-y-3">
             {posts.map((post) => (
               <li key={post.id}>
-                <Link href={`/vibe-tribe/posts/${post.id}`} className="glass-panel flex gap-3 p-4 transition-colors hover:border-[#39FF14]/60">
+                <Link href={`/vibe-tribe/posts/${post.id}`} className={cn(GLASS_CARD, 'flex gap-3 !rounded-[20px] p-4 transition-colors hover:border-[#39FF14]/60')}>
                   <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10">
                     {post.user?.profile_picture_url && (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -144,7 +158,7 @@ export function TribeHome() {
         )}
       </section>
 
-      <Link href="/referral" className="glass-panel flex items-center gap-4 px-5 py-4 transition-colors hover:border-[#39FF14]/60">
+      <Link href="/referral" className={cn(GLASS_CARD, 'flex items-center gap-4 px-5 py-4 transition-colors hover:border-[#39FF14]/60')}>
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.16)] text-[#39FF14]">
           <Share2 className="h-5 w-5" />
         </span>

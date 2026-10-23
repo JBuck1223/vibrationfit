@@ -59,7 +59,7 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
               href={tab.href}
               className={cn(
                 'flex-1 rounded-full border px-3 py-2 text-center text-sm font-medium transition-colors',
-                active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/80 backdrop-blur-xl hover:text-white',
+                active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/90 backdrop-blur-xl hover:text-white',
               )}
             >
               {tab.label}
