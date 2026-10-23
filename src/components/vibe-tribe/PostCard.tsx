@@ -447,9 +447,9 @@ export function PostCard({
             )}
             <span className={`text-xs leading-none ${inShell ? 'text-white/55' : 'text-neutral-500'}`}>{timeDisplay}</span>
           </div>
-          {/* Content - directly under name line. In the app shell on phones the
-              body runs the full card width under the name (no avatar indent). */}
-          <div className={inShell ? '-ml-[52px] md:ml-0' : undefined}>
+          {/* Content - directly under name line. In the app shell the body runs
+              the full card width under the name (no avatar indent). */}
+          <div className={inShell ? '-ml-[52px]' : undefined}>
           {isEditing ? (
             <div className="mt-2 space-y-3">
               <textarea
