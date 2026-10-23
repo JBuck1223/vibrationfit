@@ -70,6 +70,16 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
     const yearDropdownRef = useRef<HTMLDivElement>(null)
     const monthDropdownRef = useRef<HTMLDivElement>(null)
 
+    // Horizontal center of what the member tapped. A custom trigger's wrapper
+    // can be wider than the control inside it, so measure the control itself.
+    const centerOf = (trigger: HTMLElement) => {
+      const control = customTrigger
+        ? trigger.querySelector('[role="button"]')?.firstElementChild ?? trigger
+        : trigger
+      const r = control.getBoundingClientRect()
+      return r.left + r.width / 2
+    }
+
     // Position dropdown in viewport when open (for portal)
     useLayoutEffect(() => {
       if (!isOpen || typeof document === 'undefined') {
@@ -103,12 +113,14 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       top = Math.max(padding, Math.min(top, viewportHeight - estimatedHeight - padding))
 
       const dropdownWidth = Math.min(viewportWidth - 32, 360)
-      let left =
-        popoverAlign === 'end' ? rect.right - dropdownWidth : rect.left
+      // In the app shell the calendar sits centered under its trigger.
+      let left = inShell
+        ? centerOf(trigger) - dropdownWidth / 2
+        : popoverAlign === 'end' ? rect.right - dropdownWidth : rect.left
       left = Math.max(16, Math.min(left, viewportWidth - dropdownWidth - 16))
 
       setDropdownPosition({ top, left })
-    }, [isOpen, popoverAlign])
+    }, [isOpen, popoverAlign, inShell])
 
     // Re-adjust after the dropdown actually renders and we can measure it
     useLayoutEffect(() => {
@@ -137,8 +149,9 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
         }
 
         const dropdownWidth = Math.min(viewportWidth - 32, 360)
-        const alignLeft =
-          popoverAlign === 'end' ? triggerRect.right - dropdownWidth : triggerRect.left
+        const alignLeft = inShell
+          ? centerOf(trigger) - dropdownWidth / 2
+          : popoverAlign === 'end' ? triggerRect.right - dropdownWidth : triggerRect.left
         left = Math.max(16, Math.min(alignLeft, viewportWidth - dropdownWidth - 16))
 
         if (top !== dropdownPosition.top || left !== dropdownPosition.left) {
@@ -147,7 +160,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
       })
       return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, popoverAlign])
+    }, [isOpen, popoverAlign, inShell])
 
     // Sync internal state when value prop changes (e.g., from parent useEffect)
     useEffect(() => {
@@ -396,13 +409,13 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 className={cn(
                   'inline-flex items-center justify-center rounded-full transition-all duration-300',
                   inShell
-                    ? cn('h-9 w-9 bg-white/[0.06]', canGoPrevMonth ? 'text-white/85 hover:bg-white/[0.12] active:opacity-80' : 'text-white/25 cursor-not-allowed')
+                    ? cn('h-9 w-9', canGoPrevMonth ? 'text-white/75 hover:bg-white/10' : 'text-white/25 cursor-not-allowed')
                     : canGoPrevMonth
                     ? 'border-2 p-2 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80'
                     : 'border-2 p-2 bg-transparent text-neutral-600 border-neutral-800 cursor-not-allowed opacity-40'
                 )}
               >
-                <ChevronLeft className={inShell ? 'w-[18px] h-[18px]' : 'w-5 h-5'} strokeWidth={inShell ? 2 : 2.5} />
+                <ChevronLeft className="w-5 h-5" strokeWidth={inShell ? 2 : 2.5} />
               </button>
               
               <div className="flex items-center justify-center gap-2">
@@ -410,7 +423,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                   <button
                     type="button"
                     onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
-                    className="inline-flex items-center gap-1 font-semibold text-white hover:text-[#39FF14] transition-colors cursor-pointer"
+                    className={cn('inline-flex items-center gap-1 font-semibold text-white transition-colors cursor-pointer', inShell ? 'rounded-full px-3 py-1 text-[15px] hover:bg-white/10' : 'hover:text-[#39FF14]')}
                   >
                     {monthName}
                     <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isMonthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,7 +466,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                   <button
                     type="button"
                     onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
-                    className="inline-flex items-center gap-1 font-semibold text-white hover:text-[#39FF14] transition-colors cursor-pointer"
+                    className={cn('inline-flex items-center gap-1 font-semibold text-white transition-colors cursor-pointer', inShell ? 'rounded-full px-3 py-1 text-[15px] hover:bg-white/10' : 'hover:text-[#39FF14]')}
                   >
                     {year}
                     <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isYearDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -495,13 +508,13 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 className={cn(
                   'inline-flex items-center justify-center rounded-full transition-all duration-300',
                   inShell
-                    ? cn('h-9 w-9 bg-white/[0.06]', canGoNextMonth ? 'text-white/85 hover:bg-white/[0.12] active:opacity-80' : 'text-white/25 cursor-not-allowed')
+                    ? cn('h-9 w-9', canGoNextMonth ? 'text-white/75 hover:bg-white/10' : 'text-white/25 cursor-not-allowed')
                     : canGoNextMonth
                     ? 'border-2 p-2 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80'
                     : 'border-2 p-2 bg-transparent text-neutral-600 border-neutral-800 cursor-not-allowed opacity-40'
                 )}
               >
-                <ChevronRight className={inShell ? 'w-[18px] h-[18px]' : 'w-5 h-5'} strokeWidth={inShell ? 2 : 2.5} />
+                <ChevronRight className="w-5 h-5" strokeWidth={inShell ? 2 : 2.5} />
               </button>
             </div>
 
@@ -512,7 +525,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
                   <div
                     key={day}
-                    className={cn('text-center font-semibold py-2', inShell ? 'text-[11px] uppercase tracking-wide text-white/45' : 'text-[#9CA3AF]')}
+                    className={cn('text-center font-semibold py-2', inShell ? 'text-[11px] font-normal text-white/45' : 'text-[#9CA3AF]')}
                   >
                     {day}
                   </div>
@@ -545,10 +558,10 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                         disabled && 'opacity-30 cursor-not-allowed',
                         inShell
                           ? cn(
-                              'mx-auto w-full max-w-10 rounded-full text-[15px]',
-                              !disabled && !selected && 'text-white hover:bg-white/10',
-                              !disabled && selected && 'bg-[#39FF14] text-black font-semibold shadow-[0_0_14px_rgba(57,255,20,0.35)]',
-                              !disabled && !selected && today && 'border border-[#39FF14]/60'
+                              'mx-auto w-full max-w-10 rounded-full text-sm',
+                              !disabled && !selected && 'text-white/90 hover:bg-white/10',
+                              !disabled && selected && 'bg-[#39FF14] text-black font-semibold',
+                              !disabled && !selected && today && 'border border-[#39FF14]/60 text-white'
                             )
                           : cn(
                               'rounded-lg',
