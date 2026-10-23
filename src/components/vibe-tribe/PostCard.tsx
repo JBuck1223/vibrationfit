@@ -447,7 +447,9 @@ export function PostCard({
             )}
             <span className="text-xs text-neutral-500 leading-none">{timeDisplay}</span>
           </div>
-          {/* Content - directly under name line */}
+          {/* Content - directly under name line. In the app shell on phones the
+              body runs the full card width under the name (no avatar indent). */}
+          <div className={inShell ? '-ml-[52px] md:ml-0' : undefined}>
           {isEditing ? (
             <div className="mt-2 space-y-3">
               <textarea
@@ -635,6 +637,7 @@ export function PostCard({
               highlightCommentId={highlightCommentId}
             />
           )}
+          </div>
         </div>
       </div>
 
