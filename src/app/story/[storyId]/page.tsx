@@ -382,8 +382,16 @@ export default function StoryDetailPage({
     (typeof story.metadata?.source_entity_id === 'string' && story.metadata.source_entity_id) ||
     (sourceEntityType && sourceEntityType !== 'custom' ? story.entity_id : null) ||
     null
-  const sourceHref =
-    sourceEntityType === 'journal_entry' && sourceEntityId
+  // Stories saved from VIVA (or made by VIVA's tools) link back to their conversation.
+  const vivaThreadId =
+    typeof story.metadata?.viva_thread_id === 'string'
+      ? story.metadata.viva_thread_id
+      : story.metadata?.created_by === 'viva_coach' && story.entity_type === 'custom'
+        ? story.entity_id
+        : null
+  const sourceHref = vivaThreadId
+    ? `/viva?thread=${encodeURIComponent(vivaThreadId)}`
+    : sourceEntityType === 'journal_entry' && sourceEntityId
       ? `/journal?expand=${encodeURIComponent(sourceEntityId)}`
       : sourceEntityType === 'life_vision' && sourceEntityId
         ? `/life-vision/${sourceEntityId}`

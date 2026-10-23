@@ -173,6 +173,7 @@ export default function NewJournalEntryPage() {
             initialTag={initialTag}
             initialContent={initialContent}
             initialTitle={vivaDraft?.title}
+            conversationId={fromViva}
           />
         </div>
         )}

@@ -40,6 +40,7 @@ import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3
 import { ensureJpegCompatible } from '@/lib/life-explorer/ensure-jpeg'
 import { ToolWalkthrough, WalkthroughToggle } from '@/components/tool-walkthrough'
 import { ShellWalkthroughButton } from '@/components/app-shell/ShellWalkthroughButton'
+import { MessageSaveMenu } from '@/components/viva/MessageSaveMenu'
 import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
 import { VivaWelcome } from '@/components/viva/VivaWelcome'
 import { useInShell } from '@/components/app-shell/ShellContext'
@@ -678,6 +679,7 @@ export default function VivaPage() {
                       markdown={message.content}
                       copyText={message.content}
                       hideCopy={hideCopy}
+                      actions={<MessageSaveMenu text={message.content} threadId={threadId} />}
                     />
                   )}
                 </div>

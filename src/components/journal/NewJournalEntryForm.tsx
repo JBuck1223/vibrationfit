@@ -67,6 +67,8 @@ export interface NewJournalEntryFormProps {
   initialContent?: string
   /** Opening title (e.g. from a VIVA-drafted entry). */
   initialTitle?: string
+  /** The VIVA thread this entry came from; saved as its conversation link. */
+  conversationId?: string | null
 }
 
 function buildInitialForm(mapLink?: MapJournalLink, initialTag?: JournalTag | null, initialContent?: string, initialTitle?: string) {
@@ -98,6 +100,7 @@ export function NewJournalEntryForm({
   initialTag,
   initialContent,
   initialTitle,
+  conversationId,
 }: NewJournalEntryFormProps) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -296,6 +299,7 @@ export function NewJournalEntryForm({
           categories: formData.categories,
           image_urls: imageUrls,
           audio_recordings: audioRecordings,
+          ...(conversationId ? { conversation_id: conversationId } : {}),
         })
         .select('id')
         .single()
