@@ -3,22 +3,12 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ArrowRight, Heart, MessageCircle, Play, Share2, UsersRound, Video } from 'lucide-react'
+import { Apple, ArrowRight, Calendar, Clock, Heart, MessageCircle, Play, Share2, UsersRound, Video } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { getSection } from '@/lib/app-shell/sections'
 import { useGymSessions, useLatestVibePosts } from '@/components/dashboard/widgets/queries'
-
-function when(iso: string): string {
-  const d = new Date(iso)
-  const diff = d.getTime() - Date.now()
-  const days = Math.round(diff / 86_400_000)
-  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-  if (Math.abs(diff) < 2 * 60 * 60 * 1000) return 'Live now'
-  if (days === 0) return `Today at ${time}`
-  if (days === 1) return `Tomorrow at ${time}`
-  return `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at ${time}`
-}
+import { addGymSessionToAppleCalendar, googleCalendarUrlForGymSession, gymRelativeTime } from '@/lib/alignment-gym/calendar'
 
 function ago(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
@@ -62,45 +52,114 @@ export function TribeHome() {
         })}
       </nav>
 
-      {/* The next Alignment Gym session as one compact card. */}
-      <section className={cn(GLASS_CARD, 'p-4 md:p-5')} aria-label="Alignment Gym">
+      {/* The next Alignment Gym session, with the same details as the gym page:
+          when, what, how long, a way in, and Add to Calendar. */}
+      <section
+        aria-label="Alignment Gym"
+        className={cn(GLASS_CARD, 'p-4 md:p-5', next?.status === 'live' && '!border-[#39FF14]/50')}
+      >
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.14)] text-[#39FF14]">
             <Video className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-white/55">Alignment Gym</p>
-            <h2 className="text-lg font-semibold leading-tight text-white">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-medium text-white/55">{next ? 'Next Alignment Gym' : 'Alignment Gym'}</p>
+              {next ? (
+                next.status === 'live' ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(57,255,20,0.16)] px-2 py-0.5 text-[11px] font-semibold text-[#39FF14]">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#39FF14]" />
+                    Live now
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-white/[0.08] px-2 py-0.5 text-[11px] font-medium text-white/80">
+                    {gymRelativeTime(next.scheduled_at)}
+                  </span>
+                )
+              ) : null}
+            </div>
+            <h2 className="mt-0.5 text-lg font-semibold leading-tight text-white">
               {next ? next.title : replay ? 'Catch the last session' : 'Train your alignment live'}
             </h2>
-            <p className="mt-1 text-sm text-white/65">
-              {next ? when(next.scheduled_at) : replay ? replay.title : 'Live group sessions with coaching, every week.'}
-            </p>
+            {next?.description ? (
+              <p className="mt-1 line-clamp-2 text-sm text-white/65">{next.description}</p>
+            ) : !next ? (
+              <p className="mt-1 text-sm text-white/65">
+                {replay ? replay.title : 'Live group sessions with coaching, every week.'}
+              </p>
+            ) : null}
           </div>
         </div>
-        <div className="mt-4 h-11">
+
+        {next ? (
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-white/75">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-[#39FF14]" />
+              {new Date(next.scheduled_at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-[#39FF14]" />
+              {new Date(next.scheduled_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+            </span>
+            {next.scheduled_duration_minutes ? (
+              <span className="flex items-center gap-1.5">
+                <Video className="h-4 w-4 text-[#39FF14]" />
+                {next.scheduled_duration_minutes} minutes
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="mt-4 min-h-11">
           {gymLoading ? null : (
-            <Link
-              href={next ? `/alignment-gym/${next.id}` : replay?.recording_url ? `/alignment-gym/${replay.id}` : '/alignment-gym'}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-[15px] font-semibold text-black shadow-[0_0_20px_rgba(57,255,20,0.35)] transition-transform active:scale-[0.98] md:w-auto md:px-6"
-            >
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <Link
+                href={next ? `/session/${next.id}` : replay?.recording_url ? `/alignment-gym/${replay.id}` : '/alignment-gym'}
+                className={cn(
+                  'flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-[15px] font-semibold text-black shadow-[0_0_20px_rgba(57,255,20,0.35)] transition-transform active:scale-[0.98] md:w-auto md:px-6',
+                  next?.status === 'live' && 'animate-pulse',
+                )}
+              >
+                {next ? (
+                  <>
+                    <Play className="h-4 w-4" />
+                    {next.status === 'live' ? 'Join Live Session' : 'Join Session'}
+                  </>
+                ) : replay?.recording_url ? (
+                  <>
+                    <Play className="h-4 w-4" />
+                    Watch the replay
+                  </>
+                ) : (
+                  <>
+                    See the schedule
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </Link>
               {next ? (
-                <>
-                  <Video className="h-4 w-4" />
-                  {when(next.scheduled_at) === 'Live now' ? 'Join now' : 'View session'}
-                </>
-              ) : replay?.recording_url ? (
-                <>
-                  <Play className="h-4 w-4" />
-                  Watch the replay
-                </>
-              ) : (
-                <>
-                  See the schedule
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </Link>
+                <div className="flex items-center justify-center gap-2 text-sm md:justify-start">
+                  <span className="text-white/55">Add to</span>
+                  <button
+                    type="button"
+                    onClick={() => addGymSessionToAppleCalendar(next)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] px-3 text-white/85 transition-colors hover:text-white"
+                  >
+                    <Apple className="h-4 w-4" />
+                    Apple
+                  </button>
+                  <a
+                    href={googleCalendarUrlForGymSession(next)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] px-3 text-white/85 transition-colors hover:text-white"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Google
+                  </a>
+                </div>
+              ) : null}
+            </div>
           )}
         </div>
       </section>

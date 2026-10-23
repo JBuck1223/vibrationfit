@@ -448,7 +448,9 @@ export function useLatestVibePosts(limit = 2) {
 export interface GymSessionPreview {
   id: string
   title: string
+  description?: string | null
   scheduled_at: string
+  scheduled_duration_minutes?: number | null
   status: string
   recording_url: string | null
 }
@@ -462,10 +464,11 @@ export function useGymSessions() {
       const [{ data: upcoming }, { data: recent }] = await Promise.all([
         supabase
           .from('video_sessions')
-          .select('id, title, scheduled_at, status, recording_url')
+          .select('id, title, description, scheduled_at, scheduled_duration_minutes, status, recording_url')
           .or('session_type.eq.alignment_gym,title.ilike.%alignment gym%')
           .eq('hidden_from_users', false)
-          .in('status', ['scheduled', 'live'])
+          // Same set the Alignment Gym page counts as upcoming.
+          .in('status', ['scheduled', 'waiting', 'live'])
           .gte('scheduled_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
           .order('scheduled_at', { ascending: true })
           .limit(1)
