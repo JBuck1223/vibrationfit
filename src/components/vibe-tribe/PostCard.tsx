@@ -365,6 +365,9 @@ export function PostCard({
           {/* Mobile: Name on row 1, Tag + Time on row 2 */}
           {/* Desktop: All on one row */}
           
+          {/* Name rows fill the photo's height, so the full-width body below
+              starts under the photo with a gap instead of touching it. */}
+          <div className={inShell ? 'flex min-h-[40px] flex-col justify-center' : undefined}>
           {/* Row 1: Name + Menu */}
           <div className="flex items-center gap-1.5 md:gap-2">
             <Link 
@@ -447,9 +450,10 @@ export function PostCard({
             )}
             <span className={`text-xs leading-none ${inShell ? 'text-white/55' : 'text-neutral-500'}`}>{timeDisplay}</span>
           </div>
+          </div>
           {/* Content - directly under name line. In the app shell the body runs
               the full card width under the name (no avatar indent). */}
-          <div className={inShell ? '-ml-[52px]' : undefined}>
+          <div className={inShell ? '-ml-[52px] mt-1' : undefined}>
           {isEditing ? (
             <div className="mt-2 space-y-3">
               <textarea
