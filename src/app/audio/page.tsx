@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { AudioBrowse } from '@/components/app-shell/audio/AudioBrowse'
+import { AudioHeader } from '@/components/app-shell/audio/AudioHeader'
 import { Container, Stack, Card, Button, Spinner, DeleteConfirmationDialog } from '@/lib/design-system/components'
 import { type AudioTrack as BaseAudioTrack } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
@@ -313,7 +314,19 @@ function ListenPracticeStatsRow({
 
 export default function AudioListenPage() {
   const inShell = useInShell()
-  return inShell ? <AudioBrowse /> : <LegacyAudioListenPage />
+  const params = useSearchParams()
+  if (!inShell) return <LegacyAudioListenPage />
+  // In the app shell, opening one of My Songs shows the full song view
+  // (favorite, library, share, publish, more versions) under the Audio header.
+  if (params.get('open')?.startsWith('song:')) {
+    return (
+      <div className="space-y-4">
+        <AudioHeader />
+        <LegacyAudioListenPage />
+      </div>
+    )
+  }
+  return <AudioBrowse />
 }
 
 function LegacyAudioListenPage() {
@@ -679,7 +692,10 @@ function LegacyAudioListenPage() {
       .limit(50)
     if (data) {
       setUserSongs(data)
-      if (data.length > 0 && !selectedSongId) setSelectedSongId(data[0].id)
+      // A song opened from the app-shell library (?open=song:<id>) comes first.
+      const openSongId = searchParams.get('open')?.startsWith('song:') ? searchParams.get('open')!.slice('song:'.length) : null
+      const preferred = openSongId && data.some((song) => song.id === openSongId) ? openSongId : null
+      if (data.length > 0 && (preferred || !selectedSongId)) setSelectedSongId(preferred ?? data[0].id)
     }
     // Saved-but-not-finished songs (drafts / ready-to-generate) so members can
     // return and pick up where they left off instead of re-pasting content.
