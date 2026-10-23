@@ -89,7 +89,7 @@ ${POP} .${esc('bg-[#1F1F1F]')} {
 ${POP} .${esc('border-[#333]')}, ${POP} .${esc('border-neutral-800')}, ${POP} .${esc('border-neutral-700')} { border-color: rgba(255,255,255,0.14) !important; }
 ${POP} .${esc('hover:bg-[#333]')}:hover { background: rgba(255,255,255,0.08) !important; }
 ${POP} .${esc('bg-primary-500/20')} { background: rgba(57,255,20,0.14) !important; color: #39FF14 !important; }
-${POP} button { border-radius: 10px; }
+${POP} button:not(.rounded-full) { border-radius: 10px; }
 [data-app-shell] [data-shell-field] {
   background: rgba(255,255,255,0.06) !important;
   border: 1px solid rgba(255,255,255,0.15) !important;

@@ -388,19 +388,21 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
             style={{ top: dropdownPosition.top, left: dropdownPosition.left, maxHeight: 'calc(100vh - 16px)' }}
           >
             {/* Calendar Header */}
-            <div className="flex items-center justify-between p-4 border-b border-[#333]">
+            <div className={cn('flex items-center justify-between p-4 border-b', inShell ? 'border-white/10' : 'border-[#333]')}>
               <button
                 type="button"
                 onClick={handlePrevMonth}
                 disabled={!canGoPrevMonth}
                 className={cn(
-                  'inline-flex items-center justify-center rounded-full transition-all duration-300 border-2 p-2',
-                  canGoPrevMonth
-                    ? 'bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80'
-                    : 'bg-transparent text-neutral-600 border-neutral-800 cursor-not-allowed opacity-40'
+                  'inline-flex items-center justify-center rounded-full transition-all duration-300',
+                  inShell
+                    ? cn('h-9 w-9 bg-white/[0.06]', canGoPrevMonth ? 'text-white/85 hover:bg-white/[0.12] active:opacity-80' : 'text-white/25 cursor-not-allowed')
+                    : canGoPrevMonth
+                    ? 'border-2 p-2 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80'
+                    : 'border-2 p-2 bg-transparent text-neutral-600 border-neutral-800 cursor-not-allowed opacity-40'
                 )}
               >
-                <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
+                <ChevronLeft className={inShell ? 'w-[18px] h-[18px]' : 'w-5 h-5'} strokeWidth={inShell ? 2 : 2.5} />
               </button>
               
               <div className="flex items-center justify-center gap-2">
@@ -436,7 +438,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                                 ? 'text-neutral-600 cursor-not-allowed'
                                 : index === currentMonth.getMonth()
                                 ? 'bg-primary-500/20 text-primary-500 font-semibold'
-                                : 'text-white hover:bg-[#333]'
+                                : inShell ? 'text-white hover:bg-white/[0.08]' : 'text-white hover:bg-[#333]'
                             }`}
                           >
                             {monthLabel}
@@ -474,7 +476,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                             className={`w-full px-4 py-2 text-left transition-colors ${
                               y === year
                                 ? 'bg-primary-500/20 text-primary-500 font-semibold'
-                                : 'text-white hover:bg-[#333]'
+                                : inShell ? 'text-white hover:bg-white/[0.08]' : 'text-white hover:bg-[#333]'
                             }`}
                           >
                             {y}
@@ -491,13 +493,15 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 onClick={handleNextMonth}
                 disabled={!canGoNextMonth}
                 className={cn(
-                  'inline-flex items-center justify-center rounded-full transition-all duration-300 border-2 p-2',
-                  canGoNextMonth
-                    ? 'bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80'
-                    : 'bg-transparent text-neutral-600 border-neutral-800 cursor-not-allowed opacity-40'
+                  'inline-flex items-center justify-center rounded-full transition-all duration-300',
+                  inShell
+                    ? cn('h-9 w-9 bg-white/[0.06]', canGoNextMonth ? 'text-white/85 hover:bg-white/[0.12] active:opacity-80' : 'text-white/25 cursor-not-allowed')
+                    : canGoNextMonth
+                    ? 'border-2 p-2 bg-[rgba(57,255,20,0.1)] text-[#39FF14] border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.2)] active:opacity-80'
+                    : 'border-2 p-2 bg-transparent text-neutral-600 border-neutral-800 cursor-not-allowed opacity-40'
                 )}
               >
-                <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
+                <ChevronRight className={inShell ? 'w-[18px] h-[18px]' : 'w-5 h-5'} strokeWidth={inShell ? 2 : 2.5} />
               </button>
             </div>
 
@@ -508,7 +512,7 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
                   <div
                     key={day}
-                    className="text-center font-semibold text-[#9CA3AF] py-2"
+                    className={cn('text-center font-semibold py-2', inShell ? 'text-[11px] uppercase tracking-wide text-white/45' : 'text-[#9CA3AF]')}
                   >
                     {day}
                   </div>
@@ -536,12 +540,22 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
                       onClick={() => !disabled && handleDateSelect(day)}
                       disabled={disabled}
                       className={cn(
-                        'aspect-square rounded-lg font-medium transition-all duration-200',
+                        'aspect-square font-medium transition-all duration-200',
                         'flex items-center justify-center',
                         disabled && 'opacity-30 cursor-not-allowed',
-                        !disabled && !selected && 'hover:bg-[#404040] text-white',
-                        !disabled && selected && 'bg-[#39FF14] text-black font-bold',
-                        !disabled && !selected && today && 'border-2 border-[#39FF14] text-[#39FF14]'
+                        inShell
+                          ? cn(
+                              'mx-auto w-full max-w-10 rounded-full text-[15px]',
+                              !disabled && !selected && 'text-white hover:bg-white/10',
+                              !disabled && selected && 'bg-[#39FF14] text-black font-semibold shadow-[0_0_14px_rgba(57,255,20,0.35)]',
+                              !disabled && !selected && today && 'border border-[#39FF14]/60'
+                            )
+                          : cn(
+                              'rounded-lg',
+                              !disabled && !selected && 'hover:bg-[#404040] text-white',
+                              !disabled && selected && 'bg-[#39FF14] text-black font-bold',
+                              !disabled && !selected && today && 'border-2 border-[#39FF14] text-[#39FF14]'
+                            )
                       )}
                     >
                       {day}
