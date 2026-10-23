@@ -225,7 +225,9 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
 
   return (
     <div
-      className={`flex flex-col h-full min-h-screen md:min-h-0 md:h-full ${inShell ? 'bg-transparent' : 'bg-black'}`}
+      // In the app shell the whole column scrolls together, so the search and
+      // chips scroll away with the posts instead of staying pinned.
+      className={`flex flex-col h-full min-h-screen md:min-h-0 md:h-full ${inShell ? 'bg-transparent overflow-y-auto overflow-x-hidden' : 'bg-black'}`}
       // In the app shell, older dark fields inside posts (comment boxes...) pick up the glass style.
       data-studio-glass={inShell || undefined}
     >
@@ -551,7 +553,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       )}
 
       {/* Feed */}
-      <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-8">
+      <div className={inShell ? 'min-w-0 shrink-0 pb-8' : 'flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-8'}>
         <div className="max-w-[772px] min-w-0 mx-auto px-4 py-4">
           {(loading || refreshing) ? (
             <div className="flex justify-center py-12">
