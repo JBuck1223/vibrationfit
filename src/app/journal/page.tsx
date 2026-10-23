@@ -13,6 +13,8 @@ import { useJournalStudio } from '@/components/journal-studio'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { cn } from '@/lib/utils'
+import { RichText } from '@/components/RichText'
+import { stripMarkdown } from '@/lib/audio/content-normalize'
 import { CategorySheet, LIFE_CATEGORIES } from '@/components/app-shell/forms/CategorySheet'
 import { useEffect, useState, useRef, useMemo } from 'react'
 
@@ -636,7 +638,7 @@ export default function JournalPage() {
                             <p className="text-base font-medium text-white truncate mb-0.5">{entry.title}</p>
                           )}
                           <p className="w-full min-w-0 text-[13px] text-neutral-300 leading-relaxed line-clamp-2 md:line-clamp-1">
-                            {entry.content || '\u2014'}
+                            {entry.content ? stripMarkdown(entry.content) : '\u2014'}
                           </p>
                         </div>
 
@@ -708,9 +710,11 @@ export default function JournalPage() {
 
                           <section className="space-y-2">
                             <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Entry</p>
-                            <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-line">
-                              {entry.content || '\u2014'}
-                            </p>
+                            {entry.content ? (
+                              <RichText text={entry.content} className="text-[13px] text-neutral-300" />
+                            ) : (
+                              <p className="text-[13px] text-neutral-300">{'\u2014'}</p>
+                            )}
                           </section>
 
                           {entry.categories && entry.categories.length > 0 && (

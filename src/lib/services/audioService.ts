@@ -4,7 +4,7 @@ import { MediaConvertClient, CreateJobCommand } from '@aws-sdk/client-mediaconve
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
 import fs from 'fs'
 import { hashContent } from '@/lib/audio/content-hash'
-import { normalizeText } from '@/lib/audio/content-normalize'
+import { normalizeText, stripMarkdown } from '@/lib/audio/content-normalize'
 import path from 'path'
 import { execSync } from 'child_process'
 import { trackTokenUsage } from '@/lib/tokens/tracking'
@@ -146,7 +146,8 @@ async function synthesizeWithOpenAI(
   const requestBody: Record<string, unknown> = {
     model: ttsModel,
     voice,
-    input: text,
+    // Text saved from VIVA can carry formatting marks; the voice never reads them.
+    input: stripMarkdown(text),
     format,
   }
   if (instructions) requestBody.instructions = instructions

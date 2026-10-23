@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { RichText } from '@/components/RichText'
 import {
   ChevronLeft,
   Mic,
@@ -702,7 +703,7 @@ export default function StoryDetailPage({
                   </div>
 
                   {story.content ? (
-                    <p className="text-neutral-300 whitespace-pre-wrap leading-relaxed">{story.content}</p>
+                    <RichText text={story.content} className="text-neutral-300" />
                   ) : (
                     <p className="text-neutral-500 italic">No content yet. Click Edit to add your story.</p>
                   )}
