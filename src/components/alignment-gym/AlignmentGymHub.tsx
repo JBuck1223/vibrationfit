@@ -1,5 +1,6 @@
 'use client'
 
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { cn } from '@/lib/design-system/components/shared-utils'
 
@@ -114,6 +115,7 @@ export function AlignmentGymHub({
   forceCoachingOpen = false,
   onCoachingClose,
 }: AlignmentGymHubProps = {}) {
+  const inShell = useInShell()
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const { stats: livePracticeStats } = useAreaStats('alignment-gym', {
@@ -366,7 +368,9 @@ export function AlignmentGymHub({
         <div
           data-alignment-gym-tour="stats"
           className={cn(
-            'relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#14B8A6]/[0.04] via-[#111] to-[#111]',
+            inShell
+              ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 relative'
+              : 'relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#14B8A6]/[0.04] via-[#111] to-[#111]',
             tourClass('stats'),
           )}
         >
@@ -374,7 +378,7 @@ export function AlignmentGymHub({
           <div className="relative p-5 md:p-6">
             <div className="flex items-center justify-center gap-2.5 mb-4">
               <Video className="w-4 h-4 text-[#14B8A6]" />
-              <h3 className="text-neutral-300 font-medium text-sm tracking-wide uppercase">Alignment Gym</h3>
+              <h3 className={inShell ? 'text-base font-semibold text-white' : 'text-neutral-300 font-medium text-sm tracking-wide uppercase'}>{inShell ? 'Your Gym practice' : 'Alignment Gym'}</h3>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -443,7 +447,9 @@ export function AlignmentGymHub({
         <div
           data-alignment-gym-tour="what-is"
           className={cn(
-            'rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]',
+            inShell
+              ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 overflow-hidden transition-colors hover:border-white/25'
+              : 'rounded-2xl border-2 border-[#333] bg-[#1F1F1F] overflow-hidden transition-all duration-300 hover:border-[#444]',
             tourClass('what-is'),
           )}
         >
