@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRight, ArrowUp, BookOpen, Calendar, Camera, ChevronRight, DollarSign, FileText, Mic } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { getSection } from '@/lib/app-shell/sections'
 import { todayInTimezone, useTodayDailyPaper } from '@/components/dashboard/widgets/queries'
 import { useThemeImage } from '../ThemeProvider'
@@ -58,7 +59,7 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
               href={tab.href}
               className={cn(
                 'flex-1 rounded-full border px-3 py-2 text-center text-sm font-medium transition-colors',
-                active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'glass-chrome rounded-full text-white/80 hover:text-white',
+                active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/80 backdrop-blur-xl hover:text-white',
               )}
             >
               {tab.label}
@@ -67,25 +68,38 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
         })}
       </nav>
 
-      <section className="pb-1 pt-1">
-        <div className="mb-2 flex items-center gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]">Daily Paper</p>
-          <span className="glass-chrome ml-auto flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-white/85">
-            <Calendar className="h-3.5 w-3.5" />
-            {todayLabel}
+      {/* Today's Daily Paper as one compact card: the top bar names the page. */}
+      <section className={cn(GLASS_CARD, 'p-4 md:p-5')} aria-label="Daily Paper">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.14)] text-[#39FF14]">
+            <FileText className="h-5 w-5" />
           </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold leading-tight text-white">
+                {paper ? 'Your Paper is Done' : 'Start Your Daily Paper'}
+              </h2>
+              <span className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-white/[0.07] px-2.5 py-1 text-xs text-white/75">
+                <Calendar className="h-3.5 w-3.5" />
+                {todayLabel}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-white/65">
+              {paper ? 'Come back to it any time today, or add to your journal.' : 'Clear your mind, raise your vibration, and set your intentions for the day.'}
+            </p>
+          </div>
         </div>
-        <h2 className="text-[30px] font-extrabold leading-tight text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)] md:text-[40px]">
-          {paper ? 'Your Paper is Done' : 'Start Your Daily Paper'}
-        </h2>
-        <p className="mt-2 max-w-xl text-base text-white/90 [text-shadow:0_1px_12px_rgba(0,0,0,0.6)] md:text-lg">
-          {paper ? 'Come back to it any time today, or add to your journal.' : 'Clear your mind, raise your vibration, and set your intentions for the day.'}
-        </p>
-        <div className="mt-4 h-12">
+        <div className="mt-4 h-11">
           {paperLoading ? null : (
-            <Link href={paper ? `/daily-paper/${paper.id}` : '/daily-paper/new'} className="btn btn-primary !py-3 !px-6 text-[15px]">
+            <Link
+              href={paper ? `/daily-paper/${paper.id}` : '/daily-paper/new'}
+              className={cn(
+                'flex h-11 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold transition-transform active:scale-[0.98] md:w-auto md:px-6',
+                paper ? 'border border-white/15 bg-white/[0.06] text-white hover:bg-white/[0.1]' : 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.35)]',
+              )}
+            >
               {paper ? 'Open Today’s Paper' : 'Start Today’s Paper'}
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="h-4 w-4" />
             </Link>
           )}
         </div>
@@ -98,7 +112,7 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
         <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {QUICK.map(({ icon: Icon, title, body, href, tone }) => (
             <li key={title}>
-              <Link href={href} className="glass-panel flex h-full flex-col gap-3 p-4 transition-colors hover:border-[#39FF14]/60">
+              <Link href={href} className={cn(GLASS_CARD, 'flex h-full flex-col gap-3 !rounded-[20px] p-4 transition-colors hover:border-[#39FF14]/60')}>
                 <span className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ background: tone }}>
                   <Icon className="h-5 w-5" />
                 </span>
@@ -126,7 +140,7 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
             ))}
           </div>
         ) : recent.length === 0 ? (
-          <div className="glass-panel p-5 text-sm text-white/70">Your first capture shows up here.</div>
+          <div className={cn(GLASS_CARD, 'p-5 text-sm text-white/70')}>Your first capture shows up here.</div>
         ) : (
           <ul className="space-y-3">
             {recent.map((entry, i) => {
@@ -134,7 +148,7 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
               const art = entry.image ?? fallbackArt[i % fallbackArt.length]
               return (
                 <li key={`${entry.kind}-${entry.id}`}>
-                  <Link href={entry.href} className="glass-panel flex items-center gap-4 p-3 pr-4 transition-colors hover:border-[#39FF14]/60">
+                  <Link href={entry.href} className={cn(GLASS_CARD, 'flex items-center gap-4 !rounded-[20px] p-3 pr-4 transition-colors hover:border-[#39FF14]/60')}>
                     <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-white/5">
                       {art && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -160,7 +174,7 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
         )}
       </section>
 
-      <section data-section="viva" className="glass-panel border-[#BF00FF]/50 p-3">
+      <section data-section="viva" className={cn(GLASS_CARD, '!border-[#BF00FF]/50 p-3')}>
         <label htmlFor="capture-share" className="sr-only">Share with VIVA</label>
         <textarea
           id="capture-share"
