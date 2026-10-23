@@ -568,8 +568,10 @@ export async function generateAudioTracks(params: {
       .catch(err => console.error('Failed to update batch with audio set ID:', err))
   }
 
-  // Link the audio set back to the story record so it shows on the listen page
-  if (isStory && entityId && targetAudioSetId) {
+  // Link the audio set back to the story record so it shows on the listen page.
+  // Only a VIVA voice version becomes the one played first; a music mix is an
+  // extra version alongside it (and may still fail), so it never takes over.
+  if (isStory && entityId && targetAudioSetId && (!variant || variant === 'standard')) {
     await supabase
       .from('stories')
       .update({ audio_set_id: targetAudioSetId })
@@ -737,6 +739,19 @@ export async function generateAudioTracks(params: {
           .limit(1)
         if (!isStory && visionId) {
           standardTrackQuery = standardTrackQuery.eq('vision_id', visionId)
+        } else if (isStory && entityId) {
+          // Tracks carry no story id: stay inside this story's own sets, and
+          // only mix narration of the story as it reads now.
+          const { data: storySets } = await supabase
+            .from('audio_sets')
+            .select('id')
+            .eq('content_type', 'story')
+            .eq('content_id', entityId)
+          const storySetIds = (storySets ?? []).map((row: { id: string }) => row.id).filter((id: string) => id !== targetAudioSetId)
+          standardTrackQuery = standardTrackQuery
+            .in('audio_set_id', storySetIds.length > 0 ? storySetIds : ['00000000-0000-0000-0000-000000000000'])
+            .eq('content_hash', contentHash)
+            .order('created_at', { ascending: false })
         } else {
           standardTrackQuery = standardTrackQuery.eq('content_type', contentType)
         }

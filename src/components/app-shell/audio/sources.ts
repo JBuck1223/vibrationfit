@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
 import type { AudioContentCategory } from '@/lib/stores/global-audio-store'
 import { loadAudioSetTracks } from '@/components/dashboard/widgets/queries'
-import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
+import { loadStoryAudioVersions } from '@/lib/audio/story-versions'
 import { mixTypeFor, type MixType } from '@/lib/audio/mix-type'
 import { getPlaylistTracks, getUserPlaylists, playlistTracksToAudioTracks } from '@/lib/services/playlistService'
 
@@ -139,50 +139,16 @@ export function storyCollection(story: StoryLike, artwork: string | null): Audio
     category: 'story',
     iconKey: 'stories',
     loadTracks: async () => {
-      const supabase = createClient()
-      const tracks: AudioTrack[] = []
-      let audioSetId = story.audio_set_id ?? null
-      if (!audioSetId) {
-        const { data } = await supabase
-          .from('audio_sets')
-          .select('id')
-          .eq('content_type', 'story')
-          .eq('content_id', story.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        audioSetId = data?.id ?? null
-      }
-      if (audioSetId) {
-        const { data: rows } = await supabase
-          .from('audio_tracks')
-          .select('id, audio_url, text_content, duration_seconds')
-          .eq('audio_set_id', audioSetId)
-          .eq('status', 'completed')
-          .order('created_at', { ascending: false })
-        const current = (rows ?? []).filter((r) => storyTextMatchesTrack(story.content, r.text_content))
-        current.forEach((r, i) => {
-          if (!r.audio_url) return
-          tracks.push({
-            id: `${story.id}:track:${r.id}`,
-            title: current.length > 1 ? `${title} (${i + 1}/${current.length})` : title,
-            artist: storyKind(story),
-            duration: Number(r.duration_seconds) || 0,
-            url: r.audio_url,
-            thumbnail: artwork ?? '',
-          })
-        })
-      }
-      if (story.user_audio_url) {
-        tracks.push({
-          id: `${story.id}:user-recording`,
-          title: `${title} · Your voice`,
-          artist: storyKind(story),
-          duration: 0,
-          url: story.user_audio_url,
-          thumbnail: artwork ?? '',
-        })
-      }
+      // Every version: each VIVA voice, your own recording, each music mix.
+      const versions = await loadStoryAudioVersions(createClient(), story)
+      const tracks: AudioTrack[] = versions.map((v) => ({
+        id: `${story.id}:${v.id}`,
+        title: versions.length > 1 ? `${title} · ${v.label}` : title,
+        artist: `${storyKind(story)} · ${v.sublabel}`,
+        duration: v.duration,
+        url: v.url,
+        thumbnail: artwork ?? '',
+      }))
       return tracks
     },
   }

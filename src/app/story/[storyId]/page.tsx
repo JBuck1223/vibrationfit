@@ -19,6 +19,7 @@ import {
   Play,
   Pause,
   Headphones,
+  Music2,
   Check,
   Edit,
   Save,
@@ -40,7 +41,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useStory } from '@/lib/stories'
 import type { UpdateStoryPayload } from '@/lib/stories'
 import { useStoryStudio } from '@/components/story-studio'
-import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
+import { loadStoryAudioVersions } from '@/lib/audio/story-versions'
 import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
@@ -52,10 +53,6 @@ const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badg
   schedule_block: { label: 'Schedule', icon: Clock, badgeColor: 'text-orange-400 bg-orange-500/20 border-orange-500/30' },
 }
 
-const VOICE_DISPLAY_NAMES: Record<string, string> = {
-  alloy: 'Alloy', shimmer: 'Shimmer', ash: 'Ash', coral: 'Coral',
-  echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', sage: 'Sage',
-}
 
 interface AudioOption {
   id: string
@@ -152,60 +149,21 @@ export default function StoryDetailPage({
 
   async function loadAudioOptions() {
     if (!story) return
-    const options: AudioOption[] = []
-
-    const setFilter = story.audio_set_id
-      ? `and(content_type.eq.story,content_id.eq.${story.id}),id.eq.${story.audio_set_id}`
-      : `and(content_type.eq.story,content_id.eq.${story.id})`
-    const { data: audioSets } = await supabase
-      .from('audio_sets')
-      .select('id, name, voice_id, variant, created_at')
-      .or(setFilter)
-      .order('created_at', { ascending: false })
-
-    const orderedSets = [...(audioSets || [])].sort((a, b) =>
-      Number(b.id === story.audio_set_id) - Number(a.id === story.audio_set_id)
-    )
-
-    if (orderedSets.length > 0) {
-      const { data: tracks } = await supabase
-        .from('audio_tracks')
-        .select('id, audio_set_id, audio_url, mixed_audio_url, mix_status, text_content, created_at')
-        .in('audio_set_id', orderedSets.map(set => set.id))
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-
-      for (const audioSet of orderedSets) {
-        const setTracks = (tracks || []).filter(track =>
-          track.audio_set_id === audioSet.id && storyTextMatchesTrack(story.content, track.text_content)
-        )
-        const voiceName = audioSet.voice_id ? (VOICE_DISPLAY_NAMES[audioSet.voice_id] || audioSet.voice_id) : 'VIVA'
-        const setName = audioSet.name || 'Generated Audio'
-
-        setTracks.forEach((track, idx) => {
-          const hasMix = track.mix_status === 'completed' && !!track.mixed_audio_url
-          options.push({
-            id: `generated-${track.id}`,
-            label: setTracks.length > 1 ? `${setName} (${idx + 1}/${setTracks.length})` : setName,
-            sublabel: hasMix ? `${voiceName} narration + music` : `${voiceName} narration`,
-            url: hasMix ? track.mixed_audio_url! : track.audio_url,
-            icon: Headphones,
-            iconColor: 'bg-primary-500/20 text-primary-500',
-          })
-        })
-      }
-    }
-
-    if (story.user_audio_url) {
-      options.push({
-        id: 'user-recording',
-        label: 'Personal Recording',
-        sublabel: 'Your voice',
-        url: story.user_audio_url,
-        icon: Mic,
-        iconColor: 'bg-teal-500/20 text-teal-400',
-      })
-    }
+    // Every version: each VIVA voice, your own recording, each music mix.
+    const versions = await loadStoryAudioVersions(supabase, story)
+    const options: AudioOption[] = versions.map((v) => ({
+      id: v.id === 'user-recording' ? 'user-recording' : `version-${v.id}`,
+      label: v.label,
+      sublabel: v.sublabel,
+      url: v.url,
+      icon: v.kind === 'personal' ? Mic : v.kind === 'mix' ? Music2 : Headphones,
+      iconColor:
+        v.kind === 'personal'
+          ? 'bg-teal-500/20 text-teal-400'
+          : v.kind === 'mix'
+            ? 'bg-[#BF00FF]/20 text-[#d68bff]'
+            : 'bg-primary-500/20 text-primary-500',
+    }))
 
     setAudioOptions(options)
     setSelectedAudioId(prev => {

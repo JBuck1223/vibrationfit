@@ -16,6 +16,7 @@ import {
   Clock, ChevronRight, Library, AlertTriangle, RefreshCw,
   Users, ArrowLeft, Search, Share2,
 } from 'lucide-react'
+import { loadStoryAudioVersions } from '@/lib/audio/story-versions'
 import { useAudioStudio, type AudioSetItem, QueueStatusBanner } from '@/components/audio-studio'
 import { useAreaStats, type AreaStats } from '@/hooks/useAreaStats'
 import {
@@ -32,7 +33,6 @@ import { convertMurekaLyrics, type SyncedLyrics } from '@/lib/utils/lyrics-align
 import { PlaylistsView } from '@/components/audio-studio/PlaylistsView'
 import { AddToPlaylistSheet } from '@/components/audio-studio/AddToPlaylistSheet'
 import type { SourceType } from '@/lib/services/playlistService'
-import { storyTextMatchesTrack } from '@/lib/audio/content-normalize'
 import { musicCatalogArtistFallback, musicCatalogPerformerLinks } from '@/lib/audio/music-performers'
 import {
   compareMusicCatalogByTitle,
@@ -511,58 +511,19 @@ function LegacyAudioListenPage() {
       const entityLabel = `${kindLabel} · ${meta.label}`
       const sectionKey = story.entity_type || 'custom'
 
-      let audioSetId = story.audio_set_id
-      if (!audioSetId) {
-        const { data: linkedSet } = await supabase
-          .from('audio_sets')
-          .select('id')
-          .eq('content_type', 'story')
-          .eq('content_id', story.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        if (linkedSet) audioSetId = linkedSet.id
-      }
-
-      if (audioSetId) {
-        const { data: trackRows } = await supabase
-          .from('audio_tracks')
-          .select('id, audio_url, text_content')
-          .eq('audio_set_id', audioSetId)
-          .eq('status', 'completed')
-          .order('created_at', { ascending: false })
-
-        const currentTracks = (trackRows || []).filter(track =>
-          storyTextMatchesTrack(story.content, track.text_content),
-        )
-
-        currentTracks.forEach((track, idx) => {
-          if (!track.audio_url) return
-          tracks.push({
-            id: `${story.id}:track:${track.id}`,
-            title: currentTracks.length > 1
-              ? `${storyTitle} (${idx + 1}/${currentTracks.length})`
-              : storyTitle,
-            artist: entityLabel,
-            duration: 0,
-            url: track.audio_url,
-            thumbnail: '',
-            sectionKey,
-          })
-        })
-      }
-
-      if (story.user_audio_url) {
+      // Every version: each VIVA voice, your own recording, each music mix.
+      const versions = await loadStoryAudioVersions(supabase, story)
+      versions.forEach((v) => {
         tracks.push({
-          id: `${story.id}:user-recording`,
-          title: `${storyTitle} · Personal Recording`,
-          artist: `${kindLabel} · Your voice`,
-          duration: 0,
-          url: story.user_audio_url,
+          id: `${story.id}:${v.id}`,
+          title: versions.length > 1 ? `${storyTitle} · ${v.label}` : storyTitle,
+          artist: v.kind === 'personal' ? `${kindLabel} · Your voice` : `${entityLabel} · ${v.sublabel}`,
+          duration: v.duration,
+          url: v.url,
           thumbnail: '',
           sectionKey,
         })
-      }
+      })
 
       return tracks
     }
