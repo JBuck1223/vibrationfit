@@ -1,5 +1,6 @@
 'use client'
 
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useState } from 'react'
 import { Check, CheckCircle2, Loader2 } from 'lucide-react'
 import type { OccurrenceStatus } from '@/lib/map/types'
@@ -11,6 +12,7 @@ interface MapCompleteButtonProps {
 }
 
 export function MapCompleteButton({ status, onVerify, compact = false }: MapCompleteButtonProps) {
+  const inShell = useInShell()
   const [saving, setSaving] = useState(false)
   const isComplete = status === 'yes'
 
@@ -24,9 +26,11 @@ export function MapCompleteButton({ status, onVerify, compact = false }: MapComp
     }
   }
 
+  // In the app shell the button is a rounded pill like the rest of the app.
+  const corner = inShell ? 'rounded-full' : 'rounded-lg'
   const sizeClass = compact
-    ? 'px-2.5 py-1.5 text-[10px] rounded-lg gap-1'
-    : 'px-3 py-2 text-xs rounded-lg gap-1.5'
+    ? `px-2.5 py-1.5 text-[10px] ${corner} gap-1`
+    : `px-3 py-2 text-xs ${corner} gap-1.5`
 
   if (saving) {
     return (

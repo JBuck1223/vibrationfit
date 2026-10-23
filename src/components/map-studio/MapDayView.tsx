@@ -65,7 +65,7 @@ function countsAsDoneForIntensivePreview(
   return hasGymAttendance === true
 }
 
-function PeriodTallyBadge({ tally }: { tally: CommitmentPeriodTally }) {
+function PeriodTallyBadge({ tally, hideCheck = false }: { tally: CommitmentPeriodTally; hideCheck?: boolean }) {
   const met = tally.completed >= tally.target
   return (
     <span
@@ -81,22 +81,23 @@ function PeriodTallyBadge({ tally }: { tally: CommitmentPeriodTally }) {
       <span>
         {tally.completed}/{tally.target}
       </span>
-      {met ? (
+      {met && !hideCheck ? (
         <CheckCircle2 className="w-3.5 h-3.5 text-primary-500" strokeWidth={2} aria-hidden />
       ) : null}
     </span>
   )
 }
 
-function CadenceStatusBadge({ status }: { status: CommitmentCadenceStatus }) {
+/** hideCheck: the row already shows its own completion check, so the tally doesn't add a second. */
+function CadenceStatusBadge({ status, hideCheck = false }: { status: CommitmentCadenceStatus; hideCheck?: boolean }) {
   if (status.mode === 'weekly' && status.periodTally) {
-    return <PeriodTallyBadge tally={status.periodTally} />
+    return <PeriodTallyBadge tally={status.periodTally} hideCheck={hideCheck} />
   }
 
   if (status.mode === 'interval' && status.periodTally) {
     return (
       <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-        <PeriodTallyBadge tally={status.periodTally} />
+        <PeriodTallyBadge tally={status.periodTally} hideCheck={hideCheck} />
         {status.dueSoon && status.daysUntilDue != null ? (
           <span className="text-[10px] font-medium leading-tight text-amber-300/90">
             Due in {status.daysUntilDue}d
@@ -535,7 +536,7 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
                     label={cat?.label || catKey}
                     icon={CategoryIcon}
                   />
-                  <div className="rounded-lg bg-black/20 overflow-hidden">
+                  <div className={inShell ? 'space-y-1' : 'rounded-lg bg-black/20 overflow-hidden'}>
                     {items.map(c => (
                       <CustomCommitmentRow
                         key={c.id}
@@ -652,7 +653,7 @@ function SystemCommitmentRow({
         iconColor={pillarColor}
       />
       <div className="flex shrink-0 items-center gap-1.5">
-        {cadenceStatus ? <CadenceStatusBadge status={cadenceStatus} /> : null}
+        {cadenceStatus ? <CadenceStatusBadge status={cadenceStatus} hideCheck={!readOnly && !!occurrence && doneToday} /> : null}
         {!readOnly && occurrence ? (
           doneToday ? (
             <MapCompleteIndicator compact />
@@ -703,18 +704,19 @@ function CustomCommitmentRow({
   onVerify: (status: 'yes' | 'pending') => Promise<void>
   onJournalUpdated: () => void | Promise<void>
 }) {
+  const inShell = useInShell()
   const status = occurrence?.status ?? 'pending'
   const cadenceLabel = formatCommitmentCadence(commitment.cadence)
 
   return (
-    <div className="px-2.5 py-2.5 border-b border-[#333] last:border-b-0 sm:border-white/[0.04]">
+    <div className={inShell ? 'rounded-lg bg-white/[0.04] px-3 py-2.5' : 'px-2.5 py-2.5 border-b border-[#333] last:border-b-0 sm:border-white/[0.04]'}>
       <div className="flex items-center gap-2">
         <CommitmentInlineLabel
           title={commitment.title}
           cadenceLabel={cadenceLabel}
         />
         {cadenceStatus ? (
-          <CadenceStatusBadge status={cadenceStatus} />
+          <CadenceStatusBadge status={cadenceStatus} hideCheck={status === 'yes'} />
         ) : null}
         {!readOnly && occurrence ? (
           <div className="hidden sm:flex shrink-0 items-center gap-1">
