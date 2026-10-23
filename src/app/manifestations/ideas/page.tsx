@@ -14,8 +14,12 @@ import {
   VIVALoadingOverlay,
   CategoryGrid,
 } from '@/lib/design-system/components'
-import { Sparkles, Plus, Lightbulb, Check } from 'lucide-react'
+import { Sparkles, Plus, Lightbulb, Check, Tag, ChevronRight } from 'lucide-react'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
+import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 
 interface VisionSuggestion {
   category: string
@@ -63,6 +67,8 @@ export default function VisionBoardIdeasPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [existingCategorySuggestions, setExistingCategorySuggestions] = useState<Set<string>>(new Set())
   const [hasAutoSelected, setHasAutoSelected] = useState(false)
+  const inShell = useInShell()
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false)
 
   useEffect(() => {
     loadExistingSuggestions()
@@ -380,6 +386,152 @@ export default function VisionBoardIdeasPage() {
     }
   }
 
+
+  // App shell: one glass card to choose categories and generate, then the
+  // ideas as glass cards per life category, with Add to Board in reach.
+  const renderShellIdeas = () => {
+    const allSelected = selectedCategories.length === categoriesWithout.length
+    const ideaCount = visionSuggestions.reduce((n, c) => n + c.suggestions.filter((sg) => !sg.wasAdded).length, 0)
+    return (
+      <div className="space-y-3 pb-4">
+        <section className={cn(GLASS_CARD, 'p-4 md:p-5')}>
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(191,0,255,0.16)]">
+              <Sparkles className="h-5 w-5 text-[#d68bff]" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-semibold text-white">Ideas from your Life Vision</h2>
+              <p className="mt-0.5 text-sm text-white/60">
+                VIVA reads what you wrote in each life category and suggests creations for your board.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setCategorySheetOpen(true)}
+            className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.07]"
+          >
+            <Tag className="h-4 w-4 shrink-0 text-white/70" />
+            <span className="min-w-0 flex-1 text-sm text-white">
+              {allSelected
+                ? 'All life categories'
+                : selectedCategories.length === 0
+                  ? 'Choose life categories'
+                  : categoriesWithout.filter((c) => selectedCategories.includes(c.key)).map((c) => c.label).join(', ')}
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-white/40" />
+          </button>
+
+          {error && (
+            <p className="mt-3 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>
+          )}
+
+          <button
+            type="button"
+            onClick={fetchVisionAndGenerateSuggestions}
+            disabled={selectedCategories.length === 0}
+            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#BF00FF] text-sm font-semibold text-white shadow-[0_0_18px_rgba(191,0,255,0.35)] transition-transform active:scale-[0.98] disabled:opacity-40 md:mx-auto md:w-auto md:px-6"
+          >
+            <Sparkles className="h-4 w-4" />
+            {visionSuggestions.length > 0 ? 'Generate new ideas' : 'Generate ideas'}
+            <span className="font-normal text-white/80">
+              · {selectedCategories.length} {selectedCategories.length === 1 ? 'category' : 'categories'}
+            </span>
+          </button>
+          {visionSuggestions.length > 0 && (
+            <p className="mt-2 text-center text-xs text-white/45">
+              {ideaCount} {ideaCount === 1 ? 'idea' : 'ideas'} waiting below. Generating again replaces a category&apos;s ideas.
+            </p>
+          )}
+        </section>
+
+        {visionSuggestions.map((categoryData) => {
+          const CategoryIcon = categoriesWithout.find((c) => c.key === categoryData.category)?.icon ?? Sparkles
+          return (
+            <section key={categoryData.category} className={cn(GLASS_CARD, 'p-4 md:p-5')}>
+              <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+                <CategoryIcon className="h-4 w-4 text-[#39FF14]" aria-hidden />
+                {categoryData.categoryLabel}
+              </p>
+              <div className="space-y-2">
+                {categoryData.suggestions.map((suggestion, index) => {
+                  const key = `${categoryData.category}-${index}`
+                  const isSelected = selectedItems.has(key)
+                  const wasAdded = suggestion.wasAdded || false
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={wasAdded}
+                      aria-pressed={isSelected}
+                      onClick={() => toggleSelection(categoryData.category, index, wasAdded)}
+                      className={cn(
+                        'flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-colors',
+                        wasAdded
+                          ? 'cursor-default border-transparent bg-white/[0.03] opacity-55'
+                          : isSelected
+                            ? 'border-[#39FF14]/60 bg-[rgba(57,255,20,0.08)]'
+                            : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]',
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
+                          wasAdded || isSelected ? 'border-[#39FF14] bg-[#39FF14]' : 'border-white/30',
+                        )}
+                      >
+                        {(wasAdded || isSelected) && <Check className="h-3.5 w-3.5 text-black" strokeWidth={3} />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="text-[15px] font-semibold leading-snug text-white">{suggestion.name}</span>
+                          {wasAdded && <span className="shrink-0 text-xs text-[#39FF14]">On your board</span>}
+                        </span>
+                        <span className="mt-1 block text-sm leading-relaxed text-white/65">{suggestion.description}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })}
+
+        {selectedItems.size > 0 && (
+          <div className="sticky bottom-[calc(var(--shell-nav-height,76px)+env(safe-area-inset-bottom,0px)+16px)] z-20 flex justify-center md:bottom-6">
+            <button
+              type="button"
+              onClick={handleAddToBoard}
+              disabled={addingToBoard}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-[15px] font-semibold text-black shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.98] disabled:opacity-60 md:w-[320px]"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              Add {selectedItems.size} to Board
+            </button>
+          </div>
+        )}
+
+        <CategorySheet
+          open={categorySheetOpen}
+          onClose={() => setCategorySheetOpen(false)}
+          title="Generate ideas for"
+          selected={selectedCategories}
+          onToggle={(key) => setSelectedCategories((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))}
+          onClear={() => setSelectedCategories([])}
+        >
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            className="mb-3 text-sm font-medium text-[#39FF14] hover:underline"
+          >
+            {allSelected ? 'Deselect all' : 'Select all'}
+          </button>
+        </CategorySheet>
+      </div>
+    )
+  }
+
   const renderSuggestionsSection = () => (
     <Stack gap="lg">
       {/* Selection Counter and Add Button */}
@@ -559,6 +711,7 @@ export default function VisionBoardIdeasPage() {
 
   // Initial state - before generation or with existing suggestions
   if (!loading && !generating) {
+    if (inShell) return renderShellIdeas()
     return (
       <Container size="xl">
         <Stack gap="lg">
