@@ -1,5 +1,6 @@
 'use client'
 
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useCallback, useEffect, useMemo, useState, type ComponentType, type CSSProperties } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -143,6 +144,7 @@ function CommitmentInlineLabel({
 }
 
 export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
+  const inShell = useInShell()
   const pathname = usePathname()
   const { goToDate, today } = useMapNavigation()
   const {
@@ -390,12 +392,15 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
 
       {/* System pillars */}
       {systemCommitments.length > 0 && (
-        <section className="rounded-xl bg-neutral-900/40 overflow-hidden" data-tour="map-actions">
+        <section className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 overflow-hidden' : 'rounded-xl bg-neutral-900/40 overflow-hidden'} data-tour="map-actions">
           <div className="relative px-3 pt-3 pb-3">
+            {/* In the app shell the overall count sits under the title instead of over it. */}
+            {!inShell && (
             <p className="absolute right-3 top-3 text-sm tabular-nums shrink-0">
               <span style={{ color: mapTodayStyles.primaryHex }}>{systemDone}</span>
               <span className="text-neutral-600">/{systemTotal}</span>
             </p>
+            )}
             <div className="text-center px-6 sm:px-10">
               <h2 className={sectionTitleClass}>System MAP</h2>
               <p className={sectionSubtextClass}>
@@ -403,10 +408,15 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
                   ? 'Preview only — open rituals and log reps after you graduate.'
                   : 'Tap a ritual to open — alignment tracks automatically.'}
               </p>
+              {inShell && (
+                <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-3 py-1 text-xs tabular-nums text-white/70">
+                  <span style={{ color: mapTodayStyles.primaryHex }}>{systemDone}</span>/{systemTotal} done today
+                </p>
+              )}
             </div>
           </div>
           <div className="px-2 pb-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+            <div className={inShell ? 'grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3 items-stretch' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch'}>
           {PILLAR_ORDER.map(pillar => {
             const meta = PILLAR_META[pillar]
             const pillarCommitments = commitmentsByPillar[pillar]
@@ -491,19 +501,26 @@ export function MapDayView({ readOnly = false }: { readOnly?: boolean }) {
       {/* Custom */}
       {customCommitments.length > 0 && (
         <section
-          className="rounded-xl bg-neutral-900/40 overflow-hidden"
+          className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 overflow-hidden' : 'rounded-xl bg-neutral-900/40 overflow-hidden'}
           data-tour={systemCommitments.length === 0 ? 'map-actions' : undefined}
         >
           <div className="relative px-3 pt-3 pb-2">
+            {!inShell && (
             <p className="absolute right-3 top-3 text-sm tabular-nums shrink-0">
               <span className="text-white">{customLogged}</span>
               <span className="text-neutral-600">/{customTotal}</span>
             </p>
+            )}
             <div className="text-center px-6 sm:px-10">
               <h2 className={sectionTitleClass}>Custom Commitments</h2>
               <p className={readOnly ? sectionSubtextClass : 'text-[11px] text-neutral-500 mt-0.5'}>
                 Tap yes when complete.
               </p>
+              {inShell && (
+                <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-3 py-1 text-xs tabular-nums text-white/70">
+                  <span className="text-white">{customLogged}</span>/{customTotal} logged today
+                </p>
+              )}
             </div>
           </div>
           <div className="px-2 pb-2 space-y-3">
