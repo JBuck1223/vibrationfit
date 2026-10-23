@@ -4,6 +4,7 @@ import React from 'react'
 import { Check, RefreshCw } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Button } from '../forms/Button'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
   categories: ReadonlyArray<{
@@ -55,6 +56,8 @@ interface CategoryGridProps extends React.HTMLAttributes<HTMLDivElement> {
 const pillBase = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer'
 const pillSelected = 'bg-primary-500/20 border-primary-500/50 text-primary-400'
 const pillUnselected = 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300'
+// App shell: unpicked pills are soft glass instead of a dark well.
+const shellPillUnselected = 'bg-white/[0.05] border-white/[0.12] text-white/65 hover:border-white/25 hover:text-white'
 const allPillUnselected = 'bg-neutral-900 border-neutral-700 text-neutral-400 hover:border-neutral-500'
 
 /** Icon treatment when `lifeVisionCategoryStrip` / `brandGreenIcons` is on (matches interactive CategoryGrid). */
@@ -96,6 +99,7 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
     className,
     ...props
   }, ref) => {
+    const inShell = useInShell()
     const useFillWidth = lifeVisionCategoryStrip ? true : fillWidth
     const useTwoLineDesktop = lifeVisionCategoryStrip ? true : twoLineDesktop
     const useBrandGreenIcons = lifeVisionCategoryStrip ? true : brandGreenIcons
@@ -173,7 +177,7 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
                 className={cn(
                   pillBase,
                   useFillWidth ? 'shrink-0 md:w-full md:justify-center' : 'shrink-0',
-                  isSelected ? pillSelected : pillUnselected,
+                  isSelected ? pillSelected : inShell ? shellPillUnselected : pillUnselected,
                   extraClass,
                 )}
               >
@@ -185,7 +189,7 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
                   )}
                 />
                 {useBrandGreenIcons ? (
-                  <span className={isSelected ? 'text-primary-400' : 'text-neutral-400'}>{category.label}</span>
+                  <span className={isSelected ? 'text-primary-400' : inShell ? 'text-white/70' : 'text-neutral-400'}>{category.label}</span>
                 ) : (
                   category.label
                 )}
@@ -251,7 +255,7 @@ export const CategoryGrid = React.forwardRef<HTMLDivElement, CategoryGridProps>(
           )}
 
           {pillLabel ? (
-            <p className="mt-2 text-center text-[10px] text-neutral-600 md:hidden">
+            <p className={cn('mt-2 text-center text-[10px] md:hidden', inShell ? 'text-white/40' : 'text-neutral-600')}>
               Scroll to see all <span aria-hidden="true">&rarr;</span>
             </p>
           ) : null}

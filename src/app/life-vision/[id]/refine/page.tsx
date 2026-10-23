@@ -58,6 +58,7 @@ import {
 import { calculateVersionNumber } from '@/lib/life-vision/version-helpers'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { useLifeVisionStudio } from '@/components/life-vision-studio/LifeVisionStudioContext'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 interface VisionData {
   id: string
@@ -261,6 +262,9 @@ const ChatInterface = ({
 )
 
 export default function VisionRefinementPage({ params }: { params: Promise<{ id: string }> }) {
+  // App shell: fields keep the glass instead of forced dark wells.
+  const inShell = useInShell()
+  const darkWell = inShell ? '!bg-white/[0.05] !border-white/[0.12]' : '!bg-[#101010] !border-neutral-800'
   const router = useRouter()
   const { refreshVisions } = useLifeVisionStudio()
   const searchParams = useSearchParams()
@@ -1578,7 +1582,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                     value={refinementNotes}
                     onChange={setRefinementNotes}
                     placeholder="Tell VIVA how to update this category..."
-                    className="min-h-[100px] w-full !bg-[#101010] !border-neutral-800 focus-within:!border-accent-500"
+                    className={`min-h-[100px] w-full ${darkWell} focus-within:!border-accent-500`}
                     rows={4}
                     storageFolder="lifeVision"
                     recordingPurpose="quick"
@@ -1695,7 +1699,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       value={getCategoryValue(selectedCategory) || "No vision content available for this category."}
                       onChange={() => {}}
                       readOnly
-                      className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 scroll-mt-24"
+                      className={`${darkWell} text-sm cursor-default !rounded-lg !px-4 !py-3 scroll-mt-24`}
                       minHeight={120}
                     />
 
@@ -1756,7 +1760,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                         value={currentRefinement}
                         onChange={setCurrentRefinement}
                         placeholder="Your updated vision will stream here..."
-                        className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3"
+                        className={`${darkWell} text-sm !rounded-lg !px-4 !py-3`}
                         style={{ overflowAnchor: 'none' } as React.CSSProperties}
                         minHeight={120}
                       />

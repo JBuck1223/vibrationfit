@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { Card, Button, Icon, AudioPlayer, AutoResizeTextarea } from '@/lib/design-system/components'
 import { Gem, Edit3, Save, X, LucideIcon } from 'lucide-react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 
 interface VisionCategoryCardProps {
   category: {
@@ -49,13 +50,25 @@ export function VisionCategoryCard({
 }: VisionCategoryCardProps) {
   const isCompleted = content?.trim().length > 0
   const NEON_YELLOW = '#FFD700'
+  // App shell, reading: a soft green icon and the area name in white, and
+  // the vision itself set for reading.
+  const inShell = useInShell()
+  const shellRead = inShell && !editable
   
   return (
     <Card className="transition-all duration-300 hover:shadow-lg">
       <div className="px-1 py-2 md:px-0 md:py-0">
         {/* Header */}
         <div className={`flex flex-col md:flex-row md:items-center gap-2 md:gap-3 ${editable ? 'mb-4' : 'mb-2'}`}>
-          <div className={`flex items-center gap-3 ${editable ? 'flex-1 min-w-0' : 'w-full md:flex-1 md:min-w-0 justify-center md:justify-start'}`}>
+          <div className={`flex items-center gap-3 ${editable ? 'flex-1 min-w-0' : shellRead ? 'w-full md:flex-1 md:min-w-0' : 'w-full md:flex-1 md:min-w-0 justify-center md:justify-start'}`}>
+            {shellRead ? (
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgba(57,255,20,0.14)]"
+                style={isRefined ? { backgroundColor: `${NEON_YELLOW}26`, boxShadow: `inset 0 0 0 1px ${NEON_YELLOW}80` } : undefined}
+              >
+                <Icon icon={category.icon} size="xs" color={isRefined ? NEON_YELLOW : '#39FF14'} />
+              </span>
+            ) : (
             <div 
               className={`${editable ? 'w-10 h-10 rounded-xl' : 'w-7 h-7 md:w-8 md:h-8 rounded-lg'} flex items-center justify-center shrink-0 ${!isRefined ? (isCompleted ? 'bg-primary-500' : 'bg-neutral-700') : ''}`}
               style={isRefined ? { backgroundColor: `${NEON_YELLOW}33`, border: `2px solid ${NEON_YELLOW}` } : undefined}
@@ -66,6 +79,7 @@ export function VisionCategoryCard({
                 color={isRefined ? NEON_YELLOW : "#000000"} 
               />
             </div>
+            )}
             <div className={editable ? 'flex-1 min-w-0' : ''}>
               {editable ? (
                 <>
@@ -73,7 +87,7 @@ export function VisionCategoryCard({
                   <p className="text-sm text-neutral-400">{category.description}</p>
                 </>
               ) : (
-                <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">{category.label}</h3>
+                <h3 className={shellRead ? 'text-lg font-semibold text-white' : 'text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]'}>{category.label}</h3>
               )}
             </div>
             {!isEditing && editable && (
@@ -106,7 +120,7 @@ export function VisionCategoryCard({
           )}
         </div>
 
-        {!editable && !isEditing && <div className="border-b border-neutral-800 mb-2" />}
+        {!editable && !isEditing && <div className={`border-b mb-2 ${shellRead ? 'border-white/[0.08]' : 'border-neutral-800'}`} />}
 
         {/* Content Display */}
         {isEditing ? (
@@ -164,7 +178,7 @@ export function VisionCategoryCard({
                   </div>
                 ) : (
                   <div className={`pt-2 ${isRefined ? 'border-l-2 pl-3' : ''}`} style={isRefined ? { borderColor: `${NEON_YELLOW}80` } : undefined}>
-                    <p className="text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm">
+                    <p className={shellRead ? 'whitespace-pre-wrap text-[15px] leading-[1.75] text-white/85' : 'text-neutral-300 leading-relaxed whitespace-pre-wrap text-sm'}>
                       {content}
                     </p>
                   </div>
