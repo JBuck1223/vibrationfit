@@ -53,11 +53,17 @@ export function VivaImagePanel({
   journalText,
   onUse,
   onClose,
+  sceneLead = 'An artistic scene inspired by this journal moment',
+  addedLabel = 'Added to this entry',
 }: {
   journalText: string
   /** The chosen image's URL, or '' when they remove it. */
   onUse: (url: string) => void
   onClose: () => void
+  /** How the scene is introduced when VIVA works from the text alone. */
+  sceneLead?: string
+  /** Confirmation once the image is chosen. */
+  addedLabel?: string
 }) {
   const [description, setDescription] = React.useState('')
   const [style, setStyle] = React.useState<string | null>(null)
@@ -107,7 +113,7 @@ export function VivaImagePanel({
     const styleHint = STYLES.find((s) => s.id === style)?.hint
     const scene = description.trim()
       ? description.trim()
-      : `An artistic scene inspired by this journal moment: ${source.slice(0, 400)}${source.length > 400 ? '...' : ''}`
+      : `${sceneLead}: ${source.slice(0, 400)}${source.length > 400 ? '...' : ''}`
     void request({ type: 'journal', prompt: `${scene}${styleHint ? ` In the style of ${styleHint}.` : ''} No words or text in the image.` })
   }
 
@@ -152,7 +158,7 @@ export function VivaImagePanel({
           {used === result ? (
             <div className="mt-3 flex items-center gap-2">
               <span className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[rgba(57,255,20,0.14)] py-2 text-sm font-medium text-[#39FF14]">
-                <Check className="h-4 w-4" /> Added to this entry
+                <Check className="h-4 w-4" /> {addedLabel}
               </span>
               <button
                 type="button"
