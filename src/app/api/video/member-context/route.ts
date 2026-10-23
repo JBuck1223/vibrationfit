@@ -1,3 +1,4 @@
+import { verifyAdminAccess } from '@/lib/supabase/admin'
 /**
  * Member Context API
  * 
@@ -10,11 +11,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const access = await verifyAdminAccess()
+    if ('error' in access) return NextResponse.json({ error: access.error }, { status: access.status })
+    const supabase = access.supabase
 
     // Check auth
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest) {
       // 1. Profile
       supabase
         .from('user_accounts')
-        .select('id, first_name, last_name, full_name, email, avatar_url, created_at')
+        .select('id, first_name, last_name, full_name, email, avatar_url:profile_picture_url, created_at')
         .eq('id', memberUserId)
         .single(),
 

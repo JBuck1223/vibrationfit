@@ -1,3 +1,4 @@
+import { storageActor, storageKeyAllowed } from '@/lib/security/storage-access'
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand, DeleteObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, ListBucketsCommand } from '@aws-sdk/client-s3'
 import { optimizeImage, shouldOptimizeImage, getOptimalDimensions, generateThumbnail } from '@/lib/utils/imageOptimization'
@@ -55,6 +56,8 @@ function sanitizeFilenameForHeader(filename: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const actor = await storageActor()
+    if (!actor) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     // Check AWS credentials first
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
       console.error('AWS credentials not configured')
@@ -125,6 +128,10 @@ export async function POST(request: NextRequest) {
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.]/g, '-').toLowerCase()
     
     const s3Key = `user-uploads/${userId}/${folder}/${timestamp}-${randomStr}-${sanitizedName}`
+
+    if (userId !== actor.user.id || !await storageKeyAllowed(actor, s3Key)) {
+      return NextResponse.json({ error: 'Forbidden storage key' }, { status: 403 })
+    }
 
     console.log(`Starting upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
 
@@ -199,7 +206,7 @@ export async function POST(request: NextRequest) {
       buffer = Buffer.from(optimizedResult.buffer)
       contentType = optimizedResult.contentType
       
-      const nameWithoutExt = file.name.split('.').slice(0, -1).join('.')
+      const nameWithoutExt = sanitizedName.split('.').slice(0, -1).join('.')
       finalFilename = `${nameWithoutExt}-optimized.webp`
       
       console.log(`Image optimization completed. Original: ${(optimizedResult.originalSize / 1024 / 1024).toFixed(2)}MB, Optimized: ${(optimizedResult.optimizedSize / 1024 / 1024).toFixed(2)}MB, Compression: ${optimizedResult.compressionRatio.toFixed(1)}%`)
@@ -379,11 +386,15 @@ export async function POST(request: NextRequest) {
 // DELETE handler to delete files from S3
 export async function DELETE(request: NextRequest) {
   try {
+    const actor = await storageActor()
+    if (!actor) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { s3Key } = await request.json()
 
     if (!s3Key) {
       return NextResponse.json({ error: 'Missing s3Key' }, { status: 400 })
     }
+
+    if (!await storageKeyAllowed(actor, s3Key)) return NextResponse.json({ error: 'Forbidden storage key' }, { status: 403 })
 
     console.log(`🗑️  Deleting file: ${s3Key}`)
 

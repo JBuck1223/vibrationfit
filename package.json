@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:security": "node --test scripts/security/security-regression.test.cjs",
+    "security:preflight": "node scripts/security/preflight.cjs",
     "pre-deploy": "node scripts/pre-deploy-check.js",
     "docs:generate": "ts-node scripts/docs/generate-all.ts",
     "docs:schema": "ts-node scripts/docs/generate-schema-docs.ts",

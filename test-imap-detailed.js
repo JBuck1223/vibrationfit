@@ -3,7 +3,7 @@ const Imap = require('imap');
 
 const imap = new Imap({
   user: 'team@vibrationfit.com',
-  password: 'eikpjpskmhqpmsug',
+  password: process.env.IMAP_PASSWORD,
   host: 'imap.gmail.com',
   port: 993,
   tls: true,
@@ -15,7 +15,6 @@ const imap = new Imap({
 
 console.log('🔄 Attempting to connect to Gmail IMAP...');
 console.log('📧 User:', 'team@vibrationfit.com');
-console.log('🔐 Password:', 'waos****udi');
 console.log('🖥️  Host:', 'imap.gmail.com:993');
 console.log('');
 

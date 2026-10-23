@@ -1,11 +1,13 @@
 // Debug endpoint to check IMAP email syncing and user matching
 import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, verifyAdminAccess } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    const access = await verifyAdminAccess()
+    if ('error' in access) return NextResponse.json({ error: access.error }, { status: access.status })
     const adminClient = createAdminClient()
 
     // Get recent inbound emails

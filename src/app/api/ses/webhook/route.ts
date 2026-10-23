@@ -1,3 +1,4 @@
+import { validSnsMessage } from '@/lib/security/webhooks'
 /**
  * SES Event Webhook
  *
@@ -21,6 +22,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
     const message = JSON.parse(body)
+    if (!await validSnsMessage(message, process.env.AWS_SES_SNS_TOPIC_ARN)) {
+      return NextResponse.json({ error: 'Invalid webhook signature or topic' }, { status: 403 })
+    }
 
     if (EXPECTED_TOPIC_ARN && message.TopicArn && message.TopicArn !== EXPECTED_TOPIC_ARN) {
       console.error('[ses/webhook] TopicArn mismatch:', message.TopicArn)
@@ -31,7 +35,7 @@ export async function POST(request: NextRequest) {
       const subscribeUrl = message.SubscribeURL
       if (subscribeUrl) {
         console.log('[ses/webhook] Confirming SNS subscription...')
-        await fetch(subscribeUrl)
+        await fetch(subscribeUrl, { redirect: 'error', signal: AbortSignal.timeout(8000) })
         console.log('[ses/webhook] SNS subscription confirmed')
       }
       return NextResponse.json({ status: 'subscription_confirmed' })

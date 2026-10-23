@@ -1,29 +1,8 @@
+import { allowedMediaUrl, fetchMedia, inertMediaHeaders } from '@/lib/security/media-fetch'
 // Proxy image fetches to avoid CORS when client needs to get image bytes (e.g. fal.media URLs)
 // GET /api/images/proxy?url=<encoded-image-url>
 
 import { NextRequest, NextResponse } from 'next/server'
-
-const ALLOWED_HOSTS = [
-  'fal.media',
-  'v3.fal.media',
-  'storage.googleapis.com',
-  'amazonaws.com',
-  'supabase.co',
-  'media.vibrationfit.com',
-  'localhost',
-  '127.0.0.1',
-]
-
-function isAllowedUrl(urlString: string): boolean {
-  try {
-    const url = new URL(urlString)
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return false
-    const host = url.hostname.toLowerCase()
-    return ALLOWED_HOSTS.some((allowed) => host === allowed || host.endsWith('.' + allowed))
-  } catch {
-    return false
-  }
-}
 
 export async function GET(request: NextRequest) {
   const urlParam = request.nextUrl.searchParams.get('url')
@@ -38,17 +17,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid url parameter' }, { status: 400 })
   }
 
-  if (!isAllowedUrl(targetUrl)) {
+  if (!allowedMediaUrl(targetUrl)) {
     return NextResponse.json({ error: 'URL not allowed for proxy' }, { status: 403 })
   }
 
   try {
-    const res = await fetch(targetUrl, {
-      headers: {
-        Accept: 'image/*',
-      },
-      cache: 'no-store',
-    })
+    const res = await fetchMedia(targetUrl)
 
     if (!res.ok) {
       return NextResponse.json(
@@ -57,12 +31,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const contentType = res.headers.get('content-type') || 'image/png'
-    const blob = await res.blob()
-    return new NextResponse(blob, {
+    const contentType = res.headers.get('content-type') || 'application/octet-stream'
+    return new NextResponse(res.body, {
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'private, max-age=3600',
+      ...(res.headers.get('content-encoding') ? { 'Content-Encoding': res.headers.get('content-encoding')! } : {}),
+        ...inertMediaHeaders,
       },
     })
   } catch (error) {

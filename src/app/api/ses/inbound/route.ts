@@ -1,3 +1,4 @@
+import { validSnsMessage } from '@/lib/security/webhooks'
 /**
  * SES Inbound Email Webhook
  *
@@ -36,11 +37,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
     const payload = JSON.parse(body)
+    if (!await validSnsMessage(payload, process.env.AWS_SES_INBOUND_SNS_TOPIC_ARN)) {
+      return NextResponse.json({ error: 'Invalid webhook signature or topic' }, { status: 403 })
+    }
 
     // Auto-confirm SNS subscription
     if (payload.Type === 'SubscriptionConfirmation') {
       if (payload.SubscribeURL) {
-        await fetch(payload.SubscribeURL)
+        await fetch(payload.SubscribeURL, { redirect: 'error', signal: AbortSignal.timeout(8000) })
         console.log('[SES Inbound] SNS subscription confirmed')
       }
       return NextResponse.json({ confirmed: true })

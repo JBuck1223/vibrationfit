@@ -1,3 +1,4 @@
+import { validTwilioRequest } from '@/lib/security/webhooks'
 // /src/app/api/messaging/webhook/twilio/route.ts
 // Webhook endpoint to receive inbound SMS from Twilio
 
@@ -19,6 +20,9 @@ function normalizePhone(phone: string): string {
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
+    if (!validTwilioRequest(request, formData)) {
+      return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 403 })
+    }
 
     const from = formData.get('From') as string
     const to = formData.get('To') as string

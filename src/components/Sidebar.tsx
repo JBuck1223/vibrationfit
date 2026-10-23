@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { userNavigationPrimary, userNavigationGroups, shellNavigationPrimary, shellNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
+import { isNativeExternalPath } from '@/lib/mobile/native-shell'
 import { DEFAULT_PROFILE_IMAGE_URL } from '@/app/profile/components/ProfilePictureUpload'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
 import { LifeActivationSidebarCard } from '@/components/life-activation/LifeActivationSidebarCard'
@@ -35,12 +37,22 @@ interface SidebarProps {
 const SIDEBAR_COLLAPSED_KEY = 'vibrationfit-sidebar-collapsed'
 const SIDEBAR_GROUPS_KEY = 'vibrationfit-sidebar-groups-v2'
 
+function filterGroupsForNativeShell(groups: NavGroup[], isNativeShell: boolean): NavGroup[] {
+  if (!isNativeShell) return groups
+  return groups
+    .map((group) => ({ ...group, items: group.items.filter((item) => !isNativeExternalPath(item.href)) }))
+    .filter((group) => group.items.length > 0)
+}
+
 function getDefaultExpandedGroups(groups: NavGroup[]): string[] {
   return groups.filter((group) => !group.defaultCollapsed).map((group) => group.name)
 }
 
 // Shared Sidebar Base Component
-function SidebarBase({ className, navigation, primaryNavigation = [], groups = [], isAdmin = false, surface = 'solid' }: SidebarProps & { navigation: NavItem[], primaryNavigation?: NavItem[], groups?: NavGroup[], surface?: 'solid' | 'glass' }) {
+function SidebarBase({ className, navigation, primaryNavigation = [], groups: allGroups = [], isAdmin = false, surface = 'solid' }: SidebarProps & { navigation: NavItem[], primaryNavigation?: NavItem[], groups?: NavGroup[], surface?: 'solid' | 'glass' }) {
+  const isNativeShell = useIsNativeShell()
+  // Billing and other purchase paths never render inside the native shell (App Review 3.1.1).
+  const groups = useMemo(() => filterGroupsForNativeShell(allGroups, isNativeShell), [allGroups, isNativeShell])
   // Initialize with default value for SSR consistency, then sync with localStorage
   const [collapsed, setCollapsed] = useState(false) // Default: expanded
   const [hasMounted, setHasMounted] = useState(false)
@@ -800,6 +812,7 @@ interface MobileBottomNavProps {
 
 export function MobileBottomNav({ className }: MobileBottomNavProps) {
   const pathname = usePathname()
+  const isNativeShell = useIsNativeShell()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [activeVisionId, setActiveVisionId] = useState<string | null>(null)
   
@@ -841,7 +854,7 @@ export function MobileBottomNav({ className }: MobileBottomNavProps) {
     }
   })
 
-  const drawerSections = userNavigationGroups.map((group) => ({
+  const drawerSections = filterGroupsForNativeShell(userNavigationGroups, isNativeShell).map((group) => ({
     title: group.name,
     showTitle: true,
     items: group.items.map((item) => ({

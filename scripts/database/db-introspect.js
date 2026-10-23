@@ -3,7 +3,8 @@ require('dotenv').config({ path: '.env.local' });
 
 async function introspectDatabase() {
   // Use the first DATABASE_URL which appears to be the real Supabase connection
-  const connectionString = 'postgres://postgres:VNDAEVfc4Zu99Qnf@nxjhqibnlbwzzphewncj.supabase.co:5432/postgres';
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) throw new Error('DATABASE_URL is required');
   
   const client = new Client({
     connectionString: connectionString,

@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { areaForPath, getSection, type SectionId } from '@/lib/app-shell/sections'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
+import { isNativeExternalPath } from '@/lib/mobile/native-shell'
 
 /**
  * The areas (studios) under a section as a row of chips, so members can go
@@ -14,11 +16,14 @@ export function AreaLinks({ sectionId, className }: { sectionId: SectionId; clas
   const pathname = usePathname()
   const section = getSection(sectionId)
   const current = areaForPath(section, pathname)
-  if (section.areas.length === 0) return null
+  const isNativeShell = useIsNativeShell()
+  // Billing never renders inside the native shell (App Review 3.1.1).
+  const areas = isNativeShell ? section.areas.filter((area) => !isNativeExternalPath(area.href)) : section.areas
+  if (areas.length === 0) return null
 
   return (
     <nav aria-label={`${section.label} areas`} className={cn('-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0', className)}>
-      {section.areas.map((area) => {
+      {areas.map((area) => {
         const Icon = area.icon
         const here = current?.href === area.href
         return (

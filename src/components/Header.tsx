@@ -15,6 +15,8 @@ import { User } from '@supabase/supabase-js'
 import { ChevronDown, LogOut } from 'lucide-react'
 import { getPageType, headerAccountMenu, isActivationFunnelPath } from '@/lib/navigation'
 import { ProfilePictureClickable } from '@/components/ProfilePictureClickable'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
+import { isNativeExternalPath } from '@/lib/mobile/native-shell'
 
 export function Header() {
   const [user, setUser] = useState<User | null>(null)
@@ -30,6 +32,11 @@ export function Header() {
   // Page classification using centralized system
   const pageType = getPageType(pathname)
   const lockToActivation = isActivationFunnelPath(pathname)
+  const isNativeShell = useIsNativeShell()
+  // Billing and other purchase paths never render in the native shell.
+  const accountMenuItems = isNativeShell
+    ? headerAccountMenu.filter((item) => !isNativeExternalPath(item.href))
+    : headerAccountMenu
 
   // Only show header on PUBLIC pages
   if (pageType !== 'PUBLIC') {
@@ -171,7 +178,7 @@ export function Header() {
                     {/* Menu Items */}
                     {!lockToActivation && (
                       <div className="py-1">
-                        {headerAccountMenu.map((item) => {
+                        {accountMenuItems.map((item) => {
                           const Icon = item.icon
                           return (
                             <Link

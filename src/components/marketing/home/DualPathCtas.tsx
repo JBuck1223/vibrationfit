@@ -24,7 +24,7 @@ export function DualPathCtas({
   paidOnly?: boolean
   freeOnly?: boolean
 }) {
-  const rowClass = `flex flex-col items-stretch gap-3 ${
+  const rowClass = `hide-in-native flex flex-col items-stretch gap-3 ${
     align === 'start' ? 'md:items-start' : 'md:items-center'
   } ${className}`
 

@@ -195,7 +195,16 @@ function CheckoutContent() {
 
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error || 'Failed to process checkout')
+        toast.error(data.error || 'Failed to process checkout', data.code === 'SIGN_IN_REQUIRED' ? {
+          duration: 15000,
+          action: {
+            label: 'Sign in',
+            onClick: () => {
+              const returnTo = window.location.pathname + window.location.search
+              window.location.href = `/auth/login?returnTo=${encodeURIComponent(returnTo)}`
+            },
+          },
+        } : undefined)
         setIsProcessing(false)
         return null
       }

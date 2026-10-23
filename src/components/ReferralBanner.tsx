@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { Gift, X } from 'lucide-react'
 import { LAUNCH_SOLO_PROMO_CODE } from '@/lib/billing/launch-promo'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
 
 const BANNER_MIN_HEIGHT = 48
 const DISMISSED_KEY = 'vf_ref_banner_dismissed'
@@ -82,6 +83,7 @@ export function ReferralBanner() {
   }, [syncPadding])
 
   const isCheckoutPage = pathname?.startsWith('/checkout')
+  const isNativeShell = useIsNativeShell()
 
   useEffect(() => {
     if (pathname === '/checkout/success') {
@@ -91,7 +93,8 @@ export function ReferralBanner() {
     }
   }, [pathname])
 
-  if (!refCode || dismissed || isCheckoutPage) return null
+  // The banner sells the Intensive; purchases never happen inside the native shell.
+  if (!refCode || dismissed || isCheckoutPage || isNativeShell) return null
 
   const isOfferPage = pathname === '/'
 

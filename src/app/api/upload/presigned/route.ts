@@ -1,3 +1,4 @@
+import { storageActor, storageKeyAllowed } from '@/lib/security/storage-access'
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
@@ -18,11 +19,15 @@ const BUCKET_NAME = 'vibration-fit-client-storage'
 
 export async function POST(request: NextRequest) {
   try {
+    const actor = await storageActor()
+    if (!actor) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { key, fileType } = await request.json()
 
     if (!key || !fileType) {
       return NextResponse.json({ error: 'Missing key or fileType' }, { status: 400 })
     }
+
+    if (!await storageKeyAllowed(actor, key)) return NextResponse.json({ error: 'Forbidden storage key' }, { status: 403 })
 
     // Generate presigned URL for PUT operation
     const command = new PutObjectCommand({

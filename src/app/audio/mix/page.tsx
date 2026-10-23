@@ -475,7 +475,7 @@ export default function AudioMixPage() {
       const creatorIds = [...new Set(tracks.map((track) => track.created_by).filter((id): id is string => Boolean(id)))]
       if (creatorIds.length > 0) {
         const { data: accounts } = await supabase
-          .from('user_accounts')
+          .from('member_public_profiles')
           .select('id, full_name, first_name, last_name')
           .in('id', creatorIds)
         const names: Record<string, string> = {}

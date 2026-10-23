@@ -1,3 +1,4 @@
+import { createAdminClient } from '@/lib/supabase/admin'
 /**
  * Host Joined Notification API
  *
@@ -117,7 +118,7 @@ export async function POST(
         let name = participant.name || 'there'
 
         if (participant.user_id && (!email || !phone)) {
-          const { data: account } = await supabase
+          const { data: account } = await createAdminClient()
             .from('user_accounts')
             .select('email, phone, first_name, full_name')
             .eq('id', participant.user_id)

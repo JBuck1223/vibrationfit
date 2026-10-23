@@ -1,3 +1,4 @@
+import { validSnsMessage } from '@/lib/security/webhooks'
 // AWS SES Inbound Email Webhook
 // Receives incoming emails via SNS notifications
 export const dynamic = 'force-dynamic'
@@ -8,6 +9,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    if (!await validSnsMessage(body, process.env.AWS_SES_INBOUND_SNS_TOPIC_ARN)) {
+      return NextResponse.json({ error: 'Invalid webhook signature or topic' }, { status: 403 })
+    }
     
     console.log('📨 SES Inbound webhook received')
 
@@ -18,7 +22,7 @@ export async function POST(request: NextRequest) {
       
       // Auto-confirm subscription
       if (body.SubscribeURL) {
-        const response = await fetch(body.SubscribeURL)
+        const response = await fetch(body.SubscribeURL, { redirect: 'error', signal: AbortSignal.timeout(8000) })
         if (response.ok) {
           console.log('✅ SNS subscription confirmed automatically')
         }

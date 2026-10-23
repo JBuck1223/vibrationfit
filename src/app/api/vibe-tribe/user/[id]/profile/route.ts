@@ -20,7 +20,7 @@ export async function GET(
 
     // Get user account info
     const { data: userAccount, error: userAccountError } = await supabase
-      .from('user_accounts')
+      .from('member_public_profiles')
       .select('id, full_name, profile_picture_url, created_at')
       .eq('id', userId)
       .single()

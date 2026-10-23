@@ -1,3 +1,4 @@
+import { validTwilioRequest } from '@/lib/security/webhooks'
 // Twilio SMS webhook for receiving messages and status updates
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest) {
   
   try {
     const formData = await request.formData()
+    if (!validTwilioRequest(request, formData)) {
+      return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 403 })
+    }
     
     // Twilio sends data as form-encoded
     const messageId = formData.get('MessageSid') as string

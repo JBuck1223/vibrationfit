@@ -8,6 +8,7 @@ import { Button, Container, Modal, Spinner, Stack } from '@/lib/design-system/co
 import AnnualUpgradeBanner from '@/components/billing/AnnualUpgradeBanner'
 import { UnlockCelebrationModal } from '@/components/UnlockCelebrationModal'
 import { useDashboardLayout } from '@/hooks/useDashboardLayout'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
 import {
   consumeBeginComplete,
@@ -55,6 +56,7 @@ function fireConfetti() {
 
 export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHomeProps) {
   const router = useRouter()
+  const isNativeShell = useIsNativeShell()
   const searchParams = useSearchParams()
   const { layout, isLoading, reorder, setVisible, setSize, setPinned, reset, applyPreset, restore } =
     useDashboardLayout()
@@ -172,7 +174,7 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
 
       <Container size="xl">
         <Stack gap="lg">
-          {annualUpgradeOffer ? (
+          {annualUpgradeOffer && !isNativeShell ? (
             <AnnualUpgradeBanner planType={annualUpgradeOffer.planType} trialEnd={annualUpgradeOffer.trialEnd} />
           ) : null}
 
