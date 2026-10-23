@@ -89,3 +89,4 @@ mobile/android/capacitor-cordova-android-plugins/build/
 mobile/ios/capacitor-cordova-ios-plugins/Pods/
 *.keystore
 *.jks
+mobile/android/keystore.properties

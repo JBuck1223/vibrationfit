@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { stripe } from '@/lib/stripe/config'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 
 const supabaseAdmin = createClient(
@@ -10,8 +11,8 @@ const supabaseAdmin = createClient(
 
 /**
  * Polled after payment success. Looks up the order by payment_intent_id or
- * order_id, then generates a magic link token and redirects through the
- * client-side /auth/verify page to establish the session in the browser.
+ * order_id. Only its authenticated owner may receive order details.
+ * Signed-out customers verify their identity through the normal login flow.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -22,19 +23,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ready: false, error: 'Missing payment_intent_id or order_id' }, { status: 400 })
     }
 
-    let order: { id: string; user_id: string; status: string; total_amount: number | null; currency: string | null; metadata: Record<string, unknown> | null } | null = null
+    const sessionClient = await createServerClient()
+    const { data: { user: sessionUser } } = await sessionClient.auth.getUser()
+    if (!sessionUser) {
+      const returnTo = orderId
+        ? `/checkout/success?order_id=${encodeURIComponent(orderId)}`
+        : `/checkout/success?payment_intent=${encodeURIComponent(paymentIntentId!)}`
+      return NextResponse.json({ ready: false, requiresSignIn: true,
+        redirectUrl: `/auth/login?checkout=complete&returnTo=${encodeURIComponent(returnTo)}` })
+    }
+
+    let order: { id: string; user_id: string; status: string; stripe_payment_intent_id: string | null; total_amount: number | null; currency: string | null; metadata: Record<string, unknown> | null } | null = null
 
     if (orderId) {
       const { data } = await supabaseAdmin
         .from('orders')
-        .select('id, user_id, status, total_amount, currency, metadata')
+        .select('id, user_id, status, stripe_payment_intent_id, total_amount, currency, metadata')
         .eq('id', orderId)
         .maybeSingle()
       order = data
     } else if (paymentIntentId) {
       const { data } = await supabaseAdmin
         .from('orders')
-        .select('id, user_id, status, total_amount, currency, metadata')
+        .select('id, user_id, status, stripe_payment_intent_id, total_amount, currency, metadata')
         .eq('stripe_payment_intent_id', paymentIntentId)
         .maybeSingle()
       order = data
@@ -44,17 +55,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ready: false })
     }
 
-    const { data: user } = await supabaseAdmin.auth.admin.getUserById(order.user_id)
-    const email = user?.user?.email
-    if (!email) {
-      return NextResponse.json({ ready: false })
+    if (sessionUser.id !== order.user_id) {
+      return NextResponse.json({ ready: false, error: 'Sign in with the account used for this purchase.' }, { status: 403 })
     }
-
+    // Subscription checkout creates a pending order before Stripe settles it.
+    // Confirm that payment with Stripe; PayPal fulfillment writes paid orders.
+    if (order.status !== 'paid') {
+      if (order.status !== 'pending' || !order.stripe_payment_intent_id || !stripe) {
+        return NextResponse.json({ ready: false })
+      }
+      const payment = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id)
+      if (payment.status !== 'succeeded') return NextResponse.json({ ready: false })
+    }
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
-
-    const sessionClient = await createServerClient()
-    const { data: { user: sessionUser } } = await sessionClient.auth.getUser()
-    if (sessionUser?.id === order.user_id) {
+    {
       const needsPassword = sessionUser.user_metadata?.has_password !== true
       const redirectUrl = needsPassword
         ? `${appUrl}/auth/setup-password?returnTo=${encodeURIComponent('/begin')}`
@@ -71,40 +85,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-    })
-
-    if (linkError || !linkData?.properties?.action_link) {
-      console.error('Status: failed to generate magic link', linkError)
-      return NextResponse.json({ ready: false }, { status: 500 })
-    }
-
-    const actionUrl = new URL(linkData.properties.action_link)
-    const token = actionUrl.searchParams.get('token')
-    const type = actionUrl.searchParams.get('type')
-
-    if (!token || !type) {
-      console.error('Status: no token found in magic link')
-      return NextResponse.json({ ready: false }, { status: 500 })
-    }
-
-    const verifyUrl = new URL('/auth/verify', appUrl)
-    verifyUrl.searchParams.set('token_hash', token)
-    verifyUrl.searchParams.set('type', type)
-
-    const productKey = (order.metadata as Record<string, unknown>)?.product_key as string | undefined
-
-    return NextResponse.json({
-      ready: true,
-      redirectUrl: verifyUrl.toString(),
-      amount: order.total_amount != null ? order.total_amount / 100 : undefined,
-      currency: order.currency || 'usd',
-      product: productKey || 'intensive',
-      orderId: order.id,
-      paymentIntentId: paymentIntentId || undefined,
-    })
   } catch (err) {
     console.error('Checkout status error:', err)
     return NextResponse.json({ ready: false }, { status: 500 })

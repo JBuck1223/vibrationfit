@@ -457,7 +457,7 @@ export function CommitVisionDialog({
       const names = new Map<string, string>()
       if (creatorIds.length > 0) {
         const { data: accounts } = await supabase
-          .from('user_accounts')
+          .from('member_public_profiles')
           .select('id, full_name, first_name, last_name')
           .in('id', creatorIds)
         for (const account of accounts || []) names.set(account.id, accountDisplayName(account))

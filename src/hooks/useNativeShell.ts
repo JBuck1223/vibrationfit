@@ -23,3 +23,12 @@ export function useNativeShell(): NativeShellState {
 
   return state
 }
+
+/**
+ * True once mounted inside the Capacitor iOS/Android shell; false on the web and
+ * during SSR/first paint. Use it to drop purchase / sign-up CTAs from the shell
+ * (App Review 3.1.1). Static anchors can use the `hide-in-native` class instead.
+ */
+export function useIsNativeShell(): boolean {
+  return useNativeShell().isNative
+}

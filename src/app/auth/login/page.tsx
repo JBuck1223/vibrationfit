@@ -46,7 +46,7 @@ function LoginForm() {
   }, [])
 
   const redirectAfterLogin = async () => {
-    if (returnTo && returnTo.startsWith('/')) {
+    if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('\\')) {
       router.push(returnTo)
       return
     }
@@ -211,6 +211,9 @@ function LoginForm() {
           />
         </div>
 
+        {searchParams.get('checkout') === 'complete' && (
+          <p className="mb-6 text-neutral-300">Sign in with your purchase email to finish setup. If you haven&apos;t set a password, use the email sign-in option below.</p>
+        )}
         <form onSubmit={handleLogin} className="space-y-6">
           <Input
             type="email"

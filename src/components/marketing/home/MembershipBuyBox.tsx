@@ -47,7 +47,7 @@ export function MembershipBuyBox({ id }: { id?: string } = {}) {
 
       <a
         href={MEMBERSHIP_CHECKOUT_HREF}
-        className="mt-5 inline-flex w-full items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-6 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:w-auto md:whitespace-nowrap md:px-7"
+        className="hide-in-native mt-5 inline-flex w-full items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-6 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:w-auto md:whitespace-nowrap md:px-7"
       >
         {MEMBERSHIP_CTA_LABEL}
         <ArrowRight className="h-4 w-4 shrink-0" />

@@ -25,7 +25,7 @@ export async function GET(
     const id = rawId === 'me' ? user.id : rawId
 
     let { data: member, error: memberError } = await supabase
-      .from('user_accounts')
+      .from('member_public_profiles')
       .select('id, full_name, first_name, profile_picture_url, cover_image_url, occupation, social_links, created_at, about_me, favorite_quote, role')
       .eq('id', id)
       .maybeSingle()
@@ -33,7 +33,7 @@ export async function GET(
     // Fallback if favorite_quote column doesn't exist yet
     if (memberError?.code === 'PGRST204' || memberError?.message?.includes('favorite_quote') || memberError?.message?.includes('cover_image_url') || memberError?.message?.includes('occupation') || memberError?.message?.includes('social_links')) {
       ({ data: member, error: memberError } = await supabase
-        .from('user_accounts')
+        .from('member_public_profiles')
         .select('id, full_name, first_name, profile_picture_url, created_at, about_me, role')
         .eq('id', id)
         .maybeSingle())

@@ -30,6 +30,7 @@ import {
 import type { VideoSession, VideoSessionParticipant } from '@/lib/video/types'
 import { getSessionStatusLabel, isSessionJoinable, formatDuration } from '@/lib/video/types'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
 
 type SessionWithParticipants = VideoSession & {
   participants?: VideoSessionParticipant[]
@@ -72,6 +73,7 @@ function formatTime(dateString: string, tz: string) {
 
 export default function MemberSessionsPage() {
   const router = useRouter()
+  const isNativeShell = useIsNativeShell()
   const supabase = createClient()
   
   const [sessions, setSessions] = useState<SessionWithParticipants[]>([])
@@ -167,14 +169,16 @@ export default function MemberSessionsPage() {
           title="My Sessions"
           subtitle="Your scheduled coaching sessions with your guide"
         >
-          <Button 
-            variant="primary" 
-            size="sm"
-            onClick={() => router.push('/intensive/schedule-call')}
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Schedule a Call
-          </Button>
+          {!isNativeShell && (
+            <Button 
+              variant="primary" 
+              size="sm"
+              onClick={() => router.push('/intensive/schedule-call')}
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Schedule a Call
+            </Button>
+          )}
         </PageHero>
 
         {error && (
@@ -197,14 +201,16 @@ export default function MemberSessionsPage() {
             <p className="text-sm md:text-base text-neutral-400 mb-6">
               You don&apos;t have any scheduled sessions. Check the Activation Intensive to schedule your calibration call.
             </p>
-            <Button 
-              variant="primary" 
-              size="sm"
-              onClick={() => router.push('/intensive/schedule-call')}
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Schedule a Call
-            </Button>
+            {!isNativeShell && (
+              <Button 
+                variant="primary" 
+                size="sm"
+                onClick={() => router.push('/intensive/schedule-call')}
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Schedule a Call
+              </Button>
+            )}
           </Card>
         )}
 

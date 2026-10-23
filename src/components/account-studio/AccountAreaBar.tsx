@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { User, LayoutGrid, CreditCard, Shield, Home, Palette } from 'lucide-react'
 import { AreaBar, type AreaBarTab } from '@/lib/design-system/components'
 import { useInShell } from '@/lib/app-shell/shell-context'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
+import { isNativeExternalPath } from '@/lib/mobile/native-shell'
 import { cn } from '@/lib/utils'
 
 const TABS: AreaBarTab[] = [
@@ -23,6 +25,9 @@ const TABS: AreaBarTab[] = [
 
 export function AccountAreaBar() {
   const inShell = useInShell()
+  const isNativeShell = useIsNativeShell()
+  // Billing never renders inside the native shell (App Review 3.1.1).
+  const tabs = isNativeShell ? TABS.filter((tab) => !isNativeExternalPath(tab.path)) : TABS
   const pathname = (usePathname() ?? '/account').replace(/\/$/, '') || '/account'
 
   if (inShell) {
@@ -31,7 +36,7 @@ export function AccountAreaBar() {
     return (
       <nav aria-label="Account pages" className="-mx-4 mb-5 overflow-x-auto px-4 scrollbar-hide md:mx-0 md:px-0">
         <div className="flex w-max gap-2 md:mx-auto md:w-auto md:flex-wrap md:justify-center">
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const active = tab.path === '/account' ? pathname === '/account' : pathname === tab.path || pathname.startsWith(tab.path + '/')
             const Icon = tab.icon
             return (
@@ -58,7 +63,7 @@ export function AccountAreaBar() {
     <AreaBar
       area={{ name: 'Account', icon: User }}
       areaHeadline="Account Settings"
-      tabs={TABS}
+      tabs={tabs}
       variant="default"
       appLikePrimaryTabs
       fluidAppLikeTabs

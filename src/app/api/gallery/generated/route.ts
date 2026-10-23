@@ -1,7 +1,8 @@
 // /src/app/api/gallery/generated/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { deleteUserFile } from '@/lib/storage/s3-storage-presigned'
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { canAccessStorageKey } from '@/lib/security/storage-policy'
 
 export async function GET() {
   try {
@@ -55,7 +56,11 @@ export async function DELETE(request: Request) {
     }
 
     // Delete from S3
-    await deleteUserFile(data.s3_key)
+    if (!canAccessStorageKey(data.s3_key, user.id)) {
+      return NextResponse.json({ error: 'Forbidden storage key' }, { status: 403 })
+    }
+    const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' })
+    await s3.send(new DeleteObjectCommand({ Bucket: 'vibration-fit-client-storage', Key: data.s3_key }))
 
     // Delete DB row
     const { error: delErr } = await supabase

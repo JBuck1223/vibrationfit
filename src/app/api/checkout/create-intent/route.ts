@@ -198,12 +198,11 @@ export async function POST(request: NextRequest) {
     let redirectToSetupPassword = false
     const foundUserId = lockedUserId || await getUserIdByEmail(supabaseAdmin, email)
     if (foundUserId) {
-      userId = foundUserId
-      if (hasPassword) {
-        await supabaseAdmin.auth.admin.updateUserById(userId, { password: password! })
-      } else {
-        redirectToSetupPassword = true
+      // Never mutate an existing account on the strength of a submitted email.
+      if (await currentSessionUserId() !== foundUserId) {
+        return NextResponse.json({ error: 'Please sign in to your existing account before continuing checkout.', code: 'SIGN_IN_REQUIRED' }, { status: 403 })
       }
+      userId = foundUserId
     } else {
       const tempPassword = hasPassword ? password! : randomBytes(32).toString('hex')
       const tempNameParts = (name || '').trim().split(' ')
@@ -532,7 +531,7 @@ export async function POST(request: NextRequest) {
               .single()
 
             if (intensiveOI) {
-              const { error: grantError } = await supabase.rpc('grant_trial_tokens', {
+              const { error: grantError } = await supabaseAdmin.rpc('grant_trial_tokens', {
                 p_user_id: userId,
                 p_intensive_id: intensiveOI.id,
               })

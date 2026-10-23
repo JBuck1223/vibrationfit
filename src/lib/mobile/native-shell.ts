@@ -29,6 +29,8 @@ export const NATIVE_EXTERNAL_PATH_PREFIXES = [
   '/join',
   '/checkout',
   '/billing',
+  '/account/billing',
+  '/member/offers',
   '/premium-application',
   '/free-activation',
   '/intensive',

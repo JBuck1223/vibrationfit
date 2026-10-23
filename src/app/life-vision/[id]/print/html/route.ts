@@ -99,7 +99,7 @@ async function getVisionById(id: string): Promise<{ vision: VisionData; userProf
       if (members && members.length > 0) {
         const userIds = members.map((m: any) => m.user_id)
         const { data: accounts } = await supabase
-          .from('user_accounts')
+          .from('member_public_profiles')
           .select('first_name, last_name, full_name')
           .in('id', userIds)
         
@@ -109,8 +109,8 @@ async function getVisionById(id: string): Promise<{ vision: VisionData; userProf
       }
     } else if (vision.user_id) {
       const { data: account } = await supabase
-        .from('user_accounts')
-        .select('first_name, full_name, email')
+        .from('member_public_profiles')
+        .select('first_name, full_name')
         .eq('id', vision.user_id)
         .single()
       

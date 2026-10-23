@@ -323,10 +323,7 @@ export default function AccountSettingsPage() {
         const { error: authError } = await supabase.auth.updateUser({ email })
         if (authError) throw authError
         
-        await supabase
-          .from('user_accounts')
-          .update({ email })
-          .eq('id', user.id)
+        // Account email is synchronized only after Auth confirms the change.
       }
       
       if (email !== originalAccount?.email) {

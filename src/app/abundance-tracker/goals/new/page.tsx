@@ -7,7 +7,7 @@ import { useInShell } from '@/lib/app-shell/shell-context'
 import { SetGoalForm } from '../set-goal-form'
 
 /** Read by the Goals page: open the new-goal form in place. */
-export const OPEN_NEW_GOAL_KEY = 'vf_open_new_goal'
+const OPEN_NEW_GOAL_KEY = 'vf_open_new_goal'
 
 export default function AbundanceGoalsNewPage() {
   const inShell = useInShell()

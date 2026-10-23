@@ -154,7 +154,7 @@ export async function loadMeditationCatalog(db: AdminDb, userId: string) {
 
   const { data: accounts } = creatorIds.size
     ? await db
-        .from('user_accounts')
+        .from('member_public_profiles')
         .select('id, full_name, first_name, last_name')
         .in('id', [...creatorIds])
     : { data: [] as Array<{ id: string; full_name: string | null; first_name: string | null; last_name: string | null }> }

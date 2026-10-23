@@ -37,6 +37,10 @@ export default function CheckoutSuccessPage() {
         const res = await fetch(`/api/checkout/status?${qs}`)
         const data = await res.json()
 
+        if (data.requiresSignIn && data.redirectUrl) {
+          window.location.href = data.redirectUrl
+          return
+        }
         if (data.ready && data.redirectUrl) {
           if (!conversionFired.current) {
             conversionFired.current = true
@@ -89,7 +93,7 @@ export default function CheckoutSuccessPage() {
         <Spinner size="lg" className="mx-auto mb-4" />
         <h1 className="text-xl font-bold text-white mb-2">Setting up your account</h1>
         <p className="text-neutral-400">
-          You&apos;ll be redirected to set your password in a moment.
+          We&apos;re confirming your purchase. You may be asked to sign in or verify your email.
         </p>
       </Card>
     </Container>

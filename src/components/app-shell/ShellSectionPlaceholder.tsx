@@ -4,6 +4,8 @@ import React from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { getSection, type SectionId } from '@/lib/app-shell/sections'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
+import { isNativeExternalPath } from '@/lib/mobile/native-shell'
 
 /**
  * Phase 0 stand-in for a section root: the section hero on its theme image
@@ -14,6 +16,8 @@ import { getSection, type SectionId } from '@/lib/app-shell/sections'
 export function ShellSectionPlaceholder({ sectionId }: { sectionId: SectionId }) {
   const section = getSection(sectionId)
   const Icon = section.icon
+  const isNativeShell = useIsNativeShell()
+  const tabs = isNativeShell ? section.tabs.filter((tab) => !isNativeExternalPath(tab.href)) : section.tabs
 
   return (
     <div className="space-y-6" data-section={section.accent === 'viva' ? 'viva' : undefined}>
@@ -29,9 +33,9 @@ export function ShellSectionPlaceholder({ sectionId }: { sectionId: SectionId })
         </p>
       </section>
 
-      {section.tabs.length > 0 && (
+      {tabs.length > 0 && (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {section.tabs.map((tab) => (
+          {tabs.map((tab) => (
             <li key={tab.href}>
               <Link
                 href={tab.href}

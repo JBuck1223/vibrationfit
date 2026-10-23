@@ -1,3 +1,5 @@
+import { verifyAdminAccess } from '@/lib/supabase/admin'
+import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, ListObjectsV2Command, CopyObjectCommand, HeadBucketCommand } from '@aws-sdk/client-s3'
 
@@ -11,6 +13,16 @@ const s3Client = new S3Client({
 
 export async function POST(request: NextRequest) {
   try {
+    const secret = process.env.CRON_SECRET
+    const supplied = request.headers.get('authorization') || ''
+    const expected = secret ? `Bearer ${secret}` : ''
+    const cron = !!expected && Buffer.byteLength(supplied) === Buffer.byteLength(expected) &&
+      timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))
+    if (!cron) {
+      const access = await verifyAdminAccess()
+      if ('error' in access) return NextResponse.json({ error: access.error }, { status: access.status })
+    }
+
     const PRIMARY_BUCKET = "vibration-fit-client-storage"
     const BACKUP_BUCKET = "vibration-fit-client-storage-backup"
     
@@ -163,11 +175,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Allow GET requests for testing
-export async function GET() {
-  return NextResponse.json({
-    message: "Vibration Fit S3 Backup API",
-    status: "ready",
-    timestamp: new Date().toISOString()
-  })
+// Vercel cron invokes GET with its configured CRON_SECRET bearer token.
+export async function GET(request: NextRequest) {
+  return POST(request)
 }

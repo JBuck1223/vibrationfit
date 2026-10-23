@@ -33,6 +33,7 @@ import { getVisionCategoryLabel, type VisionCategoryKey } from '@/lib/design-sys
 import { ACTIVATION_COPY } from '@/lib/activation/copy'
 import { ACTIVATION_IMMERSION_OFFER_VIDEO } from '@/lib/activation/videos'
 import { toast } from 'sonner'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
 import { ActivationMediaPick } from '@/components/activation/ActivationMediaPick'
 import type { ActivationGenreId, ActivationVoiceId } from '@/lib/activation/media-options'
 
@@ -383,7 +384,9 @@ export function ActivationDelivery({
   const visionAudio = audioTracks.find((t) => t.section_key === 'life_i_choose')
   const storyAudio = audioTracks.find((t) => t.section_key === 'future_self_story')
   const assetStatus = activation.asset_status || {}
-  const showOffer = phase !== 'preview'
+  const isNativeShell = useIsNativeShell()
+  // The membership offer is a purchase; it never renders inside the native shell.
+  const showOffer = phase !== 'preview' && !isNativeShell
 
   useEffect(() => {
     if (!showOffer || !offerRef.current) return

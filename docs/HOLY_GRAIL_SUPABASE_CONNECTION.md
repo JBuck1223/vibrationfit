@@ -9,7 +9,7 @@ After extensive troubleshooting, here's the **exact connection method** that suc
 ### ✅ The Working Connection String
 
 ```bash
-postgresql://postgres:YOUR_PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres
+${DATABASE_URL}
 ```
 
 ### 🔑 Key Discovery
@@ -18,12 +18,12 @@ postgresql://postgres:YOUR_PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres
 
 **Wrong (doesn't work):**
 ```bash
-postgresql://postgres.nxjhqibnlbwzzphewncj:PASSWORD@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres
+${DATABASE_URL}
 ```
 
 **Right (works!):**
 ```bash
-postgresql://postgres:wZnargrTWlMtyC5A@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres
+${DATABASE_URL}
 ```
 
 ## Pull Production Schema
@@ -35,7 +35,7 @@ cd /Users/jordanbuckingham/Desktop/vibrationfit
 
 # Use PostgreSQL 17 pg_dump for production database
 /opt/homebrew/opt/postgresql@17/bin/pg_dump \
-  "postgresql://postgres:wZnargrTWlMtyC5A@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres" \
+  "${DATABASE_URL}" \
   --schema-only --no-owner --no-acl \
   > supabase/COMPLETE_SCHEMA_DUMP.sql
 ```
@@ -52,13 +52,13 @@ cd /Users/jordanbuckingham/Desktop/vibrationfit
 # Full command that works
 cd /Users/jordanbuckingham/Desktop/vibrationfit
 
-supabase db pull --db-url "postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres"
+supabase db pull --db-url "${DATABASE_URL}"
 ```
 
 ### For VibrationFit Production
 
 ```bash
-supabase db pull --db-url "postgresql://postgres:wZnargrTWlMtyC5A@db.nxjhqibnlbwzzphewncj.supabase.co:5432/postgres"
+supabase db pull --db-url "${DATABASE_URL}"
 ```
 
 ## What Made This Work
@@ -80,10 +80,10 @@ If you get migration history mismatch errors, repair them:
 
 ```bash
 # Mark migrations as reverted (if they don't exist locally)
-supabase migration repair --status reverted YYYYMMDDHHMMSS --db-url "postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres"
+supabase migration repair --status reverted YYYYMMDDHHMMSS --db-url "${DATABASE_URL}"
 
 # Mark migrations as applied (if they exist in production)
-supabase migration repair --status applied YYYYMMDDHHMMSS --db-url "postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres"
+supabase migration repair --status applied YYYYMMDDHHMMSS --db-url "${DATABASE_URL}"
 ```
 
 ## Clean Pull Strategy (Archive Everything)
@@ -154,7 +154,7 @@ This method successfully:
 ```bash
 cd /Users/jordanbuckingham/Desktop/vibrationfit
 
-psql "postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres" -c "
+psql "${DATABASE_URL}" -c "
 SELECT 
   table_name,
   column_name,
@@ -175,7 +175,7 @@ echo "✅ Schema reference saved"
 
 ```bash
 # Pull schema as migration (won't be auto-applied)
-supabase db pull --db-url "postgresql://postgres:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres"
+supabase db pull --db-url "${DATABASE_URL}"
 
 # This creates: supabase/migrations/YYYYMMDDHHMMSS_remote_schema.sql
 # Move it to documentation location

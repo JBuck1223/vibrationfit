@@ -77,7 +77,7 @@ export async function GET(
     let profileMap: Record<string, string | null> = {}
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
-        .from('user_accounts')
+        .from('member_public_profiles')
         .select('id, profile_picture_url')
         .in('id', userIds)
       if (profiles) {
@@ -151,7 +151,7 @@ export async function POST(
     let senderName = participant?.name
     let profilePictureUrl: string | null = null
     const { data: senderAccount } = await supabase
-      .from('user_accounts')
+      .from('member_public_profiles')
       .select('first_name, full_name, profile_picture_url')
       .eq('id', user.id)
       .single()

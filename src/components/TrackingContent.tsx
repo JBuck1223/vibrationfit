@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, Button, Container, Stack, TrackingMilestoneCard } from '@/lib/design-system'
 import Link from 'next/link'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
 import HouseholdTokenBalance from '@/components/HouseholdTokenBalance'
 import AssessmentBarChart from '@/app/assessment/components/AssessmentBarChart'
 import { RetentionDashboard } from '@/components/retention'
@@ -40,6 +41,7 @@ interface DashboardContentProps {
 }
 
 export default function TrackingContent({ user, profileData, visionData, visionBoardData, journalData, assessmentData = [], profileCount, audioSetsCount, refinementsCount, storageQuotaGB }: DashboardContentProps) {
+  const isNativeShell = useIsNativeShell()
   const [storageUsed, setStorageUsed] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
@@ -477,9 +479,11 @@ export default function TrackingContent({ user, profileData, visionData, visionB
                     <p className="text-[11px] text-neutral-500">Vibration Fit Pro</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/account/billing" className="text-xs">Manage</Link>
-                </Button>
+                {!isNativeShell && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/account/billing" className="text-xs">Manage</Link>
+                  </Button>
+                )}
               </div>
               <div className="space-y-2.5">
                 <div className="flex justify-between items-center">

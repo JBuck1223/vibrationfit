@@ -7,7 +7,7 @@ import { randomBytes } from 'crypto'
 import { stripe, STRIPE_CONFIG } from '@/lib/stripe/config'
 import { findOrCreateStripeCustomerByEmail } from '@/lib/stripe/customer'
 import { getActivePackByKey } from '@/lib/billing/packs'
-import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { triggerEvent } from '@/lib/messaging/events'
@@ -426,7 +426,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const supabase = await createServerClient()
+  const supabase = createAdminClient()
   
   // Create admin client for user creation
   const supabaseAdmin = createClient(

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Card, Button, Badge } from '@/lib/design-system'
 import { CheckCircle, Circle, MapPin, Dumbbell, Music, BookOpen, GraduationCap, Unlock, Compass, UserCircle, DollarSign, FileText, Gift } from 'lucide-react'
 import type { GraduateChecklistProgress } from '@/lib/graduate-checklist'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
 
 interface GraduateChecklistCardProps {
   progress: GraduateChecklistProgress
@@ -87,6 +88,7 @@ const ITEMS: Array<{
 
 export function GraduateChecklistCard({ progress }: GraduateChecklistCardProps) {
   const completedCount = ITEMS.filter(item => progress[item.key]).length
+  const isNativeShell = useIsNativeShell()
 
   return (
     <Card className="relative overflow-hidden p-4 md:p-6 lg:p-8 border-2 border-[#39FF14]/30 bg-[#0A0F0A]">
@@ -102,12 +104,14 @@ export function GraduateChecklistCard({ progress }: GraduateChecklistCardProps) 
         <p className="text-xs text-[#39FF14] mt-2">
           {completedCount} of {ITEMS.length} complete
         </p>
-        <Button variant="outline" size="sm" asChild className="mt-3">
-          <Link href="/intensive/journey" className="inline-flex items-center gap-1.5">
-            <Compass className="w-4 h-4" />
-            View Your Intensive Journey
-          </Link>
-        </Button>
+        {!isNativeShell && (
+          <Button variant="outline" size="sm" asChild className="mt-3">
+            <Link href="/intensive/journey" className="inline-flex items-center gap-1.5">
+              <Compass className="w-4 h-4" />
+              View Your Intensive Journey
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Step Cards */}

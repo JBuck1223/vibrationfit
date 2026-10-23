@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
           quantity: requestedQuantity,
           source: 'saved_payment_method',
         },
-        supabase
+        serviceClient
       )
     }
 

@@ -71,7 +71,7 @@ export function ActivationOfferCard() {
 
       <a
         href={FREE_ACTIVATION_HREF}
-        className="mt-5 inline-flex items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-6 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:whitespace-nowrap md:px-7"
+        className="hide-in-native mt-5 inline-flex items-center justify-center gap-2 whitespace-normal rounded-full border-2 border-transparent bg-[#39FF14] px-6 py-3 text-center text-sm font-semibold text-black antialiased transition-all duration-300 hover:border-[rgba(57,255,20,0.2)] hover:bg-[rgba(57,255,20,0.1)] hover:text-[#39FF14] active:opacity-80 md:whitespace-nowrap md:px-7"
       >
         {FREE_ACTIVATION_START_CTA}
         <ArrowRight className="h-4 w-4 shrink-0" />

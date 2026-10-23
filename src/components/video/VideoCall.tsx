@@ -561,7 +561,7 @@ function VideoCallUI({
       try {
         const supabase = createClient()
         const { data } = await supabase
-          .from('user_accounts')
+          .from('member_public_profiles')
           .select('id, profile_picture_url')
           .in('id', newUserIds)
 

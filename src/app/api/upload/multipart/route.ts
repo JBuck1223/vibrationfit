@@ -1,7 +1,7 @@
+import { storageActor, storageKeyAllowed } from '@/lib/security/storage-access'
 import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { createClient } from '@/lib/supabase/server'
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -15,15 +15,14 @@ const BUCKET_NAME = 'vibration-fit-client-storage'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const actor = await storageActor()
+    if (!actor) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { user } = actor
 
     const body = await request.json()
     const { action, key, uploadId, parts, fileType, partNumber, totalParts } = body
+
+    if (!await storageKeyAllowed(actor, key)) return NextResponse.json({ error: 'Forbidden storage key' }, { status: 403 })
 
     switch (action) {
       case 'create': {

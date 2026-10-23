@@ -21,6 +21,8 @@ import {
   Bell,
 } from 'lucide-react'
 import { useInShell } from '@/lib/app-shell/shell-context'
+import { useIsNativeShell } from '@/hooks/useNativeShell'
+import { isNativeExternalPath } from '@/lib/mobile/native-shell'
 import type { LucideIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatPhoneDisplay, phoneToDigits } from '@/lib/phone-format'
@@ -155,6 +157,9 @@ export default function AccountDashboardPage() {
   const [imageLoadError, setImageLoadError] = useState(false)
   // App shell: brighter secondary text so it reads on the glass.
   const inShell = useInShell()
+  const isNativeShell = useIsNativeShell()
+  // Billing never renders inside the native shell (App Review 3.1.1).
+  const quickLinks = isNativeShell ? QUICK_LINKS.filter((link) => !isNativeExternalPath(link.href)) : QUICK_LINKS
   const supabase = createClient()
 
   useEffect(() => {
@@ -262,7 +267,7 @@ export default function AccountDashboardPage() {
         <h2 className="sr-only">Shortcuts</h2>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-          {QUICK_LINKS.map((link) => {
+          {quickLinks.map((link) => {
             const Icon = link.icon
             return (
               <Link
