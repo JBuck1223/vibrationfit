@@ -1,5 +1,6 @@
 'use client'
 
+import { stripMarkdown } from '@/lib/audio/content-normalize'
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -426,7 +427,7 @@ export default function StoryHubPage() {
                         </div>
                         {story.content && (
                           <p className="hidden md:line-clamp-1 text-[13px] text-neutral-300 leading-relaxed mb-1.5">
-                            {story.content}
+                            {stripMarkdown(story.content)}
                           </p>
                         )}
                         {/* Stats row */}

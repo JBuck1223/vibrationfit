@@ -1,5 +1,6 @@
 'use client'
 
+import { stripMarkdown } from '@/lib/audio/content-normalize'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
@@ -174,7 +175,7 @@ export default function StoryAudioPage() {
                         <AudioStatusBadge status={status} />
                       </div>
                       {story.content && (
-                        <p className="text-xs text-neutral-500 line-clamp-2 mb-2">{story.content.slice(0, 120)}</p>
+                        <p className="text-xs text-neutral-500 line-clamp-2 mb-2">{stripMarkdown(story.content).slice(0, 120)}</p>
                       )}
                       <div className="flex items-center gap-3 text-[11px] text-neutral-500">
                         {story.word_count && story.word_count > 0 && <span>{story.word_count} words</span>}
@@ -233,7 +234,7 @@ function SelectedStoryPanel({
 
         {/* Content preview */}
         {story.content && (
-          <p className="text-sm text-neutral-400 line-clamp-3 mb-6">{story.content.slice(0, 250)}</p>
+          <p className="text-sm text-neutral-400 line-clamp-3 mb-6">{stripMarkdown(story.content).slice(0, 250)}</p>
         )}
 
         {/* Audio playback */}
