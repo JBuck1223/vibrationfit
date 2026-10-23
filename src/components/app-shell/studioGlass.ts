@@ -12,10 +12,10 @@ const esc = (cls: string) => cls.replace(/([:/[\].#!%(),])/g, '\\$1')
 const sel = (classes: string[]) => classes.map((c) => `${P} .${esc(c)}`).join(',\n')
 
 // Main panels: the same glass as Home's cards.
-const PANELS = ['bg-embedded-panel', 'bg-[#0A0A0A]', 'bg-[#101010]', 'bg-[#0c0c0c]', 'bg-[#111111]', 'bg-[#111]', 'bg-[#101010]/90', 'md:!bg-[#101010]']
+const PANELS = ['bg-embedded-panel', 'bg-[#0A0A0A]', 'bg-[#101010]', 'bg-[#0c0c0c]', 'bg-[#111111]', 'bg-[#111]', 'bg-[#101010]/90', 'md:!bg-[#101010]', 'bg-[#161616]', 'bg-[#0D0D0D]']
 // Insets inside a panel: a faint lift instead of a darker well.
-const INSETS = ['bg-[#0a0a0a]', 'bg-[#131313]', 'bg-[#0c0c0c]/50', 'bg-[#1A1A1A]', 'bg-[#1a1a1a]', '!bg-[#1A1A1A]', 'bg-[#404040]', 'bg-[#1F1F1F]']
-const BORDERS = ['border-[#1A1A1A]', 'border-[#282828]', 'border-[#252525]', 'border-[#2a2a2a]', 'border-[#333]', 'border-[#1F1F1F]', 'md:!border-[#1F1F1F]', '!border-[#282828]', 'border-[#666666]', 'border-[#555]', 'border-[#404040]']
+const INSETS = ['bg-[#0a0a0a]', 'bg-[#131313]', 'bg-[#0c0c0c]/50', 'bg-[#1A1A1A]', 'bg-[#1a1a1a]', '!bg-[#1A1A1A]', 'bg-[#404040]', 'bg-[#1F1F1F]', 'bg-[#1c1c1c]', 'bg-[#141414]']
+const BORDERS = ['border-[#1A1A1A]', 'border-[#282828]', 'border-[#252525]', 'border-[#2a2a2a]', 'border-[#333]', 'border-[#1F1F1F]', 'md:!border-[#1F1F1F]', '!border-[#282828]', 'border-[#666666]', 'border-[#555]', 'border-[#404040]', 'border-[#2a2a2a]', 'border-[#2e2e2e]', 'border-[#262626]']
 
 export const STUDIO_GLASS_CSS = `
 ${sel(PANELS)} {
@@ -30,6 +30,20 @@ ${sel(BORDERS)} {
   border-color: rgba(255,255,255,0.12) !important;
 }
 ${P} .${esc('ring-white/[0.08]')} { --tw-ring-color: rgba(255,255,255,0.12); }
+/* Sticky save bars inside a card stay solid enough to read over the text. */
+${P} .${esc('bg-[#1c1c1c]/95')} { background: rgba(32,26,45,0.94) !important; }
+/* Dropdown menus drawn in #1F1F1F float over the page: solid glass, so
+   their text reads over whatever is underneath. */
+${P} .absolute.${esc('bg-[#1F1F1F]')} {
+  background: rgba(28,22,38,0.97) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5) !important;
+}
+${P} .${esc('hover:bg-[#2A2A2A]')}:hover, ${P} .${esc('hover:bg-[#333]')}:hover { background: rgba(255,255,255,0.08) !important; }
+/* Small empty-state dots. */
+${P} .${esc('bg-[#3a3a3a]')} { background: rgba(255,255,255,0.2) !important; }
 /* Fades drawn in the old panel color (lyrics scroll edges) blend with the glass. */
 ${P} { --color-embedded-panel: rgba(32,26,45,0.9); }
 
