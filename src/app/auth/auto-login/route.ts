@@ -5,29 +5,32 @@ import Stripe from 'stripe'
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const sessionId = searchParams.get('session_id')
-    let email = searchParams.get('email')
-
-    // Always fetch email from Stripe session for reliability
-    if (sessionId) {
-      console.log('Fetching email from Stripe session:', sessionId)
-      
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: '2025-09-30.clover',
-      })
-      
-      try {
-        const session = await stripe.checkout.sessions.retrieve(sessionId)
-        email = session.customer_details?.email || session.customer_email
-        console.log('Retrieved email from Stripe session:', email)
-      } catch (error) {
-        console.error('Error fetching Stripe session:', error)
-      }
+    // Signs a buyer straight in after Stripe checkout. Only a completed, paid
+    // checkout from the last hour counts, and only the email Stripe holds for
+    // it: an email in the URL is never trusted (it would sign anyone in as
+    // anyone).
+    const sessionId = request.nextUrl.searchParams.get('session_id')
+    if (!sessionId) {
+      return NextResponse.redirect(new URL('/auth/login', request.url))
     }
-    
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2025-09-30.clover',
+    })
+
+    let email: string | null = null
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId)
+      const paid = session.status === 'complete' && (session.payment_status === 'paid' || session.payment_status === 'no_payment_required')
+      const recent = Date.now() / 1000 - session.created < 60 * 60
+      if (paid && recent) {
+        email = session.customer_details?.email || session.customer_email || null
+      }
+    } catch (error) {
+      console.error('Auto-login: Stripe session lookup failed:', error)
+    }
+
     if (!email) {
-      console.error('No email found')
       return NextResponse.redirect(new URL('/auth/login', request.url))
     }
 
