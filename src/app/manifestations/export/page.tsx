@@ -10,6 +10,9 @@ import { Button, Spinner, CategoryGrid, Toggle } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import Link from 'next/link'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 
 const PAPER_SIZES = [
   { value: 'letter-landscape', label: 'Letter', desc: 'Landscape' },
@@ -61,6 +64,9 @@ function ExportPageContent() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const isIntensivePath = pathname?.startsWith('/intensive') ?? false
+  // App shell: glass panels, the header's back arrow, categories in a sheet.
+  const sh = useInShell()
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false)
 
   const [outputFormat, setOutputFormat] = useState<'pdf' | 'image'>('pdf')
   const [paperSize, setPaperSize] = useState('letter-landscape')
@@ -345,17 +351,19 @@ function ExportPageContent() {
 
   return (
     <div className="flex flex-col">
-      <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-4 md:p-5 mb-6 space-y-4">
+      <div className={sh ? `${GLASS_CARD} p-4 md:p-5 mb-4 space-y-4` : 'rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-4 md:p-5 mb-6 space-y-4'}>
         {/* Top bar: back, format toggle, download */}
         <div className="relative flex items-center justify-between gap-3">
+          {!sh && (
           <Button asChild variant="outline" size="sm" className="shrink-0">
             <Link href={isIntensivePath ? '/intensive/vision-board' : '/manifestations'} className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back</span>
             </Link>
           </Button>
+          )}
 
-          <div className="absolute left-1/2 -translate-x-1/2">
+          <div className={sh ? '' : 'absolute left-1/2 -translate-x-1/2'}>
             <Toggle
               options={[
                 { value: 'pdf', label: 'PDF' },
@@ -367,6 +375,17 @@ function ExportPageContent() {
             />
           </div>
 
+          {sh ? (
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isGenerating || itemCount === 0}
+              className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-[#39FF14] px-5 text-sm font-semibold text-black shadow-[0_0_16px_rgba(57,255,20,0.3)] transition-transform active:scale-[0.98] disabled:opacity-50"
+            >
+              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {isGenerating ? 'Making...' : `Download ${outputFormat === 'pdf' ? 'PDF' : 'Image'}`}
+            </button>
+          ) : (
           <Button
             onClick={handleDownload}
             variant="primary"
@@ -386,28 +405,29 @@ function ExportPageContent() {
               </>
             )}
           </Button>
+          )}
         </div>
 
-        <p className="text-[11px] text-neutral-500 text-center">
+        <p className={sh ? 'text-xs text-white/55' : 'text-[11px] text-neutral-500 text-center'}>
           {itemCount} item{itemCount !== 1 ? 's' : ''} · ~{estimatedPages} {outputFormat === 'pdf' ? 'page' : 'image'}{estimatedPages !== 1 ? 's' : ''}
         </p>
 
         {/* Options grid: desktop = 3 cols (Paper+Display | Colors | Filters), mobile = stacked */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Column 1: Paper + Display */}
-          <div className="space-y-4 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4">
+          <div className={sh ? 'space-y-4 rounded-[18px] border border-white/10 bg-white/[0.04] p-4' : 'space-y-4 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4'}>
             {/* Paper/Ratio */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-neutral-700" />
-                <h3 className="text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide">
+                {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+                <h3 className={sh ? 'flex items-center gap-2 text-sm font-semibold text-white' : 'text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide'}>
                   {outputFormat === 'pdf' ? (
-                    <><FileText className="w-3.5 h-3.5 text-primary-500" /> Paper</>
+                    <><FileText className="w-3.5 h-3.5 text-[#39FF14]" /> Paper</>
                   ) : (
-                    <><Image className="w-3.5 h-3.5 text-primary-500" /> Ratio</>
+                    <><Image className="w-3.5 h-3.5 text-[#39FF14]" /> Ratio</>
                   )}
                 </h3>
-                <div className="h-px flex-1 bg-neutral-700" />
+                {!sh && <div className="h-px flex-1 bg-neutral-700" />}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {(outputFormat === 'pdf' ? PAPER_SIZES : IMAGE_RATIOS).map(opt => {
@@ -419,8 +439,8 @@ function ExportPageContent() {
                       onClick={() => outputFormat === 'pdf' ? setPaperSize(opt.value) : setImageRatio(opt.value)}
                       className={`px-3 py-2 rounded-xl text-left text-xs transition-all ${
                         isActive
-                          ? 'bg-primary-500/20 border border-primary-500 text-white'
-                          : 'bg-neutral-800/60 border border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                          ? sh ? 'border border-[#39FF14]/70 bg-[rgba(57,255,20,0.12)] text-white' : 'bg-primary-500/20 border border-primary-500 text-white'
+                          : sh ? 'border border-white/12 bg-white/[0.04] text-white/70 hover:text-white' : 'bg-neutral-800/60 border border-neutral-700 text-neutral-400 hover:border-neutral-600'
                       }`}
                     >
                       <div className="font-medium">{opt.label}</div>
@@ -434,25 +454,25 @@ function ExportPageContent() {
             {/* Display */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-neutral-700" />
-                <h3 className="text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide">
-                  <Eye className="w-3.5 h-3.5 text-primary-500" /> Display
+                {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+                <h3 className={sh ? 'flex items-center gap-2 text-sm font-semibold text-white' : 'text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide'}>
+                  <Eye className="w-3.5 h-3.5 text-[#39FF14]" /> Display
                 </h3>
-                <div className="h-px flex-1 bg-neutral-700" />
+                {!sh && <div className="h-px flex-1 bg-neutral-700" />}
               </div>
               <div className="space-y-3">
                 <div>
-                  <div className="text-[10px] text-neutral-500 mb-1.5 uppercase">Columns</div>
+                  <div className={sh ? 'mb-1.5 text-xs text-white/55' : 'text-[10px] text-neutral-500 mb-1.5 uppercase'}>Columns</div>
                   <div className="flex gap-1.5">
                     {COLUMN_OPTIONS.map(opt => (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => setColumns(opt.value)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`flex-1 py-1.5 ${sh ? 'rounded-full' : 'rounded-lg'} text-xs font-medium transition-all ${
                           columns === opt.value
                             ? 'bg-primary-500 text-black'
-                            : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                            : sh ? 'bg-white/[0.06] text-white/70 hover:text-white' : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                         }`}
                       >
                         {opt.label}
@@ -473,31 +493,31 @@ function ExportPageContent() {
                       <button
                         type="button"
                         onClick={() => !disabled && onChange(!checked)}
-                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        className={`w-4 h-4 ${sh ? 'rounded-full' : 'rounded'} border flex items-center justify-center shrink-0 transition-colors ${
                           checked
                             ? 'bg-[#39FF14] border-[#39FF14]'
-                            : 'bg-neutral-800 border-neutral-600'
+                            : sh ? 'bg-transparent border-white/30' : 'bg-neutral-800 border-neutral-600'
                         }`}
                         disabled={disabled}
                       >
                         {checked && <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                       </button>
-                      <span className={`text-[11px] ${disabled ? 'text-neutral-600' : 'text-neutral-300'}`}>{label}</span>
+                      <span className={`${sh ? 'text-xs' : 'text-[11px]'} ${disabled ? 'text-neutral-600' : sh ? 'text-white/80' : 'text-neutral-300'}`}>{label}</span>
                     </label>
                   ))}
                   <label className="flex items-center gap-2 cursor-pointer col-span-3">
                     <button
                       type="button"
                       onClick={() => setGroupByStatus(!groupByStatus)}
-                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                      className={`w-4 h-4 ${sh ? 'rounded-full' : 'rounded'} border flex items-center justify-center shrink-0 transition-colors ${
                         groupByStatus
                           ? 'bg-[#39FF14] border-[#39FF14]'
-                          : 'bg-neutral-800 border-neutral-600'
+                          : sh ? 'bg-transparent border-white/30' : 'bg-neutral-800 border-neutral-600'
                       }`}
                     >
                       {groupByStatus && <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </button>
-                    <span className="text-[11px] text-neutral-300">Group by status</span>
+                    <span className={sh ? 'text-xs text-white/80' : 'text-[11px] text-neutral-300'}>Group by status</span>
                   </label>
                 </div>
               </div>
@@ -505,16 +525,16 @@ function ExportPageContent() {
           </div>
 
           {/* Column 2: Colors */}
-          <div className="space-y-3 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4">
+          <div className={sh ? 'space-y-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-4' : 'space-y-3 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4'}>
             <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-neutral-700" />
-              <h3 className="text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide">
-                <Sparkles className="w-3.5 h-3.5 text-primary-500" /> Colors
+              {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+              <h3 className={sh ? 'flex items-center gap-2 text-sm font-semibold text-white' : 'text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide'}>
+                <Sparkles className="w-3.5 h-3.5 text-[#39FF14]" /> Colors
               </h3>
-              <div className="h-px flex-1 bg-neutral-700" />
+              {!sh && <div className="h-px flex-1 bg-neutral-700" />}
             </div>
             <div>
-              <div className="text-[10px] text-neutral-500 mb-1.5 uppercase text-center">Presets</div>
+              <div className={sh ? 'mb-1.5 text-center text-xs text-white/55' : 'text-[10px] text-neutral-500 mb-1.5 uppercase text-center'}>Presets</div>
               <div className="flex items-center justify-center gap-2">
                 {presetEntries.map(({ key, label }) => (
                   <button
@@ -525,7 +545,7 @@ function ExportPageContent() {
                     className="group"
                   >
                     <div
-                      className="w-8 h-8 rounded-full border-2 border-neutral-600 group-hover:border-neutral-400 transition-colors"
+                      className={`w-8 h-8 rounded-full border-2 transition-colors ${sh ? 'border-white/25 group-hover:border-white/60' : 'border-neutral-600 group-hover:border-neutral-400'}`}
                       style={{ backgroundColor: colorPresets[key].primary }}
                     />
                   </button>
@@ -533,7 +553,7 @@ function ExportPageContent() {
               </div>
             </div>
             <div>
-              <div className="text-[10px] text-neutral-500 mb-1.5 uppercase text-center">Custom</div>
+              <div className={sh ? 'mb-1.5 text-center text-xs text-white/55' : 'text-[10px] text-neutral-500 mb-1.5 uppercase text-center'}>Custom</div>
               <div className="flex items-end justify-center gap-4">
                 {colorFields.map(({ key, label }) => (
                   <div key={key} className="flex flex-col items-center gap-1">
@@ -564,17 +584,17 @@ function ExportPageContent() {
           </div>
 
           {/* Column 3: Filters (always open) */}
-          <div className="space-y-3 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4">
+          <div className={sh ? 'space-y-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-4' : 'space-y-3 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4'}>
             <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-neutral-700" />
-              <h3 className="text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide">
-                <Filter className="w-3.5 h-3.5 text-primary-500" /> Filters
+              {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+              <h3 className={sh ? 'flex items-center gap-2 text-sm font-semibold text-white' : 'text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide'}>
+                <Filter className="w-3.5 h-3.5 text-[#39FF14]" /> Filters
               </h3>
-              <div className="h-px flex-1 bg-neutral-700" />
+              {!sh && <div className="h-px flex-1 bg-neutral-700" />}
             </div>
             <div className="space-y-3">
               <div>
-                <div className="text-[10px] text-neutral-500 mb-1.5 uppercase text-center">Status</div>
+                <div className={sh ? 'mb-1.5 text-center text-xs text-white/55' : 'text-[10px] text-neutral-500 mb-1.5 uppercase text-center'}>Status</div>
                 <div className="flex flex-wrap justify-center gap-1.5">
                   {STATUS_OPTIONS.map(status => (
                     <button
@@ -584,7 +604,7 @@ function ExportPageContent() {
                       className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all ${
                         selectedStatuses.includes(status.value) || selectedStatuses.includes('all')
                           ? 'text-white'
-                          : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                          : sh ? 'border border-white/15 bg-white/[0.05] text-white/70 hover:text-white' : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                       }`}
                       style={{
                         backgroundColor: (selectedStatuses.includes(status.value) || selectedStatuses.includes('all'))
@@ -598,7 +618,30 @@ function ExportPageContent() {
                 </div>
               </div>
               <div>
-                <div className="text-[10px] text-neutral-500 mb-1.5 uppercase text-center">Categories</div>
+                <div className={sh ? 'mb-1.5 text-center text-xs text-white/55' : 'text-[10px] text-neutral-500 mb-1.5 uppercase text-center'}>Categories</div>
+                {sh ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setCategorySheetOpen(true)}
+                      className="w-full rounded-full border border-white/15 bg-white/[0.05] px-4 py-2 text-sm text-white hover:bg-white/[0.08]"
+                    >
+                      {selectedCategories.includes('all')
+                        ? 'All life categories'
+                        : selectedCategories.length === 0
+                          ? 'No categories'
+                          : `${selectedCategories.length} ${selectedCategories.length === 1 ? 'category' : 'categories'}`}
+                    </button>
+                    <CategorySheet
+                      open={categorySheetOpen}
+                      onClose={() => setCategorySheetOpen(false)}
+                      title="Include life categories"
+                      selected={selectedCategories.includes('all') ? [] : selectedCategories}
+                      onToggle={toggleCategory}
+                      onClear={() => setSelectedCategories(['all'])}
+                    />
+                  </>
+                ) : (
                 <CategoryGrid
                   categories={VISION_CATEGORIES.filter(cat => cat.key !== 'forward' && cat.key !== 'conclusion')}
                   selectedCategories={selectedCategories.includes('all') ? VISION_CATEGORIES.filter(c => c.key !== 'forward' && c.key !== 'conclusion').map(c => c.key) : selectedCategories}
@@ -606,6 +649,8 @@ function ExportPageContent() {
                   lifeVisionCategoryStrip
                   desktopColumnCount={4}
                 />
+                )}
+                {!sh && (
                 <button
                   type="button"
                   onClick={() => setSelectedCategories(['all'])}
@@ -613,6 +658,7 @@ function ExportPageContent() {
                 >
                   Select All
                 </button>
+                )}
               </div>
             </div>
           </div>
@@ -640,7 +686,7 @@ function ExportPageContent() {
             </div>
           ) : (
             <>
-              <div className="relative w-full overflow-hidden rounded-lg shadow-2xl" style={{ aspectRatio: aspectStyle }}>
+              <div className={`relative w-full overflow-hidden shadow-2xl ${sh ? 'rounded-[18px] ring-1 ring-white/15' : 'rounded-lg'}`} style={{ aspectRatio: aspectStyle }}>
                 <iframe
                   key={iframeKey}
                   src={previewUrl}
