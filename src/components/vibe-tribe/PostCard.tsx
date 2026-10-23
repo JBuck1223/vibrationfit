@@ -300,7 +300,7 @@ export function PostCard({
                   {post.user?.full_name || 'Anonymous'}
                 </Link>
                 {isGuide && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[10px] font-bold text-[#BF00FF] tracking-wide uppercase">
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 font-bold text-[#BF00FF] ${inShell ? 'text-[11px]' : 'text-[10px] tracking-wide uppercase'}`}>
                 Guide
               </span>
                 )}
@@ -369,12 +369,12 @@ export function PostCard({
           <div className="flex items-center gap-1.5 md:gap-2">
             <Link 
               href={`/snapshot/${post.user_id}`}
-              className="text-sm md:text-base font-bold text-white hover:text-primary-400 transition-colors leading-none"
+              className={`${inShell ? 'text-[15px] font-semibold' : 'text-sm font-bold'} md:text-base text-white hover:text-primary-400 transition-colors leading-none`}
             >
               {post.user?.full_name || 'Anonymous'}
             </Link>
             {isGuide && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[10px] font-bold text-[#BF00FF] tracking-wide uppercase">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 font-bold text-[#BF00FF] ${inShell ? 'text-[11px]' : 'text-[10px] tracking-wide uppercase'}`}>
                 Guide
               </span>
             )}
@@ -387,7 +387,7 @@ export function PostCard({
                   <span className="text-xs font-medium">Pinned</span>
                 </div>
               )}
-              <span className="text-sm text-neutral-500 leading-none">{timeDisplay}</span>
+              <span className={`text-sm leading-none ${inShell ? 'text-white/55' : 'text-neutral-500'}`}>{timeDisplay}</span>
             </div>
             
             {/* Menu */}
@@ -445,7 +445,7 @@ export function PostCard({
                 <span className="text-[10px] font-medium">Pinned</span>
               </div>
             )}
-            <span className="text-xs text-neutral-500 leading-none">{timeDisplay}</span>
+            <span className={`text-xs leading-none ${inShell ? 'text-white/55' : 'text-neutral-500'}`}>{timeDisplay}</span>
           </div>
           {/* Content - directly under name line. In the app shell on phones the
               body runs the full card width under the name (no avatar indent). */}
@@ -544,7 +544,7 @@ export function PostCard({
             </div>
           ) : (
             post.content && (
-              <p className="text-sm md:text-base text-white whitespace-pre-wrap leading-normal mt-1.5 min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+              <p className={`${inShell ? 'text-[15px] leading-relaxed text-white/90 mt-2' : 'text-sm text-white leading-normal mt-1.5'} md:text-base whitespace-pre-wrap min-w-0 max-w-full break-words [overflow-wrap:anywhere]`}>
                 {renderContentWithMentions(post.content, mentionedUsers)}
               </p>
             )

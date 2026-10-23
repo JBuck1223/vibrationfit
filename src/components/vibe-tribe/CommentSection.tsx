@@ -1,5 +1,6 @@
 'use client'
 
+import { useInShell } from '@/lib/app-shell/shell-context'
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { Spinner, DeleteConfirmationDialog } from '@/lib/design-system'
@@ -397,6 +398,8 @@ function CommentItem({
   userNameMap,
   highlightCommentId = null,
 }: CommentItemProps) {
+  // In the app shell comments use the shell's softer type (readable on glass).
+  const inShell = useInShell()
   const [deleting, setDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -557,16 +560,16 @@ function CommentItem({
           <div className="flex items-center gap-2">
             <Link 
               href={`/snapshot/${comment.user_id}`}
-              className="text-sm font-bold text-white hover:text-primary-400 transition-colors"
+              className={`text-sm text-white hover:text-primary-400 transition-colors ${inShell ? 'font-semibold' : 'font-bold'}`}
             >
               {comment.user?.full_name || 'Anonymous'}
             </Link>
             {(comment.user?.role === 'admin' || comment.user?.role === 'super_admin') && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 text-[10px] font-bold text-[#BF00FF] tracking-wide uppercase">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#BF00FF]/15 font-bold text-[#BF00FF] ${inShell ? 'text-[11px]' : 'text-[10px] tracking-wide uppercase'}`}>
                 Guide
               </span>
             )}
-            <span className="text-xs text-neutral-500">{timeDisplay}</span>
+            <span className={`text-xs ${inShell ? 'text-white/55' : 'text-neutral-500'}`}>{timeDisplay}</span>
           </div>
           {/* Comment content or edit input */}
           {editing ? (
@@ -612,7 +615,7 @@ function CommentItem({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-neutral-200 whitespace-pre-wrap min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+            <p className={`text-sm whitespace-pre-wrap min-w-0 max-w-full break-words [overflow-wrap:anywhere] ${inShell ? 'leading-relaxed text-white/85' : 'text-neutral-200'}`}>
               {renderContentWithMentions(comment.content, allMentionedUsers)}
               {comment.edited_at && (
                 <span className="text-xs text-neutral-500 ml-2">(edited)</span>
