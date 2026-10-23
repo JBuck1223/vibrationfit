@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli'
+import type { KeyboardResize } from '@capacitor/keyboard'
 
 /**
  * Vibration Fit native shell (iOS + Android).
@@ -69,7 +70,7 @@ const config: CapacitorConfig = {
       overlaysWebView: true,
     },
     Keyboard: {
-      resize: 'body',
+      resize: 'body' as KeyboardResize,
       resizeOnFullScreen: true,
     },
   },
