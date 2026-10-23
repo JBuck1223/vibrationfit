@@ -708,7 +708,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
           // Inside the app shell: a floating panel in the same violet frosted
           // glass as the cards and bottom bar.
           surface === 'glass'
-            ? 'vf-glass relative rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(22,18,32,0.68)_100%)] shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150'
+            ? 'group/sidebar vf-glass relative rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(22,18,32,0.68)_100%)] shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150'
             : 'bg-neutral-800 border-r border-neutral-800',
           collapsed ? 'w-16' : 'w-64',
           className
@@ -716,14 +716,18 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups = [
       >
         {renderSidebarContent(collapsed)}
         {surface === 'glass' && (
-          // A round tab half outside the panel's right edge, easy to find when collapsed.
+          // A small round tab on the panel's right edge: always there when
+          // collapsed, otherwise it fades in while you hover the sidebar.
           <button
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="absolute -right-3 top-7 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-[rgba(44,36,60,0.95)] text-white shadow-[0_4px_14px_rgba(0,0,0,0.45)] transition-colors hover:border-[#39FF14]/60 hover:text-[#39FF14]"
+            className={cn(
+              'absolute -right-2.5 top-7 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/12 bg-[rgba(36,29,50,0.9)] text-white/75 transition-all duration-200 hover:border-white/30 hover:text-white focus-visible:opacity-100',
+              collapsed ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100',
+            )}
           >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
           </button>
         )}
       </div>
