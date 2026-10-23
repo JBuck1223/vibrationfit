@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from '@/lib/utils'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import Link from 'next/link'
@@ -237,7 +238,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
       {/* Upload Progress Overlay */}
       {uploadProgress.isVisible && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-          <div className="bg-neutral-900 rounded-2xl p-6 w-full max-w-sm">
+          <div className={inShell ? 'w-full max-w-sm rounded-[24px] border border-white/[0.14] bg-[rgba(28,22,38,0.97)] p-6' : 'bg-neutral-900 rounded-2xl p-6 w-full max-w-sm'}>
             <UploadProgress
               progress={uploadProgress.progress}
               status={uploadProgress.status}
@@ -325,15 +326,18 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
           {/* Modal — flexes vertically so the scrollable middle fills available space */}
           <div 
             ref={modalRef}
-            className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl flex flex-col mt-4 md:mt-0"
+            className={inShell
+              ? 'relative mt-4 flex w-full max-w-2xl flex-col rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(40,32,56,0.98)_0%,rgba(22,18,32,0.99)_100%)] shadow-[0_18px_50px_rgba(0,0,0,0.55)] md:mt-0'
+              : 'relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl flex flex-col mt-4 md:mt-0'}
             style={{ maxHeight: viewportHeight ? `${viewportHeight - 16}px` : 'calc(100dvh - 16px)' }}
           >
             {/* Header — pinned */}
-            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-neutral-800">
+            <div className={cn('flex-shrink-0 flex items-center justify-between px-5 py-3 border-b', inShell ? 'border-white/10' : 'border-neutral-800')}>
               <h2 className="text-base font-semibold text-white">Create Post</h2>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors"
+                aria-label="Close"
+                className={inShell ? 'flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/15 hover:text-white' : 'w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors'}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -466,7 +470,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
             </div>
 
             {/* Bottom Action Bar — pinned */}
-            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-t border-neutral-800">
+            <div className={cn('flex-shrink-0 flex items-center justify-between px-5 py-3 border-t', inShell ? 'border-white/10' : 'border-neutral-800')}>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => fileInputRef.current?.click()}

@@ -333,7 +333,7 @@ export function PostCard({
   }
 
   return (
-    <div className={inShell ? 'glass-panel px-4 py-4 md:px-5' : 'py-4'}>
+    <div className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] px-4 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 md:px-5' : 'py-4'}>
       {/* Post Row */}
       <div className="flex items-start gap-3">
         {/* Avatar — tap photo to enlarge */}

@@ -63,7 +63,7 @@ ${P} .rounded.${esc('text-[10px]')} {
   text-transform: none;
   letter-spacing: normal;
 }
-${sel(['bg-neutral-900/90', 'bg-neutral-900/60', 'bg-neutral-900/50', 'bg-neutral-900'])} { background: rgba(255,255,255,0.06) !important; }
+${sel(['bg-neutral-900/90', 'bg-neutral-900/60', 'bg-neutral-900/50', 'bg-neutral-900', 'bg-neutral-800', 'bg-neutral-800/50'])} { background: rgba(255,255,255,0.06) !important; }
 ${sel(['border-neutral-600', 'border-neutral-700', 'border-neutral-800', 'border-[#1f1f1f]'])} { border-color: rgba(255,255,255,0.12) !important; }
 `
 

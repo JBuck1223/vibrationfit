@@ -224,7 +224,11 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
   }
 
   return (
-    <div className={`flex flex-col h-full min-h-screen md:min-h-0 md:h-full ${inShell ? 'bg-transparent' : 'bg-black'}`}>
+    <div
+      className={`flex flex-col h-full min-h-screen md:min-h-0 md:h-full ${inShell ? 'bg-transparent' : 'bg-black'}`}
+      // In the app shell, older dark fields inside posts (comment boxes...) pick up the glass style.
+      data-studio-glass={inShell || undefined}
+    >
       {inShell && (
         // App shell: one compact control area under the app's top bar instead
         // of a second dark sticky bar.
@@ -634,9 +638,11 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
             className="absolute inset-0 bg-black/80"
             onClick={() => setShowHowToVibe(false)}
           />
-          <div className="relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl overflow-hidden">
+          <div className={inShell
+            ? 'relative w-full max-w-2xl overflow-hidden rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(40,32,56,0.98)_0%,rgba(22,18,32,0.99)_100%)] shadow-[0_18px_50px_rgba(0,0,0,0.55)]'
+            : 'relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl overflow-hidden'}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800">
+            <div className={`flex items-center justify-between px-5 py-3 border-b ${inShell ? 'border-white/10' : 'border-neutral-800'}`}>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#BF00FF]/20 flex items-center justify-center">
                   <HelpCircle className="w-4 h-4 text-[#BF00FF]" />
