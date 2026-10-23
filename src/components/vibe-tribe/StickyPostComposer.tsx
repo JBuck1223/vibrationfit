@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useInShell } from '@/lib/app-shell/shell-context'
 import Link from 'next/link'
 import { Image as ImageIcon, Video, Send, X, Trophy, Heart, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
@@ -36,6 +37,8 @@ interface StickyPostComposerProps {
 }
 
 export function StickyPostComposer({ userId, userProfile, onPostCreated }: StickyPostComposerProps) {
+  // In the app shell the prompt is a glass card in the feed column.
+  const inShell = useInShell()
   const [content, setContent] = useState('')
   const [selectedTag, setSelectedTag] = useState<VibeTag | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -247,8 +250,8 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
       )}
 
       {/* Collapsed Bar — Facebook-style prompt */}
-      <div className="border-b border-white/10 bg-[var(--glass-fill-strong,black)]">
-        <div className="max-w-[772px] mx-auto px-4 py-3">
+      <div className={inShell ? 'mx-auto mt-2 w-full max-w-[772px] px-4' : 'border-b border-white/10 bg-[var(--glass-fill-strong,black)]'}>
+        <div className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] px-3 py-3 backdrop-blur-2xl' : 'max-w-[772px] mx-auto px-4 py-3'}>
           <div className="flex items-center gap-3">
             {/* Profile Picture — links to own snapshot */}
             <ProfilePictureClickable
@@ -266,7 +269,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
             {/* Clickable placeholder */}
             <button
               onClick={() => setFocusOpen(true)}
-              className="flex-1 h-10 bg-neutral-900 border border-neutral-700 rounded-full px-4 text-left text-sm text-neutral-500 hover:bg-neutral-800 hover:border-neutral-600 transition-colors"
+              className={inShell ? 'flex-1 h-10 rounded-full border border-white/15 bg-white/[0.06] px-4 text-left text-sm text-white/50 transition-colors hover:text-white/80' : 'flex-1 h-10 bg-neutral-900 border border-neutral-700 rounded-full px-4 text-left text-sm text-neutral-500 hover:bg-neutral-800 hover:border-neutral-600 transition-colors'}
             >
               What&apos;s on your mind, {firstName}?
             </button>

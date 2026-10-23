@@ -225,7 +225,111 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
 
   return (
     <div className={`flex flex-col h-full min-h-screen md:min-h-0 md:h-full ${inShell ? 'bg-transparent' : 'bg-black'}`}>
+      {inShell && (
+        // App shell: one compact control area under the app's top bar instead
+        // of a second dark sticky bar.
+        <div className="mx-auto w-full max-w-[772px] space-y-3 px-4 pb-1 pt-1">
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search Vibe Tribe"
+                className="h-11 w-full rounded-full border border-white/15 bg-white/[0.06] pl-10 pr-10 text-base text-white placeholder:text-white/45 focus:border-[#39FF14]/40 focus:outline-none md:text-sm"
+              />
+              {isSearching ? (
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2"><Spinner size="sm" /></div>
+              ) : searchQuery ? (
+                <button type="button" onClick={clearSearch} aria-label="Clear search" className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/55 hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+            {[
+              { label: activityFilter !== 'off' ? 'Show all posts' : 'Show my activity', on: activityFilter !== 'off', onClick: () => setActivityFilter(activityFilter === 'off' ? 'posts' : 'off'), icon: <User className="h-[18px] w-[18px]" /> },
+              { label: showPinned ? 'Show all posts' : 'Show pinned posts', on: showPinned, onClick: () => setShowPinned(!showPinned), icon: <Pin className="h-[18px] w-[18px]" /> },
+              { label: 'How to Vibe', on: false, onClick: () => setShowHowToVibe(true), icon: <span className="text-sm font-bold">?</span> },
+            ].map((b) => (
+              <button
+                key={b.label}
+                type="button"
+                onClick={b.onClick}
+                aria-label={b.label}
+                title={b.label}
+                aria-pressed={b.on}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                  b.on ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/80 hover:text-white'
+                }`}
+              >
+                {b.icon}
+              </button>
+            ))}
+          </div>
+
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:px-0">
+            <button
+              type="button"
+              onClick={() => handleFilterSelect('all')}
+              className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                activeFilter === 'all' ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white'
+              }`}
+            >
+              All
+            </button>
+            {VIBE_TAGS.map((tag) => {
+              const config = VIBE_TAG_CONFIG[tag]
+              const Icon = ICON_MAP[tag]
+              const on = activeFilter === tag
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => handleFilterSelect(tag)}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: on ? config.color : 'rgba(255,255,255,0.15)',
+                    backgroundColor: on ? `${config.color}26` : 'rgba(255,255,255,0.05)',
+                    color: on ? config.color : 'rgba(255,255,255,0.8)',
+                  }}
+                >
+                  <Icon className="h-4 w-4" style={{ color: config.color }} />
+                  {config.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {activityFilter !== 'off' && (
+            <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none]">
+              {([
+                { key: 'posts', label: 'My Posts', Icon: FileText },
+                { key: 'hearts', label: 'Hearts', Icon: Heart },
+                { key: 'comments', label: 'Comments', Icon: MessageCircle },
+              ] as const).map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActivityFilter(key)}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                    activityFilter === key ? 'bg-[#39FF14] text-black' : 'border border-white/15 text-white/75 hover:text-white'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" /> {label}
+                </button>
+              ))}
+              <button type="button" onClick={() => setActivityFilter('off')} aria-label="Close my activity" className="ml-auto p-1.5 text-white/55 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Sticky Top Bar */}
+      {!inShell && (
       <div className={`sticky top-0 z-30 border-b px-4 py-3 ${inShell ? 'glass-chrome rounded-none border-x-0 border-t-0' : 'bg-black border-neutral-800'}`}>
         <div className="flex items-center justify-between max-w-[772px] mx-auto">
           {/* Left side - Profile Picture + Title/Name */}
@@ -362,9 +466,10 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
           )}
         </div>
       </div>
+      )}
 
       {/* Activity Filter Bar - shows when activity filter is active */}
-      {activityFilter !== 'off' && (
+      {!inShell && activityFilter !== 'off' && (
         <div className={`border-b px-4 py-2 ${inShell ? 'border-white/10' : 'bg-black border-neutral-800'}`}>
           <div className="flex items-center gap-2 max-w-[772px] mx-auto overflow-x-auto pb-1">
             <button
@@ -413,8 +518,8 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
 
       {/* Onboarding Banner - shows when user hasn't posted yet */}
       {!hasPostedBefore && (
-        <div className="bg-gradient-to-r from-[#39FF14]/10 to-[#BF00FF]/10 border-b border-neutral-800">
-          <div className="max-w-[772px] mx-auto px-4 py-4">
+        <div className={inShell ? 'mx-auto mt-2 w-full max-w-[772px] px-4' : 'bg-gradient-to-r from-[#39FF14]/10 to-[#BF00FF]/10 border-b border-neutral-800'}>
+          <div className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(120deg,rgba(57,255,20,0.10),rgba(191,0,255,0.12))] px-4 py-4' : 'max-w-[772px] mx-auto px-4 py-4'}>
             <Link 
               href="/vibe-tribe/new"
               className="flex items-center justify-between gap-4 group"
