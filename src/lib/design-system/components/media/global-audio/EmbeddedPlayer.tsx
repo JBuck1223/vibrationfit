@@ -496,7 +496,7 @@ export function EmbeddedPlayer({
     <div className={cn(inShell ? 'vf-glass rounded-[28px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(18,14,28,0.72)_100%)] shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl overflow-hidden' : `${panelBg} border border-neutral-800 rounded-2xl overflow-hidden`, className)}>
       {/* ── Header (custom slot or default set header) ── */}
       {headerContent ? (
-        <div className="border-b border-neutral-800/60">
+        <div className={cn('border-b', inShell ? 'border-white/10' : 'border-neutral-800/60')}>
           {headerContent}
         </div>
       ) : (setIcon || setName) ? (

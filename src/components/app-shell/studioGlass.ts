@@ -12,7 +12,7 @@ const esc = (cls: string) => cls.replace(/([:/[\].#!%(),])/g, '\\$1')
 const sel = (classes: string[]) => classes.map((c) => `${P} .${esc(c)}`).join(',\n')
 
 // Main panels: the same glass as Home's cards.
-const PANELS = ['bg-[#101010]', 'bg-[#0c0c0c]', 'bg-[#111111]', 'bg-[#111]', 'bg-[#101010]/90', 'md:!bg-[#101010]']
+const PANELS = ['bg-embedded-panel', 'bg-[#101010]', 'bg-[#0c0c0c]', 'bg-[#111111]', 'bg-[#111]', 'bg-[#101010]/90', 'md:!bg-[#101010]']
 // Insets inside a panel: a faint lift instead of a darker well.
 const INSETS = ['bg-[#0a0a0a]', 'bg-[#131313]', 'bg-[#0c0c0c]/50', 'bg-[#1A1A1A]', '!bg-[#1A1A1A]']
 const BORDERS = ['border-[#282828]', 'border-[#252525]', 'border-[#2a2a2a]', 'border-[#333]', 'border-[#1F1F1F]', 'md:!border-[#1F1F1F]', '!border-[#282828]']
@@ -30,6 +30,8 @@ ${sel(BORDERS)} {
   border-color: rgba(255,255,255,0.12) !important;
 }
 ${P} .${esc('ring-white/[0.08]')} { --tw-ring-color: rgba(255,255,255,0.12); }
+/* Fades drawn in the old panel color (lyrics scroll edges) blend with the glass. */
+${P} { --color-embedded-panel: rgba(32,26,45,0.9); }
 
 /* Old segmented switches (a dark well with a dark selected segment) read as
    the shell's toggles: a rounded pill with the picked option in green. */

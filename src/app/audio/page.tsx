@@ -330,6 +330,7 @@ export default function AudioListenPage() {
 }
 
 function LegacyAudioListenPage() {
+  const inShell = useInShell()
   const {
     visionId, vision, visionLoading,
     audioSets, audioSetsLoading, refreshAudioSets,
@@ -1800,8 +1801,10 @@ function LegacyAudioListenPage() {
                 </Button>
               </Card>
             ) : (
-              <div className="w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center">
-                <div className="hidden lg:block" />
+              <div className={inShell
+                ? 'w-full lg:grid lg:grid-cols-[minmax(0,42rem)_minmax(0,22rem)] lg:gap-6 lg:justify-center'
+                : 'w-full lg:grid lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)_minmax(0,20rem)] lg:gap-6 lg:justify-center'}>
+                {!inShell && <div className="hidden lg:block" />}
                 <div className="max-w-2xl mx-auto w-full lg:mx-0 lg:max-w-none">
                 {songTracksLoading ? (
                   <div className="rounded-2xl bg-embedded-panel border border-neutral-800 flex items-center justify-center py-12"><Spinner size="lg" /></div>
@@ -1823,7 +1826,51 @@ function LegacyAudioListenPage() {
                     onShareTrack={(track) => handleSongShare(track)}
                     onSubmitForPublishing={(track) => handleSongSubmitForPublishing(track)}
                     onRemoveTrack={(track) => setSongDeleteTarget(track)}
-                    headerContent={
+                    headerContent={inShell ? (
+                      // App shell: the song as a header with its actions as pills;
+                      // switching songs happens in the My Songs grid.
+                      (() => {
+                        const cover = songTracks.find((t) => t.thumbnail)?.thumbnail
+                        const pill = 'inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white'
+                        return (
+                          <div className="px-4 pb-4 pt-4 md:px-5">
+                            <div className="flex items-center gap-3">
+                              {cover ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={cover} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover shadow-[0_8px_22px_rgba(0,0,0,0.4)]" />
+                              ) : (
+                                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[rgba(57,255,20,0.12)]">
+                                  <Music2 className="h-6 w-6 text-[#39FF14]" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <h2 className="line-clamp-2 text-lg font-bold leading-snug text-white">{selectedSong?.title || 'Untitled Song'}</h2>
+                                <p className="mt-0.5 text-xs text-white/55">
+                                  {songTracks.length} version{songTracks.length !== 1 ? 's' : ''}
+                                  {selectedSong?.created_at ? ` · ${new Date(selectedSong.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Link href={`/audio/songwriter/${selectedSongId}`} className={pill}>
+                                <RefreshCw className="h-3.5 w-3.5" /> More versions
+                              </Link>
+                              <Link href={`/audio/songwriter/${selectedSongId}#story`} className={pill}>
+                                <BookOpen className="h-3.5 w-3.5" /> {selectedSong?.story_media_url ? 'The story' : 'Tell the story'}
+                              </Link>
+                              <button type="button" onClick={() => setRenameModalOpen(true)} className={pill}>
+                                <Edit2 className="h-3.5 w-3.5" /> Rename
+                              </button>
+                              {selectedSong?.lyrics && (
+                                <button type="button" onClick={() => setAlbumArtModalOpen(true)} className={pill}>
+                                  <Image className="h-3.5 w-3.5" /> {songTracks.some(t => t.thumbnail) ? 'Album art' : 'Add album art'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()
+                    ) : (
                       <div>
                         <div className="bg-[#0c0c0c] px-3 pt-3 pb-2.5 md:px-4 border-b border-neutral-800/50">
                           <h3 className="text-center text-lg font-semibold text-white">Play My Songs</h3>
@@ -1928,7 +1975,7 @@ function LegacyAudioListenPage() {
                           </div>
                         </div>
                       </div>
-                    }
+                    )}
                   />
                   </div>
                   {/* Mobile: synced lyrics below player */}
