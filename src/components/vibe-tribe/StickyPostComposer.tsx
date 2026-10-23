@@ -377,9 +377,21 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                   onChange={mentionHandleChange}
                   onKeyDown={mentionHandleKeyDown}
                   placeholder={`What's on your mind, ${firstName}?`}
-                  className="w-full bg-transparent text-white text-base placeholder-neutral-500 focus:outline-none resize-none"
+                  className="w-full bg-transparent pr-12 pb-10 text-white text-base placeholder-neutral-500 focus:outline-none resize-none"
                   style={{ minHeight: '100px' }}
                 />
+                {/* Speak instead of typing: the mic sits in the writing area's corner. */}
+                <div className="absolute bottom-3 right-5">
+                  <VoiceInputButton
+                    value={content}
+                    onChange={setContent}
+                    textareaRef={textareaRef}
+                    join="paragraph"
+                    autoResize
+                    disabled={submitting}
+                    iconClassName="w-[18px] h-[18px]"
+                  />
+                </div>
               </div>
 
               {/* File Previews */}
@@ -486,14 +498,6 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                 >
                   <Video className="w-5 h-5" />
                 </button>
-                <VoiceInputButton
-                  value={content}
-                  onChange={setContent}
-                  textareaRef={textareaRef}
-                  join="paragraph"
-                  autoResize
-                  disabled={submitting}
-                />
                 <EmojiPickerButton
                   textareaRef={textareaRef}
                   onInsert={(val) => setContent(val)}
