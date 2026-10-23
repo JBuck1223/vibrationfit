@@ -33,7 +33,7 @@ import { useAreaStats } from '@/hooks/useAreaStats'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown, Users, Home, Play } from 'lucide-react'
+import { Plus, Calendar, CheckCircle, XCircle, Filter, Grid3X3, X, ChevronLeft, ChevronRight, Eye, List, Grid, Lightbulb, Download, Edit3, Save, ChevronUp, Trash2, Upload, Sparkles, CheckSquare, Square, ListChecks, Flame, Shield, ChevronDown, Users, Home, Play, SlidersHorizontal } from 'lucide-react'
 import { BoardDragHandle, BoardMouseSensor, BoardPhotoTile, BoardTouchSensor, SortableBoardItem } from '@/components/manifestations-studio/SortableBoardItem'
 import { compareBoardOrder, reorderOwnedItems } from '@/lib/manifestations/board-order'
 import { resolveEditedTimestamp, toLocalDateInput, todayDateInput } from '@/lib/manifestations/dates'
@@ -288,6 +288,7 @@ export default function VisionBoardPage() {
   const inShell = useInShell()
   // The shell's filters open as a sheet on tap, never on their own.
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editFormData, setEditFormData] = useState<{
@@ -2064,6 +2065,18 @@ export default function VisionBoardPage() {
     return null
   }
 
+  const openBoardExport = () => {
+    const params = new URLSearchParams()
+    if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
+      params.set('categories', selectedCategories.join(','))
+    }
+    if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
+      params.set('statuses', selectedStatuses.join(','))
+    }
+    const basePath = isIntensivePath ? '/intensive/vision-board/export' : '/manifestations/export'
+    router.push(`${basePath}${params.toString() ? '?' + params.toString() : ''}`)
+  }
+
   const getActiveFilterCount = () => {
     let count = 0
     if (isSnapshotMode) count += 1
@@ -2140,7 +2153,7 @@ export default function VisionBoardPage() {
         )}
 
         {/* Household lens: Me / member / Both (Everyone for 3+) */}
-        {household?.isMultiMember && !isSnapshotMode && (
+        {household?.isMultiMember && !isSnapshotMode && !inShell && (
           <div className="flex items-center justify-center">
             <HouseholdScopeToggle
               members={(household.members || []).map((m: any) => ({
@@ -2192,60 +2205,38 @@ export default function VisionBoardPage() {
                 <Plus className="h-5 w-5" strokeWidth={2.5} />
               </button>
             ) : null}
-            <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 sm:gap-2">
-              {!isSnapshotMode && (
+            <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+              {bulkMode ? (
+                <button type="button" onClick={toggleBulkMode} aria-label="Cancel selection mode" className={shellToolClass(true)}>
+                  <X className="h-4 w-4" />
+                  Cancel
+                </button>
+              ) : (
                 <button
                   type="button"
-                  onClick={toggleBulkMode}
-                  aria-pressed={bulkMode}
-                  aria-label={bulkMode ? 'Cancel selection mode' : 'Select items'}
-                  className={shellToolClass(bulkMode)}
+                  onClick={() => setSlideshowOpen(true)}
+                  disabled={filteredItems.length === 0}
+                  aria-label="Play slideshow"
+                  className={shellToolClass(false)}
                 >
-                  {bulkMode ? <X className="h-4 w-4" /> : <ListChecks className="h-4 w-4" />}
-                  <span className="hidden sm:inline">{bulkMode ? 'Cancel' : 'Select'}</span>
+                  <Play className="h-4 w-4" />
+                  Play
                 </button>
               )}
               <button
                 type="button"
-                onClick={() => setFilterSheetOpen(true)}
-                aria-label="Filter items"
-                className={shellToolClass(getActiveFilterCount() > 0)}
+                onClick={() => setMoreOpen(true)}
+                aria-haspopup="dialog"
+                aria-label="More board options"
+                className={shellToolClass(getActiveFilterCount() > 0 || scope !== 'me')}
               >
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">Filter</span>
+                <SlidersHorizontal className="h-4 w-4" />
+                More
                 {getActiveFilterCount() > 0 && (
                   <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#39FF14] px-1.5 text-xs font-semibold text-black">
                     {getActiveFilterCount()}
                   </span>
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const params = new URLSearchParams()
-                  if (!selectedCategories.includes('all') && selectedCategories.length > 0) {
-                    params.set('categories', selectedCategories.join(','))
-                  }
-                  if (!selectedStatuses.includes('all') && selectedStatuses.length > 0) {
-                    params.set('statuses', selectedStatuses.join(','))
-                  }
-                  router.push(`${isIntensivePath ? '/intensive/vision-board/export' : '/manifestations/export'}${params.toString() ? '?' + params.toString() : ''}`)
-                }}
-                aria-label="Download PDF"
-                className={shellToolClass(false)}
-              >
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">PDF</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSlideshowOpen(true)}
-                disabled={filteredItems.length === 0}
-                aria-label="Play slideshow"
-                className={shellToolClass(false)}
-              >
-                <Play className="h-4 w-4" />
-                <span className="hidden sm:inline">Play</span>
               </button>
             </div>
             <div className="flex shrink-0 rounded-full border border-white/15 bg-white/[0.05] p-1" role="group" aria-label="Board view">
@@ -2380,6 +2371,79 @@ export default function VisionBoardPage() {
             </div>
           </div>
         </div>
+        )}
+
+        {inShell && (
+          <CategorySheet
+            open={moreOpen}
+            onClose={() => setMoreOpen(false)}
+            title="Board options"
+            showCategories={false}
+            selected={[]}
+            onToggle={() => {}}
+          >
+            {household?.isMultiMember && !isSnapshotMode && (
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-medium text-white/55">Whose board</p>
+                <HouseholdScopeToggle
+                  members={(household.members || []).map((m: any) => ({
+                    userId: m.userId,
+                    displayName: m.firstName || m.displayName,
+                    avatarUrl: m.avatarUrl,
+                    isSelf: m.isSelf,
+                  }))}
+                  value={scope}
+                  onChange={setScope}
+                  className="w-full !bg-white/[0.05] border border-white/15 [&>button]:flex-1 [&>button]:justify-center"
+                />
+              </div>
+            )}
+            <div className="space-y-1">
+              {[
+                !isSnapshotMode && {
+                  key: 'select',
+                  icon: ListChecks,
+                  label: 'Select items',
+                  hint: 'Pick several to update or delete at once',
+                  onClick: () => { setMoreOpen(false); if (!bulkMode) toggleBulkMode() },
+                },
+                {
+                  key: 'filter',
+                  icon: Filter,
+                  label: 'Filter',
+                  hint: getActiveFilterCount() > 0 ? `${getActiveFilterCount()} on` : 'Status, life categories, time travel',
+                  onClick: () => { setMoreOpen(false); setFilterSheetOpen(true) },
+                },
+                {
+                  key: 'pdf',
+                  icon: Download,
+                  label: 'Download PDF',
+                  hint: 'Your board as it is filtered now',
+                  onClick: () => { setMoreOpen(false); openBoardExport() },
+                },
+              ].filter(Boolean).map((row) => {
+                const r = row as { key: string; icon: typeof Filter; label: string; hint: string; onClick: () => void }
+                const RowIcon = r.icon
+                return (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={r.onClick}
+                    className="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/[0.07] text-white/85">
+                      <RowIcon className="h-[18px] w-[18px]" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-white">{r.label}</span>
+                      <span className="block truncate text-xs text-white/55">{r.hint}</span>
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-white/35" />
+                  </button>
+                )
+              })}
+            </div>
+          </CategorySheet>
         )}
 
         {inShell && (
