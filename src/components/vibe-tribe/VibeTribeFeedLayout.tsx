@@ -234,7 +234,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       {inShell && (
         // App shell: one compact control area under the app's top bar instead
         // of a second dark sticky bar.
-        <div className="mx-auto w-full max-w-[772px] space-y-3 px-4 pb-1 pt-1">
+        <div className="mx-auto w-full max-w-[772px] space-y-3 pb-1 pt-1">
           <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
@@ -524,7 +524,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
 
       {/* Onboarding Banner - shows when user hasn't posted yet */}
       {!hasPostedBefore && (
-        <div className={inShell ? 'mx-auto mt-2 w-full max-w-[772px] px-4' : 'bg-gradient-to-r from-[#39FF14]/10 to-[#BF00FF]/10 border-b border-neutral-800'}>
+        <div className={inShell ? 'mx-auto mt-2 w-full max-w-[772px]' : 'bg-gradient-to-r from-[#39FF14]/10 to-[#BF00FF]/10 border-b border-neutral-800'}>
           <div className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(120deg,rgba(57,255,20,0.10),rgba(191,0,255,0.12))] px-4 py-4' : 'max-w-[772px] mx-auto px-4 py-4'}>
             <Link 
               href="/vibe-tribe/new"
@@ -554,7 +554,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
 
       {/* Feed */}
       <div className={inShell ? 'min-w-0 shrink-0 pb-8' : 'flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-8'}>
-        <div className="max-w-[772px] min-w-0 mx-auto px-4 py-4">
+        <div className={inShell ? 'max-w-[772px] min-w-0 mx-auto py-4' : 'max-w-[772px] min-w-0 mx-auto px-4 py-4'}>
           {(loading || refreshing) ? (
             <div className="flex justify-center py-12">
               <Spinner size="lg" />
