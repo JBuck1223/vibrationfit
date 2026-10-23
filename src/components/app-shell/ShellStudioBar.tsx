@@ -38,7 +38,16 @@ function useDismiss(open: boolean, setOpen: (o: boolean) => void) {
 function ShellVersionSelect({ selector }: { selector: AreaBarVersionSelector }) {
   const [open, setOpen] = React.useState(false)
   const [query, setQuery] = React.useState('')
+  const [menuLeft, setMenuLeft] = React.useState(0)
   const ref = useDismiss(open, setOpen)
+  // Center the menu under the picker but keep it inside the screen edges.
+  React.useLayoutEffect(() => {
+    if (!open || !ref.current) return
+    const box = ref.current.getBoundingClientRect()
+    const width = Math.min(window.innerWidth - 32, 360)
+    const left = Math.max(16, Math.min(box.left + box.width / 2 - width / 2, window.innerWidth - 16 - width))
+    setMenuLeft(left - box.left)
+  }, [open, ref])
   const selected = selector.options.find((o) => o.id === selector.selectedId) ?? selector.options[0]
   const Icon = selector.icon
   const q = query.trim().toLowerCase()
@@ -52,7 +61,8 @@ function ShellVersionSelect({ selector }: { selector: AreaBarVersionSelector }) 
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={cn(PILL, PILL_OFF, 'max-w-[240px]')}
+        title={selected?.label}
+        className={cn(PILL, PILL_OFF, 'max-w-[min(calc(100vw-2rem),360px)]')}
       >
         {Icon ? <Icon className="h-4 w-4 shrink-0 text-[#39FF14]" /> : null}
         <span className="truncate">{selected?.label ?? selector.label}</span>
@@ -69,7 +79,7 @@ function ShellVersionSelect({ selector }: { selector: AreaBarVersionSelector }) 
         <ChevronDown className={cn('h-4 w-4 shrink-0 text-white/60 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
-        <div role="listbox" aria-label={selector.label} className={cn(MENU, 'left-1/2 w-[280px] -translate-x-1/2')}>
+        <div role="listbox" aria-label={selector.label} className={cn(MENU, 'w-[min(calc(100vw-2rem),360px)]')} style={{ left: menuLeft }}>
           {selector.searchable && selector.options.length > 6 ? (
             <div className="mb-1 flex items-center gap-2 rounded-xl bg-white/[0.06] px-3 py-2">
               <Search className="h-4 w-4 shrink-0 text-white/45" />
@@ -105,8 +115,9 @@ function ShellVersionSelect({ selector }: { selector: AreaBarVersionSelector }) 
                   )}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate">{o.label}</span>
+                    <span className="flex items-start gap-1.5">
+                      {/* Long names (story titles) wrap instead of cutting off. */}
+                      <span className="line-clamp-2 break-words">{o.label}</span>
                       {typeof o.count === 'number' ? <span className="text-xs text-white/40">{o.count}</span> : null}
                       {OptionIcon ? <OptionIcon className="h-3.5 w-3.5 shrink-0 text-white/50" /> : null}
                       {o.badge ? (
