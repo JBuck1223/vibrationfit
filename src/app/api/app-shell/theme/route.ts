@@ -41,7 +41,7 @@ export async function PATCH(request: Request) {
     const { data: theme, error: lookupError } = await supabase.from('themes').select('id').eq('id', body.themeId).maybeSingle()
     if (lookupError) {
       console.error('[app-shell/theme] theme lookup failed', { userId: user.id, themeId: body.themeId, ...describe(lookupError) })
-      return NextResponse.json({ error: `Could not save your theme: ${lookupError.message}` }, { status: 500 })
+      return NextResponse.json({ error: `Could not look up that theme: ${lookupError.message}` }, { status: 500 })
     }
     if (!theme) return NextResponse.json({ error: 'That theme is no longer available. Refresh and pick again.' }, { status: 404 })
     update.theme_id = body.themeId
