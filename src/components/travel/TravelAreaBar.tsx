@@ -1,10 +1,14 @@
 'use client'
 
+import Link from 'next/link'
 import { Plane, Luggage, Map, BarChart3, Sparkles, NotebookText, Plus } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import { AreaBar, type AreaBarContextNavItem } from '@/lib/design-system/components'
+import { AreaBar, type AreaBarContextNavItem, type AreaBarTab } from '@/lib/design-system/components'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { cn } from '@/lib/utils'
+import { PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 
-const TABS = [
+const TABS: AreaBarTab[] = [
   { label: 'Trips', path: '/travel-tracker', icon: Luggage },
   { label: 'Map', path: '/travel-tracker/map', icon: Map },
   { label: 'Insights', path: '/travel-tracker/reports', icon: BarChart3 },
@@ -19,6 +23,7 @@ const CONTEXT_DREAM = 'Destinations you are ready to actualize.'
 
 export function TravelAreaBar() {
   const pathname = usePathname()
+  const inShell = useInShell()
 
   const isMap =
     pathname === '/travel-tracker/map' || pathname.startsWith('/travel-tracker/map/')
@@ -58,6 +63,53 @@ export function TravelAreaBar() {
   else if (isDream) contextText = CONTEXT_DREAM
   else if (onNewTrip) contextText = CONTEXT_TRIPS_NEW
   else contextText = CONTEXT_TRIPS_OVERVIEW
+
+  if (inShell) {
+    // The app shell: one row of pills for the travel pages, like Account, and
+    // a second row for the Trips context (Overview | New Trip).
+    const pill = cn(PILL_BASE, 'inline-flex h-9 items-center gap-1.5 px-3.5 py-0')
+    return (
+      <div className="mb-5 space-y-3">
+        <nav aria-label="Travel Tracker pages" className="-mx-4 overflow-x-auto px-4 scrollbar-hide md:mx-0 md:px-0">
+          <div className="flex w-max gap-2 md:mx-auto md:w-auto md:flex-wrap md:justify-center">
+            {TABS.map((tab) => {
+              const active = tab.path === '/travel-tracker' ? isTripsSection : pathname === tab.path || pathname.startsWith(tab.path + '/')
+              const Icon = tab.icon
+              return (
+                <Link
+                  key={tab.path}
+                  href={tab.path}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(pill, active ? PILL_ON : PILL_OFF)}
+                >
+                  {Icon ? <Icon className="h-4 w-4" /> : null}
+                  {tab.label}
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+        {contextNav ? (
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {contextNav.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.label}
+                  href={item.path ?? '/travel-tracker'}
+                  aria-current={item.isActive ? 'page' : undefined}
+                  className={cn(pill, item.isActive ? PILL_ON : PILL_OFF)}
+                >
+                  {Icon ? <Icon className="h-4 w-4" /> : null}
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <AreaBar

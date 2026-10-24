@@ -267,7 +267,7 @@ export function ProfileField({
           <select
             value={editValue || ''}
             onChange={(e) => handleChange(e.target.value)}
-            className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-primary-500"
+            className="w-full px-4 py-2 rounded-full border border-white/15 bg-white/[0.06] text-white focus:border-[#39FF14]/60 focus:outline-none"
           >
             <option value="">Select...</option>
             {selectOptions.map((option) => (
@@ -353,7 +353,7 @@ export function ProfileField({
 
     if (type === 'story' && value) {
       return (
-        <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4">
+        <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4">
           <p className="text-white whitespace-pre-wrap">{value}</p>
         </div>
       )

@@ -178,7 +178,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
                 const gapLabel = gap > 1 ? 'Overestimating' : gap < -1 ? 'Underestimating' : 'Aligned'
 
                 return (
-                  <div key={cat} className="flex items-center justify-between p-3 bg-neutral-800/50 rounded-lg">
+                  <div key={cat} className="flex items-center justify-between p-3 rounded-2xl border border-white/[0.12] bg-white/[0.05]">
                     <span className="text-sm text-white">{categoryMetadata[cat]?.title || cat}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-neutral-400">{selfScore} vs {measuredScaled}</span>
@@ -204,7 +204,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
         <h3 className="text-xl font-semibold text-white mb-4 text-center">Category Breakdown</h3>
         
         {/* Table Header - Desktop Only */}
-        <div className="hidden xl:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 bg-neutral-900/50 rounded-lg mb-2 text-xs md:text-sm font-semibold text-neutral-400">
+        <div className="hidden xl:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 rounded-xl border border-white/[0.12] bg-white/[0.05] mb-2 text-xs md:text-sm font-semibold text-neutral-400">
           <div>Category</div>
           <div className="text-center">Percentage Score</div>
           <div className="text-center">Question Score</div>
@@ -219,7 +219,7 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
             const isExpanded = expandedCategories.has(category.category)
             
             return (
-              <div key={index} className="bg-neutral-800/50 rounded-lg">
+              <div key={index} className="rounded-2xl border border-white/[0.12] bg-white/[0.05]">
                 {/* Desktop Table Row */}
                 <div className="hidden xl:grid grid-cols-[2fr_1fr_1fr_1.5fr_1.5fr] gap-4 md:gap-6 p-4 items-center">
                   <div className="flex items-center gap-3">
@@ -299,10 +299,10 @@ export default function ResultsSummary({ assessment, responses = [] }: ResultsSu
                 </div>
                 
                 {isExpanded && categoryResponses.length > 0 && (
-                  <div className="px-4 pb-4 border-t border-neutral-700">
+                  <div className="px-4 pb-4 border-t border-white/10">
                     <div className="space-y-2 mt-3 max-h-64 overflow-y-auto">
                       {categoryResponses.map((response, responseIndex) => (
-                        <div key={responseIndex} className="p-3 bg-neutral-900/50 rounded text-sm">
+                        <div key={responseIndex} className="p-3 rounded-xl border border-white/[0.12] bg-white/[0.05] text-sm">
                           <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-2">
                             <div className="flex-1 mb-3 md:mb-0">
                               <div className="font-medium text-white mb-1">

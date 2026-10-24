@@ -3,7 +3,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Check, Copy } from 'lucide-react'
-import { Card, Button, Spinner } from '@/lib/design-system/components'
+import { Button, Spinner } from '@/lib/design-system/components'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 import { computePersonalVersionNumbers, formatVisionDate } from './vision-version-labels'
 
 interface VisionData {
@@ -148,8 +150,9 @@ export function MergeVisionsTool({
   }, [personalVisions, householdMembers])
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-      <Card className="max-w-2xl w-full max-h-[90vh] overflow-auto p-6 md:p-8">
+    <OverlayPortal>
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${SCRIM}`}>
+      <div className={`${GLASS_SHEET} max-w-2xl w-full max-h-[90vh] overflow-auto p-6 md:p-8 text-white`}>
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
@@ -213,8 +216,8 @@ export function MergeVisionsTool({
                             isSelected
                               ? 'border-[#39FF14]/50 bg-[#39FF14]/10'
                               : isDisabled
-                              ? 'border-neutral-800 bg-neutral-900/60 opacity-50 cursor-not-allowed'
-                              : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-800/60'
+                              ? 'border-white/[0.12] bg-white/[0.05] opacity-50 cursor-not-allowed'
+                              : 'border-white/[0.12] bg-white/[0.05] hover:border-white/[0.12] hover:bg-white/[0.06]'
                           }`}
                         >
                           <div className="flex-1 min-w-0">
@@ -266,7 +269,8 @@ export function MergeVisionsTool({
             </div>
           </>
         )}
-      </Card>
+      </div>
     </div>
+    </OverlayPortal>
   )
 }

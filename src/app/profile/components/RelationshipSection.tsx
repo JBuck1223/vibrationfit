@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 import { Card, SaveButton } from '@/lib/design-system/components'
 import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -152,10 +154,10 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
             <button
               type="button"
               onClick={() => setIsRelationshipStatusDropdownOpen(!isRelationshipStatusDropdownOpen)}
-              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+              className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                 profile.relationship_status 
                   ? 'text-white' 
-                  : 'text-[#9CA3AF]'
+                  : 'text-white/40'
               }`}
             >
               {relationshipStatusOptions.find(opt => opt.value === (profile.relationship_status || ''))?.label || 'Select relationship status'}
@@ -172,7 +174,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsRelationshipStatusDropdownOpen(false)}
                 />
-                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                   {relationshipStatusOptions.map(option => (
                     <button
                       key={option.value}
@@ -184,7 +186,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
                       className={`w-full px-6 py-2 text-left transition-colors ${
                         (profile.relationship_status || '') === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                          : 'text-white hover:bg-[#333]'
+                          : 'text-white hover:bg-white/[0.06]'
                       }`}
                     >
                       {option.label}
@@ -207,7 +209,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
               value={profile.partner_name || ''}
               onChange={(e) => handleInputChange('partner_name', e.target.value)}
               placeholder="Enter your partner's name"
-              className="w-full px-4 py-3 bg-[#404040] border-2 border-[#666666] rounded-xl text-white placeholder-[#9CA3AF] focus:outline-none focus:ring-2 transition-all duration-200 focus:ring-[#39FF14] focus:border-[#39FF14]"
+              className="w-full px-4 py-3 rounded-full border border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 transition-colors focus:border-[#39FF14]/60 focus:outline-none"
             />
           </div>
         )}
@@ -222,10 +224,10 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
               <button
                 type="button"
                 onClick={() => setIsRelationshipLengthDropdownOpen(!isRelationshipLengthDropdownOpen)}
-                className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+                className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                   profile.relationship_length 
                     ? 'text-white' 
-                    : 'text-[#9CA3AF]'
+                    : 'text-white/40'
                 }`}
               >
                 {relationshipLengthOptions.find(opt => opt.value === (profile.relationship_length || ''))?.label || 'Select relationship length'}
@@ -242,7 +244,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
                     className="fixed inset-0 z-10" 
                     onClick={() => setIsRelationshipLengthDropdownOpen(false)}
                   />
-                  <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                  <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                     {relationshipLengthOptions.map(option => (
                       <button
                         key={option.value}
@@ -254,7 +256,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
                         className={`w-full px-6 py-2 text-left transition-colors ${
                           (profile.relationship_length || '') === option.value 
                             ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                            : 'text-white hover:bg-[#333]'
+                            : 'text-white hover:bg-white/[0.06]'
                         }`}
                       >
                         {option.label}
@@ -302,7 +304,7 @@ export function RelationshipSection({ profile, onProfileChange, onProfileReload,
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="border-t border-neutral-800/50 pt-2">
+        <div className="border-t border-white/10 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

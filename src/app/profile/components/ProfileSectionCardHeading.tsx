@@ -11,11 +11,11 @@ export function ProfileSectionCardHeading({ icon, title }: { icon: LucideIcon; t
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-500 md:h-8 md:w-8">
           <Icon icon={icon} size="xs" color="#000000" />
         </div>
-        <h3 className="max-w-full text-center text-sm font-medium uppercase tracking-[0.25em] text-neutral-400">
+        <h3 className="max-w-full text-center text-sm font-medium text-white/70">
           {title}
         </h3>
       </div>
-      <div className="mb-6 border-b border-neutral-800" />
+      <div className="mb-6 border-b border-white/10" />
     </>
   )
 }

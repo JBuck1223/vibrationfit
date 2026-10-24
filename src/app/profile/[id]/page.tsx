@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, Button, DeleteConfirmationDialog, Heading, Text, Stack, Container, PageHero } from '@/lib/design-system/components'
 import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -466,7 +467,7 @@ export default function ProfileDetailPage() {
                 <span className="text-xs text-neutral-500">Current Hobbies</span>
                 <div className="flex flex-wrap gap-1.5">
                   {profile.hobbies.map((hobby: string, index: number) => (
-                    <span key={index} className="text-xs px-2 py-1 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-300">{hobby}</span>
+                    <span key={index} className="text-xs px-2 py-1 rounded-full border border-white/[0.12] bg-white/[0.06] text-white/80">{hobby}</span>
                   ))}
                 </div>
               </div>
@@ -674,7 +675,7 @@ export default function ProfileDetailPage() {
                       </span>
                     )}
                   </div>
-                  <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
+                  <div className="w-full bg-white/10 rounded-full h-3 border border-white/[0.12]">
                     <div
                       className="h-3 rounded-full transition-all duration-500 bg-primary-500"
                       style={{ width: `${completionPercentage}%` }}
@@ -696,7 +697,7 @@ export default function ProfileDetailPage() {
                 src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
                 alt="Profile picture"
                 avoidNestedButton
-                className="h-24 w-24 md:h-32 md:w-32 aspect-square shrink-0 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+                className="h-24 w-24 md:h-32 md:w-32 aspect-square shrink-0 overflow-hidden rounded-full border-2 border-white/[0.12] bg-white/[0.06]"
               >
                 <NextImage
                   src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
@@ -720,15 +721,15 @@ export default function ProfileDetailPage() {
               <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-500">
                 <Icon icon={User} size="xs" color="#000000" />
               </div>
-              <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">Personal Information</h3>
+              <h3 className="text-sm font-medium text-white/70">Personal Information</h3>
             </div>
-            <div className="border-b border-neutral-800 mb-2" />
+            <div className="border-b border-white/10 mb-2" />
             {showReviewCommitChrome && (
               <div className="mb-6 mt-5 flex justify-start">
                 <ProfilePictureClickable
                   src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
                   alt="Profile picture"
-                  className="inline-flex h-28 w-28 md:h-32 md:w-32 aspect-square shrink-0 overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+                  className="inline-flex h-28 w-28 md:h-32 md:w-32 aspect-square shrink-0 overflow-hidden rounded-full border-2 border-white/[0.12] bg-white/[0.06]"
                 >
                   <NextImage
                     src={profile.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
@@ -761,9 +762,9 @@ export default function ProfileDetailPage() {
                 <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-500">
                   <Icon icon={Camera} size="xs" color="#000000" />
                 </div>
-                <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">Media</h3>
+                <h3 className="text-sm font-medium text-white/70">Media</h3>
               </div>
-              <div className="border-b border-neutral-800 mb-2" />
+              <div className="border-b border-white/10 mb-2" />
               <div className="pt-2">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {profile.progress_photos.map((media, index) => (
@@ -781,7 +782,7 @@ export default function ProfileDetailPage() {
                         <img
                           src={media}
                           alt={`Media ${index + 1}`}
-                          className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                          className="w-full aspect-[4/3] object-cover rounded-lg border border-white/[0.12] hover:border-primary-500 transition-colors cursor-pointer"
                           onClick={() => openLightbox(index)}
                         />
                       )}
@@ -810,9 +811,9 @@ export default function ProfileDetailPage() {
                   <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-500">
                     <Icon icon={IconComponent} size="xs" color="#000000" />
                   </div>
-                  <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-[0.25em]">{category.title}</h3>
+                  <h3 className="text-sm font-medium text-white/70">{category.title}</h3>
                 </div>
-                <div className="border-b border-neutral-800 mb-2" />
+                <div className="border-b border-white/10 mb-2" />
                 <div className="pt-2">
                   {fields}
                   <SavedRecordings
@@ -828,7 +829,7 @@ export default function ProfileDetailPage() {
 
         {showReviewCommitChrome && versionInfo && (
           <Container size="xl">
-            <div className="flex flex-wrap items-center justify-center gap-2 border-t border-neutral-800 pt-8 mt-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 border-t border-white/10 pt-8 mt-2">
               <VersionActionToolbar
                 versionId={profileId}
                 versionNumber={versionInfo.version_number ?? 1}
@@ -873,6 +874,7 @@ export default function ProfileDetailPage() {
 
       {/* Lightbox */}
       {lightboxOpen && Array.isArray(profile.progress_photos) && (
+        <OverlayPortal>
         <div 
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
           onClick={closeLightbox}
@@ -883,7 +885,7 @@ export default function ProfileDetailPage() {
           >
             <button
               onClick={closeLightbox}
-              className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+              className="absolute top-4 right-4 z-10 p-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] text-white backdrop-blur-xl hover:bg-white/10 transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
@@ -892,13 +894,13 @@ export default function ProfileDetailPage() {
               <>
                 <button
                   onClick={prevMedia}
-                  className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                  className="absolute left-4 z-10 p-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] text-white backdrop-blur-xl hover:bg-white/10 transition-colors"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
                   onClick={nextMedia}
-                  className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                  className="absolute right-4 z-10 p-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] text-white backdrop-blur-xl hover:bg-white/10 transition-colors"
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>
@@ -923,7 +925,7 @@ export default function ProfileDetailPage() {
             </div>
 
             {profile.progress_photos.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] px-3 py-1 text-sm text-white backdrop-blur-xl">
                 {lightboxIndex + 1} of {profile.progress_photos.length}
               </div>
             )}
@@ -935,7 +937,7 @@ export default function ProfileDetailPage() {
                     key={index}
                     onClick={() => setLightboxIndex(index)}
                     className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                      index === lightboxIndex ? 'border-primary-500' : 'border-neutral-600'
+                      index === lightboxIndex ? 'border-primary-500' : 'border-white/20'
                     }`}
                   >
                     {isVideo(media) ? (
@@ -961,6 +963,7 @@ export default function ProfileDetailPage() {
             )}
           </div>
         </div>
+        </OverlayPortal>
       )}
 
       {/* Delete Confirmation Dialog */}

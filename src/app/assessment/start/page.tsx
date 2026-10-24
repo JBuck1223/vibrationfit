@@ -15,6 +15,8 @@ import {
   Badge,
 } from '@/lib/design-system/components'
 import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
+import { cn } from '@/lib/utils'
+import { GLASS_CARD, GLASS_SHEET } from '@/lib/app-shell/glass'
 import {
   ArrowRight,
   ArrowLeft,
@@ -429,7 +431,7 @@ export default function PublicAssessmentPage() {
           </PageHero>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto w-full">
-            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6">
+            <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6')}>
               <Stack gap="sm">
                 <div className="flex items-center gap-3">
                   <Target className="h-5 w-5 text-[#39FF14]" />
@@ -441,7 +443,7 @@ export default function PublicAssessmentPage() {
               </Stack>
             </Card>
 
-            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6">
+            <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6')}>
               <Stack gap="sm">
                 <div className="flex items-center gap-3">
                   <BarChart3 className="h-5 w-5 text-[#00FFFF]" />
@@ -453,7 +455,7 @@ export default function PublicAssessmentPage() {
               </Stack>
             </Card>
 
-            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6">
+            <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6')}>
               <Stack gap="sm">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="h-5 w-5 text-[#BF00FF]" />
@@ -466,9 +468,9 @@ export default function PublicAssessmentPage() {
             </Card>
           </div>
 
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] max-w-3xl mx-auto w-full p-4 md:p-6 lg:p-8">
+          <Card variant="outlined" className={cn(GLASS_CARD, 'max-w-3xl mx-auto w-full p-4 md:p-6 lg:p-8')}>
             <Stack gap="md">
-              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
+              <Text size="sm" className="text-xs font-medium text-white/60">
                 How It Works
               </Text>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -510,7 +512,7 @@ export default function PublicAssessmentPage() {
       <div className="relative">
         {/* Background: assessment UI preview (non-interactive) */}
         <div className="pointer-events-none select-none" aria-hidden="true">
-          <div className="border-b border-[#1A1A1A]">
+          <div className="border-b border-white/10">
             <Container size="xl">
               <div className="py-3">
                 <div className="flex items-center justify-between mb-2">
@@ -529,7 +531,7 @@ export default function PublicAssessmentPage() {
             <div className="py-6 md:py-10">
               <Stack gap="lg">
                 <div className="flex items-center gap-2">
-                  <Badge variant="neutral" className="bg-[#1A1A1A] text-neutral-300 border-[#333]">
+                  <Badge variant="neutral" className="border-white/15 bg-white/[0.06] text-white/80">
                     {previewMeta?.title || 'Fun'}
                   </Badge>
                   <Text size="sm" className="text-neutral-500">Question 1 of 7</Text>
@@ -544,7 +546,7 @@ export default function PublicAssessmentPage() {
                       {previewQuestion.options.filter(o => !o.isCustom).map((option) => (
                         <div
                           key={option.text}
-                          className="w-full text-left px-3 md:px-4 py-3 md:py-3.5 rounded-xl border-2 border-[#222] bg-[#0D0D0D]"
+                          className="w-full text-left px-3 md:px-4 py-3 md:py-3.5 rounded-xl border-2 border-white/[0.12] bg-white/[0.05]"
                         >
                           <span className="text-sm text-neutral-200">{option.text}</span>
                         </div>
@@ -560,7 +562,7 @@ export default function PublicAssessmentPage() {
         {/* Frosted glass overlay */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md">
           <div className="mx-4 w-full max-w-md">
-            <Card variant="outlined" className="bg-[#101010]/90 border-[#333] p-6 md:p-8 lg:p-10">
+            <Card variant="outlined" className={cn(GLASS_SHEET, 'p-6 md:p-8 lg:p-10')}>
               <form onSubmit={handleEmailSubmit}>
                 <Stack gap="md">
                   <div className="text-center">
@@ -644,7 +646,7 @@ export default function PublicAssessmentPage() {
             subtitle="These three questions customize the assessment to your life situation."
           />
 
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6 lg:p-8">
+          <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6 lg:p-8')}>
             <Stack gap="md">
               <Text size="sm" className="text-white font-semibold">What&apos;s your relationship status?</Text>
               <div className="grid grid-cols-1 gap-2">
@@ -655,7 +657,7 @@ export default function PublicAssessmentPage() {
                     className={`w-full text-left px-3 md:px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
                       profile.relationship_status === option
                         ? 'border-[#39FF14] bg-[#39FF14]/10 text-white'
-                        : 'border-[#222] bg-[#0D0D0D] text-neutral-300 hover:border-[#333]'
+                        : 'border-white/[0.12] bg-white/[0.05] text-white/80 hover:border-white/25'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -670,7 +672,7 @@ export default function PublicAssessmentPage() {
             </Stack>
           </Card>
 
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6 lg:p-8">
+          <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6 lg:p-8')}>
             <Stack gap="md">
               <Text size="sm" className="text-white font-semibold">Do you have children?</Text>
               <div className="grid grid-cols-2 gap-2">
@@ -681,7 +683,7 @@ export default function PublicAssessmentPage() {
                     className={`w-full text-left px-3 md:px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
                       profile.has_children === option.value
                         ? 'border-[#39FF14] bg-[#39FF14]/10 text-white'
-                        : 'border-[#222] bg-[#0D0D0D] text-neutral-300 hover:border-[#333]'
+                        : 'border-white/[0.12] bg-white/[0.05] text-white/80 hover:border-white/25'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -696,7 +698,7 @@ export default function PublicAssessmentPage() {
             </Stack>
           </Card>
 
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6 lg:p-8">
+          <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6 lg:p-8')}>
             <Stack gap="md">
               <Text size="sm" className="text-white font-semibold">What best describes your work situation?</Text>
               <div className="grid grid-cols-1 gap-2">
@@ -707,7 +709,7 @@ export default function PublicAssessmentPage() {
                     className={`w-full text-left px-3 md:px-4 py-3 rounded-xl border-2 transition-all duration-200 ${
                       profile.employment_type === option
                         ? 'border-[#39FF14] bg-[#39FF14]/10 text-white'
-                        : 'border-[#222] bg-[#0D0D0D] text-neutral-300 hover:border-[#333]'
+                        : 'border-white/[0.12] bg-white/[0.05] text-white/80 hover:border-white/25'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -768,7 +770,7 @@ export default function PublicAssessmentPage() {
     return (
       <>
         {/* Progress Header */}
-        <div className="sticky top-0 z-50 bg-neutral-850/95 backdrop-blur-sm border-b border-[#1A1A1A]">
+        <div className="sticky top-0 z-50 bg-[rgba(28,22,38,0.85)] backdrop-blur-xl border-b border-white/10">
           <Container size="xl">
             <div className="py-3">
               <div className="flex items-center justify-between mb-2">
@@ -789,7 +791,7 @@ export default function PublicAssessmentPage() {
           <Stack gap="lg">
             {/* Category Badge */}
             <div className="flex items-center gap-2">
-              <Badge variant="neutral" className="bg-[#1A1A1A] text-neutral-300 border-[#333]">
+              <Badge variant="neutral" className="border-white/15 bg-white/[0.06] text-white/80">
                 {catMeta?.title || currentCategory.category}
               </Badge>
               <Text size="sm" className="text-neutral-500">
@@ -806,8 +808,8 @@ export default function PublicAssessmentPage() {
             <Stack gap="sm">
               {currentQuestion.options.filter(o => !o.isCustom).map((option) => {
                 const isSelected = currentResponse?.text === option.text
-                let borderColor = 'border-[#222]'
-                let bgColor = 'bg-[#0D0D0D]'
+                let borderColor = 'border-white/[0.12]'
+                let bgColor = 'bg-white/[0.05]'
                 if (isSelected) {
                   if (option.greenLine === 'above') {
                     borderColor = 'border-[#39FF14]'
@@ -831,7 +833,7 @@ export default function PublicAssessmentPage() {
                       currentQuestion.text
                     )}
                     disabled={isSaving}
-                    className={`w-full text-left px-3 md:px-4 py-3 md:py-3.5 rounded-xl border-2 transition-all duration-200 hover:border-[#444] ${borderColor} ${bgColor}`}
+                    className={`w-full text-left px-3 md:px-4 py-3 md:py-3.5 rounded-xl border-2 transition-all duration-200 hover:border-white/25 ${borderColor} ${bgColor}`}
                   >
                     <span className="text-sm text-neutral-200">{option.text}</span>
                   </button>
@@ -898,7 +900,7 @@ export default function PublicAssessmentPage() {
             <div className="flex justify-center">
               <div className="relative w-36 h-36 md:w-48 md:h-48">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#1A1A1A" strokeWidth="8" />
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="8" />
                   <circle
                     cx="60" cy="60" r="52" fill="none"
                     stroke={getGreenLineColor(
@@ -941,9 +943,9 @@ export default function PublicAssessmentPage() {
           </PageHero>
 
           {/* Category Breakdown */}
-          <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6 lg:p-8">
+          <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6 lg:p-8')}>
             <Stack gap="md">
-              <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em]">
+              <Text size="sm" className="text-xs font-medium text-white/60">
                 Category Breakdown
               </Text>
               <Stack gap="sm">
@@ -961,7 +963,7 @@ export default function PublicAssessmentPage() {
                           <Text size="sm" className="text-white font-medium">{meta?.title || cat.category}</Text>
                           <span className="text-sm font-semibold" style={{ color }}>{cat.percentage}%</span>
                         </div>
-                        <div className="w-full h-2 bg-[#1A1A1A] rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${cat.percentage}%`, backgroundColor: color }}
@@ -977,11 +979,11 @@ export default function PublicAssessmentPage() {
 
           {/* Strengths & Growth */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6 lg:p-8">
+            <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6 lg:p-8')}>
               <Stack gap="md">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-[#39FF14]" />
-                  <Text size="sm" className="text-[#39FF14] font-semibold uppercase tracking-wider">Strengths</Text>
+                  <Text size="sm" className="text-[#39FF14] font-semibold">Strengths</Text>
                 </div>
                 {sortedCategories.filter(c => c.greenLine === 'above').length > 0 ? (
                   <Stack gap="xs">
@@ -998,11 +1000,11 @@ export default function PublicAssessmentPage() {
               </Stack>
             </Card>
 
-            <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F] p-4 md:p-6 lg:p-8">
+            <Card variant="outlined" className={cn(GLASS_CARD, 'p-4 md:p-6 lg:p-8')}>
               <Stack gap="md">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-[#FF0040]" />
-                  <Text size="sm" className="text-[#FF0040] font-semibold uppercase tracking-wider">Growth Opportunities</Text>
+                  <Text size="sm" className="text-[#FF0040] font-semibold">Growth Opportunities</Text>
                 </div>
                 {sortedCategories.filter(c => c.greenLine === 'below').length > 0 ? (
                   <Stack gap="xs">
@@ -1021,7 +1023,7 @@ export default function PublicAssessmentPage() {
           </div>
 
           {/* CTA */}
-          <Card variant="outlined" className="bg-[#101010] border-[#39FF14]/20 p-4 md:p-6 lg:p-8">
+          <Card variant="outlined" className={cn(GLASS_CARD, 'border-[#39FF14]/20 p-4 md:p-6 lg:p-8')}>
             <div className="text-center">
               <Stack gap="md">
                 <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-white">

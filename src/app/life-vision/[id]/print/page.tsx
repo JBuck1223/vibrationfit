@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Download, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 
 export default function PrintPreviewPage() {
   const params = useParams()
@@ -150,7 +151,7 @@ export default function PrintPreviewPage() {
   return (
     <div className="flex flex-col">
       {/* Toolbar */}
-      <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-3 md:p-4 mb-6">
+      <div className={`${GLASS_CARD} p-3 md:p-4 mb-6`}>
         <div className="flex flex-wrap items-center gap-3 md:gap-4">
           {/* Presets */}
           <div className="flex items-center gap-2">
@@ -164,14 +165,14 @@ export default function PrintPreviewPage() {
                 className="group"
               >
                 <div
-                  className="w-7 h-7 rounded-full border border-neutral-600 group-hover:border-neutral-400 transition-colors"
+                  className="w-7 h-7 rounded-full border border-white/15 group-hover:border-neutral-400 transition-colors"
                   style={{ backgroundColor: colorPresets[key].primary }}
                 />
               </button>
             ))}
           </div>
 
-          <div className="w-px h-6 bg-neutral-700 hidden sm:block" />
+          <div className="w-px h-6 bg-white/15 hidden sm:block" />
 
           {/* Custom Colors */}
           <div className="flex items-center gap-3">
@@ -182,14 +183,14 @@ export default function PrintPreviewPage() {
                   type="color"
                   value={colors[key]}
                   onChange={(e) => updateColor(key, e.target.value)}
-                  className="w-7 h-7 rounded-full cursor-pointer border border-neutral-600 hover:border-neutral-400 bg-transparent p-0 transition-colors [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
+                  className="w-7 h-7 rounded-full cursor-pointer border border-white/15 hover:border-neutral-400 bg-transparent p-0 transition-colors [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
                 />
                 <span className="text-[11px] text-neutral-500 hidden md:inline">{label}</span>
               </label>
             ))}
           </div>
 
-          <div className="w-px h-6 bg-neutral-700 hidden sm:block" />
+          <div className="w-px h-6 bg-white/15 hidden sm:block" />
 
           {/* Reset */}
           <button
@@ -236,7 +237,7 @@ export default function PrintPreviewPage() {
               title="PDF Preview"
             />
           ) : (
-            <div className="flex items-center justify-center w-full bg-neutral-900 rounded-lg border border-neutral-800" style={{ aspectRatio: '8.5 / 11' }}>
+            <div className="flex items-center justify-center w-full bg-white/[0.05] rounded-lg border border-white/[0.12]" style={{ aspectRatio: '8.5 / 11' }}>
               <div className="text-center text-neutral-500">
                 <p className="text-sm font-medium mb-1">Loading preview...</p>
                 <p className="text-xs">Preparing your PDF</p>

@@ -15,7 +15,8 @@ export default function TravelTrackerLayout({
     <>
       <TravelAreaBar />
       <main
-        className="flex-1 px-4 pb-3 pt-6 md:px-0 md:pb-3 md:pt-8 lg:pt-6"
+        className="flex-1 px-4 pb-3 pt-6 md:px-0 md:pb-3 md:pt-8 lg:pt-6 [[data-app-shell]_&]:pt-0"
+        data-studio-glass
         style={{ '--content-px': '1rem' } as React.CSSProperties}
       >
         {children}

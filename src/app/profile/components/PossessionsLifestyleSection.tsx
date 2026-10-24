@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 import { Card, Input, SaveButton } from '@/lib/design-system/components'
 import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -256,10 +258,10 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
             <button
               type="button"
               onClick={() => setIsLifestyleCategoryDropdownOpen(!isLifestyleCategoryDropdownOpen)}
-              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+              className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                 profile.lifestyle_category 
                   ? 'text-white' 
-                  : 'text-[#9CA3AF]'
+                  : 'text-white/40'
               }`}
             >
               {lifestyleCategoryOptions.find(opt => opt.value === (profile.lifestyle_category || ''))?.label || 'Select category...'}
@@ -276,7 +278,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsLifestyleCategoryDropdownOpen(false)}
                 />
-                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                   {lifestyleCategoryOptions.map(option => (
                     <button
                       key={option.value}
@@ -288,7 +290,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                       className={`w-full px-6 py-2 text-left transition-colors ${
                         (profile.lifestyle_category || '') === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                          : 'text-white hover:bg-[#333]'
+                          : 'text-white hover:bg-white/[0.06]'
                       }`}
                     >
                       {option.label}
@@ -301,7 +303,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
         </div>
 
         {/* Vehicles Table */}
-        <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
+        <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4">
             <h4 className="text-sm font-semibold text-white mb-4">Vehicles</h4>
 
             {vehicles.length === 0 ? (
@@ -388,7 +390,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                                 return next
                               })
                             }}
-                            className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white text-sm border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                            className="w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] text-white text-sm hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left"
                           >
                             {ownershipStatusOptions.find(opt => opt.value === (vehicle.ownership_status || 'paid_in_full'))?.label || 'Paid In Full'}
                           </button>
@@ -410,7 +412,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                                   })
                                 }}
                               />
-                              <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                              <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                                 {ownershipStatusOptions.map(option => (
                                   <button
                                     key={option.value}
@@ -426,7 +428,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                                     className={`w-full px-6 py-2 text-left transition-colors ${
                                       (vehicle.ownership_status || 'paid_in_full') === option.value 
                                         ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                                        : 'text-white hover:bg-[#333]'
+                                        : 'text-white hover:bg-white/[0.06]'
                                     }`}
                                   >
                                     {option.label}
@@ -453,7 +455,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
           </div>
 
         {/* Items Table */}
-        <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
+        <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4">
           <div className="mb-4">
             <h4 className="text-sm font-semibold text-white mb-1">Items</h4>
             <p className="text-xs text-neutral-400">
@@ -545,7 +547,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                               return next
                             })
                           }}
-                          className="w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] text-white text-sm border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                          className="w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] text-white text-sm hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left"
                         >
                           {ownershipStatusOptions.find(opt => opt.value === (item.ownership_status || 'paid_in_full'))?.label || 'Paid In Full'}
                         </button>
@@ -567,7 +569,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                                 })
                               }}
                             />
-                            <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                            <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                               {ownershipStatusOptions.map(option => (
                                 <button
                                   key={option.value}
@@ -583,7 +585,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
                                   className={`w-full px-6 py-2 text-left transition-colors ${
                                     (item.ownership_status || 'paid_in_full') === option.value 
                                       ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                                      : 'text-white hover:bg-[#333]'
+                                      : 'text-white hover:bg-white/[0.06]'
                                   }`}
                                 >
                                   {option.label}
@@ -631,7 +633,7 @@ export function PossessionsLifestyleSection({ profile, onProfileChange, onProfil
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="border-t border-neutral-800/50 pt-2">
+        <div className="border-t border-white/10 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

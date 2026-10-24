@@ -58,7 +58,7 @@ export function ManifestationsWidget(chrome: WidgetChromeProps) {
               <Link
                 key={item.id}
                 href={`/manifestations/${item.id}`}
-                className="group relative aspect-square overflow-hidden rounded-xl border border-white/[0.06] bg-neutral-900"
+                className="group relative aspect-square overflow-hidden rounded-xl border border-white/[0.12] bg-white/[0.05]"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img

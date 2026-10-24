@@ -252,10 +252,10 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
             <ProfilePictureClickable
               src={previewUrl || currentImageUrl || DEFAULT_PROFILE_IMAGE_URL}
               alt="Profile picture"
-              className="inline-flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-2 border-neutral-700 bg-neutral-800"
+              className="inline-flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-2 border-white/[0.12] bg-white/[0.06]"
             >
               {imageLoadError ? (
-                <div className="flex h-full w-full items-center justify-center bg-neutral-700">
+                <div className="flex h-full w-full items-center justify-center bg-white/[0.08]">
                   <Upload className="h-8 w-8 text-neutral-400" />
                 </div>
               ) : (
@@ -301,7 +301,7 @@ export function ProfilePictureUpload({ currentImageUrl, onImageChange, onError, 
               Drag to position and resize the crop area
             </div>
 
-            <div className="relative mx-auto bg-neutral-800 rounded-lg overflow-hidden">
+            <div className="relative mx-auto rounded-xl border border-white/[0.12] bg-white/[0.05] overflow-hidden">
               <ReactCrop
                 crop={crop}
                 onChange={(c) => setCrop(c)}

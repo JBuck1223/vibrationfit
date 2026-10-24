@@ -9,6 +9,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Play, Pause, Music, Loader2 } from 'lucide-react'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 
 export interface PublicGridTrack {
   id: string
@@ -70,9 +71,9 @@ export function PublicTrackGrid({ tracks }: { tracks: PublicGridTrack[] }) {
         return (
           <div
             key={track.id}
-            className="group rounded-2xl border-2 border-[#333] bg-neutral-900 overflow-hidden transition-transform duration-300 hover:-translate-y-1"
+            className={`${GLASS_CARD} group overflow-hidden transition-transform duration-300 hover:-translate-y-1`}
           >
-            <div className="relative aspect-square bg-neutral-800">
+            <div className="relative aspect-square bg-white/[0.06]">
               {track.cover_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -83,7 +84,7 @@ export function PublicTrackGrid({ tracks }: { tracks: PublicGridTrack[] }) {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Music className="w-10 h-10 text-neutral-600" />
+                  <Music className="w-10 h-10 text-white/30" />
                 </div>
               )}
               <button
@@ -115,15 +116,15 @@ export function PublicTrackGrid({ tracks }: { tracks: PublicGridTrack[] }) {
                 {track.artist_href ? (
                   <Link
                     href={track.artist_href}
-                    className="text-xs text-neutral-400 truncate hover:text-[#39FF14] transition-colors"
+                    className="text-xs text-white/65 truncate hover:text-[#39FF14] transition-colors"
                   >
                     {track.artist_name}
                   </Link>
                 ) : (
-                  <p className="text-xs text-neutral-400 truncate">{track.artist_name}</p>
+                  <p className="text-xs text-white/65 truncate">{track.artist_name}</p>
                 )}
                 {track.duration_ms ? (
-                  <span className="text-xs text-neutral-500 flex-shrink-0 ml-2">
+                  <span className="text-xs text-white/50 flex-shrink-0 ml-2">
                     {formatDuration(track.duration_ms)}
                   </span>
                 ) : null}

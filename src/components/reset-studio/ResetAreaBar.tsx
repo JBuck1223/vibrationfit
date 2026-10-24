@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation'
 import { Flame, Eye, PenLine, LayoutGrid } from 'lucide-react'
 import { AreaBar, type AreaBarContextNavItem } from '@/lib/design-system/components'
 import { getVisionCategoryLabel, getVisionCategoryIcon } from '@/lib/design-system/vision-categories'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { ShellStudioBar } from '@/components/app-shell/ShellStudioBar'
 import { useResetStudio } from './ResetStudioContext'
 
 const TABS = [
@@ -13,6 +15,7 @@ const TABS = [
 
 export function ResetAreaBar() {
   const pathname = usePathname()
+  const inShell = useInShell()
   const { reset, focusFilter, setFocusFilter } = useResetStudio()
   const isViewTab = pathname === '/reset' || pathname === '/reset/'
   const isUpdateArea = pathname.startsWith('/reset/update')
@@ -41,6 +44,20 @@ export function ResetAreaBar() {
     contextText = 'Rise. Recommit to the life you choose.'
   } else if (isUpdateArea) {
     contextText = 'Choose what to recommit to and your focus areas.'
+  }
+
+  if (inShell) {
+    // The app shell: a View | Update toggle and the focus filter as pills.
+    return (
+      <ShellStudioBar
+        label="Reset"
+        toggle={[
+          { label: 'View', href: '/reset', active: !isUpdateArea },
+          { label: 'Update', href: '/reset/update', active: isUpdateArea },
+        ]}
+        contextNav={contextNav}
+      />
+    )
   }
 
   return (

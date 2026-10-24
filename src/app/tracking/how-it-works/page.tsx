@@ -177,7 +177,7 @@ export default function HowItWorksPage() {
         </Card>
 
         {/* About overlaps */}
-        <Card className="border-[#333] bg-gradient-to-r from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/20">
+        <Card className="bg-gradient-to-r from-[#39FF14]/5 to-[#00FFFF]/5 border-[#39FF14]/20">
           <h3 className="text-base font-semibold text-white mb-3">
             Why do some activities show up in multiple metrics?
           </h3>

@@ -516,7 +516,7 @@ export default function AssessmentPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="w-full">
         <Card className="mx-auto max-w-xl p-8 text-center">
           <h2 className="text-2xl font-semibold text-white mb-3">We couldn&apos;t load this assessment</h2>
           <p className="text-neutral-400 mb-6">
@@ -532,7 +532,7 @@ export default function AssessmentPage() {
 
   if (isComplete && assessmentId && assessmentData) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="w-full">
         <Container size="xl">
           <Stack gap="lg">
             <ResultsSummary
@@ -554,12 +554,11 @@ export default function AssessmentPage() {
         {/* Status badges */}
         {assessmentData && (
           <div className="text-center">
-            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl border border-white/15 bg-[rgba(28,22,38,0.45)] backdrop-blur-xl">
               <StatusBadge 
                 status="draft"
                 label="IN PROGRESS"
                 subtle={true} 
-                className="uppercase tracking-[0.25em]" 
               />
               <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
                 <CalendarDays className="w-4 h-4 text-neutral-500" />
@@ -581,7 +580,7 @@ export default function AssessmentPage() {
           <Card>
             <div className="flex flex-col items-center gap-2">
               <span className="text-base font-semibold text-primary-500">{progress.overall.percentage}% Complete</span>
-              <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
+              <div className="w-full bg-white/10 rounded-full h-3">
                 <div
                   className="h-3 rounded-full transition-all duration-500 bg-primary-500"
                   style={{ width: `${progress.overall.percentage}%` }}
@@ -667,10 +666,10 @@ export default function AssessmentPage() {
                       selfAssessmentRating === num
                         ? 'border-[#39FF14] bg-[#39FF14]/20 text-[#39FF14] scale-110'
                         : num <= 3
-                          ? 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-red-500/50'
+                          ? 'border-white/[0.12] bg-white/[0.05] text-white/80 hover:border-red-500/50'
                           : num <= 6
-                            ? 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-yellow-500/50'
-                            : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-green-500/50'
+                            ? 'border-white/[0.12] bg-white/[0.05] text-white/80 hover:border-yellow-500/50'
+                            : 'border-white/[0.12] bg-white/[0.05] text-white/80 hover:border-green-500/50'
                     }`}
                   >
                     {num}
@@ -727,8 +726,8 @@ export default function AssessmentPage() {
             {currentQuestion.options.map((option, index) => {
               const isSelected = selectedValue === option.value
               
-              let borderColor = 'border-neutral-600'
-              let hoverBorderColor = 'hover:border-neutral-500'
+              let borderColor = 'border-white/[0.12]'
+              let hoverBorderColor = 'hover:border-white/25'
               
               if (isSelected) {
                 borderColor = 'border-[#39FF14]'
@@ -742,8 +741,8 @@ export default function AssessmentPage() {
                     w-full p-4 rounded-xl border-2 transition-all duration-200
                     ${borderColor} ${hoverBorderColor}
                     ${isSelected 
-                      ? 'bg-neutral-700/50' 
-                      : 'bg-neutral-800/30 hover:bg-neutral-700/30'
+                      ? 'bg-white/[0.10]' 
+                      : 'bg-white/[0.05] hover:bg-white/[0.08]'
                     }
                     text-left relative group
                   `}
@@ -766,7 +765,7 @@ export default function AssessmentPage() {
 
           {/* Custom Response Input */}
           {showCustomInput && (
-            <div className="mt-6 p-6 bg-neutral-800/50 border-2 border-primary-500/30 rounded-xl">
+            <div className="mt-6 p-6 rounded-xl border-2 border-primary-500/30 bg-white/[0.05]">
               <h4 className="text-lg font-semibold text-white mb-4">
                 Share your own response:
               </h4>
@@ -783,7 +782,7 @@ export default function AssessmentPage() {
                     </p>
                   </div>
                   
-                  <div className="p-4 bg-neutral-900 border border-neutral-600 rounded-lg">
+                  <div className="p-4 rounded-xl border border-white/[0.12] bg-white/[0.05]">
                     <p className="text-white text-sm leading-relaxed">
                       {customResponse}
                     </p>
@@ -795,7 +794,7 @@ export default function AssessmentPage() {
                     value={customResponse}
                     onChange={(e) => setCustomResponse(e.target.value)}
                     placeholder="Type response here..."
-                    className="w-full p-4 bg-neutral-900 border border-neutral-600 rounded-lg text-white placeholder-neutral-400 resize-none"
+                    className="w-full p-4 rounded-2xl border border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 focus:border-[#39FF14]/60 focus:outline-none resize-none"
                     rows={4}
                     disabled={isSaving}
                   />
@@ -812,7 +811,7 @@ export default function AssessmentPage() {
                           className={`w-12 h-12 rounded-lg border-2 transition-all ${
                             customResponseScore === score
                               ? 'border-[#39FF14] bg-[#39FF14]/20 text-[#39FF14]'
-                              : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-neutral-500'
+                              : 'border-white/[0.12] bg-white/[0.05] text-white/80 hover:border-white/25'
                           }`}
                           disabled={isSaving}
                         >
@@ -856,7 +855,7 @@ export default function AssessmentPage() {
 
           {/* Not Applicable Option */}
           {!showCustomInput && !showNaInput && (
-            <div className="mt-4 pt-4 border-t border-neutral-700/50">
+            <div className="mt-4 pt-4 border-t border-white/10">
               <button
                 onClick={() => setShowNaInput(true)}
                 className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors"
@@ -867,7 +866,7 @@ export default function AssessmentPage() {
           )}
 
           {showNaInput && (
-            <div className="mt-6 p-6 bg-neutral-800/50 border-2 border-neutral-600/50 rounded-xl">
+            <div className="mt-6 p-6 rounded-xl border border-white/[0.12] bg-white/[0.05]">
               <h4 className="text-base font-semibold text-white mb-2">
                 Not Applicable
               </h4>
@@ -878,7 +877,7 @@ export default function AssessmentPage() {
                 value={naExplanation}
                 onChange={(e) => setNaExplanation(e.target.value)}
                 placeholder="Why doesn't this apply? (optional)"
-                className="w-full p-3 bg-neutral-900 border border-neutral-600 rounded-lg text-white placeholder-neutral-500 resize-none text-sm"
+                className="w-full p-3 rounded-2xl border border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 focus:border-[#39FF14]/60 focus:outline-none resize-none text-sm"
                 rows={2}
                 disabled={isSaving}
               />

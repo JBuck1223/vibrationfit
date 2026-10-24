@@ -12,6 +12,7 @@ import {
   Text,
 } from '@/lib/design-system'
 import { Input, PageLayout } from '@/lib/design-system/components'
+import { PILL_OFF } from '@/lib/app-shell/glass'
 
 export default function PremiumApplicationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -95,7 +96,7 @@ export default function PremiumApplicationPage() {
             </div>
           </Card>
 
-          <Card className="border-neutral-700">
+          <Card className="border-white/[0.12]">
             <form onSubmit={handleSubmit}>
               <Stack gap="md">
                 <Heading level={3} className="text-white">Your Application</Heading>
@@ -144,7 +145,7 @@ export default function PremiumApplicationPage() {
                     placeholder="Describe where you are right now..."
                     rows={4}
                     required
-                    className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-white placeholder-neutral-500 focus:border-[#BF00FF] focus:ring-1 focus:ring-[#BF00FF] focus:outline-none transition-colors"
+                    className="w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-4 py-3 text-white placeholder-neutral-500 focus:border-[#BF00FF] focus:ring-1 focus:ring-[#BF00FF] focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -157,7 +158,7 @@ export default function PremiumApplicationPage() {
                     placeholder="Describe what you want your life to look like..."
                     rows={4}
                     required
-                    className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-white placeholder-neutral-500 focus:border-[#BF00FF] focus:ring-1 focus:ring-[#BF00FF] focus:outline-none transition-colors"
+                    className="w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-4 py-3 text-white placeholder-neutral-500 focus:border-[#BF00FF] focus:ring-1 focus:ring-[#BF00FF] focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -170,7 +171,7 @@ export default function PremiumApplicationPage() {
                     placeholder="What approaches, programs, or methods have you already tried?"
                     rows={4}
                     required
-                    className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-white placeholder-neutral-500 focus:border-[#BF00FF] focus:ring-1 focus:ring-[#BF00FF] focus:outline-none transition-colors"
+                    className="w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-4 py-3 text-white placeholder-neutral-500 focus:border-[#BF00FF] focus:ring-1 focus:ring-[#BF00FF] focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -187,7 +188,7 @@ export default function PremiumApplicationPage() {
                         className={`w-10 h-10 rounded-full font-semibold transition-all duration-200 ${
                           form.commitment === String(num)
                             ? 'bg-[#BF00FF] text-white shadow-lg shadow-[#BF00FF]/30'
-                            : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white border border-neutral-700'
+                            : PILL_OFF
                         }`}
                       >
                         {num}
@@ -209,7 +210,7 @@ export default function PremiumApplicationPage() {
                         className={`px-6 py-3 rounded-full font-semibold transition-all duration-200 ${
                           form.ableToInvest === option.toLowerCase()
                             ? 'bg-[#BF00FF] text-white shadow-lg shadow-[#BF00FF]/30'
-                            : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white border border-neutral-700'
+                            : PILL_OFF
                         }`}
                       >
                         {option}

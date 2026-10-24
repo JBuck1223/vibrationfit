@@ -419,7 +419,7 @@ function ExportPageContent() {
             {/* Paper/Ratio */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+                {!sh && <div className="h-px flex-1 bg-white/15" />}
                 <h3 className={sh ? 'flex items-center gap-2 text-sm font-semibold text-white' : 'text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide'}>
                   {outputFormat === 'pdf' ? (
                     <><FileText className="w-3.5 h-3.5 text-[#39FF14]" /> Paper</>
@@ -427,7 +427,7 @@ function ExportPageContent() {
                     <><Image className="w-3.5 h-3.5 text-[#39FF14]" /> Ratio</>
                   )}
                 </h3>
-                {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+                {!sh && <div className="h-px flex-1 bg-white/15" />}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {(outputFormat === 'pdf' ? PAPER_SIZES : IMAGE_RATIOS).map(opt => {
@@ -454,11 +454,11 @@ function ExportPageContent() {
             {/* Display */}
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+                {!sh && <div className="h-px flex-1 bg-white/15" />}
                 <h3 className={sh ? 'flex items-center gap-2 text-sm font-semibold text-white' : 'text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide'}>
                   <Eye className="w-3.5 h-3.5 text-[#39FF14]" /> Display
                 </h3>
-                {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+                {!sh && <div className="h-px flex-1 bg-white/15" />}
               </div>
               <div className="space-y-3">
                 <div>
@@ -527,11 +527,11 @@ function ExportPageContent() {
           {/* Column 2: Colors */}
           <div className={sh ? 'space-y-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-4' : 'space-y-3 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4'}>
             <div className="flex items-center gap-3">
-              {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+              {!sh && <div className="h-px flex-1 bg-white/15" />}
               <h3 className={sh ? 'flex items-center gap-2 text-sm font-semibold text-white' : 'text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide'}>
                 <Sparkles className="w-3.5 h-3.5 text-[#39FF14]" /> Colors
               </h3>
-              {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+              {!sh && <div className="h-px flex-1 bg-white/15" />}
             </div>
             <div>
               <div className={sh ? 'mb-1.5 text-center text-xs text-white/55' : 'text-[10px] text-neutral-500 mb-1.5 uppercase text-center'}>Presets</div>
@@ -562,7 +562,7 @@ function ExportPageContent() {
                         type="color"
                         value={colors[key]}
                         onChange={(e) => updateColor(key, e.target.value)}
-                        className="w-8 h-8 rounded-full cursor-pointer border-2 border-neutral-600 hover:border-neutral-400 bg-transparent p-0 transition-colors [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
+                        className="w-8 h-8 rounded-full cursor-pointer border-2 border-white/15 hover:border-neutral-400 bg-transparent p-0 transition-colors [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
                       />
                     </label>
                     <span className="text-[9px] text-neutral-500">{label}</span>
@@ -586,11 +586,11 @@ function ExportPageContent() {
           {/* Column 3: Filters (always open) */}
           <div className={sh ? 'space-y-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-4' : 'space-y-3 md:bg-neutral-900/50 md:border md:border-neutral-800 md:rounded-2xl md:p-4'}>
             <div className="flex items-center gap-3">
-              {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+              {!sh && <div className="h-px flex-1 bg-white/15" />}
               <h3 className={sh ? 'flex items-center gap-2 text-sm font-semibold text-white' : 'text-[11px] font-semibold text-white flex items-center gap-2 uppercase tracking-wide'}>
                 <Filter className="w-3.5 h-3.5 text-[#39FF14]" /> Filters
               </h3>
-              {!sh && <div className="h-px flex-1 bg-neutral-700" />}
+              {!sh && <div className="h-px flex-1 bg-white/15" />}
             </div>
             <div className="space-y-3">
               <div>
@@ -669,7 +669,7 @@ function ExportPageContent() {
         <div className="w-full max-w-4xl lg:px-8">
           {loading ? (
             <div
-              className="flex items-center justify-center w-full bg-neutral-900 rounded-lg border border-neutral-800 md:min-h-[400px]"
+              className="flex items-center justify-center w-full bg-white/[0.05] rounded-lg border border-white/[0.12] md:min-h-[400px]"
               style={{ aspectRatio: aspectStyle }}
             >
               <Spinner size="lg" />

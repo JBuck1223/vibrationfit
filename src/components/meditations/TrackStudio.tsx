@@ -91,7 +91,7 @@ export function TrackStudio({ onCreated }: TrackStudioProps) {
   }
 
   return (
-    <div className={`overflow-hidden rounded-2xl border-2 transition-colors ${open ? 'border-[#BF00FF]/40 bg-neutral-950' : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'}`}>
+    <div className={`overflow-hidden rounded-2xl border transition-colors ${open ? 'border-[#BF00FF]/50 bg-[rgba(20,16,30,0.55)]' : 'border-white/[0.12] bg-white/[0.05] hover:border-white/25'}`}>
       <button
         type="button"
         onClick={() => setOpen((next) => !next)}
@@ -107,11 +107,11 @@ export function TrackStudio({ onCreated }: TrackStudioProps) {
             {generating ? `${status} · ${seconds}s` : 'An instrumental with no vocals, from a mood or a reference track'}
           </span>
         </span>
-        <ChevronDown className={`h-5 w-5 shrink-0 text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-5 w-5 shrink-0 text-white/55 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="border-t border-neutral-800 p-4">
+        <div className="border-t border-white/10 p-4">
           <Input
             label="Track title"
             value={title}
@@ -120,7 +120,7 @@ export function TrackStudio({ onCreated }: TrackStudioProps) {
             disabled={generating}
           />
 
-          <div className="mt-4 flex gap-1 rounded-full bg-neutral-900 p-1" role="tablist">
+          <div className="mt-4 flex gap-1 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] p-1 backdrop-blur-xl" role="tablist">
             {([
               { id: 'mood', label: 'Describe a mood' },
               { id: 'reference', label: 'Use a reference' },

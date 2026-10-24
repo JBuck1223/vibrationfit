@@ -6,6 +6,8 @@
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { AssessmentCategory } from '@/types/assessment'
 import { Check, Circle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 
 interface CategoryProgress {
   category: AssessmentCategory
@@ -36,7 +38,7 @@ export default function ProgressTracker({
   return (
     <div className="space-y-6">
       {/* Overall Progress */}
-      <div className="bg-neutral-800 rounded-2xl p-6 border-2 border-neutral-700">
+      <div className={cn(GLASS_CARD, 'p-6')}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-semibold text-neutral-300">
             Overall Progress
@@ -46,7 +48,7 @@ export default function ProgressTracker({
           </span>
         </div>
         
-        <div className="relative w-full h-3 bg-neutral-700 rounded-full overflow-hidden">
+        <div className="relative w-full h-3 bg-white/10 rounded-full overflow-hidden">
           <div
             className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500"
             style={{ width: `${overall.percentage}%` }}
@@ -59,7 +61,7 @@ export default function ProgressTracker({
       </div>
 
       {/* Category Progress */}
-      <div className="bg-neutral-800 rounded-2xl p-6 border-2 border-neutral-700">
+      <div className={cn(GLASS_CARD, 'p-6')}>
         <h3 className="text-sm font-semibold text-neutral-300 mb-4">
           Category Progress
         </h3>
@@ -77,7 +79,7 @@ export default function ProgressTracker({
                 key={cat.key}
                 className={`
                   flex items-center gap-3 p-3 rounded-lg transition-colors
-                  ${isCurrent ? 'bg-primary-500/10 border border-primary-500/30' : 'bg-neutral-700/30'}
+                  ${isCurrent ? 'bg-primary-500/10 border border-primary-500/30' : 'bg-white/[0.05]'}
                 `}
               >
                 {/* Icon */}
@@ -87,7 +89,7 @@ export default function ProgressTracker({
                     ? 'bg-primary-500 text-white' 
                     : isCurrent
                       ? 'bg-primary-500/20 text-primary-500'
-                      : 'bg-neutral-700 text-neutral-400'
+                      : 'bg-white/[0.08] text-white/70'
                   }
                 `}>
                   {isComplete ? (

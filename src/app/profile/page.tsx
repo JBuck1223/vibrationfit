@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Spinner, Container } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { useProfileStudio } from '@/components/profile-studio/ProfileStudioContext'
 
 export default function ProfileListPage() {
@@ -25,8 +25,6 @@ export default function ProfileListPage() {
   }, [loading, activeProfileId, versions, router])
 
   return (
-    <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-      <Spinner size="lg" />
-    </Container>
+    <PageLoading />
   )
 }

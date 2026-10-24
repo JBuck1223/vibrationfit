@@ -143,7 +143,7 @@ export function TripForm({
           className={`rounded-xl border-2 px-4 py-3 text-sm font-medium transition-colors ${
             status === 'past'
               ? 'border-[#39FF14] bg-[#39FF14]/10 text-[#39FF14]'
-              : 'border-neutral-800 text-neutral-400 hover:border-neutral-700'
+              : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/70 backdrop-blur-xl hover:border-white/25'
           }`}
         >
           Taken
@@ -154,7 +154,7 @@ export function TripForm({
           className={`rounded-xl border-2 px-4 py-3 text-sm font-medium transition-colors ${
             status === 'upcoming'
               ? 'border-[#00FFFF] bg-[#00FFFF]/10 text-[#00FFFF]'
-              : 'border-neutral-800 text-neutral-400 hover:border-neutral-700'
+              : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/70 backdrop-blur-xl hover:border-white/25'
           }`}
         >
           Upcoming

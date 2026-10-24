@@ -5,6 +5,8 @@ import { User, PenLine, Eye, HelpCircle, Sparkles, CheckCircle } from 'lucide-re
 import { usePathname } from 'next/navigation'
 import { AreaBar, type AreaBarContextNavItem, type AreaBarVersionSelector } from '@/lib/design-system/components'
 import { useAreaBarWalkthrough } from '@/components/tool-walkthrough'
+import { useInShell } from '@/lib/app-shell/shell-context'
+import { ShellStudioBar } from '@/components/app-shell/ShellStudioBar'
 import { useProfileStudio } from './ProfileStudioContext'
 
 const TABS = [
@@ -17,6 +19,7 @@ const CREATE_AREA_ROUTES = ['/profile/create', '/profile/new']
 export function ProfileAreaBar() {
   const pathname = usePathname()
   const router = useRouter()
+  const inShell = useInShell()
   const { versions, draftId } = useProfileStudio()
   const walkthroughMenu = useAreaBarWalkthrough()
 
@@ -140,6 +143,24 @@ export function ProfileAreaBar() {
 
   const isOnCreateSubPage = (isCreateArea && pathname !== '/profile/create')
     || isEditSubRoute || isDraftSubRoute || isViewingDraft
+
+  if (inShell) {
+    // The app shell: a View | Update toggle and one row with the version
+    // picker and the edit/review pills. The walkthrough button reads the
+    // studio host's context on its own.
+    const updateActive = Boolean(isCreateArea || isOnCreateSubPage)
+    return (
+      <ShellStudioBar
+        label="My Profile"
+        toggle={[
+          { label: 'View', href: '/profile', active: !updateActive, dataTour: 'studio-tab-profile-view' },
+          { label: 'Update', href: '/profile/create', active: updateActive, dataTour: 'studio-tab-profile-update' },
+        ]}
+        contextNav={contextNav}
+        versionSelectors={versionSelectors}
+      />
+    )
+  }
 
   return (
     <AreaBar

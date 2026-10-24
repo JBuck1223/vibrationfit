@@ -322,7 +322,7 @@ export default function SnapshotPage() {
             <ProfilePictureClickable
               src={member.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
               alt={displayName}
-              className="inline-flex h-24 w-24 overflow-hidden rounded-full border-2 border-neutral-700"
+              className="inline-flex h-24 w-24 overflow-hidden rounded-full border border-white/[0.12]"
             >
               <img
                 src={member.profile_picture_url || DEFAULT_PROFILE_IMAGE_URL}
@@ -369,7 +369,7 @@ export default function SnapshotPage() {
                         <button type="button" className="flex items-center" onClick={() => setFreezeOpen(prev => !prev)}>
                           <Shield className={`w-3.5 h-3.5 cursor-help ${practiceStats?.streakFreezeUsedThisWeek ? 'text-blue-500/40' : 'text-blue-400'}`} />
                         </button>
-                        <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-neutral-900 border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                        <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 rounded-xl bg-white/[0.05] border border-blue-500/20 p-3 shadow-xl transition-all duration-200 z-[100] ${freezeOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                           <p className="text-sm font-semibold text-blue-400 mb-1">
                             Streak Freeze <span className="font-normal text-blue-400/70">({practiceStats?.streakFreezeUsedThisWeek ? 'Used this week' : 'Available'})</span>
                           </p>
@@ -448,7 +448,7 @@ export default function SnapshotPage() {
                 {!editingAbout && (
                   <button
                     onClick={handleEditAbout}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     {member.about_me ? 'Edit' : 'Add'}
@@ -465,7 +465,7 @@ export default function SnapshotPage() {
                 value={aboutDraft}
                 onChange={(e) => setAboutDraft(e.target.value.slice(0, 500))}
                 placeholder={"Tell the Tribe a little about yourself...\n\nLiving in Sarasota, FL (raised in TX)\nWife and mom of 3\nWorking at Vibration Fit"}
-                className="w-full bg-neutral-800 border border-neutral-600 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]/50 resize-none transition-colors"
+                className="w-full bg-white/[0.06] border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#39FF14]/50 resize-none transition-colors"
                 rows={6}
                 disabled={generatingAbout}
               />
@@ -478,7 +478,7 @@ export default function SnapshotPage() {
                   <button
                     onClick={handleCancelAbout}
                     disabled={savingAbout || generatingAbout}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                     Cancel
@@ -522,7 +522,7 @@ export default function SnapshotPage() {
             {member.isOwner && !editingQuote && (
               <button
                 onClick={handleEditQuote}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
               >
                 <Pencil className="w-3.5 h-3.5" />
                 {member.favorite_quote ? 'Edit' : 'Add'}
@@ -537,7 +537,7 @@ export default function SnapshotPage() {
                 value={quoteDraft}
                 onChange={(e) => setQuoteDraft(e.target.value.slice(0, 300))}
                 placeholder="Share a quote that inspires you..."
-                className="w-full bg-neutral-800 border border-neutral-600 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FFFF]/50 resize-none transition-colors"
+                className="w-full bg-white/[0.06] border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#00FFFF]/50 resize-none transition-colors"
                 rows={3}
               />
               <div className="flex items-center justify-between">
@@ -546,7 +546,7 @@ export default function SnapshotPage() {
                   <button
                     onClick={handleCancelQuote}
                     disabled={savingQuote}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                     Cancel

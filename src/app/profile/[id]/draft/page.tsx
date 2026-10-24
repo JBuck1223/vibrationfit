@@ -26,6 +26,7 @@ import {
   CategoryGrid,
   PageHero
 } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { ProfileField } from '../../components/ProfileField'
 import { PersonalInfoSection } from '../../components/PersonalInfoSection'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
@@ -420,9 +421,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
+      <PageLoading />
     )
   }
 
@@ -501,7 +500,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
       >
         {/* Centered Version Info */}
         <div className="text-center">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm">
             <VersionBadge 
               versionNumber={draftProfile.version_number || 1} 
               status="draft" 
@@ -586,7 +585,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div 
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${!hasSectionChanges ? 'bg-neutral-700' : ''}`}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${!hasSectionChanges ? 'bg-white/10' : ''}`}
                   style={hasSectionChanges ? { backgroundColor: `${NEON_YELLOW}33`, border: `2px solid ${NEON_YELLOW}` } : undefined}
                 >
                   <Icon 
@@ -715,7 +714,7 @@ export default function ProfileDraftPage({ params }: { params: Promise<{ id: str
               
               {/* Save/Cancel Buttons */}
               {hasUnsavedChanges && (
-                <div className="mt-6 pt-6 border-t border-neutral-700 flex gap-3 md:justify-end">
+                <div className="mt-6 pt-6 border-t border-white/10 flex gap-3 md:justify-end">
                   <Button
                     onClick={handleCancelChanges}
                     variant="outline"

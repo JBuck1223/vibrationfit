@@ -59,7 +59,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
       </p>
 
       {/* Upload Area */}
-      <div className="border-2 border-dashed border-neutral-600 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
+      <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
         <FileUpload
           accept="image/*"
           multiple={true}
@@ -94,7 +94,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
               <img
                 src={photo}
                 alt={`Progress photo ${index + 1}`}
-                className="w-full h-32 object-cover rounded-lg border border-neutral-700"
+                className="w-full h-32 object-cover rounded-lg border border-white/[0.12]"
               />
               <button
                 onClick={() => handleRemovePhoto(index)}

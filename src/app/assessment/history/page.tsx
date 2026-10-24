@@ -103,7 +103,7 @@ export default function AssessmentHistoryPage() {
                       ? 'border-secondary-500/60 bg-secondary-500/10'
                       : isActive
                         ? 'border-primary-500/60 bg-primary-500/10'
-                        : 'border-neutral-700 bg-neutral-800/60'
+                        : 'border-white/[0.12] bg-white/[0.05]'
                   }`}
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

@@ -203,7 +203,6 @@ export function TravelMediaSection({ endpoint, attachments, onChanged }: TravelM
         onClose={() => setPlayingVideo(null)}
         title={playingVideo?.file_name || 'Video'}
         size="lg"
-        className="!border !border-white/[0.06] bg-[#1F1F1F]/95 backdrop-blur-xl shadow-2xl"
       >
         {playingVideo && (
           <video

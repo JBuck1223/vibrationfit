@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Badge, Card, StatusBadge, Spinner, Container, Icon } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { ProfileSidebar } from '../../components/ProfileSidebar'
 import { PersonalInfoSection } from '../../components/PersonalInfoSection'
 import { RelationshipSection } from '../../components/RelationshipSection'
@@ -281,11 +282,7 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
 
   if (isLoading) {
     return (
-      <Container size="xl">
-        <div className="flex items-center justify-center py-16">
-          <Spinner variant="primary" size="lg" />
-        </div>
-      </Container>
+      <PageLoading />
     )
   }
 
@@ -307,9 +304,9 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
   const changedFieldCount = changedFields.length
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-neutral-900 border-b border-neutral-800 px-4 py-4 mb-6">
+      <div className="border-b border-white/10 bg-white/[0.04] backdrop-blur-xl px-4 py-4 mb-6">
         <Container size="xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -388,7 +385,7 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
             <div className="lg:hidden mb-6">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-full flex items-center justify-between p-4 bg-neutral-900 rounded-xl border border-neutral-800"
+                className="w-full flex items-center justify-between p-4 rounded-xl border border-white/[0.12] bg-white/[0.05]"
               >
                 <div>
                   <h3 className="text-white font-semibold">{currentSection?.title}</h3>
@@ -397,7 +394,7 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
                 <Icon icon={ChevronDown} size="sm" color="#999" />
               </button>
               {isDropdownOpen && (
-                <div className="mt-2 bg-neutral-900 rounded-xl border border-neutral-800 overflow-hidden">
+                <div className="mt-2 rounded-xl border border-white/[0.12] bg-white/[0.05] overflow-hidden">
                   {profileSections.map((section) => (
                     <button
                       key={section.id}
@@ -405,8 +402,8 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
                         handleSectionChange(section.id)
                         setIsDropdownOpen(false)
                       }}
-                      className={`w-full text-left p-4 border-b border-neutral-800 last:border-b-0 ${
-                        activeSection === section.id ? 'bg-neutral-800' : ''
+                      className={`w-full text-left p-4 border-b border-white/10 last:border-b-0 ${
+                        activeSection === section.id ? 'bg-white/[0.08]' : ''
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -446,7 +443,7 @@ export default function NewProfileVersionPage({ params }: { params: Promise<{ id
               {renderActiveSection()}
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between mt-8 pt-6 border-t border-neutral-800">
+              <div className="flex justify-between mt-8 pt-6 border-t border-white/10">
                 <Button
                   onClick={goToPreviousSection}
                   disabled={isFirstSection()}

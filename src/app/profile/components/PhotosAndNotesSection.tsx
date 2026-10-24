@@ -41,7 +41,7 @@ export const PhotosAndNotesSection: React.FC<PhotosAndNotesSectionProps> = ({
 
         {/* Save Button - Bottom Right */}
         {onSave && (
-          <div className="border-t border-neutral-800/50 pt-2">
+          <div className="border-t border-white/10 pt-2">
             {saveError && hasUnsavedChanges && (
               <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                 <span className="text-sm text-red-400">{saveError}</span>

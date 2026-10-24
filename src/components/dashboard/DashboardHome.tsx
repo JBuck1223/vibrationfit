@@ -24,6 +24,7 @@ import {
   type LayoutPresetId,
 } from '@/lib/dashboard/layout'
 import { cn } from '@/lib/utils'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { DashboardProvider, type DashboardServerContext } from './DashboardContext'
 import { DashboardGrid } from './DashboardGrid'
 import { AddWidgetsModal } from './AddWidgetsModal'
@@ -212,11 +213,11 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
           </div>
 
           {customizing ? (
-            <div className="-mt-2 flex flex-col gap-3 rounded-2xl border border-white/[0.08] bg-black/20 p-3 md:p-4">
+            <div className={cn(GLASS_CARD, '-mt-2 flex flex-col gap-3 p-3 md:p-4')}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                <p className="text-xs font-medium text-white/60">
                   Start from a layout
-                  {activePreset === null ? <span className="ml-2 normal-case tracking-normal text-neutral-500">(currently custom)</span> : null}
+                  {activePreset === null ? <span className="ml-2 text-white/50">(currently custom)</span> : null}
                 </p>
                 {undoWidgets ? (
                   <Button variant="ghost" size="sm" onClick={handleUndo}>
@@ -239,7 +240,7 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
                         'rounded-xl border-2 px-3 py-2.5 text-left transition-colors',
                         selected
                           ? 'border-primary-500 bg-primary-500/10'
-                          : 'border-[#333] bg-[#1F1F1F] hover:border-neutral-500',
+                          : 'border-white/[0.12] bg-white/[0.05] hover:border-white/25',
                       )}
                     >
                       <span className={cn('block text-sm font-semibold', selected ? 'text-primary-500' : 'text-white')}>
@@ -261,7 +262,7 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
               <Spinner size="lg" />
             </div>
           ) : visible.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-[#333] p-10 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-white/15 p-10 text-center">
               <p className="text-sm text-neutral-300">Your dashboard is empty.</p>
               <Button
                 variant="outline"
@@ -291,11 +292,11 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
           {customizing && hiddenIds.length > 0 ? (
             <section
               aria-label="Hidden widgets"
-              className="rounded-2xl border-2 border-dashed border-[#333] p-3 md:p-4"
+              className="rounded-2xl border-2 border-dashed border-white/15 p-3 md:p-4"
             >
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+              <p className="mb-3 text-xs font-medium text-white/60">
                 Hidden widgets
-                <span className="ml-2 normal-case tracking-normal text-neutral-500">Tap one to put it back</span>
+                <span className="ml-2 text-white/50">Tap one to put it back</span>
               </p>
               <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {hiddenIds.map((id) => {
@@ -306,7 +307,7 @@ export function DashboardHome({ server, annualUpgradeOffer = null }: DashboardHo
                         type="button"
                         onClick={() => handleAdd(id)}
                         aria-label={`Show ${meta.title}`}
-                        className="flex w-full items-center gap-3 rounded-xl border border-[#333] bg-[#1F1F1F] px-3 py-2.5 text-left transition-colors hover:border-primary-500/60"
+                        className="flex w-full items-center gap-3 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-2.5 text-left transition-colors hover:border-primary-500/60"
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium text-white">{meta.title}</span>

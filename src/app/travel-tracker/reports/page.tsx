@@ -111,7 +111,7 @@ export default function TravelInsightsPage() {
 
           <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card variant="elevated" className="!p-5 md:!p-6">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+              <h2 className="mb-4 text-xs font-medium text-white/60">
                 Trips Per Year
               </h2>
               {!stats || stats.tripsPerYear.length === 0 ? (
@@ -152,7 +152,7 @@ export default function TravelInsightsPage() {
             </Card>
 
             <Card variant="elevated" className="!p-5 md:!p-6">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+              <h2 className="mb-4 text-xs font-medium text-white/60">
                 Top Destinations
               </h2>
               {!stats || stats.topDestinations.length === 0 ? (
@@ -175,7 +175,7 @@ export default function TravelInsightsPage() {
                               {d.count} {d.count === 1 ? 'visit' : 'visits'}
                             </span>
                           </div>
-                          <div className="h-1.5 overflow-hidden rounded-full bg-neutral-800">
+                          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                             <div
                               className="h-full rounded-full bg-[#00FFFF]"
                               style={{ width: `${Math.max(8, (d.count / max) * 100)}%` }}

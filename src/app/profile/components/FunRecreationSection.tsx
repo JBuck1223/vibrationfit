@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 import { Card, Input, SaveButton } from '@/lib/design-system/components'
 import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -203,7 +205,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
               {profile.hobbies.map((hobby, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center gap-2 px-3 py-1 bg-neutral-800 text-neutral-200 rounded-full text-sm"
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/[0.12] bg-white/[0.06] text-white/90 text-sm"
                 >
                   {hobby}
                   <button
@@ -228,10 +230,10 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
             <button
               type="button"
               onClick={() => setIsLeisureDropdownOpen(!isLeisureDropdownOpen)}
-              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+              className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                 profile.leisure_time_weekly 
                   ? 'text-white' 
-                  : 'text-[#9CA3AF]'
+                  : 'text-white/40'
               }`}
             >
               {leisureOptions.find(opt => opt.value === (profile.leisure_time_weekly || ''))?.label || 'Select hours per week...'}
@@ -248,7 +250,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsLeisureDropdownOpen(false)}
                 />
-                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                   {leisureOptions.map(option => (
                     <button
                       key={option.value}
@@ -260,7 +262,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
                       className={`w-full px-6 py-2 text-left transition-colors ${
                         (profile.leisure_time_weekly || '') === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                          : 'text-white hover:bg-[#333]'
+                          : 'text-white hover:bg-white/[0.06]'
                       }`}
                     >
                       {option.label}
@@ -297,7 +299,7 @@ export function FunRecreationSection({ profile, onProfileChange, onProfileReload
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="border-t border-neutral-800/50 pt-2">
+        <div className="border-t border-white/10 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

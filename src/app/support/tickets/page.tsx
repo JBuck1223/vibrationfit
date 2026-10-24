@@ -40,8 +40,8 @@ function getStatusStyle(status: string) {
     case 'in_progress': return 'text-amber-400 bg-amber-500/20 border-amber-500/30'
     case 'waiting_reply': return 'text-purple-400 bg-purple-500/20 border-purple-500/30'
     case 'resolved': return 'text-[#39FF14] bg-[#39FF14]/20 border-[#39FF14]/30'
-    case 'closed': return 'text-neutral-400 bg-neutral-800 border-neutral-700'
-    default: return 'text-neutral-400 bg-neutral-800 border-neutral-700'
+    case 'closed': return 'text-white/75 bg-white/[0.08] border-white/15'
+    default: return 'text-white/75 bg-white/[0.08] border-white/15'
   }
 }
 
@@ -144,7 +144,7 @@ export default function MyTicketsPage() {
       <Stack gap="lg">
         {tickets.length === 0 ? (
           <div className="text-center py-16">
-            <MessageSquare className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+            <MessageSquare className="w-16 h-16 text-white/30 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Tickets Yet</h3>
             <p className="text-neutral-400 mb-6">
               Need help? Create a support ticket and we'll get back to you.
@@ -155,7 +155,7 @@ export default function MyTicketsPage() {
             </Button>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
+          <div className="vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 overflow-hidden divide-y divide-white/[0.08]">
             {tickets.map((ticket) => {
               const isExpanded = expandedId === ticket.id
               const ticketReplies = replies[ticket.id] || []
@@ -163,7 +163,7 @@ export default function MyTicketsPage() {
               return (
                 <div key={ticket.id}>
                   {/* Collapsed row */}
-                  <div className="hover:bg-white/[0.03] transition-colors px-4 sm:px-5 py-4">
+                  <div className="hover:bg-white/[0.06] transition-colors px-4 sm:px-5 py-4">
                     {/* Mobile: date on its own line */}
                     <p className="sm:hidden text-xs text-neutral-500 mb-2">
                       {new Date(ticket.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -187,7 +187,7 @@ export default function MyTicketsPage() {
                         {/* Meta row: ticket #, category, status, and video indicator */}
                         <div className="flex items-center gap-2 text-[11px] mb-1">
                           <span className="text-neutral-500">{ticket.ticket_number}</span>
-                          <span className="inline-flex px-1.5 py-0.5 rounded-full border border-neutral-600/50 text-neutral-300 bg-neutral-800/50">
+                          <span className="inline-flex px-1.5 py-0.5 rounded-full border border-white/15 text-white/80 bg-white/[0.08]">
                             {ticket.category}
                           </span>
                           <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-full border font-medium capitalize ${getStatusStyle(ticket.status)}`}>
@@ -229,7 +229,7 @@ export default function MyTicketsPage() {
                               <>
                                 {areas.length > 0 && (
                                   <div className="mb-3">
-                                    <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Life Areas</p>
+                                    <p className="text-xs font-medium text-white/60 mb-2">Life Areas</p>
                                     <div className="flex flex-wrap gap-2">
                                       {areas.map((area) => (
                                         <span
@@ -242,7 +242,7 @@ export default function MyTicketsPage() {
                                     </div>
                                   </div>
                                 )}
-                                <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Description</p>
+                                <p className="text-xs font-medium text-white/60 mb-2">Description</p>
                                 <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-wrap">
                                   {body || ticket.description}
                                 </p>
@@ -258,7 +258,7 @@ export default function MyTicketsPage() {
                           </div>
                         ) : ticketReplies.length > 0 ? (
                           <div>
-                            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-3">
+                            <p className="text-xs font-medium text-white/60 mb-3">
                               Conversation ({ticketReplies.filter(r => !r.is_internal).length})
                             </p>
                             <div className="space-y-3">
@@ -268,7 +268,7 @@ export default function MyTicketsPage() {
                                   className={`rounded-xl p-3 border ${
                                     reply.admin_id
                                       ? 'border-primary-500/20 bg-primary-500/[0.03]'
-                                      : 'border-white/[0.06] bg-black/20'
+                                      : 'border-white/[0.12] bg-white/[0.05]'
                                   }`}
                                 >
                                   <div className="flex items-center gap-2 mb-1.5">

@@ -139,7 +139,7 @@ export default function HouseholdHubPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={m.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-neutral-700 flex items-center justify-center text-[10px] font-semibold text-neutral-300">
+                  <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-semibold text-white/80">
                     {(m.firstName || m.displayName).charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -147,7 +147,7 @@ export default function HouseholdHubPage() {
                   {m.isSelf ? 'You' : m.firstName || m.displayName}
                 </span>
                 {m.isAdmin && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-[#00FFFF]">Admin</span>
+                  <span className="text-[10px] font-semibold text-[#00FFFF]">Admin</span>
                 )}
               </div>
             ))}
@@ -211,7 +211,7 @@ export default function HouseholdHubPage() {
                               <span
                                 className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
                                   creator === 'You'
-                                    ? 'text-neutral-400 bg-neutral-800'
+                                    ? 'text-white/70 bg-white/10'
                                     : 'text-[#00FFFF] bg-[#00FFFF]/10'
                                 }`}
                               >

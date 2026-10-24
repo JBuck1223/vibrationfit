@@ -66,7 +66,7 @@ interface SlotProps {
 
 function Slot({ icon, label, value, open, onToggle, children, footer }: SlotProps) {
   return (
-    <div className={`rounded-2xl border-2 transition-colors ${open ? 'border-[#00FFFF]/40 bg-neutral-950' : 'border-neutral-800 bg-neutral-900/60'}`}>
+    <div className={`rounded-2xl border transition-colors ${open ? 'border-white/25 bg-[rgba(20,16,30,0.55)]' : 'border-white/[0.12] bg-white/[0.05] hover:border-white/25'}`}>
       <button
         type="button"
         onClick={onToggle}
@@ -77,15 +77,15 @@ function Slot({ icon, label, value, open, onToggle, children, footer }: SlotProp
           {icon}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-xs uppercase tracking-wider text-neutral-500">{label}</span>
-          <span className={`block truncate text-sm md:text-base ${value ? 'text-white' : 'text-neutral-400'}`}>
+          <span className="block text-xs text-white/55">{label}</span>
+          <span className={`block truncate text-sm md:text-base ${value ? 'text-white' : 'text-white/60'}`}>
             {value || 'None'}
           </span>
         </span>
-        <ChevronDown className={`h-5 w-5 shrink-0 text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-5 w-5 shrink-0 text-white/55 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {footer && <div className="px-4 pb-3">{footer}</div>}
-      {open && <div className="border-t border-neutral-800 p-2">{children}</div>}
+      {open && <div className="border-t border-white/10 p-2">{children}</div>}
     </div>
   )
 }
@@ -108,7 +108,7 @@ function OptionRow({
   return (
     <div
       className={`flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors ${
-        selected ? 'bg-[#39FF14]/10' : 'hover:bg-white/5'
+        selected ? 'bg-[rgba(57,255,20,0.12)]' : 'hover:bg-white/[0.06]'
       }`}
     >
       {onPreview ? (
@@ -117,7 +117,7 @@ function OptionRow({
           onClick={onPreview}
           aria-label={previewing ? `Stop preview of ${title}` : `Preview ${title}`}
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-            previewing ? 'bg-[#00FFFF] text-black' : 'bg-white/5 text-neutral-300 hover:bg-white/10'
+            previewing ? 'bg-[#00FFFF] text-black' : 'border border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/10'
           }`}
         >
           {previewing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-px" />}
@@ -128,7 +128,7 @@ function OptionRow({
       <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 items-center gap-2 py-1 text-left">
         <span className="min-w-0 flex-1">
           <span className={`block truncate text-sm ${selected ? 'text-[#39FF14]' : 'text-white'}`}>{title}</span>
-          {subtitle && <span className="block truncate text-xs text-neutral-500">{subtitle}</span>}
+          {subtitle && <span className="block truncate text-xs text-white/55">{subtitle}</span>}
         </span>
         {selected && <Check className="h-4 w-4 shrink-0 text-[#39FF14]" />}
       </button>
@@ -139,7 +139,7 @@ function OptionRow({
 function Level({ value, onChange, label }: { value: number; onChange: (value: number) => void; label: string }) {
   return (
     <label className="flex items-center gap-3">
-      <span className="w-12 shrink-0 text-xs text-neutral-500">Level</span>
+      <span className="w-12 shrink-0 text-xs text-white/55">Level</span>
       <input
         type="range"
         min={0}
@@ -189,7 +189,7 @@ export function MusicPicker({ options, value, onChange, volume, onVolume, previe
       footer={selected ? (
         <div className="space-y-2">
           {selected.creatorId && selected.creatorName && (
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-white/55">
               by <CreatorLink userId={selected.creatorId} name={selected.creatorName} />
             </p>
           )}
@@ -205,7 +205,7 @@ export function MusicPicker({ options, value, onChange, volume, onVolume, previe
               type="button"
               onClick={() => setCategory(name)}
               className={`shrink-0 rounded-full px-3 py-1 text-xs transition-colors ${
-                category === name ? 'bg-[#00FFFF] text-black font-semibold' : 'bg-white/5 text-neutral-300 hover:bg-white/10'
+                category === name ? 'bg-[#39FF14] text-black font-semibold' : 'border border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/10'
               }`}
             >
               {name === 'all' ? 'All' : name === 'mine' ? 'My tracks' : titleCase(name)}

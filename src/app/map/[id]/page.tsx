@@ -38,8 +38,8 @@ const CATEGORY_COLORS: Record<MapCategory, string> = {
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
   active: { label: 'Active', className: 'bg-[#39FF14]/10 text-[#39FF14] border-[#39FF14]/30' },
-  draft: { label: 'Draft', className: 'bg-neutral-800 text-neutral-400 border-neutral-700' },
-  archived: { label: 'Archived', className: 'bg-neutral-800 text-neutral-500 border-neutral-700' },
+  draft: { label: 'Draft', className: 'bg-white/[0.06] text-neutral-400 border-white/[0.12]' },
+  archived: { label: 'Archived', className: 'bg-white/[0.06] text-neutral-500 border-white/[0.12]' },
 }
 
 function formatTime(t: string | null) {
@@ -310,7 +310,7 @@ export default function MapViewPage() {
                   return (
                     <div
                       key={item.id}
-                      className="p-4 rounded-xl bg-neutral-900/50 border border-neutral-800"
+                      className="p-4 rounded-xl bg-white/[0.05] border border-white/[0.12]"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
@@ -336,7 +336,7 @@ export default function MapViewPage() {
                               </span>
                             ))}
                             {item.time_of_day && !def?.usesPublishedSchedule && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-neutral-800 text-neutral-300">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/[0.06] text-neutral-300">
                                 {formatTime(item.time_of_day)}
                               </span>
                             )}
@@ -352,7 +352,7 @@ export default function MapViewPage() {
                           {item.deep_link && (
                             <Link
                               href={item.deep_link}
-                              className="p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors"
                             >
                               <ExternalLink className="w-4 h-4 text-neutral-400" />
                             </Link>
@@ -428,7 +428,7 @@ function WeekCalendar({ items }: { items: UserMapItem[] }) {
           </Text>
           <div className="space-y-1">
             {dayData[idx].length === 0 ? (
-              <div className="h-8 rounded-lg bg-neutral-900/30 border border-neutral-800/30" />
+              <div className="h-8 rounded-lg bg-white/[0.05] border border-white/[0.1]" />
             ) : (
               dayData[idx].map((item, i) => {
                 const color = CATEGORY_COLORS[item.category]

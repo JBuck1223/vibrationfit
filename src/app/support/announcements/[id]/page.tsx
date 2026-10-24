@@ -33,7 +33,7 @@ function getCategoryStyle(category: string) {
     case 'how-to': return 'text-cyan-400 bg-cyan-500/20 border-cyan-500/30'
     case 'known-issue': return 'text-amber-400 bg-amber-500/20 border-amber-500/30'
     case 'tip': return 'text-teal-400 bg-teal-500/20 border-teal-500/30'
-    default: return 'text-neutral-400 bg-neutral-800 border-neutral-700'
+    default: return 'text-white/75 bg-white/[0.08] border-white/15'
   }
 }
 
@@ -122,7 +122,7 @@ export default function AnnouncementDetailPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
               {announcement.title}
             </h1>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+            <p className="text-xs font-medium text-white/60">
               {formatDate(announcement.published_at)}
             </p>
           </div>
@@ -135,7 +135,7 @@ export default function AnnouncementDetailPage() {
           {/* Attachments */}
           {announcement.attachments.length > 0 && (
             <div className="space-y-4 pt-6 border-t border-white/[0.06]">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Attachments</p>
+              <p className="text-xs font-medium text-white/60">Attachments</p>
               <div className="space-y-3">
                 {announcement.attachments.map((url, idx) => {
                   const kind = getSupportAttachmentKind(url)
@@ -150,7 +150,7 @@ export default function AnnouncementDetailPage() {
 
                   if (kind === 'audio') {
                     return (
-                      <div key={idx} className="rounded-xl border border-white/[0.06] bg-[#111] p-4">
+                      <div key={idx} className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4">
                         <audio src={url} controls className="w-full" preload="metadata" />
                       </div>
                     )
@@ -162,7 +162,7 @@ export default function AnnouncementDetailPage() {
                         <img
                           src={url}
                           alt={`Attachment ${idx + 1}`}
-                          className="w-full max-h-[500px] object-contain bg-[#0c0c0c]"
+                          className="w-full max-h-[500px] object-contain bg-black/20"
                         />
                       </div>
                     )
@@ -174,7 +174,7 @@ export default function AnnouncementDetailPage() {
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-4 rounded-xl border border-white/[0.06] bg-[#111] hover:bg-white/[0.03] transition-colors"
+                      className="flex items-center gap-3 p-4 rounded-2xl border border-white/[0.12] bg-white/[0.05] hover:bg-white/[0.08] transition-colors"
                     >
                       <FileText className="w-5 h-5 text-neutral-500 shrink-0" />
                       <span className="text-sm text-cyan-400 hover:underline truncate flex-1">

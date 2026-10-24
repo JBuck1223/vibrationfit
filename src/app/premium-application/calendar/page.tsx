@@ -48,7 +48,7 @@ export default function PremiumCalendarPage() {
               </div>
 
               {/* Calendar embed placeholder -- replace with your scheduling tool (Calendly, Cal.com, etc.) */}
-              <div className="w-full min-h-[500px] rounded-xl border-2 border-dashed border-[#BF00FF]/30 bg-neutral-900/50 flex items-center justify-center">
+              <div className="w-full min-h-[500px] rounded-xl border-2 border-dashed border-[#BF00FF]/30 bg-white/[0.05] flex items-center justify-center">
                 <div className="text-center p-8">
                   <CalendarDays className="w-12 h-12 text-[#BF00FF]/50 mx-auto mb-4" />
                   <Text size="lg" className="text-neutral-400 mb-2">Calendar Embed Placeholder</Text>
@@ -61,7 +61,7 @@ export default function PremiumCalendarPage() {
             </Stack>
           </Card>
 
-          <Card className="border-neutral-700">
+          <Card className="border-white/[0.12]">
             <Stack gap="sm">
               <Heading level={4} className="text-white">What to Expect</Heading>
               <div className="space-y-3">

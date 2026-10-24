@@ -260,7 +260,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card variant="elevated" className="!p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+          <h2 className="mb-3 flex items-center gap-2 text-xs font-medium text-white/60">
             <Plane className="h-4 w-4" />
             Flights
           </h2>
@@ -268,7 +268,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
         </Card>
 
         <Card variant="elevated" className="!p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+          <h2 className="mb-3 flex items-center gap-2 text-xs font-medium text-white/60">
             <Link2 className="h-4 w-4" />
             Links
           </h2>
@@ -281,7 +281,7 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <Card variant="elevated" className="mb-10 !p-5">
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+        <h2 className="mb-3 flex items-center gap-2 text-xs font-medium text-white/60">
           <Images className="h-4 w-4" />
           Photos & Videos
         </h2>

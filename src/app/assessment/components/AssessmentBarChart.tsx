@@ -38,7 +38,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         }}
       >
         <div 
-          className="bg-neutral-900/95 backdrop-blur-sm border border-neutral-600 rounded-lg p-3 shadow-xl max-w-xs"
+          className="rounded-[20px] border border-white/[0.14] bg-[rgba(28,22,38,0.97)] p-3 shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl max-w-xs"
           style={{
             background: 'rgba(23, 23, 23, 0.95)',
             backdropFilter: 'blur(8px)',
@@ -94,7 +94,7 @@ export default function AssessmentBarChart({ assessment, compact = false }: Asse
 
   if (data.length === 0) {
     return (
-      <div className="bg-neutral-800/50 rounded-lg p-4 md:p-6 lg:p-8 text-center">
+      <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4 md:p-6 lg:p-8 text-center">
         <h3 className="text-xl font-semibold text-white mb-2">Green Line Status</h3>
         <p className="text-neutral-400">No assessment data available</p>
       </div>
@@ -102,7 +102,7 @@ export default function AssessmentBarChart({ assessment, compact = false }: Asse
   }
 
   return (
-    <div className={compact ? "" : "bg-neutral-800/50 rounded-lg p-4 md:p-6 lg:p-8"}>
+    <div className={compact ? "" : "rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4 md:p-6 lg:p-8"}>
       {!compact && <h3 className="text-xl font-semibold text-white mb-4 text-center">Green Line Status</h3>}
       
       {/* Chart */}
@@ -181,19 +181,19 @@ export default function AssessmentBarChart({ assessment, compact = false }: Asse
       {/* Summary Stats - only show when not compact */}
       {!compact && (
         <div className="mt-1 grid grid-cols-3 gap-4 text-center">
-          <div className="bg-neutral-900/50 rounded-lg p-3">
+          <div className="rounded-xl border border-white/[0.12] bg-white/[0.05] p-3">
             <div className="text-lg font-bold text-green-400">
               {data.filter(d => d.status === 'above').length}
             </div>
             <div className="text-xs text-neutral-400">Above Green Line</div>
           </div>
-          <div className="bg-neutral-900/50 rounded-lg p-3">
+          <div className="rounded-xl border border-white/[0.12] bg-white/[0.05] p-3">
             <div className="text-lg font-bold text-yellow-400">
               {data.filter(d => d.status === 'transition').length}
             </div>
             <div className="text-xs text-neutral-400">Transition</div>
           </div>
-          <div className="bg-neutral-900/50 rounded-lg p-3">
+          <div className="rounded-xl border border-white/[0.12] bg-white/[0.05] p-3">
             <div className="text-lg font-bold text-red-400">
               {data.filter(d => d.status === 'below').length}
             </div>

@@ -64,7 +64,7 @@ export function VisionVersionMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex w-full items-center gap-2 rounded-xl border border-white/20 bg-white/[0.06] px-3 py-2 text-sm text-white transition-colors hover:border-white/35"
+        className="flex w-full items-center gap-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] px-4 py-2 text-sm text-white backdrop-blur-xl transition-colors hover:border-white/35"
       >
         <Eye className="h-4 w-4 shrink-0 text-[#39FF14]" />
         <span className="min-w-0 flex-1 truncate text-left">
@@ -76,7 +76,7 @@ export function VisionVersionMenu() {
         <div
           role="listbox"
           aria-label="Life Vision version"
-          className="vf-glass absolute inset-x-0 top-full z-30 mt-2 max-h-[60vh] overflow-y-auto rounded-2xl border border-white/[0.14] bg-[rgba(28,22,38,0.96)] p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+          className="vf-glass absolute inset-x-0 top-full z-30 mt-2 max-h-[60vh] overflow-y-auto rounded-2xl border border-white/[0.14] bg-[rgba(28,22,38,0.96)] p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl"
         >
           {groups.map((g, gi) => (
             <div key={g.label} className={cn(gi > 0 && 'mt-1 border-t border-white/[0.08] pt-1')}>

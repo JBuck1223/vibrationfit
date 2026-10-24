@@ -147,7 +147,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
 
         {/* Children Table - Shows when Yes is selected */}
         {hasChildren === true && (
-          <div className="bg-neutral-800/50 rounded-lg border border-neutral-700 p-4">
+          <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-semibold text-white">Children</h4>
               <button
@@ -245,7 +245,7 @@ export function FamilySection({ profile, onProfileChange, onProfileReload, profi
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="border-t border-neutral-800/50 pt-2">
+        <div className="border-t border-white/10 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

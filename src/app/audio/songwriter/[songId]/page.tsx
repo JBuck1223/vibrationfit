@@ -120,17 +120,16 @@ export default function SongDetailPage() {
           </Card>
         )}
 
-        {song.lyrics && (
-          <SongRegeneratePanel
-            initialLyrics={song.lyrics}
-            initialStylePrompt={song.style_prompt}
-            isGenerating={isGenerating}
-            error={generateError}
-            savedReference={(song.metadata as Record<string, unknown>)?.reference_track as any || null}
-            onSaveLyrics={handleSaveLyrics}
-            onGenerate={generateMore}
-          />
-        )}
+        {/* Always available, so an uploaded song with no lyrics can have them added here. */}
+        <SongRegeneratePanel
+          initialLyrics={song.lyrics || ''}
+          initialStylePrompt={song.style_prompt}
+          isGenerating={isGenerating}
+          error={generateError}
+          savedReference={(song.metadata as Record<string, unknown>)?.reference_track as any || null}
+          onSaveLyrics={handleSaveLyrics}
+          onGenerate={generateMore}
+        />
 
         {tracks.filter(t => t.status === 'completed' && t.mp3_url).length > 0 && (
           <Card variant="glass" className="p-5">

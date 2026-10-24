@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Container, Stack, Card, Spinner, Button, DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { Sparkles, ChevronRight, RotateCcw, PlayCircle, FilePlus } from 'lucide-react'
 import { useProfileStudio } from '@/components/profile-studio/ProfileStudioContext'
 import { createClient } from '@/lib/supabase/client'
@@ -292,14 +293,12 @@ export default function ProfileCreatePage() {
 
   if (loading || !activeProfileId) {
     return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
+      <PageLoading />
     )
   }
 
   const optionCardClass =
-    'flex w-full min-h-[5.5rem] items-start gap-3 p-3.5 shadow-none transition-[border-color,background-color,transform] duration-200 sm:min-h-0 sm:p-4 md:p-4 lg:p-4 hover:border-neutral-500 active:scale-[0.99]'
+    'flex w-full min-h-[5.5rem] items-start gap-3 p-3.5 shadow-none transition-[border-color,background-color,transform] duration-200 sm:min-h-0 sm:p-4 md:p-4 lg:p-4 hover:border-white/25 active:scale-[0.99]'
 
   return (
     <Container size="xl" className="pt-2 pb-6 sm:pb-8">
@@ -311,7 +310,7 @@ export default function ProfileCreatePage() {
         >
           <div className="flex items-center justify-center gap-2.5 mb-3">
             <Sparkles className="w-4 h-4 text-[#BF00FF]" />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-[#BF00FF]">
+            <h2 className="text-sm font-semibold text-[#BF00FF]">
               VIVA Recommendations
             </h2>
           </div>

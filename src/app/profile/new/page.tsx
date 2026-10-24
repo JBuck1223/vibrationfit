@@ -101,9 +101,9 @@ export default function ProfileNewPage() {
         </div>
 
         {/* What is a Profile? */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+        <Card variant="outlined">
           <Stack gap="md">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+            <Text size="sm" className="font-medium text-white/60">
               What Is Your Profile?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
@@ -116,9 +116,9 @@ export default function ProfileNewPage() {
         </Card>
 
         {/* What You'll Share */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+        <Card variant="outlined">
           <Stack gap="lg">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+            <Text size="sm" className="font-medium text-white/60">
               What You&apos;ll Share
             </Text>
             <Stack gap="lg">
@@ -173,9 +173,9 @@ export default function ProfileNewPage() {
         </Card>
 
         {/* Why It Matters */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+        <Card variant="outlined">
           <Stack gap="md">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+            <Text size="sm" className="font-medium text-white/60">
               Why Your Profile Matters
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">

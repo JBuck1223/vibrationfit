@@ -566,7 +566,7 @@ export default function VisionBoardIdeasPage() {
                 const CategoryIcon = categoryMeta?.icon
                 return (
               <div className="w-full flex items-center justify-center gap-3 mb-1 flex-wrap text-center">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-neutral-700 flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
                   {CategoryIcon ? (
                     <CategoryIcon className="w-3.5 h-3.5 text-neutral-200" />
                   ) : (
@@ -593,10 +593,10 @@ export default function VisionBoardIdeasPage() {
                       className={`
                         p-3 md:p-3.5 rounded-xl border transition-all
                         ${wasAdded 
-                          ? 'border-neutral-700 bg-neutral-800/30 opacity-60 cursor-not-allowed'
+                          ? 'border-white/[0.12] bg-white/[0.06] opacity-60 cursor-not-allowed'
                           : isSelected 
                             ? 'border-primary-500 bg-primary-500/10 cursor-pointer'
-                            : 'border-neutral-700/80 hover:border-neutral-500 bg-neutral-800/40 cursor-pointer'
+                            : 'border-white/[0.12] hover:border-white/25 bg-white/[0.06] cursor-pointer'
                         }
                       `}
                     >
@@ -610,7 +610,7 @@ export default function VisionBoardIdeasPage() {
                             w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 -mt-0.5 md:mt-0
                             ${isSelected 
                               ? 'border-primary-500 bg-primary-500' 
-                              : 'border-neutral-600'
+                              : 'border-white/15'
                             }
                           `}>
                             {isSelected && <Check className="w-3.5 h-3.5 text-black" />}
@@ -716,7 +716,7 @@ export default function VisionBoardIdeasPage() {
       <Container size="xl">
         <Stack gap="lg">
           <Card className="space-y-6">
-              <div className="flex flex-col items-center text-center gap-1 pb-4 border-b border-neutral-800">
+              <div className="flex flex-col items-center text-center gap-1 pb-4 border-b border-white/[0.12]">
                 <h2 className="text-base font-semibold text-white">Generate Ideas</h2>
                 <p className="text-sm text-neutral-400">
                   Select life categories to generate VIVA-powered suggestions.

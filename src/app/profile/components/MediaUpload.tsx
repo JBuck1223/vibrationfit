@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/lib/design-system/components'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { uploadUserFile } from '@/lib/storage/s3-storage-presigned'
 import { X, Upload, FileImage, Loader2, ChevronLeft, ChevronRight, Play, AlertCircle } from 'lucide-react'
@@ -162,7 +163,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
           isDragging 
             ? 'border-primary-500 bg-primary-500/10' 
-            : 'border-neutral-600 hover:border-primary-500'
+            : 'border-white/20 hover:border-primary-500'
         }`}
         onClick={() => {
           if (!disabled && !uploading) {
@@ -260,7 +261,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                 <img
                   src={media}
                   alt={`Media ${index + 1}`}
-                  className="w-full aspect-[4/3] object-cover rounded-lg border border-neutral-700 hover:border-primary-500 transition-colors cursor-pointer"
+                  className="w-full aspect-[4/3] object-cover rounded-lg border border-white/[0.12] hover:border-primary-500 transition-colors cursor-pointer"
                   onClick={() => openLightbox(index)}
                 />
               )}
@@ -285,6 +286,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
 
       {/* Lightbox */}
       {lightboxOpen && photos.length > 0 && (
+        <OverlayPortal>
         <div 
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
           onClick={closeLightbox}
@@ -296,7 +298,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
             {/* Close Button */}
             <button
               onClick={closeLightbox}
-              className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+              className="absolute top-4 right-4 z-10 p-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] text-white backdrop-blur-xl hover:bg-white/10 transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
@@ -306,13 +308,13 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
               <>
                 <button
                   onClick={prevMedia}
-                  className="absolute left-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                  className="absolute left-4 z-10 p-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] text-white backdrop-blur-xl hover:bg-white/10 transition-colors"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
                   onClick={nextMedia}
-                  className="absolute right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                  className="absolute right-4 z-10 p-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] text-white backdrop-blur-xl hover:bg-white/10 transition-colors"
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>
@@ -339,7 +341,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
 
             {/* Media Counter */}
             {photos.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] px-3 py-1 text-sm text-white backdrop-blur-xl">
                 {lightboxIndex + 1} of {photos.length}
               </div>
             )}
@@ -352,7 +354,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                     key={index}
                     onClick={() => setLightboxIndex(index)}
                     className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                      index === lightboxIndex ? 'border-primary-500' : 'border-neutral-600'
+                      index === lightboxIndex ? 'border-primary-500' : 'border-white/20'
                     }`}
                   >
                     {isVideo(media) ? (
@@ -378,6 +380,7 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
             )}
           </div>
         </div>
+        </OverlayPortal>
       )}
     </div>
   )

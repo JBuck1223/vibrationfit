@@ -715,7 +715,7 @@ export default function UnifiedCategoryPage() {
     const diff = Diff.diffSentences(oldText, newText)
     return (
       <div className="space-y-2 w-full">
-        <div className="w-full px-4 py-3 bg-[#101010] border-2 border-neutral-800 rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
+        <div className="w-full px-4 py-3 bg-[#101010] border border-white/[0.12] rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
           {diff.map((part, i) => {
             if (part.removed) return null
             if (part.added) return <span key={i} className="bg-green-500/30 text-green-200 px-1 rounded">{part.value}</span>
@@ -906,7 +906,7 @@ export default function UnifiedCategoryPage() {
         <Card>
           {/* Card Header */}
           <div className="mb-6 flex items-center gap-3 md:gap-4">
-            <div className="h-px flex-1 bg-neutral-800" />
+            <div className="h-px flex-1 bg-white/[0.06]" />
             <div className="flex items-center gap-2 md:gap-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-500 md:h-8 md:w-8">
                 <Icon icon={category.icon} size="xs" color="#000000" />
@@ -915,7 +915,7 @@ export default function UnifiedCategoryPage() {
                 {category.label}
               </h3>
             </div>
-            <div className="h-px flex-1 bg-neutral-800" />
+            <div className="h-px flex-1 bg-white/[0.06]" />
           </div>
 
           {/* Method Choice Cards — Update with VIVA vs Update Myself */}
@@ -951,7 +951,7 @@ export default function UnifiedCategoryPage() {
                     setVivaGenerateMode(null)
                     setShowGenModeCards(true)
                   }}
-                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.05] p-3 hover:border-white/[0.12] transition-colors"
                 >
                   <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 1 · Update Method</h4>
                   <p className="text-sm font-medium text-white mt-1 flex items-center gap-2">
@@ -994,7 +994,7 @@ export default function UnifiedCategoryPage() {
                           setUpdateMethod(card.key)
                         }
                       }}
-                      className="group relative rounded-2xl border-2 border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer p-4 transition-all duration-200"
+                      className="group relative rounded-2xl border border-white/[0.12] bg-white/[0.05] hover:border-white/[0.12] hover:-translate-y-0.5 cursor-pointer p-4 transition-all duration-200"
                     >
                       <div className="flex flex-col items-center gap-2 text-center">
                         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${card.bgColor} ${card.iconColor}`}>
@@ -1086,7 +1086,7 @@ export default function UnifiedCategoryPage() {
                     Active: 'border-primary-500/40 bg-primary-500/10 text-primary-500',
                     Draft: 'border-accent-500/40 bg-accent-500/10 text-accent-500',
                   }
-                  const tagOffStyles = 'border-neutral-700 bg-neutral-900/60 text-neutral-500'
+                  const tagOffStyles = 'border-white/[0.12] bg-white/[0.05] text-neutral-500'
 
                   return cards.map(card => {
                     const isSelected = sourceMode === card.key
@@ -1109,15 +1109,15 @@ export default function UnifiedCategoryPage() {
                         title={card.disabled ? card.disabledReason : ''}
                         className={`group relative text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
                           card.disabled
-                            ? 'border-neutral-800 bg-neutral-900/40 opacity-50 cursor-not-allowed'
+                            ? 'border-white/[0.12] bg-white/[0.05] opacity-50 cursor-not-allowed'
                             : isSelected
                               ? 'border-primary-500 bg-primary-500/5 shadow-[0_0_0_1px_rgba(57,255,20,0.15)] -translate-y-0.5'
-                              : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer'
+                              : 'border-white/[0.12] bg-white/[0.05] hover:border-white/[0.12] hover:-translate-y-0.5 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                            isSelected ? 'bg-primary-500 text-black' : 'bg-neutral-800 text-neutral-300 group-hover:text-white'
+                            isSelected ? 'bg-primary-500 text-black' : 'bg-white/[0.06] text-neutral-300 group-hover:text-white'
                           }`}>
                             <CardIcon className="w-4 h-4" />
                           </div>
@@ -1209,7 +1209,7 @@ export default function UnifiedCategoryPage() {
                 <button
                   type="button"
                   onClick={() => setShowGenModeCards(true)}
-                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.05] p-3 hover:border-white/[0.12] transition-colors"
                 >
                   <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">{updateMethod === 'viva' ? 'Step 2 · ' : ''}Generation Mode</h4>
                   <p className="text-sm font-medium text-white mt-1">{selectedGenMode.title}</p>
@@ -1234,7 +1234,7 @@ export default function UnifiedCategoryPage() {
                         className={`text-left rounded-xl border-2 p-3 transition-all duration-200 ${
                           isSelected
                             ? 'border-accent-500 bg-accent-500/5'
-                            : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
+                            : 'border-white/[0.12] bg-white/[0.05] hover:border-white/[0.12]'
                         }`}
                       >
                         <h5 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
@@ -1259,7 +1259,7 @@ export default function UnifiedCategoryPage() {
               <button
                 type="button"
                 onClick={() => setShowInstructionsSection(true)}
-                className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                className="w-full relative flex flex-col items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.05] p-3 hover:border-white/[0.12] transition-colors"
               >
                 <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 3 · Instructions</h4>
                 <p className="text-sm font-medium text-white mt-1">
@@ -1298,7 +1298,7 @@ export default function UnifiedCategoryPage() {
                         value={getMeStartedText}
                         onChange={setGetMeStartedText}
                         placeholder={getMeStartedPlaceholder}
-                        className="min-h-[120px] w-full !bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500"
+                        className="min-h-[120px] w-full !bg-[#101010] !border !border-white/[0.12] focus-within:!border-accent-500"
                         rows={5}
                         storageFolder="lifeVision"
                         recordingPurpose="quick"
@@ -1325,7 +1325,7 @@ export default function UnifiedCategoryPage() {
                     </div>
                   </div>
 
-                  <div className="py-6"><div className="h-px bg-neutral-800" /></div>
+                  <div className="py-6"><div className="h-px bg-white/[0.06]" /></div>
                 </>
               )}
 
@@ -1352,7 +1352,7 @@ export default function UnifiedCategoryPage() {
 
                 {/* Inspiration Questions (collapsible) — only for life categories */}
                 {!isMetaCategory && inspirationQuestions.length > 0 && (
-                  <div className="rounded-xl border border-neutral-700 bg-neutral-800/30 p-4 mb-4">
+                  <div className="rounded-xl border border-white/[0.12] bg-white/[0.06] p-4 mb-4">
                     <button
                       onClick={() => setShowInspirationQuestions(!showInspirationQuestions)}
                       className="w-full flex items-center justify-between gap-3"
@@ -1364,7 +1364,7 @@ export default function UnifiedCategoryPage() {
                       <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${showInspirationQuestions ? 'rotate-180' : ''}`} />
                     </button>
                     {showInspirationQuestions && (
-                      <div className="pt-3 mt-3 border-t border-neutral-700">
+                      <div className="pt-3 mt-3 border-t border-white/[0.12]">
                         <IconList items={inspirationQuestions} />
                       </div>
                     )}
@@ -1375,7 +1375,7 @@ export default function UnifiedCategoryPage() {
                   value={vivaSteeringText}
                   onChange={setVivaSteeringText}
                   placeholder={vivaSteeringPlaceholder}
-                  className="min-h-[150px] w-full !bg-[#101010] !border !border-neutral-800 focus-within:!border-accent-500"
+                  className="min-h-[150px] w-full !bg-[#101010] !border !border-white/[0.12] focus-within:!border-accent-500"
                   rows={6}
                   storageFolder="lifeVision"
                   recordingPurpose="quick"
@@ -1472,7 +1472,7 @@ export default function UnifiedCategoryPage() {
 
                   <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
                     {/* Active panel (read-only) */}
-                    <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                    <div className="rounded-2xl border border-primary-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                       <div className="mb-2 flex items-center justify-between gap-3 min-h-[32px]">
                         <div className="flex items-center gap-2">
                           <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Current Active</h5>
@@ -1483,13 +1483,13 @@ export default function UnifiedCategoryPage() {
                         value={activeValue}
                         onChange={() => {}}
                         readOnly
-                        className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        className="!bg-[#101010] !border-white/[0.12] text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
                         minHeight={200}
                       />
                     </div>
 
                     {/* Draft panel (editable, starts empty) */}
-                    <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                    <div className="rounded-2xl border border-accent-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                       <div className="mb-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Your Draft</h5>
@@ -1526,7 +1526,7 @@ export default function UnifiedCategoryPage() {
                           value={manualText}
                           onChange={setManualText}
                           placeholder="Type your updated vision here..."
-                          className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                          className="!bg-[#101010] !border-white/[0.12] text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                           minHeight={200}
                         />
                       )}
@@ -1591,7 +1591,7 @@ export default function UnifiedCategoryPage() {
                             className={`rounded-xl border p-4 transition-colors ${
                               editSelections[i]
                                 ? 'border-accent-500/30 bg-accent-500/5'
-                                : 'border-neutral-800 bg-neutral-900/40'
+                                : 'border-white/[0.12] bg-white/[0.05]'
                             }`}
                           >
                             <div className="flex items-start gap-3">
@@ -1601,7 +1601,7 @@ export default function UnifiedCategoryPage() {
                                 className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
                                   editSelections[i]
                                     ? 'border-accent-500 bg-accent-500 text-black'
-                                    : 'border-neutral-600 bg-transparent'
+                                    : 'border-white/15 bg-transparent'
                                 }`}
                               >
                                 {editSelections[i] && <CheckCircle className="w-3 h-3" />}
@@ -1675,22 +1675,22 @@ export default function UnifiedCategoryPage() {
 
                   <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
                     {/* Draft panel (read-only) */}
-                    <div className="rounded-2xl border border-neutral-700 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                    <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                       <div className="mb-2 flex items-center gap-2 min-h-[32px]">
                         <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Your Draft</h5>
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-neutral-400 bg-neutral-800">Before</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-neutral-400 bg-white/[0.06]">Before</span>
                       </div>
                       <AutoResizeTextarea
                         value={manualText}
                         onChange={() => {}}
                         readOnly
-                        className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        className="!bg-[#101010] !border-white/[0.12] text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
                         minHeight={200}
                       />
                     </div>
 
                     {/* Polish panel (editable) */}
-                    <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                    <div className="rounded-2xl border border-accent-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                       <div className="mb-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Polished</h5>
@@ -1727,7 +1727,7 @@ export default function UnifiedCategoryPage() {
                           value={polishText}
                           onChange={setPolishText}
                           placeholder="Your polished vision..."
-                          className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                          className="!bg-[#101010] !border-white/[0.12] text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                           minHeight={200}
                         />
                       )}
@@ -1771,7 +1771,7 @@ export default function UnifiedCategoryPage() {
           )}
 
           {draftVision && ((updateMethod === 'viva' && vivaGenerateMode) || isFirstTime) && (
-            <section ref={compareSectionRef} className="mt-12 pt-8 border-t border-neutral-800 mb-8">
+            <section ref={compareSectionRef} className="mt-12 pt-8 border-t border-white/[0.12] mb-8">
               {hasActiveContent ? (
                 <>
                   <div className="mb-6 flex flex-col items-center gap-3">
@@ -1805,7 +1805,7 @@ export default function UnifiedCategoryPage() {
                           showManualCurrent ? 'translate-x-[18px]' : 'translate-x-[3px]'
                         }`} />
                       </div>
-                      <div className="w-px h-4 bg-neutral-700 mx-1" />
+                      <div className="w-px h-4 bg-white/15 mx-1" />
                       <div
                         role="switch"
                         aria-checked={showManualNew}
@@ -1827,7 +1827,7 @@ export default function UnifiedCategoryPage() {
 
                   <div className={`space-y-6 ${showManualCurrent && showManualNew ? 'lg:grid lg:grid-cols-2' : ''} lg:gap-6 lg:space-y-0`}>
                     <div className={showManualCurrent ? 'block' : 'hidden'}>
-                      <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                      <div className="rounded-2xl border border-primary-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                         <div className="mb-2 flex items-center justify-between gap-3 min-h-[32px]">
                           <div className="flex items-center gap-2">
                             <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {activeVisionVersion}</h5>
@@ -1843,14 +1843,14 @@ export default function UnifiedCategoryPage() {
                           value={activeValue}
                           onChange={() => {}}
                           readOnly
-                          className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                          className="!bg-[#101010] !border-white/[0.12] text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
                           minHeight={200}
                         />
                       </div>
                     </div>
 
                     <div className={showManualNew ? 'block' : 'hidden'}>
-                      <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                      <div className="rounded-2xl border border-accent-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                         <div className="mb-2 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {nonDraftVisions.length + 1}</h5>
@@ -1889,7 +1889,7 @@ export default function UnifiedCategoryPage() {
                                 onChange={() => {}}
                                 readOnly
                                 placeholder="Your new version will appear here after you generate or type..."
-                                className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                                className="!bg-[#101010] !border-white/[0.12] text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
                                 minHeight={200}
                               />
                             )
@@ -1898,7 +1898,7 @@ export default function UnifiedCategoryPage() {
                             value={manualText}
                             onChange={setManualText}
                             placeholder="Generate with VIVA in Step 3 above, or type your vision here..."
-                            className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                            className="!bg-[#101010] !border-white/[0.12] text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                             minHeight={200}
                           />
                         )}
@@ -1936,7 +1936,7 @@ export default function UnifiedCategoryPage() {
                   <div className="mb-6 flex flex-col items-center gap-3">
                     <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Draft</h4>
                   </div>
-                  <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                  <div className="rounded-2xl border border-accent-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Version {nonDraftVisions.length + 1}</h5>
@@ -1972,7 +1972,7 @@ export default function UnifiedCategoryPage() {
                             onChange={() => {}}
                             readOnly
                             placeholder="Your new version will appear here after Viva runs or you type..."
-                            className="!bg-[#101010] !border-neutral-800 text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                            className="!bg-[#101010] !border-white/[0.12] text-sm cursor-default !rounded-lg !px-4 !py-3 !leading-[1.75]"
                             minHeight={200}
                           />
                         )
@@ -1981,7 +1981,7 @@ export default function UnifiedCategoryPage() {
                         value={manualText}
                         onChange={setManualText}
                         placeholder="Generate with VIVA in Step 3 above, or type your vision here..."
-                        className="!bg-[#101010] !border-neutral-800 text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
+                        className="!bg-[#101010] !border-white/[0.12] text-sm !rounded-lg !px-4 !py-3 !leading-[1.75]"
                         minHeight={200}
                       />
                     )}

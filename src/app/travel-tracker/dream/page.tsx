@@ -371,7 +371,7 @@ export default function DreamListPage() {
             </div>
 
             <div>
-              <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-medium text-white/60">
                 <Images className="h-4 w-4" />
                 Inspiration
               </h3>
@@ -383,7 +383,7 @@ export default function DreamListPage() {
             </div>
 
             <div>
-              <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-medium text-white/60">
                 <Link2 className="h-4 w-4" />
                 Links
               </h3>

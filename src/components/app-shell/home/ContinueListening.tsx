@@ -27,6 +27,11 @@ const SOURCE_CATEGORY: Record<ListenSource['kind'], AudioContentCategory> = {
   story: 'story',
 }
 
+/** Puts the card's image on tracks that have none, so the player matches the card. */
+function withArt(list: AudioTrack[], artwork: string | null): AudioTrack[] {
+  return artwork ? list.map((t) => (t.thumbnail ? t : { ...t, thumbnail: artwork })) : list
+}
+
 function formatTime(seconds: number): string {
   if (!seconds || !isFinite(seconds)) return '0:00'
   const h = Math.floor(seconds / 3600)
@@ -189,17 +194,17 @@ export function ContinueListening() {
 
   const liveKey = tracks.length > 0 ? setKeyFor({ setName, tracks }) : null
 
-  const resume = (row: ListenHistoryRow) => {
+  const resume = (row: ListenHistoryRow, artwork: string | null) => {
     if (liveKey === row.set_key) {
       togglePlayPause()
       return
     }
     if (!row.tracks?.length) return
     const index = Math.min(row.track_index, row.tracks.length - 1)
-    play(row.tracks, index, row.set_key, row.icon_key ?? undefined, row.category, Number(row.position_seconds) || 0)
+    play(withArt(row.tracks, artwork), index, row.set_key, row.icon_key ?? undefined, row.category, Number(row.position_seconds) || 0)
   }
 
-  const startSource = async (source: ListenSource) => {
+  const startSource = async (source: ListenSource, artwork: string | null) => {
     const key = `home:${source.id}`
     if (liveKey === key) {
       togglePlayPause()
@@ -222,13 +227,13 @@ export function ContinueListening() {
           sectionKey: t.sectionKey,
         }))
       }
-      if (list.length > 0) play(list, 0, key, source.kind, SOURCE_CATEGORY[source.kind])
+      if (list.length > 0) play(withArt(list, artwork), 0, key, source.kind, SOURCE_CATEGORY[source.kind])
     } finally {
       setLoadingKey(null)
     }
   }
 
-  const startPlayedSet = async (set: PlayedSet) => {
+  const startPlayedSet = async (set: PlayedSet, artwork: string | null) => {
     const key = `set:${set.setId}`
     if (liveKey === key) {
       togglePlayPause()
@@ -240,7 +245,7 @@ export function ContinueListening() {
       if (loaded.length === 0) return
       const index = Math.max(0, loaded.findIndex((t) => t.sectionKey === set.sectionKey))
       play(
-        loaded.map((t) => ({ id: t.id, title: t.title, artist: '', duration: t.duration, url: t.url, thumbnail: '', sectionKey: t.sectionKey })),
+        withArt(loaded.map((t) => ({ id: t.id, title: t.title, artist: '', duration: t.duration, url: t.url, thumbnail: '', sectionKey: t.sectionKey })), artwork),
         index,
         key,
         set.category === 'life_vision' ? 'vision' : set.category,
@@ -281,6 +286,7 @@ export function ContinueListening() {
       ) : history.length + fillers.length > 0 ? (
         <ul className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {history.map((row, i) => {
+            const artwork = savedArt(row.artwork_url) || art[i % art.length]
             const live = liveKey === row.set_key
             const liveTrack = live ? tracks[currentIndex] : null
             const position = live ? currentTime : Number(row.position_seconds) || 0
@@ -293,17 +299,18 @@ export function ContinueListening() {
                   eyebrow={CATEGORY_LABEL[row.category] ?? 'Audio'}
                   title={liveTrack?.title || row.title}
                   subtitle={trackCount > 1 ? `Track ${index + 1} of ${trackCount}` : live ? 'Now playing' : null}
-                  artwork={savedArt(row.artwork_url) || art[i % art.length]}
+                  artwork={artwork}
                   progress={length > 0 ? (position / length) * 100 : 0}
                   timeLabel={length > 0 ? `${formatTime(position)} / ${formatTime(length)}` : null}
                   playing={live && isPlaying}
                   loading={false}
-                  onPlay={() => resume(row)}
+                  onPlay={() => resume(row, artwork)}
                 />
               </li>
             )
           })}
           {fillers.map((set, i) => {
+            const artwork = art[(history.length + i) % art.length]
             const key = `set:${set.setId}`
             const live = liveKey === key
             return (
@@ -312,12 +319,12 @@ export function ContinueListening() {
                   eyebrow={CATEGORY_LABEL[set.category]}
                   title={set.name}
                   subtitle={live ? tracks[currentIndex]?.title ?? 'Now playing' : lastPlayed(set.lastPlayedAt)}
-                  artwork={art[(history.length + i) % art.length]}
+                  artwork={artwork}
                   progress={live && duration > 0 ? (currentTime / duration) * 100 : null}
                   timeLabel={live && duration > 0 ? `${formatTime(currentTime)} / ${formatTime(duration)}` : null}
                   playing={live && isPlaying}
                   loading={loadingKey === key}
-                  onPlay={() => void startPlayedSet(set)}
+                  onPlay={() => void startPlayedSet(set, artwork)}
                 />
               </li>
             )
@@ -334,7 +341,7 @@ export function ContinueListening() {
           timeLabel={null}
           playing={liveKey === `home:${starter.id}` && isPlaying}
           loading={loadingKey === `home:${starter.id}`}
-          onPlay={() => void startSource(starter)}
+          onPlay={() => void startSource(starter, starter.artwork ?? art[0])}
         />
         </div>
       ) : (

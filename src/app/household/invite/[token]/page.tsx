@@ -1,5 +1,6 @@
 'use client'
 
+import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -168,11 +169,11 @@ export default function AcceptInvitationPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-white px-6 py-12">
+      <div className="text-white px-6 py-12">
         <div className="max-w-2xl mx-auto text-center">
           <div className="mb-8">
             <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">⚠️</span>
+              <AlertTriangle className="h-10 w-10 text-amber-400" />
             </div>
             <h1 className="text-4xl font-bold mb-4">Invalid Invitation</h1>
             <p className="text-neutral-300">{error}</p>

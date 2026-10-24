@@ -45,6 +45,20 @@ export interface AudioCollection {
   loadTracks: () => Promise<AudioTrack[]>
 }
 
+/**
+ * Gives a collection fallback cover art (when it has none) and puts its cover
+ * on every track without one, so the player shows the card's image.
+ */
+export function withCollectionArt(c: AudioCollection, fallback: string | null): AudioCollection {
+  const artwork = c.artwork ?? fallback
+  if (!artwork) return c
+  return {
+    ...c,
+    artwork,
+    loadTracks: async () => (await c.loadTracks()).map((t) => (t.thumbnail ? t : { ...t, thumbnail: artwork })),
+  }
+}
+
 function mixNumbers(mixRatio?: string) {
   const m = mixRatio?.match(/(\d+)%\s*\/\s*(\d+)%/)
   return { voice: m ? parseInt(m[1]) : 100, background: m ? parseInt(m[2]) : 0 }
