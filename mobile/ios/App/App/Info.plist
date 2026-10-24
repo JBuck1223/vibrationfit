@@ -38,13 +38,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Vibration Fit uses the camera for Vibe Tribe video sessions and to add photos to your journal and vision.</string>
+	<string>Vibration Fit uses the camera for Vibe Tribe video sessions and to add photos and videos to your journal and vision.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Vibration Fit uses the microphone so you can talk to VIVA, record audio, and join Vibe Tribe sessions.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Vibration Fit saves images you export to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Vibration Fit accesses your photo library so you can add images to your journal, vision, and manifestations.</string>
+	<string>Vibration Fit accesses your photo library so you can add images and videos to your journal, vision, and manifestations.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

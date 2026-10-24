@@ -1,6 +1,7 @@
 'use client'
 
 import Script from 'next/script'
+import { useNativeShell } from '@/hooks/useNativeShell'
 
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
 const GA4_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID
@@ -8,6 +9,11 @@ const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
 const TIKTOK_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID
 
 export function PixelScripts() {
+  const { ready, isNative } = useNativeShell()
+  // Ad pixels never load inside the iOS/Android shell: Apple treats them as
+  // tracking, which would require the App Tracking Transparency prompt.
+  if (!ready || isNative) return null
+
   return (
     <>
       {/* Meta Pixel */}
