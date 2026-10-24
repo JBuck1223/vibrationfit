@@ -4,7 +4,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Container, Card, Button, Badge, ProgressBar, Stack, Spinner } from '@/lib/design-system/components'
+import { Container, Card, Button, Badge, ProgressBar, Stack } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { HardDrive, Image, Music, FileText, Folder, ExternalLink, X } from 'lucide-react'
 
 interface StorageData {
@@ -72,13 +73,7 @@ export default function StoragePage() {
   const usagePercentage = data ? Math.min(100, (data.totalSize / storageLimit) * 100) : 0
 
   if (loading) {
-    return (
-      <Container size="xl" className="pt-2 pb-6 sm:pb-8">
-        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Spinner size="lg" />
-        </div>
-      </Container>
-    )
+    return <PageLoading />
   }
 
   return (

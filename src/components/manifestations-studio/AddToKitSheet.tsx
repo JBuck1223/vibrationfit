@@ -6,6 +6,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Input } from '@/lib/design-system'
 import { keys } from '@/lib/query/keys'
 import type { KitLayer, KitSlot, ManifestationListItem } from '@/lib/manifestations/types'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 interface AddToKitSheetProps {
   isOpen: boolean
@@ -93,15 +96,16 @@ export function AddToKitSheet({
   }
 
   return (
+    <OverlayPortal>
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <button type="button" className="absolute inset-0 bg-black/60" onClick={onClose} aria-label="Close" />
-      <div className="relative w-full sm:max-w-md bg-[#101010] border border-[#1F1F1F] rounded-t-3xl sm:rounded-3xl p-5 max-h-[80vh] overflow-y-auto">
+      <button type="button" className={cn('absolute inset-0', SCRIM)} onClick={onClose} aria-label="Close" />
+      <div className={cn(GLASS_SHEET, 'relative w-full sm:max-w-md rounded-b-none sm:rounded-b-[24px] p-5 max-h-[80vh] overflow-y-auto')}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm font-medium text-white">Add to a manifestation</p>
             {label && <p className="text-xs text-neutral-500 mt-0.5 truncate">{label}</p>}
           </div>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-full text-neutral-400 hover:text-white">
+          <button type="button" onClick={onClose} className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -116,7 +120,7 @@ export function AddToKitSheet({
                 type="button"
                 onClick={() => pin(kit.id)}
                 disabled={adding === kit.id || added.has(kit.id)}
-                className="w-full flex items-center gap-3 rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3 text-left hover:border-neutral-600"
+                className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-left hover:border-white/20"
               >
                 <Layers className="w-4 h-4 text-[#39FF14] shrink-0" />
                 <span className="flex-1 min-w-0 text-sm text-white truncate">{kit.name}</span>
@@ -158,5 +162,6 @@ export function AddToKitSheet({
         )}
       </div>
     </div>
+    </OverlayPortal>
   )
 }

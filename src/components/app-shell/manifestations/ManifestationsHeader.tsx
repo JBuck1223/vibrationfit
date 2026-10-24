@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { StudioToggle } from '../StudioToggle'
 import { ShellWalkthroughButton } from '../ShellWalkthroughButton'
@@ -73,10 +74,7 @@ export function ManifestationsHeader() {
                 key={t.href}
                 href={t.href}
                 aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
-                  active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white',
-                )}
+                className={cn(PILL_BASE, active ? PILL_ON : PILL_OFF)}
               >
                 {t.label}
               </Link>

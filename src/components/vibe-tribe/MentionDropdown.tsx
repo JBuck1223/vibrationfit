@@ -1,6 +1,8 @@
 'use client'
 
 import { MentionMember } from '@/hooks/useMentionAutocomplete'
+import { cn } from '@/lib/utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 
 interface MentionDropdownProps {
   results: MentionMember[]
@@ -13,7 +15,7 @@ export function MentionDropdown({ results, activeIndex, onSelect, isOpen }: Ment
   if (!isOpen || results.length === 0) return null
 
   return (
-    <div className="absolute left-0 right-0 bottom-full mb-1 z-50 bg-neutral-800 border border-neutral-700 rounded-xl shadow-2xl overflow-hidden max-h-[240px] overflow-y-auto">
+    <div className={cn(GLASS_MENU, 'absolute left-0 right-0 bottom-full mb-1 z-50 rounded-[20px] p-1.5 overflow-hidden max-h-[240px] overflow-y-auto')}>
       {results.map((member, index) => (
         <button
           key={member.id}
@@ -22,10 +24,10 @@ export function MentionDropdown({ results, activeIndex, onSelect, isOpen }: Ment
             e.preventDefault()
             onSelect(member)
           }}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+          className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
             index === activeIndex
               ? 'bg-[#39FF14]/10'
-              : 'hover:bg-neutral-700/50'
+              : 'hover:bg-white/10'
           }`}
         >
           <div className="w-8 h-8 rounded-full bg-neutral-700 overflow-hidden flex-shrink-0">

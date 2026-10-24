@@ -33,7 +33,7 @@ import { useStoryStudio } from '@/components/story-studio'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { getStoryKind, getStoryKindLabel, storyCreateHref, type StoryKind, type StoryMetadata } from '@/lib/stories/types'
 import { useInShell } from '@/lib/app-shell/shell-context'
-import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { GLASS_CARD, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 
 const ENTITY_TYPE_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
@@ -188,8 +188,8 @@ export default function StoryHubPage() {
                 aria-label="Filter stories"
                 className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors ${
                   kindFilter !== 'all' || activePill !== 'all' || scope !== 'me'
-                    ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
-                    : 'border-white/15 bg-white/[0.05] text-white/85 hover:text-white'
+                    ? PILL_ON
+                    : PILL_OFF
                 }`}
               >
                 <Filter className="h-4 w-4" />
@@ -252,8 +252,8 @@ export default function StoryHubPage() {
                           data-tour={opt.value === 'incantation' ? 'spoken-incantations' : opt.value === 'spark_query' ? 'spoken-spark' : undefined}
                           className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
                             group.value === opt.value
-                              ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
-                              : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white'
+                              ? PILL_ON
+                              : PILL_OFF
                           }`}
                         >
                           {opt.label}

@@ -40,20 +40,20 @@ export const CLUSTER_LABELS: Record<SeoCluster, string> = {
 
 export const ROADMAP: RoadmapEntry[] = [
   // Vision Board
-  { n: 1, cluster: 'vision-board', hub: true, title: 'Vision board', path: 'vision-boards', wave: 1, feature: 'Vision Board', tool: 'Mini board builder',
+  { n: 1, cluster: 'vision-board', hub: true, title: 'Vision board', path: 'vision-board', wave: 1, feature: 'Vision Board', tool: 'Mini board builder',
     keywords: [{ keyword: 'vision board', vol: 74000, kd: 67, cpc: 0.95 }, { keyword: 'what is a vision board', vol: 8100, kd: 38, cpc: 0.22 }, { keyword: 'dream board', vol: 2400, kd: 28, cpc: 0.37 }, { keyword: 'vision boards', vol: 8100, kd: null, cpc: 0.95 }] },
-  { n: 2, cluster: 'vision-board', title: 'How to make a vision board', path: 'vision-boards/how-to-make', wave: 1, feature: 'Vision Board → Life Vision', tool: 'Step checklist',
+  { n: 2, cluster: 'vision-board', title: 'How to make a vision board', path: 'vision-board/how-to-make', wave: 1, feature: 'Vision Board → Life Vision', tool: 'Step checklist',
     keywords: [{ keyword: 'how to make a vision board', vol: 165000, kd: 36, cpc: 0.32, spiky: true }, { keyword: 'how to create a vision board', vol: 4400, kd: null, cpc: 0.46 }, { keyword: 'how to build a vision board', vol: 2900, kd: null, cpc: 0.37 }, { keyword: 'create a vision board', vol: 1000, kd: 55, cpc: 0.74 }] },
-  { n: 3, cluster: 'vision-board', title: 'Vision board ideas', path: 'vision-boards/ideas', wave: 1, feature: '12 life categories', tool: 'Idea gallery',
+  { n: 3, cluster: 'vision-board', title: 'Vision board ideas', path: 'vision-board/ideas', wave: 1, feature: '12 life categories', tool: 'Idea gallery',
     keywords: [{ keyword: 'vision board ideas', vol: 27100, kd: 45, cpc: 0.16 }, { keyword: 'vision board inspo', vol: 2400, kd: null, cpc: 0.69 }, { keyword: '2026 vision board ideas', vol: 1600, kd: null, cpc: 0 }, { keyword: 'vision board words', vol: 880, kd: 12, cpc: 0 }] },
-  { n: 4, cluster: 'vision-board', title: 'Vision board examples & pictures', path: 'vision-boards/examples', wave: 1, feature: 'Member boards', tool: 'Gallery',
+  { n: 4, cluster: 'vision-board', title: 'Vision board examples & pictures', path: 'vision-board/examples', wave: 1, feature: 'Member boards', tool: 'Gallery',
     keywords: [{ keyword: 'vision board pictures', vol: 9900, kd: 48, cpc: 0.47 }, { keyword: 'vision board examples', vol: 6600, kd: 48, cpc: 0.5 }, { keyword: 'vision board images', vol: 6600, kd: null, cpc: 0.47 }] },
-  { n: 5, cluster: 'vision-board', title: 'Vision board template', path: 'vision-boards/template', wave: 1, feature: 'Board export', tool: 'Free printable',
+  { n: 5, cluster: 'vision-board', title: 'Vision board template', path: 'vision-board/template', wave: 1, feature: 'Board export', tool: 'Free printable',
     keywords: [{ keyword: 'vision board template', vol: 6600, kd: 36, cpc: 1.17 }, { keyword: 'canva vision board template', vol: 5400, kd: null, cpc: 0 }] },
-  { n: 6, cluster: 'vision-board', title: 'Digital vision board app', path: 'vision-boards/app', wave: 1, feature: 'Vision Board', tool: 'Live board builder',
+  { n: 6, cluster: 'vision-board', title: 'Digital vision board app', path: 'vision-board/app', wave: 1, feature: 'Vision Board', tool: 'Live board builder',
     keywords: [{ keyword: 'digital vision board', vol: 2400, kd: 41, cpc: 1.13 }, { keyword: 'vision board maker', vol: 2400, kd: 27, cpc: 1.07 }, { keyword: 'electronic vision board', vol: 1900, kd: null, cpc: 1.13 }, { keyword: 'vision board app', vol: 1300, kd: 36, cpc: 0.64 }, { keyword: 'vision board generator', vol: 1000, kd: null, cpc: 1.1 }, { keyword: 'online vision board', vol: 880, kd: 29, cpc: 1.13 }],
     note: 'No paid advertisers found in Semrush for "vision board app".' },
-  { n: 7, cluster: 'vision-board', title: '2027 vision board', path: 'vision-boards/2027', wave: 1, feature: 'New-year board', tool: 'Board template',
+  { n: 7, cluster: 'vision-board', title: '2027 vision board', path: 'vision-board/2027', wave: 1, feature: 'New-year board', tool: 'Board template',
     keywords: [{ keyword: 'vision board 2026 (proxy for 2027)', vol: 2400, kd: 20, cpc: 0.44 }, { keyword: '2026 vision board', vol: 3600, kd: null, cpc: 1.41 }],
     note: 'The 2027 term shows ~0 today and will spike in December, like 2026 did.' },
   // Affirmations

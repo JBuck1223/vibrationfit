@@ -37,7 +37,7 @@ export function MessageCopyButton({
       type="button"
       onClick={copy}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-neutral-500 hover:text-white hover:bg-neutral-900 transition-colors',
+        'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-white/55 hover:text-white hover:bg-white/10 transition-colors',
         align === 'right' && 'ml-auto'
       )}
       title={copied ? 'Copied' : 'Copy'}

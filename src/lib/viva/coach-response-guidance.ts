@@ -60,7 +60,6 @@ Give clear, warm, step-by-step product directions. If the request is actually ab
 
 - Life Vision: /life-vision
 - Journal: /journal
-- Vision Board: /vision-board
 - Assessment: /assessment
 - Audio Studio: /audio
 - Profile: /profile

@@ -161,7 +161,7 @@ const FEATURE_GROUPS: Array<{
       {
         icon: Sparkles,
         title: 'VIVA',
-        detail: 'your coach \u2014 remembers you, writes + creates with you',
+        detail: 'your guide \u2014 remembers you, writes + creates with you',
       },
       {
         icon: Video,

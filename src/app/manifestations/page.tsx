@@ -39,7 +39,9 @@ import { compareBoardOrder, reorderOwnedItems } from '@/lib/manifestations/board
 import { resolveEditedTimestamp, toLocalDateInput, todayDateInput } from '@/lib/manifestations/dates'
 import { useDeleteItem } from '@/hooks/useDeleteItem'
 import { useInShell } from '@/lib/app-shell/shell-context'
-import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { GLASS_CARD, GLASS_SHEET, PILL_OFF, PILL_ON, SCRIM } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
 import { CategorySheet, LIFE_CATEGORIES } from '@/components/app-shell/forms/CategorySheet'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { BeforeAfterSlider } from '@/components/BeforeAfterSlider'
@@ -90,9 +92,7 @@ const STATUS_OPTIONS = [
 
 /** A pill button in the shell's board toolbar and filter sheet; green when on. */
 function shellToolClass(on: boolean) {
-  return `inline-flex h-10 items-center justify-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors disabled:opacity-40 sm:px-4 ${
-    on ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/85 hover:text-white'
-  }`
+  return `inline-flex h-10 items-center justify-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors disabled:opacity-40 sm:px-4 ${on ? PILL_ON : PILL_OFF}`
 }
 
 const BOARD_FILTERS_STORAGE_KEY = 'vf-manifestations-board-filters'
@@ -2239,7 +2239,7 @@ export default function VisionBoardPage() {
                 )}
               </button>
             </div>
-            <div className="flex shrink-0 rounded-full border border-white/15 bg-white/[0.05] p-1" role="group" aria-label="Board view">
+            <div className="flex shrink-0 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] p-1 backdrop-blur-xl" role="group" aria-label="Board view">
               {([
                 { mode: 'clean' as const, icon: Grid, label: 'Clean view' },
                 { mode: 'detail' as const, icon: List, label: 'Detail view' },
@@ -3158,12 +3158,12 @@ export default function VisionBoardPage() {
 
           return createPortal(
             <div
-              className="fixed inset-0 bg-black/95 z-50 flex items-start md:items-center justify-center px-3 pt-14 pb-6 md:p-4 overflow-y-auto"
+              className={cn('fixed inset-0 z-50 flex items-start md:items-center justify-center px-3 pt-14 pb-6 md:p-4 overflow-y-auto', SCRIM)}
               onClick={closeLightbox}
             >
               <button
                 onClick={closeLightbox}
-                className="fixed top-3 right-3 z-30 p-2 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                className="fixed top-3 right-3 z-30 p-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] text-white backdrop-blur-xl transition-colors hover:bg-white/10"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3172,7 +3172,7 @@ export default function VisionBoardPage() {
                 {filteredItems.length > 1 && editingItemId !== currentItem.id && (
                   <button
                     onClick={(e) => { e.stopPropagation(); prevImage() }}
-                    className="hidden md:flex flex-shrink-0 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                    className="hidden md:flex flex-shrink-0 p-2.5 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] text-white backdrop-blur-xl transition-colors hover:bg-white/10"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
@@ -3187,7 +3187,7 @@ export default function VisionBoardPage() {
                 </div>
               ) : (
                 <div
-                  className="relative w-full md:w-auto md:min-w-[500px] md:max-w-[700px] max-h-full md:max-h-[96vh] bg-neutral-900 rounded-2xl overflow-y-auto shadow-2xl border border-neutral-700/50"
+                  className={cn(GLASS_SHEET, 'relative w-full md:w-auto md:min-w-[500px] md:max-w-[700px] max-h-full md:max-h-[calc(100dvh-2rem)] overflow-y-auto')}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="relative w-full">
@@ -3342,7 +3342,7 @@ export default function VisionBoardPage() {
                 {filteredItems.length > 1 && editingItemId !== currentItem.id && (
                   <button
                     onClick={(e) => { e.stopPropagation(); nextImage() }}
-                    className="hidden md:flex flex-shrink-0 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                    className="hidden md:flex flex-shrink-0 p-2.5 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] text-white backdrop-blur-xl transition-colors hover:bg-white/10"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
@@ -3362,13 +3362,14 @@ export default function VisionBoardPage() {
             : item.image_url
 
           return (
+            <OverlayPortal>
             <div
-              className="fixed inset-0 bg-black/90 z-50 flex items-start md:items-center justify-center px-3 pt-14 pb-6 md:p-4 overflow-y-auto"
+              className={cn('fixed inset-0 z-50 flex items-start md:items-center justify-center px-3 pt-14 pb-6 md:p-4 overflow-y-auto', SCRIM)}
               onClick={closeDetailModal}
             >
               <button
                 onClick={closeDetailModal}
-                className="fixed top-3 right-3 z-30 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                className="fixed top-3 right-3 z-30 p-2.5 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] text-white backdrop-blur-xl transition-colors hover:bg-white/10"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3377,14 +3378,14 @@ export default function VisionBoardPage() {
                 {filteredItems.length > 1 && editingItemId !== item.id && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex - 1 + filteredItems.length) % filteredItems.length) }}
-                    className="hidden md:flex flex-shrink-0 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                    className="hidden md:flex flex-shrink-0 p-2.5 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] text-white backdrop-blur-xl transition-colors hover:bg-white/10"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                 )}
 
               <div
-                className="relative w-full md:w-auto md:min-w-[500px] md:max-w-[700px] max-h-full md:max-h-[96vh] bg-neutral-900 rounded-2xl overflow-y-auto shadow-2xl border border-neutral-700/50"
+                className={cn(GLASS_SHEET, 'relative w-full md:w-auto md:min-w-[500px] md:max-w-[700px] max-h-full md:max-h-[calc(100dvh-2rem)] overflow-y-auto')}
                 onClick={(e) => e.stopPropagation()}
               >
                 {editingItemId === item.id && editFormData ? (
@@ -3518,13 +3519,14 @@ export default function VisionBoardPage() {
                 {filteredItems.length > 1 && editingItemId !== item.id && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDetailModalIndex((detailModalIndex + 1) % filteredItems.length) }}
-                    className="hidden md:flex flex-shrink-0 p-2.5 bg-neutral-800/80 backdrop-blur-sm rounded-full text-white hover:bg-neutral-700 transition-colors"
+                    className="hidden md:flex flex-shrink-0 p-2.5 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] text-white backdrop-blur-xl transition-colors hover:bg-white/10"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 )}
               </div>
             </div>
+            </OverlayPortal>
           )
         })()}
 

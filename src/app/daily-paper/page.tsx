@@ -22,7 +22,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DailyPaperEditModal } from '@/components/daily-paper'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { useInShell } from '@/lib/app-shell/shell-context'
-import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { GLASS_CARD, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 import { cn } from '@/lib/utils'
 
@@ -259,7 +259,7 @@ export default function DailyPaperIndexPage() {
                 aria-pressed={dateFilter !== 'all'}
                 className={cn(
                   'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors',
-                  dateFilter !== 'all' ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/75 hover:text-white',
+                  dateFilter !== 'all' ? PILL_ON : PILL_OFF,
                 )}
               >
                 <Filter className="h-4 w-4" />
@@ -336,7 +336,7 @@ export default function DailyPaperIndexPage() {
                     onClick={() => setDateFilter(key)}
                     className={cn(
                       'flex-1 rounded-full border py-2 text-xs font-medium transition-colors',
-                      dateFilter === key ? 'border-[#39FF14] bg-[rgba(57,255,20,0.14)] text-[#39FF14]' : 'border-white/15 text-white/80 hover:text-white',
+                      dateFilter === key ? PILL_ON : PILL_OFF,
                     )}
                   >
                     {key === 'all' ? 'All time' : key === '7' ? 'Last 7 days' : 'Last 30 days'}

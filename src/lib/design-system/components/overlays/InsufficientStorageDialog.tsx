@@ -5,6 +5,7 @@ import { HardDrive, X } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '../shared-utils'
 import { Button } from '../forms/Button'
+import { OverlayPortal } from './OverlayPortal'
 
 interface InsufficientStorageDialogProps {
   isOpen: boolean
@@ -34,8 +35,9 @@ export const InsufficientStorageDialog: React.FC<InsufficientStorageDialogProps>
   const storageNeeded = required - current
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1F1F1F] border-2 border-[#8B5CF6] rounded-2xl p-4 sm:p-6 max-w-md w-full relative">
+    <OverlayPortal>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="vf-glass rounded-[24px] border bg-[rgba(28,22,38,0.97)] shadow-[0_24px_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl border-[#8B5CF6]/60 p-4 sm:p-6 max-w-md w-full relative">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors"
@@ -78,5 +80,6 @@ export const InsufficientStorageDialog: React.FC<InsufficientStorageDialogProps>
         </div>
       </div>
     </div>
+    </OverlayPortal>
   )
 }

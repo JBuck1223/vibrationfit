@@ -12,7 +12,7 @@ export const FREE_ACTIVATION_START_CTA = 'Create My Free Activation'
 
 export const MEMBERSHIP_FEATURES = [
   'Your Life I Choose vision across all 12 life categories',
-  'VIVA, your coach, whenever you need her',
+  'VIVA, your guide, whenever you need her',
   'Vibe Tribe — the member community',
   'Weekly Alignment Gym',
   'Stories, audio, songs, and your board in one place',

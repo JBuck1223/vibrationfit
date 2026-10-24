@@ -11,7 +11,7 @@ import { Plus, FileText, ChevronDown, Filter, BookOpen, Flame, Shield, Search, X
 import { JournalEditModal, RecoverableTranscriptsBanner, type JournalEditEntry } from '@/components/journal'
 import { useJournalStudio } from '@/components/journal-studio'
 import { useInShell } from '@/lib/app-shell/shell-context'
-import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { GLASS_CARD, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { cn } from '@/lib/utils'
 import { RichText } from '@/components/RichText'
 import { stripMarkdown } from '@/lib/audio/content-normalize'
@@ -438,7 +438,7 @@ export default function JournalPage() {
                 aria-pressed={!selectedCategories.includes('all')}
                 className={cn(
                   'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition-colors',
-                  !selectedCategories.includes('all') ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.06] text-white/75 hover:text-white',
+                  !selectedCategories.includes('all') ? PILL_ON : PILL_OFF,
                 )}
               >
                 <Filter className="h-4 w-4" />

@@ -5,6 +5,7 @@ import { SITE_URL, getSeoPage, getVariants, pageUrl } from '@/content/seo/regist
 import { getReadiness } from '@/lib/seo/readiness'
 import { adHeadlines, adPaths, adProblems, adTextLength, HEADLINE_MAX, DESCRIPTION_MAX } from '@/lib/seo/google-ads-export'
 import { AdPreview, ExtLink, Panel, Pill, PillarCard, ScorePill, fmt, money } from '@/components/admin-seo/ui'
+import { SeoIdeaCapture } from '@/components/admin-seo/SeoIdeaCapture'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,6 +60,7 @@ export default async function SeoAdminPageDetail({ params }: { params: Promise<P
             <div><dt className="text-xs text-neutral-500">To build it</dt><dd className="text-neutral-100">Add <code className="text-[#39FF14]">src/content/seo/pages/…</code> and register it</dd></div>
           </dl>
         </Panel>
+        <SeoIdeaCapture path={path} description="Talk through the page before it is built: angle, free tool, examples, the founder story, what the CTA should promise." />
         {keywordTable}
       </div>
     )
@@ -96,6 +98,8 @@ export default async function SeoAdminPageDetail({ params }: { params: Promise<P
           <ExtLink href={`https://www.google.com/search?q=${encodeURIComponent(`site:${SITE_URL.replace('https://', '')}/${page.path}`)}`}>Indexed?</ExtLink>
         </div>
       </div>
+
+      <SeoIdeaCapture path={path} title="Redesign ideas" description="What should change on this page? Speak it; the transcript is saved here for the next rewrite." />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {readiness.map(report => <PillarCard key={report.pillar} report={report} />)}

@@ -30,7 +30,7 @@ export const TRAINING_STEP_IDS = [
 export type TrainingStepId = (typeof TRAINING_STEP_IDS)[number]
 
 export const ONBOARDING_PHASES = ['Start', 'Vision', 'Community', 'Plan'] as const
-export const TRAINING_PHASES = ['Foundation', 'Expression', 'Practice', 'Coach', 'Completion'] as const
+export const TRAINING_PHASES = ['Foundation', 'Expression', 'Practice', 'Guide', 'Completion'] as const
 
 export interface JourneyStep<T extends string = string> {
   id: T
@@ -232,7 +232,7 @@ export const TRAINING_STEPS: JourneyStep<TrainingStepId>[] = [
     number: 7,
     title: 'Your voice',
     description: 'Record so VIVA can speak in your voice, or skip for now.',
-    phase: 'Coach',
+    phase: 'Guide',
     href: '/audio',
     viewHref: '/audio',
     doneWhen: 'You finished the voice walk-through',
@@ -243,8 +243,8 @@ export const TRAINING_STEPS: JourneyStep<TrainingStepId>[] = [
     id: 'viva',
     number: 8,
     title: 'Talk with VIVA',
-    description: 'The coach conversation. Open it and say something true.',
-    phase: 'Coach',
+    description: 'The guide conversation. Open it and say something true.',
+    phase: 'Guide',
     href: '/viva',
     viewHref: '/viva',
     doneWhen: 'You finished the VIVA walk-through',

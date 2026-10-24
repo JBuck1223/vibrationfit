@@ -4,6 +4,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/lib/design-system/components'
 import { X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 interface RenameSongModalProps {
   isOpen: boolean
@@ -67,15 +70,16 @@ export function RenameSongModal({
   if (!isOpen) return null
 
   return (
+    <OverlayPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={saving ? undefined : onClose} />
-      <div className="relative w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
+      <div className={cn('absolute inset-0', SCRIM)} onClick={saving ? undefined : onClose} />
+      <div className={cn(GLASS_SHEET, 'relative w-full max-w-md')}>
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
           <h2 className="text-lg font-semibold text-white">Rename Song</h2>
           <button
             onClick={onClose}
             disabled={saving}
-            className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors disabled:opacity-50"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
           >
             <X className="h-5 w-5" />
           </button>
@@ -94,7 +98,7 @@ export function RenameSongModal({
             maxLength={120}
             placeholder="Song title"
             disabled={saving}
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-primary-500/50 focus:outline-none focus:ring-2 focus:ring-primary-500/25 disabled:opacity-50"
+            className="w-full rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 text-white placeholder:text-white/45 focus:border-primary-500/50 focus:outline-none focus:ring-2 focus:ring-primary-500/25 disabled:opacity-50"
           />
           <p className="mt-2 text-xs text-neutral-500">
             The new name applies to all versions of this song.
@@ -118,5 +122,6 @@ export function RenameSongModal({
         </div>
       </div>
     </div>
+    </OverlayPortal>
   )
 }

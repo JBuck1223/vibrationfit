@@ -22,9 +22,9 @@ import {
   PageHero,
   Card, 
   Button, 
-  Spinner,
 } from '@/lib/design-system/components'
 import { AlertCircle, ArrowLeft, Lock, CheckCircle, Send } from 'lucide-react'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import type { VideoSession, VideoSessionParticipant, CallSettings, JoinSessionResponse } from '@/lib/video/types'
 import { isAlignmentGymDirectorySession } from '@/lib/video/alignment-gym-directory'
 import {
@@ -313,12 +313,7 @@ export default function SessionPage() {
   // Loading
   if (pageState === 'loading') {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <Spinner size="lg" className="mx-auto mb-4" />
-          <p className="text-white text-sm md:text-base">Loading session...</p>
-        </div>
-      </div>
+      <PageLoading label="Loading session" />
     )
   }
 
@@ -472,9 +467,7 @@ export default function SessionPage() {
 
   // Fallback
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <Spinner size="lg" />
-    </div>
+    <PageLoading />
   )
 }
 

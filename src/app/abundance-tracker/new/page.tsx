@@ -179,7 +179,7 @@ export default function AbundanceNewEntryPage() {
 
         <section className={cn(GLASS_CARD, 'p-4 md:p-5')}>
           <div className="flex items-center justify-center gap-2">
-            <div role="radiogroup" aria-label="Money or value" className="grid grid-cols-2 rounded-full border border-white/15 bg-white/[0.05] p-1">
+            <div role="radiogroup" aria-label="Money or value" className="grid grid-cols-2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] p-1 backdrop-blur-xl">
               {(['money', 'value'] as const).map((v) => (
                 <button
                   key={v}

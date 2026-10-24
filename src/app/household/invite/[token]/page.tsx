@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button, Card, Spinner, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 
 interface InvitationDetails {
   id: string
@@ -161,9 +162,7 @@ export default function AcceptInvitationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Spinner variant="primary" size="lg" />
-      </div>
+      <PageLoading />
     )
   }
 

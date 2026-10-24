@@ -23,7 +23,7 @@ const glass = cn(
   'vf-glass border border-white/[0.14]',
   // Matches Home's glass cards: violet-dark translucent fill, one hairline outline.
   'bg-[linear-gradient(180deg,rgba(44,36,60,0.55)_0%,rgba(22,18,32,0.68)_100%)]',
-  'shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150',
+  'shadow-[0_14px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150',
   'transition-transform duration-200 ease-out',
   'data-[keyboard=open]:translate-y-[140%]',
 )

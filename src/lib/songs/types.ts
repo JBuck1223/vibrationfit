@@ -67,6 +67,7 @@ export type SongSource =
   | 'ai_generated'
   | 'user_written'
   | 'ai_assisted'
+  | 'member_upload'
 
 export type SongStatus =
   | 'draft'

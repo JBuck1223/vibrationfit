@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { PILL_WELL } from '@/lib/app-shell/glass'
 
 export interface StudioToggleOption {
   label: string
@@ -21,7 +22,7 @@ export function StudioToggle({ options, label, className }: { options: StudioTog
     <div
       role="tablist"
       aria-label={label}
-      className={cn('grid rounded-full border border-white/15 bg-white/[0.05] p-1 md:w-[320px]', className)}
+      className={cn(PILL_WELL, 'grid md:w-[320px]', className)}
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((o) => (
@@ -33,7 +34,7 @@ export function StudioToggle({ options, label, className }: { options: StudioTog
           data-tour={o.dataTour}
           className={cn(
             'rounded-full py-2 text-center text-sm font-semibold transition-colors',
-            o.active ? 'bg-[#39FF14] text-black' : 'text-white/75 hover:text-white',
+            o.active ? 'bg-[#39FF14] text-black' : 'text-white/85 hover:text-white',
           )}
         >
           {o.label}

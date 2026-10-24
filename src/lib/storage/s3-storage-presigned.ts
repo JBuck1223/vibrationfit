@@ -37,6 +37,8 @@ export const USER_FOLDERS = {
   // Songs (songwriter feature)
   songs: 'songs',
   songStoryRecordings: 'songs/story-recordings',
+  // Original music members upload themselves (full rights attested)
+  songUploads: 'songs/uploads',
   // Support requests (screen/video clips, voice memos, and file attachments)
   supportVideoRecordings: 'support/video-recordings',
   supportAudioRecordings: 'support/audio-recordings',
@@ -803,6 +805,13 @@ function validateFile(file: File, folder: UserFolder): { valid: boolean; error?:
         'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/avi',
         'video/3gpp', 'video/3gpp2', 'video/x-m4v', 'video/hevc',
         'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/x-m4a',
+      ],
+    },
+    songUploads: {
+      maxSize: 200 * 1024 * 1024, // 200MB for member-uploaded original songs
+      types: [
+        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave',
+        'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/flac', 'audio/x-flac', 'audio/ogg',
       ],
     },
     supportVideoRecordings: {

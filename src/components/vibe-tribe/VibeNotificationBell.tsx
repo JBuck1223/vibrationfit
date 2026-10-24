@@ -194,7 +194,7 @@ export function VibeNotificationBell({ variant = 'inline', className = '' }: Vib
       className={
         variant === 'mobile'
           ? 'md:hidden fixed top-[max(0.75rem,env(safe-area-inset-top))] right-4 z-40 w-10 h-10 flex items-center justify-center bg-neutral-800 rounded-lg border-2 border-neutral-700 hover:border-neutral-600'
-          : `relative p-1.5 rounded-lg hover:bg-neutral-800 transition-colors ${className}`
+          : `relative p-1.5 rounded-full hover:bg-white/10 transition-colors ${className}`
       }
       aria-label={unreadCount > 0 ? `Vibe Tribe notifications, ${unreadCount} unread` : 'Vibe Tribe notifications'}
       aria-expanded={open}
@@ -242,7 +242,7 @@ export function VibeNotificationBell({ variant = 'inline', className = '' }: Vib
                     key={notification.id}
                     type="button"
                     onClick={() => openNotification(notification)}
-                    className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-neutral-800/80 hover:bg-neutral-800 transition-colors ${
+                    className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-white/10 hover:bg-white/10 transition-colors ${
                       unread ? 'bg-[#39FF14]/5' : ''
                     }`}
                   >

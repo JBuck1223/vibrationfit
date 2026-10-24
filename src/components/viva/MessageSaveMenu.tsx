@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { BookOpen, Check, ChevronDown, Loader2, NotebookPen, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 import { createClient } from '@/lib/supabase/client'
 import { reportFlowSignal } from '@/hooks/useActiveFlow'
 
@@ -136,7 +137,7 @@ export function MessageSaveMenu({ text, threadId }: { text: string; threadId: st
         disabled={!!saving}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-neutral-500 transition-colors hover:bg-neutral-900 hover:text-white disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-neutral-500 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-60"
       >
         {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <Check className="h-3.5 w-3.5 text-[#39FF14]" /> : <NotebookPen className="h-3.5 w-3.5" />}
         {saving ? 'Saving...' : saved ? 'Saved' : 'Save'}
@@ -145,7 +146,7 @@ export function MessageSaveMenu({ text, threadId }: { text: string; threadId: st
       {open ? (
         <div
           role="menu"
-          className="absolute bottom-full left-0 z-30 mb-1 w-48 overflow-hidden rounded-xl border border-white/[0.14] bg-[rgba(28,22,38,0.97)] p-1 shadow-[0_12px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+          className={cn(GLASS_MENU, 'absolute bottom-full left-0 z-30 mb-1 w-48 overflow-hidden p-1')}
         >
           <p className="px-2.5 pb-1 pt-1.5 text-[11px] text-white/50">Save exactly as written</p>
           {TARGETS.map(({ id, label, icon: Icon }) => (

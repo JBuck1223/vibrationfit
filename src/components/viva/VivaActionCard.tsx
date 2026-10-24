@@ -57,7 +57,8 @@ export function cardFromHref(href: string): VivaActionCardModel | null {
   if (href.startsWith('/daily-paper')) return { href, label: 'Open Daily Paper', kind: 'daily_paper' }
   if (href.startsWith('/audio')) return { href, label: href.includes('songwriter') ? 'Open Songwriter' : href.includes('mix') ? 'Open Mix' : 'Open Audio', kind: 'audio' }
   if (href.startsWith('/projects/')) return { href, label: 'Open the project', kind: 'project' }
-  if (href.startsWith('/vision-board')) return { href, label: 'Open Vision Board', kind: 'board' }
+  // Older replies may still link the retired member route; /vision-board is now a public SEO page.
+  if (href === '/vision-board' || href.startsWith('/vision-board/')) return cardFromHref(href.replace('/vision-board', '/manifestations'))
   return null
 }
 

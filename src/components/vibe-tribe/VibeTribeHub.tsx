@@ -200,7 +200,7 @@ export function VibeTribeHub({ userId, isAdmin = false, initialFilter = 'all' }:
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all flex-shrink-0"
+            className="p-2 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>

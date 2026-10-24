@@ -152,7 +152,6 @@ function isPathAccessibleForIntensive(
   if (pathname.startsWith('/assessment')) return intensive.profile_completed
   if (pathname.includes('/audio') && pathname.startsWith('/life-vision')) return intensive.vision_built
   if (pathname.startsWith('/life-vision')) return intensive.profile_completed
-  if (pathname.startsWith('/vision-board')) return intensive.audio_generated || intensive.audios_generated
   if (pathname.startsWith('/journal')) return intensive.vision_board_completed
   if (pathname.startsWith('/vibe-tribe')) return intensive.first_journal_entry
   if (pathname.startsWith('/alignment-gym')) return intensive.vibe_engagement

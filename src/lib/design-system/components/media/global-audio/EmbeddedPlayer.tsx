@@ -23,6 +23,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from '../../shared-utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { colors } from '../../../tokens'
@@ -37,7 +38,7 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <span className="relative group/tip">
       {children}
-      <span className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-1.5 whitespace-nowrap rounded bg-neutral-900 border border-neutral-700 px-2 py-1 text-[10px] text-neutral-200 opacity-0 group-hover/tip:opacity-100 transition-opacity z-50">
+      <span className="vf-glass pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-1.5 whitespace-nowrap rounded-lg border border-white/[0.14] bg-[rgba(28,22,38,0.97)] px-2 py-1 text-[10px] text-neutral-200 opacity-0 shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl group-hover/tip:opacity-100 transition-opacity z-50">
         {label}
       </span>
     </span>
@@ -899,7 +900,7 @@ export function EmbeddedPlayer({
             <div className="fixed inset-0 z-[200]" onClick={closeTrackMenu} />
             <div
               role="menu"
-              className="fixed z-[201] min-w-[190px] rounded-xl border border-neutral-700/80 bg-neutral-900 py-1 shadow-2xl"
+              className={cn(GLASS_MENU, 'fixed z-[201] min-w-[190px] py-1')}
               style={{
                 top: menuPosition.top,
                 right: menuPosition.right,

@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { AUDIO_TABS, tabForPath } from './sources'
 import { CREATE_TOOLS, isCreatePath, toolForPath } from './create-tools'
 import { StudioToggle } from '../StudioToggle'
@@ -15,10 +16,7 @@ function Pill({ href, active, children, dataTour }: { href: string; active: bool
       href={href}
       data-tour={dataTour}
       aria-current={active ? 'page' : undefined}
-      className={cn(
-        'shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
-        active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white',
-      )}
+      className={cn(PILL_BASE, active ? PILL_ON : PILL_OFF)}
     >
       {children}
     </Link>

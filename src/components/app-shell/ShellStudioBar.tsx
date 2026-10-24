@@ -4,13 +4,12 @@ import React from 'react'
 import Link from 'next/link'
 import { Check, ChevronDown, MoreHorizontal, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import type { AreaBarContextNavItem, AreaBarVersionSelector } from '@/lib/design-system/components'
 import { StudioToggle, type StudioToggleOption } from './StudioToggle'
 import { ShellWalkthroughButton } from './ShellWalkthroughButton'
 
-const PILL = 'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors'
-const PILL_ON = 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
-const PILL_OFF = 'border-white/15 bg-white/[0.05] text-white/85 hover:text-white'
+const PILL = cn(PILL_BASE, 'inline-flex h-9 items-center gap-1.5 px-3.5 py-0')
 const MENU = 'vf-glass absolute top-full z-40 mt-2 max-h-[60vh] overflow-y-auto rounded-2xl border border-white/[0.14] bg-[rgba(28,22,38,0.96)] p-1.5 shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl'
 
 /** Closes a popover on an outside tap or Escape. */

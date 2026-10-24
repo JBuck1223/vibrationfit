@@ -179,7 +179,7 @@ export function PersistentMiniPlayer() {
           onClick={handleBarClick}
           onKeyDown={(e) => { if (e.key === 'Enter') openDrawer() }}
           aria-label="Open Now Playing"
-          className="vf-glass relative cursor-pointer overflow-hidden rounded-[22px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(20,16,30,0.80)_100%)] shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150"
+          className="vf-glass relative cursor-pointer overflow-hidden rounded-[22px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(20,16,30,0.80)_100%)] shadow-[0_14px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150"
         >
           <div className="flex items-center gap-3 py-2 pl-2 pr-3">
             <TrackArtwork track={currentTrack} iconKey={setIconKey} size={44} className="flex-shrink-0 overflow-hidden rounded-[14px]" />

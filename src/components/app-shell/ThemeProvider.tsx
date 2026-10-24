@@ -5,7 +5,7 @@ import type { ResolvedTheme } from '@/lib/app-shell/theme-types'
 import { BACKDROP_SLOT, type ThemeSlot } from '@/lib/app-shell/theme-slots'
 import { getOverlay } from '@/lib/app-shell/overlays'
 import { LIGHT_MODE_CSS } from './lightMode'
-import { SHELL_POPOVER_CSS, STUDIO_GLASS_CSS } from './studioGlass'
+import { SHELL_DARK_CSS, SHELL_POPOVER_CSS, STUDIO_GLASS_CSS } from './studioGlass'
 
 interface ThemeContextValue {
   theme: ResolvedTheme | null
@@ -78,6 +78,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Light themes are the plain light mode: no overlay over a photo.
     const mode = theme?.theme.mode === 'light' ? 'light' : 'dark'
     root.dataset.shellMode = mode
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', mode === 'light' ? '#f4f1f8' : '#1a1426')
     // A member's chosen overlay wins; otherwise the theme's own tint (if any).
     const chosen = theme?.overlayId ? getOverlay(theme.overlayId) : null
     const tint =
@@ -107,7 +108,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeContext.Provider value={value}>
       {/* Scoped to html[data-shell-mode="light"]; inert for dark themes. */}
-      <style dangerouslySetInnerHTML={{ __html: STUDIO_GLASS_CSS + SHELL_POPOVER_CSS + LIGHT_MODE_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: STUDIO_GLASS_CSS + SHELL_DARK_CSS + SHELL_POPOVER_CSS + LIGHT_MODE_CSS }} />
       {children}
     </ThemeContext.Provider>
   )

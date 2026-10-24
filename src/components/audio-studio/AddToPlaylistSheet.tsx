@@ -12,6 +12,9 @@ import {
   type UserPlaylist,
   type SourceType,
 } from '@/lib/services/playlistService'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 interface AddToPlaylistSheetProps {
   isOpen: boolean
@@ -99,18 +102,19 @@ export function AddToPlaylistSheet({
   if (!isOpen || !track) return null
 
   return (
+    <OverlayPortal>
     <div className="fixed inset-0 z-[70]">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className={cn('absolute inset-0', SCRIM)} onClick={onClose} />
 
-      <div className="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[380px] md:rounded-2xl bg-zinc-950 border-t md:border border-neutral-800 rounded-t-2xl max-h-[70vh] flex flex-col pb-[env(safe-area-inset-bottom,0px)]">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800/50">
+      <div className={cn(GLASS_SHEET, 'absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[380px] rounded-b-none md:rounded-b-[24px] max-h-[70vh] flex flex-col pb-[env(safe-area-inset-bottom,0px)]')}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <h3 className="text-sm font-semibold text-white">Add to Playlist</h3>
-          <button onClick={onClose} className="p-1 text-neutral-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="px-4 py-2 border-b border-neutral-800/30">
+        <div className="px-4 py-2 border-b border-white/10">
           <p className="text-xs text-neutral-400 truncate">{track.title}</p>
         </div>
 
@@ -134,7 +138,7 @@ export function AddToPlaylistSheet({
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleCreate() }}
-                className="flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                className="flex-1 rounded-lg border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
                 autoFocus
               />
               <button
@@ -170,7 +174,7 @@ export function AddToPlaylistSheet({
                     disabled={isAdded || isAdding}
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-white/5 transition-colors disabled:opacity-60"
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-800 text-neutral-400">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-neutral-400">
                       <ListMusic className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -196,5 +200,6 @@ export function AddToPlaylistSheet({
         </div>
       </div>
     </div>
+    </OverlayPortal>
   )
 }

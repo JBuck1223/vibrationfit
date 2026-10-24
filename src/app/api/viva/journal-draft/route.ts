@@ -80,10 +80,10 @@ export async function POST(request: NextRequest) {
           ? 'This was a win. Capture what is going well and how good it feels, savoring the details.'
           : 'Capture what they explored, how they felt, and the clarity or shift they reached.'
 
-    const prompt = `Write a private journal entry for the member, based on their conversation with VIVA (their coach).
+    const prompt = `Write a private journal entry for the member, based on their conversation with VIVA (their guide).
 
 Write it in the first person as the member ("I"), in their own words and tone where possible, as if they wrote it themselves. ${focus}
-Do not mention VIVA, a coach, a chat, or a conversation. Do not invent details that are not in the conversation. Never use the words "AI" or "artificial intelligence".
+Do not mention VIVA, a guide, a coach, a chat, or a conversation. Do not invent details that are not in the conversation. Never use the words "AI" or "artificial intelligence".
 Keep it warm and honest, a few short paragraphs (roughly 120 to 250 words).
 Also give it a short title (3 to 7 words).
 

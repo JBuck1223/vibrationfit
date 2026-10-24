@@ -92,10 +92,6 @@ export const PAGE_CLASSIFICATIONS = {
     '/tools',
     '/account/appearance',
     
-    // Legacy Vision Board routes (redirect to /manifestations)
-    '/vision-board',
-    '/vision-board/[id]',
-    
     // Journal System
     '/journal',
     '/journal/new',
@@ -489,7 +485,6 @@ export const STUDIO_ROUTE_PREFIXES = [
   '/reset',
   '/storage',
   '/story',
-  '/vision-board',
 ] as const
 
 /**
@@ -497,7 +492,7 @@ export const STUDIO_ROUTE_PREFIXES = [
  */
 export function isStudioRoute(pathname: string): boolean {
   const normalized = pathname.split('?')[0]
-  // SEO landing pages share prefixes with studio routes (/vision-boards, /journaling).
+  // SEO landing pages share prefixes with studio routes (/vision-board, /journaling).
   if (isSeoRoute(normalized)) return false
   return STUDIO_ROUTE_PREFIXES.some(prefix => normalized.startsWith(prefix))
 }

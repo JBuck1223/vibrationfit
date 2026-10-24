@@ -3,6 +3,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { Spinner } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
+import { GLASS_MENU, GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 import { Search, Pin, ChevronDown, ArrowRight, X, Trophy, Heart, Sparkles, Lightbulb, User, FileText, MessageCircle, HelpCircle, Filter, SlidersHorizontal } from 'lucide-react'
@@ -396,7 +400,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="Search posts..."
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-full pl-4 pr-10 py-2 text-base md:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500"
+                  className="w-full rounded-full border border-white/15 bg-white/[0.06] pl-4 pr-10 py-2 text-base md:text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-white/35"
                 />
                 {isSearching && (
                   <div className="absolute right-10 top-1/2 -translate-y-1/2">
@@ -433,7 +437,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                 {/* Search Icon */}
                 <button
                   onClick={() => setShowSearch(true)}
-                  className="w-10 h-10 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-white hover:bg-neutral-700 transition-colors"
+                  className="w-10 h-10 rounded-full border border-white/15 bg-white/[0.06] flex items-center justify-center text-white hover:bg-white/10 transition-colors"
                 >
                   <Search className="w-5 h-5" />
                 </button>
@@ -444,7 +448,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                   className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
                     activityFilter !== 'off'
                       ? 'border-[#39FF14] text-[#39FF14] bg-[#39FF14]/10' 
-                      : 'bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700'
+                      : 'border-white/15 bg-white/[0.06] text-white hover:bg-white/10'
                   }`}
                   title={activityFilter !== 'off' ? 'Show all posts' : 'Show my activity'}
                 >
@@ -455,20 +459,20 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                 <div ref={filterDropdownRef} className="relative">
                   <button
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-neutral-800 rounded-full hover:bg-neutral-700 transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white border border-white/15 bg-white/[0.06] rounded-full hover:bg-white/10 transition-colors"
                   >
                     {getFilterLabel()}
                     <ChevronDown className={`w-4 h-4 transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {showFilterDropdown && (
-                    <div className="absolute right-0 top-full mt-1 w-48 bg-neutral-900 border border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50">
+                    <div className={cn(GLASS_MENU, 'absolute right-0 top-full mt-1 w-48 rounded-[20px] p-1.5 overflow-hidden z-50')}>
                       <button
                         onClick={() => handleFilterSelect('all')}
-                        className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-2 ${
+                        className={`w-full rounded-xl px-4 py-3 text-left text-sm transition-colors flex items-center gap-2 ${
                           activeFilter === 'all' 
-                            ? 'bg-neutral-800 text-white' 
-                            : 'text-neutral-300 hover:bg-neutral-800 hover:text-white'
+                            ? 'bg-white/10 text-white' 
+                            : 'text-neutral-300 hover:bg-white/10 hover:text-white'
                         }`}
                       >
                         All
@@ -480,10 +484,10 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                           <button
                             key={tag}
                             onClick={() => handleFilterSelect(tag)}
-                            className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-2 ${
+                            className={`w-full rounded-xl px-4 py-3 text-left text-sm transition-colors flex items-center gap-2 ${
                               activeFilter === tag 
-                                ? 'bg-neutral-800' 
-                                : 'hover:bg-neutral-800'
+                                ? 'bg-white/10' 
+                                : 'hover:bg-white/10'
                             }`}
                             style={{ color: config.color }}
                           >
@@ -502,7 +506,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                   className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${
                     showPinned 
                       ? 'border-[#39FF14] text-[#39FF14] bg-[#39FF14]/10' 
-                      : 'bg-neutral-800 border-neutral-700 text-white hover:bg-neutral-700'
+                      : 'border-white/15 bg-white/[0.06] text-white hover:bg-white/10'
                   }`}
                 >
                   <Pin className="w-5 h-5" />
@@ -511,7 +515,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
                 {/* How to Vibe - ? Button */}
                 <button
                   onClick={() => setShowHowToVibe(true)}
-                  className="w-10 h-10 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-400 hover:text-[#BF00FF] hover:border-[#BF00FF]/50 hover:bg-neutral-700 transition-colors"
+                  className="w-10 h-10 rounded-full border border-white/15 bg-white/[0.06] flex items-center justify-center text-neutral-400 hover:text-[#BF00FF] hover:border-[#BF00FF]/50 hover:bg-white/10 transition-colors"
                 >
                   <span className="text-base font-bold">?</span>
                 </button>
@@ -531,7 +535,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
               className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 text-sm font-medium ${
                 activityFilter === 'posts'
                   ? 'bg-[#39FF14] text-black'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  : 'text-neutral-400 hover:text-white hover:bg-white/10'
               }`}
             >
               <FileText className="w-4 h-4" />
@@ -542,7 +546,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
               className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 text-sm font-medium ${
                 activityFilter === 'hearts'
                   ? 'bg-[#39FF14] text-black'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  : 'text-neutral-400 hover:text-white hover:bg-white/10'
               }`}
             >
               <Heart className="w-4 h-4" />
@@ -553,7 +557,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
               className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 text-sm font-medium ${
                 activityFilter === 'comments'
                   ? 'bg-[#39FF14] text-black'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  : 'text-neutral-400 hover:text-white hover:bg-white/10'
               }`}
             >
               <MessageCircle className="w-4 h-4" />
@@ -604,9 +608,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
       <div className={inShell ? 'min-w-0 shrink-0 pb-8' : 'flex-1 min-w-0 overflow-y-auto overflow-x-hidden pb-8'}>
         <div className={inShell ? 'max-w-[772px] min-w-0 mx-auto py-4' : 'max-w-[772px] min-w-0 mx-auto px-4 py-4'}>
           {(loading || refreshing) ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" />
-            </div>
+            <PageLoading className="min-h-[30dvh]" />
           ) : posts.length > 0 ? (
             <div className="space-y-4">
               {posts.map((post) => (
@@ -631,7 +633,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
             </div>
           ) : (
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-800 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/10 flex items-center justify-center">
                 {searchQuery ? (
                   <Search className="w-8 h-8 text-neutral-500" />
                 ) : activityFilter === 'posts' ? (
@@ -683,16 +685,15 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
 
       {/* How to Vibe Modal */}
       {showHowToVibe && (
+        <OverlayPortal>
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[6vh] px-4">
           <div 
-            className="absolute inset-0 bg-black/80"
+            className={cn('absolute inset-0', SCRIM)}
             onClick={() => setShowHowToVibe(false)}
           />
-          <div className={inShell
-            ? 'relative w-full max-w-2xl overflow-hidden rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(40,32,56,0.98)_0%,rgba(22,18,32,0.99)_100%)] shadow-[0_18px_50px_rgba(0,0,0,0.55)]'
-            : 'relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl overflow-hidden'}>
+          <div className={cn(GLASS_SHEET, 'relative w-full max-w-2xl overflow-hidden')}>
             {/* Header */}
-            <div className={`flex items-center justify-between px-5 py-3 border-b ${inShell ? 'border-white/10' : 'border-neutral-800'}`}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#BF00FF]/20 flex items-center justify-center">
                   <HelpCircle className="w-4 h-4 text-[#BF00FF]" />
@@ -701,7 +702,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
               </div>
               <button
                 onClick={() => setShowHowToVibe(false)}
-                className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors"
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/15 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -775,6 +776,7 @@ export function VibeTribeFeedLayout({ userId, isAdmin = false, initialFilter = '
             </div>
           </div>
         </div>
+        </OverlayPortal>
       )}
     </div>
   )

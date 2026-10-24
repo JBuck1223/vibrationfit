@@ -19,10 +19,10 @@ export default function AppError({
 
   return (
     <div
-      className="flex min-h-[50vh] flex-col items-center justify-center bg-black px-4 py-16 text-white"
+      className="flex min-h-[50vh] flex-col items-center justify-center px-4 py-16 text-white"
       style={{ fontFamily: 'system-ui, sans-serif' }}
     >
-      <div className="w-full max-w-md rounded-2xl border border-[#333] bg-[#141414] p-8 text-center">
+      <div className="vf-glass w-full max-w-md rounded-[22px] border border-white/[0.12] bg-[rgba(28,22,38,0.6)] p-8 text-center backdrop-blur-2xl">
         <h1 className="text-lg font-semibold">Something went wrong</h1>
         <p className="mt-3 text-sm text-neutral-400">
           We hit an unexpected snag. Try again, and if it keeps happening, reach out to support.
@@ -40,7 +40,7 @@ export default function AppError({
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-full border border-[#333] px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Go home
           </a>

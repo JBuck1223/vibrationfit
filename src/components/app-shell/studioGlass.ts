@@ -5,7 +5,9 @@
  * frosted glass instead, without rewriting each page. Injected by AppShell.
  */
 
-const P = '[data-app-shell] [data-studio-glass]'
+// Dark themes only: the Light theme has its own remaps in lightMode.ts.
+const DARK = 'html:not([data-shell-mode="light"])'
+const P = `${DARK} [data-app-shell] [data-studio-glass]`
 // Escape every CSS-special character Tailwind class names can hold; one bad
 // selector would drop the whole rule.
 const esc = (cls: string) => cls.replace(/([:/[\].#!%(),])/g, '\\$1')
@@ -42,11 +44,6 @@ ${P} .absolute.${esc('bg-[#1F1F1F]')}, ${P} .absolute.${esc('bg-[#1A1A1A]')}, ${
   box-shadow: 0 16px 40px rgba(0,0,0,0.5) !important;
 }
 ${P} .${esc('hover:bg-[#2A2A2A]')}:hover, ${P} .${esc('hover:bg-[#333]')}:hover { background: rgba(255,255,255,0.08) !important; }
-/* Mid-gray text was picked for flat black; on glass over a bright photo it
-   disappears. Lift it to white at a matching strength (hover colors still win). */
-${P} .text-neutral-400:not(:hover) { color: rgba(255,255,255,0.68); }
-${P} .text-neutral-500:not(:hover) { color: rgba(255,255,255,0.55); }
-${P} .text-neutral-600:not(:hover) { color: rgba(255,255,255,0.42); }
 /* Small empty-state dots. */
 ${P} .${esc('bg-[#3a3a3a]')} { background: rgba(255,255,255,0.2) !important; }
 /* Fades drawn in the old panel color (lyrics scroll edges) blend with the glass. */
@@ -93,7 +90,7 @@ ${sel(['border-neutral-600', 'border-neutral-700', 'border-neutral-800', 'border
  * the page, so they carry data-shell-popover / data-shell-field in the app
  * shell and get the same violet glass here.
  */
-const POP = '[data-shell-popover]'
+const POP = `${DARK} [data-shell-popover]`
 export const SHELL_POPOVER_CSS = `
 ${POP} {
   background: rgba(28,22,38,0.97) !important;
@@ -111,9 +108,43 @@ ${POP} .${esc('border-[#333]')}, ${POP} .${esc('border-neutral-800')}, ${POP} .$
 ${POP} .${esc('hover:bg-[#333]')}:hover { background: rgba(255,255,255,0.08) !important; }
 ${POP} .${esc('bg-primary-500/20')} { background: rgba(57,255,20,0.14) !important; color: #39FF14 !important; }
 ${POP} button:not(.rounded-full) { border-radius: 10px; }
-[data-app-shell] [data-shell-field] {
+${DARK} [data-app-shell] [data-shell-field] {
   background: rgba(255,255,255,0.06) !important;
   border: 1px solid rgba(255,255,255,0.15) !important;
   border-radius: 9999px !important;
 }
+`
+
+/**
+ * Shell-wide (dark themes): the handful of flat-black-era utilities that still
+ * show up on every member page, mapped once so each page does not need a
+ * rewrite. Mid-gray text lifts to white, hover squares become a soft lift,
+ * dark fields become glass fields, and floating menus become solid glass.
+ */
+const S = `${DARK} [data-app-shell]`
+const sS = (classes: string[], suffix = '') => classes.map((c) => `${S} .${esc(c)}${suffix}`).join(',\n')
+export const SHELL_DARK_CSS = `
+/* Mid-gray text was picked for flat black; on glass over a bright photo it
+   disappears. Lift it to white at a matching strength (hover colors still win). */
+${S} .text-neutral-400:not(:hover) { color: rgba(255,255,255,0.68); }
+${S} .text-neutral-500:not(:hover) { color: rgba(255,255,255,0.55); }
+${S} .text-neutral-600:not(:hover) { color: rgba(255,255,255,0.42); }
+/* Hover squares drawn for a black page: a soft lift instead. */
+${sS(['hover:bg-neutral-900', 'hover:bg-neutral-800', 'hover:bg-neutral-800/50', 'hover:bg-neutral-700'], ':hover')} { background-color: rgba(255,255,255,0.08) !important; }
+/* Dark fields become glass fields. */
+${S} input.bg-neutral-900, ${S} textarea.bg-neutral-900, ${S} select.bg-neutral-900, ${S} input.bg-neutral-800, ${S} textarea.bg-neutral-800, ${S} select.bg-neutral-800, ${S} input.bg-black, ${S} textarea.bg-black {
+  background-color: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  color: #fff;
+}
+${S} input.bg-neutral-900:focus, ${S} textarea.bg-neutral-900:focus, ${S} input.bg-neutral-800:focus, ${S} textarea.bg-neutral-800:focus { border-color: rgba(255,255,255,0.35) !important; }
+/* Floating menus drawn in neutral-800/900 (they carry a shadow; plain insets do not): solid glass. */
+${S} .absolute.${esc('bg-neutral-800')}[class*="shadow-"], ${S} .absolute.${esc('bg-neutral-900')}[class*="shadow-"], ${S} .fixed.${esc('bg-neutral-900')}[class*="shadow-"] {
+  background: rgba(28,22,38,0.97) !important;
+  border-color: rgba(255,255,255,0.14) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+/* Skeleton pulses and avatar fallbacks. */
+${sS(['animate-pulse'])}.${esc('bg-neutral-800')}, ${sS(['animate-pulse'])}.${esc('bg-neutral-700')} { background-color: rgba(255,255,255,0.08) !important; }
 `

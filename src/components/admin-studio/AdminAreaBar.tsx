@@ -70,6 +70,7 @@ export function AdminAreaBar() {
       contextText={chrome?.contextText}
       variant="default"
       appLikePrimaryTabs={tabs.length > 0}
+      fluidAppLikeTabs
     />
   )
 }

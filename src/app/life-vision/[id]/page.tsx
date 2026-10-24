@@ -5,6 +5,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Save, CheckCircle, Circle, Edit3, History, Sparkles, Trash2, Download, Gem, Eye, FileText, ArrowUp, Headphones, Moon, Zap, Music, Mic, Users } from 'lucide-react'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { SCRIM } from '@/lib/app-shell/glass'
 import { getRefinedCategories } from '@/lib/life-vision/draft-helpers'
 import { CommitVisionDialog } from '@/components/life-vision/CommitVisionDialog'
 import { ActivationKitProgressCard } from '@/components/life-vision/ActivationKitProgressCard'
@@ -866,11 +869,7 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
 
   // Auto-resize textarea when content or section changes
   if (loading) {
-    return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
-    )
+    return <PageLoading />
   }
 
   if (error) {
@@ -1195,9 +1194,11 @@ export default function VisionDetailPage({ params }: { params: Promise<{ id: str
         )}
 
         {(householdTool === 'convert' || householdTool === 'merge') && !householdForTools && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-            <Spinner size="lg" />
-          </div>
+          <OverlayPortal>
+            <div className={`fixed inset-0 z-50 flex items-center justify-center ${SCRIM}`}>
+              <PageLoading />
+            </div>
+          </OverlayPortal>
         )}
         {householdTool === 'convert' && householdForTools && (
           <ConvertVisionTool

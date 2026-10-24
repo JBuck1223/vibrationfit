@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { Spinner } from '@/lib/design-system'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { createClient } from '@/lib/supabase/client'
 import { PostCard } from '@/components/vibe-tribe/PostCard'
 import type { VibePost } from '@/lib/vibe-tribe/types'
@@ -63,9 +63,7 @@ export default function VibeTribePostPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-black">
-        <Spinner size="lg" />
-      </div>
+      <PageLoading />
     )
   }
 

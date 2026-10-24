@@ -165,15 +165,15 @@ html[data-native-shell] .hide-in-native {
   --color-status-premium: #BF00FF;
 
   /* App shell (Phase 0). Glass surfaces and the section accent the new shell paints with. */
-  --color-glass-fill: var(--glass-fill);
   --color-glass-border: var(--glass-border);
   --color-section-accent: var(--section-accent);
 }
 
 /* App shell tokens. Green by default; a Coach/VIVA container swaps the accent to purple. */
 :root {
-  --glass-fill: rgba(20, 20, 22, 0.62);
-  --glass-fill-strong: rgba(14, 14, 16, 0.82);
+  /* The same violet glass as the shell's cards (GLASS_CARD), so there is one glass. */
+  --glass-fill: linear-gradient(180deg, rgba(44, 36, 60, 0.55) 0%, rgba(24, 20, 34, 0.62) 100%);
+  --glass-fill-strong: linear-gradient(180deg, rgba(36, 29, 50, 0.84) 0%, rgba(18, 14, 26, 0.92) 100%);
   --glass-border: rgba(255, 255, 255, 0.14);
   --glass-blur: 20px;
   --section-accent: #39FF14;
@@ -212,11 +212,27 @@ html[data-native-shell] .hide-in-native {
 /* Older Android WebViews: no blur, so lean on a more opaque fill. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass-panel {
-    background: rgba(18, 18, 20, 0.9);
+    background: rgba(30, 24, 42, 0.92);
   }
   .glass-chrome {
-    background: rgba(12, 12, 14, 0.96);
+    background: rgba(22, 17, 32, 0.96);
   }
+}
+/* Toasts: the shell's violet glass; frosted white with ink in the Light theme. */
+.vf-toast {
+  background: rgba(28, 22, 38, 0.96) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+html[data-shell-mode="light"] .vf-toast {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: rgb(27, 22, 38) !important;
+  border-color: rgba(27, 22, 38, 0.12) !important;
+  box-shadow: 0 16px 40px rgba(60, 40, 90, 0.16) !important;
 }
 .scrim-text {
   background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 45%, rgba(0, 0, 0, 0) 100%);

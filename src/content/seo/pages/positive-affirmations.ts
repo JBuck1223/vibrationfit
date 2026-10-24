@@ -104,7 +104,7 @@ export const positiveAffirmations: SeoPage = {
       answer: 'An affirmation is the statement. An incantation is an affirmation spoken out loud with energy and emotion, often with movement or music. Incantations tend to land deeper because you feel them in your body.',
     },
   ],
-  related: ['vision-boards/app'],
+  related: ['vision-board/app'],
   datePublished: '2026-10-21',
   dateModified: '2026-10-21',
   ppc: {

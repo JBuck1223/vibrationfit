@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { useMapStudio } from '@/components/map-studio/MapStudioContext'
 import { StudioToggle } from '../StudioToggle'
@@ -65,10 +66,7 @@ export function MapHeader() {
               data-tour={v.tour}
               aria-pressed={viewMode === v.id}
               onClick={() => setViewMode(v.id)}
-              className={cn(
-                'rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
-                viewMode === v.id ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white',
-              )}
+              className={cn(PILL_BASE, viewMode === v.id ? PILL_ON : PILL_OFF)}
             >
               {v.label}
             </button>

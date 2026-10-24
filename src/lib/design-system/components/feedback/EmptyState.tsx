@@ -139,7 +139,7 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         ref={ref}
         variant="outlined"
         className={cn(
-          'bg-[#111111] border-dashed border-[#333]',
+          'border-dashed border-white/20 bg-white/[0.04]',
           styles.padding,
           className
         )}

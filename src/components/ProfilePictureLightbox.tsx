@@ -44,7 +44,8 @@ export function ProfilePictureLightbox({ src, alt, isOpen, onClose }: ProfilePic
 
   const overlay = (
     <div
-      className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/90 p-4"
+      data-shell-mode-skip
+      className="fixed inset-0 z-[2147483000] flex items-center justify-center p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -53,20 +54,20 @@ export function ProfilePictureLightbox({ src, alt, isOpen, onClose }: ProfilePic
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+        className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] p-2 text-white shadow-[0_6px_18px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-[rgba(28,22,38,0.9)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
         aria-label="Close"
       >
         <X className="h-6 w-6" />
       </button>
       <div
-        className="flex max-h-[85vh] max-w-[min(90vw,720px)] items-center justify-center"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-[min(calc(100vw-2rem),900px)] items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- intentional: full-resolution source, no optimizer */}
         <img
           src={src}
           alt={alt}
-          className="max-h-[85vh] max-w-full object-contain"
+          className="max-h-[calc(100dvh-2rem)] max-w-full rounded-2xl object-contain shadow-[0_24px_60px_rgba(0,0,0,0.45)]"
           decoding="async"
         />
       </div>

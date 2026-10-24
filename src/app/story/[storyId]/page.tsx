@@ -43,6 +43,7 @@ import type { UpdateStoryPayload } from '@/lib/stories'
 import { useStoryStudio } from '@/components/story-studio'
 import { loadStoryAudioVersions, outdatedNote } from '@/lib/audio/story-versions'
 import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
+import { DeleteConfirmationDialog } from '@/lib/design-system/components'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
   life_vision: { label: 'Life Vision', icon: Target, badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30' },
@@ -76,6 +77,7 @@ export default function StoryDetailPage({
   const supabase = createClient()
   const [storyId, setStoryId] = useState<string>('')
   const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
@@ -275,12 +277,16 @@ export default function StoryDetailPage({
     await updateStory({ status: 'completed' })
   }
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this story? This cannot be undone.')) return
+  const handleDelete = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
     setDeleting(true)
     const success = await deleteStory()
-    if (success) router.push('/story')
     setDeleting(false)
+    setShowDeleteConfirm(false)
+    if (success) router.push('/story')
   }
 
   if (loading || !storyId) {
@@ -880,6 +886,16 @@ export default function StoryDetailPage({
         entityType="stories"
         entityId={story.id}
         label={story.title || 'Untitled story'}
+      />
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Delete Story"
+        message="Are you sure you want to delete this story? This cannot be undone."
+        itemName={story.title || 'Untitled story'}
+        isLoading={deleting}
+        loadingText="Deleting..."
       />
     </Container>
   )

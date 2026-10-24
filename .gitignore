@@ -90,3 +90,10 @@ mobile/ios/capacitor-cordova-ios-plugins/Pods/
 *.keystore
 *.jks
 mobile/android/keystore.properties
+
+# IDE and personal files
+.idea/
+HomeSchool Purchase/
+
+# Large local video sources (clips.json / report.md stay tracked)
+scripts/video/gym-testimonial-clips/*.mp4

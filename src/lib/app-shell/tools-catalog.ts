@@ -79,11 +79,11 @@ export const TOOLS: ToolEntry[] = [
     id: 'viva',
     group: 'shift',
     name: 'VIVA',
-    description: 'Talk it through with your coach.',
+    description: 'Talk it through with your guide.',
     href: '/viva',
     icon: Sparkles,
     accent: 'viva',
-    keywords: ['coach', 'chat', 'talk', 'conversation'],
+    keywords: ['guide', 'coach', 'chat', 'talk', 'conversation'],
   },
   {
     id: 'manifestations',

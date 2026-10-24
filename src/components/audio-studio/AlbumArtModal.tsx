@@ -5,6 +5,9 @@ import { Button, FileUpload, ImageLightbox, Toggle } from '@/lib/design-system/c
 import { X, Loader2, Check, Maximize2 } from 'lucide-react'
 import { AIImageGenerator } from '@/components/AIImageGenerator'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 type ImageSource = 'upload' | 'ai'
 
@@ -140,10 +143,11 @@ export function AlbumArtModal({
   if (!isOpen) return null
 
   return (
+    <OverlayPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={saving ? undefined : onClose} />
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-800 bg-neutral-950/95 backdrop-blur-sm px-6 py-4">
+      <div className={cn('absolute inset-0', SCRIM)} onClick={saving ? undefined : onClose} />
+      <div className={cn(GLASS_SHEET, 'relative w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto')}>
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[rgba(28,22,38,0.97)] px-6 py-4">
           <div>
             <h2 className="text-lg font-semibold text-white">Album Art</h2>
             <p className="text-sm text-neutral-400 mt-0.5">{songTitle}</p>
@@ -151,7 +155,7 @@ export function AlbumArtModal({
           <button
             onClick={onClose}
             disabled={saving}
-            className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors disabled:opacity-50"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
           >
             <X className="h-5 w-5" />
           </button>
@@ -159,7 +163,7 @@ export function AlbumArtModal({
 
         <div className="p-6">
           {saving && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-black/60 backdrop-blur-sm">
+            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[24px] bg-black/60 backdrop-blur-sm">
               <div className="flex items-center gap-3 text-white">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm font-medium">Saving album art...</span>
@@ -261,5 +265,6 @@ export function AlbumArtModal({
         />
       )}
     </div>
+    </OverlayPortal>
   )
 }

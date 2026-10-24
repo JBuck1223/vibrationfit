@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Spinner } from '@/lib/design-system'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { createClient } from '@/lib/supabase/client'
 import { VibeTribeFeedLayout } from '@/components/vibe-tribe/VibeTribeFeedLayout'
 import { useLifeActivation } from '@/hooks/useLifeActivation'
@@ -91,9 +91,7 @@ export default function VibeTribePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <Spinner size="lg" />
-      </div>
+      <PageLoading />
     )
   }
 

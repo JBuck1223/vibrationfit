@@ -35,7 +35,7 @@ export const viewport: Viewport = {
   // Lets env(safe-area-inset-*) take effect under the notch / home indicator
   // in the native shell and on iOS Safari. globals.css already uses it.
   viewportFit: 'cover',
-  themeColor: '#000000',
+  themeColor: '#1a1426',
 }
 
 export const metadata: Metadata = {
@@ -105,14 +105,11 @@ export default function RootLayout({
             gap={8}
             toastOptions={{
               style: {
-                background: '#1a1a1a',
-                color: '#FFFFFF',
-                border: '1px solid #333',
                 zIndex: 99999,
                 wordBreak: 'break-word',
                 fontSize: '14px',
               },
-              className: 'toast',
+              className: 'toast vf-toast',
               duration: 5000,
             }}
             offset="16px"

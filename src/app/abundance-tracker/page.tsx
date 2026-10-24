@@ -48,7 +48,7 @@ import { ENTRY_LABELS, ABUNDANCE_ENTRY_CATEGORIES, getEntryCategoryDisplay } fro
 import { useInShell } from '@/lib/app-shell/shell-context'
 import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 import { cn } from '@/lib/utils'
-import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { GLASS_CARD, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 
 interface AbundanceEvent {
   id: string
@@ -431,7 +431,7 @@ export default function AbundanceDashboardPage() {
                   role="group"
                   aria-label="Total abundance time range"
                 >
-                  <div className={inShell ? 'grid grid-cols-4 rounded-full border border-white/15 bg-white/[0.05] p-1' : 'grid grid-cols-4 gap-0 overflow-hidden rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]'}>
+                  <div className={inShell ? 'grid grid-cols-4 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] p-1 backdrop-blur-xl' : 'grid grid-cols-4 gap-0 overflow-hidden rounded-xl bg-zinc-950/90 p-1 ring-1 ring-inset ring-white/[0.08]'}>
                     {(['all', 'week', 'month', 'year'] as const).map((key, index, arr) => {
                       const label =
                         key === 'all' ? 'All' : key === 'week' ? 'Week' : key === 'month' ? 'Month' : 'Year'
@@ -560,13 +560,13 @@ export default function AbundanceDashboardPage() {
                   className={cn(
                     'flex h-10 w-10 items-center justify-center rounded-full border transition-colors',
                     dateFilter !== 'all' || valueTypeFilter !== 'all' || !selectedEntryCategories.includes('all') || !selectedCategories.includes('all')
-                      ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
-                      : 'border-white/15 bg-white/[0.06] text-white/75 hover:text-white',
+                      ? PILL_ON
+                      : PILL_OFF,
                   )}
                 >
                   <Filter className="h-4 w-4" />
                 </button>
-                <div role="group" aria-label="Layout" className="flex rounded-full border border-white/15 bg-white/[0.05] p-1">
+                <div role="group" aria-label="Layout" className="flex rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] p-1 backdrop-blur-xl">
                   {(['list', 'grid'] as const).map((mode) => (
                     <button
                       key={mode}

@@ -60,7 +60,7 @@ export function HowToVibeCard() {
       {/* Header - Always visible */}
       <button
         onClick={toggleCollapsed}
-        className="w-full flex items-center justify-between p-3 hover:bg-neutral-800/50 transition-colors"
+        className="w-full flex items-center justify-between p-3 hover:bg-white/10 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[#BF00FF]/20 flex items-center justify-center">
