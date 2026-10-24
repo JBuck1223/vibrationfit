@@ -105,7 +105,7 @@ export const VIVALoadingOverlay = React.forwardRef<HTMLDivElement, VIVALoadingOv
       <div 
         ref={ref}
         className={cn(
-          'absolute inset-0 overflow-hidden bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center',
+          'absolute inset-0 overflow-hidden bg-[rgba(24,18,36,0.82)] backdrop-blur-md flex flex-col items-center justify-center',
           size === 'sm' ? 'rounded-xl z-20' : 'rounded-2xl z-50',
           className
         )}
@@ -139,7 +139,7 @@ export const VIVALoadingOverlay = React.forwardRef<HTMLDivElement, VIVALoadingOv
           {showProgressBar && (
             <div className="flex justify-center w-full min-w-0">
               <div className={cn(
-                'bg-neutral-800 rounded-full overflow-hidden',
+                'bg-white/10 rounded-full overflow-hidden',
                 size === 'sm' ? 'w-full max-w-[11rem] h-1.5' : 'w-80 max-w-full h-2.5'
               )}>
                 <div 

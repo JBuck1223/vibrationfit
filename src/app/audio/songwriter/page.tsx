@@ -4,11 +4,12 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Container, Stack, Card, Button, Textarea, CategoryGrid, VIVALoadingOverlay } from '@/lib/design-system/components'
-import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home, Save } from 'lucide-react'
+import { Music2, Sparkles, Loader2, Link2, X, Play, Pause, Target, Image, BookOpen, ChevronDown, Check, Search, Home, Save, Upload } from 'lucide-react'
 import { ReferenceLibraryPicker, type ReferenceTrack } from '@/components/audio-studio/ReferenceLibraryPicker'
 import { VibrationFitSongPicker, type VibrationFitSong } from '@/components/audio-studio/VibrationFitSongPicker'
 import { stripLyricsTitleHeader } from '@/lib/utils/lyrics-alignment'
 import { PublishAgreementModal } from '@/components/audio-studio/PublishAgreementModal'
+import { UploadOriginalSong } from '@/components/audio-studio/UploadOriginalSong'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { hasAcceptedSongPublishingAgreement } from '@/lib/songs/publishing-agreement'
 import { extractYoutubeAudio } from '@/lib/songs/extract-youtube-client'
@@ -47,6 +48,8 @@ export default function SongwriterPage() {
 
   // Source state
   const [source, setSource] = useState<SourceType>('custom')
+  // Custom source: write a new song with VIVA, or upload a finished original.
+  const [customMode, setCustomMode] = useState<'viva' | 'upload'>('viva')
   const [entities, setEntities] = useState<any[]>([])
   const [entitiesLoading, setEntitiesLoading] = useState(false)
   const [selectedEntity, setSelectedEntity] = useState<any>(null)
@@ -651,6 +654,7 @@ export default function SongwriterPage() {
   }
 
   const hasLyrics = lyrics.trim().length > 0
+  const isUploadMode = source === 'custom' && customMode === 'upload'
 
   return (
     <Container size="md" className="pt-2 pb-8">
@@ -687,6 +691,36 @@ export default function SongwriterPage() {
                 )
               })}
             </div>
+
+            {/* Custom: create with VIVA or upload a finished original */}
+            {source === 'custom' && (
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                {([
+                  { mode: 'viva' as const, label: 'Create with VIVA', icon: Sparkles },
+                  { mode: 'upload' as const, label: 'Upload My Own Song', icon: Upload },
+                ]).map(opt => {
+                  const Icon = opt.icon
+                  const active = customMode === opt.mode
+                  return (
+                    <button
+                      key={opt.mode}
+                      type="button"
+                      onClick={() => setCustomMode(opt.mode)}
+                      className={`flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
+                        active
+                          ? 'border-[#39FF14]/40 bg-[#39FF14]/10 text-white'
+                          : inShell
+                            ? 'border-white/[0.12] bg-white/[0.05] text-white/70 hover:border-white/25'
+                            : 'border-neutral-700/50 bg-neutral-900/80 text-neutral-400 hover:border-neutral-600'
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${active ? 'text-[#39FF14]' : ''}`} />
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Entity Selector (non-custom sources) */}
             {source !== 'custom' && (
@@ -823,6 +857,13 @@ export default function SongwriterPage() {
           </Stack>
         </Card>
 
+        {isUploadMode ? (
+          <UploadOriginalSong
+            inShell={inShell}
+            onUploaded={({ songId }) => router.push(`/audio/songs?open=song:${songId}`)}
+          />
+        ) : (
+        <>
         {/* Context (populated from source) */}
         {context && (
           <Card variant="glass" className="p-5">
@@ -1196,6 +1237,8 @@ export default function SongwriterPage() {
               {hasLyrics ? 'Saved songs live in My Songs — return anytime to generate.' : 'Add lyrics (step 3) to create your track.'}
             </p>
           </div>
+        )}
+        </>
         )}
       </Stack>
 

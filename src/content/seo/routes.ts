@@ -3,7 +3,7 @@
  * so client navigation code can import it cheaply.
  */
 export const SEO_ROUTE_PREFIXES = [
-  '/vision-boards',
+  '/vision-board',
   '/affirmations',
   '/manifestation',
   '/journaling',

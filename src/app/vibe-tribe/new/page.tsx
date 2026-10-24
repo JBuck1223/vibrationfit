@@ -6,7 +6,6 @@ import {
   Container,
   Card,
   Button,
-  Spinner,
   Textarea,
   CategoryGrid,
   PageHero,
@@ -34,6 +33,10 @@ import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { FileUpload } from '@/components/FileUpload'
 import { UploadProgress } from '@/components/UploadProgress'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
 import { uploadMultipleUserFiles, getUploadErrorMessage } from '@/lib/storage/s3-storage-presigned'
 
 const ICON_MAP: Record<VibeTag, typeof Trophy> = {
@@ -251,27 +254,27 @@ export default function VibeTribeNewPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <Spinner size="lg" />
-      </div>
+      <PageLoading />
     )
   }
 
   return (
-    <div className="min-h-full bg-black">
+    <div className="min-h-full">
       {/* Upload Progress Overlay */}
       {uploadProgress.isVisible && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-neutral-900 rounded-2xl p-8 w-full max-w-sm">
-            <UploadProgress
-              progress={uploadProgress.progress}
-              status={uploadProgress.status}
-              fileName={uploadProgress.fileName}
-              fileSize={uploadProgress.fileSize}
-              isVisible={true}
-            />
+        <OverlayPortal>
+          <div className={cn('fixed inset-0 z-50 flex items-center justify-center p-4', SCRIM)}>
+            <div className={cn(GLASS_SHEET, 'w-full max-w-sm p-8')}>
+              <UploadProgress
+                progress={uploadProgress.progress}
+                status={uploadProgress.status}
+                fileName={uploadProgress.fileName}
+                fileSize={uploadProgress.fileSize}
+                isVisible={true}
+              />
+            </div>
           </div>
-        </div>
+        </OverlayPortal>
       )}
 
       {/* Page padding matches PageLayout; pb-28 on mobile clears the fixed bottom nav */}

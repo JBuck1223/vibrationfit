@@ -3,6 +3,9 @@
 import React, { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { AbundanceEditForm } from './AbundanceEditForm'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 export interface AbundanceEditModalProps {
   isOpen: boolean
@@ -38,8 +41,9 @@ export function AbundanceEditModal({
   if (!isOpen || !eventId) return null
 
   return (
+    <OverlayPortal>
     <div
-      className="fixed inset-0 z-[200] flex items-start md:items-center justify-center overflow-y-auto bg-black/95 px-3 pt-14 pb-[calc(2.5rem+env(safe-area-inset-bottom))] md:p-4"
+      className={cn('fixed inset-0 z-[200] flex items-start md:items-center justify-center overflow-y-auto px-3 pt-14 pb-[calc(2.5rem+env(safe-area-inset-bottom))] md:p-4', SCRIM)}
       role="dialog"
       aria-modal="true"
       aria-label="Edit abundance entry"
@@ -48,7 +52,7 @@ export function AbundanceEditModal({
       <button
         type="button"
         onClick={onClose}
-        className="fixed top-3 right-3 z-[201] rounded-full bg-neutral-800/80 p-2 text-white backdrop-blur-sm transition-colors hover:bg-neutral-700"
+        className="fixed top-3 right-3 z-[201] rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
         aria-label="Close"
       >
         <X className="h-5 w-5" />
@@ -56,7 +60,7 @@ export function AbundanceEditModal({
 
       <div className="relative flex w-full max-w-[700px] justify-center md:max-w-none">
         <div
-          className="relative w-full max-w-2xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl max-h-[96vh] overflow-y-auto px-3 pb-2 sm:px-4"
+          className={cn(GLASS_SHEET, 'relative w-full max-w-3xl max-h-[calc(100dvh-2rem)] overflow-y-auto px-3 pb-2 sm:px-4')}
           onClick={(e) => e.stopPropagation()}
         >
           <AbundanceEditForm
@@ -67,11 +71,12 @@ export function AbundanceEditModal({
               onSuccess()
               onClose()
             }}
-            cardClassName="!rounded-2xl !bg-[#101010] !border-[#1F1F1F] !p-3 !pb-8 md:!p-4"
+            cardClassName="!rounded-2xl !bg-transparent !border-transparent !shadow-none !p-3 !pb-8 md:!p-4"
             categoryGridBleedClass="-mx-3 md:mx-0"
           />
         </div>
       </div>
     </div>
+    </OverlayPortal>
   )
 }

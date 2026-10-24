@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ArrowRight, BookOpen, ChevronRight, Image as ImageIcon, PenLine, Play, Plus, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { GLASS_CARD, PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { getSection } from '@/lib/app-shell/sections'
 import { useActiveVisionSummary, useManifestationsSnapshot } from '@/components/dashboard/widgets/queries'
 import { getStoryKindLabel } from '@/lib/stories/types'
@@ -40,10 +40,7 @@ export function VisionHome() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={cn(
-                'shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-center text-sm font-medium transition-colors md:flex-1',
-                active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/90 backdrop-blur-xl hover:text-white',
-              )}
+              className={cn(PILL_BASE, 'text-center md:flex-1', active ? PILL_ON : PILL_OFF)}
             >
               {tab.label}
             </Link>

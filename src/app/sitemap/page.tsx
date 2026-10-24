@@ -109,10 +109,10 @@ export default function SitemapPage() {
         { href: '/life-vision/[id]/print', label: 'Print Vision', icon: FileText, description: 'Print-friendly view', isDynamic: true },
 
         // Vision Board
-        { href: '/vision-board', label: 'Vision Board', icon: Star, description: 'Visual vision board' },
-        { href: '/vision-board/new', label: 'New Board Item', icon: Plus, description: 'Add new board item' },
-        { href: '/vision-board/gallery', label: 'Vision Gallery', icon: Star, description: 'Gallery of visions' },
-        { href: '/vision-board/[id]', label: 'Board Item Details', icon: Eye, description: 'Individual board item', isDynamic: true },
+        { href: '/manifestations', label: 'Vision Board', icon: Star, description: 'Visual vision board' },
+        { href: '/manifestations/new', label: 'New Board Item', icon: Plus, description: 'Add new board item' },
+        { href: '/manifestations/gallery', label: 'Vision Gallery', icon: Star, description: 'Gallery of visions' },
+        { href: '/manifestations/[id]', label: 'Board Item Details', icon: Eye, description: 'Individual board item', isDynamic: true },
 
         // Journal
         { href: '/journal', label: 'All Journal Entries', icon: FileText, description: 'All journal entries list' },

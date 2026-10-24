@@ -3,13 +3,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import {
   Container,
   Stack,
   PageHero,
   Button,
   Card,
-  Spinner,
 } from '@/lib/design-system/components'
 import { SessionRecordingVideo } from '@/components/video/SessionRecordingVideo'
 import type { VideoSession } from '@/lib/video/types'
@@ -54,9 +54,7 @@ export default function SessionRecordingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
+      <PageLoading />
     )
   }
 

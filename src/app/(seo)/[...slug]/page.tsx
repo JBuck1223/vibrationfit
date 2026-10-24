@@ -17,7 +17,7 @@ export function generateStaticParams(): Params[] {
   })
 }
 
-/** /vision-boards/app → page; /vision-boards/app/k/vision-board-maker → page + variant */
+/** /vision-board/app → page; /vision-board/app/k/vision-board-maker → page + variant */
 function resolve(slug: string[]) {
   const variantAt = slug.lastIndexOf(VARIANT_SEGMENT)
   if (variantAt > 0 && variantAt === slug.length - 2) {

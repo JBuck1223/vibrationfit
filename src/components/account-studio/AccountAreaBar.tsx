@@ -8,6 +8,7 @@ import { useInShell } from '@/lib/app-shell/shell-context'
 import { useIsNativeShell } from '@/hooks/useNativeShell'
 import { isNativeExternalPath } from '@/lib/mobile/native-shell'
 import { cn } from '@/lib/utils'
+import { PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 
 const TABS: AreaBarTab[] = [
   { label: 'Overview', path: '/account', icon: LayoutGrid },
@@ -44,10 +45,7 @@ export function AccountAreaBar() {
                 key={tab.path}
                 href={tab.path}
                 aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors',
-                  active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-white/[0.05] text-white/80 hover:text-white',
-                )}
+                className={cn(PILL_BASE, 'inline-flex h-9 items-center gap-1.5 px-3.5 py-0', active ? PILL_ON : PILL_OFF)}
               >
                 {Icon ? <Icon className="h-4 w-4" /> : null}
                 {tab.label}

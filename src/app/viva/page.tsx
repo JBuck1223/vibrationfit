@@ -44,6 +44,8 @@ import { MessageSaveMenu } from '@/components/viva/MessageSaveMenu'
 import { useToolWalkthrough } from '@/hooks/useToolWalkthrough'
 import { VivaWelcome } from '@/components/viva/VivaWelcome'
 import { useInShell } from '@/components/app-shell/ShellContext'
+import { DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { SCRIM } from '@/lib/app-shell/glass'
 
 function vivaQuery(): URLSearchParams {
   if (typeof window === 'undefined') return new URLSearchParams()
@@ -227,11 +229,21 @@ export default function VivaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const deleteThread = async (id: string) => {
-    if (!confirm('Delete this thread?')) return
-    await fetch(`/api/viva/conversations?id=${id}`, { method: 'DELETE' })
-    refreshThreads()
-    if (id === threadId) startNewThread()
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [deletingThread, setDeletingThread] = useState(false)
+  const deleteThread = (id: string) => setPendingDeleteId(id)
+  const confirmDeleteThread = async () => {
+    const id = pendingDeleteId
+    if (!id) return
+    setDeletingThread(true)
+    try {
+      await fetch(`/api/viva/conversations?id=${id}`, { method: 'DELETE' })
+      refreshThreads()
+      if (id === threadId) startNewThread()
+    } finally {
+      setDeletingThread(false)
+      setPendingDeleteId(null)
+    }
   }
 
   const togglePin = async (thread: Thread) => {
@@ -515,7 +527,7 @@ export default function VivaPage() {
         className={cn(
           'w-72 max-w-[85vw] shrink-0 border-r flex-col transition-all duration-300',
           inShell
-            ? 'vf-glass border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(22,18,32,0.78)_100%)] backdrop-blur-2xl backdrop-saturate-150 md:my-2 md:ml-2 md:mr-4 md:rounded-[26px] md:border md:shadow-[0_14px_40px_rgba(0,0,0,0.35)]'
+            ? 'vf-glass border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.62)_0%,rgba(22,18,32,0.78)_100%)] backdrop-blur-2xl backdrop-saturate-150 md:my-2 md:ml-2 md:mr-4 md:rounded-[26px] md:border md:shadow-[0_14px_40px_rgba(0,0,0,0.25)]'
             : 'border-neutral-900 bg-black',
           sidebarOpen
             ? 'flex fixed inset-y-0 left-0 z-[60] pt-[env(safe-area-inset-top)] md:static md:z-auto md:pt-0'
@@ -528,21 +540,21 @@ export default function VivaPage() {
           <div className="flex items-center gap-1">
             <button
               onClick={startNewThread}
-              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+              className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
               title="New thread"
             >
               <Plus className="w-4 h-4" />
             </button>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:hidden"
+              className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors md:hidden"
               aria-label="Close threads"
             >
               <X className="w-4 h-4" />
             </button>
             <button
               onClick={toggleThreads}
-              className="hidden p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors md:block"
+              className="hidden p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors md:block"
               title="Collapse threads"
               aria-label="Collapse threads"
             >
@@ -571,7 +583,7 @@ export default function VivaPage() {
         </div>
       </aside>
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[55] md:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className={cn("fixed inset-0 z-[55] md:hidden", SCRIM)} onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* ---- Main column ---- */}
@@ -581,7 +593,7 @@ export default function VivaPage() {
           <button
             onClick={toggleThreads}
             className={cn(
-              "p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors",
+              "p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors",
               !threadsCollapsed && "md:hidden",
             )}
             aria-label="Show threads"
@@ -613,14 +625,14 @@ export default function VivaPage() {
           )}
           <button
             onClick={() => setConstraintsOpen(true)}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             title="My constraints"
           >
             <Waypoints className="w-4 h-4" />
           </button>
           <button
             onClick={startNewThread}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             title="New thread"
           >
             <Plus className="w-4 h-4" />
@@ -667,7 +679,7 @@ export default function VivaPage() {
                                 href={att.url || undefined}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-accent-500/30 bg-black/20 px-2 py-1 text-xs text-neutral-200"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-accent-500/30 bg-[rgba(28,22,38,0.5)] px-2.5 py-1 text-xs text-white"
                               >
                                 <FileText className="w-3.5 h-3.5" />
                                 <span className="max-w-[160px] truncate">{att.name}</span>
@@ -760,11 +772,11 @@ export default function VivaPage() {
       {/* ---- Constraints drawer ---- */}
       {constraintsOpen && (
         <>
-          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setConstraintsOpen(false)} />
+          <div className={cn("fixed inset-0 z-40", SCRIM)} onClick={() => setConstraintsOpen(false)} />
           <aside className={cn(
             'fixed z-50 flex flex-col',
             inShell
-              ? 'vf-glass inset-y-0 right-0 w-full border-l border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.92)_0%,rgba(22,18,32,0.96)_100%)] backdrop-blur-2xl sm:inset-y-3 sm:right-3 sm:w-96 sm:rounded-[26px] sm:border sm:shadow-[0_18px_50px_rgba(0,0,0,0.5)]'
+              ? 'vf-glass inset-y-0 right-0 w-full border-l border-white/[0.14] bg-[linear-gradient(180deg,rgba(44,36,60,0.92)_0%,rgba(22,18,32,0.96)_100%)] backdrop-blur-2xl sm:inset-y-3 sm:right-3 sm:w-96 sm:rounded-[26px] sm:border sm:shadow-[0_18px_50px_rgba(0,0,0,0.35)]'
               : 'inset-y-0 right-0 w-full sm:w-96 bg-neutral-950 border-l border-neutral-900',
           )}>
             <div className={cn('flex items-center justify-between px-5 py-4', inShell ? 'pt-[max(1rem,env(safe-area-inset-top))] sm:pt-4' : 'border-b border-neutral-900')}>
@@ -789,6 +801,14 @@ export default function VivaPage() {
         </>
       )}
     </div>
+    <DeleteConfirmationDialog
+      isOpen={pendingDeleteId !== null}
+      onClose={() => setPendingDeleteId(null)}
+      onConfirm={confirmDeleteThread}
+      title="Delete this thread?"
+      message="The conversation and its messages are removed. This cannot be undone."
+      isLoading={deletingThread}
+    />
     <ToolWalkthrough
       active={walkthrough.active}
       steps={walkthrough.steps}

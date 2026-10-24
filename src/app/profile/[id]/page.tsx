@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Card, Button, DeleteConfirmationDialog, Heading, Text, Stack, Container, PageHero, Spinner } from '@/lib/design-system/components'
+import { Card, Button, DeleteConfirmationDialog, Heading, Text, Stack, Container, PageHero } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
 import { VISION_CATEGORIES, getVisionCategory, getVisionCategoryLabel, convertCategoryKey, visionToRecordingKey } from '@/lib/design-system/vision-categories'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -608,11 +609,7 @@ export default function ProfileDetailPage() {
   }
 
   if (loading) {
-    return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
-    )
+    return <PageLoading />
   }
 
   if (error) {
@@ -641,11 +638,7 @@ export default function ProfileDetailPage() {
     profile && Object.keys(profile).length > 0 ? getIncompleteFields(profile) : []
 
   if (!profile || Object.keys(profile).length === 0) {
-    return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
-    )
+    return <PageLoading />
   }
 
   return (

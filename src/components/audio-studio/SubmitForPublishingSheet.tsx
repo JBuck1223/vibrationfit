@@ -5,6 +5,9 @@ import { Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
 import { PublishAgreementModal } from './PublishAgreementModal'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 interface SubmitForPublishingSheetProps {
   isOpen: boolean
@@ -107,8 +110,9 @@ export function SubmitForPublishingSheet({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#141414] border border-neutral-700 rounded-2xl max-w-md w-full shadow-2xl">
+    <OverlayPortal>
+    <div className={cn('fixed inset-0 z-50 flex items-center justify-center p-4', SCRIM)}>
+      <div className={cn(GLASS_SHEET, 'max-w-md w-full')}>
         <div className="px-6 py-5 space-y-4">
           {status === 'checking' && (
             <div className="flex items-center justify-center py-8">
@@ -216,5 +220,6 @@ export function SubmitForPublishingSheet({
         </div>
       </div>
     </div>
+    </OverlayPortal>
   )
 }

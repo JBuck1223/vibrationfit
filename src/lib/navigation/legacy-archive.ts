@@ -7,7 +7,7 @@ import type { LegacyPageEntry } from './legacy-pages'
 
 export const LEGACY_ARCHIVE_PREFIX = '/admin/legacy/archive'
 
-/** Member routes that were moved to the archive (deprecate + remove-now, except kept routes like /vision-board/export). */
+/** Member routes that were moved to the archive (deprecate + remove-now, except kept routes like /manifestations/export). */
 export const MOVED_LEGACY_ROUTES = new Set(
   [
     '/life-vision/[id]/audio',
@@ -104,7 +104,7 @@ export function resolveLegacyPublicRedirect(
     case '/story/[storyId]/audio/record':
       return '/audio/record'
     case '/vision-board/gallery':
-      return '/vision-board'
+      return '/manifestations/gallery'
     case '/profile/compare':
       return '/profile'
     case '/profile/[id]/refine':

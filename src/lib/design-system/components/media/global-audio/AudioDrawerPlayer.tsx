@@ -8,6 +8,7 @@ import { TrackArtwork } from './TrackArtwork'
 import { PlayerScrubber, TransportControls } from './PlayerControls'
 import { TrackNowPlayingMeta, MusicTrackListSubtitle, isSongNowPlayingTrack } from './TrackArtistLine'
 import { cn } from '../../shared-utils'
+import { SCRIM } from '@/lib/app-shell/glass'
 import { SyncedLyricsDisplay, PlainLyricsDisplay } from '@/components/audio-studio/SyncedLyricsDisplay'
 import type { SyncedLyrics } from '@/lib/utils/lyrics-alignment'
 
@@ -121,13 +122,13 @@ export function AudioDrawerPlayer() {
   return (
     <div className="fixed inset-0 z-[60]">
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className={cn('absolute inset-0', SCRIM)}
         onClick={closeDrawer}
       />
 
       <div
         ref={drawerRef}
-        className="absolute inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[440px] md:max-h-[88vh] md:rounded-[32px] overflow-hidden bg-[#0f0c16] md:border md:border-white/[0.12] flex flex-col transition-transform duration-300 pt-[env(safe-area-inset-top,0px)]"
+        className="absolute inset-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[440px] md:max-h-[88vh] md:rounded-[32px] overflow-hidden vf-glass bg-[linear-gradient(180deg,rgba(36,29,50,0.94)_0%,rgba(18,14,26,0.97)_100%)] backdrop-blur-2xl md:border md:border-white/[0.12] flex flex-col transition-transform duration-300 pt-[env(safe-area-inset-top,0px)]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

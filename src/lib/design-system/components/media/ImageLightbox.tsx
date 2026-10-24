@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { X, ChevronLeft, ChevronRight, Check, Download } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Button } from '../forms/Button'
+import { OverlayPortal } from '../overlays/OverlayPortal'
 
 export interface ImageLightboxImage {
   url: string
@@ -107,30 +108,32 @@ export const ImageLightbox = React.forwardRef<HTMLDivElement, ImageLightboxProps
     if (!isOpen || images.length === 0) return null
     
     return (
+      <OverlayPortal>
       <div
         ref={ref}
+        data-shell-mode-skip
+        role="dialog"
+        aria-modal="true"
         className={cn(
-          'fixed inset-0 bg-black/90 z-[100] flex items-center justify-center',
+          // No dark backdrop: the picture sits over the page, as wide as the
+          // viewport allows with a little padding. The layer only catches clicks.
+          'fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 p-4',
           className
         )}
         onClick={onClose}
       >
-        <div
-          className="relative w-full h-full flex flex-col items-center justify-center p-4"
-          onClick={onClose}
-        >
           {/* Close Button */}
           <button
             onClick={(e) => {
               e.stopPropagation()
               onClose()
             }}
-            className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+            className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] p-2 text-white shadow-[0_6px_18px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-[rgba(28,22,38,0.9)]"
             aria-label="Close lightbox"
           >
             <X className="w-6 h-6" />
           </button>
-          
+
           {/* Navigation Arrows */}
           {showNavigation && hasMultipleImages && (
             <>
@@ -139,7 +142,7 @@ export const ImageLightbox = React.forwardRef<HTMLDivElement, ImageLightboxProps
                   e.stopPropagation()
                   handlePrevious()
                 }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                className="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] p-2 text-white shadow-[0_6px_18px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-[rgba(28,22,38,0.9)]"
                 aria-label="Previous image"
               >
                 <ChevronLeft className="w-6 h-6" />
@@ -149,54 +152,43 @@ export const ImageLightbox = React.forwardRef<HTMLDivElement, ImageLightboxProps
                   e.stopPropagation()
                   handleNext()
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+                className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] p-2 text-white shadow-[0_6px_18px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-[rgba(28,22,38,0.9)]"
                 aria-label="Next image"
               >
                 <ChevronRight className="w-6 h-6" />
               </button>
             </>
           )}
-          
-          {/* Content Container with proper spacing */}
-          <div className="flex-1 flex flex-col items-center justify-between max-w-6xl w-full py-2">
-            {/* Top Section: Image */}
-            <div className="flex-1 flex flex-col items-center justify-center w-full">
-              <div className="relative w-full flex-1 flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-                <img
-                  src={currentImage.url}
-                  alt={currentImage.alt || `Image ${currentIndex + 1}`}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            </div>
-            
-            {/* Bottom Section: Caption, Subtitle, Counter, Thumbnails, Actions */}
-            <div className="flex flex-col items-center w-full gap-2 px-4 pt-2" onClick={(e) => e.stopPropagation()}>
-              {/* Caption */}
+
+          {/* The picture: full width minus the padding, never taller than the screen */}
+          <img
+            src={currentImage.url}
+            alt={currentImage.alt || `Image ${currentIndex + 1}`}
+            className="min-h-0 w-auto max-w-full flex-1 rounded-2xl object-contain shadow-[0_24px_60px_rgba(0,0,0,0.45)]"
+            style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Caption, Subtitle, Counter, Thumbnails, Actions */}
+          {(currentImage.caption || subtitleText || (hasMultipleImages && (showCounter || showThumbnails)) || showCopyButton) && (
+            <div className="flex w-full max-w-[1200px] shrink-0 flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
               {currentImage.caption && (
-                <div className="text-center text-white text-sm max-w-2xl">
+                <div className="max-w-2xl rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] px-4 py-1.5 text-center text-sm text-white backdrop-blur-xl">
                   {currentImage.caption}
                 </div>
               )}
-              
-              {/* Subtitle Text */}
               {subtitleText && (
-                <div className="text-center text-neutral-400 text-xs max-w-2xl">
+                <div className="max-w-2xl text-center text-xs text-white/70">
                   {subtitleText}
                 </div>
               )}
-              
-              {/* Counter */}
               {hasMultipleImages && showCounter && (
-                <div className="bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                <div className="rounded-full border border-white/15 bg-[rgba(28,22,38,0.7)] px-3 py-1 text-sm text-white backdrop-blur-xl">
                   {currentIndex + 1} of {images.length}
                 </div>
               )}
-              
-              {/* Thumbnail Strip */}
               {hasMultipleImages && showThumbnails && (
-                <div className="flex gap-2 max-w-full overflow-x-auto pb-2">
+                <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
                   {images.map((image, index) => (
                     <button
                       key={index}
@@ -205,20 +197,17 @@ export const ImageLightbox = React.forwardRef<HTMLDivElement, ImageLightboxProps
                         onNavigate?.(index)
                       }}
                       className={cn(
-                        'relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors',
-                        index === currentIndex
-                          ? 'border-primary-500'
-                          : 'border-neutral-600 hover:border-neutral-400'
+                        'relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-colors',
+                        index === currentIndex ? 'border-[#39FF14]' : 'border-white/20 hover:border-white/50'
                       )}
                     >
                       <img
                         src={image.url}
                         alt={image.alt || `Thumbnail ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                       />
-                      {/* Number overlay */}
                       {(showNumbers || image.number) && (
-                        <div className="absolute top-1 left-1 w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                        <div className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#39FF14]">
                           <span className="text-xs font-bold text-black">
                             {image.number || index + 1}
                           </span>
@@ -228,8 +217,6 @@ export const ImageLightbox = React.forwardRef<HTMLDivElement, ImageLightboxProps
                   ))}
                 </div>
               )}
-              
-              {/* Actions */}
               {showCopyButton && (
                 <Button
                   variant="primary"
@@ -253,9 +240,9 @@ export const ImageLightbox = React.forwardRef<HTMLDivElement, ImageLightboxProps
                 </Button>
               )}
             </div>
-          </div>
-        </div>
+          )}
       </div>
+      </OverlayPortal>
     )
   }
 )

@@ -1341,7 +1341,7 @@ export default function VisionUpdatePage() {
   return (
     <Container size="xl">
       {/* Mobile pane switcher */}
-      <div className={inShell ? 'lg:hidden mx-auto mb-4 flex w-full max-w-[280px] rounded-full border border-white/15 bg-white/[0.05] p-1' : 'lg:hidden flex rounded-xl border-2 border-[#333] bg-[#141414] p-1 mb-4'}>
+      <div className={inShell ? 'lg:hidden mx-auto mb-4 flex w-full max-w-[280px] rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] p-1 backdrop-blur-xl' : 'lg:hidden flex rounded-xl border-2 border-[#333] bg-[#141414] p-1 mb-4'}>
         <button
           onClick={() => setMobilePane('chat')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm transition-colors ${inShell ? 'rounded-full' : 'rounded-lg'} ${mobilePane === 'chat' ? (inShell ? 'bg-white/15 text-white' : 'bg-[#333] text-white') : 'text-neutral-400'}`}

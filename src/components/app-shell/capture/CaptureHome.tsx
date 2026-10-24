@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ArrowRight, ArrowUp, BookOpen, Calendar, Camera, ChevronRight, DollarSign, FileText, Mic } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { GLASS_CARD } from '@/lib/app-shell/glass'
+import { GLASS_CARD, PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { getSection } from '@/lib/app-shell/sections'
 import { todayInTimezone, useTodayDailyPaper } from '@/components/dashboard/widgets/queries'
 import { useThemeImage } from '../ThemeProvider'
@@ -57,10 +57,7 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
             <Link
               key={tab.href}
               href={tab.href}
-              className={cn(
-                'shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-center text-sm font-medium transition-colors md:flex-1',
-                active ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]' : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/90 backdrop-blur-xl hover:text-white',
-              )}
+              className={cn(PILL_BASE, 'text-center md:flex-1', active ? PILL_ON : PILL_OFF)}
             >
               {tab.label}
             </Link>
@@ -191,7 +188,7 @@ export function CaptureHome({ timezone }: { timezone: string | null }) {
           className="w-full resize-none bg-transparent px-2 pt-1 text-base text-white placeholder:text-white/45 focus:outline-none"
         />
         <div className="flex items-center justify-between px-1 pt-1">
-          <span className="text-xs text-white/50">Opens a conversation with your coach</span>
+          <span className="text-xs text-white/50">Opens a conversation with your guide</span>
           <button
             type="button"
             onClick={share}

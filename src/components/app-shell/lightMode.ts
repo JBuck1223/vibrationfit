@@ -11,7 +11,7 @@
 const P = 'html[data-shell-mode="light"] [data-app-shell]'
 const INK = '27,22,38'
 
-const esc = (cls: string) => cls.replace(/([:/[\].#])/g, '\\$1')
+const esc = (cls: string) => cls.replace(/([:/[\].#!%(),])/g, '\\$1')
 const sel = (classes: string[], suffix = '') => classes.map((c) => `${P} .${esc(c)}${suffix}`).join(',\n')
 
 // White text at an opacity → ink at a slightly stronger opacity (white text
@@ -74,7 +74,13 @@ ${P} [class*="text-shadow"] { text-shadow: none !important; }
 
 /* Surfaces */
 ${surfaceTint}
-${sel(['bg-black', 'bg-neutral-900', 'bg-neutral-950', 'bg-neutral-850', 'bg-[#1F1F1F]', 'bg-zinc-950/90', 'bg-zinc-900/85', 'bg-neutral-900/80', 'bg-neutral-900/60', 'bg-neutral-900/50', 'bg-[#1F1F1F]/50'])} { background-color: rgba(255,255,255,0.78); }
+${sel(['bg-black', 'bg-neutral-900', 'bg-neutral-950', 'bg-neutral-850', 'bg-[#1F1F1F]', 'bg-zinc-950/90', 'bg-zinc-900/85', 'bg-neutral-900/80', 'bg-neutral-900/60', 'bg-neutral-900/50', 'bg-[#1F1F1F]/50', 'bg-[rgba(28,22,38,0.45)]', 'bg-[rgba(28,22,38,0.97)]', 'bg-[rgba(28,22,38,0.96)]', 'bg-[#141414]', 'bg-[#101010]', 'bg-[#0f0c16]', 'bg-zinc-950', 'bg-neutral-950'])} { background-color: rgba(255,255,255,0.78); }
+/* Scrims behind dialogs: a soft ink veil instead of black. */
+${sel(['bg-black/40', 'bg-black/50', 'bg-black/55', 'bg-black/60', 'bg-black/80', 'bg-black/95'])} { background-color: rgba(${INK},0.35); }
+/* Popovers and floating menus (solid violet glass in dark themes). */
+html[data-shell-mode="light"] [data-shell-popover], ${P} [data-shell-menu] { background: rgba(255,255,255,0.96) !important; border-color: rgba(${INK},0.12) !important; box-shadow: 0 16px 40px rgba(60,40,90,0.16) !important; }
+/* Media viewers keep white controls over the picture. */
+${P} [data-shell-mode-skip] .text-white, ${P} [data-shell-mode-skip] .text-white * { color: #fff !important; }
 ${sel(['bg-neutral-800', 'bg-neutral-800/80', 'bg-neutral-800/50', 'bg-neutral-800/30'])} { background-color: rgba(${INK},0.05); }
 ${sel(['bg-neutral-700', 'bg-neutral-600'])} { background-color: rgba(${INK},0.10); }
 ${P} .${esc('hover:bg-neutral-800')}:hover, ${P} .${esc('hover:bg-neutral-900')}:hover, ${P} .${esc('hover:bg-neutral-800/50')}:hover { background-color: rgba(${INK},0.06); }

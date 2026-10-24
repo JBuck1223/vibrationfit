@@ -474,15 +474,15 @@ export function VivaChatInput({
     <div className="relative">
       {/* Attachment previews — sits above the input box */}
       {attachments.length > 0 && (
-        <div className="flex gap-2 px-3 pt-3 pb-2 bg-neutral-900 border border-b-0 border-neutral-700 rounded-t-xl overflow-x-auto">
+        <div className={cn("flex gap-2 px-3 pt-3 pb-2 border border-b-0 rounded-t-xl overflow-x-auto", inShell ? "bg-[rgba(28,22,38,0.6)] border-white/15 backdrop-blur-xl" : "bg-neutral-900 border-neutral-700")}>
           {attachments.map(att => (
             <div key={att.id} className="relative group flex-shrink-0">
               {att.type === 'image' && att.preview ? (
-                <div className="w-14 h-14 rounded-lg overflow-hidden border border-neutral-700">
+                <div className={cn("w-14 h-14 rounded-lg overflow-hidden border", inShell ? "border-white/15" : "border-neutral-700")}>
                   <img src={att.preview} alt="" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-14 h-14 rounded-lg bg-neutral-800 border border-neutral-700 flex flex-col items-center justify-center gap-1">
+                <div className={cn("w-14 h-14 rounded-lg border flex flex-col items-center justify-center gap-1", inShell ? "bg-white/[0.06] border-white/15" : "bg-neutral-800 border-neutral-700")}>
                   <FileText className="w-4 h-4 text-neutral-400" />
                   <span className="text-[9px] text-neutral-500 truncate max-w-[48px]">
                     {att.file.name.split('.').pop()}
@@ -492,7 +492,7 @@ export function VivaChatInput({
               <button
                 type="button"
                 onClick={() => removeAttachment(att.id)}
-                className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-neutral-900 border border-neutral-600 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                className={cn("absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full border flex items-center justify-center", inShell ? "bg-[rgba(28,22,38,0.9)] border-white/20" : "bg-neutral-900 border-neutral-600", "opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity")}
                 aria-label="Remove attachment"
               >
                 <X className="w-3 h-3 text-neutral-300" />
@@ -596,7 +596,7 @@ export function VivaChatInput({
             <button
               type="button"
               onClick={cancelRecording}
-              className="p-2 bg-neutral-600 hover:bg-neutral-500 text-neutral-300 hover:text-white rounded-full transition-colors"
+              className={cn("p-2 rounded-full transition-colors", inShell ? "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white" : "bg-neutral-600 hover:bg-neutral-500 text-neutral-300 hover:text-white")}
               title="Cancel"
             >
               <X className="w-4 h-4" />

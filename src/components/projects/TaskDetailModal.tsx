@@ -41,7 +41,6 @@ export function TaskDetailModal({
       onClose={onClose}
       title={task.title}
       size="lg"
-      className="!border !border-white/[0.06] bg-[#1F1F1F]/95 backdrop-blur-xl shadow-2xl"
     >
       <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-1">
         <section>

@@ -48,7 +48,7 @@ export function ThemeBackdrop() {
   const [layers, settle] = useCrossfade(url)
 
   return (
-    <div aria-hidden data-theme-backdrop className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#0b0b0d]">
+    <div aria-hidden data-theme-backdrop className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#231c30]">
       {layers.map((layer) => (
         <div
           key={layer.key}
@@ -88,8 +88,10 @@ export function ThemeBackdrop() {
         style={{
           // The wash only exists to calm a photo; with no picture it would just gray the page.
           opacity: url ? 1 : 0,
+          // Roots hold about 40% through the middle so white text and glass read
+          // over bright pictures (Watercolor); studio pages are a touch darker.
           background: atRoot
-            ? 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.05) 18%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.45) 100%)'
+            ? 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.40) 25%, rgba(0,0,0,0.40) 70%, rgba(0,0,0,0.55) 100%)'
             : 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.45) 30%, rgba(0,0,0,0.6) 100%)',
         }}
       />

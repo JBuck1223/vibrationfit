@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { cn } from '../shared-utils'
 import { Button } from '../forms/Button'
 import { useInShell } from '@/lib/app-shell/shell-context'
+import { OverlayPortal } from './OverlayPortal'
 
 interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
   isOpen: boolean
@@ -56,6 +57,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     }
 
     return (
+      <OverlayPortal>
       <div 
         className={cn(
           'fixed inset-0 z-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]',
@@ -67,7 +69,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           ref={ref}
           className={cn(
             inShell
-              ? 'vf-glass rounded-[24px] border border-white/[0.14] bg-[rgba(28,22,38,0.97)] shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl'
+              ? 'vf-glass rounded-[24px] border border-white/[0.14] bg-[rgba(28,22,38,0.97)] shadow-[0_24px_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl'
               : 'bg-[#1F1F1F] border-2 border-[#333] rounded-2xl',
             'w-full relative max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden',
             sizeClasses[size],
@@ -107,6 +109,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           )}
         </div>
       </div>
+      </OverlayPortal>
     )
   }
 )

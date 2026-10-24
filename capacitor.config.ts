@@ -30,7 +30,7 @@ const config: CapacitorConfig = {
   ios: {
     path: 'mobile/ios',
     contentInset: 'never',
-    backgroundColor: '#000000',
+    backgroundColor: '#1a1426',
     // Match the web app's dark chrome while the first page loads.
     preferredContentMode: 'mobile',
     // No long-press link previews inside the app.
@@ -38,7 +38,7 @@ const config: CapacitorConfig = {
   },
   android: {
     path: 'mobile/android',
-    backgroundColor: '#000000',
+    backgroundColor: '#1a1426',
     allowMixedContent: false,
   },
   server: {
@@ -60,13 +60,13 @@ const config: CapacitorConfig = {
       launchShowDuration: 4000,
       launchAutoHide: true,
       launchFadeOutDuration: 200,
-      backgroundColor: '#000000',
+      backgroundColor: '#1a1426',
       splashFullScreen: true,
       splashImmersive: true,
     },
     StatusBar: {
       style: 'DARK',
-      backgroundColor: '#000000',
+      backgroundColor: '#1a1426',
       overlaysWebView: true,
     },
     Keyboard: {

@@ -30,7 +30,7 @@ import {
   SaveButton,
   VIVALoadingOverlay,
 } from '@/lib/design-system/components'
-import { InsufficientTokensDialog } from '@/lib/design-system/components/overlays'
+import { InsufficientTokensDialog, WarningConfirmationDialog } from '@/lib/design-system/components/overlays'
 import { createClient } from '@/lib/supabase/client'
 import { useStoryStudio } from '@/components/story-studio/StoryStudioContext'
 import type { Story } from '@/lib/stories/types'
@@ -88,6 +88,7 @@ export default function StoryUpdatePage() {
   // Save
   const [isSaving, setIsSaving] = useState(false)
   const [showInsufficientTokens, setShowInsufficientTokens] = useState(false)
+  const [pendingAudioSave, setPendingAudioSave] = useState<string | null>(null)
   const [tokenErrorInfo, setTokenErrorInfo] = useState<{ tokensRemaining?: number }>({})
 
   const compareSectionRef = useRef<HTMLElement | null>(null)
@@ -239,18 +240,17 @@ export default function StoryUpdatePage() {
     }
   }, [story, vivaGenerateMode, vivaInstructions, currentRefinement, refreshStories])
 
-  const handleSave = useCallback(async (text?: string) => {
+  const handleSave = useCallback(async (text?: string, skipAudioCheck = false) => {
     if (!story) return
     const newContent = (text ?? proposedText).trim()
     if (!newContent) return
 
     if (
+      !skipAudioCheck &&
       hasExistingAudio &&
-      normalizeText(newContent) !== normalizeText(currentContent) &&
-      !window.confirm(
-        'This story already has audio. Saving will update the story text, but your existing recording will not change automatically. You may want to re-record after saving.\n\nSave anyway?',
-      )
+      normalizeText(newContent) !== normalizeText(currentContent)
     ) {
+      setPendingAudioSave(newContent)
       return
     }
 
@@ -1151,6 +1151,19 @@ export default function StoryUpdatePage() {
         onClose={() => setShowInsufficientTokens(false)}
         tokensRemaining={tokenErrorInfo.tokensRemaining}
         actionName="updating this story"
+      />
+      <WarningConfirmationDialog
+        isOpen={pendingAudioSave !== null}
+        onClose={() => setPendingAudioSave(null)}
+        onConfirm={() => {
+          const text = pendingAudioSave
+          setPendingAudioSave(null)
+          if (text) void handleSave(text, true)
+        }}
+        title="This story already has audio"
+        message="Saving will update the story text, but your existing recording will not change automatically. You may want to re-record after saving."
+        confirmText="Save anyway"
+        isLoading={isSaving}
       />
     </Container>
   )

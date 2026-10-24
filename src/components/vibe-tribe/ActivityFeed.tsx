@@ -86,7 +86,7 @@ export function ActivityFeed({ className = '' }: ActivityFeedProps) {
               transition-all duration-200 text-sm font-medium
               ${filter === key
                 ? 'bg-[#39FF14] text-black'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                : 'text-neutral-400 hover:text-white hover:bg-white/10'
               }
             `}
           >

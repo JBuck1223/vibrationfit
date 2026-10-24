@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { PILL_BASE, PILL_OFF } from '@/lib/app-shell/glass'
 import { areaForPath, getSection, type SectionId } from '@/lib/app-shell/sections'
 import { useIsNativeShell } from '@/hooks/useNativeShell'
 import { isNativeExternalPath } from '@/lib/mobile/native-shell'
@@ -31,10 +32,9 @@ export function AreaLinks({ sectionId, className }: { sectionId: SectionId; clas
             key={area.href}
             href={area.href}
             className={cn(
-              'flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
-              here
-                ? 'border-[var(--section-accent)] bg-[var(--section-accent-soft)] text-[var(--section-accent)]'
-                : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/90 backdrop-blur-xl hover:text-white',
+              PILL_BASE,
+              'flex items-center gap-2',
+              here ? 'border-[var(--section-accent)] bg-[var(--section-accent-soft)] text-[var(--section-accent)]' : PILL_OFF,
             )}
           >
             <Icon className="h-4 w-4" strokeWidth={1.75} />

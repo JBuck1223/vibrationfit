@@ -3,6 +3,8 @@
 import { cn } from '@/lib/utils'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useInShell } from '@/lib/app-shell/shell-context'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
 import Link from 'next/link'
 import { Image as ImageIcon, Video, Send, X, Trophy, Heart, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import { VibeTag, VIBE_TAG_CONFIG, VibePost, VIBE_TAGS } from '@/lib/vibe-tribe/types'
@@ -237,21 +239,23 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
     <>
       {/* Upload Progress Overlay */}
       {uploadProgress.isVisible && (
-        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-          <div className={inShell ? 'w-full max-w-sm rounded-[24px] border border-white/[0.14] bg-[rgba(28,22,38,0.97)] p-6' : 'bg-neutral-900 rounded-2xl p-6 w-full max-w-sm'}>
-            <UploadProgress
-              progress={uploadProgress.progress}
-              status={uploadProgress.status}
-              fileName={uploadProgress.fileName}
-              fileSize={uploadProgress.fileSize}
-              isVisible={true}
-            />
+        <OverlayPortal>
+          <div className={cn('fixed inset-0 z-[60] flex items-center justify-center p-4', SCRIM)}>
+            <div className={cn(GLASS_SHEET, 'w-full max-w-sm p-6')}>
+              <UploadProgress
+                progress={uploadProgress.progress}
+                status={uploadProgress.status}
+                fileName={uploadProgress.fileName}
+                fileSize={uploadProgress.fileSize}
+                isVisible={true}
+              />
+            </div>
           </div>
-        </div>
+        </OverlayPortal>
       )}
 
       {/* Collapsed Bar — Facebook-style prompt */}
-      <div className={inShell ? 'mx-auto mt-2 w-full max-w-[772px]' : 'border-b border-white/10 bg-[var(--glass-fill-strong,black)]'}>
+      <div className={inShell ? 'mx-auto mt-2 w-full max-w-[772px]' : 'border-b border-white/10 [background:var(--glass-fill-strong,black)]'}>
         <div className={inShell ? 'vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] px-3 py-3 backdrop-blur-2xl' : 'max-w-[772px] mx-auto px-4 py-3'}>
           <div className="flex items-center gap-3">
             {/* Profile Picture — links to own snapshot */}
@@ -285,7 +289,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
                 aria-label="Add photo"
                 // Desktop shows only the photo button here; on phones the prompt stands alone.
                 // Video and the mic are in Create Post.
-                className="hidden w-9 h-9 rounded-full items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors md:flex"
+                className="hidden w-9 h-9 rounded-full items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition-colors md:flex"
               >
                 <ImageIcon className="w-5 h-5" />
               </button>
@@ -296,31 +300,30 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
 
       {/* Focus Modal */}
       {focusOpen && (
+        <OverlayPortal>
         <div 
           className="fixed inset-x-0 top-0 z-50 flex items-start justify-center px-4 md:pt-[6vh]"
           style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
         >
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/80"
+            className={cn('absolute inset-0', SCRIM)}
             onClick={handleClose}
           />
 
           {/* Modal — flexes vertically so the scrollable middle fills available space */}
           <div 
             ref={modalRef}
-            className={inShell
-              ? 'relative mt-4 flex w-full max-w-2xl flex-col rounded-[26px] border border-white/[0.14] bg-[linear-gradient(180deg,rgba(40,32,56,0.98)_0%,rgba(22,18,32,0.99)_100%)] shadow-[0_18px_50px_rgba(0,0,0,0.55)] md:mt-0'
-              : 'relative w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-2xl shadow-2xl flex flex-col mt-4 md:mt-0'}
+            className={cn(GLASS_SHEET, 'relative mt-4 flex w-full max-w-2xl flex-col md:mt-0')}
             style={{ maxHeight: viewportHeight ? `${viewportHeight - 16}px` : 'calc(100dvh - 16px)' }}
           >
             {/* Header — pinned */}
-            <div className={cn('flex-shrink-0 flex items-center justify-between px-5 py-3 border-b', inShell ? 'border-white/10' : 'border-neutral-800')}>
+            <div className={cn('flex-shrink-0 flex items-center justify-between px-5 py-3 border-b', 'border-white/10')}>
               <h2 className="text-base font-semibold text-white">Create Post</h2>
               <button
                 onClick={handleClose}
                 aria-label="Close"
-                className={inShell ? 'flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/15 hover:text-white' : 'w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700 transition-colors'}
+                className={'flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/15 hover:text-white'}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -465,26 +468,26 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
             </div>
 
             {/* Bottom Action Bar — pinned */}
-            <div className={cn('flex-shrink-0 flex items-center justify-between px-5 py-3 border-t', inShell ? 'border-white/10' : 'border-neutral-800')}>
+            <div className={cn('flex-shrink-0 flex items-center justify-between px-5 py-3 border-t', 'border-white/10')}>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={files.length >= 4}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
                 >
                   <ImageIcon className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={files.length >= 4}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
                 >
                   <Video className="w-5 h-5" />
                 </button>
                 <EmojiPickerButton
                   textareaRef={textareaRef}
                   onInsert={(val) => setContent(val)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-neutral-800 transition-colors"
+                  className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
                 />
                 <input
                   ref={fileInputRef}
@@ -517,6 +520,7 @@ export function StickyPostComposer({ userId, userProfile, onPostCreated }: Stick
             </div>
           </div>
         </div>
+        </OverlayPortal>
       )}
     </>
   )

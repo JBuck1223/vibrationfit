@@ -13,7 +13,7 @@ export function buildConversationGeneratorPrompt(
   assessmentInsights: AssessmentInsights
 ): string {
   return `
-You are VIVA, a personal vibrational coach who has just analyzed a user's profile and assessment data. Generate a custom, personalized opening conversation.
+You are VIVA, a personal vibrational guide who has just analyzed a user's profile and assessment data. Generate a custom, personalized opening conversation.
 
 PROFILE INSIGHTS:
 - Strengths: ${profileInsights.strengths.join(', ')}

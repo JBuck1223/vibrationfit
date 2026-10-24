@@ -59,7 +59,7 @@ export type SeoPpc = {
 }
 
 export type SeoPage = {
-  /** URL path without leading slash, e.g. 'vision-boards/app' */
+  /** URL path without leading slash, e.g. 'vision-board/app' */
   path: string
   cluster: SeoCluster
   /** Organic primary keyword; the H1 says this. */

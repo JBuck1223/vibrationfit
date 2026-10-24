@@ -2,7 +2,7 @@ import type { SeoPage } from '@/content/seo/types'
 import { SITE_URL, getSeoPage, pageUrl } from '@/content/seo/registry'
 
 const CLUSTER_LABELS: Record<SeoPage['cluster'], { name: string; hub?: string }> = {
-  'vision-board': { name: 'Vision Boards', hub: 'vision-boards' },
+  'vision-board': { name: 'Vision Boards', hub: 'vision-board' },
   affirmations: { name: 'Affirmations', hub: 'affirmations' },
   manifestation: { name: 'Manifestation', hub: 'manifestation' },
   journaling: { name: 'Journaling', hub: 'journaling' },

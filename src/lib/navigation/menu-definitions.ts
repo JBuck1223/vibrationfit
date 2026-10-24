@@ -75,6 +75,7 @@ import {
   GraduationCap,
   Share2,
   Library,
+  ListMusic,
   Film,
   Music2,
   Mic,
@@ -199,7 +200,13 @@ export const userNavigationGroups: NavGroup[] = [
         description: 'Breathe with a wave, music, and binaural beds',
       },
       {
-        name: 'Songs',
+        name: 'Music',
+        href: '/audio/music',
+        icon: Music,
+        description: 'Vibration Fit and member music',
+      },
+      {
+        name: 'My Songs',
         href: '/audio/songs',
         icon: Music2,
         description: 'My songs',
@@ -916,7 +923,7 @@ export function isNavItemActive(
     }
 
     if (itemPath === '/audio') {
-      if (pathname.startsWith('/audio/songs') || pathname.startsWith('/audio/songwriter')) {
+      if (pathname.startsWith('/audio/songs') || pathname.startsWith('/audio/songwriter') || pathname.startsWith('/audio/music')) {
         return false
       }
       if (pathname.startsWith('/audio/')) {
@@ -1015,8 +1022,9 @@ export const shellNavigationGroups: NavGroup[] = [
       { name: 'Life Vision', href: '/audio', icon: Target, description: 'Your Life Vision audio' },
       { name: 'Meditations', href: '/meditations', icon: Wind, description: 'Breath-paced tracks' },
       { name: 'Stories', href: '/audio/stories', icon: Library, description: 'Listen to your stories' },
-      { name: 'Songs', href: '/audio/songs', icon: Music2, description: 'Your songs' },
-      { name: 'Playlists', href: '/audio/playlists', icon: Music, description: 'Sets you have built' },
+      { name: 'Music', href: '/audio/music', icon: Music, description: 'Vibration Fit and member music' },
+      { name: 'Playlists', href: '/audio/playlists', icon: ListMusic, description: 'Sets you have built' },
+      { name: 'My Songs', href: '/audio/songs', icon: Music2, description: 'Your songs' },
     ],
   },
   {

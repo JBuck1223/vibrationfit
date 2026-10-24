@@ -9,6 +9,9 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { Share2, Loader2, AlertCircle, Copy, Check, Globe, Link2Off } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
 import { shareSongLink, songShareMessage } from '@/lib/songs/share-message'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 interface ShareState {
   is_shared: boolean
@@ -113,8 +116,9 @@ export function ShareSongSheet({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#141414] border border-neutral-700 rounded-2xl max-w-md w-full shadow-2xl">
+    <OverlayPortal>
+    <div className={cn('fixed inset-0 z-50 flex items-center justify-center p-4', SCRIM)}>
+      <div className={cn(GLASS_SHEET, 'max-w-md w-full')}>
         <div className="px-6 py-5 space-y-4">
           <div className="text-center">
             <Share2 className="w-8 h-8 text-[#39FF14] mx-auto mb-3" />
@@ -142,7 +146,7 @@ export function ShareSongSheet({
               {share?.is_shared && share.share_url ? (
                 <>
                   {/* Share message preview + link */}
-                  <div className="rounded-xl bg-neutral-900 border border-neutral-700 px-3 py-2.5 space-y-1.5">
+                  <div className="rounded-xl bg-white/[0.06] border border-white/10 px-3 py-2.5 space-y-1.5">
                     <p className="text-sm text-white font-medium">
                       {songShareMessage(true)}
                     </p>
@@ -161,7 +165,7 @@ export function ShareSongSheet({
                       <button
                         type="button"
                         onClick={handleCopy}
-                        className="flex items-center gap-1.5 flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-200 hover:bg-neutral-700 transition-colors"
+                        className="flex items-center gap-1.5 flex-shrink-0 px-3 py-1.5 rounded-full border border-white/15 text-xs font-medium bg-white/[0.06] text-white hover:bg-white/10 transition-colors"
                       >
                         {copied ? (
                           <Check className="w-3.5 h-3.5 text-[#39FF14]" />
@@ -178,7 +182,7 @@ export function ShareSongSheet({
                     type="button"
                     disabled={saving}
                     onClick={() => updateShare({ is_public: !share.is_public })}
-                    className="flex w-full items-center gap-3 rounded-xl bg-neutral-900 border border-neutral-700 px-4 py-3 text-left transition-colors hover:border-neutral-600 disabled:opacity-60"
+                    className="flex w-full items-center gap-3 rounded-xl bg-white/[0.06] border border-white/10 px-4 py-3 text-left transition-colors hover:border-white/20 disabled:opacity-60"
                   >
                     <Globe className={`w-5 h-5 flex-shrink-0 ${share.is_public ? 'text-[#39FF14]' : 'text-neutral-500'}`} />
                     <span className="flex-1 min-w-0">
@@ -236,5 +240,6 @@ export function ShareSongSheet({
         </div>
       </div>
     </div>
+    </OverlayPortal>
   )
 }

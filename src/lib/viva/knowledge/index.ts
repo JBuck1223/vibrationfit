@@ -16,7 +16,7 @@ const visionBoardKnowledge = `# Vision Board System
 **Version:** 2.0 | **Status:** Production
 
 Visual activation tool - gallery/grid system for specific desires and goals.
-- Paths: /vision-board (main gallery), /vision-board/new (create item), /vision-board/gallery (image gallery), /vision-board/[id] (view/edit item)
+- Paths: /manifestations (main gallery), /manifestations/new (create item), /manifestations/gallery (image gallery), /manifestations/[id] (view/edit item)
 - Status options: active, actualized, inactive
 - View modes: grid or list
 - Category tagging (links to 12 life categories)
@@ -194,7 +194,7 @@ We teach **Joy → Manifestation**, not the reverse. Freedom makes joy possible;
 
 ## The Conscious Creation Cycle - Design → Align → Enjoy
 1. **Design** - Design the life you choose. Create and keep alive the "Life I Choose™" document (/life-vision/new). 12 categories, present-tense, 80%+ user's own words.
-2. **Align** - Align with the emotional state of that life, daily, via MAP: Vision Audio, Vision Board (/vision-board), and daily practices.
+2. **Align** - Align with the emotional state of that life, daily, via MAP: Vision Audio, Vision Board (/manifestations), and daily practices.
 3. **Enjoy** - Enjoy the freedom and joy available now: presence, appreciation, savoring, and noticing the evidence already showing up (capture it in the Journal, /journal). "Enjoy" is living above the Green Line in the present tense. Manifestations are the Result of running the loop (feedback), never a step.
 
 ## The Reps - 4 Parts (what MAP schedules and Tracking measures)
@@ -225,7 +225,7 @@ const userJourneyKnowledge = `# User Journey Reference
 4. Review & Refine (/life-vision/[id]/refine)
 
 ### Phase 3: Activation
-5. Create Vision Board (/vision-board/new)
+5. Create Vision Board (/manifestations/new)
 6. Generate Vision Audio (/life-vision/[id]/audio)
 7. Daily Journaling (/journal)
 

@@ -3,8 +3,11 @@
 import { useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import confetti from 'canvas-confetti'
-import { Button, Card } from '@/lib/design-system/components'
+import { Button } from '@/lib/design-system/components'
 import { Music, Users, Dumbbell, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 interface UnlockCelebrationModalProps {
   isOpen: boolean
@@ -88,10 +91,11 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
   if (!isOpen) return null
 
   return (
+    <OverlayPortal>
     <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+        className={cn('fixed inset-0', SCRIM)}
         onClick={onClose}
         aria-hidden
       />
@@ -99,7 +103,7 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
       <button
         type="button"
         onClick={onClose}
-        className="fixed top-3 right-3 z-[51] p-2 rounded-full bg-neutral-800/80 text-white backdrop-blur-sm hover:bg-neutral-700 transition-colors"
+        className="fixed top-3 right-3 z-[51] rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
         aria-label="Close"
       >
         <X className="w-5 h-5" />
@@ -108,7 +112,7 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
       <div className="relative z-10 flex min-h-full items-start justify-center p-4 pt-14 pb-16 sm:pb-20 md:items-center md:py-8">
         {/* Modal */}
         <div className="w-full max-w-4xl lg:max-w-5xl shrink-0 animate-in fade-in zoom-in-95 duration-300">
-          <Card variant="elevated" className="bg-neutral-850 border-[#333] overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col !p-0">
+          <div className={cn(GLASS_SHEET, 'overflow-hidden max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col')}>
 
           <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 -webkit-overflow-scrolling-touch p-4 pb-8 md:p-6 lg:p-8">
             {/* Logo */}
@@ -170,9 +174,10 @@ export function UnlockCelebrationModal({ isOpen, onClose }: UnlockCelebrationMod
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
         </div>
       </div>
     </div>
+    </OverlayPortal>
   )
 }

@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, Button, DeleteConfirmationDialog, CategoryGrid } from '@/lib/design-system'
-import { Heart, MessageCircle, Trash2, MoreHorizontal, Play, Pencil, Pin, X, Trophy, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
+import { Card, Button, DeleteConfirmationDialog, CategoryGrid, ImageLightbox } from '@/lib/design-system'
+import { cn } from '@/lib/utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
+import { Heart, MessageCircle, Trash2, MoreHorizontal, Play, Pencil, Pin, Trophy, Sparkles, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react'
 import { VibePost, VibeTag, VIBE_TAG_CONFIG, VIBE_TAGS } from '@/lib/vibe-tribe/types'
 import { UserBadgeIndicator } from '@/components/badges'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
@@ -398,18 +400,18 @@ export function PostCard({
               <div ref={menuRef} className="relative ml-auto -mr-1">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
-                  className="p-1 rounded-full hover:bg-neutral-800 transition-colors"
+                  className="p-1 rounded-full hover:bg-white/10 transition-colors"
                 >
                   <MoreHorizontal className="w-4 h-4 text-neutral-400" />
                 </button>
                 
                 {showMenu && (
-                  <div className="absolute right-0 top-full mt-1 bg-neutral-800 rounded-lg shadow-lg border border-neutral-700 py-1 z-10 min-w-[100px]">
+                  <div className={cn(GLASS_MENU, 'absolute right-0 top-full mt-1 rounded-[20px] p-1.5 z-10 min-w-[120px]')}>
                     {canPin && (
                       <button
                         onClick={handlePinToggle}
                         disabled={isPinning}
-                        className="flex items-center gap-2 px-4 py-2 text-[#BF00FF] hover:bg-neutral-700 w-full text-left disabled:opacity-50"
+                        className="flex items-center gap-2 rounded-xl px-4 py-2 text-[#BF00FF] hover:bg-white/10 w-full text-left disabled:opacity-50"
                       >
                         <Pin className="w-4 h-4" />
                         {isPinning ? 'Loading...' : isPinned ? 'Unpin' : 'Pin'}
@@ -418,7 +420,7 @@ export function PostCard({
                     {canEdit && (
                       <button
                         onClick={handleEditClick}
-                        className="flex items-center gap-2 px-4 py-2 text-white hover:bg-neutral-700 w-full text-left"
+                        className="flex items-center gap-2 rounded-xl px-4 py-2 text-white hover:bg-white/10 w-full text-left"
                       >
                         <Pencil className="w-4 h-4" />
                         Edit
@@ -427,7 +429,7 @@ export function PostCard({
                     {canDelete && (
                       <button
                         onClick={handleDeleteClick}
-                        className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-neutral-700 w-full text-left"
+                        className="flex items-center gap-2 rounded-xl px-4 py-2 text-red-500 hover:bg-white/10 w-full text-left"
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete
@@ -656,69 +658,16 @@ export function PostCard({
         loadingText="Deleting..."
       />
 
-      {/* Image Lightbox */}
-      {lightboxOpen && post.media_urls && post.media_urls.length > 0 && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={closeLightbox}
-        >
-          {/* Close button */}
-          <button 
-            onClick={closeLightbox}
-            className="absolute top-4 right-4 p-2 rounded-full bg-neutral-800/80 hover:bg-neutral-700 transition-colors z-10"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-
-          {/* Image */}
-          <div 
-            className="relative w-full h-full flex items-center justify-center p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative max-w-full max-h-full flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
-              <Image
-                src={post.media_urls[lightboxImageIndex]}
-                alt="Full size image"
-                fill
-                className="object-contain"
-                sizes="100vw"
-                onClick={closeLightbox}
-              />
-            </div>
-          </div>
-
-          {/* Navigation arrows for multiple images */}
-          {post.media_urls.length > 1 && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setLightboxImageIndex((prev) => 
-                    prev === 0 ? post.media_urls.length - 1 : prev - 1
-                  )
-                }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-neutral-800/80 hover:bg-neutral-700 transition-colors z-10"
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setLightboxImageIndex((prev) => 
-                    prev === post.media_urls.length - 1 ? 0 : prev + 1
-                  )
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-neutral-800/80 hover:bg-neutral-700 transition-colors z-10"
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
+      {post.media_urls && post.media_urls.length > 0 && (
+        <ImageLightbox
+          images={post.media_urls.map((url) => ({ url }))}
+          currentIndex={lightboxImageIndex}
+          isOpen={lightboxOpen}
+          onClose={closeLightbox}
+          onNavigate={setLightboxImageIndex}
+          showCopyButton={false}
+          showThumbnails={post.media_urls.length > 1}
+        />
       )}
     </div>
   )

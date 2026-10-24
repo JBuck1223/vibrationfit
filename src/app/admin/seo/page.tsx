@@ -4,6 +4,8 @@ import { VISION_BOARD_DEADLINE, CLUSTER_LABELS } from '@/content/seo/roadmap'
 import { SITE_URL } from '@/content/seo/registry'
 import { PILLAR_LABELS, verdict } from '@/lib/seo/readiness'
 import { Panel, Pill, Stat, ScorePill, StatusIcon, ExtLink, fmt } from '@/components/admin-seo/ui'
+import { SeoIdeaCapture } from '@/components/admin-seo/SeoIdeaCapture'
+import { GENERAL_IDEAS_PATH } from '@/lib/seo/ideas'
 
 export const metadata = { title: 'SEO & PPC' }
 // Reads runtime env (tracking setup) and today's date (deadline countdown).
@@ -94,6 +96,12 @@ export default function SeoAdminOverview() {
           <p className="mt-4 text-xs text-neutral-500">Conversion code ships on branch claude/gifted-perlman-b548a9; env vars go in Vercel.</p>
         </Panel>
       </div>
+
+      <SeoIdeaCapture
+        path={GENERAL_IDEAS_PATH}
+        title="New page ideas"
+        description="Ideas that are not tied to a roadmap page yet. For a specific page, open it under Pages and use its own idea box."
+      />
 
       <Panel title="Pages" action={<ExtLink href="/admin/seo/pages">All 25 pages</ExtLink>}>
         <div className="overflow-x-auto">

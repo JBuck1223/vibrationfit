@@ -112,7 +112,7 @@ A Conscious Creation System is the machine that drives someone from the life the
 - **Version Control**: Multiple profile versions can be saved
 - **Integration**: Profile data enhances AI prompts and personalization
 
-### 4. Vision Board System (/vision-board)
+### 4. Vision Board System (/manifestations)
 
 **Purpose**: Visual activation tool for specific desires and goals
 
@@ -178,7 +178,7 @@ A Conscious Creation System is the machine that drives someone from the life the
 1. **Complete Profile** (/profile/new) - Share your current story across all 12 categories
 2. **Take Assessment** (/assessment) - Understand your Green Line status
 3. **Create Life Vision** (/life-vision/new) - Build your "Life I Choose™" document
-4. **Set Up Vision Board** (/vision-board/new) - Visualize specific desires
+4. **Set Up Vision Board** (/manifestations/new) - Visualize specific desires
 5. **Start Journaling** (/journal/new) - Capture evidence of actualization
 6. **Daily Activation** - Use vision audio, review vision board, journal wins
 

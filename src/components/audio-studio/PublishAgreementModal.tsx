@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { X, CheckSquare, Square, Loader2, ChevronDown, ShieldCheck } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 interface PublishAgreementModalProps {
   isOpen: boolean
@@ -66,7 +69,7 @@ const AGREEMENT_SECTIONS = [
 
 function AgreementPanel({ onCollapse }: { onCollapse: () => void }) {
   return (
-    <div className="rounded-xl border border-neutral-800 bg-black/40 overflow-hidden">
+    <div className="rounded-xl border border-white/10 bg-white/[0.06] overflow-hidden">
       <button
         type="button"
         onClick={onCollapse}
@@ -154,14 +157,15 @@ export function PublishAgreementModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#141414] border border-neutral-700 rounded-2xl max-w-lg w-full shadow-2xl my-8 flex flex-col max-h-[90vh]">
+    <OverlayPortal>
+    <div className={cn('fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto', SCRIM)}>
+      <div className={cn(GLASS_SHEET, 'max-w-lg w-full my-8 flex flex-col max-h-[calc(100dvh-2rem)]')}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <h2 className="text-lg font-semibold text-white">Song Publishing Agreement</h2>
           <button
             onClick={onClose}
-            className="p-2 text-neutral-500 hover:text-white transition-colors rounded-lg"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -221,7 +225,7 @@ export function PublishAgreementModal({
             className={`flex items-center gap-3 w-full text-left p-3 rounded-lg border transition-colors cursor-pointer ${
               agreed
                 ? 'border-[#39FF14]/30 bg-[#39FF14]/5'
-                : 'border-neutral-800 hover:border-neutral-700'
+                : 'border-white/10 hover:border-white/20'
             }`}
           >
             {agreed ? (
@@ -258,7 +262,7 @@ export function PublishAgreementModal({
               value={legalName}
               onChange={(e) => setLegalName(e.target.value)}
               placeholder="Enter your full legal name"
-              className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-4 py-3 text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]/50"
+              className="w-full bg-white/[0.06] border border-white/15 rounded-lg px-4 py-3 text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-[#39FF14]/30 focus:border-[#39FF14]/50"
             />
             <p className="text-[11px] text-neutral-600 mt-1.5">
               This name will be used for creator credit where supported by each platform.
@@ -273,7 +277,7 @@ export function PublishAgreementModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-neutral-800 flex gap-3">
+        <div className="px-6 py-4 border-t border-white/10 flex gap-3">
           <Button variant="ghost" onClick={onClose} disabled={submitting} className="flex-1">
             Not Now
           </Button>
@@ -293,5 +297,6 @@ export function PublishAgreementModal({
         </div>
       </div>
     </div>
+    </OverlayPortal>
   )
 }

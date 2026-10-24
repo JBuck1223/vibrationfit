@@ -350,7 +350,7 @@ function getConfirmationEmail(type: string, data: { firstName: string; email: st
         textBody: [
           `Hey ${firstName},`,
           '',
-          `Really glad you're interested in seeing Vibration Fit in action. We're going to personally walk you through everything -- your Life Vision, VIVA coaching, vision boards, the works.`,
+          `Really glad you're interested in seeing Vibration Fit in action. We're going to personally walk you through everything -- your Life Vision, VIVA (your guide), vision boards, the works.`,
           '',
           `Before we schedule, quick favor: can you reply to this email with "Got it" so I know my emails are landing in your primary inbox? I want to make sure you get the calendar link when I send it.`,
           '',

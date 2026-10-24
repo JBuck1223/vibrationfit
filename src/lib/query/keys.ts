@@ -91,6 +91,10 @@ export const keys = {
 
   // Vibe Tribe
   vibeNotifications: ['vibe-notifications'] as const,
+
+  // Admin: SEO studio
+  seoPageIdeas: ['seo-page-ideas'] as const,
+  seoPageIdeasFor: (path: string) => ['seo-page-ideas', path] as const,
 } as const
 
 type QueryKeyPrefix = readonly string[]

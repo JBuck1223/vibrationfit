@@ -186,7 +186,7 @@ function TabSwitch({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) 
     { id: 'badges', label: 'Badges' },
   ]
   return (
-    <div role="tablist" aria-label="Profile" className="grid w-full grid-cols-4 rounded-full border border-white/15 bg-white/[0.05] p-1 md:w-[440px]">
+    <div role="tablist" aria-label="Profile" className="grid w-full grid-cols-4 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] p-1 backdrop-blur-xl md:w-[440px]">
       {tabs.map((t) => (
         <button
           key={t.id}

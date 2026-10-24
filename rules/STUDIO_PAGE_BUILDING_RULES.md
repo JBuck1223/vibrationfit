@@ -223,3 +223,7 @@ StudioProvider
 
 **Last Updated**: April 25, 2026
 **Version**: 1.0 - Studio Layout System
+
+## Shell Glass Recipes
+
+Pills, menus, sheets, scrims and loaders inside the app shell use the shared constants in `src/lib/app-shell/glass.ts` and render overlays through `OverlayPortal`. See `docs/design-system/shell-glass-recipes.md`.

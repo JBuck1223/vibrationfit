@@ -112,7 +112,8 @@ export interface AreaBarProps {
   appLikePrimaryTabs?: boolean
   /**
    * When true with `appLikePrimaryTabs`, uses a wider center tab strip (no max-w-sm cap),
-   * flexible grid, and optional dense tab labels for many tabs. Intended for `/account` only.
+   * flexible grid, and optional dense tab labels for many tabs. Used by studios with
+   * four or more tabs (account, dashboard, assessment, referral partners, admin).
    */
   fluidAppLikeTabs?: boolean
 }

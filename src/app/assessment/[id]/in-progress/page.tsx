@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Spinner, Card, Container, Stack, StatusBadge, CategoryGrid } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, StatusBadge, CategoryGrid } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CheckCircle, CalendarDays, Check, Circle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
@@ -509,11 +510,7 @@ export default function AssessmentPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Spinner variant="primary" size="lg" />
-        </div>
-      </div>
+      <PageLoading />
     )
   }
 

@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, Button, Badge, Spinner } from '@/lib/design-system/components'
+import { Button, Badge, Spinner } from '@/lib/design-system/components'
 import { X, Check, ArrowRight } from 'lucide-react'
 import { formatPrice } from '@/lib/billing/config'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 
 type Tier = {
   id: string
@@ -91,13 +94,14 @@ export default function ChangePlanModal({ isOpen, onClose, currentTierId, onPlan
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <Card className="w-full max-w-lg max-h-[80vh] overflow-y-auto p-6">
+    <OverlayPortal>
+    <div className={cn('fixed inset-0 z-50 flex items-center justify-center p-4', SCRIM)}>
+      <div className={cn(GLASS_SHEET, 'w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6')}>
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-white">Change Plan</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-neutral-800 transition-colors text-neutral-400"
+            className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -124,8 +128,8 @@ export default function ChangePlanModal({ isOpen, onClose, currentTierId, onPlan
                     isSelected
                       ? 'border-[#39FF14] bg-[#39FF14]/5'
                       : isCurrent
-                        ? 'border-neutral-700 bg-neutral-900 opacity-60'
-                        : 'border-neutral-800 hover:border-neutral-600 bg-neutral-900'
+                        ? 'border-white/10 bg-white/[0.06] opacity-60'
+                        : 'border-white/10 hover:border-white/20 bg-white/[0.06]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -153,7 +157,7 @@ export default function ChangePlanModal({ isOpen, onClose, currentTierId, onPlan
 
         {/* Proration preview */}
         {selectedTierId && selectedTierId !== currentTierId && (
-          <div className="bg-neutral-900 rounded-xl p-4 mb-4">
+          <div className="rounded-xl border border-white/10 bg-white/[0.06] p-4 mb-4">
             {previewLoading ? (
               <div className="flex items-center justify-center gap-2 py-2 text-sm text-neutral-400">
                 <Spinner size="sm" /> Calculating cost...
@@ -171,7 +175,7 @@ export default function ChangePlanModal({ isOpen, onClose, currentTierId, onPlan
                     </span>
                   </div>
                 ))}
-                <div className="flex justify-between text-sm font-medium text-white mt-2 pt-2 border-t border-neutral-800">
+                <div className="flex justify-between text-sm font-medium text-white mt-2 pt-2 border-t border-white/10">
                   <span>Due now</span>
                   <span>
                     {prorationPreview.immediateAmount > 0
@@ -203,7 +207,8 @@ export default function ChangePlanModal({ isOpen, onClose, currentTierId, onPlan
             )}
           </Button>
         </div>
-      </Card>
+      </div>
     </div>
+    </OverlayPortal>
   )
 }

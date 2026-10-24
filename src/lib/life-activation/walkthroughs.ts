@@ -825,9 +825,9 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
   },
   {
     id: 'viva',
-    label: 'VIVA coach',
+    label: 'VIVA guide',
     group: 'other',
-    description: 'The coach conversation.',
+    description: 'The guide conversation.',
     route: '/viva',
     tabLabel: 'VIVA',
     sourceFile: WALKTHROUGH_SOURCE,
@@ -836,7 +836,7 @@ export const WALKTHROUGH_CATALOG: readonly WalkthroughDefinition[] = [
       {
         id: 'viva-thread',
         title: 'The conversation',
-        body: 'This is the coach thread. VIVA already knows your vision. Talk about what is true today.',
+        body: 'This is the guide thread. VIVA already knows your vision. Talk about what is true today.',
         target: 'data-tour="viva-thread" on the message thread',
       },
       {

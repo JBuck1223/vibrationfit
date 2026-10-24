@@ -3,6 +3,7 @@
 import React from 'react'
 import { ArrowLeft, Check, Download, Loader2, Pause, Play, Shuffle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PILL_OFF } from '@/lib/app-shell/glass'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
 import { useAudioOffline } from '@/hooks/useAudioOffline'
 import type { AudioTrack } from '@/lib/design-system/components/media/types'
@@ -138,7 +139,7 @@ export function AudioCollectionView({ collection, onBack }: { collection: AudioC
       {collection.chips && collection.chips.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {collection.chips.map((c) => (
-            <span key={c} className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs text-white/75">
+            <span key={c} className={cn(PILL_OFF, 'rounded-full border px-3 py-1 text-xs')}>
               {c}
             </span>
           ))}

@@ -3,7 +3,7 @@ import type { SeoPage } from '../types'
 const SHOT = { width: 2880, height: 1840 }
 
 export const visionBoardApp: SeoPage = {
-  path: 'vision-boards/app',
+  path: 'vision-board/app',
   cluster: 'vision-board',
   keyword: 'digital vision board',
   secondaryKeywords: [

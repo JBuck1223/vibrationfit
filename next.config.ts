@@ -18,6 +18,22 @@ const nextConfig: NextConfig = {
     return [
       { source: '/profile', destination: '/your-world', permanent: false },
       { source: '/profile/:path*', destination: '/your-world', permanent: false },
+      // /vision-board is now the SEO vision board hub (src/app/(seo)). The old member
+      // routes under it forward to Manifestations; only app-only subpaths are listed
+      // so they never shadow an SEO page like /vision-board/ideas.
+      { source: '/vision-boards', destination: '/vision-board', permanent: true },
+      { source: '/vision-boards/:path*', destination: '/vision-board/:path*', permanent: true },
+      ...['about', 'create', 'export', 'gallery', 'new', 'queue', 'resources'].map(sub => ({
+        source: `/vision-board/${sub}`,
+        destination: `/manifestations/${sub}`,
+        permanent: false,
+      })),
+      { source: '/vision-board/queue/:batchId', destination: '/manifestations/queue/:batchId', permanent: false },
+      {
+        source: '/vision-board/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})',
+        destination: '/manifestations/:id',
+        permanent: false,
+      },
       {
         // Short links for the free guide PDF
         source: '/downloads/100k.pdf',

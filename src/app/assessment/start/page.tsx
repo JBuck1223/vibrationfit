@@ -14,6 +14,7 @@ import {
   Spinner,
   Badge,
 } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import {
   ArrowRight,
   ArrowLeft,
@@ -403,13 +404,7 @@ export default function PublicAssessmentPage() {
   }
 
   if (isResuming) {
-    return (
-      <Container size="xl">
-        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <Spinner size="lg" />
-        </div>
-      </Container>
-    )
+    return <PageLoading />
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -760,13 +755,7 @@ export default function PublicAssessmentPage() {
     }
 
     if (!currentQuestion) {
-      return (
-        <Container size="xl">
-          <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-            <Spinner size="lg" />
-          </div>
-        </Container>
-      )
+      return <PageLoading />
     }
 
     const catMeta = categoryMetadata[currentCategory.category]
@@ -1039,7 +1028,7 @@ export default function PublicAssessmentPage() {
                   Ready to Raise Your Vibration?
                 </h3>
                 <p className="text-neutral-400 text-xs md:text-sm lg:text-base max-w-xl mx-auto">
-                  Your assessment is just the starting point. Vibration Fit gives you a personalized Life Vision, VIVA coaching, and daily tools to move every category Above the Green Line.
+                  Your assessment is just the starting point. Vibration Fit gives you a personalized Life Vision, VIVA as your guide, and daily tools to move every category Above the Green Line.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2 md:gap-3 justify-center">
                   <Button
