@@ -33,6 +33,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
+    signedIn: Boolean(user),
     activeThemeId: (account as { theme_id?: string | null } | null)?.theme_id ?? null,
     themes: (themes ?? []).map((t) => ({ ...t, preview: byTheme.get(t.id)?.hero ?? byTheme.get(t.id)?.backdrop ?? null })),
   })

@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Loader2, Palette } from 'lucide-react'
 import { toast } from 'sonner'
@@ -18,11 +19,19 @@ interface ThemeOption {
 }
 
 interface ThemesResponse {
+  signedIn: boolean
   activeThemeId: string | null
   themes: ThemeOption[]
 }
 
 const THEMES_KEY = ['app-shell', 'themes'] as const
+
+/** The server says why a save failed; show that, not a guess. */
+async function saveError(res: Response, fallback: string): Promise<Error> {
+  if (res.status === 401) return new Error('Your session has ended. Sign in again to save your choice.')
+  const body = (await res.json().catch(() => null)) as { error?: unknown } | null
+  return new Error(typeof body?.error === 'string' && body.error ? body.error : fallback)
+}
 
 /** Account → Appearance: pick the picture set the whole app wears. */
 export function AppearancePicker() {
@@ -44,7 +53,7 @@ export function AppearancePicker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ themeId }),
       })
-      if (!res.ok) throw new Error('Could not save your theme')
+      if (!res.ok) throw await saveError(res, 'Could not save your theme')
     },
     onSuccess: async () => {
       await Promise.all([queryClient.invalidateQueries({ queryKey: THEMES_KEY }), refresh()])
@@ -60,7 +69,7 @@ export function AppearancePicker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ overlay }),
       })
-      if (!res.ok) throw new Error('Could not save your overlay')
+      if (!res.ok) throw await saveError(res, 'Could not save your overlay')
     },
     onSuccess: async () => {
       await refresh()
@@ -76,6 +85,25 @@ export function AppearancePicker() {
   const themes = data?.themes ?? []
   // Nothing chosen yet means the default (sunset) is what they see.
   const effectiveId = activeId ?? themes.find((t) => t.slug === 'sunset')?.id ?? null
+
+  // This page has no login gate; without a session every save would come back 401.
+  if (data && !data.signedIn) {
+    return (
+      <div className="space-y-3">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+          <Palette className="h-4 w-4 text-[#39FF14]" />
+          Theme
+        </h2>
+        <p className="text-sm text-white/65">Sign in to choose the imagery behind every screen.</p>
+        <Link
+          href="/auth/login?returnTo=/account/appearance"
+          className="inline-flex items-center rounded-full bg-[#39FF14] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[#5fff3f]"
+        >
+          Sign in
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">
