@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 import { Card, SaveButton, Checkbox } from '@/lib/design-system/components'
 import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -111,10 +113,10 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
             <button
               type="button"
               onClick={() => setIsSpiritualPracticeDropdownOpen(!isSpiritualPracticeDropdownOpen)}
-              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+              className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                 profile.spiritual_practice 
                   ? 'text-white' 
-                  : 'text-[#9CA3AF]'
+                  : 'text-white/40'
               }`}
             >
               {spiritualPracticeOptions.find(opt => opt.value === (profile.spiritual_practice || ''))?.label || 'Select practice...'}
@@ -131,7 +133,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsSpiritualPracticeDropdownOpen(false)}
                 />
-                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                   {spiritualPracticeOptions.map(option => (
                     <button
                       key={option.value}
@@ -143,7 +145,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
                       className={`w-full px-6 py-2 text-left transition-colors ${
                         (profile.spiritual_practice || '') === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                          : 'text-white hover:bg-[#333]'
+                          : 'text-white hover:bg-white/[0.06]'
                       }`}
                     >
                       {option.label}
@@ -164,10 +166,10 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
             <button
               type="button"
               onClick={() => setIsMeditationFrequencyDropdownOpen(!isMeditationFrequencyDropdownOpen)}
-              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+              className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                 profile.meditation_frequency 
                   ? 'text-white' 
-                  : 'text-[#9CA3AF]'
+                  : 'text-white/40'
               }`}
             >
               {meditationFrequencyOptions.find(opt => opt.value === (profile.meditation_frequency || ''))?.label || 'Select frequency...'}
@@ -184,7 +186,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsMeditationFrequencyDropdownOpen(false)}
                 />
-                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                   {meditationFrequencyOptions.map(option => (
                     <button
                       key={option.value}
@@ -196,7 +198,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
                       className={`w-full px-6 py-2 text-left transition-colors ${
                         (profile.meditation_frequency || '') === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                          : 'text-white hover:bg-[#333]'
+                          : 'text-white hover:bg-white/[0.06]'
                       }`}
                     >
                       {option.label}
@@ -239,7 +241,7 @@ export function SpiritualityGrowthSection({ profile, onProfileChange, onProfileR
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="border-t border-neutral-800/50 pt-2">
+        <div className="border-t border-white/10 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

@@ -162,7 +162,7 @@ export function TodayMapWidget(chrome: WidgetChromeProps) {
                       >
                         {commitment?.title ?? 'Commitment'}
                       </p>
-                      <p className="text-[10px] uppercase tracking-wider text-neutral-600">{meta?.label ?? pillar}</p>
+                      <p className="text-[10px] font-medium text-white/50">{meta?.label ?? pillar}</p>
                     </Link>
                     <MapVerifyButtons status={occ.status} onVerify={(s) => verify(occ, s)} compact />
                   </li>

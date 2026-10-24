@@ -11,6 +11,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Play, Pause, Download, Loader2, Music, AlignLeft, Repeat, SkipBack } from 'lucide-react'
 import { colors } from '@/lib/design-system/tokens'
+import { GLASS_CARD, PILL_BASE, PILL_OFF } from '@/lib/app-shell/glass'
 import {
   convertMurekaLyrics,
   stripLyricsTitleHeader,
@@ -203,7 +204,7 @@ export function PublicSongPlayer({
       />
 
       {/* ── Player card ── */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
+      <div className={`${GLASS_CARD} overflow-hidden`}>
         <div className="flex flex-col items-center px-6 pt-8 pb-6">
           {coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -213,8 +214,8 @@ export function PublicSongPlayer({
               className="w-[220px] h-[220px] rounded-2xl object-cover shadow-2xl mb-6"
             />
           ) : (
-            <div className="w-[220px] h-[220px] rounded-2xl bg-neutral-800 flex items-center justify-center shadow-2xl mb-6">
-              <Music className="w-16 h-16 text-neutral-600" />
+            <div className="w-[220px] h-[220px] rounded-2xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center shadow-2xl mb-6">
+              <Music className="w-16 h-16 text-white/30" />
             </div>
           )}
 
@@ -223,19 +224,19 @@ export function PublicSongPlayer({
             {artistHref ? (
               <a
                 href={artistHref}
-                className="block text-sm text-neutral-400 mt-1 truncate hover:text-[#39FF14] transition-colors"
+                className="block text-sm text-white/65 mt-1 truncate hover:text-[#39FF14] transition-colors"
               >
                 {artistName}
               </a>
             ) : (
-              <p className="text-sm text-neutral-400 mt-1 truncate">{artistName}</p>
+              <p className="text-sm text-white/65 mt-1 truncate">{artistName}</p>
             )}
             {tags.length > 0 && (
               <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3">
                 {tags.map(tag => (
                   <span
                     key={tag}
-                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-neutral-800 text-neutral-300 capitalize"
+                    className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-medium text-white/80 capitalize"
                   >
                     {tag}
                   </span>
@@ -253,12 +254,12 @@ export function PublicSongPlayer({
               value={currentTime}
               onChange={handleSeek}
               aria-label="Seek"
-              className="w-full h-1.5 bg-neutral-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg"
+              className="w-full h-1.5 bg-white/15 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg"
               style={{
                 background: `linear-gradient(to right, ${colors.primary[500]} ${progress}%, ${colors.neutral.inputBg} ${progress}%)`,
               }}
             />
-            <div className="flex justify-between text-xs text-neutral-500 mt-1.5">
+            <div className="flex justify-between text-xs text-white/50 mt-1.5">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
@@ -269,7 +270,7 @@ export function PublicSongPlayer({
             <button
               type="button"
               onClick={restart}
-              className="p-3 text-neutral-400 hover:text-white transition-colors"
+              className="p-3 text-white/65 hover:text-white transition-colors"
               aria-label="Restart"
             >
               <SkipBack className="w-6 h-6" />
@@ -297,7 +298,7 @@ export function PublicSongPlayer({
               className={`p-3 rounded-lg transition-colors ${
                 repeat
                   ? 'text-primary-500 bg-primary-500/20'
-                  : 'text-neutral-400 hover:text-white'
+                  : 'text-white/65 hover:text-white'
               }`}
             >
               <Repeat className="w-6 h-6" />
@@ -307,7 +308,7 @@ export function PublicSongPlayer({
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="mt-5 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors text-neutral-300 bg-neutral-800 hover:bg-neutral-700 disabled:cursor-wait disabled:text-neutral-500"
+            className={`${PILL_BASE} ${PILL_OFF} mt-5 flex items-center gap-1.5 text-xs disabled:cursor-wait disabled:text-white/50`}
           >
             {downloading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -321,9 +322,9 @@ export function PublicSongPlayer({
 
       {/* ── Lyrics ── */}
       {(syncedLyrics || plainLyrics) && (
-        <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3 text-sm font-medium text-neutral-300 border-b border-neutral-800/60">
-            <AlignLeft className="w-4 h-4 text-neutral-500" />
+        <div className={`${GLASS_CARD} mt-6 overflow-hidden`}>
+          <div className="flex items-center gap-2 px-5 py-3 text-sm font-medium text-white/85 border-b border-white/10">
+            <AlignLeft className="w-4 h-4 text-white/50" />
             Lyrics
           </div>
 
@@ -349,8 +350,8 @@ export function PublicSongPlayer({
                         isActive
                           ? 'text-white text-lg font-semibold scale-[1.02]'
                           : isPast
-                            ? 'text-neutral-500 text-base font-normal'
-                            : 'text-neutral-400 text-base font-normal'
+                            ? 'text-white/50 text-base font-normal'
+                            : 'text-white/65 text-base font-normal'
                       }`}
                     >
                       {line.text}
@@ -366,7 +367,7 @@ export function PublicSongPlayer({
                   <p
                     key={idx}
                     className={`w-full rounded-lg px-3 py-1.5 text-center text-base font-normal ${
-                      line.trim() ? 'text-neutral-300' : 'h-4'
+                      line.trim() ? 'text-white/85' : 'h-4'
                     }`}
                   >
                     {line || '\u00A0'}

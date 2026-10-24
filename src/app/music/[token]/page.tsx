@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { getSharedTrackByToken } from '@/lib/songs/public-sharing'
 import { PublicSongPlayer } from '@/components/music/PublicSongPlayer'
 
@@ -84,7 +85,7 @@ export default async function PublicSongPage({ params }: PageProps) {
 
       {/* ── Sign-up CTA ── */}
       <div className="w-full max-w-xl mx-auto mt-8">
-        <div className="rounded-2xl border-2 border-[#333] bg-neutral-900 p-8 text-center">
+        <div className={`${GLASS_CARD} p-8 text-center`}>
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 rounded-full bg-[#BF00FF]/15 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-[#BF00FF]" />
@@ -93,7 +94,7 @@ export default async function PublicSongPage({ params }: PageProps) {
           <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
             Create your own songs with VIVA
           </h2>
-          <p className="text-sm md:text-base text-neutral-400 mb-6 max-w-md mx-auto">
+          <p className="text-sm md:text-base text-white/65 mb-6 max-w-md mx-auto">
             {track.artist_name} made this song on Vibration Fit — where you design
             a vision for your life and VIVA turns it into music, audios, and more.
           </p>

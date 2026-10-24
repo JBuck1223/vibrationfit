@@ -48,6 +48,8 @@ import { VISION_CATEGORIES, getVisionCategoryLabel } from '@/lib/design-system'
 import { createClient } from '@/lib/supabase/client'
 import { VivaChatInput } from '@/components/viva/VivaChatInput'
 import { colors } from '@/lib/design-system/tokens'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
 import { 
   ensureDraftExists,
   getDraftVision,
@@ -154,8 +156,8 @@ const ChatInterface = ({
             <div
               className={`max-w-[80%] p-4 rounded-lg ${
                 message.role === 'user'
-                  ? 'bg-neutral-800 text-white border border-neutral-700'
-                  : 'bg-neutral-800 text-neutral-100'
+                  ? 'bg-white/[0.06] text-white border border-white/[0.12]'
+                  : 'bg-white/[0.06] text-neutral-100'
               }`}
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -189,7 +191,7 @@ const ChatInterface = ({
             <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
               <Bot className="w-4 h-4 text-white" />
             </div>
-            <div className="bg-neutral-800 p-4 rounded-lg">
+            <div className="bg-white/[0.06] p-4 rounded-lg">
               <div className="flex gap-1">
                 <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" />
                 <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
@@ -1281,7 +1283,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
     const diff = Diff.diffWords(oldText, newText)
     
     return (
-      <div className="prose prose-invert max-w-none p-4 bg-neutral-800/50 rounded-lg border-2 min-h-[120px] whitespace-pre-wrap text-sm" style={{ borderColor: colors.accent[500] }}>
+      <div className="prose prose-invert max-w-none p-4 bg-white/[0.06] rounded-lg border-2 min-h-[120px] whitespace-pre-wrap text-sm" style={{ borderColor: colors.accent[500] }}>
         {diff.map((part, index) => {
           if (part.added) {
             return (
@@ -1569,7 +1571,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 </>
               )}
             </div>
-            <div className="mb-6 border-b border-neutral-800" />
+            <div className="mb-6 border-b border-white/[0.12]" />
 
             {/* Section 1: Update with VIVA */}
             <section className="mb-8">
@@ -1638,7 +1640,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
             </section>
 
             {/* Section 2: Compare */}
-            <section className="border-t border-neutral-800 pt-6">
+            <section className="border-t border-white/[0.12] pt-6">
               <div className="mb-5 text-center">
                 <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">
                   Compare
@@ -1683,7 +1685,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               <div className={`space-y-6 ${showCurrentVision && showRefinement ? 'lg:grid lg:grid-cols-2' : ''} lg:gap-6 lg:space-y-0`}>
                 {/* Current Vision Panel */}
                 <div className={`${showCurrentVision ? 'block' : 'hidden'}`}>
-                  <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] p-4 md:p-5">
+                  <div className="rounded-2xl border border-primary-500/30 bg-white/[0.05] p-4 md:p-5">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-primary-500">
                         Current {categoryLabel}
@@ -1719,7 +1721,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
                 {/* Update (Refinement) Panel */}
                 <div className={`${showRefinement ? 'block' : 'hidden'}`} style={{ overflowAnchor: 'none' } as React.CSSProperties}>
-                  <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] p-4 md:p-5" data-refinement-section>
+                  <div className="rounded-2xl border border-accent-500/30 bg-white/[0.05] p-4 md:p-5" data-refinement-section>
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <h5 className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: colors.accent[500] }}>
                         Updated {categoryLabel}
@@ -1843,7 +1845,7 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                       className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                         conversationId === conv.id
                           ? 'border-purple-500 bg-purple-500/10'
-                          : 'border-neutral-700 hover:border-neutral-600 bg-neutral-800/30'
+                          : 'border-white/[0.12] hover:border-white/15 bg-white/[0.06]'
                       }`}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -1980,9 +1982,10 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
 
       {/* Combine Preview Modal */}
       {showCombinePreview && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-neutral-700">
+        <OverlayPortal>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${SCRIM}`}>
+          <div className={`${GLASS_SHEET} max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col text-white`}>
+            <div className="p-6 border-b border-white/[0.12]">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="w-8 h-8 text-purple-400" />
                 <h3 className="text-xl font-semibold text-white">Preview Combined Refinement</h3>
@@ -1996,12 +1999,12 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
               <AutoResizeTextarea
                 value={combinedText}
                 onChange={setCombinedText}
-                className="bg-neutral-800/50 border-neutral-600 min-h-[300px]"
+                className="bg-white/[0.06] border-white/15 min-h-[300px]"
                 readOnly={false}
               />
             </div>
             
-            <div className="p-4 sm:p-6 border-t border-neutral-700 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
+            <div className="p-4 sm:p-6 border-t border-white/[0.12] flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
               <Button
                 onClick={() => {
                   setShowCombinePreview(false)
@@ -2032,8 +2035,9 @@ export default function VisionRefinementPage({ params }: { params: Promise<{ id:
                 Accept & Update
               </Button>
             </div>
-          </Card>
+          </div>
         </div>
+        </OverlayPortal>
       )}
       </Stack>
     </Container>

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Bell, BellOff, Minus, Play, Plus, Save, X } from 'lucide-react'
 import { Button, Container, Input, Stack } from '@/lib/design-system/components'
 import { useGlobalAudioStore } from '@/lib/stores/global-audio-store'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import {
   BREATH_MAX_SECONDS,
   BREATH_MIN_SECONDS,
@@ -496,25 +497,17 @@ export function BreathPacer() {
       <Stack gap="lg">
         <div
           ref={composerRef}
-          className="relative scroll-mt-24 overflow-hidden rounded-2xl border-2 border-neutral-800 bg-[#0B0B0B]"
+          className={`relative scroll-mt-24 overflow-hidden ${GLASS_CARD}`}
         >
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background: 'radial-gradient(50% 60% at 85% 0%, rgba(0,255,255,0.10), transparent 70%), radial-gradient(40% 50% at 0% 100%, rgba(57,255,20,0.08), transparent 70%)',
-            }}
-          />
-
           <div className="relative grid gap-8 p-4 md:p-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
             <div className="min-w-0 space-y-7">
               {editingCard && (
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-[#00FFFF]/30 bg-[#00FFFF]/5 px-3 py-2">
-                  <p className="min-w-0 truncate text-sm text-[#00FFFF]">Editing “{editingCard.title}”</p>
+                <div className="flex items-center justify-between gap-3 rounded-full border border-[#39FF14]/30 bg-[rgba(57,255,20,0.10)] px-4 py-2">
+                  <p className="min-w-0 truncate text-sm text-[#39FF14]">Editing “{editingCard.title}”</p>
                   <button
                     type="button"
                     onClick={newMeditation}
-                    className="flex shrink-0 items-center gap-1 text-xs text-neutral-400 hover:text-white"
+                    className="flex shrink-0 items-center gap-1 text-xs text-white/60 hover:text-white"
                   >
                     <X className="h-3.5 w-3.5" />
                     Start fresh
@@ -541,7 +534,7 @@ export function BreathPacer() {
                     onClick={() => setPreset(CUSTOM_PRESET_ID)}
                   />
                 </div>
-                <p className="mt-2 text-xs text-neutral-500">
+                <p className="mt-2 text-xs text-white/55">
                   {activePreset ? activePreset.hint : 'Set your own breath and holds. Leave a hold at 0 to skip it'}
                 </p>
                 {preset === CUSTOM_PRESET_ID && (
@@ -564,8 +557,8 @@ export function BreathPacer() {
                       onClick={() => setDuration(minutes)}
                       className={`h-11 min-w-14 rounded-full px-4 text-sm tabular-nums transition-colors ${
                         duration === minutes
-                          ? 'bg-[#39FF14] font-semibold text-black'
-                          : 'bg-white/5 text-neutral-300 hover:bg-white/10'
+                          ? 'bg-[#39FF14] font-semibold text-black shadow-[0_0_16px_rgba(57,255,20,0.3)]'
+                          : 'border border-white/15 bg-white/[0.06] text-white/85 hover:bg-white/10 hover:text-white'
                       }`}
                     >
                       {minutes} min
@@ -581,7 +574,7 @@ export function BreathPacer() {
                     </RoundStep>
                     <span
                       className={`min-w-14 text-center text-sm tabular-nums ${
-                        customDuration ? 'font-semibold text-[#39FF14]' : 'text-neutral-500'
+                        customDuration ? 'font-semibold text-[#39FF14]' : 'text-white/55'
                       }`}
                     >
                       {duration} min
@@ -606,10 +599,10 @@ export function BreathPacer() {
                       type="button"
                       onClick={() => setVisual(option.id)}
                       aria-pressed={visual === option.id}
-                      className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 px-2 py-3 transition-all duration-300 hover:-translate-y-0.5 ${
+                      className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 transition-all duration-300 hover:-translate-y-0.5 ${
                         visual === option.id
-                          ? 'border-[#39FF14]/60 bg-[#39FF14]/10 shadow-[0_0_24px_rgba(57,255,20,0.15)]'
-                          : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
+                          ? 'border-[#39FF14]/60 bg-[rgba(57,255,20,0.12)] shadow-[0_0_24px_rgba(57,255,20,0.15)]'
+                          : 'border-white/[0.12] bg-white/[0.05] hover:border-white/25'
                       }`}
                     >
                       <span className="flex h-8 items-center justify-center">
@@ -621,7 +614,7 @@ export function BreathPacer() {
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-neutral-500">
+                <p className="mt-2 text-xs text-white/55">
                   {BREATH_VISUALS.find((option) => option.id === visual)?.hint}
                 </p>
               </section>
@@ -653,15 +646,15 @@ export function BreathPacer() {
             </div>
 
             <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-              <div className="rounded-2xl border border-neutral-800 bg-black/70 p-4 md:p-6">
+              <div className="rounded-[22px] border border-white/[0.12] bg-[rgba(20,16,30,0.45)] p-4 md:p-6">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-xs uppercase tracking-wider text-neutral-500">Your session</p>
+                  <p className="text-xs font-medium text-white/55">Your session</p>
                   <button
                     type="button"
                     onClick={() => setChimes((on) => !on)}
                     aria-pressed={chimes}
                     className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors ${
-                      chimes ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'bg-white/5 text-neutral-400 hover:text-white'
+                      chimes ? 'bg-[rgba(57,255,20,0.12)] text-[#39FF14]' : 'border border-white/15 bg-white/[0.06] text-white/70 hover:text-white'
                     }`}
                   >
                     {chimes ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
@@ -679,7 +672,7 @@ export function BreathPacer() {
                 </div>
 
                 {(music || binaural) && (
-                  <p className="mt-4 truncate text-center text-xs text-neutral-400">
+                  <p className="mt-4 truncate text-center text-xs text-white/60">
                     {[music?.title, binaural?.title].filter(Boolean).join(' · ')}
                   </p>
                 )}
@@ -687,13 +680,13 @@ export function BreathPacer() {
                 <button
                   type="button"
                   onClick={startComposer}
-                  className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#00FFFF] to-[#39FF14] text-base font-semibold text-black shadow-[0_0_40px_rgba(57,255,20,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_60px_rgba(57,255,20,0.4)] active:opacity-80"
+                  className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#39FF14] text-base font-semibold text-black shadow-[0_0_24px_rgba(57,255,20,0.35)] transition-all duration-300 hover:shadow-[0_0_36px_rgba(57,255,20,0.45)] active:scale-[0.98]"
                 >
                   <Play className="h-5 w-5 fill-current" />
                   Begin
                 </button>
 
-                <div className="mt-6 border-t border-neutral-800 pt-5">
+                <div className="mt-6 border-t border-white/10 pt-5">
                   <Input
                     label="Name"
                     value={title}
@@ -766,7 +759,7 @@ export function BreathPacer() {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">{children}</p>
+  return <p className="mb-3 text-sm font-semibold text-white/85">{children}</p>
 }
 
 function RhythmTile({
@@ -785,14 +778,14 @@ function RhythmTile({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`rounded-2xl border-2 px-3 py-3 text-left transition-all duration-300 hover:-translate-y-0.5 ${
+      className={`rounded-2xl border px-3 py-3 text-left transition-all duration-300 hover:-translate-y-0.5 ${
         selected
-          ? 'border-[#39FF14]/60 bg-[#39FF14]/10 shadow-[0_0_24px_rgba(57,255,20,0.15)]'
-          : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
+          ? 'border-[#39FF14]/60 bg-[rgba(57,255,20,0.12)] shadow-[0_0_24px_rgba(57,255,20,0.15)]'
+          : 'border-white/[0.12] bg-white/[0.05] hover:border-white/25'
       }`}
     >
       <span className={`block text-sm font-semibold ${selected ? 'text-[#39FF14]' : 'text-white'}`}>{label}</span>
-      <span className="block text-xs tabular-nums text-neutral-400">{detail}</span>
+      <span className="block text-xs tabular-nums text-white/60">{detail}</span>
     </button>
   )
 }
@@ -814,7 +807,7 @@ function RoundStep({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5 text-neutral-300 transition-colors hover:bg-white/10 disabled:opacity-30"
+      className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/85 transition-colors hover:bg-white/10 disabled:opacity-30"
     >
       {children}
     </button>
@@ -837,8 +830,8 @@ function Stepper({
   onChange: (value: number) => void
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-3">
-      <p className="mb-2 text-xs text-neutral-400">{label}</p>
+    <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-3">
+      <p className="mb-2 text-xs text-white/60">{label}</p>
       <div className="flex items-center justify-between gap-2">
         <RoundStep label={`${label} shorter`} disabled={value <= min} onClick={() => onChange(clamp(value - 1, min, max))}>
           <Minus className="h-4 w-4" />
@@ -854,9 +847,9 @@ function Stepper({
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-xl bg-white/5 px-2 py-2">
+    <div className="rounded-xl border border-white/10 bg-white/[0.06] px-2 py-2">
       <p className="text-lg font-semibold tabular-nums text-white">{value}</p>
-      <p className="truncate text-[11px] text-neutral-500">{label}</p>
+      <p className="truncate text-[11px] text-white/55">{label}</p>
     </div>
   )
 }

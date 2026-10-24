@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Input, Button, Spinner } from '@/lib/design-system'
-import { Lock, CheckCircle, Eye, EyeOff, Eye as EyeIcon } from 'lucide-react'
-import Image from 'next/image'
-import { ASSETS } from '@/lib/storage/s3-storage-presigned'
+import { CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { AUTH_PRIMARY_BUTTON, AuthField, AuthNotice, AuthScreen } from '@/components/auth/AuthScreen'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 
 type Phase = 'verifying' | 'ready' | 'invalid' | 'done'
 
@@ -79,118 +79,78 @@ export default function ResetPasswordPage() {
   }
 
   if (phase === 'verifying') {
+    return <PageLoading />
+  }
+
+  const toggleButton = (shown: boolean, onToggle: () => void) => (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={shown ? 'Hide password' : 'Show password'}
+      className="flex h-9 w-9 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+    >
+      {shown ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+    </button>
+  )
+
+  if (phase === 'invalid') {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Spinner variant="primary" size="lg" />
-      </div>
+      <AuthScreen
+        title="Link expired"
+        subtitle="This password reset link is invalid or has expired. Request a new one to continue."
+      >
+        <Link href="/auth/forgot-password" className={AUTH_PRIMARY_BUTTON}>
+          Request a new link
+        </Link>
+      </AuthScreen>
+    )
+  }
+
+  if (phase === 'done') {
+    return (
+      <AuthScreen title="Password updated" subtitle="Redirecting you to your dashboard...">
+        <div className="flex justify-center py-2">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[#39FF14]/40 bg-[rgba(57,255,20,0.12)]">
+            <CheckCircle className="h-8 w-8 text-[#39FF14]" />
+          </div>
+        </div>
+      </AuthScreen>
     )
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <Card className="max-w-md mx-auto w-full">
-        <div className="text-center mb-8">
-          <Image
-            src={ASSETS.brand.logoWhite}
-            alt="Vibration Fit"
-            width={453}
-            height={40}
-            className="mx-auto mb-4"
-            priority
-            loading="eager"
-          />
-        </div>
+    <AuthScreen title="Set a new password" subtitle="Choose a strong password you don't use elsewhere.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <AuthField
+          type={showPassword ? 'text' : 'password'}
+          label="New password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your new password"
+          required
+          trailing={toggleButton(showPassword, () => setShowPassword(!showPassword))}
+        />
+        <p className="-mt-2 px-1 text-xs text-white/45">Must be at least 8 characters</p>
 
-        {phase === 'invalid' && (
-          <div className="text-center py-4">
-            <h1 className="text-xl font-bold text-white">Link expired</h1>
-            <p className="mt-3 text-sm text-neutral-400">
-              This password reset link is invalid or has expired. Request a new one to continue.
-            </p>
-            <a
-              href="/auth/forgot-password"
-              className="mt-6 inline-flex items-center justify-center rounded-full bg-[#39FF14] px-6 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
-            >
-              Request a new link
-            </a>
-          </div>
-        )}
+        <AuthField
+          type={showConfirm ? 'text' : 'password'}
+          label="Confirm password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Confirm your new password"
+          required
+          trailing={toggleButton(showConfirm, () => setShowConfirm(!showConfirm))}
+        />
 
-        {phase === 'done' && (
-          <div className="text-center py-8">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-500">
-              <CheckCircle className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-white">Password updated</h1>
-            <p className="mt-2 text-sm text-neutral-400">Redirecting you to your dashboard...</p>
-          </div>
-        )}
+        {error && <AuthNotice tone="error">{error}</AuthNotice>}
 
-        {phase === 'ready' && (
-          <>
-            <div className="mb-6 flex flex-col items-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-500/20">
-                <Lock className="h-8 w-8 text-primary-500" />
-              </div>
-              <h1 className="text-xl font-bold text-white">Set a new password</h1>
-              <p className="mt-2 text-sm text-neutral-400">Choose a strong password you don&apos;t use elsewhere.</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  label="New password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your new password"
-                  helperText="Must be at least 8 characters"
-                  required
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-[3.375rem] -translate-y-1/2 text-neutral-400 transition-colors hover:text-neutral-300"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                </button>
-              </div>
-
-              <div className="relative">
-                <Input
-                  type={showConfirm ? 'text' : 'password'}
-                  label="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your new password"
-                  required
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 transition-colors hover:text-neutral-300"
-                >
-                  {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-
-              {error && (
-                <div className="rounded-lg border border-error-600 bg-error-600/10 px-4 py-3 !text-[#FF0040]">
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" loading={loading} className="w-full">
-                {loading ? 'Updating...' : 'Update password'}
-              </Button>
-            </form>
-          </>
-        )}
-      </Card>
-    </div>
+        <button type="submit" disabled={loading} className={AUTH_PRIMARY_BUTTON}>
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+          {loading ? 'Updating' : 'Update password'}
+        </button>
+      </form>
+    </AuthScreen>
   )
 }

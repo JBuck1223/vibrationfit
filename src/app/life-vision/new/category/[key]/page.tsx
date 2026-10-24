@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, Button, Spinner, Container, Stack, PageHero, CategoryGrid, IconList, InsufficientTokensDialog, VIVALoadingOverlay } from '@/lib/design-system/components'
 import { ProfileStateCard } from '@/lib/design-system/profile-cards'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { RecordingTextarea } from '@/components/RecordingTextarea'
 import { Sparkles, ArrowLeft, ArrowRight, ChevronDown, User, Lightbulb, Wand2, RefreshCw, Trash2, CheckCircle, AlertCircle } from 'lucide-react'
 import {
@@ -534,9 +535,7 @@ export default function CategoryPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner variant="primary" size="lg" />
-      </div>
+      <PageLoading />
     )
   }
 
@@ -604,10 +603,10 @@ export default function CategoryPage() {
 
         {/* Context Card - Profile Details + Current State (hidden for meta categories) */}
         {!isMetaCategory && (profileData || fullProfile) && (
-          <Card className="border-2 border-neutral-700 bg-neutral-800/30">
+          <Card className="border border-white/[0.12] bg-white/[0.06]">
             <button
               onClick={() => setShowContextCard(!showContextCard)}
-              className={`w-full flex items-center justify-between gap-3 ${showContextCard ? 'pb-4 border-b border-neutral-700' : ''}`}
+              className={`w-full flex items-center justify-between gap-3 ${showContextCard ? 'pb-4 border-b border-white/[0.12]' : ''}`}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -797,7 +796,7 @@ export default function CategoryPage() {
           <Card variant="elevated">
             <button
               onClick={() => setShowInspirationQuestions(!showInspirationQuestions)}
-              className={`w-full flex items-center justify-between gap-3 ${showInspirationQuestions ? 'pb-4 border-b border-neutral-700' : ''}`}
+              className={`w-full flex items-center justify-between gap-3 ${showInspirationQuestions ? 'pb-4 border-b border-white/[0.12]' : ''}`}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -1003,7 +1002,7 @@ export default function CategoryPage() {
                   <textarea
                     value={generatedVisionText}
                     onChange={(e) => setGeneratedVisionText(e.target.value)}
-                    className="w-full min-h-[300px] bg-neutral-900/50 border border-neutral-700 rounded-xl p-4 text-neutral-200 leading-relaxed resize-y focus:outline-none focus:border-primary-500/50"
+                    className="w-full min-h-[300px] bg-white/[0.05] border border-white/[0.12] rounded-xl p-4 text-neutral-200 leading-relaxed resize-y focus:outline-none focus:border-primary-500/50"
                     readOnly={isGenerating}
                   />
                   {isGenerating && (

@@ -90,7 +90,7 @@ export default function ResetUpdatePage() {
                   className={`flex items-start gap-3 text-left rounded-xl border p-4 transition-colors ${
                     on
                       ? 'border-primary-500 bg-primary-500/10'
-                      : 'border-neutral-700 hover:border-neutral-600'
+                      : 'border-white/[0.12] hover:border-white/25'
                   }`}
                 >
                   <Icon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${on ? 'text-primary-400' : 'text-neutral-400'}`} />

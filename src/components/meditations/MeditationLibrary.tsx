@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 import { Check, Copy, Heart, ListChecks, ListPlus, MoreHorizontal, Pause, Pencil, Play, Share2, Trash2 } from 'lucide-react'
 import { Button, DeleteConfirmationDialog, Spinner } from '@/lib/design-system/components'
 import { cardRhythm, rhythmLabel } from '@/lib/meditations/breath'
@@ -95,7 +96,7 @@ export function MeditationLibrary({
     <section>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <h2 className="text-lg md:text-xl font-semibold text-white">Library</h2>
-        <div className="flex gap-1 rounded-full bg-neutral-900 p-1" role="tablist">
+        <div className="flex gap-1 rounded-full border border-white/15 bg-[rgba(28,22,38,0.45)] p-1 backdrop-blur-xl" role="tablist">
           {tabs.map((item) => (
             <button
               key={item.id}
@@ -104,7 +105,7 @@ export function MeditationLibrary({
               aria-selected={tab === item.id}
               onClick={() => setTab(item.id)}
               className={`rounded-full px-3 py-1.5 text-xs md:text-sm transition-colors ${
-                tab === item.id ? 'bg-[#39FF14] text-black font-semibold' : 'text-neutral-400 hover:text-white'
+                tab === item.id ? 'bg-[#39FF14] text-black font-semibold' : 'text-white/75 hover:text-white'
               }`}
             >
               {item.label}
@@ -117,15 +118,15 @@ export function MeditationLibrary({
       {loading ? (
         <div className="flex justify-center py-10"><Spinner /></div>
       ) : cards.length === 0 && trackRows.length === 0 ? (
-        <p className="rounded-2xl border-2 border-dashed border-neutral-800 px-4 py-10 text-center text-sm text-neutral-500">
+        <p className="rounded-2xl border border-dashed border-white/20 bg-white/[0.04] px-4 py-10 text-center text-sm text-white/60">
           {empty}
         </p>
       ) : (
         <div className="space-y-6">
           {trackRows.length > 0 && (
             <div>
-              <p className="mb-2 text-xs uppercase tracking-wider text-neutral-500">Tracks</p>
-              <div className="rounded-2xl border-2 border-neutral-800 bg-neutral-900/60 p-1">
+              <p className="mb-2 text-sm font-semibold text-white/85">Tracks</p>
+              <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-1">
                 {trackRows.map((track) => (
                   <TrackRow
                     key={track.id}
@@ -147,7 +148,7 @@ export function MeditationLibrary({
           {cards.length > 0 && (
             <div>
               {trackRows.length > 0 && (
-                <p className="mb-2 text-xs uppercase tracking-wider text-neutral-500">Meditations</p>
+                <p className="mb-2 text-sm font-semibold text-white/85">Meditations</p>
               )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {cards.map((card) => (
@@ -205,11 +206,11 @@ function LibraryCard({
 
   return (
     <div
-      className={`group flex flex-col rounded-2xl border-2 bg-gradient-to-b from-neutral-900 to-black p-4 transition-all duration-300 hover:-translate-y-1 ${
-        editing ? 'border-[#00FFFF]/50' : 'border-neutral-800 hover:border-neutral-700'
+      className={`group flex flex-col rounded-2xl border bg-white/[0.05] p-4 transition-all duration-300 hover:-translate-y-1 ${
+        editing ? 'border-[#39FF14]/60' : 'border-white/[0.12] hover:border-white/25'
       }`}
     >
-      <div className="mb-3 rounded-xl bg-black/60 px-2 py-1">
+      <div className="mb-3 rounded-xl bg-[rgba(20,16,30,0.5)] px-2 py-1">
         <PatternThumb rhythm={cardRhythm(card)} />
       </div>
 
@@ -243,7 +244,7 @@ function LibraryCard({
         <span className="rounded-full bg-white/5 px-2 py-0.5 tabular-nums">{card.durationMinutes} min</span>
         {card.bpm && <span className="rounded-full bg-white/5 px-2 py-0.5">{card.bpm} BPM</span>}
       </div>
-      {sound && <p className="mt-2 truncate text-xs text-neutral-500">{sound}</p>}
+      {sound && <p className="mt-2 truncate text-xs text-white/55">{sound}</p>}
 
       <div className="mt-auto flex items-center gap-1 pt-4">
         <Button size="sm" variant="primary" onClick={onPlay} className="mr-auto">
@@ -354,7 +355,7 @@ function TrackRow({
                 setRenaming(false)
               }
             }}
-            className="h-9 min-w-0 flex-1 rounded-lg border border-[#BF00FF]/50 bg-black/60 px-2 text-sm text-white focus:outline-none"
+            className="h-9 min-w-0 flex-1 rounded-lg border border-[#BF00FF]/50 bg-white/[0.06] px-2 text-sm text-white focus:outline-none"
           />
         </div>
       ) : (
@@ -366,7 +367,7 @@ function TrackRow({
         >
           <span
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
-              previewing ? 'bg-[#00FFFF] text-black' : 'bg-white/5 text-neutral-300'
+              previewing ? 'bg-[#00FFFF] text-black' : 'border border-white/15 bg-white/[0.06] text-white/85'
             }`}
           >
             {previewing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-px" />}
@@ -376,7 +377,7 @@ function TrackRow({
               {track.title}
             </span>
             <span className="flex min-w-0 items-center gap-1.5">
-              {details && <span className="truncate text-xs text-neutral-500">{details}</span>}
+              {details && <span className="truncate text-xs text-white/55">{details}</span>}
               {track.inMusicList && (
                 <span className="shrink-0 rounded-full bg-[#00FFFF]/10 px-1.5 py-0.5 text-[9px] font-medium leading-none text-[#00FFFF]">
                   In music
@@ -393,7 +394,7 @@ function TrackRow({
         aria-pressed={track.isFavorite}
         onClick={onHeart}
         className={`shrink-0 rounded-lg p-1.5 transition-colors ${
-          track.isFavorite ? 'text-[#FF0040] hover:text-[#FF0040]/80' : 'text-neutral-500 hover:text-[#FF0040]'
+          track.isFavorite ? 'text-[#FF0040] hover:text-[#FF0040]/80' : 'text-white/50 hover:text-[#FF0040]'
         }`}
       >
         <Heart className="h-4 w-4" fill={track.isFavorite ? 'currentColor' : 'none'} />
@@ -406,7 +407,7 @@ function TrackRow({
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
           className={`rounded-lg p-1.5 transition-colors ${
-            menuOpen ? 'bg-neutral-800/80 text-neutral-200' : 'text-neutral-500 hover:text-neutral-300'
+            menuOpen ? 'bg-white/10 text-white' : 'text-white/55 hover:text-white'
           }`}
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -416,7 +417,7 @@ function TrackRow({
             <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
             <div
               role="menu"
-              className="absolute right-0 top-full z-50 mt-1 min-w-[200px] rounded-xl border border-neutral-700/80 bg-neutral-900 py-1 shadow-2xl"
+              className={`absolute right-0 top-full z-50 mt-1 min-w-[200px] py-1 ${GLASS_MENU}`}
             >
               {menuItems.map((item) => (
                 <button

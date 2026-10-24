@@ -197,7 +197,7 @@ export default function StorageHistoryPage() {
             <div className="flex items-center gap-2">
               <div className="flex shrink-0 items-center gap-2 text-neutral-400">
                 <Calendar className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">Range</span>
+                <span className="text-xs font-medium text-white/60">Range</span>
               </div>
               <div className="w-[11rem] min-w-0 sm:w-44">
                 <Select
@@ -208,12 +208,12 @@ export default function StorageHistoryPage() {
               </div>
             </div>
 
-            <div className="hidden h-9 w-px shrink-0 bg-neutral-700/80 sm:block" aria-hidden />
+            <div className="hidden h-9 w-px shrink-0 bg-white/10 sm:block" aria-hidden />
 
             <div className="flex items-center gap-2">
               <div className="flex shrink-0 items-center gap-2 text-neutral-400">
                 <Filter className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">Folder</span>
+                <span className="text-xs font-medium text-white/60">Folder</span>
               </div>
               <div className="w-[13rem] min-w-0 sm:w-52">
                 <Select options={FOLDER_SELECT_OPTIONS} value={folder} onChange={setFolder} />
@@ -231,7 +231,7 @@ export default function StorageHistoryPage() {
         ) : (
           <Card variant="glass" className="border border-white/[0.06] p-3 shadow-none sm:p-4">
             <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">Events</span>
+              <span className="text-xs font-medium text-white/60">Events</span>
               <span className="text-xs text-neutral-500">{records.length} shown</span>
             </div>
             <ul className="divide-y divide-white/[0.06]">

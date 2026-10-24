@@ -6,6 +6,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, EyeOff, GripVertical, Pin, PinOf
 import type { LucideProps } from 'lucide-react'
 import { Spinner } from '@/lib/design-system/components'
 import { cn } from '@/lib/utils'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { WIDGET_SIZE_META, adjacentWidgetSize, type WidgetSize } from '@/lib/dashboard/widgets/registry'
 
 export interface WidgetChromeProps {
@@ -62,8 +63,9 @@ export function WidgetFrame({
     <section
       aria-label={title}
       className={cn(
-        'flex h-full min-h-[180px] flex-col overflow-hidden rounded-2xl border-2 border-[#333] bg-[#1F1F1F] transition-colors',
-        customizing && 'border-dashed border-neutral-600',
+        GLASS_CARD,
+        'flex h-full min-h-[180px] flex-col overflow-hidden transition-colors',
+        customizing && 'border-dashed border-white/30',
         className,
       )}
     >
@@ -108,14 +110,14 @@ export function WidgetFrame({
               <div
                 role="group"
                 aria-label={`${title} width`}
-                className="mr-1 inline-flex items-center rounded-md border border-white/10 bg-black/30"
+                className="mr-1 inline-flex items-center rounded-full border border-white/15 bg-white/[0.06]"
               >
                 <button
                   type="button"
                   onClick={() => narrower && onResize(narrower)}
                   disabled={!narrower}
                   aria-label={`Make ${title} narrower`}
-                  className="rounded-l-md p-1 text-neutral-400 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                  className="rounded-l-full p-1 text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </button>
@@ -127,7 +129,7 @@ export function WidgetFrame({
                   onClick={() => wider && onResize(wider)}
                   disabled={!wider}
                   aria-label={`Make ${title} wider`}
-                  className="rounded-r-md p-1 text-neutral-400 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                  className="rounded-r-full p-1 text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
                 >
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
@@ -198,8 +200,8 @@ export function WidgetStat({
   hint?: string
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">{label}</p>
+    <div className="rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-2">
+      <p className="text-[10px] font-medium text-white/60">{label}</p>
       <p className="mt-0.5 text-lg font-semibold tabular-nums text-white">{value}</p>
       {hint ? <p className="text-[11px] text-neutral-500">{hint}</p> : null}
     </div>

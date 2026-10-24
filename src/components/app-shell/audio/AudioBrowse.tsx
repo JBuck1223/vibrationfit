@@ -18,6 +18,7 @@ import {
   loadPlaylists,
   storyCollection,
   tabForPath,
+  withCollectionArt,
   type AudioCollection,
 } from './sources'
 import { AudioCollectionView, AudioCover } from './AudioCollectionView'
@@ -110,14 +111,14 @@ export function AudioBrowse() {
           loading: storiesWithAudioLoading,
         }
       case 'songs':
-        return { collections: (songs.data ?? []).map((c, i) => ({ ...c, artwork: c.artwork ?? art[i % art.length] })), loading: songs.isLoading }
+        return { collections: (songs.data ?? []).map((c, i) => withCollectionArt(c, art[i % art.length])), loading: songs.isLoading }
       case 'music':
-        return { collections: (artists.data ?? []).map((c, i) => ({ ...c, artwork: c.artwork ?? art[i % art.length] })), loading: artists.isLoading }
+        return { collections: (artists.data ?? []).map((c, i) => withCollectionArt(c, art[i % art.length])), loading: artists.isLoading }
       case 'meditations':
         // Meditations open the breathing studio at /meditations instead.
         return { collections: [], loading: false }
       case 'playlists':
-        return { collections: (playlists.data ?? []).map((c, i) => ({ ...c, artwork: c.artwork ?? art[(i + 3) % art.length] })), loading: playlists.isLoading }
+        return { collections: (playlists.data ?? []).map((c, i) => withCollectionArt(c, art[(i + 3) % art.length])), loading: playlists.isLoading }
     }
   }, [tab, audioSets, audioSetsLoading, storiesWithAudio, storiesWithAudioLoading, songs.data, songs.isLoading, artists.data, artists.isLoading, playlists.data, playlists.isLoading, visionTitle, heroArt, art])
 

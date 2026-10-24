@@ -13,6 +13,7 @@ import {
 } from '@/lib/design-system/components'
 import { Check, Loader2, Sparkles, Eye, X } from 'lucide-react'
 import { LIFE_CATEGORY_KEYS } from '@/lib/design-system/vision-categories'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 
 type JobStatus = 'pending' | 'processing' | 'complete' | 'error'
 
@@ -451,7 +452,7 @@ export default function VisionBoardQueueBatchPage() {
     <Container size="xl">
       <div className="space-y-6">
         {/* Header */}
-        <div className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-6 md:p-8">
+        <div className={`${GLASS_CARD} p-6 md:p-8`}>
           <div className="text-center space-y-3">
             <div className="flex justify-center">
               {allComplete ? (
@@ -481,7 +482,7 @@ export default function VisionBoardQueueBatchPage() {
 
             {/* Progress bar */}
             <div className="pt-2 space-y-2 max-w-sm mx-auto">
-              <div className="w-full bg-neutral-800 rounded-full h-2">
+              <div className="w-full bg-white/[0.06] rounded-full h-2">
                 <div
                   className="bg-primary-500 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${progressPercentage}%` }}
@@ -516,10 +517,10 @@ export default function VisionBoardQueueBatchPage() {
                   ${isActive
                     ? 'border-primary-500 bg-primary-500/5'
                     : item.status === 'complete'
-                      ? 'border-[#2A2A2A] bg-[#161616]'
+                      ? 'border-white/[0.12] bg-[#161616]'
                       : item.status === 'error'
                         ? 'border-red-500/30 bg-red-500/5'
-                        : 'border-[#2A2A2A] bg-[#1A1A1A]'
+                        : 'border-white/[0.12] bg-white/[0.05]'
                   }
                 `}
               >
@@ -541,7 +542,7 @@ export default function VisionBoardQueueBatchPage() {
                       </div>
                     )}
                     {item.status === 'pending' && (
-                      <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-full bg-white/[0.06] flex items-center justify-center">
                         <span className="text-neutral-500 text-xs font-medium">{index + 1}</span>
                       </div>
                     )}

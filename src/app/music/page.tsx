@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Music, Sparkles } from 'lucide-react'
 import { Button, Spinner } from '@/lib/design-system/components'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { PublicTrackGrid, type PublicGridTrack } from '@/components/music/PublicTrackGrid'
 
 const PAGE_SIZE = 24
@@ -66,7 +67,7 @@ export default function PublicMusicPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
           Vibration Fit Music
         </h1>
-        <p className="text-neutral-400 max-w-2xl mx-auto">
+        <p className="text-white/65 max-w-2xl mx-auto">
           Songs created with VIVA on Vibration Fit — each one born from a
           vision for life.
         </p>
@@ -77,11 +78,11 @@ export default function PublicMusicPage() {
           <Spinner size="lg" />
         </div>
       ) : error ? (
-        <p className="text-center text-neutral-400 py-20">{error}</p>
+        <p className="text-center text-white/65 py-20">{error}</p>
       ) : tracks.length === 0 ? (
         <div className="text-center py-20">
-          <Music className="w-12 h-12 text-neutral-700 mx-auto mb-4" />
-          <p className="text-neutral-400">No songs here yet. Check back soon.</p>
+          <Music className="w-12 h-12 text-white/30 mx-auto mb-4" />
+          <p className="text-white/65">No songs here yet. Check back soon.</p>
         </div>
       ) : (
         <>
@@ -99,7 +100,7 @@ export default function PublicMusicPage() {
 
       {/* ── Sign-up CTA ── */}
       <div className="w-full max-w-xl mx-auto mt-14">
-        <div className="rounded-2xl border-2 border-[#333] bg-neutral-900 p-8 text-center">
+        <div className={`${GLASS_CARD} p-8 text-center`}>
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 rounded-full bg-[#BF00FF]/15 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-[#BF00FF]" />
@@ -108,7 +109,7 @@ export default function PublicMusicPage() {
           <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
             Create your own songs with VIVA
           </h2>
-          <p className="text-sm md:text-base text-neutral-400 mb-6 max-w-md mx-auto">
+          <p className="text-sm md:text-base text-white/65 mb-6 max-w-md mx-auto">
             Design a vision for your life and VIVA turns it into music, audios, and more.
           </p>
           <Button size="lg" asChild>

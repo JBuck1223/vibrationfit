@@ -184,7 +184,7 @@ export default function ResetViewPage() {
               <p className="text-xs text-neutral-500 mt-0.5 mb-2.5">
                 {progress?.completed ?? 0} of {progress?.total ?? 0} recommitments complete
               </p>
-              <div className="h-2 rounded-full bg-neutral-800/80 overflow-hidden">
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-[#39FF14] to-[#00FFFF] transition-all duration-500"
                   style={{ width: `${progress?.percent ?? 0}%` }}
@@ -215,7 +215,7 @@ export default function ResetViewPage() {
                   <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
                     done
                       ? 'border-[#39FF14] bg-[#39FF14]/15'
-                      : 'border-neutral-600'
+                      : 'border-white/25'
                   }`}>
                     {done && <CheckCircle2 className="h-4 w-4 text-[#39FF14]" />}
                   </div>

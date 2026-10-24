@@ -179,7 +179,7 @@ export default function TicketDetailPage() {
           <span className="text-neutral-500">
             {ticket.ticket_number} · {new Date(ticket.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
-          <span className="inline-flex px-1.5 py-0.5 rounded-full border border-neutral-600/50 text-neutral-300 bg-neutral-800/50">
+          <span className="inline-flex px-1.5 py-0.5 rounded-full border border-white/15 text-white/80 bg-white/[0.08]">
             {ticket.category}
           </span>
           <span className={`inline-flex px-2 py-0.5 rounded-full border font-medium capitalize ${
@@ -187,7 +187,7 @@ export default function TicketDetailPage() {
             ticket.status === 'in_progress' ? 'text-amber-400 bg-amber-500/20 border-amber-500/30' :
             ticket.status === 'waiting_reply' ? 'text-purple-400 bg-purple-500/20 border-purple-500/30' :
             ticket.status === 'resolved' ? 'text-[#39FF14] bg-[#39FF14]/20 border-[#39FF14]/30' :
-            'text-neutral-400 bg-neutral-800 border-neutral-700'
+            'text-white/75 bg-white/[0.08] border-white/15'
           }`}>
             {ticket.status.replace(/_/g, ' ')}
           </span>
@@ -195,7 +195,7 @@ export default function TicketDetailPage() {
             <span className={`inline-flex px-2 py-0.5 rounded-full border font-medium capitalize ${
               ticket.priority === 'urgent' ? 'text-[#FF0040] bg-[#FF0040]/20 border-[#FF0040]/30' :
               ticket.priority === 'high' ? 'text-amber-400 bg-amber-500/20 border-amber-500/30' :
-              'text-neutral-400 bg-neutral-800 border-neutral-700'
+              'text-white/75 bg-white/[0.08] border-white/15'
             }`}>
               {ticket.priority}
             </span>
@@ -203,11 +203,11 @@ export default function TicketDetailPage() {
         </div>
 
         {/* Title + Life Areas + Description */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111] p-5 space-y-4">
+        <div className="vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 p-5 space-y-4">
           <h1 className="text-xl sm:text-2xl font-bold text-white">{ticket.subject}</h1>
           {lifeAreas.length > 0 && (
             <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Life Areas</p>
+              <p className="text-xs font-medium text-white/60 mb-2">Life Areas</p>
               <div className="flex flex-wrap gap-2">
                 {lifeAreas.map((area) => (
                   <span
@@ -221,7 +221,7 @@ export default function TicketDetailPage() {
             </div>
           )}
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Description</p>
+            <p className="text-xs font-medium text-white/60 mb-2">Description</p>
             <p className="text-[13px] text-neutral-300 leading-relaxed whitespace-pre-wrap">
               {descriptionBody || ticket.description}
             </p>
@@ -231,10 +231,10 @@ export default function TicketDetailPage() {
         {/* Conversation */}
         {replies.length > 0 && (
           <div className="space-y-3">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
+            <p className="text-xs font-medium text-white/60">
               Conversation ({replies.length})
             </p>
-            <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
+            <div className="vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 overflow-hidden divide-y divide-white/[0.08]">
               {replies.map((reply) => {
                 const isAdmin = !!reply.admin_id
                 const hasAttachments = reply.attachments?.length > 0
@@ -292,8 +292,8 @@ export default function TicketDetailPage() {
 
         {/* Reply Box */}
         {ticket.status !== 'closed' && (
-          <div className="rounded-2xl border border-white/[0.06] bg-[#111] p-5 space-y-4">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Reply</p>
+          <div className="vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 p-5 space-y-4">
+            <p className="text-xs font-medium text-white/60">Reply</p>
 
             <RecordingTextarea
               value={replyText}
@@ -314,7 +314,7 @@ export default function TicketDetailPage() {
                 {attachmentUrls.map((url, idx) => {
                   const kind = getSupportAttachmentKind(url)
                   return (
-                    <div key={idx} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/20 p-3">
+                    <div key={idx} className="flex items-center gap-3 rounded-xl border border-white/[0.12] bg-white/[0.06] p-3">
                       {kind === 'audio' ? (
                         <div className="flex-1 min-w-0">
                           <audio src={url} controls className="w-full h-8" preload="metadata" />
@@ -347,7 +347,7 @@ export default function TicketDetailPage() {
             )}
 
             {showRecorder && (
-              <div className="rounded-xl border border-white/[0.06] bg-black/20 p-4">
+              <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4">
                 <MediaRecorderComponent
                   key={`member-reply-recorder-${recorderKey}`}
                   instanceId={`member-support-screen-${recorderKey}`}
@@ -382,7 +382,7 @@ export default function TicketDetailPage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingFile}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-700 hover:text-white hover:border-neutral-500 transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-white/15 bg-[rgba(28,22,38,0.45)] text-white/85 backdrop-blur-xl hover:text-white hover:border-white/30 transition-colors"
                 >
                   {uploadingFile ? <Spinner size="sm" /> : <Paperclip className="h-3.5 w-3.5" />}
                   {uploadingFile ? 'Uploading...' : 'Attach File'}
@@ -393,7 +393,7 @@ export default function TicketDetailPage() {
                     if (!showRecorder) setRecorderKey((k) => k + 1)
                     setShowRecorder(!showRecorder)
                   }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-700 hover:text-white hover:border-neutral-500 transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-white/15 bg-[rgba(28,22,38,0.45)] text-white/85 backdrop-blur-xl hover:text-white hover:border-white/30 transition-colors"
                 >
                   <Monitor className="h-3.5 w-3.5" />
                   {showRecorder ? 'Hide Recorder' : 'Record Screen'}
@@ -423,7 +423,7 @@ export default function TicketDetailPage() {
         )}
 
         {ticket.status === 'closed' && (
-          <div className="rounded-2xl border border-white/[0.06] bg-[#111] p-5 text-center">
+          <div className="vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 p-5 text-center">
             <p className="text-sm text-neutral-400">
               This ticket has been closed. If you need further assistance, please create a new ticket.
             </p>

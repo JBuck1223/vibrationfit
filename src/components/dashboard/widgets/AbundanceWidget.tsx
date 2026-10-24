@@ -37,7 +37,7 @@ export function AbundanceWidget(chrome: WidgetChromeProps) {
       loading={isLoading}
     >
       <div className="flex flex-1 flex-col gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{monthLabel} so far</p>
+        <p className="text-[10px] font-medium text-white/60">{monthLabel} so far</p>
         <div className="grid grid-cols-2 gap-2">
           <WidgetStat label="Money in" value={formatMoney(data?.moneyTotal ?? 0)} hint={`${data?.moneyCount ?? 0} ${data?.moneyCount === 1 ? 'entry' : 'entries'}`} />
           <WidgetStat label="Value received" value={data?.valueCount ?? 0} hint="moments noticed" />

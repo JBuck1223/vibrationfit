@@ -65,14 +65,14 @@ export function DailyPaperWidget(chrome: WidgetChromeProps) {
 
           {paper.gratitude?.trim() ? (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Grateful for</p>
+              <p className="text-[10px] font-medium text-white/60">Grateful for</p>
               <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-neutral-200">{paper.gratitude}</p>
             </div>
           ) : null}
 
           {tasks.length > 0 ? (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Today</p>
+              <p className="text-[10px] font-medium text-white/60">Today</p>
               <ul className="mt-1 space-y-1">
                 {tasks.map((t, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-neutral-200">

@@ -73,7 +73,7 @@ export function ReferralsWidget(chrome: WidgetChromeProps) {
       ) : (
         <div className="flex flex-1 flex-col gap-3">
           <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 truncate rounded-full border border-[#333] bg-[#1a1a1a] px-3 py-1.5 text-xs text-neutral-300">
+            <div className="min-w-0 flex-1 truncate rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs text-white/80">
               {data.referralLink.replace(/^https?:\/\//, '')}
             </div>
             <Button variant="primary" size="sm" onClick={copyLink} className="shrink-0">

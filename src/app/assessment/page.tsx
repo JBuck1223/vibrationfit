@@ -327,7 +327,7 @@ export default function AssessmentHub() {
                   className={`flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 p-3 md:p-4 rounded-lg transition-all ${
                     isActive
                       ? 'border border-primary-500 hover:border-primary-400'
-                      : 'border border-neutral-700 hover:border-neutral-600'
+                      : 'border border-white/[0.12] hover:border-white/25'
                   }`}
                 >
                   <div className="flex-1 min-w-0 w-full lg:w-auto text-center lg:text-left">
@@ -335,7 +335,6 @@ export default function AssessmentHub() {
                       <StatusBadge 
                         status={isActive ? 'active' : 'complete'} 
                         subtle={!isActive}
-                        className="uppercase tracking-[0.25em]"
                       />
                     </div>
                     <div className="flex items-center justify-center lg:justify-start gap-1.5 text-neutral-300 text-xs md:text-sm mb-1">

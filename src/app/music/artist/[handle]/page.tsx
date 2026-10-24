@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { Music, Sparkles } from 'lucide-react'
 import { Button } from '@/lib/design-system/components'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { resolveArtistHandle, getPublicArtist } from '@/lib/songs/public-artist'
 import { PublicTrackGrid } from '@/components/music/PublicTrackGrid'
 
@@ -82,15 +83,15 @@ export default async function PublicArtistPage({ params }: PageProps) {
           <img
             src={artist.avatarUrl}
             alt={artist.name}
-            className="w-24 h-24 rounded-full object-cover border-2 border-[#333] mb-4"
+            className="w-24 h-24 rounded-full object-cover border border-white/[0.14] mb-4"
           />
         ) : (
-          <div className="w-24 h-24 rounded-full bg-neutral-800 border-2 border-[#333] flex items-center justify-center mb-4">
-            <Music className="w-10 h-10 text-neutral-500" />
+          <div className="w-24 h-24 rounded-full bg-white/[0.06] border border-white/[0.14] backdrop-blur-xl flex items-center justify-center mb-4">
+            <Music className="w-10 h-10 text-white/50" />
           </div>
         )}
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{artist.name}</h1>
-        <p className="text-neutral-400">
+        <p className="text-white/65">
           {artist.tracks.length} song{artist.tracks.length === 1 ? '' : 's'} on Vibration Fit
         </p>
       </div>
@@ -99,7 +100,7 @@ export default async function PublicArtistPage({ params }: PageProps) {
 
       {/* ── Sign-up CTA ── */}
       <div className="w-full max-w-xl mx-auto mt-14">
-        <div className="rounded-2xl border-2 border-[#333] bg-neutral-900 p-8 text-center">
+        <div className={`${GLASS_CARD} p-8 text-center`}>
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 rounded-full bg-[#BF00FF]/15 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-[#BF00FF]" />
@@ -108,7 +109,7 @@ export default async function PublicArtistPage({ params }: PageProps) {
           <h2 className="text-xl md:text-2xl font-bold text-white mb-2">
             Create your own songs with VIVA
           </h2>
-          <p className="text-sm md:text-base text-neutral-400 mb-6 max-w-md mx-auto">
+          <p className="text-sm md:text-base text-white/65 mb-6 max-w-md mx-auto">
             {artist.name} makes music on Vibration Fit — where you design a
             vision for your life and VIVA turns it into music, audios, and more.
           </p>

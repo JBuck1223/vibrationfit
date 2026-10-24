@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 import { Card, Input, Textarea, SaveButton } from '@/lib/design-system/components'
 import { ProfileSectionCardHeading } from './ProfileSectionCardHeading'
 import { UserProfile } from '@/lib/supabase/profile'
@@ -135,10 +137,10 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
             <button
               type="button"
               onClick={() => setIsEmploymentTypeDropdownOpen(!isEmploymentTypeDropdownOpen)}
-              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+              className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                 profile.employment_type 
                   ? 'text-white' 
-                  : 'text-[#9CA3AF]'
+                  : 'text-white/40'
               }`}
             >
               {employmentTypeOptions.find(opt => opt.value === (profile.employment_type || ''))?.label || 'Select employment type'}
@@ -155,7 +157,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsEmploymentTypeDropdownOpen(false)}
                 />
-                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                   {employmentTypeOptions.map(option => (
                     <button
                       key={option.value}
@@ -167,7 +169,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
                       className={`w-full px-6 py-2 text-left transition-colors ${
                         (profile.employment_type || '') === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                          : 'text-white hover:bg-[#333]'
+                          : 'text-white hover:bg-white/[0.06]'
                       }`}
                     >
                       {option.label}
@@ -216,10 +218,10 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
             <button
               type="button"
               onClick={() => setIsTimeInRoleDropdownOpen(!isTimeInRoleDropdownOpen)}
-              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+              className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                 profile.time_in_role 
                   ? 'text-white' 
-                  : 'text-[#9CA3AF]'
+                  : 'text-white/40'
               }`}
             >
               {timeInRoleOptions.find(opt => opt.value === (profile.time_in_role || ''))?.label || 'Select time in role'}
@@ -236,7 +238,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsTimeInRoleDropdownOpen(false)}
                 />
-                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                   {timeInRoleOptions.map(option => (
                     <button
                       key={option.value}
@@ -248,7 +250,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
                       className={`w-full px-6 py-2 text-left transition-colors ${
                         (profile.time_in_role || '') === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                          : 'text-white hover:bg-[#333]'
+                          : 'text-white hover:bg-white/[0.06]'
                       }`}
                     >
                       {option.label}
@@ -269,10 +271,10 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
             <button
               type="button"
               onClick={() => setIsEducationDropdownOpen(!isEducationDropdownOpen)}
-              className={`w-full pl-6 pr-12 py-3 rounded-xl bg-[#404040] border-2 border-[#666666] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left ${
+              className={`w-full pl-6 pr-12 py-3 rounded-full border border-white/15 bg-white/[0.06] hover:border-white/25 focus:border-[#39FF14]/60 focus:outline-none transition-colors cursor-pointer text-left ${
                 profile.education 
                   ? 'text-white' 
-                  : 'text-[#9CA3AF]'
+                  : 'text-white/40'
               }`}
             >
               {educationOptions.find(opt => opt.value === (profile.education || ''))?.label || 'Select education level'}
@@ -289,7 +291,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsEducationDropdownOpen(false)}
                 />
-                <div className="absolute z-20 w-full top-full mt-1 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-48 overflow-y-auto overscroll-contain">
+                <div className={cn(GLASS_MENU, 'absolute z-20 w-full top-full mt-1 py-2 max-h-48 overflow-y-auto overscroll-contain')}>
                   {educationOptions.map(option => (
                     <button
                       key={option.value}
@@ -301,7 +303,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
                       className={`w-full px-6 py-2 text-left transition-colors ${
                         (profile.education || '') === option.value 
                           ? 'bg-primary-500/20 text-primary-500 font-semibold' 
-                          : 'text-white hover:bg-[#333]'
+                          : 'text-white hover:bg-white/[0.06]'
                       }`}
                     >
                       {option.label}
@@ -350,7 +352,7 @@ export function CareerSection({ profile, onProfileChange, onProfileReload, profi
 
       {/* Save Button - Bottom Right */}
       {onSave && (
-        <div className="border-t border-neutral-800/50 pt-2">
+        <div className="border-t border-white/10 pt-2">
           {saveError && hasUnsavedChanges && (
             <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
               <span className="text-sm text-red-400">{saveError}</span>

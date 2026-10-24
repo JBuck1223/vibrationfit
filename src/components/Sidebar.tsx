@@ -17,6 +17,7 @@ import {
   Bell,
   Menu,
   Home,
+  LifeBuoy,
 } from 'lucide-react'
 import { userNavigationPrimary, userNavigationGroups, shellNavigationPrimary, shellNavigationGroups, adminNavigation, mobileNavigation, isNavItemActive, type NavItem, type NavGroup } from '@/lib/navigation'
 import { useAdminNotificationCount } from '@/hooks/useAdminNotificationCount'
@@ -318,7 +319,8 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups: al
           >
             <X className="w-4 h-4 text-neutral-400" />
           </button>
-          {!isAdmin && <VibeNotificationBell className="hidden md:flex" />}
+          {/* In the app shell the bell lives in ShellHeader instead. */}
+          {!isAdmin && !glass && <VibeNotificationBell className="hidden md:flex" />}
           {/* Desktop: admin notifications */}
           {isAdmin && (
             <Link
@@ -646,9 +648,28 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups: al
         })}
       </nav>
 
+      {/* Help is always one click away on desktop. Mobile reaches it from the header. */}
+      {!isAdmin && (
+        <div className={cn('hidden md:block', glass ? 'px-3 pt-2' : 'px-4 pt-3 border-t border-neutral-800')}>
+          <Link
+            href="/support"
+            title="Help & Support"
+            className={cn(
+              glass
+                ? shellRow(pathname?.startsWith('/support') ?? false)
+                : 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-all duration-200',
+              isCollapsed && 'justify-center px-0'
+            )}
+          >
+            <LifeBuoy className="w-4 h-4 flex-shrink-0" />
+            {!isCollapsed && <span className="flex-1">Help &amp; Support</span>}
+          </Link>
+        </div>
+      )}
+
       {/* Footer */}
       {!isCollapsed && (
-        <div className={cn('space-y-3', glass ? 'px-3 pb-4 pt-2' : 'p-4 border-t border-neutral-800')}>
+        <div className={cn('space-y-3', glass ? 'px-3 pb-4 pt-2' : cn('p-4 border-t border-neutral-800', !isAdmin && 'md:border-t-0'))}>
           <div className="flex items-center gap-2">
             <button
               onClick={async () => {
@@ -691,7 +712,7 @@ function SidebarBase({ className, navigation, primaryNavigation = [], groups: al
 
   return (
     <>
-      {!isAdmin && <VibeNotificationBell variant="mobile" />}
+      {!isAdmin && !glass && <VibeNotificationBell variant="mobile" />}
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileOpen(true)}

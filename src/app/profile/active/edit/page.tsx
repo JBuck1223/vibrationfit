@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Spinner, Container } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 
 /**
  * Redirect page that fetches the active profile and redirects to its edit page
@@ -43,9 +43,7 @@ export default function ActiveProfileEditRedirectPage() {
   }, [router])
 
   return (
-    <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-      <Spinner size="lg" />
-    </Container>
+    <PageLoading />
   )
 }
 

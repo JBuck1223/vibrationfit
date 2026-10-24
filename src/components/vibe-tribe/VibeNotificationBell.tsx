@@ -73,7 +73,7 @@ function iconColor(type: VibeNotificationType): string {
 }
 
 interface VibeNotificationBellProps {
-  variant?: 'inline' | 'mobile'
+  variant?: 'inline' | 'mobile' | 'header'
   className?: string
 }
 
@@ -194,13 +194,15 @@ export function VibeNotificationBell({ variant = 'inline', className = '' }: Vib
       className={
         variant === 'mobile'
           ? 'md:hidden fixed top-[max(0.75rem,env(safe-area-inset-top))] right-4 z-40 w-10 h-10 flex items-center justify-center bg-neutral-800 rounded-lg border-2 border-neutral-700 hover:border-neutral-600'
+          : variant === 'header'
+          ? `relative flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:bg-white/10 ${className}`
           : `relative p-1.5 rounded-full hover:bg-white/10 transition-colors ${className}`
       }
       aria-label={unreadCount > 0 ? `Vibe Tribe notifications, ${unreadCount} unread` : 'Vibe Tribe notifications'}
       aria-expanded={open}
       title="Vibe Tribe notifications"
     >
-      <Bell className={variant === 'mobile' ? 'w-5 h-5 text-white' : 'w-4 h-4 text-neutral-400'} />
+      <Bell className={variant === 'mobile' ? 'w-5 h-5 text-white' : variant === 'header' ? 'h-5 w-5' : 'w-4 h-4 text-neutral-400'} />
       {unreadCount > 0 && (
         <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-[#FF0040] text-[10px] font-bold text-white px-1 leading-none">
           {unreadCount > 99 ? '99+' : unreadCount}

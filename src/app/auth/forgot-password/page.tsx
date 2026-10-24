@@ -1,11 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Card, Input, Button } from '@/lib/design-system'
-import { MailCheck } from 'lucide-react'
-import Image from 'next/image'
-import { ASSETS } from '@/lib/storage/s3-storage-presigned'
+import { Loader2, MailCheck } from 'lucide-react'
+import { AUTH_LINK, AUTH_PRIMARY_BUTTON, AuthField, AuthNotice, AuthScreen } from '@/components/auth/AuthScreen'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -43,76 +42,48 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <Card className="max-w-md mx-auto w-full">
-        <div className="text-center mb-8">
-          <Image
-            src={ASSETS.brand.logoWhite}
-            alt="Vibration Fit"
-            width={453}
-            height={40}
-            className="mx-auto mb-4"
-            priority
-            loading="eager"
-          />
-        </div>
-
-        {sent ? (
-          <div className="text-center py-4">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-500/20">
-              <MailCheck className="h-8 w-8 text-primary-500" />
-            </div>
-            <h1 className="text-xl font-bold text-white">Check your email</h1>
-            <p className="mt-3 text-sm text-neutral-400">
-              If an account exists for <span className="text-white">{email}</span>, we&apos;ve sent a
-              link to reset your password. It may take a minute to arrive.
-            </p>
-            <a
-              href="/auth/login"
-              className="mt-6 inline-block text-sm text-green-500 transition-colors hover:text-green-400"
-            >
-              Back to sign in
-            </a>
-          </div>
-        ) : (
+    <AuthScreen
+      title={sent ? 'Check your email' : 'Reset your password'}
+      subtitle={
+        sent ? (
           <>
-            <div className="mb-6 text-center">
-              <h1 className="text-xl font-bold text-white">Reset your password</h1>
-              <p className="mt-2 text-sm text-neutral-400">
-                Enter your email and we&apos;ll send you a link to set a new password.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Input
-                type="email"
-                label="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-              />
-
-              {error && (
-                <div className="rounded-lg border border-error-600 bg-error-600/10 px-4 py-3 !text-[#FF0040]">
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" loading={loading} className="w-full">
-                {loading ? 'Sending...' : 'Send reset link'}
-              </Button>
-            </form>
-
-            <p className="mt-6 text-center text-neutral-400">
-              Remembered it?{' '}
-              <a href="/auth/login" className="text-green-500 transition-colors hover:text-green-400">
-                Back to sign in
-              </a>
-            </p>
+            If an account exists for <span className="text-white">{email}</span>, a link to set a new password is on its way. It may take a minute to arrive.
           </>
-        )}
-      </Card>
-    </div>
+        ) : (
+          'Enter your email and we will send you a link to set a new password.'
+        )
+      }
+      footer={
+        <>
+          {sent ? 'Back to ' : 'Remembered it? '}
+          <Link href="/auth/login" className={AUTH_LINK}>Sign in</Link>
+        </>
+      }
+    >
+      {sent ? (
+        <div className="flex justify-center py-2">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[#39FF14]/40 bg-[rgba(57,255,20,0.12)]">
+            <MailCheck className="h-8 w-8 text-[#39FF14]" />
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <AuthField
+            type="email"
+            label="Email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+          />
+          {error && <AuthNotice tone="error">{error}</AuthNotice>}
+          <button type="submit" disabled={loading} className={AUTH_PRIMARY_BUTTON}>
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+            {loading ? 'Sending' : 'Send reset link'}
+          </button>
+        </form>
+      )}
+    </AuthScreen>
   )
 }

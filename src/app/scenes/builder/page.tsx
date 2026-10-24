@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import {
   Container,
   Card,
@@ -388,7 +389,7 @@ export default function SceneBuilderPage() {
             </Inline>
 
             {scenes.length === 0 && !isLoadingScenes ? (
-              <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-6 text-center text-neutral-400 text-sm">
+              <div className="rounded-xl border border-white/[0.12] bg-white/[0.05] p-6 text-center text-neutral-400 text-sm">
                 No scenes yet in this category. Generate fresh ones above to get started.
               </div>
             ) : (
@@ -396,7 +397,7 @@ export default function SceneBuilderPage() {
                 {scenes.map((scene) => (
                   <div
                     key={scene.id}
-                    className="rounded-2xl border-2 border-[#333] bg-[#1F1F1F] p-6 shadow-[0_4px_14px_rgba(0,0,0,0.25)]"
+                    className={`${GLASS_CARD} p-6`}
                   >
                     <Inline gap="sm" justify="between" align="center" className="mb-4 flex-col md:flex-row md:items-center">
                       <Stack gap="xs" className="w-full">

@@ -44,7 +44,7 @@ export function VibeTribeWidget(chrome: WidgetChromeProps) {
                   href={`/vibe-tribe?post=${post.id}`}
                   className="flex gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 transition-colors hover:border-white/15"
                 >
-                  <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-neutral-800">
+                  <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white/10">
                     {post.user?.profile_picture_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={post.user.profile_picture_url} alt="" className="h-full w-full object-cover" />

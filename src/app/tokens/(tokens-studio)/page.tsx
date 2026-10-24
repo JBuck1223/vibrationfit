@@ -97,7 +97,7 @@ export default function TokensOverviewPage() {
         <Card variant="glass" className="border border-white/[0.06] p-4 shadow-none sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">Balance</p>
+              <p className="text-xs font-medium text-white/60">Balance</p>
               <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span className="text-2xl font-semibold tabular-nums text-white sm:text-3xl">
                   {formatCredits(balance, true)}
@@ -137,7 +137,7 @@ export default function TokensOverviewPage() {
                 return (
                   <div
                     key={action}
-                    className="flex min-w-0 items-start gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-3 sm:px-3.5"
+                    className="flex min-w-0 items-start gap-3 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-3 sm:px-3.5"
                   >
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.06]">
                       <Zap className={`h-4 w-4 ${ACTION_TYPE_LABELS[action]?.color || 'text-neutral-400'}`} aria-hidden />

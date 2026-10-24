@@ -86,6 +86,25 @@ function formatAccountDisplayName(account: {
   return 'You'
 }
 
+/** Lyrics panel placeholder for a song with no saved lyrics (e.g. an uploaded original). */
+function NoLyricsCard({ songId, onAddArt, hasArt }: { songId: string; onAddArt: () => void; hasArt: boolean }) {
+  return (
+    <div className="rounded-2xl border border-neutral-800 bg-embedded-panel p-5 text-center">
+      <BookOpen className="mx-auto mb-2 h-6 w-6 text-neutral-600" />
+      <p className="text-sm font-medium text-neutral-200">No lyrics saved for this song</p>
+      <p className="mt-1 text-xs text-neutral-500">Add lyrics and album art to finish it.</p>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <Button variant="primary" size="sm" asChild>
+          <Link href={`/audio/songwriter/${songId}`}><Edit2 className="mr-1.5 h-3.5 w-3.5" />Edit Song</Link>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onAddArt}>
+          <Image className="mr-1.5 h-3.5 w-3.5" />{hasArt ? 'Change Album Art' : 'Add Album Art'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function storyKindLabel(story: Story): string {
   if (story.metadata?.is_spark_query === true) return 'SparkQuery™'
   if (story.metadata?.is_incantation === true) return 'Incantation'
@@ -1822,11 +1841,9 @@ function LegacyAudioListenPage() {
                               <button type="button" onClick={() => setRenameModalOpen(true)} className={pill}>
                                 <Edit2 className="h-3.5 w-3.5" /> Rename
                               </button>
-                              {selectedSong?.lyrics && (
-                                <button type="button" onClick={() => setAlbumArtModalOpen(true)} className={pill}>
-                                  <Image className="h-3.5 w-3.5" /> {songTracks.some(t => t.thumbnail) ? 'Album art' : 'Add album art'}
-                                </button>
-                              )}
+                              <button type="button" onClick={() => setAlbumArtModalOpen(true)} className={pill}>
+                                <Image className="h-3.5 w-3.5" /> {songTracks.some(t => t.thumbnail) ? 'Album art' : 'Add album art'}
+                              </button>
                             </div>
                           </div>
                         )
@@ -1923,16 +1940,14 @@ function LegacyAudioListenPage() {
                               <Edit2 className="h-3.5 w-3.5" />
                               Rename Song
                             </button>
-                            {selectedSong?.lyrics && (
-                              <button
-                                type="button"
-                                onClick={() => setAlbumArtModalOpen(true)}
-                                className="inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
-                              >
-                                <Image className="h-3.5 w-3.5" />
-                                {songTracks.some(t => t.thumbnail) ? 'Change Album Art' : 'Add Album Art'}
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => setAlbumArtModalOpen(true)}
+                              className="inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
+                            >
+                              <Image className="h-3.5 w-3.5" />
+                              {songTracks.some(t => t.thumbnail) ? 'Change Album Art' : 'Add Album Art'}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1948,13 +1963,14 @@ function LegacyAudioListenPage() {
                     const selectedSong = userSongs.find(s => s.id === selectedSongId)
                     const syncedLyrics = activeTrack?.syncedLyrics
                     const plainLyrics = selectedSong?.lyrics as string | undefined
-                    if (!syncedLyrics && !plainLyrics) return null
                     return (
                       <div className="lg:hidden mt-4">
                         {syncedLyrics ? (
                           <SyncedLyricsDisplay syncedLyrics={syncedLyrics as SyncedLyrics} plainText={plainLyrics} />
                         ) : plainLyrics ? (
                           <PlainLyricsDisplay lyrics={plainLyrics} />
+                        ) : selectedSongId ? (
+                          <NoLyricsCard songId={selectedSongId} hasArt={songTracks.some(t => t.thumbnail)} onAddArt={() => setAlbumArtModalOpen(true)} />
                         ) : null}
                       </div>
                     )
@@ -1977,11 +1993,12 @@ function LegacyAudioListenPage() {
                     const selectedSong = userSongs.find(s => s.id === selectedSongId)
                     const syncedLyrics = activeTrack?.syncedLyrics
                     const plainLyrics = selectedSong?.lyrics as string | undefined
-                    if (!syncedLyrics && !plainLyrics) return null
                     return syncedLyrics ? (
                       <SyncedLyricsDisplay syncedLyrics={syncedLyrics as SyncedLyrics} plainText={plainLyrics} />
                     ) : plainLyrics ? (
                       <PlainLyricsDisplay lyrics={plainLyrics} />
+                    ) : selectedSongId ? (
+                      <NoLyricsCard songId={selectedSongId} hasArt={songTracks.some(t => t.thumbnail)} onAddArt={() => setAlbumArtModalOpen(true)} />
                     ) : null
                   })()}
                 </div>
@@ -2340,13 +2357,14 @@ function LegacyAudioListenPage() {
         />
       )}
 
-      {selectedSongId && selectedSong?.lyrics && (
+      {selectedSongId && selectedSong && (
         <AlbumArtModal
           isOpen={albumArtModalOpen}
           onClose={() => setAlbumArtModalOpen(false)}
           songId={selectedSongId}
           songTitle={selectedSong.title || 'Untitled Song'}
-          lyrics={selectedSong.lyrics}
+          lyrics={selectedSong.lyrics || ''}
+          defaultSource={selectedSong.lyrics ? 'ai' : 'upload'}
           currentCoverUrl={songTracks.find(t => t.thumbnail)?.thumbnail || null}
           onArtGenerated={(imageUrl) => {
             setSongTracks(prev => prev.map(t => ({ ...t, thumbnail: imageUrl })))

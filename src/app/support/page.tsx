@@ -200,7 +200,7 @@ export default function SupportPage() {
           <div className="max-w-2xl mx-auto w-full">
             {/* User identity header */}
             {userInfo && (
-              <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/[0.06]">
+              <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/10">
                 {userInfo.profile_picture_url ? (
                   <Image
                     src={userInfo.profile_picture_url}
@@ -229,19 +229,19 @@ export default function SupportPage() {
               </div>
             )}
 
-            <div className="sm:rounded-2xl sm:border sm:border-white/[0.06] sm:bg-[#111] sm:p-6 md:p-8">
+            <div className="sm:vf-glass sm:rounded-[22px] sm:border sm:border-white/[0.12] sm:bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] sm:shadow-[0_10px_30px_rgba(0,0,0,0.22)] sm:backdrop-blur-2xl sm:backdrop-saturate-150 sm:p-6 md:p-8">
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Email field for non-authenticated users */}
                 {!userInfo && (
                   <div>
-                    <label className="block text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Email</label>
+                    <label className="block text-xs font-medium text-white/60 mb-2">Email</label>
                     <input
                       type="email"
                       value={formData.guest_email}
                       onChange={(e) => handleChange('guest_email', e.target.value)}
                       placeholder="your@email.com"
                       required
-                      className="w-full rounded-xl bg-[#404040] border border-[#666666] hover:border-primary-500 focus:border-primary-500 pl-4 pr-4 py-2.5 text-sm text-white placeholder:text-[#9CA3AF] focus:outline-none transition-colors"
+                      className="w-full h-11 px-5 text-sm outline-none transition-colors rounded-full border border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 focus:border-[#39FF14]/60 focus:bg-white/[0.10]"
                     />
                   </div>
                 )}
@@ -249,7 +249,7 @@ export default function SupportPage() {
                 {/* Category and Subject */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Category</label>
+                    <label className="block text-xs font-medium text-white/60 mb-2">Category</label>
                     <Select
                       value={formData.category}
                       onChange={(value) => handleChange('category', value)}
@@ -265,20 +265,20 @@ export default function SupportPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Subject</label>
+                    <label className="block text-xs font-medium text-white/60 mb-2">Subject</label>
                     <input
                       value={formData.subject}
                       onChange={(e) => handleChange('subject', e.target.value)}
                       placeholder="Brief description"
                       required
-                      className="w-full rounded-xl bg-[#404040] border border-[#666666] hover:border-primary-500 focus:border-primary-500 pl-4 pr-4 py-2.5 text-sm text-white placeholder:text-[#9CA3AF] focus:outline-none transition-colors"
+                      className="w-full h-11 px-5 text-sm outline-none transition-colors rounded-full border border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 focus:border-[#39FF14]/60 focus:bg-white/[0.10]"
                     />
                   </div>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-[11px] uppercase tracking-[0.2em] text-neutral-500 mb-2">Description</label>
+                  <label className="block text-xs font-medium text-white/60 mb-2">Description</label>
                   {userInfo ? (
                     <RecordingTextarea
                       value={formData.description}
@@ -300,14 +300,14 @@ export default function SupportPage() {
                       placeholder="Please provide as much detail as possible..."
                       rows={8}
                       required
-                      className="w-full rounded-xl bg-[#404040] border border-[#666666] hover:border-primary-500 focus:border-primary-500 px-4 py-3 text-sm text-white placeholder:text-[#9CA3AF] focus:outline-none transition-colors resize-none"
+                      className="w-full px-5 py-3 text-sm outline-none transition-colors resize-none rounded-2xl border border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 focus:border-[#39FF14]/60 focus:bg-white/[0.10]"
                     />
                   )}
                 </div>
 
                 {/* Attachments area */}
                 {userInfo && (
-                  <div className="rounded-xl border border-white/[0.06] bg-black/20 p-4 space-y-3">
+                  <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] p-4 space-y-3">
                     {attachmentUrls.length > 0 && (
                       <div className="space-y-2">
                         {attachmentUrls.map((url, idx) => {
@@ -315,7 +315,7 @@ export default function SupportPage() {
                           return (
                             <div
                               key={idx}
-                              className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-black/40 p-3"
+                              className="flex items-center gap-3 rounded-xl border border-white/[0.12] bg-white/[0.06] p-3"
                             >
                               {kind === 'audio' ? (
                                 <div className="min-w-0 flex-1">
@@ -388,7 +388,7 @@ export default function SupportPage() {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingFile}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-700 hover:text-white hover:border-neutral-500 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-white/15 bg-[rgba(28,22,38,0.45)] text-white/85 backdrop-blur-xl hover:text-white hover:border-white/30 transition-colors"
                       >
                         {uploadingFile ? <Spinner size="sm" /> : <Paperclip className="h-3.5 w-3.5" />}
                         {uploadingFile ? 'Uploading...' : 'Attach File'}
@@ -399,7 +399,7 @@ export default function SupportPage() {
                           if (!showRecorder) setRecorderKey((k) => k + 1)
                           setShowRecorder(!showRecorder)
                         }}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-400 border border-neutral-700 hover:bg-neutral-700 hover:text-white hover:border-neutral-500 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-white/15 bg-[rgba(28,22,38,0.45)] text-white/85 backdrop-blur-xl hover:text-white hover:border-white/30 transition-colors"
                       >
                         <Monitor className="h-3.5 w-3.5" />
                         {showRecorder ? 'Hide Recorder' : 'Record Screen'}

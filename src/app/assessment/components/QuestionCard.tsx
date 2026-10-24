@@ -46,8 +46,8 @@ export default function QuestionCard({
         {question.options.map((option, index) => {
           const isSelected = selectedValue === option.value
           
-          let borderColor = 'border-neutral-600'
-          let hoverBorderColor = 'hover:border-neutral-500'
+          let borderColor = 'border-white/[0.12]'
+          let hoverBorderColor = 'hover:border-white/25'
           
           if (isSelected) {
             borderColor = 'border-[#39FF14]'
@@ -61,8 +61,8 @@ export default function QuestionCard({
                 w-full p-4 rounded-xl border-2 transition-all duration-200
                 ${borderColor} ${hoverBorderColor}
                 ${isSelected 
-                  ? 'bg-neutral-700/50 scale-[1.02]' 
-                  : 'bg-neutral-800/30 hover:bg-neutral-700/30'
+                  ? 'bg-white/[0.10] scale-[1.02]' 
+                  : 'bg-white/[0.05] hover:bg-white/[0.08]'
                 }
                 text-left relative group
               `}

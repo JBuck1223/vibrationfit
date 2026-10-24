@@ -3,18 +3,20 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronLeft, LayoutGrid, Search } from 'lucide-react'
+import { ChevronLeft, LayoutGrid, LifeBuoy, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { areaForPath, getSection, isSectionRoot, sectionForPath } from '@/lib/app-shell/sections'
 import { useShellProfile } from './useShellProfile'
+import { VibeNotificationBell } from '@/components/vibe-tribe/VibeNotificationBell'
 
 /**
  * The one header every screen shares. Section icon and title on the left (a
- * back chevron inside a sub-page), search, Tools and the avatar on the right.
+ * back chevron inside a sub-page), search, help, notifications, Tools and the avatar on the right.
  * Collapses to a slim glass bar once the page scrolls.
  */
 export function ShellHeader() {
   const pathname = usePathname()
+  const onSupport = pathname === '/support' || (pathname?.startsWith('/support/') ?? false)
   const router = useRouter()
   const section = sectionForPath(pathname)
   const atRoot = isSectionRoot(pathname)
@@ -83,6 +85,18 @@ export function ShellHeader() {
         >
           <Search className="h-5 w-5" />
         </Link>
+        <Link
+          href="/support"
+          aria-label="Help and support"
+          title="Help and support"
+          className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/10',
+            onSupport ? 'text-[#39FF14]' : 'text-white/80'
+          )}
+        >
+          <LifeBuoy className="h-5 w-5" />
+        </Link>
+        <VibeNotificationBell variant="header" />
         <Link
           href={tools.href}
           aria-label="Tool Box"

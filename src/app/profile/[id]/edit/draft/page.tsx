@@ -691,7 +691,7 @@ export default function ProfileEditPage() {
                 <span className="text-sm text-neutral-400">Profile:</span>
                 <span className="text-sm font-medium text-primary-500">{completionPercentage}%</span>
               </div>
-              <div className="flex-1 bg-neutral-700 rounded-full h-2">
+              <div className="flex-1 bg-white/10 rounded-full h-2">
                 <div
                   className="h-2 rounded-full transition-all duration-500 bg-primary-500"
                   style={{ width: `${completionPercentage}%` }}
@@ -777,7 +777,7 @@ export default function ProfileEditPage() {
           <Card className="p-4">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full flex items-center justify-between p-3 rounded-lg bg-neutral-800 border border-neutral-700 hover:border-neutral-600 transition-colors"
+              className="w-full flex items-center justify-between p-3 rounded-xl border border-white/[0.12] bg-white/[0.05] hover:border-white/25 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <span className="font-medium text-white">
@@ -803,7 +803,7 @@ export default function ProfileEditPage() {
                       className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
                         isActive
                           ? 'bg-primary-500/20 border border-primary-500/50 text-primary-400'
-                          : 'hover:bg-neutral-800 border border-transparent text-neutral-300'
+                          : 'hover:bg-white/[0.06] border border-transparent text-neutral-300'
                       }`}
                     >
                       <div className="flex items-center gap-3">

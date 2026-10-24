@@ -92,7 +92,7 @@ export default function StoryAudioPage() {
     return (
       <Container size="xl" className="py-6">
         <Card className="p-8 md:p-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded-full bg-white/[0.06] flex items-center justify-center mx-auto mb-4">
             <Volume2 className="w-8 h-8 text-neutral-500" />
           </div>
           <h3 className="text-xl font-semibold text-white mb-2">No Stories Yet</h3>
@@ -157,7 +157,7 @@ export default function StoryAudioPage() {
                     <Card
                       variant="outlined"
                       className={`p-4 transition-all duration-200 hover:-translate-y-0.5 ${
-                        isSelected ? 'border-[#39FF14]/50 bg-[#39FF14]/5' : 'hover:border-neutral-600'
+                        isSelected ? 'border-[#39FF14]/50 bg-[#39FF14]/5' : 'hover:border-white/15'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3 mb-2">
@@ -239,7 +239,7 @@ function SelectedStoryPanel({
 
         {/* Audio playback */}
         {hasRecording && story.user_audio_url && (
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-neutral-900 border border-neutral-800 mb-4">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.05] border border-white/[0.12] mb-4">
             <button
               type="button"
               onClick={() => onPlay(story.user_audio_url!)}
@@ -281,7 +281,7 @@ function SelectedStoryPanel({
 
 function AudioStatusBadge({ status }: { status: 'generated' | 'recorded' | 'both' | 'none' }) {
   if (status === 'none') {
-    return <span className="text-[10px] text-neutral-500 px-2 py-0.5 rounded-full bg-neutral-800">No Audio</span>
+    return <span className="text-[10px] text-neutral-500 px-2 py-0.5 rounded-full bg-white/[0.06]">No Audio</span>
   }
   if (status === 'both') {
     return (

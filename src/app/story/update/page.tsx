@@ -365,7 +365,7 @@ export default function StoryUpdatePage() {
   const renderAddedDiff = (oldText: string, newText: string) => {
     const diff = Diff.diffSentences(normalizeText(oldText), normalizeText(newText))
     return (
-      <div className="w-full px-4 py-3 bg-[#101010] border-2 border-neutral-800 rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
+      <div className="w-full px-4 py-3 bg-[#101010] border border-white/[0.12] rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
         {diff.map((part, i) => {
           if (part.removed) return null
           if (part.added) return <span key={i} className="bg-green-500/30 text-green-200 px-1 rounded">{part.value}</span>
@@ -378,7 +378,7 @@ export default function StoryUpdatePage() {
   const renderFullDiff = (oldText: string, newText: string) => {
     const diff = Diff.diffWords(normalizeText(oldText), normalizeText(newText))
     return (
-      <div className="w-full px-4 py-3 bg-[#101010] border-2 border-neutral-800 rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
+      <div className="w-full px-4 py-3 bg-[#101010] border border-white/[0.12] rounded-lg min-h-[200px] whitespace-pre-wrap text-sm leading-[1.75] text-neutral-100">
         {diff.map((part, i) => {
           if (part.removed) return <span key={i} className="bg-red-500/30 text-red-200 px-0.5 rounded line-through">{part.value}</span>
           if (part.added) return <span key={i} className="bg-green-500/30 text-green-200 px-0.5 rounded">{part.value}</span>
@@ -470,7 +470,7 @@ export default function StoryUpdatePage() {
                 <div className="h-px flex-1 bg-[#2A2A2A]" />
               </div>
               {currentContent.trim() ? (
-                <div className="rounded-xl border border-[#282828] bg-[#101010] px-4 py-3 max-h-[280px] overflow-y-auto">
+                <div className="rounded-xl border border-white/[0.12] bg-[#101010] px-4 py-3 max-h-[280px] overflow-y-auto">
                   <p className="text-sm text-neutral-200 leading-[1.75] whitespace-pre-wrap">
                     {currentContent}
                   </p>
@@ -510,7 +510,7 @@ export default function StoryUpdatePage() {
                 setVivaGenerateMode(null)
                 setShowGenModeCards(true)
               }}
-              className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+              className="w-full relative flex flex-col items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.05] p-3 hover:border-white/[0.12] transition-colors"
             >
               <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 1 · Update Method</h4>
               <p className="text-sm font-medium text-white mt-1 flex items-center gap-2">
@@ -554,7 +554,7 @@ export default function StoryUpdatePage() {
                           setUpdateMethod(card.key)
                         }
                       }}
-                      className="group relative rounded-2xl border-2 border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:-translate-y-0.5 cursor-pointer p-4 transition-all duration-200"
+                      className="group relative rounded-2xl border border-white/[0.12] bg-white/[0.05] hover:border-white/[0.12] hover:-translate-y-0.5 cursor-pointer p-4 transition-all duration-200"
                     >
                       <div className="flex flex-col items-center gap-2 text-center">
                         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${card.bgColor} ${card.iconColor}`}>
@@ -580,7 +580,7 @@ export default function StoryUpdatePage() {
               <button
                 type="button"
                 onClick={() => setShowGenModeCards(true)}
-                className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                className="w-full relative flex flex-col items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.05] p-3 hover:border-white/[0.12] transition-colors"
               >
                 <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 2 · Generation Mode</h4>
                 <p className="text-sm font-medium text-white mt-1">{selectedGenMode.title}</p>
@@ -605,7 +605,7 @@ export default function StoryUpdatePage() {
                         className={`text-left rounded-xl border-2 p-3 transition-all duration-200 ${
                           isSelected
                             ? 'border-accent-500 bg-accent-500/5'
-                            : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
+                            : 'border-white/[0.12] bg-white/[0.05] hover:border-white/[0.12]'
                         }`}
                       >
                         <h5 className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-neutral-300'}`}>{mode.title}</h5>
@@ -630,7 +630,7 @@ export default function StoryUpdatePage() {
                     setShowInstructionsSection(true)
                     setTimeout(() => instructionsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
                   }}
-                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 hover:border-neutral-700 transition-colors"
+                  className="w-full relative flex flex-col items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.05] p-3 hover:border-white/[0.12] transition-colors"
                 >
                   <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">Step 3 · Instructions</h4>
                   <p className="text-sm font-medium text-white mt-1">
@@ -701,7 +701,7 @@ export default function StoryUpdatePage() {
 
                 <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
                   {/* Current Active (read-only) */}
-                  <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                  <div className="rounded-2xl border border-primary-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                     <div className="mb-2 flex items-center justify-between gap-3 min-h-[32px]">
                       <div className="flex items-center gap-2">
                         <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Current Active</h5>
@@ -718,7 +718,7 @@ export default function StoryUpdatePage() {
                   </div>
 
                   {/* Your Draft (editable) */}
-                  <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                  <div className="rounded-2xl border border-accent-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Your Draft</h5>
@@ -815,7 +815,7 @@ export default function StoryUpdatePage() {
                         <div
                           key={i}
                           className={`rounded-xl border p-4 transition-colors ${
-                            editSelections[i] ? 'border-accent-500/30 bg-accent-500/5' : 'border-neutral-800 bg-neutral-900/40'
+                            editSelections[i] ? 'border-accent-500/30 bg-accent-500/5' : 'border-white/[0.12] bg-white/[0.05]'
                           }`}
                         >
                           <div className="flex items-start gap-3">
@@ -823,7 +823,7 @@ export default function StoryUpdatePage() {
                               type="button"
                               onClick={() => setEditSelections(prev => ({ ...prev, [i]: !prev[i] }))}
                               className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                                editSelections[i] ? 'border-accent-500 bg-accent-500 text-black' : 'border-neutral-600 bg-transparent'
+                                editSelections[i] ? 'border-accent-500 bg-accent-500 text-black' : 'border-white/15 bg-transparent'
                               }`}
                             >
                               {editSelections[i] && <CheckCircle className="w-3 h-3" />}
@@ -878,10 +878,10 @@ export default function StoryUpdatePage() {
                 </div>
 
                 <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
-                  <div className="rounded-2xl border border-neutral-700 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                  <div className="rounded-2xl border border-white/[0.12] bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                     <div className="mb-2 flex items-center gap-2 min-h-[32px]">
                       <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Your Draft</h5>
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-neutral-400 bg-neutral-800">Before</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-neutral-400 bg-white/[0.06]">Before</span>
                     </div>
                     <AutoResizeTextarea
                       value={manualText}
@@ -892,7 +892,7 @@ export default function StoryUpdatePage() {
                     />
                   </div>
 
-                  <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                  <div className="rounded-2xl border border-accent-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Polished</h5>
@@ -993,7 +993,7 @@ export default function StoryUpdatePage() {
                       showCompareCurrent ? 'translate-x-[18px]' : 'translate-x-[3px]'
                     }`} />
                   </div>
-                  <div className="w-px h-4 bg-neutral-700 mx-1" />
+                  <div className="w-px h-4 bg-white/15 mx-1" />
                   <div
                     role="switch"
                     aria-checked={showCompareNew}
@@ -1029,7 +1029,7 @@ export default function StoryUpdatePage() {
 
                 {/* Current Active (left) */}
                 <div className={showCompareCurrent ? 'block' : 'hidden'}>
-                  <div className="rounded-2xl border border-primary-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                  <div className="rounded-2xl border border-primary-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                     <div className="mb-2 flex items-center justify-between gap-3 min-h-[32px]">
                       <div className="flex items-center gap-2">
                         <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Current</h5>
@@ -1051,7 +1051,7 @@ export default function StoryUpdatePage() {
 
                 {/* Updated draft (right) */}
                 <div className={showCompareNew ? 'block' : 'hidden'}>
-                  <div className="rounded-2xl border border-accent-500/30 bg-[#1A1A1A] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
+                  <div className="rounded-2xl border border-accent-500/30 bg-white/[0.05] px-4 pb-4 pt-2 md:px-5 md:pb-5 md:pt-2">
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <h5 className="text-xs font-semibold uppercase tracking-[0.25em] text-white">Updated</h5>

@@ -1,17 +1,17 @@
 'use client'
 
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, Input, Button, Spinner } from '@/lib/design-system'
-import { Eye, EyeOff } from 'lucide-react'
-import Image from 'next/image'
-import { ASSETS } from '@/lib/storage/s3-storage-presigned'
+import { Eye, EyeOff, Loader2, Mail } from 'lucide-react'
+import { AUTH_LINK, AUTH_PRIMARY_BUTTON, AUTH_SECONDARY_BUTTON, AuthField, AuthNotice, AuthScreen } from '@/components/auth/AuthScreen'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import { MEMBER_HOME, resolveMemberHome } from '@/lib/life-activation/home'
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Spinner variant="primary" size="lg" /></div>}>
+    <Suspense fallback={<PageLoading />}>
       <LoginForm />
     </Suspense>
   )
@@ -118,8 +118,6 @@ function LoginForm() {
     setMagicLinkLoading(true)
     setError('')
 
-    console.log('🔍 Attempting to send auth email to:', email)
-    console.log('🔍 Redirect URL:', `${window.location.origin}/auth/callback`)
 
     try {
       // Set timeout to prevent infinite loading
@@ -131,7 +129,7 @@ function LoginForm() {
       const callbackUrl = returnTo
         ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`
         : `${window.location.origin}/auth/callback`
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: callbackUrl,
@@ -140,20 +138,16 @@ function LoginForm() {
 
       clearTimeout(timeoutId)
 
-      console.log('🔍 Supabase response:', { data, error })
 
       if (error) {
-        console.error('❌ Auth email error:', error)
         setError(`Failed to send auth email: ${error.message}`)
         setMagicLinkLoading(false)
       } else {
-        console.log('✅ Auth email sent successfully:', data)
         setMagicLinkSent(true)
         setMagicLinkLoading(false)
         setShowCodeEntry(true) // Show code entry after email is sent
       }
     } catch (err) {
-      console.error('❌ Unexpected error:', err)
       setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
       setMagicLinkLoading(false)
     }
@@ -196,119 +190,98 @@ function LoginForm() {
     }
   }
 
+  const checkoutComplete = searchParams.get('checkout') === 'complete'
+
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <Card className="max-w-md mx-auto w-full">
-        <div className="text-center mb-8">
-          <Image
-            src={ASSETS.brand.logoWhite}
-            alt="Vibration Fit"
-            width={453}
-            height={40}
-            className="mx-auto mb-4"
-            priority
-            loading="eager"
-          />
-        </div>
+    <AuthScreen
+      title="Welcome back"
+      subtitle={
+        checkoutComplete
+          ? 'Sign in with your purchase email to finish setup. No password yet? Use the email sign-in below.'
+          : 'Sign in to pick up where you left off.'
+      }
+      footer={
+        <span className="hide-in-native">
+          New here? <Link href="/#pricing" className={AUTH_LINK}>Get started</Link>
+        </span>
+      }
+    >
+      <form onSubmit={handleLogin} className="space-y-4">
+        <AuthField
+          type="email"
+          label="Email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          required
+        />
 
-        {searchParams.get('checkout') === 'complete' && (
-          <p className="mb-6 text-neutral-300">Sign in with your purchase email to finish setup. If you haven&apos;t set a password, use the email sign-in option below.</p>
-        )}
-        <form onSubmit={handleLogin} className="space-y-6">
-          <Input
-            type="email"
-            label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            required
-          />
-
-          <div className="relative">
-            <Input
-              type={showPassword ? "text" : "password"}
-              label="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              className="pr-12"
-            />
+        <AuthField
+          type={showPassword ? 'text' : 'password'}
+          label="Password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Your password"
+          required
+          trailing={
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-neutral-300 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
             >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+            </button>
+          }
+        />
+
+        <div className="-mt-1 px-1 text-right">
+          <Link href="/auth/forgot-password" className="text-sm text-white/60 transition-colors hover:text-white">
+            Forgot password?
+          </Link>
+        </div>
+
+        {error && <AuthNotice tone="error">{error}</AuthNotice>}
+        {magicLinkSent && <AuthNotice tone="success">Check your email. Tap the link, or enter the 6-digit code below.</AuthNotice>}
+
+        <button type="submit" disabled={loading} className={AUTH_PRIMARY_BUTTON}>
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+          {loading ? 'Signing in' : 'Sign in'}
+        </button>
+
+        <div className="flex items-center gap-3 py-1 text-xs text-white/45">
+          <span className="h-px flex-1 bg-white/15" />
+          or
+          <span className="h-px flex-1 bg-white/15" />
+        </div>
+
+        <button type="button" disabled={magicLinkLoading} onClick={handleSendAuth} className={AUTH_SECONDARY_BUTTON}>
+          {magicLinkLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-[18px] w-[18px]" />}
+          {magicLinkLoading ? 'Sending' : 'Email me a sign-in link'}
+        </button>
+
+        {showCodeEntry && (
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            <AuthField
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              label="6-digit code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.trim())}
+              placeholder="123456"
+              className="text-center tracking-[0.3em]"
+              required
+            />
+            <button type="button" disabled={codeLoading} onClick={handleVerifyCode} className={AUTH_PRIMARY_BUTTON}>
+              {codeLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+              {codeLoading ? 'Verifying' : 'Verify code'}
             </button>
           </div>
-
-          <div className="-mt-3 text-right">
-            <a
-              href="/auth/forgot-password"
-              className="text-sm text-neutral-400 transition-colors hover:text-green-400"
-            >
-              Forgot password?
-            </a>
-          </div>
-
-          {error && (
-            <div className="bg-error-600/10 border border-error-600 px-4 py-3 rounded-lg !text-[#FF0040]">
-              {error}
-            </div>
-          )}
-
-          {magicLinkSent && (
-            <div className="bg-primary-500/10 border border-primary-500 text-primary-500 px-4 py-3 rounded-lg">
-              ✨ Magic link sent! Click the link in your email, or enter the 6-digit code below.
-            </div>
-          )}
-
-          <Button type="submit" loading={loading} className="w-full">
-            {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-neutral-700" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-neutral-900 text-neutral-400">or</span>
-            </div>
-          </div>
-
-          <Button 
-            type="button" 
-            variant="outline" 
-            loading={magicLinkLoading}
-            onClick={handleSendAuth}
-            className="w-full"
-          >
-            {magicLinkLoading ? 'Sending...' : 'Send Magic Link'}
-          </Button>
-
-          {showCodeEntry && (
-            <div className="space-y-3">
-              <Input
-                type="text"
-                label="6-digit code"
-                value={code}
-                onChange={(e) => setCode(e.target.value.trim())}
-                placeholder="Enter the code from your email"
-                required
-              />
-              <Button type="button" loading={codeLoading} onClick={handleVerifyCode} className="w-full">
-                {codeLoading ? 'Verifying...' : 'Verify Code'}
-              </Button>
-            </div>
-          )}
-        </form>
-
-        <p className="hide-in-native text-neutral-400 text-center mt-6">
-          Don&apos;t have an account? <a href="/#pricing" className="text-green-500 hover:text-green-400 transition-colors">Get Started</a>
-        </p>
-      </Card>
-    </div>
+        )}
+      </form>
+    </AuthScreen>
   )
 }

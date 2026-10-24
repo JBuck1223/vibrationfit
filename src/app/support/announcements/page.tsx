@@ -33,7 +33,7 @@ function getCategoryStyle(category: string) {
     case 'how-to': return 'text-cyan-400 bg-cyan-500/20 border-cyan-500/30'
     case 'known-issue': return 'text-amber-400 bg-amber-500/20 border-amber-500/30'
     case 'tip': return 'text-teal-400 bg-teal-500/20 border-teal-500/30'
-    default: return 'text-neutral-400 bg-neutral-800 border-neutral-700'
+    default: return 'text-white/75 bg-white/[0.08] border-white/15'
   }
 }
 
@@ -103,8 +103,8 @@ export default function AnnouncementsPage() {
               onClick={() => setCategory(cat.value)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
                 category === cat.value
-                  ? 'bg-primary-500/20 text-primary-500 border-primary-500/30'
-                  : 'bg-neutral-800 text-neutral-400 border-neutral-700 hover:border-neutral-600'
+                  ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
+                  : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/85 backdrop-blur-xl hover:text-white hover:border-white/30'
               }`}
             >
               {cat.label}
@@ -118,8 +118,8 @@ export default function AnnouncementsPage() {
             }}
             className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors border ${
               showSearch
-                ? 'bg-primary-500/20 text-primary-500 border-primary-500/30'
-                : 'bg-neutral-800 text-neutral-400 border-neutral-700 hover:border-neutral-600'
+                ? 'border-[#39FF14] bg-[rgba(57,255,20,0.16)] text-[#39FF14]'
+                : 'border-white/15 bg-[rgba(28,22,38,0.45)] text-white/85 backdrop-blur-xl hover:text-white hover:border-white/30'
             }`}
             aria-label="Search announcements"
           >
@@ -136,7 +136,7 @@ export default function AnnouncementsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search updates..."
-              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] pl-9 pr-9 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-primary-500/40 transition-colors"
+              className="w-full h-11 pl-10 pr-10 text-sm outline-none transition-colors rounded-full border border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 focus:border-[#39FF14]/60 focus:bg-white/[0.10]"
             />
             {searchQuery && (
               <button
@@ -155,7 +155,7 @@ export default function AnnouncementsPage() {
           </div>
         ) : filteredAnnouncements.length === 0 ? (
           <div className="text-center py-16">
-            <Megaphone className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+            <Megaphone className="w-16 h-16 text-white/30 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
               {q ? 'No Results' : 'No Updates Yet'}
             </h3>
@@ -168,12 +168,12 @@ export default function AnnouncementsPage() {
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/[0.06] bg-[#111] overflow-hidden divide-y divide-white/[0.06]">
+          <div className="vf-glass rounded-[22px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(44,36,60,0.50)_0%,rgba(24,20,34,0.58)_100%)] shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-2xl backdrop-saturate-150 overflow-hidden divide-y divide-white/[0.08]">
             {filteredAnnouncements.map((announcement) => (
               <div
                 key={announcement.id}
                 onClick={() => router.push(`/support/announcements/${announcement.id}`)}
-                className="cursor-pointer hover:bg-white/[0.03] transition-colors px-4 sm:px-5 py-4"
+                className="cursor-pointer hover:bg-white/[0.06] transition-colors px-4 sm:px-5 py-4"
               >
                 <div className="flex gap-3 sm:gap-4">
                   {/* Pin icon — desktop only, left of content */}

@@ -9,6 +9,7 @@ export default function BillingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  // Standalone pages: the shell remaps their old flat panels to glass.
+  return <div className="contents" data-studio-glass>{children}</div>;
 }
 

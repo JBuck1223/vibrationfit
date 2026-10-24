@@ -12,6 +12,7 @@ import {
   Spinner,
 } from '@/lib/design-system/components'
 import { OptimizedVideo } from '@/components/OptimizedVideo'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { ArrowRight, Target, BarChart, TrendingUp } from 'lucide-react'
 import { fetchAssessments } from '@/lib/services/assessmentService'
 
@@ -117,9 +118,9 @@ export default function AssessmentNewPage() {
         </div>
 
         {/* What is the Assessment? */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+        <Card variant="outlined" className={GLASS_CARD}>
           <Stack gap="md">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+            <Text size="sm" className="text-xs font-medium text-white/60">
               What is the Assessment?
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">
@@ -135,9 +136,9 @@ export default function AssessmentNewPage() {
         </Card>
 
         {/* What You'll See */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+        <Card variant="outlined" className={GLASS_CARD}>
           <Stack gap="lg">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+            <Text size="sm" className="text-xs font-medium text-white/60">
               What You&apos;ll See
             </Text>
             <Stack gap="lg">
@@ -186,9 +187,9 @@ export default function AssessmentNewPage() {
         </Card>
 
         {/* How the Questions Work */}
-        <Card variant="outlined" className="bg-[#101010] border-[#1F1F1F]">
+        <Card variant="outlined" className={GLASS_CARD}>
           <Stack gap="md">
-            <Text size="sm" className="text-neutral-400 uppercase tracking-[0.3em] underline underline-offset-4 decoration-[#333]">
+            <Text size="sm" className="text-xs font-medium text-white/60">
               How the Questions Work
             </Text>
             <p className="text-sm md:text-base text-neutral-300 leading-relaxed">

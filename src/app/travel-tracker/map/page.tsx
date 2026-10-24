@@ -103,7 +103,7 @@ export default function TravelMapPage() {
 
       <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card variant="elevated" className="!p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+          <h2 className="mb-3 flex items-center gap-2 text-xs font-medium text-white/60">
             <Globe2 className="h-4 w-4 text-[#39FF14]" />
             Countries Visited ({visitedCodes.length})
           </h2>
@@ -127,7 +127,7 @@ export default function TravelMapPage() {
         </Card>
 
         <Card variant="elevated" className="!p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+          <h2 className="mb-3 flex items-center gap-2 text-xs font-medium text-white/60">
             <Sparkles className="h-4 w-4 text-[#BF00FF]" />
             Dream Destinations ({dreamCodes.length})
           </h2>

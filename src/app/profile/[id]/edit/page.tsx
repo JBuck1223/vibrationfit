@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams, usePathname } from 'next/navigation'
-import {  Button, Badge, Card, CategoryGrid, WarningConfirmationDialog, Icon, Container, Stack, Spinner, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import {  Button, Badge, Card, CategoryGrid, WarningConfirmationDialog, Icon, Container, Stack, IntensiveStepCompleteModal } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 import ProfileVersionManager from '@/components/ProfileVersionManager'
 import VersionStatusIndicator from '@/components/VersionStatusIndicator'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
@@ -746,9 +747,7 @@ export default function ProfileEditPage() {
   // Loading state
   if (isLoading) {
     return (
-      <Container className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-        <Spinner size="lg" />
-      </Container>
+      <PageLoading />
     )
   }
 
@@ -777,7 +776,7 @@ export default function ProfileEditPage() {
                       </span>
                     )}
                   </div>
-                  <div className="w-full bg-neutral-700 rounded-full h-3 border border-neutral-600">
+                  <div className="w-full bg-white/10 rounded-full h-3 border border-white/[0.12]">
                     <div
                       className="h-3 rounded-full transition-all duration-500 bg-primary-500"
                       style={{ width: `${localCompletion}%` }}
@@ -787,7 +786,7 @@ export default function ProfileEditPage() {
               </button>
 
               {showIncompleteFields && incompleteFields.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-neutral-700">
+                <div className="mt-4 pt-4 border-t border-white/10">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-neutral-200">Missing Fields ({incompleteFields.length})</h4>
                     <button
@@ -806,7 +805,7 @@ export default function ProfileEditPage() {
                         return acc
                       }, {} as Record<string, typeof incompleteFields>)
                     ).map(([section, fields]) => (
-                      <div key={section} className="bg-neutral-800/50 rounded-lg p-3">
+                      <div key={section} className="rounded-xl border border-white/[0.12] bg-white/[0.05] p-3">
                         <h5 className="text-xs font-semibold text-primary-400 mb-2">{section}</h5>
                         <div className="flex flex-wrap gap-1.5">
                           {fields.map(field => (
@@ -818,7 +817,7 @@ export default function ProfileEditPage() {
                                 setHighlightedField(field.field)
                                 handleSectionChange(field.sectionId)
                               }}
-                              className="text-xs bg-neutral-700 text-neutral-300 px-2 py-1 rounded hover:bg-primary-500/30 hover:text-primary-300 transition-colors cursor-pointer"
+                              className="text-xs rounded-full border border-white/[0.12] bg-white/[0.06] text-white/80 px-2 py-1 hover:bg-primary-500/30 hover:text-primary-300 transition-colors cursor-pointer"
                             >
                               {field.label}
                             </button>

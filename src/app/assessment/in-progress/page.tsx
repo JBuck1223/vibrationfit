@@ -5,7 +5,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Button, Spinner, Card, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { Button, Card, Container, Stack, PageHero } from '@/lib/design-system/components'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
+import { cn } from '@/lib/utils'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react'
 import { assessmentQuestions, filterQuestionsByProfile, categoryMetadata } from '@/lib/assessment/questions'
 import { AssessmentQuestion, AssessmentOption, AssessmentCategory } from '@/types/assessment'
@@ -552,19 +555,13 @@ export default function AssessmentPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Spinner variant="primary" size="lg" />
-          </div>
-        </div>
-      </div>
+      <PageLoading />
     )
   }
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="w-full">
         <div className="container mx-auto px-4 py-8">
           <Card className="mx-auto max-w-xl p-8 text-center">
             <h2 className="text-2xl font-semibold text-white mb-3">We couldn&apos;t load this assessment</h2>
@@ -583,7 +580,7 @@ export default function AssessmentPage() {
   if (isComplete && assessmentId && progress) {
     // Show results summary
     return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+      <div className="w-full">
         <div className="container mx-auto px-4 py-8">
           <ResultsSummary
             assessment={{
@@ -623,7 +620,7 @@ export default function AssessmentPage() {
         {/* Overall Progress Bar - Full Width */}
         {progress && (
           <div className="mb-6">
-            <div className="bg-neutral-800 rounded-2xl p-6 border-2 border-neutral-700">
+            <div className={cn(GLASS_CARD, 'p-6')}>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-neutral-300">
                   Overall Progress
@@ -633,7 +630,7 @@ export default function AssessmentPage() {
                 </span>
               </div>
               
-              <div className="relative w-full h-3 bg-neutral-700 rounded-full overflow-hidden">
+              <div className="relative w-full h-3 bg-white/10 rounded-full overflow-hidden">
                 <div
                   className="absolute left-0 top-0 h-full bg-[#39FF14] transition-all duration-500"
                   style={{ width: `${progress.overall.percentage}%` }}
@@ -658,7 +655,7 @@ export default function AssessmentPage() {
           {/* Left Sidebar - Categories */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <div className="bg-neutral-800 rounded-2xl p-6 border-2 border-neutral-700">
+              <div className={cn(GLASS_CARD, 'p-6')}>
                 <h3 className="text-sm font-semibold text-neutral-300 mb-4">
                   Categories
                 </h3>
@@ -690,12 +687,12 @@ export default function AssessmentPage() {
                         className={`
                           w-full flex items-center gap-3 p-3 rounded-lg transition-all
                           ${!hasQuestions 
-                            ? 'bg-neutral-800 border-2 border-neutral-700 opacity-50 cursor-not-allowed'
+                            ? 'bg-white/[0.03] border-2 border-white/10 opacity-50 cursor-not-allowed'
                             : isCurrent 
                             ? 'bg-primary-500/20 border-2 border-primary-500' 
                             : isComplete
                             ? 'bg-green-500/20 border-2 border-green-500'
-                            : 'bg-neutral-700 border-2 border-neutral-600 hover:border-neutral-500'
+                            : 'bg-white/[0.05] border-2 border-white/[0.12] hover:border-white/25'
                           }
                         `}
                       >
@@ -703,12 +700,12 @@ export default function AssessmentPage() {
                         <div className={`
                           flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center
                           ${!hasQuestions
-                            ? 'bg-neutral-800 text-neutral-600'
+                            ? 'bg-white/[0.04] text-white/40'
                             : isComplete 
-                            ? 'bg-neutral-700/50 border border-[#39FF14] text-[#39FF14] hover:bg-neutral-600/50 hover:border-[#39FF14]/80' 
+                            ? 'bg-white/[0.08] border border-[#39FF14] text-[#39FF14] hover:bg-white/[0.12] hover:border-[#39FF14]/80' 
                             : isCurrent
                               ? 'bg-[#39FF14]/30 text-[#39FF14]'
-                              : 'bg-neutral-700 text-neutral-400'
+                              : 'bg-white/[0.08] text-white/70'
                           }
                         `}>
                           {isComplete ? (
@@ -750,13 +747,13 @@ export default function AssessmentPage() {
             {/* Question Card with Category Header Inside */}
             <Card variant="elevated" className="p-8">
               {/* Category Header */}
-              <div className="flex items-center gap-4 mb-6 pb-6 border-b border-neutral-700">
+              <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/10">
                 {currentCategoryWithMetadata && (() => {
                   const visionCat = VISION_CATEGORIES.find(v => v.key === currentCategoryWithMetadata.category)
                   const Icon = visionCat?.icon
                   return (
                     <>
-                      <div className="w-12 h-12 rounded-xl bg-neutral-700 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-xl bg-white/[0.08] flex items-center justify-center">
                         {Icon && <Icon className="w-6 h-6 text-neutral-400" />}
                       </div>
                       <div>
@@ -794,8 +791,8 @@ export default function AssessmentPage() {
                 {currentQuestion.options.map((option, index) => {
                   const isSelected = selectedValue === option.value
                   
-                  let borderColor = 'border-neutral-600'
-                  let hoverBorderColor = 'hover:border-neutral-500'
+                  let borderColor = 'border-white/[0.12]'
+                  let hoverBorderColor = 'hover:border-white/25'
                   
                   if (isSelected) {
                     borderColor = 'border-[#39FF14]'
@@ -809,8 +806,8 @@ export default function AssessmentPage() {
                         w-full p-4 rounded-xl border-2 transition-all duration-200
                         ${borderColor} ${hoverBorderColor}
                         ${isSelected 
-                          ? 'bg-neutral-700/50 scale-[1.02]' 
-                          : 'bg-neutral-800/30 hover:bg-neutral-700/30'
+                          ? 'bg-white/[0.10] scale-[1.02]' 
+                          : 'bg-white/[0.05] hover:bg-white/[0.08]'
                         }
                         text-left relative group
                       `}
@@ -838,7 +835,7 @@ export default function AssessmentPage() {
 
               {/* Custom Response Input */}
               {showCustomInput && (
-                <div className="mt-6 p-6 bg-neutral-800/50 border-2 border-primary-500/30 rounded-xl">
+                <div className="mt-6 p-6 rounded-xl border-2 border-primary-500/30 bg-white/[0.05]">
                   <h4 className="text-lg font-semibold text-white mb-4">
                     Share your own response:
                   </h4>
@@ -855,7 +852,7 @@ export default function AssessmentPage() {
                         </p>
                       </div>
                       
-                      <div className="p-4 bg-neutral-900 border border-neutral-600 rounded-lg">
+                      <div className="p-4 rounded-xl border border-white/[0.12] bg-white/[0.05]">
                         <p className="text-white text-sm leading-relaxed">
                           {customResponse}
                         </p>
@@ -867,7 +864,7 @@ export default function AssessmentPage() {
                         value={customResponse}
                         onChange={(e) => setCustomResponse(e.target.value)}
                         placeholder="Type response here..."
-                        className="w-full p-4 bg-neutral-900 border border-neutral-600 rounded-lg text-white placeholder-neutral-400 resize-none"
+                        className="w-full p-4 rounded-2xl border border-white/15 bg-white/[0.06] text-white placeholder:text-white/40 focus:border-[#39FF14]/60 focus:outline-none resize-none"
                         rows={4}
                         disabled={isSaving}
                       />
@@ -885,7 +882,7 @@ export default function AssessmentPage() {
                               className={`w-12 h-12 rounded-lg border-2 transition-all ${
                                 customResponseScore === score
                                   ? 'border-[#39FF14] bg-[#39FF14]/20 text-[#39FF14]'
-                                  : 'border-neutral-600 bg-neutral-800 text-neutral-300 hover:border-neutral-500'
+                                  : 'border-white/[0.12] bg-white/[0.05] text-white/80 hover:border-white/25'
                               }`}
                               disabled={isSaving}
                             >

@@ -199,7 +199,7 @@ function VisionBoardQueueIndexContent() {
                     <button
                       type="button"
                       onClick={() => router.push(`/manifestations/queue/${b.id}`)}
-                      className="w-full flex items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900/50 px-3 py-3 text-left transition-colors hover:border-primary-500/40 hover:bg-neutral-900"
+                      className="w-full flex items-center justify-between gap-3 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-3 text-left transition-colors hover:border-primary-500/40 hover:bg-white/[0.05]"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-white line-clamp-2 leading-snug">

@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Container, Spinner } from '@/lib/design-system/components'
+import { Loader2 } from 'lucide-react'
+import { AuthNotice, AuthScreen } from '@/components/auth/AuthScreen'
 
 export default function VerifyPage() {
   const router = useRouter()
@@ -61,23 +62,19 @@ export default function VerifyPage() {
 
   if (error) {
     return (
-      <Container size="sm" className="py-16 text-center">
-        <div className="bg-red-500/10 border-2 border-red-500 rounded-2xl p-8">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">Verification Failed</h1>
-          <p className="text-neutral-300">{error}</p>
-          <p className="text-sm text-neutral-500 mt-4">Redirecting to login...</p>
-        </div>
-      </Container>
+      <AuthScreen title="Verification failed" subtitle="Redirecting to sign in...">
+        <AuthNotice tone="error">{error}</AuthNotice>
+      </AuthScreen>
     )
   }
 
   return (
-    <Container size="sm" className="py-16 text-center">
-      <div className="bg-primary-500/10 border-2 border-primary-500 rounded-2xl p-12">
-        <Spinner variant="primary" size="lg" className="mx-auto mb-6" />
-        <h1 className="text-2xl font-bold mb-2">Verifying Your Account</h1>
-        <p className="text-neutral-300">Please wait while we log you in...</p>
+    <AuthScreen title="Verifying your account" subtitle="Please wait while we sign you in...">
+      <div className="flex justify-center py-2">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-white/[0.06]">
+          <Loader2 className="h-8 w-8 animate-spin text-[#39FF14]" />
+        </div>
       </div>
-    </Container>
+    </AuthScreen>
   )
 }

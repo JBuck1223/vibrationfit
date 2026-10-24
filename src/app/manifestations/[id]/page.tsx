@@ -85,7 +85,7 @@ async function fetchDetail(id: string): Promise<ManifestationDetail> {
   return res.json()
 }
 
-const HERO_FRAME_CLASS = 'relative overflow-hidden rounded-2xl border border-[#282828] bg-black w-full max-w-full'
+const HERO_FRAME_CLASS = 'relative overflow-hidden rounded-2xl border border-white/[0.12] bg-black/40 w-full max-w-full'
 const HERO_MAX_H_CLASS = 'max-h-[min(52vh,340px)] md:max-h-[min(50vh,480px)]'
 const HERO_IMAGE_CLASS = `mx-auto block h-auto w-full object-contain ${HERO_MAX_H_CLASS}`
 
@@ -649,7 +649,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
     }
     if (status === 'inactive') {
       return (
-        <div className="rounded-full px-3 py-1.5 flex items-center gap-2 bg-black/60 backdrop-blur border border-neutral-600 shadow-lg">
+        <div className="rounded-full px-3 py-1.5 flex items-center gap-2 bg-black/60 backdrop-blur border border-white/15 shadow-lg">
           <XCircle className="w-4 h-4 text-neutral-400" />
           <span className="text-neutral-400 text-xs sm:text-sm font-semibold">Inactive</span>
         </div>
@@ -796,7 +796,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                 </div>
 
                 {item.image_url && (
-                  <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mb-4">
+                  <div className="p-4 bg-white/[0.05] rounded-xl border border-white/[0.12] mb-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                       <img
                         src={item.image_url}
@@ -841,7 +841,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                       }
                     />
                     {aiGeneratedImageUrl && (
-                      <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                      <div className="p-4 bg-white/[0.05] rounded-xl border border-white/[0.12]">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                           <img
                             src={aiGeneratedImageUrl}
@@ -914,7 +914,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                   </div>
 
                   {item.actualized_image_url && !actualizedFile && !actualizedAiGeneratedImageUrl && (
-                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mb-4">
+                    <div className="p-4 bg-white/[0.05] rounded-xl border border-white/[0.12] mb-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <img
                           src={item.actualized_image_url}
@@ -959,7 +959,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                         }
                       />
                       {actualizedAiGeneratedImageUrl && (
-                        <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
+                        <div className="p-4 bg-white/[0.05] rounded-xl border border-white/[0.12] mt-4">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                             <img
                               src={actualizedAiGeneratedImageUrl}
@@ -1042,7 +1042,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                             : status.value === 'actualized'
                             ? 'bg-[#BF00FF] text-white shadow-lg'
                             : 'bg-neutral-600 text-white shadow-lg'
-                          : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                          : 'bg-white/[0.06] text-neutral-300 hover:bg-white/15'
                       }`}
                     >
                       {status.value === 'active' && <div className={`w-2 h-2 rounded-full animate-pulse ${formData.status === 'active' ? 'bg-black' : 'bg-white'}`}></div>}
@@ -1133,7 +1133,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                   : item.image_url
                 const hasImage = hasBoth || Boolean(displayImageUrl)
                 const heroMedia = hasBoth ? (
-                  <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-2xl border border-[#282828]">
+                  <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-2xl border border-white/[0.12]">
                     <BeforeAfterSlider
                       beforeSrc={item.image_url!}
                       afterSrc={item.actualized_image_url!}
@@ -1352,7 +1352,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                     {journeyItems.map(itemRow => (
                       <div key={itemRow.key} className="relative">
                         <span className="absolute -left-5 top-1.5 w-3 h-3 rounded-full border-2 border-[#39FF14] bg-[#101010]" />
-                        <div className="rounded-xl border border-[#282828] bg-[#161616] px-4 py-3">
+                        <div className="rounded-xl border border-white/[0.12] bg-[#161616] px-4 py-3">
                           <div className="flex items-center gap-3">
                             <Link href={itemRow.href} className="flex-1 min-w-0 group">
                               <p className="text-sm font-medium text-white truncate group-hover:text-[#39FF14]">{itemRow.title}</p>
@@ -1390,7 +1390,7 @@ export default function ManifestationDetailPage({ params }: { params: Promise<{ 
                     {livingAssets.map(asset => {
                       const href = assetLink(asset.slot as KitSlot, asset.entity_id, asset.handoff_path)
                       return (
-                        <div key={asset.id} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#161616] px-4 py-3">
+                        <div key={asset.id} className="flex items-center gap-3 rounded-xl border border-white/[0.12] bg-[#161616] px-4 py-3">
                           <Link href={href} className="flex-1 min-w-0 hover:text-white">
                             <p className="text-sm text-white truncate">{asset.label || SLOT_LABELS[asset.slot as KitSlot] || asset.slot}</p>
                             <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-500">{SLOT_LABELS[asset.slot as KitSlot]}</p>

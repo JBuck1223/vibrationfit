@@ -693,7 +693,7 @@ export default function NewVisionBoardItemPage() {
                     
                     {/* Show AI-generated image preview */}
                     {aiGeneratedImageUrl && (
-                      <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800">
+                      <div className="p-4 bg-white/[0.05] rounded-xl border border-white/[0.12]">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                           <img
                             src={aiGeneratedImageUrl}
@@ -744,7 +744,7 @@ export default function NewVisionBoardItemPage() {
                             : status.value === 'actualized'
                             ? 'bg-purple-500 text-white shadow-lg'
                             : 'bg-gray-600 text-white shadow-lg'
-                          : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                          : 'bg-white/[0.06] text-neutral-300 hover:bg-white/15'
                       }`}
                     >
                       {status.value === 'active' && <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>}
@@ -765,7 +765,7 @@ export default function NewVisionBoardItemPage() {
                     className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 transition-all ${
                       shareWithHousehold
                         ? 'border-[#00FFFF] bg-[#00FFFF]/10'
-                        : 'border-[#282828] bg-[#1A1A1A] hover:border-neutral-600'
+                        : 'border-white/[0.12] bg-white/[0.05] hover:border-white/15'
                     }`}
                   >
                     <span className="flex items-center gap-2 text-sm font-medium text-white">
@@ -774,7 +774,7 @@ export default function NewVisionBoardItemPage() {
                     </span>
                     <span
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        shareWithHousehold ? 'bg-[#00FFFF]' : 'bg-neutral-700'
+                        shareWithHousehold ? 'bg-[#00FFFF]' : 'bg-white/15'
                       }`}
                     >
                       <span
@@ -926,7 +926,7 @@ export default function NewVisionBoardItemPage() {
                       />
                       
                       {actualizedAiGeneratedImageUrl && (
-                        <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 mt-4">
+                        <div className="p-4 bg-white/[0.05] rounded-xl border border-white/[0.12] mt-4">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                             <img
                               src={actualizedAiGeneratedImageUrl}

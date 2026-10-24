@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import VivaChat from '@/components/viva/VivaChat'
 import { Button, Card } from '@/lib/design-system/components'
+import { GLASS_CARD } from '@/lib/app-shell/glass'
 import { VISION_CATEGORIES, getVisionCategory } from '@/lib/design-system/vision-categories'
 import { ArrowRight, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -122,9 +123,9 @@ export default function VisionBuildPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-full">
       {/* Progress Header */}
-      <div className="sticky top-0 z-10 bg-neutral-900 border-b border-neutral-800">
+      <div className={`${GLASS_CARD} sticky top-0 z-10 rounded-none border-x-0 border-t-0`}>
         <div className="max-w-5xl mx-auto px-4 py-4">
           {/* Progress Bar */}
           <div className="mb-4">
@@ -136,7 +137,7 @@ export default function VisionBuildPage() {
                 {progress}% Complete
               </span>
             </div>
-            <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+            <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-500"
                 style={{ width: `${progress}%` }}
@@ -169,7 +170,7 @@ export default function VisionBuildPage() {
                       ? 'bg-primary-500 scale-125'
                       : idx < currentPhaseIndex
                       ? 'bg-primary-500/50'
-                      : 'bg-neutral-700'
+                      : 'bg-white/15'
                   }`}
                 />
               ))}
@@ -196,7 +197,7 @@ export default function VisionBuildPage() {
                     className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                       idx === currentCategoryIndex
                         ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30'
-                        : 'text-neutral-400 hover:bg-neutral-800'
+                        : 'text-neutral-400 hover:bg-white/[0.06]'
                      }`}
                    >
                      {(() => {

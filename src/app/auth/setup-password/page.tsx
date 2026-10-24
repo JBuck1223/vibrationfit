@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button, Card, Container, Input } from '@/lib/design-system/components'
-import { Lock, CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { AUTH_LINK, AUTH_PRIMARY_BUTTON, AuthField, AuthNotice, AuthScreen } from '@/components/auth/AuthScreen'
+import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
 
 export default function SetupPasswordPage() {
   const router = useRouter()
@@ -105,130 +106,98 @@ export default function SetupPasswordPage() {
   }
 
   if (checking) {
+    return <PageLoading />
+  }
+
+  const isHouseholdInvite = returnTo?.includes('/household/invite')
+
+  const toggleButton = (shown: boolean, onToggle: () => void) => (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={shown ? 'Hide password' : 'Show password'}
+      className="flex h-9 w-9 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+    >
+      {shown ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+    </button>
+  )
+
+  const footer = (
+    <>
+      Need help? Contact{' '}
+      <a href="mailto:support@vibrationfit.com" className={AUTH_LINK}>
+        support@vibrationfit.com
+      </a>
+    </>
+  )
+
+  if (success) {
     return (
-      <Container size="sm" className="py-16 text-center">
-        <div className="bg-primary-500/10 border-2 border-primary-500 rounded-2xl p-12">
-          <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-4" />
-          <p className="text-neutral-300">Setting up your account...</p>
+      <AuthScreen
+        title="Password set"
+        subtitle={<>Redirecting{isHouseholdInvite ? ' to your invitation' : ' to Getting Started'}...</>}
+        footer={footer}
+      >
+        <div className="flex justify-center py-2">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[#39FF14]/40 bg-[rgba(57,255,20,0.12)]">
+            <CheckCircle className="h-8 w-8 text-[#39FF14]" />
+          </div>
         </div>
-      </Container>
+      </AuthScreen>
     )
   }
 
   return (
-    <Container size="sm" className="pb-12 md:pb-16">
-      <div className="text-center mb-8">
-        <div className="hidden md:flex w-16 h-16 bg-primary-500/20 rounded-full items-center justify-center mx-auto mb-6">
-          <Lock className="w-8 h-8 text-primary-500" />
-        </div>
-        <h1 className="text-2xl md:text-4xl font-bold mb-3">
-          Welcome to Vibration Fit
-        </h1>
-        <p className="text-base md:text-lg text-neutral-300">
-          {returnTo?.includes('/household/invite')
-            ? 'Create your password to accept your household invitation.'
-            : 'Set your password to secure your account'}
-        </p>
-      </div>
-
-      <Card variant="elevated" className="max-w-md mx-auto">
-        {success ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-xl md:text-2xl font-bold mb-2">Password Set</h2>
-            <p className="text-sm md:text-base text-neutral-300">
-              Redirecting{returnTo?.includes('/household/invite') ? ' to your invitation' : ' to Getting Started'}...
-            </p>
+    <AuthScreen
+      title="Welcome to Vibration Fit"
+      subtitle={
+        isHouseholdInvite
+          ? 'Create your password to accept your household invitation.'
+          : 'Set your password to secure your account.'
+      }
+      footer={footer}
+    >
+      <form onSubmit={handleSetupPassword} className="space-y-4">
+        {userEmail && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-white/65">
+            Setting password for <span className="font-medium text-white">{userEmail}</span>
           </div>
-        ) : (
-          <>
-            <div className="flex md:hidden w-16 h-16 bg-primary-500/20 rounded-full items-center justify-center mx-auto mb-6">
-              <Lock className="w-8 h-8 text-primary-500" />
-            </div>
-            {userEmail && (
-              <div className="rounded-xl border-2 border-[#333] bg-black/40 px-4 py-3 mb-6 text-center">
-                <p className="text-xs md:text-sm text-neutral-400">
-                  Setting password for <span className="text-primary-500 font-medium">{userEmail}</span>
-                </p>
-              </div>
-            )}
-            <form onSubmit={handleSetupPassword} className="space-y-6">
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  label="Create Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  helperText="Must be at least 8 characters"
-                  required
-                  disabled={loading}
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[3.375rem] -translate-y-1/2 text-neutral-400 hover:text-neutral-300 transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirm ? 'text' : 'password'}
-                  label="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your password"
-                  required
-                  disabled={loading}
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 translate-y-1 text-neutral-400 hover:text-neutral-300 transition-colors"
-                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                >
-                  {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-
-              {error && (
-                <div className="bg-red-500/10 border-2 border-red-500 text-red-400 px-4 py-3 rounded-xl text-xs md:text-sm">
-                  {error}
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                className="w-full"
-                loading={loading}
-              >
-                {loading ? 'Setting Password...' : 'Set Password & Continue'}
-              </Button>
-
-            </form>
-          </>
         )}
-      </Card>
 
-      <div className="text-center mt-6">
-        <p className="text-xs md:text-sm text-neutral-400">
-          Need help? Contact{' '}
-          <a href="mailto:support@vibrationfit.com" className="text-primary-500 hover:underline">
-            support@vibrationfit.com
-          </a>
-        </p>
-      </div>
-    </Container>
+        <AuthField
+          id="password"
+          type={showPassword ? 'text' : 'password'}
+          label="Create password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your password"
+          required
+          disabled={loading}
+          trailing={toggleButton(showPassword, () => setShowPassword(!showPassword))}
+        />
+        <p className="-mt-2 px-1 text-xs text-white/45">Must be at least 8 characters</p>
+
+        <AuthField
+          id="confirmPassword"
+          type={showConfirm ? 'text' : 'password'}
+          label="Confirm password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Confirm your password"
+          required
+          disabled={loading}
+          trailing={toggleButton(showConfirm, () => setShowConfirm(!showConfirm))}
+        />
+
+        {error && <AuthNotice tone="error">{error}</AuthNotice>}
+
+        <button type="submit" disabled={loading} className={AUTH_PRIMARY_BUTTON}>
+          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+          {loading ? 'Setting password' : 'Set password and continue'}
+        </button>
+      </form>
+    </AuthScreen>
   )
 }

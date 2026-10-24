@@ -6,6 +6,9 @@
 import { useState, useEffect } from 'react'
 import { Container, Card, Button, Badge, ProgressBar, Stack } from '@/lib/design-system/components'
 import { PageLoading } from '@/components/app-shell/ShellPageSkeleton'
+import { OverlayPortal } from '@/lib/design-system/components/overlays/OverlayPortal'
+import { GLASS_SHEET, SCRIM } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
 import { HardDrive, Image, Music, FileText, Folder, ExternalLink, X } from 'lucide-react'
 
 interface StorageData {
@@ -84,7 +87,7 @@ export default function StoragePage() {
         <Card variant="glass" className="border border-white/[0.06] p-4 shadow-none sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">Usage</p>
+              <p className="text-xs font-medium text-white/60">Usage</p>
               <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span className="text-2xl font-semibold tabular-nums text-white sm:text-3xl">
                   {formatBytes(data?.totalSize || 0)}
@@ -128,7 +131,7 @@ export default function StoragePage() {
                   return (
                     <div
                       key={folder}
-                      className="flex min-w-0 items-start gap-3 rounded-xl border border-white/[0.06] bg-black/20 px-3 py-3 sm:px-3.5"
+                      className="flex min-w-0 items-start gap-3 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-3 sm:px-3.5"
                     >
                       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.06]">
                         <IconComponent className={`h-4 w-4 ${config.color}`} aria-hidden />
@@ -207,7 +210,7 @@ export default function StoragePage() {
                         window.open(fileUrl, '_blank')
                       }
                     }}
-                    className="group flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-black/10 px-3 py-2.5 text-left transition-colors hover:border-neutral-600 hover:bg-white/[0.03]"
+                    className="group flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-2.5 text-left transition-colors hover:border-white/25 hover:bg-white/[0.08]"
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.06]">
@@ -237,13 +240,14 @@ export default function StoragePage() {
       </Stack>
 
       {previewFile && (
+        <OverlayPortal>
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+          className={cn('fixed inset-0 z-50 flex items-center justify-center p-4', SCRIM)}
           onClick={() => setPreviewFile(null)}
           role="presentation"
         >
           <div
-            className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/[0.08] bg-neutral-950 shadow-2xl"
+            className={cn(GLASS_SHEET, 'max-h-[90vh] w-full max-w-3xl overflow-hidden')}
             onClick={e => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -254,14 +258,14 @@ export default function StoragePage() {
               <button
                 type="button"
                 onClick={() => setPreviewFile(null)}
-                className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-white/[0.06] hover:text-white"
+                className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                 aria-label="Close preview"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex items-center justify-center bg-black px-4 py-6">
+            <div className="flex items-center justify-center bg-black/40 px-4 py-6">
               {previewFile.type === 'image' && (
                 <img
                   src={previewFile.url}
@@ -292,6 +296,7 @@ export default function StoragePage() {
             </div>
           </div>
         </div>
+        </OverlayPortal>
       )}
     </Container>
   )

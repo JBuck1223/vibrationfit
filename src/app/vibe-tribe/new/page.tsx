@@ -297,7 +297,7 @@ export default function VibeTribeNewPage() {
           </PageHero>
 
           {/* Intro Card */}
-          <Card className="p-8 bg-neutral-900/50 border-neutral-800">
+          <Card className="p-8 bg-white/[0.05] border-white/[0.12]">
             <p className="text-neutral-300 leading-relaxed">
               You made it inside. This is the room for people who are done "trying to manifest" and are willing to run the reps.
             </p>
@@ -314,7 +314,7 @@ export default function VibeTribeNewPage() {
 
           {/* Step 1: Post Your First Share */}
           <div className="space-y-4" id="step-1-card">
-            <Card className="p-8 bg-neutral-900/50 border-neutral-800">
+            <Card className="p-8 bg-white/[0.05] border-white/[0.12]">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center text-black font-bold text-sm">
                   1
@@ -383,7 +383,7 @@ export default function VibeTribeNewPage() {
               {/* Content Textarea */}
               <div className="mb-4">
                 <p className="text-sm text-neutral-400 mb-3">Write your first share:</p>
-                <div className="bg-neutral-800/50 rounded-xl p-4 mb-3 text-sm text-neutral-500 space-y-1">
+                <div className="bg-white/[0.06] rounded-xl p-4 mb-3 text-sm text-neutral-500 space-y-1">
                   <p>- Who you are + where you're tuning in from</p>
                   <p>- One desire you're actively creating right now</p>
                   <p>- One sentence that captures your Life Vision vibe</p>
@@ -465,9 +465,9 @@ export default function VibeTribeNewPage() {
 
           {/* Step 2: Use Tags Like a Pro */}
           <div className="space-y-4">
-            <Card className="p-8 bg-neutral-900/50 border-neutral-800">
+            <Card className="p-8 bg-white/[0.05] border-white/[0.12]">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white font-bold text-sm">
                   2
                 </div>
                 <h2 className="text-xl font-semibold text-white">Use Tags Like a Pro</h2>
@@ -485,7 +485,7 @@ export default function VibeTribeNewPage() {
                 return (
                   <Card 
                     key={tag} 
-                    className="p-4 bg-neutral-900/50 border-neutral-800 hover:border-neutral-700 transition-colors"
+                    className="p-4 bg-white/[0.05] border-white/[0.12] hover:border-white/[0.12] transition-colors"
                   >
                     <div className="flex items-start gap-3">
                       <div 
@@ -516,9 +516,9 @@ export default function VibeTribeNewPage() {
 
           {/* Step 3: Connect */}
           <div className="space-y-4">
-            <Card className="p-8 bg-neutral-900/50 border-neutral-800">
+            <Card className="p-8 bg-white/[0.05] border-white/[0.12]">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white font-bold text-sm">
                   3
                 </div>
                 <h2 className="text-xl font-semibold text-white">Connect (2-minute practice)</h2>
@@ -526,19 +526,19 @@ export default function VibeTribeNewPage() {
               <p className="text-neutral-300 mb-4">After your first post:</p>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-white/[0.06] flex items-center justify-center flex-shrink-0">
                     <Filter className="w-3 h-3 text-neutral-400" />
                   </div>
                   <p className="text-neutral-300 leading-6 mt-0">Open the feed and filter by your top Life Category</p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-white/[0.06] flex items-center justify-center flex-shrink-0">
                     <Heart className="w-3 h-3 text-neutral-400" />
                   </div>
                   <p className="text-neutral-300 leading-6 mt-0">Find 2-3 posts and drop a heart</p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-white/[0.06] flex items-center justify-center flex-shrink-0">
                     <MessageCircle className="w-3 h-3 text-neutral-400" />
                   </div>
                   <p className="text-neutral-300 leading-6 mt-0">Leave 1 sentence of support, reflection, or celebration</p>
@@ -552,7 +552,7 @@ export default function VibeTribeNewPage() {
 
           {/* How to Use Going Forward */}
           <div className="space-y-4">
-            <Card className="p-8 bg-neutral-900/50 border-neutral-800">
+            <Card className="p-8 bg-white/[0.05] border-white/[0.12]">
               <h2 className="text-xl font-semibold text-white mb-6">How to Use Vibe Tribe Going Forward</h2>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
@@ -581,7 +581,7 @@ export default function VibeTribeNewPage() {
                 </div>
               </div>
               
-              <div className="mt-6 pt-6 border-t border-neutral-800">
+              <div className="mt-6 pt-6 border-t border-white/[0.12]">
                 <p className="text-neutral-400 text-center">
                   Every tagged post is a rep for the identity of <span className="text-white font-medium">"I am a conscious creator in action."</span>
                 </p>

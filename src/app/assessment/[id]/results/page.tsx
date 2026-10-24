@@ -185,11 +185,10 @@ export default function AssessmentResultsPage() {
       <Stack gap="lg">
         {/* Status badges */}
         <div className="text-center mb-4">
-          <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl bg-neutral-900/60 border border-neutral-700/50 backdrop-blur-sm">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-2xl border border-white/15 bg-[rgba(28,22,38,0.45)] backdrop-blur-xl">
             <StatusBadge 
               status={selectedAssessment.is_active ? 'active' : 'complete'} 
               subtle={!selectedAssessment.is_active}
-              className="uppercase tracking-[0.25em]"
             />
             <div className="flex items-center gap-1.5 text-neutral-300 text-xs md:text-sm">
               <CalendarDays className="w-4 h-4 text-neutral-500" />
@@ -252,7 +251,7 @@ export default function AssessmentResultsPage() {
                           ? 'border-primary-500 bg-primary-500/10 hover:border-primary-400'
                           : assessment.is_draft
                             ? 'border-secondary-500 bg-secondary-500/10 hover:border-secondary-400'
-                            : 'border-neutral-700 bg-neutral-800 hover:border-neutral-500'
+                            : 'border-white/[0.12] bg-white/[0.05] hover:border-white/25'
                       }`}
                     >
                       <Inline className="items-center justify-between">

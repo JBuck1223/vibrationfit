@@ -114,14 +114,14 @@ export function TravelLinksSection({ endpoint, links, onChanged }: TravelLinksSe
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addLink()}
           placeholder="Paste a URL..."
-          className="!border !border-neutral-800 bg-neutral-900/50 text-sm focus:!border-[#39FF14]/40"
+          className="!border !border-white/15 bg-white/[0.06] text-sm placeholder:text-white/40 focus:!border-[#39FF14]/60"
         />
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addLink()}
           placeholder="Title (optional)"
-          className="!border !border-neutral-800 bg-neutral-900/50 text-sm focus:!border-[#39FF14]/40 sm:max-w-[220px]"
+          className="!border !border-white/15 bg-white/[0.06] text-sm placeholder:text-white/40 focus:!border-[#39FF14]/60 sm:max-w-[220px]"
         />
         <Button
           variant="primary"

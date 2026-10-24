@@ -5,6 +5,8 @@
 
 import { useState, useEffect } from 'react'
 import { Container, Card, Badge, Button, Stack, PageHero } from '@/lib/design-system/components'
+import { PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
+import { cn } from '@/lib/utils'
 import { 
   Activity, 
   Target, 
@@ -129,11 +131,7 @@ export default function ActivityFeedPage() {
                 <button
                   key={type.value}
                   onClick={() => setFilter(type.value)}
-                  className={`px-4 py-2 rounded-full font-medium transition-all ${
-                    filter === type.value
-                      ? 'bg-primary-500 text-black shadow-lg'
-                      : 'bg-neutral-900 text-neutral-400 hover:bg-neutral-800 hover:text-white'
-                  }`}
+                  className={cn(PILL_BASE, filter === type.value ? PILL_ON : PILL_OFF)}
                 >
                   {type.label}
                   {type.count > 0 && (
@@ -178,13 +176,13 @@ export default function ActivityFeedPage() {
                   const hasMedia = (isImage || isVideo || isAudio) && fileUrl
                   
                   const content = (
-                    <Card className="p-5 pt-6 hover:border-neutral-700 transition-all cursor-pointer group">
+                    <Card className="p-5 pt-6 hover:border-white/25 transition-all cursor-pointer group">
                       <div className="flex items-start gap-4">
                         {/* Thumbnail or Icon */}
                         {hasMedia ? (
                           <div className="flex-shrink-0">
                             {isImage && (
-                              <div className="w-16 h-16 rounded-lg overflow-hidden border border-neutral-800">
+                              <div className="w-16 h-16 rounded-lg overflow-hidden border border-white/[0.12]">
                                 <img
                                   src={fileUrl}
                                   alt={fileName}
@@ -193,7 +191,7 @@ export default function ActivityFeedPage() {
                               </div>
                             )}
                             {isVideo && (
-                              <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-neutral-800">
+                              <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/[0.12]">
                                 <video
                                   src={fileUrl}
                                   className="w-full h-full object-cover"
@@ -207,14 +205,14 @@ export default function ActivityFeedPage() {
                               </div>
                             )}
                             {isAudio && (
-                              <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border border-neutral-800 flex items-center justify-center">
+                              <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border border-white/[0.12] flex items-center justify-center">
                                 <Music className="w-8 h-8 text-primary-500" />
                               </div>
                             )}
                           </div>
                         ) : (
                           <div className="flex-shrink-0">
-                            <div className={`p-3 rounded-xl bg-neutral-900 group-hover:scale-110 transition-transform`} style={{ backgroundColor: `${activity.color.replace('text-', 'rgb(var(--')}/20` }}>
+                            <div className="p-3 rounded-xl bg-white/[0.06] group-hover:scale-110 transition-transform" style={{ backgroundColor: `${activity.color.replace('text-', 'rgb(var(--')}/20` }}>
                               <IconComponent className={`w-5 h-5 ${activity.color}`} />
                             </div>
                           </div>

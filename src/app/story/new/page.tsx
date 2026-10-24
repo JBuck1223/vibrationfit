@@ -1009,7 +1009,7 @@ export default function NewStoryWizardPage() {
           <button
             key={entityId}
             onClick={() => handleEntitySelect(entity)}
-            className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
+            className={`w-full px-4 py-3 text-left hover:bg-white/[0.08] transition-colors border-b border-white/[0.12] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1030,7 +1030,7 @@ export default function NewStoryWizardPage() {
           <button
             key={entityId}
             onClick={() => handleEntitySelect(entity)}
-            className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
+            className={`w-full px-4 py-3 text-left hover:bg-white/[0.08] transition-colors border-b border-white/[0.12] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
@@ -1050,7 +1050,7 @@ export default function NewStoryWizardPage() {
           <button
             key={entityId}
             onClick={() => handleEntitySelect(entity)}
-            className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
+            className={`w-full px-4 py-3 text-left hover:bg-white/[0.08] transition-colors border-b border-white/[0.12] last:border-b-0 ${isSelected ? 'bg-primary-500/10' : ''}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
@@ -1119,7 +1119,7 @@ export default function NewStoryWizardPage() {
               </div>
             )}
 
-            <div className="p-4 md:p-6 bg-neutral-900/50 rounded-xl border border-neutral-800">
+            <div className="p-4 md:p-6 bg-white/[0.05] rounded-xl border border-white/[0.12]">
               <p className="text-neutral-200 whitespace-pre-wrap leading-relaxed">
                 {streamingText}
                 {generating && <span className="inline-block w-2 h-5 bg-purple-500 animate-pulse ml-1" />}
@@ -1219,7 +1219,7 @@ export default function NewStoryWizardPage() {
                   <button
                     type="button"
                     onClick={() => setIsSourceDropdownOpen(!isSourceDropdownOpen)}
-                    className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                    className="w-full pl-6 pr-12 py-3 rounded-full bg-white/[0.06] text-white text-sm border border-white/[0.12] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
                   >
                     {selectedSource ? (
                       <div className="flex items-center gap-3">
@@ -1253,7 +1253,7 @@ export default function NewStoryWizardPage() {
                             <button
                               key={source.entityType}
                               onClick={() => handleSourceSelect(source)}
-                              className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${selectedSource?.entityType === source.entityType ? 'bg-primary-500/10' : ''}`}
+                              className={`w-full px-4 py-3 text-left hover:bg-white/[0.08] transition-colors border-b border-white/[0.12] last:border-b-0 ${selectedSource?.entityType === source.entityType ? 'bg-primary-500/10' : ''}`}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -1279,7 +1279,7 @@ export default function NewStoryWizardPage() {
               {/* Step 2: Select Entity (only for non-custom sources) */}
               {needsEntity && (
                 <>
-                  <div className="border-t border-[#333]" />
+                  <div className="border-t border-white/[0.12]" />
                   <div className="py-4">
                     <div className="flex flex-col items-center mb-4">
                       {stepNumber(2)}
@@ -1289,7 +1289,7 @@ export default function NewStoryWizardPage() {
                       <button
                         type="button"
                         onClick={() => setIsEntityDropdownOpen(!isEntityDropdownOpen)}
-                        className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
+                        className="w-full pl-6 pr-12 py-3 rounded-full bg-white/[0.06] text-white text-sm border border-white/[0.12] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer text-left"
                       >
                         {selectedEntity ? (
                           <div className="flex items-center gap-3">
@@ -1314,7 +1314,7 @@ export default function NewStoryWizardPage() {
                           <div className="fixed inset-0 z-10" onClick={() => { setIsEntityDropdownOpen(false); setEntitySearchQuery('') }} />
                           <div ref={entityMenuRef} className={cn(GLASS_MENU, 'absolute z-20 w-full mt-2 overflow-hidden')}>
                             {isSearchableEntity && !entityLoading && entities.length > 0 && (
-                              <div className="p-2 border-b border-[#333]">
+                              <div className="p-2 border-b border-white/[0.12]">
                                 <div className="relative">
                                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
                                   <input
@@ -1322,7 +1322,7 @@ export default function NewStoryWizardPage() {
                                     value={entitySearchQuery}
                                     onChange={(e) => setEntitySearchQuery(e.target.value)}
                                     placeholder={`Search ${selectedSource?.label.toLowerCase()}s...`}
-                                    className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-primary-500/50"
+                                    className="w-full pl-9 pr-3 py-2 bg-white/[0.06] border border-white/[0.12] rounded-xl text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-primary-500/50"
                                     autoFocus
                                     onClick={(e) => e.stopPropagation()}
                                   />
@@ -1343,7 +1343,7 @@ export default function NewStoryWizardPage() {
               {/* Step 3: Create — STORY path */}
               {outputType === 'story' && step === 'create' && (
                 <>
-                  <div className="border-t border-[#333]" />
+                  <div className="border-t border-white/[0.12]" />
                   <div className="pt-6">
                     <div className="flex flex-col items-center mb-4">
                       {stepNumber(isCustom ? 2 : 3)}
@@ -1377,7 +1377,7 @@ export default function NewStoryWizardPage() {
                         {/* Life Vision: Category Selection */}
                         {isLifeVision && (
                           <>
-                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                            <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6">
                               <div className="flex flex-col items-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="text-center sm:text-left">
                                   <h4 className="text-white font-semibold">Choose Focus Areas</h4>
@@ -1398,7 +1398,7 @@ export default function NewStoryWizardPage() {
                             </div>
 
                             {selectedCategories.length > 0 && (
-                              <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6 space-y-3">
+                              <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6 space-y-3">
                                 <div>
                                   <h4 className="text-white font-semibold">Review & Add Focus Notes</h4>
                                   <p className="text-sm text-neutral-400">
@@ -1410,10 +1410,10 @@ export default function NewStoryWizardPage() {
                                   if (!category) return null
                                   const CatIcon = category.icon
                                   return (
-                                    <div key={cat.key} className="border border-neutral-700 rounded-xl overflow-hidden">
+                                    <div key={cat.key} className="border border-white/[0.12] rounded-xl overflow-hidden">
                                       <button
                                         onClick={() => toggleExpanded(cat.key)}
-                                        className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                                        className="w-full flex items-center justify-between p-4 bg-white/[0.06] hover:bg-white/[0.06] transition-colors"
                                       >
                                         <div className="flex items-center gap-3">
                                           <div className="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center">
@@ -1427,7 +1427,7 @@ export default function NewStoryWizardPage() {
                                         {cat.isExpanded ? <ChevronUp className="w-5 h-5 text-neutral-400" /> : <ChevronDown className="w-5 h-5 text-neutral-400" />}
                                       </button>
                                       {cat.isExpanded && (
-                                        <div className="p-4 space-y-4 bg-neutral-900/50">
+                                        <div className="p-4 space-y-4 bg-white/[0.05]">
                                           <div>
                                             <div className="flex items-center gap-2 mb-2">
                                               <span className="text-sm text-neutral-400 font-medium">Vision Text</span>
@@ -1510,7 +1510,7 @@ export default function NewStoryWizardPage() {
                             </div>
 
                             {/* Life Vision Category Tagging (shared by both modes) */}
-                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50">
+                            <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12]">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1518,7 +1518,7 @@ export default function NewStoryWizardPage() {
                                   setShowVisionTagging(opening)
                                   if (opening) loadCustomVisionEntities()
                                 }}
-                                className="w-full flex items-center justify-between p-4 hover:bg-neutral-800 transition-colors"
+                                className="w-full flex items-center justify-between p-4 hover:bg-white/[0.06] transition-colors"
                               >
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
@@ -1541,7 +1541,7 @@ export default function NewStoryWizardPage() {
                               </button>
 
                               {showVisionTagging && (
-                                <div className="p-4 md:p-6 border-t border-neutral-700/50 space-y-6">
+                                <div className="p-4 md:p-6 border-t border-white/[0.12] space-y-6">
                                   {/* Vision version dropdown selector */}
                                   {customVisionLoading ? (
                                     <div className="flex items-center justify-center py-4">
@@ -1558,7 +1558,7 @@ export default function NewStoryWizardPage() {
                                         <button
                                           type="button"
                                           onClick={() => setIsCustomVisionDropdownOpen(!isCustomVisionDropdownOpen)}
-                                          className="w-full pl-6 pr-12 py-3 rounded-full bg-[#1F1F1F] text-white text-sm border-2 border-[#333] hover:border-purple-500 focus:border-purple-500 focus:outline-none transition-colors cursor-pointer text-left"
+                                          className="w-full pl-6 pr-12 py-3 rounded-full bg-white/[0.06] text-white text-sm border border-white/[0.12] hover:border-purple-500 focus:border-purple-500 focus:outline-none transition-colors cursor-pointer text-left"
                                         >
                                           {customVision ? (
                                             <div className="flex items-center gap-3">
@@ -1589,7 +1589,7 @@ export default function NewStoryWizardPage() {
                                                   <button
                                                     key={entity.id}
                                                     onClick={() => handleCustomVisionSelect(entity)}
-                                                    className={`w-full px-4 py-3 text-left hover:bg-[#2A2A2A] transition-colors border-b border-[#333] last:border-b-0 ${isSelected ? 'bg-purple-500/10' : ''}`}
+                                                    className={`w-full px-4 py-3 text-left hover:bg-white/[0.08] transition-colors border-b border-white/[0.12] last:border-b-0 ${isSelected ? 'bg-purple-500/10' : ''}`}
                                                   >
                                                     <div className="flex items-center justify-between">
                                                       <div className="flex items-center gap-2">
@@ -1612,7 +1612,7 @@ export default function NewStoryWizardPage() {
                                       {/* Category selection grid (shown once a vision is selected) */}
                                       {customVision && (
                                         <>
-                                          <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                                          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6">
                                             <div className="flex flex-col items-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
                                               <div className="text-center sm:text-left">
                                                 <h4 className="text-white font-semibold">Tag Life Areas</h4>
@@ -1634,7 +1634,7 @@ export default function NewStoryWizardPage() {
 
                                           {/* Expandable category cards with vision text + focus notes */}
                                           {customSelectedCategories.length > 0 && (
-                                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6 space-y-3">
+                                            <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6 space-y-3">
                                               <div>
                                                 <h4 className="text-white font-semibold">Review & Add Focus Notes</h4>
                                                 <p className="text-sm text-neutral-400">
@@ -1646,10 +1646,10 @@ export default function NewStoryWizardPage() {
                                                 if (!category) return null
                                                 const CatIcon = category.icon
                                                 return (
-                                                  <div key={cat.key} className="border border-neutral-700 rounded-xl overflow-hidden">
+                                                  <div key={cat.key} className="border border-white/[0.12] rounded-xl overflow-hidden">
                                                     <button
                                                       onClick={() => toggleCustomExpanded(cat.key)}
-                                                      className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                                                      className="w-full flex items-center justify-between p-4 bg-white/[0.06] hover:bg-white/[0.06] transition-colors"
                                                     >
                                                       <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
@@ -1663,7 +1663,7 @@ export default function NewStoryWizardPage() {
                                                       {cat.isExpanded ? <ChevronUp className="w-5 h-5 text-neutral-400" /> : <ChevronDown className="w-5 h-5 text-neutral-400" />}
                                                     </button>
                                                     {cat.isExpanded && (
-                                                      <div className="p-4 space-y-4 bg-neutral-900/50">
+                                                      <div className="p-4 space-y-4 bg-white/[0.05]">
                                                         <div>
                                                           <div className="flex items-center gap-2 mb-2">
                                                             <span className="text-sm text-neutral-400 font-medium">Vision Text</span>
@@ -1770,7 +1770,7 @@ export default function NewStoryWizardPage() {
                             Create Story
                           </Button>
                         </div>
-                        <div className="p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                        <div className="p-3 bg-white/[0.06] rounded-lg border border-white/[0.12]">
                           <p className="text-xs text-neutral-400">
                             <strong className="text-teal-400">Tip: </strong>Click the mic button to record your thoughts,
                             then use &quot;Enhance with VIVA&quot; to transform your raw ideas into a polished, immersive story.
@@ -1785,7 +1785,7 @@ export default function NewStoryWizardPage() {
               {/* Step 3: Create — INCANTATION path */}
               {outputType === 'incantation' && step === 'create' && (
                 <>
-                  <div className="border-t border-[#333]" />
+                  <div className="border-t border-white/[0.12]" />
                   <div className="pt-6 relative">
                     <VIVALoadingOverlay
                       isVisible={incLoading}
@@ -1818,7 +1818,7 @@ export default function NewStoryWizardPage() {
                       {/* Source-specific content selection (shared with story path) */}
                       {isLifeVision && (
                         <>
-                          <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6">
                             <div className="flex flex-col items-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
                               <div className="text-center sm:text-left">
                                 <h4 className="text-white font-semibold">Choose Source Areas</h4>
@@ -1839,7 +1839,7 @@ export default function NewStoryWizardPage() {
                           </div>
 
                           {selectedCategories.length > 0 && (
-                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6 space-y-3">
+                            <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6 space-y-3">
                               <div>
                                 <h4 className="text-white font-semibold">Review Source Material</h4>
                                 <p className="text-sm text-neutral-400">
@@ -1851,10 +1851,10 @@ export default function NewStoryWizardPage() {
                                 if (!category) return null
                                 const CatIcon = category.icon
                                 return (
-                                  <div key={cat.key} className="border border-neutral-700 rounded-xl overflow-hidden">
+                                  <div key={cat.key} className="border border-white/[0.12] rounded-xl overflow-hidden">
                                     <button
                                       onClick={() => toggleExpanded(cat.key)}
-                                      className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                                      className="w-full flex items-center justify-between p-4 bg-white/[0.06] hover:bg-white/[0.06] transition-colors"
                                     >
                                       <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center">
@@ -1867,7 +1867,7 @@ export default function NewStoryWizardPage() {
                                       {cat.isExpanded ? <ChevronUp className="w-5 h-5 text-neutral-400" /> : <ChevronDown className="w-5 h-5 text-neutral-400" />}
                                     </button>
                                     {cat.isExpanded && (
-                                      <div className="p-4 space-y-4 bg-neutral-900/50">
+                                      <div className="p-4 space-y-4 bg-white/[0.05]">
                                         <div>
                                           <div className="flex items-center gap-2 mb-2">
                                             <span className="text-sm text-neutral-400 font-medium">Vision Text</span>
@@ -1891,7 +1891,7 @@ export default function NewStoryWizardPage() {
                       )}
 
                       {!isLifeVision && !isCustom && selectedEntity && (
-                        <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                        <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6">
                           <h4 className="text-white font-semibold mb-3">Source Preview</h4>
                           <div className="text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
                             {selectedSource?.entityType === 'vision_board_item' ? (
@@ -1972,7 +1972,7 @@ export default function NewStoryWizardPage() {
                                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                                     incExampleIdx === i
                                       ? frameworkColorForExample(ex)
-                                      : 'border-[#333] bg-[#1A1A1A] text-neutral-400 hover:border-neutral-600'
+                                      : 'border-white/[0.12] bg-white/[0.05] text-neutral-400 hover:border-white/15'
                                   }`}
                                 >
                                   {ex.domainLabel} · {frameworkLabelForExample(ex)}
@@ -2016,7 +2016,7 @@ export default function NewStoryWizardPage() {
                             className={`text-left p-4 rounded-2xl border-2 transition-all ${
                               incFramework === 'self'
                                 ? 'border-primary-500 bg-primary-500/10 text-primary-400'
-                                : 'border-[#333] bg-[#1A1A1A] hover:border-neutral-600'
+                                : 'border-white/[0.12] bg-white/[0.05] hover:border-white/15'
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
@@ -2033,7 +2033,7 @@ export default function NewStoryWizardPage() {
                             className={`text-left p-4 rounded-2xl border-2 transition-all ${
                               incFramework === 'spiritual'
                                 ? 'border-purple-500 bg-purple-500/10 text-purple-400'
-                                : 'border-[#333] bg-[#1A1A1A] hover:border-neutral-600'
+                                : 'border-white/[0.12] bg-white/[0.05] hover:border-white/15'
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
@@ -2050,7 +2050,7 @@ export default function NewStoryWizardPage() {
                             className={`text-left p-4 rounded-2xl border-2 transition-all ${
                               incFramework === 'custom'
                                 ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400'
-                                : 'border-[#333] bg-[#1A1A1A] hover:border-neutral-600'
+                                : 'border-white/[0.12] bg-white/[0.05] hover:border-white/15'
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
@@ -2075,7 +2075,7 @@ export default function NewStoryWizardPage() {
                                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                                     incDivineName === name
                                       ? 'border-purple-500 bg-purple-500/15 text-purple-300'
-                                      : 'border-[#333] bg-[#1A1A1A] text-neutral-400 hover:border-neutral-600'
+                                      : 'border-white/[0.12] bg-white/[0.05] text-neutral-400 hover:border-white/15'
                                   }`}
                                 >
                                   {name}
@@ -2145,7 +2145,7 @@ export default function NewStoryWizardPage() {
 
                       {/* Result */}
                       {incResult && (
-                        <div className="space-y-4 pt-4 border-t border-[#333]">
+                        <div className="space-y-4 pt-4 border-t border-white/[0.12]">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <Badge variant="success">{incResult.mode}</Badge>
@@ -2204,7 +2204,7 @@ export default function NewStoryWizardPage() {
               {/* Step 3: Create — SPARKQUERY™ path */}
               {outputType === 'spark_query' && step === 'create' && (
                 <>
-                  <div className="border-t border-[#333]" />
+                  <div className="border-t border-white/[0.12]" />
                   <div className="pt-6 relative">
                     <VIVALoadingOverlay
                       isVisible={sqLoading}
@@ -2236,7 +2236,7 @@ export default function NewStoryWizardPage() {
                     <div className="space-y-6">
                       {isLifeVision && (
                         <>
-                          <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                          <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6">
                             <div className="flex flex-col items-center gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
                               <div className="text-center sm:text-left">
                                 <h4 className="text-white font-semibold">Choose Source Areas</h4>
@@ -2257,7 +2257,7 @@ export default function NewStoryWizardPage() {
                           </div>
 
                           {selectedCategories.length > 0 && (
-                            <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6 space-y-3">
+                            <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6 space-y-3">
                               <div>
                                 <h4 className="text-white font-semibold">Review Source Material</h4>
                                 <p className="text-sm text-neutral-400">
@@ -2269,10 +2269,10 @@ export default function NewStoryWizardPage() {
                                 if (!category) return null
                                 const CatIcon = category.icon
                                 return (
-                                  <div key={cat.key} className="border border-neutral-700 rounded-xl overflow-hidden">
+                                  <div key={cat.key} className="border border-white/[0.12] rounded-xl overflow-hidden">
                                     <button
                                       onClick={() => toggleExpanded(cat.key)}
-                                      className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                                      className="w-full flex items-center justify-between p-4 bg-white/[0.06] hover:bg-white/[0.06] transition-colors"
                                     >
                                       <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center">
@@ -2285,7 +2285,7 @@ export default function NewStoryWizardPage() {
                                       {cat.isExpanded ? <ChevronUp className="w-5 h-5 text-neutral-400" /> : <ChevronDown className="w-5 h-5 text-neutral-400" />}
                                     </button>
                                     {cat.isExpanded && (
-                                      <div className="p-4 space-y-4 bg-neutral-900/50">
+                                      <div className="p-4 space-y-4 bg-white/[0.05]">
                                         <div>
                                           <div className="flex items-center gap-2 mb-2">
                                             <span className="text-sm text-neutral-400 font-medium">Vision Text</span>
@@ -2309,7 +2309,7 @@ export default function NewStoryWizardPage() {
                       )}
 
                       {!isLifeVision && !isCustom && selectedEntity && (
-                        <div className="rounded-2xl bg-neutral-800/50 border border-neutral-700/50 p-4 md:p-6">
+                        <div className="rounded-2xl bg-white/[0.06] border border-white/[0.12] p-4 md:p-6">
                           <h4 className="text-white font-semibold mb-3">Source Preview</h4>
                           <div className="text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
                             {selectedSource?.entityType === 'vision_board_item' ? (
@@ -2399,7 +2399,7 @@ export default function NewStoryWizardPage() {
 
                       {/* Result */}
                       {sqQuestions.length > 0 && (
-                        <div className="space-y-4 pt-4 border-t border-[#333]">
+                        <div className="space-y-4 pt-4 border-t border-white/[0.12]">
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               {sqTitle && (

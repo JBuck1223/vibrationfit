@@ -44,6 +44,7 @@ import { useStoryStudio } from '@/components/story-studio'
 import { loadStoryAudioVersions, outdatedNote } from '@/lib/audio/story-versions'
 import { AddToKitSheet } from '@/components/manifestations-studio/AddToKitSheet'
 import { DeleteConfirmationDialog } from '@/lib/design-system/components'
+import { GLASS_MENU } from '@/lib/app-shell/glass'
 
 const ENTITY_META: Record<string, { label: string; icon: React.ElementType; badgeColor: string }> = {
   life_vision: { label: 'Life Vision', icon: Target, badgeColor: 'text-purple-400 bg-purple-500/20 border-purple-500/30' },
@@ -417,7 +418,7 @@ export default function StoryDetailPage({
                     <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Story title</p>
                     <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                   </div>
-                  <p className="text-base font-medium text-white text-center rounded-xl border border-[#282828] bg-[#1A1A1A] px-4 py-3">
+                  <p className="text-base font-medium text-white text-center rounded-xl border border-white/[0.12] bg-white/[0.05] px-4 py-3">
                     {story.title || 'Untitled Story'}
                   </p>
                 </section>
@@ -449,7 +450,7 @@ export default function StoryDetailPage({
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs font-semibold border transition-colors ${
                           story.household_id
                             ? 'text-[#00FFFF] bg-[#00FFFF]/10 border-[#00FFFF]/30'
-                            : 'text-neutral-400 bg-[#1A1A1A] border-[#282828] hover:border-neutral-500'
+                            : 'text-neutral-400 bg-white/[0.05] border-white/[0.12] hover:border-white/25'
                         }`}
                       >
                         <Home className="w-3 h-3 shrink-0" />
@@ -465,12 +466,12 @@ export default function StoryDetailPage({
                       </span>
                     )}
                     {focusAreas.length > 0 && focusAreas.map((cat: string) => (
-                      <span key={cat} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] md:text-xs font-medium border border-[#282828] text-neutral-300 bg-[#1A1A1A]">
+                      <span key={cat} className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] md:text-xs font-medium border border-white/[0.12] text-neutral-300 bg-white/[0.05]">
                         {cat.charAt(0).toUpperCase() + cat.slice(1)}
                       </span>
                     ))}
                     {wordCount > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs text-neutral-300 border border-[#282828] bg-[#1A1A1A]">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-xs text-neutral-300 border border-white/[0.12] bg-white/[0.05]">
                         <FileText className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
                         <span className="font-medium">{wordCount.toLocaleString()}</span>
                         <span>words</span>
@@ -552,7 +553,7 @@ export default function StoryDetailPage({
                 <section className="space-y-3">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500 text-center">Story</p>
 
-                  <div className="rounded-xl border border-dashed border-[#282828] bg-[#131313] p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-dashed border-white/[0.12] bg-[#131313] p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {audioOptions.length > 0 ? (
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
@@ -563,7 +564,7 @@ export default function StoryDetailPage({
                             className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
                               selectedAudioId
                                 ? 'bg-[#39FF14] hover:bg-[#00CC44] cursor-pointer'
-                                : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
+                                : 'bg-white/[0.06] text-neutral-600 cursor-not-allowed'
                             }`}
                           >
                             {isPlaying
@@ -576,7 +577,7 @@ export default function StoryDetailPage({
                             <button
                               type="button"
                               onClick={() => setIsAudioDropdownOpen(!isAudioDropdownOpen)}
-                              className="w-full px-4 py-2.5 rounded-full bg-[#1F1F1F] text-white border-2 border-[#333] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
+                              className="w-full px-4 py-2.5 rounded-full bg-white/[0.06] text-white border border-white/[0.12] hover:border-primary-500 focus:border-primary-500 focus:outline-none transition-colors cursor-pointer flex items-center justify-between"
                             >
                               <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedOption?.iconColor || 'bg-primary-500/20 text-primary-500'}`}>
@@ -596,14 +597,14 @@ export default function StoryDetailPage({
                             {isAudioDropdownOpen && (
                               <>
                                 <div className="fixed inset-0 z-10" onClick={() => setIsAudioDropdownOpen(false)} />
-                                <div className="absolute z-20 w-full mt-2 py-2 bg-[#1F1F1F] border-2 border-[#333] rounded-2xl shadow-xl max-h-[50vh] overflow-y-auto">
+                                <div className={`${GLASS_MENU} absolute z-20 w-full mt-2 py-2 max-h-[50vh] overflow-y-auto`}>
                                   {audioOptions.map((option) => {
                                     const OptionIcon = option.icon
                                     return (
                                       <div
                                         key={option.id}
                                         onClick={() => handleSelectAudio(option.id)}
-                                        className={`px-4 py-3 hover:bg-[#2A2A2A] cursor-pointer transition-colors border-b border-[#333] last:border-b-0 ${
+                                        className={`px-4 py-3 hover:bg-white/[0.08] cursor-pointer transition-colors border-b border-white/[0.12] last:border-b-0 ${
                                           selectedAudioId === option.id ? 'bg-primary-500/10' : ''
                                         }`}
                                       >
@@ -641,7 +642,7 @@ export default function StoryDetailPage({
                               max={duration || 0}
                               value={currentTime}
                               onChange={handleSeek}
-                              className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#39FF14] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(57,255,20,0.5)]"
+                              className="w-full h-2 bg-white/15 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#39FF14] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(57,255,20,0.5)]"
                               style={{
                                 background: duration
                                   ? `linear-gradient(to right, #39FF14 0%, #39FF14 ${(currentTime / duration) * 100}%, #404040 ${(currentTime / duration) * 100}%, #404040 100%)`
@@ -662,7 +663,7 @@ export default function StoryDetailPage({
                       </div>
                     )}
 
-                    <div className="flex flex-col items-center justify-center text-center gap-3 md:border-l md:border-[#282828] md:pl-4">
+                    <div className="flex flex-col items-center justify-center text-center gap-3 md:border-l md:border-white/[0.12] md:pl-4">
                       <Headphones className="w-6 h-6 text-primary-500 hidden md:block" />
                       <p className="text-sm text-neutral-400">
                         {audioOptions.length > 0 ? 'Generate more tracks or record your voice' : 'Generate your first track or record your voice'}
@@ -733,11 +734,11 @@ export default function StoryDetailPage({
                   <p className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Generation details</p>
                   <div className={`h-px flex-1 ${inShell ? 'bg-white/10' : 'bg-[#2A2A2A]'}`} />
                 </div>
-                <div className="rounded-xl border border-[#282828] bg-[#131313] overflow-hidden">
+                <div className="rounded-xl border border-white/[0.12] bg-[#131313] overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setShowSourceInput(!showSourceInput)}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1A1A1A]/80 transition-colors text-left border-b border-[#282828]"
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.08] transition-colors text-left border-b border-white/[0.12]"
                   >
                     <span className="text-[11px] uppercase tracking-[0.22em] text-neutral-500">Show source and context</span>
                     {showSourceInput
@@ -823,7 +824,7 @@ export default function StoryDetailPage({
                     <p className="text-xs text-neutral-500 uppercase tracking-widest">Life Areas Used</p>
                     <div className="space-y-2">
                       {Object.entries(story.metadata.category_data as Record<string, { visionText?: string; focusNotes?: string }>).map(([cat, data]) => (
-                        <div key={cat} className="rounded-xl bg-neutral-800/50 border border-neutral-700/50 px-4 py-3">
+                        <div key={cat} className="rounded-xl bg-white/[0.06] border border-white/[0.12] px-4 py-3">
                           <p className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-1">{cat}</p>
                           {data.visionText && (
                             <p className="text-sm text-neutral-300 leading-relaxed line-clamp-3">{data.visionText}</p>

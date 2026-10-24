@@ -33,7 +33,7 @@ import { useStoryStudio } from '@/components/story-studio'
 import { VISION_CATEGORIES } from '@/lib/design-system/vision-categories'
 import { getStoryKind, getStoryKindLabel, storyCreateHref, type StoryKind, type StoryMetadata } from '@/lib/stories/types'
 import { useInShell } from '@/lib/app-shell/shell-context'
-import { GLASS_CARD, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
+import { GLASS_CARD, PILL_BASE, PILL_OFF, PILL_ON } from '@/lib/app-shell/glass'
 import { CategorySheet } from '@/components/app-shell/forms/CategorySheet'
 
 const ENTITY_TYPE_META: Record<string, { label: string; badgeColor: string; icon: React.ElementType }> = {
@@ -310,7 +310,7 @@ export default function StoryHubPage() {
                 className={`p-3 rounded-full transition-all ${
                   searchOpen
                     ? 'bg-[#39FF14] text-black shadow-lg'
-                    : 'bg-[#1F1F1F] text-neutral-400 hover:text-white hover:bg-[#2A2A2A]'
+                    : 'bg-white/[0.06] text-neutral-400 hover:text-white hover:bg-white/[0.08]'
                 }`}
                 aria-label="Search stories"
               >
@@ -343,7 +343,7 @@ export default function StoryHubPage() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search stories..."
-                className="w-full rounded-xl bg-[#1A1A1A] border border-white/[0.08] pl-10 pr-10 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-[#39FF14]/30 focus:ring-1 focus:ring-[#39FF14]/20 transition-colors"
+                className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] pl-10 pr-10 py-2.5 text-sm text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:border-[#39FF14]/30 focus:ring-1 focus:ring-[#39FF14]/20 transition-colors"
               />
               {searchQuery && (
                 <button
@@ -388,11 +388,7 @@ export default function StoryHubPage() {
                             ? 'spoken-spark'
                             : undefined
                       }
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        kindFilter === opt.value
-                          ? 'bg-[#39FF14]/20 text-white border border-[#39FF14]/30'
-                          : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:text-white hover:border-neutral-500'
-                      }`}
+                      className={`${PILL_BASE} ${kindFilter === opt.value ? PILL_ON : PILL_OFF}`}
                     >
                       {opt.label}
                     </button>
@@ -419,11 +415,7 @@ export default function StoryHubPage() {
                       key={opt.value}
                       type="button"
                       onClick={() => setActivePill(opt.value)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        activePill === opt.value
-                          ? 'bg-[#39FF14]/20 text-white border border-[#39FF14]/30'
-                          : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:text-white hover:border-neutral-500'
-                      }`}
+                      className={`${PILL_BASE} ${activePill === opt.value ? PILL_ON : PILL_OFF}`}
                     >
                       {opt.label}
                     </button>
@@ -440,7 +432,7 @@ export default function StoryHubPage() {
             className="p-8 md:p-12 text-center"
             data-tour={kindFilter === 'incantation' || kindFilter === 'spark_query' ? 'spoken-open' : 'stories-list'}
           >
-            <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-white/[0.06] flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-neutral-500" />
             </div>
             <Text className="text-neutral-400 mb-6">
@@ -525,7 +517,7 @@ export default function StoryHubPage() {
                             const cat = VISION_CATEGORIES.find(c => c.key === key)
                             if (!cat) return null
                             return (
-                              <span key={key} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border border-neutral-600/50 text-neutral-300 bg-neutral-800/50 font-medium flex-shrink-0">
+                              <span key={key} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full border border-white/[0.12] text-neutral-300 bg-white/[0.06] font-medium flex-shrink-0">
                                 {cat.label}
                               </span>
                             )

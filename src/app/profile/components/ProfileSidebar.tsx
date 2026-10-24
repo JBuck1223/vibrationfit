@@ -184,7 +184,7 @@ export function ProfileSidebar({ activeSection, onSectionChange, completedSectio
         className={`w-full text-left p-3 rounded-lg transition-all duration-200 group ${
           isActive
             ? 'bg-primary-500/20 border border-primary-500/50 text-primary-400'
-            : 'hover:bg-neutral-800 border border-transparent text-neutral-300'
+            : 'hover:bg-white/[0.06] border border-transparent text-neutral-300'
         }`}
       >
         <div className="flex items-center gap-3">
@@ -230,7 +230,7 @@ export function ProfileSidebar({ activeSection, onSectionChange, completedSectio
       <nav className="space-y-6">
         {/* Basics Section */}
         <div>
-          <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2 px-3">
+          <h3 className="text-xs font-medium text-white/60 mb-2 px-3">
             Basics
           </h3>
           <div className="space-y-2">
@@ -240,7 +240,7 @@ export function ProfileSidebar({ activeSection, onSectionChange, completedSectio
 
         {/* Life Vision Categories */}
         <div>
-          <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2 px-3">
+          <h3 className="text-xs font-medium text-white/60 mb-2 px-3">
             12 Life Categories
           </h3>
           <div className="space-y-2">
